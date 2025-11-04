@@ -1,21 +1,645 @@
-var Bi=Object.defineProperty;var Ui=e=>{throw TypeError(e)};var uo=(e,t,r)=>t in e?Bi(e,t,{enumerable:!0,configurable:!0,writable:!0,value:r}):e[t]=r;var fo=(e,t)=>{for(var r in t)Bi(e,r,{get:t[r],enumerable:!0})};var g=(e,t,r)=>uo(e,typeof t!="symbol"?t+"":t,r),fr=(e,t,r)=>t.has(e)||Ui("Cannot "+r);var P=(e,t,r)=>(fr(e,t,"read from private field"),r?r.call(e):t.get(e)),z=(e,t,r)=>t.has(e)?Ui("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,r),V=(e,t,r,i)=>(fr(e,t,"write to private field"),i?i.call(e,r):t.set(e,r),r),Rt=(e,t,r)=>(fr(e,t,"access private method"),r);import{html as fe,LitElement as ro,css as io,unsafeCSS as to,nothing as ce}from"/deps/lit-all.min.js";var Z="(max-width: 767px)",ae="(max-width: 1199px)",k="(min-width: 768px)",N="(min-width: 1200px)",xe="(min-width: 1600px)";function Nt(){return window.matchMedia(Z)}function Mt(){return window.matchMedia(N)}function Ot(){return Nt().matches}function It(){return Mt().matches}var et=class{constructor(t,r){this.key=Symbol("match-media-key"),this.matches=!1,this.host=t,this.host.addController(this),this.media=window.matchMedia(r),this.matches=this.media.matches,this.onChange=this.onChange.bind(this),t.addController(this)}hostConnected(){var t;(t=this.media)==null||t.addEventListener("change",this.onChange)}hostDisconnected(){var t;(t=this.media)==null||t.removeEventListener("change",this.onChange)}onChange(t){this.matches!==t.matches&&(this.matches=t.matches,this.host.requestUpdate(this.key,!this.matches))}};var Fi="hashchange";function go(e=window.location.hash){let t=[],r=e.replace(/^#/,"").split("&");for(let i of r){let[n,a=""]=i.split("=");n&&t.push([n,decodeURIComponent(a.replace(/\+/g," "))])}return Object.fromEntries(t)}function tt(e){let t=new URLSearchParams(window.location.hash.slice(1));Object.entries(e).forEach(([n,a])=>{a?t.set(n,a):t.delete(n)}),t.sort();let r=t.toString();if(r===window.location.hash)return;let i=window.scrollY||document.documentElement.scrollTop;window.location.hash=r,window.scrollTo(0,i)}function Gi(e){let t=()=>{if(window.location.hash&&!window.location.hash.includes("="))return;let r=go(window.location.hash);e(r)};return t(),window.addEventListener(Fi,t),()=>{window.removeEventListener(Fi,t)}}var zr={};fo(zr,{CLASS_NAME_FAILED:()=>Tr,CLASS_NAME_HIDDEN:()=>bo,CLASS_NAME_PENDING:()=>wr,CLASS_NAME_RESOLVED:()=>_r,CheckoutWorkflow:()=>Io,CheckoutWorkflowStep:()=>q,Commitment:()=>Te,ERROR_MESSAGE_BAD_REQUEST:()=>Pr,ERROR_MESSAGE_MISSING_LITERALS_URL:()=>No,ERROR_MESSAGE_OFFER_NOT_FOUND:()=>Cr,EVENT_AEM_ERROR:()=>Ar,EVENT_AEM_LOAD:()=>yr,EVENT_MAS_ERROR:()=>Sr,EVENT_MAS_READY:()=>Ro,EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE:()=>Co,EVENT_MERCH_CARD_ACTION_MENU_TOGGLE:()=>xr,EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED:()=>rt,EVENT_MERCH_CARD_COLLECTION_SHOWMORE:()=>vr,EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED:()=>it,EVENT_MERCH_CARD_COLLECTION_SORT:()=>br,EVENT_MERCH_CARD_QUANTITY_CHANGE:()=>Po,EVENT_MERCH_OFFER_READY:()=>yo,EVENT_MERCH_OFFER_SELECT_READY:()=>Ao,EVENT_MERCH_QUANTITY_SELECTOR_CHANGE:()=>_o,EVENT_MERCH_SEARCH_CHANGE:()=>Lo,EVENT_MERCH_SIDENAV_SELECT:()=>Er,EVENT_MERCH_STOCK_CHANGE:()=>To,EVENT_MERCH_STORAGE_CHANGE:()=>wo,EVENT_OFFER_SELECTED:()=>So,EVENT_TYPE_FAILED:()=>Lr,EVENT_TYPE_READY:()=>kt,EVENT_TYPE_RESOLVED:()=>Rr,Env:()=>he,FF_DEFAULTS:()=>Ee,HEADER_X_REQUEST_ID:()=>nt,LOG_NAMESPACE:()=>Nr,Landscape:()=>ve,MARK_DURATION_SUFFIX:()=>Ur,MARK_START_SUFFIX:()=>Br,MODAL_TYPE_3_IN_1:()=>we,NAMESPACE:()=>xo,PARAM_AOS_API_KEY:()=>Mo,PARAM_ENV:()=>Or,PARAM_LANDSCAPE:()=>Ir,PARAM_MAS_PREVIEW:()=>Mr,PARAM_WCS_API_KEY:()=>Oo,PROVIDER_ENVIRONMENT:()=>Dr,SELECTOR_MAS_CHECKOUT_LINK:()=>$i,SELECTOR_MAS_ELEMENT:()=>gr,SELECTOR_MAS_INLINE_PRICE:()=>te,SELECTOR_MAS_SP_BUTTON:()=>Eo,SELECTOR_MAS_UPT_LINK:()=>zi,SORT_ORDER:()=>se,STATE_FAILED:()=>oe,STATE_PENDING:()=>be,STATE_RESOLVED:()=>de,SUPPORTED_COUNTRIES:()=>$r,SUPPORTED_LANGUAGES:()=>Gr,SUPPORTED_LANGUAGE_COUNTRY:()=>at,TAG_NAME_SERVICE:()=>vo,TEMPLATE_PRICE:()=>ko,TEMPLATE_PRICE_ANNUAL:()=>Do,TEMPLATE_PRICE_LEGAL:()=>Fr,TEMPLATE_PRICE_STRIKETHROUGH:()=>Ho,Term:()=>ee,WCS_PROD_URL:()=>kr,WCS_STAGE_URL:()=>Hr});var Te=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),ee=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"}),xo="merch",bo="hidden",kt="wcms:commerce:ready",vo="mas-commerce-service",te='span[is="inline-price"][data-wcs-osi]',$i='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]',Eo="sp-button[data-wcs-osi]",zi='a[is="upt-link"]',gr=`${te},${$i},${zi}`,yo="merch-offer:ready",Ao="merch-offer-select:ready",xr="merch-card:action-menu-toggle",So="merch-offer:selected",To="merch-stock:change",wo="merch-storage:change",_o="merch-quantity-selector:change",Po="merch-card-quantity:change",Co="merch-modal:addon-and-quantity-update",Lo="merch-search:change",br="merch-card-collection:sort",rt="merch-card-collection:literals-changed",it="merch-card-collection:sidenav-attached",vr="merch-card-collection:showmore",Er="merch-sidenav:select",yr="aem:load",Ar="aem:error",Ro="mas:ready",Sr="mas:error",Tr="placeholder-failed",wr="placeholder-pending",_r="placeholder-resolved",Pr="Bad WCS request",Cr="Commerce offer not found",No="Literals URL not provided",Lr="mas:failed",Rr="mas:resolved",Nr="mas/commerce",Mr="mas.preview",Or="commerce.env",Ir="commerce.landscape",Mo="commerce.aosKey",Oo="commerce.wcsKey",kr="https://www.adobe.com/web_commerce_artifact",Hr="https://www.stage.adobe.com/web_commerce_artifact_stage",oe="failed",be="pending",de="resolved",ve={DRAFT:"DRAFT",PUBLISHED:"PUBLISHED"},nt="X-Request-Id",q=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"}),Io="UCv3",he=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"}),Dr={PRODUCTION:"PRODUCTION"},we={TWP:"twp",D2P:"d2p",CRM:"crm"},Br=":start",Ur=":duration",ko="price",Ho="price-strikethrough",Do="annual",Fr="legal",Ee="mas-ff-defaults",se={alphabetical:"alphabetical",authored:"authored"},at=["en_US","ar_DZ","ar_EG","ar_SA","bg_BG","cs_CZ","da_DK","de_AT","de_CH","de_DE","de_LU","el_GR","en_AU","en_AZ","en_BE","en_CA","en_DZ","en_EG","en_GB","en_GR","en_ID","en_IE","en_IN","en_LU","en_MT","en_MU","en_MY","en_NG","en_NZ","en_SA","en_SG","en_TH","en_ZA","es_AR","es_CL","es_CO","es_CR","es_DO","es_EC","es_ES","es_GT","es_MX","es_PE","es_US","et_EE","fi_FI","fr_BE","fr_CH","fr_FR","fr_LU","hi_IN","hu_HU","in_ID","it_CH","it_IT","iw_IL","ja_JP","ko_KR","lt_LT","lv_LV","ms_MY","nb_NO","nl_BE","nl_NL","pl_PL","pt_BR","pt_PT","ro_RO","ru_AZ","ru_RU","sk_SK","sl_SI","sv_SE","th_TH","tr_TR","uk_UA","zh-Hans_CN","zh-Hant_HK","zh-Hant_TW"],Gr=["en","ar","bg","cs","da","de","el","es","et","fi","fr","hi","hu","in","it","iw","ja","ko","lt","lv","ms","MULT","nb","nl","pl","pt","ro","ru","sk","sl","sv","th","tr","uk","zh-Hans","zh-Hant","fr-ca","he","no","zh-hant","fil","id","vi"],$r=["AE","AFRICA","AR","AT","AU","AZ","BE","BG","BR","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GB","GE","GR","GT","HK","HU","ID","IE","IL","IN","IT","JP","KR","KW","LA","LT","LU","LV","MENA","MT","MU","MX","MY","NG","NL","NO","NZ","PE","PH","PL","PR","PT","QA","RO","RU","SA","SE","SG","SI","SK","TH","TR","TW","UA","UK","US","VN","ZA","CIS","hant"];var Bo="mas-commerce-service";var ot=(e,t)=>e?.querySelector(`[slot="${t}"]`)?.textContent?.trim();function _e(e,t={},r=null,i=null){let n=i?document.createElement(e,{is:i}):document.createElement(e);r instanceof HTMLElement?n.appendChild(r):n.innerHTML=r;for(let[a,o]of Object.entries(t))n.setAttribute(a,o);return n}function Ht(e){return`startTime:${e.startTime.toFixed(2)}|duration:${e.duration.toFixed(2)}`}function Vi(){return window.matchMedia("(max-width: 1024px)").matches}function st(){return document.getElementsByTagName(Bo)?.[0]}function ct(e){let t=window.getComputedStyle(e);return e.offsetHeight+parseFloat(t.marginTop)+parseFloat(t.marginBottom)}import{html as Dt,nothing as Uo}from"/deps/lit-all.min.js";var He,lt=class lt{constructor(t){g(this,"card");z(this,He);this.card=t,this.insertVariantStyle()}getContainer(){return V(this,He,P(this,He)??this.card.closest('[class*="-merch-cards"]')??this.card.parentElement),P(this,He)}insertVariantStyle(){if(!lt.styleMap[this.card.variant]){lt.styleMap[this.card.variant]=!0;let t=document.createElement("style");t.innerHTML=this.getGlobalCSS(),document.head.appendChild(t)}}updateCardElementMinHeight(t,r){if(!t)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),a=parseInt(this.getContainer().style.getPropertyValue(i))||0;n>a&&this.getContainer().style.setProperty(i,`${n}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),Dt`
+var __defProp = Object.defineProperty;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+
+// src/merch-card-collection.js
+import { html as html12, LitElement, css as css9, unsafeCSS as unsafeCSS2, nothing as nothing3 } from "/deps/lit-all.min.js";
+
+// src/media.js
+var MOBILE_LANDSCAPE = "(max-width: 767px)";
+var TABLET_DOWN = "(max-width: 1199px)";
+var TABLET_UP = "(min-width: 768px)";
+var DESKTOP_UP = "(min-width: 1200px)";
+var LARGE_DESKTOP = "(min-width: 1600px)";
+function matchMobile() {
+  return window.matchMedia(MOBILE_LANDSCAPE);
+}
+function matchDesktop() {
+  return window.matchMedia(DESKTOP_UP);
+}
+function isMobile() {
+  return matchMobile().matches;
+}
+function isDesktop() {
+  return matchDesktop().matches;
+}
+
+// node_modules/@spectrum-web-components/reactive-controllers/src/MatchMedia.js
+var MatchMediaController = class {
+  constructor(e, t) {
+    this.key = Symbol("match-media-key");
+    this.matches = false;
+    this.host = e, this.host.addController(this), this.media = window.matchMedia(t), this.matches = this.media.matches, this.onChange = this.onChange.bind(this), e.addController(this);
+  }
+  hostConnected() {
+    var e;
+    (e = this.media) == null || e.addEventListener("change", this.onChange);
+  }
+  hostDisconnected() {
+    var e;
+    (e = this.media) == null || e.removeEventListener("change", this.onChange);
+  }
+  onChange(e) {
+    this.matches !== e.matches && (this.matches = e.matches, this.host.requestUpdate(this.key, !this.matches));
+  }
+};
+
+// src/deeplink.js
+var EVENT_HASHCHANGE = "hashchange";
+function parseState(hash = window.location.hash) {
+  const result = [];
+  const keyValuePairs = hash.replace(/^#/, "").split("&");
+  for (const pair of keyValuePairs) {
+    const [key, value = ""] = pair.split("=");
+    if (key) {
+      result.push([key, decodeURIComponent(value.replace(/\+/g, " "))]);
+    }
+  }
+  return Object.fromEntries(result);
+}
+function pushState(state) {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  Object.entries(state).forEach(([key, value2]) => {
+    if (value2) {
+      hash.set(key, value2);
+    } else {
+      hash.delete(key);
+    }
+  });
+  hash.sort();
+  const value = hash.toString();
+  if (value === window.location.hash) return;
+  let lastScrollTop = window.scrollY || document.documentElement.scrollTop;
+  window.location.hash = value;
+  window.scrollTo(0, lastScrollTop);
+}
+function deeplink(callback) {
+  const handler = () => {
+    if (window.location.hash && !window.location.hash.includes("=")) return;
+    const state = parseState(window.location.hash);
+    callback(state);
+  };
+  handler();
+  window.addEventListener(EVENT_HASHCHANGE, handler);
+  return () => {
+    window.removeEventListener(EVENT_HASHCHANGE, handler);
+  };
+}
+
+// src/constants.js
+var constants_exports = {};
+__export(constants_exports, {
+  CLASS_NAME_FAILED: () => CLASS_NAME_FAILED,
+  CLASS_NAME_HIDDEN: () => CLASS_NAME_HIDDEN,
+  CLASS_NAME_PENDING: () => CLASS_NAME_PENDING,
+  CLASS_NAME_RESOLVED: () => CLASS_NAME_RESOLVED,
+  CheckoutWorkflow: () => CheckoutWorkflow,
+  CheckoutWorkflowStep: () => CheckoutWorkflowStep,
+  Commitment: () => Commitment,
+  ERROR_MESSAGE_BAD_REQUEST: () => ERROR_MESSAGE_BAD_REQUEST,
+  ERROR_MESSAGE_MISSING_LITERALS_URL: () => ERROR_MESSAGE_MISSING_LITERALS_URL,
+  ERROR_MESSAGE_OFFER_NOT_FOUND: () => ERROR_MESSAGE_OFFER_NOT_FOUND,
+  EVENT_AEM_ERROR: () => EVENT_AEM_ERROR,
+  EVENT_AEM_LOAD: () => EVENT_AEM_LOAD,
+  EVENT_MAS_ERROR: () => EVENT_MAS_ERROR,
+  EVENT_MAS_READY: () => EVENT_MAS_READY,
+  EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE: () => EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+  EVENT_MERCH_CARD_ACTION_MENU_TOGGLE: () => EVENT_MERCH_CARD_ACTION_MENU_TOGGLE,
+  EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED: () => EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+  EVENT_MERCH_CARD_COLLECTION_SHOWMORE: () => EVENT_MERCH_CARD_COLLECTION_SHOWMORE,
+  EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED: () => EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+  EVENT_MERCH_CARD_COLLECTION_SORT: () => EVENT_MERCH_CARD_COLLECTION_SORT,
+  EVENT_MERCH_CARD_QUANTITY_CHANGE: () => EVENT_MERCH_CARD_QUANTITY_CHANGE,
+  EVENT_MERCH_OFFER_READY: () => EVENT_MERCH_OFFER_READY,
+  EVENT_MERCH_OFFER_SELECT_READY: () => EVENT_MERCH_OFFER_SELECT_READY,
+  EVENT_MERCH_QUANTITY_SELECTOR_CHANGE: () => EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+  EVENT_MERCH_SEARCH_CHANGE: () => EVENT_MERCH_SEARCH_CHANGE,
+  EVENT_MERCH_SIDENAV_SELECT: () => EVENT_MERCH_SIDENAV_SELECT,
+  EVENT_MERCH_STOCK_CHANGE: () => EVENT_MERCH_STOCK_CHANGE,
+  EVENT_MERCH_STORAGE_CHANGE: () => EVENT_MERCH_STORAGE_CHANGE,
+  EVENT_OFFER_SELECTED: () => EVENT_OFFER_SELECTED,
+  EVENT_TYPE_FAILED: () => EVENT_TYPE_FAILED,
+  EVENT_TYPE_READY: () => EVENT_TYPE_READY,
+  EVENT_TYPE_RESOLVED: () => EVENT_TYPE_RESOLVED,
+  Env: () => Env,
+  FF_DEFAULTS: () => FF_DEFAULTS,
+  HEADER_X_REQUEST_ID: () => HEADER_X_REQUEST_ID,
+  LOG_NAMESPACE: () => LOG_NAMESPACE,
+  Landscape: () => Landscape,
+  MARK_DURATION_SUFFIX: () => MARK_DURATION_SUFFIX,
+  MARK_START_SUFFIX: () => MARK_START_SUFFIX,
+  MODAL_TYPE_3_IN_1: () => MODAL_TYPE_3_IN_1,
+  NAMESPACE: () => NAMESPACE,
+  PARAM_AOS_API_KEY: () => PARAM_AOS_API_KEY,
+  PARAM_ENV: () => PARAM_ENV,
+  PARAM_LANDSCAPE: () => PARAM_LANDSCAPE,
+  PARAM_MAS_PREVIEW: () => PARAM_MAS_PREVIEW,
+  PARAM_WCS_API_KEY: () => PARAM_WCS_API_KEY,
+  PROVIDER_ENVIRONMENT: () => PROVIDER_ENVIRONMENT,
+  SELECTOR_MAS_CHECKOUT_LINK: () => SELECTOR_MAS_CHECKOUT_LINK,
+  SELECTOR_MAS_ELEMENT: () => SELECTOR_MAS_ELEMENT,
+  SELECTOR_MAS_INLINE_PRICE: () => SELECTOR_MAS_INLINE_PRICE,
+  SELECTOR_MAS_SP_BUTTON: () => SELECTOR_MAS_SP_BUTTON,
+  SELECTOR_MAS_UPT_LINK: () => SELECTOR_MAS_UPT_LINK,
+  SORT_ORDER: () => SORT_ORDER,
+  STATE_FAILED: () => STATE_FAILED,
+  STATE_PENDING: () => STATE_PENDING,
+  STATE_RESOLVED: () => STATE_RESOLVED,
+  SUPPORTED_COUNTRIES: () => SUPPORTED_COUNTRIES,
+  SUPPORTED_LANGUAGES: () => SUPPORTED_LANGUAGES,
+  SUPPORTED_LANGUAGE_COUNTRY: () => SUPPORTED_LANGUAGE_COUNTRY,
+  TAG_NAME_SERVICE: () => TAG_NAME_SERVICE,
+  TEMPLATE_PRICE: () => TEMPLATE_PRICE,
+  TEMPLATE_PRICE_ANNUAL: () => TEMPLATE_PRICE_ANNUAL,
+  TEMPLATE_PRICE_LEGAL: () => TEMPLATE_PRICE_LEGAL,
+  TEMPLATE_PRICE_STRIKETHROUGH: () => TEMPLATE_PRICE_STRIKETHROUGH,
+  Term: () => Term,
+  WCS_PROD_URL: () => WCS_PROD_URL,
+  WCS_STAGE_URL: () => WCS_STAGE_URL
+});
+var Commitment = Object.freeze({
+  MONTH: "MONTH",
+  YEAR: "YEAR",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  PERPETUAL: "PERPETUAL",
+  TERM_LICENSE: "TERM_LICENSE",
+  ACCESS_PASS: "ACCESS_PASS",
+  THREE_MONTHS: "THREE_MONTHS",
+  SIX_MONTHS: "SIX_MONTHS"
+});
+var Term = Object.freeze({
+  ANNUAL: "ANNUAL",
+  MONTHLY: "MONTHLY",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  P1D: "P1D",
+  P1Y: "P1Y",
+  P3Y: "P3Y",
+  P10Y: "P10Y",
+  P15Y: "P15Y",
+  P3D: "P3D",
+  P7D: "P7D",
+  P30D: "P30D",
+  HALF_YEARLY: "HALF_YEARLY",
+  QUARTERLY: "QUARTERLY"
+});
+var NAMESPACE = "merch";
+var CLASS_NAME_HIDDEN = "hidden";
+var EVENT_TYPE_READY = "wcms:commerce:ready";
+var TAG_NAME_SERVICE = "mas-commerce-service";
+var SELECTOR_MAS_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
+var SELECTOR_MAS_CHECKOUT_LINK = 'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';
+var SELECTOR_MAS_SP_BUTTON = "sp-button[data-wcs-osi]";
+var SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
+var SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
+var EVENT_MERCH_OFFER_READY = "merch-offer:ready";
+var EVENT_MERCH_OFFER_SELECT_READY = "merch-offer-select:ready";
+var EVENT_MERCH_CARD_ACTION_MENU_TOGGLE = "merch-card:action-menu-toggle";
+var EVENT_OFFER_SELECTED = "merch-offer:selected";
+var EVENT_MERCH_STOCK_CHANGE = "merch-stock:change";
+var EVENT_MERCH_STORAGE_CHANGE = "merch-storage:change";
+var EVENT_MERCH_QUANTITY_SELECTOR_CHANGE = "merch-quantity-selector:change";
+var EVENT_MERCH_CARD_QUANTITY_CHANGE = "merch-card-quantity:change";
+var EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE = "merch-modal:addon-and-quantity-update";
+var EVENT_MERCH_SEARCH_CHANGE = "merch-search:change";
+var EVENT_MERCH_CARD_COLLECTION_SORT = "merch-card-collection:sort";
+var EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED = "merch-card-collection:literals-changed";
+var EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED = "merch-card-collection:sidenav-attached";
+var EVENT_MERCH_CARD_COLLECTION_SHOWMORE = "merch-card-collection:showmore";
+var EVENT_MERCH_SIDENAV_SELECT = "merch-sidenav:select";
+var EVENT_AEM_LOAD = "aem:load";
+var EVENT_AEM_ERROR = "aem:error";
+var EVENT_MAS_READY = "mas:ready";
+var EVENT_MAS_ERROR = "mas:error";
+var CLASS_NAME_FAILED = "placeholder-failed";
+var CLASS_NAME_PENDING = "placeholder-pending";
+var CLASS_NAME_RESOLVED = "placeholder-resolved";
+var ERROR_MESSAGE_BAD_REQUEST = "Bad WCS request";
+var ERROR_MESSAGE_OFFER_NOT_FOUND = "Commerce offer not found";
+var ERROR_MESSAGE_MISSING_LITERALS_URL = "Literals URL not provided";
+var EVENT_TYPE_FAILED = "mas:failed";
+var EVENT_TYPE_RESOLVED = "mas:resolved";
+var LOG_NAMESPACE = "mas/commerce";
+var PARAM_MAS_PREVIEW = "mas.preview";
+var PARAM_ENV = "commerce.env";
+var PARAM_LANDSCAPE = "commerce.landscape";
+var PARAM_AOS_API_KEY = "commerce.aosKey";
+var PARAM_WCS_API_KEY = "commerce.wcsKey";
+var WCS_PROD_URL = "https://www.adobe.com/web_commerce_artifact";
+var WCS_STAGE_URL = "https://www.stage.adobe.com/web_commerce_artifact_stage";
+var STATE_FAILED = "failed";
+var STATE_PENDING = "pending";
+var STATE_RESOLVED = "resolved";
+var Landscape = {
+  DRAFT: "DRAFT",
+  PUBLISHED: "PUBLISHED"
+};
+var HEADER_X_REQUEST_ID = "X-Request-Id";
+var CheckoutWorkflowStep = Object.freeze({
+  SEGMENTATION: "segmentation",
+  BUNDLE: "bundle",
+  COMMITMENT: "commitment",
+  RECOMMENDATION: "recommendation",
+  EMAIL: "email",
+  PAYMENT: "payment",
+  CHANGE_PLAN_TEAM_PLANS: "change-plan/team-upgrade/plans",
+  CHANGE_PLAN_TEAM_PAYMENT: "change-plan/team-upgrade/payment"
+});
+var CheckoutWorkflow = "UCv3";
+var Env = Object.freeze({
+  STAGE: "STAGE",
+  PRODUCTION: "PRODUCTION",
+  LOCAL: "LOCAL"
+});
+var PROVIDER_ENVIRONMENT = {
+  PRODUCTION: "PRODUCTION"
+};
+var MODAL_TYPE_3_IN_1 = {
+  TWP: "twp",
+  D2P: "d2p",
+  CRM: "crm"
+};
+var MARK_START_SUFFIX = ":start";
+var MARK_DURATION_SUFFIX = ":duration";
+var TEMPLATE_PRICE = "price";
+var TEMPLATE_PRICE_STRIKETHROUGH = "price-strikethrough";
+var TEMPLATE_PRICE_ANNUAL = "annual";
+var TEMPLATE_PRICE_LEGAL = "legal";
+var FF_DEFAULTS = "mas-ff-defaults";
+var SORT_ORDER = {
+  alphabetical: "alphabetical",
+  authored: "authored"
+};
+var SUPPORTED_LANGUAGE_COUNTRY = [
+  "en_US",
+  "ar_DZ",
+  "ar_EG",
+  "ar_SA",
+  "bg_BG",
+  "cs_CZ",
+  "da_DK",
+  "de_AT",
+  "de_CH",
+  "de_DE",
+  "de_LU",
+  "el_GR",
+  "en_AU",
+  "en_AZ",
+  "en_BE",
+  "en_CA",
+  "en_DZ",
+  "en_EG",
+  "en_GB",
+  "en_GR",
+  "en_ID",
+  "en_IE",
+  "en_IN",
+  "en_LU",
+  "en_MT",
+  "en_MU",
+  "en_MY",
+  "en_NG",
+  "en_NZ",
+  "en_SA",
+  "en_SG",
+  "en_TH",
+  "en_ZA",
+  "es_AR",
+  "es_CL",
+  "es_CO",
+  "es_CR",
+  "es_DO",
+  "es_EC",
+  "es_ES",
+  "es_GT",
+  "es_MX",
+  "es_PE",
+  "es_US",
+  "et_EE",
+  "fi_FI",
+  "fr_BE",
+  "fr_CH",
+  "fr_FR",
+  "fr_LU",
+  "hi_IN",
+  "hu_HU",
+  "in_ID",
+  "it_CH",
+  "it_IT",
+  "iw_IL",
+  "ja_JP",
+  "ko_KR",
+  "lt_LT",
+  "lv_LV",
+  "ms_MY",
+  "nb_NO",
+  "nl_BE",
+  "nl_NL",
+  "pl_PL",
+  "pt_BR",
+  "pt_PT",
+  "ro_RO",
+  "ru_AZ",
+  "ru_RU",
+  "sk_SK",
+  "sl_SI",
+  "sv_SE",
+  "th_TH",
+  "tr_TR",
+  "uk_UA",
+  "zh-Hans_CN",
+  "zh-Hant_HK",
+  "zh-Hant_TW"
+];
+var SUPPORTED_LANGUAGES = [
+  "en",
+  "ar",
+  "bg",
+  "cs",
+  "da",
+  "de",
+  "el",
+  "es",
+  "et",
+  "fi",
+  "fr",
+  "hi",
+  "hu",
+  "in",
+  "it",
+  "iw",
+  "ja",
+  "ko",
+  "lt",
+  "lv",
+  "ms",
+  "nb",
+  "nl",
+  "pl",
+  "pt",
+  "ro",
+  "ru",
+  "sk",
+  "sl",
+  "sv",
+  "th",
+  "tr",
+  "uk",
+  "zh-Hans",
+  "zh-Hant",
+  "fr-ca",
+  "he",
+  "no",
+  "zh-hant",
+  "fil",
+  "id",
+  "vi",
+  "en-gb",
+  "es-419"
+];
+var SUPPORTED_COUNTRIES = [
+  "AE",
+  "AR",
+  "AT",
+  "AU",
+  "AZ",
+  "BE",
+  "BG",
+  "BR",
+  "CA",
+  "CH",
+  "CL",
+  "CN",
+  "CO",
+  "CR",
+  "CY",
+  "CZ",
+  "DE",
+  "DK",
+  "DO",
+  "DZ",
+  "EC",
+  "EE",
+  "EG",
+  "ES",
+  "FI",
+  "FR",
+  "GB",
+  "GE",
+  "GR",
+  "GT",
+  "HK",
+  "HU",
+  "ID",
+  "IE",
+  "IL",
+  "IN",
+  "IT",
+  "JP",
+  "KR",
+  "KW",
+  "LA",
+  "LT",
+  "LU",
+  "LV",
+  "MT",
+  "MU",
+  "MX",
+  "MY",
+  "NG",
+  "NL",
+  "NO",
+  "NZ",
+  "PE",
+  "PH",
+  "PL",
+  "PR",
+  "PT",
+  "QA",
+  "RO",
+  "RU",
+  "SA",
+  "SE",
+  "SG",
+  "SI",
+  "SK",
+  "TH",
+  "TR",
+  "TW",
+  "UA",
+  "US",
+  "VN",
+  "ZA"
+];
+
+// src/utils.js
+var MAS_COMMERCE_SERVICE = "mas-commerce-service";
+var getSlotText = (element, name) => element?.querySelector(`[slot="${name}"]`)?.textContent?.trim();
+function createTag(tag, attributes = {}, content = null, is = null) {
+  const element = is ? document.createElement(tag, { is }) : document.createElement(tag);
+  if (content instanceof HTMLElement) {
+    element.appendChild(content);
+  } else {
+    element.innerHTML = content;
+  }
+  for (const [key, value] of Object.entries(attributes)) {
+    element.setAttribute(key, value);
+  }
+  return element;
+}
+function printMeasure(measure) {
+  return `startTime:${measure.startTime.toFixed(2)}|duration:${measure.duration.toFixed(2)}`;
+}
+function isMobileOrTablet() {
+  return window.matchMedia("(max-width: 1024px)").matches;
+}
+function getService() {
+  return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
+}
+function getOuterHeight(element) {
+  const style = window.getComputedStyle(element);
+  return element.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+}
+
+// src/variants/variant-layout.js
+import { html, nothing } from "/deps/lit-all.min.js";
+var _container;
+var _VariantLayout = class _VariantLayout {
+  constructor(card) {
+    __publicField(this, "card");
+    __privateAdd(this, _container);
+    this.card = card;
+    this.insertVariantStyle();
+  }
+  getContainer() {
+    __privateSet(this, _container, __privateGet(this, _container) ?? this.card.closest('[class*="-merch-cards"]') ?? this.card.parentElement);
+    return __privateGet(this, _container);
+  }
+  insertVariantStyle() {
+    if (!_VariantLayout.styleMap[this.card.variant]) {
+      _VariantLayout.styleMap[this.card.variant] = true;
+      const styles = document.createElement("style");
+      styles.innerHTML = this.getGlobalCSS();
+      document.head.appendChild(styles);
+    }
+  }
+  updateCardElementMinHeight(el, name) {
+    if (!el) return;
+    const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
+    const height = Math.max(
+      0,
+      parseInt(window.getComputedStyle(el).height) || 0
+    );
+    const maxMinHeight = parseInt(
+      this.getContainer().style.getPropertyValue(
+        elMinHeightPropertyName
+      )
+    ) || 0;
+    if (height > maxMinHeight) {
+      this.getContainer().style.setProperty(
+        elMinHeightPropertyName,
+        `${height}px`
+      );
+    }
+  }
+  get badge() {
+    let additionalStyles;
+    if (!this.card.badgeBackgroundColor || !this.card.badgeColor || !this.card.badgeText) {
+      return;
+    }
+    if (this.evergreen) {
+      additionalStyles = `border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`;
+    }
+    return html`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
                 style="background-color: ${this.card.badgeBackgroundColor};
                 color: ${this.card.badgeColor};
-                ${t}"
+                ${additionalStyles}"
             >
                 ${this.card.badgeText}
             </div>
-        `}get cardImage(){return Dt` <div class="image">
+        `;
+  }
+  get cardImage() {
+    return html` <div class="image">
             <slot name="bg-image"></slot>
             ${this.badge}
-        </div>`}getGlobalCSS(){return""}get theme(){return document.querySelector("sp-theme")}get evergreen(){return this.card.classList.contains("intro-pricing")}get promoBottom(){return this.card.classList.contains("promo-bottom")}get headingSelector(){return'[slot="heading-xs"]'}get secureLabel(){return this.card.secureLabel?Dt`<span class="secure-transaction-label"
+        </div>`;
+  }
+  /* c8 ignore next 3 */
+  getGlobalCSS() {
+    return "";
+  }
+  /* c8 ignore next 3 */
+  get theme() {
+    return document.querySelector("sp-theme");
+  }
+  get evergreen() {
+    return this.card.classList.contains("intro-pricing");
+  }
+  get promoBottom() {
+    return this.card.classList.contains("promo-bottom");
+  }
+  get headingSelector() {
+    return '[slot="heading-xs"]';
+  }
+  get secureLabel() {
+    return this.card.secureLabel ? html`<span class="secure-transaction-label"
                   >${this.card.secureLabel}</span
-              >`:Uo}get secureLabelFooter(){return Dt`<footer>
+              >` : nothing;
+  }
+  get secureLabelFooter() {
+    return html`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}renderLayout(){}get aemFragmentMapping(){return Bt(this.card.variant)}};He=new WeakMap,g(lt,"styleMap",{});var I=lt;import{html as Vr,css as Fo}from"/deps/lit-all.min.js";var ji=`
+        </footer>`;
+  }
+  async adjustTitleWidth() {
+    const cardWidth = this.card.getBoundingClientRect().width;
+    const badgeWidth = this.card.badgeElement?.getBoundingClientRect().width || 0;
+    if (cardWidth === 0 || badgeWidth === 0) return;
+    this.card.style.setProperty(
+      "--consonant-merch-card-heading-xs-max-width",
+      `${Math.round(cardWidth - badgeWidth - 16)}px`
+      // consonant-merch-spacing-xs
+    );
+  }
+  async postCardUpdateHook() {
+  }
+  connectedCallbackHook() {
+  }
+  disconnectedCallbackHook() {
+  }
+  /* c8 ignore next 3 */
+  renderLayout() {
+  }
+  get aemFragmentMapping() {
+    return getFragmentMapping(this.card.variant);
+  }
+};
+_container = new WeakMap();
+__publicField(_VariantLayout, "styleMap", {});
+var VariantLayout = _VariantLayout;
+
+// src/variants/catalog.js
+import { html as html2, css } from "/deps/lit-all.min.js";
+
+// src/variants/catalog.css.js
+var CSS = `
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;
@@ -71,19 +695,19 @@ merch-card-collection-header.catalog {
     --merch-card-collection-header-search-max-width: 244px;
 }
 
-@media screen and ${Z} {
+@media screen and ${MOBILE_LANDSCAPE} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-columns: min-content auto;
     }
 }
 
-@media screen and ${k} {
+@media screen and ${TABLET_UP} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-column-gap: 16px;
     }
 }
 
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
     :root {
         --consonant-merch-card-catalog-width: 276px;
     }
@@ -138,13 +762,72 @@ merch-card[variant="catalog"] .payment-details {
   font-style: italic;
   font-weight: 400;
   line-height: var(--consonant-merch-card-body-line-height);
-}`;var qi={badge:!0,ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"}},De=class extends I{constructor(r){super(r);g(this,"dispatchActionMenuToggle",()=>{this.card.dispatchEvent(new CustomEvent(xr,{bubbles:!0,composed:!0,detail:{card:this.card.name,type:"action-menu"}}))});g(this,"toggleActionMenu",r=>{if(!this.actionMenuContentSlot||!r||r.type!=="click"&&r.code!=="Space"&&r.code!=="Enter")return;r.preventDefault(),this.actionMenuContentSlot.classList.toggle("hidden");let i=this.actionMenuContentSlot.classList.contains("hidden");i||this.dispatchActionMenuToggle(),this.setAriaExpanded(this.actionMenu,(!i).toString())});g(this,"toggleActionMenuFromCard",r=>{let i=r?.type==="mouseleave"?!0:void 0;this.card.blur(),this.actionMenu?.classList.remove("always-visible"),this.actionMenuContentSlot&&(i||this.dispatchActionMenuToggle(),this.actionMenuContentSlot.classList.toggle("hidden",i),this.setAriaExpanded(this.actionMenu,"false"))});g(this,"hideActionMenu",r=>{this.actionMenuContentSlot?.classList.add("hidden"),this.setAriaExpanded(this.actionMenu,"false")})}get actionMenu(){return this.card.shadowRoot.querySelector(".action-menu")}get actionMenuContentSlot(){return this.card.shadowRoot.querySelector('slot[name="action-menu-content"]')}renderLayout(){return Vr` <div class="body">
+}`;
+
+// src/variants/catalog.js
+var CATALOG_AEM_FRAGMENT_MAPPING = {
+  badge: true,
+  ctas: { slot: "footer", size: "m" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  prices: { tag: "h3", slot: "heading-xs" },
+  size: ["wide", "super-wide"],
+  title: { tag: "h3", slot: "heading-xs" }
+};
+var Catalog = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __publicField(this, "dispatchActionMenuToggle", () => {
+      this.card.dispatchEvent(
+        new CustomEvent(EVENT_MERCH_CARD_ACTION_MENU_TOGGLE, {
+          bubbles: true,
+          composed: true,
+          detail: {
+            card: this.card.name,
+            type: "action-menu"
+          }
+        })
+      );
+    });
+    __publicField(this, "toggleActionMenu", (e) => {
+      if (!this.actionMenuContentSlot || !e || e.type !== "click" && e.code !== "Space" && e.code !== "Enter")
+        return;
+      e.preventDefault();
+      this.actionMenuContentSlot.classList.toggle("hidden");
+      const isHidden = this.actionMenuContentSlot.classList.contains("hidden");
+      if (!isHidden) this.dispatchActionMenuToggle();
+      this.setAriaExpanded(this.actionMenu, (!isHidden).toString());
+    });
+    __publicField(this, "toggleActionMenuFromCard", (e) => {
+      const retract = e?.type === "mouseleave" ? true : void 0;
+      this.card.blur();
+      this.actionMenu?.classList.remove("always-visible");
+      if (!this.actionMenuContentSlot) return;
+      if (!retract) this.dispatchActionMenuToggle();
+      this.actionMenuContentSlot.classList.toggle("hidden", retract);
+      this.setAriaExpanded(this.actionMenu, "false");
+    });
+    __publicField(this, "hideActionMenu", (e) => {
+      this.actionMenuContentSlot?.classList.add("hidden");
+      this.setAriaExpanded(this.actionMenu, "false");
+    });
+  }
+  get actionMenu() {
+    return this.card.shadowRoot.querySelector(".action-menu");
+  }
+  get actionMenuContentSlot() {
+    return this.card.shadowRoot.querySelector(
+      'slot[name="action-menu-content"]'
+    );
+  }
+  renderLayout() {
+    return html2` <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot> ${this.badge}
                     <div
                         class="action-menu
-                ${Vi()&&this.card.actionMenu?"always-visible":""}
-                ${this.card.actionMenu?"invisible":"hidden"}"
+                ${isMobileOrTablet() && this.card.actionMenu ? "always-visible" : ""}
+                ${!this.card.actionMenu ? "hidden" : "invisible"}"
                         @click="${this.toggleActionMenu}"
                         @keypress="${this.toggleActionMenu}"
                         tabindex="0"
@@ -157,21 +840,39 @@ merch-card[variant="catalog"] .payment-details {
                 <slot
                     name="action-menu-content"
                     class="action-menu-content
-            ${this.card.actionMenuContent?"":"hidden"}"
+            ${!this.card.actionMenuContent ? "hidden" : ""}"
                     @focusout="${this.hideActionMenu}"
                     >${this.card.actionMenuContent}
                 </slot>
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":Vr`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`}
+                ${!this.promoBottom ? html2`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?Vr`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`:""}
+                ${this.promoBottom ? html2`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`}getGlobalCSS(){return ji}setAriaExpanded(r,i){r.setAttribute("aria-expanded",i)}connectedCallbackHook(){this.card.addEventListener("mouseleave",this.toggleActionMenuFromCard)}disconnectedCallbackHook(){this.card.removeEventListener("mouseleave",this.toggleActionMenuFromCard)}};g(De,"variantStyle",Fo`
+            <slot></slot>`;
+  }
+  getGlobalCSS() {
+    return CSS;
+  }
+  setAriaExpanded(element, value) {
+    element.setAttribute("aria-expanded", value);
+  }
+  connectedCallbackHook() {
+    this.card.addEventListener("mouseleave", this.toggleActionMenuFromCard);
+  }
+  disconnectedCallbackHook() {
+    this.card.removeEventListener(
+      "mouseleave",
+      this.toggleActionMenuFromCard
+    );
+  }
+};
+__publicField(Catalog, "variantStyle", css`
         :host([variant='catalog']) {
             min-height: 330px;
             width: var(--consonant-merch-card-catalog-width);
@@ -189,7 +890,13 @@ merch-card[variant="catalog"] .payment-details {
             margin-left: var(--consonant-merch-spacing-xxs);
             box-sizing: border-box;
         }
-    `);import{html as ht}from"/deps/lit-all.min.js";var Wi=`
+    `);
+
+// src/variants/image.js
+import { html as html3 } from "/deps/lit-all.min.js";
+
+// src/variants/image.css.js
+var CSS2 = `
 :root {
   --consonant-merch-card-image-width: 300px;
 }
@@ -201,7 +908,7 @@ merch-card[variant="catalog"] .payment-details {
   grid-template-columns: var(--consonant-merch-card-image-width);
 }
 
-@media screen and ${k} {
+@media screen and ${TABLET_UP} {
   .two-merch-cards.image,
   .three-merch-cards.image,
   .four-merch-cards.image {
@@ -209,7 +916,7 @@ merch-card[variant="catalog"] .payment-details {
   }
 }
 
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-image-width: 378px;
     --consonant-merch-card-image-width-4clm: 276px;
@@ -223,26 +930,45 @@ merch-card[variant="catalog"] .payment-details {
       grid-template-columns: repeat(4, var(--consonant-merch-card-image-width-4clm));
   }
 }
-`;var Ut=class extends I{constructor(t){super(t)}getGlobalCSS(){return Wi}renderLayout(){return ht`${this.cardImage}
+`;
+
+// src/variants/image.js
+var Image = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS2;
+  }
+  renderLayout() {
+    return html3`${this.cardImage}
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?ht`<slot name="body-xs"></slot
-                          ><slot name="promo-text"></slot>`:ht`<slot name="promo-text"></slot
+                ${this.promoBottom ? html3`<slot name="body-xs"></slot
+                          ><slot name="promo-text"></slot>` : html3`<slot name="promo-text"></slot
                           ><slot name="body-xs"></slot>`}
             </div>
-            ${this.evergreen?ht`
+            ${this.evergreen ? html3`
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card.detailBg}"
+                          style="background: ${this.card["detailBg"]}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  `:ht`
+                  ` : html3`
                       <hr />
                       ${this.secureLabelFooter}
-                  `}`}};import{html as Xi}from"/deps/lit-all.min.js";var Yi=`
+                  `}`;
+  }
+};
+
+// src/variants/inline-heading.js
+import { html as html4 } from "/deps/lit-all.min.js";
+
+// src/variants/inline-heading.css.js
+var CSS3 = `
 :root {
   --consonant-merch-card-inline-heading-width: 300px;
 }
@@ -254,7 +980,7 @@ merch-card[variant="catalog"] .payment-details {
     grid-template-columns: var(--consonant-merch-card-inline-heading-width);
 }
 
-@media screen and ${k} {
+@media screen and ${TABLET_UP} {
   .two-merch-cards.inline-heading,
   .three-merch-cards.inline-heading,
   .four-merch-cards.inline-heading {
@@ -262,7 +988,7 @@ merch-card[variant="catalog"] .payment-details {
   }
 }
 
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-inline-heading-width: 378px;
   }
@@ -273,12 +999,23 @@ merch-card[variant="catalog"] .payment-details {
   }
 }
 
-@media screen and ${xe} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.inline-heading {
       grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
   }
 }
-`;var Ft=class extends I{constructor(t){super(t)}getGlobalCSS(){return Yi}renderLayout(){return Xi` ${this.badge}
+`;
+
+// src/variants/inline-heading.js
+var InlineHeading = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS3;
+  }
+  renderLayout() {
+    return html4` ${this.badge}
             <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot>
@@ -286,7 +1023,15 @@ merch-card[variant="catalog"] .payment-details {
                 </div>
                 <slot name="body-xs"></slot>
             </div>
-            ${this.card.customHr?"":Xi`<hr />`} ${this.secureLabelFooter}`}};import{html as Be,css as Go,unsafeCSS as Zi}from"/deps/lit-all.min.js";var Ki=`
+            ${!this.card.customHr ? html4`<hr />` : ""} ${this.secureLabelFooter}`;
+  }
+};
+
+// src/variants/mini-compare-chart.js
+import { html as html5, css as css2, unsafeCSS } from "/deps/lit-all.min.js";
+
+// src/variants/mini-compare-chart.css.js
+var CSS4 = `
   :root {
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-border-color: #E9E9E9;
@@ -625,7 +1370,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* mini compare mobile */ 
-@media screen and ${Z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -668,7 +1413,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${ae} {
+@media screen and ${TABLET_DOWN} {
   merch-card[variant="mini-compare-chart"] [slot="heading-m"] {
     font-size: var(--consonant-merch-card-body-s-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
@@ -699,7 +1444,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
     line-height: var(--consonant-merch-card-body-s-line-height);
   }
 }
-@media screen and ${k} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -741,7 +1486,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* desktop */
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 378px;
     --consonant-merch-card-mini-compare-chart-wide-width: 484px;  
@@ -762,7 +1507,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${xe} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.mini-compare-chart {
       grid-template-columns: repeat(4, var(--consonant-merch-card-mini-compare-chart-width));
   }
@@ -803,20 +1548,184 @@ merch-card .footer-row-cell:nth-child(7) {
 merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;var $o=32,Ue=class extends I{constructor(r){super(r);g(this,"getRowMinHeightPropertyName",r=>`--consonant-merch-card-footer-row-${r}-min-height`);g(this,"getMiniCompareFooter",()=>{let r=this.card.secureLabel?Be`<slot name="secure-transaction-label">
+`;
+
+// src/variants/mini-compare-chart.js
+var FOOTER_ROW_MIN_HEIGHT = 32;
+var MiniCompareChart = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __publicField(this, "getRowMinHeightPropertyName", (index) => `--consonant-merch-card-footer-row-${index}-min-height`);
+    __publicField(this, "getMiniCompareFooter", () => {
+      const secureLabel = this.card.secureLabel ? html5`<slot name="secure-transaction-label">
                   <span class="secure-transaction-label"
                       >${this.card.secureLabel}</span
                   ></slot
-              >`:Be`<slot name="secure-transaction-label"></slot>`;return Be`<footer>${r}<slot name="footer"></slot></footer>`})}getGlobalCSS(){return Ki}adjustMiniCompareBodySlots(){if(this.card.getBoundingClientRect().width<=2)return;this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(".top-section"),"top-section");let r=["heading-m","body-m","heading-m-price","body-xxs","price-commitment","offers","promo-text","callout-content"];this.card.classList.contains("bullet-list")&&r.push("footer-rows"),r.forEach(n=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${n}"]`),n)),this.updateCardElementMinHeight(this.card.shadowRoot.querySelector("footer"),"footer"),this.card.shadowRoot.querySelector(".mini-compare-chart-badge")?.textContent!==""&&this.getContainer().style.setProperty("--consonant-merch-card-mini-compare-chart-top-section-mobile-height","32px")}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let r=this.card.querySelector('[slot="footer-rows"] ul');!r||!r.children||[...r.children].forEach((i,n)=>{let a=Math.max($o,parseFloat(window.getComputedStyle(i).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(n+1)))||0;a>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(n+1),`${a}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(i=>{let n=i.querySelector(".footer-row-cell-description");n&&!n.textContent.trim()&&i.remove()})}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${te}[data-template="price"]`)}get headingMPriceSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0]}toggleAddon(r){let i=this.mainPrice,n=this.headingMPriceSlot;if(!i&&n){let a=r?.getAttribute("plan-type"),o=null;if(r&&a&&(o=r.querySelector(`p[data-plan-type="${a}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-m-price"]').forEach(s=>s.remove()),r.checked){if(o){let s=_e("p",{class:"addon-heading-m-price-addon",slot:"heading-m-price"},o.innerHTML);this.card.appendChild(s)}}else{let s=_e("p",{class:"card-heading",id:"free",slot:"heading-m-price"},"Free");this.card.appendChild(s)}}}async adjustAddon(){await this.card.updateComplete;let r=this.card.addon;if(!r)return;let i=this.mainPrice,n=this.card.planType;if(i&&(await i.onceSettled(),n=i.value?.[0]?.planType),!n)return;r.planType=n,this.card.querySelector("merch-addon[plan-type]")?.updateComplete.then(()=>{this.updateCardElementMinHeight(this.card.shadowRoot.querySelector('slot[name="addon"]'),"addon")})}renderLayout(){return Be` <div class="top-section${this.badge?" badge":""}">
+              >` : html5`<slot name="secure-transaction-label"></slot>`;
+      return html5`<footer>${secureLabel}<slot name="footer"></slot></footer>`;
+    });
+  }
+  getGlobalCSS() {
+    return CSS4;
+  }
+  adjustMiniCompareBodySlots() {
+    if (this.card.getBoundingClientRect().width <= 2) return;
+    this.updateCardElementMinHeight(
+      this.card.shadowRoot.querySelector(".top-section"),
+      "top-section"
+    );
+    let slots = [
+      "heading-m",
+      "body-m",
+      "heading-m-price",
+      "body-xxs",
+      "price-commitment",
+      "offers",
+      "promo-text",
+      "callout-content"
+    ];
+    if (this.card.classList.contains("bullet-list")) {
+      slots.push("footer-rows");
+    }
+    slots.forEach(
+      (slot) => this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
+        slot
+      )
+    );
+    this.updateCardElementMinHeight(
+      this.card.shadowRoot.querySelector("footer"),
+      "footer"
+    );
+    const badge = this.card.shadowRoot.querySelector(
+      ".mini-compare-chart-badge"
+    );
+    if (badge?.textContent !== "") {
+      this.getContainer().style.setProperty(
+        "--consonant-merch-card-mini-compare-chart-top-section-mobile-height",
+        "32px"
+      );
+    }
+  }
+  adjustMiniCompareFooterRows() {
+    if (this.card.getBoundingClientRect().width === 0) return;
+    const footerRows = this.card.querySelector('[slot="footer-rows"] ul');
+    if (!footerRows || !footerRows.children) return;
+    [...footerRows.children].forEach((el, index) => {
+      const height = Math.max(
+        FOOTER_ROW_MIN_HEIGHT,
+        parseFloat(window.getComputedStyle(el).height) || 0
+      );
+      const maxMinHeight = parseFloat(
+        this.getContainer().style.getPropertyValue(
+          this.getRowMinHeightPropertyName(index + 1)
+        )
+      ) || 0;
+      if (height > maxMinHeight) {
+        this.getContainer().style.setProperty(
+          this.getRowMinHeightPropertyName(index + 1),
+          `${height}px`
+        );
+      }
+    });
+  }
+  removeEmptyRows() {
+    const footerRows = this.card.querySelectorAll(".footer-row-cell");
+    footerRows.forEach((row) => {
+      const rowDescription = row.querySelector(
+        ".footer-row-cell-description"
+      );
+      if (rowDescription) {
+        const isEmpty = !rowDescription.textContent.trim();
+        if (isEmpty) {
+          row.remove();
+        }
+      }
+    });
+  }
+  get mainPrice() {
+    const price2 = this.card.querySelector(
+      `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    return price2;
+  }
+  get headingMPriceSlot() {
+    return this.card.shadowRoot.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0];
+  }
+  toggleAddon(merchAddon) {
+    const mainPrice = this.mainPrice;
+    const headingMPriceSlot = this.headingMPriceSlot;
+    if (!mainPrice && headingMPriceSlot) {
+      const planType = merchAddon?.getAttribute("plan-type");
+      let visibleSpan = null;
+      if (merchAddon && planType) {
+        const matchingP = merchAddon.querySelector(
+          `p[data-plan-type="${planType}"]`
+        );
+        visibleSpan = matchingP?.querySelector(
+          'span[is="inline-price"]'
+        );
+      }
+      this.card.querySelectorAll('p[slot="heading-m-price"]').forEach((p) => p.remove());
+      if (merchAddon.checked) {
+        if (visibleSpan) {
+          const replacementP = createTag(
+            "p",
+            {
+              class: "addon-heading-m-price-addon",
+              slot: "heading-m-price"
+            },
+            visibleSpan.innerHTML
+          );
+          this.card.appendChild(replacementP);
+        }
+      } else {
+        const freeP = createTag(
+          "p",
+          {
+            class: "card-heading",
+            id: "free",
+            slot: "heading-m-price"
+          },
+          "Free"
+        );
+        this.card.appendChild(freeP);
+      }
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    const price2 = this.mainPrice;
+    let planType = this.card.planType;
+    if (price2) {
+      await price2.onceSettled();
+      planType = price2.value?.[0]?.planType;
+    }
+    if (!planType) return;
+    addon.planType = planType;
+    const addonWithPlanType = this.card.querySelector(
+      "merch-addon[plan-type]"
+    );
+    addonWithPlanType?.updateComplete.then(() => {
+      this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="addon"]`),
+        "addon"
+      );
+    });
+  }
+  renderLayout() {
+    return html5` <div class="top-section${this.badge ? " badge" : ""}">
                 <slot name="icons"></slot> ${this.badge}
             </div>
             <slot name="heading-m"></slot>
-            ${this.card.classList.contains("bullet-list")?Be`<slot name="heading-m-price"></slot>
+            ${this.card.classList.contains("bullet-list") ? html5`<slot name="heading-m-price"></slot>
                       <slot name="price-commitment"></slot>
                       <slot name="body-xxs"></slot>
                       <slot name="promo-text"></slot>
                       <slot name="body-m"></slot>
-                      <slot name="offers"></slot>`:Be`<slot name="body-m"></slot>
+                      <slot name="offers"></slot>` : html5`<slot name="body-m"></slot>
                       <slot name="heading-m-price"></slot>
                       <slot name="body-xxs"></slot>
                       <slot name="price-commitment"></slot>
@@ -825,7 +1734,20 @@ merch-card .footer-row-cell:nth-child(8) {
             <slot name="callout-content"></slot>
             <slot name="addon"></slot>
             ${this.getMiniCompareFooter()}
-            <slot name="footer-rows"><slot name="body-s"></slot></slot>`}async postCardUpdateHook(){await Promise.all(this.card.prices.map(r=>r.onceSettled())),await this.adjustAddon(),Ot()?this.removeEmptyRows():(this.adjustMiniCompareBodySlots(),this.adjustMiniCompareFooterRows())}};g(Ue,"variantStyle",Go`
+            <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
+  }
+  async postCardUpdateHook() {
+    await Promise.all(this.card.prices.map((price2) => price2.onceSettled()));
+    await this.adjustAddon();
+    if (isMobile()) {
+      this.removeEmptyRows();
+    } else {
+      this.adjustMiniCompareBodySlots();
+      this.adjustMiniCompareFooterRows();
+    }
+  }
+};
+__publicField(MiniCompareChart, "variantStyle", css2`
         :host([variant='mini-compare-chart']) > slot:not([name='icons']) {
             display: block;
         }
@@ -884,7 +1806,7 @@ merch-card .footer-row-cell:nth-child(8) {
             color: #505050;
         }
 
-        @media screen and ${Zi(ae)} {
+        @media screen and ${unsafeCSS(TABLET_DOWN)} {
             [class*'-merch-cards']
                 :host([variant='mini-compare-chart'])
                 footer {
@@ -894,7 +1816,7 @@ merch-card .footer-row-cell:nth-child(8) {
             }
         }
 
-        @media screen and ${Zi(N)} {
+        @media screen and ${unsafeCSS(DESKTOP_UP)} {
             :host([variant='mini-compare-chart']) footer {
                 padding: var(--consonant-merch-spacing-xs)
                     var(--consonant-merch-spacing-s)
@@ -959,7 +1881,13 @@ merch-card .footer-row-cell:nth-child(8) {
             slot[name='footer-rows'] {
             justify-content: flex-start;
         }
-    `);import{html as dt,css as zo,nothing as Gt}from"/deps/lit-all.min.js";var Qi=`
+    `);
+
+// src/variants/plans.js
+import { html as html6, css as css3, nothing as nothing2 } from "/deps/lit-all.min.js";
+
+// src/variants/plans.css.js
+var CSS5 = `
 :root {
     --consonant-merch-card-plans-width: 302px;
     --consonant-merch-card-plans-icon-size: 40px;
@@ -1172,7 +2100,7 @@ merch-card[variant^="plans"] merch-addon span[data-template="price"] {
 }
 
 /* Mobile */
-@media screen and ${Z} {
+@media screen and ${MOBILE_LANDSCAPE} {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
@@ -1253,7 +2181,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Tablet */
-@media screen and ${k} {
+@media screen and ${TABLET_UP} {
     .four-merch-cards.plans .foreground {
         max-width: unset;
     }
@@ -1264,7 +2192,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
     :root {
         --consonant-merch-card-plans-width: 276px;
     }
@@ -1298,7 +2226,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Large desktop */
-@media screen and ${xe} {
+@media screen and ${LARGE_DESKTOP} {
     .columns .four-merch-cards.plans {
         grid-template-columns: repeat(2, var(--consonant-merch-card-plans-width));
     }
@@ -1307,11 +2235,289 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         --merch-sidenav-collection-gap: 54px;
     }
 }
-`;var $t={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},Ji={...function(){let{whatsIncluded:e,size:t,...r}=$t;return r}(),title:{tag:"h3",slot:"heading-s"},secureLabel:!1},en={...function(){let{subtitle:e,whatsIncluded:t,size:r,quantitySelect:i,...n}=$t;return n}()},W=class extends I{constructor(t){super(t),this.adaptForMedia=this.adaptForMedia.bind(this)}priceOptionsProvider(t,r){t.dataset.template===Fr&&(r.displayPlanType=this.card?.settings?.displayPlanType??!1)}getGlobalCSS(){return Qi}adjustSlotPlacement(t,r,i){let n=this.card.shadowRoot,a=n.querySelector("footer"),o=this.card.getAttribute("size");if(!o)return;let s=n.querySelector(`footer slot[name="${t}"]`),c=n.querySelector(`.body slot[name="${t}"]`),l=n.querySelector(".body");if(o.includes("wide")||(a?.classList.remove("wide-footer"),s&&s.remove()),!!r.includes(o)){if(a?.classList.toggle("wide-footer",It()),!i&&s){if(c)s.remove();else{let h=l.querySelector(`[data-placeholder-for="${t}"]`);h?h.replaceWith(s):l.appendChild(s)}return}if(i&&c){let h=document.createElement("div");if(h.setAttribute("data-placeholder-for",t),h.classList.add("slot-placeholder"),!s){let u=c.cloneNode(!0);a.prepend(u)}c.replaceWith(h)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns")){this.card.removeAttribute("size");return}this.adjustSlotPlacement("addon",["super-wide"],It()),this.adjustSlotPlacement("callout-content",["super-wide"],It())}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');t&&t.title&&(t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip"),document.addEventListener("touchstart",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.toggle("hide-tooltip")}),document.addEventListener("mouseover",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.remove("hide-tooltip")}))}async adjustEduLists(){if(this.card.variant!=="plans-education"||this.card.querySelector(".spacer"))return;let r=this.card.querySelector('[slot="body-xs"]');if(!r)return;let i=r.querySelector("ul");if(!i)return;let n=i.previousElementSibling,a=document.createElement("div");a.classList.add("spacer"),r.insertBefore(a,n);let o=new IntersectionObserver(([s])=>{if(s.boundingClientRect.height===0)return;let c=0,l=this.card.querySelector('[slot="heading-s"]');l&&(c+=ct(l));let h=this.card.querySelector('[slot="subtitle"]');h&&(c+=ct(h));let u=this.card.querySelector('[slot="heading-m"]');u&&(c+=8+ct(u));for(let d of r.childNodes){if(d.classList.contains("spacer"))break;c+=ct(d)}let p=this.card.parentElement.style.getPropertyValue("--merch-card-plans-edu-list-max-offset");c>(parseFloat(p)||0)&&this.card.parentElement.style.setProperty("--merch-card-plans-edu-list-max-offset",`${c}px`),this.card.style.setProperty("--merch-card-plans-edu-list-offset",`${c}px`),o.disconnect()});o.observe(this.card)}async postCardUpdateHook(){this.adaptForMedia(),this.adjustTitleWidth(),this.adjustAddon(),this.adjustCallout(),this.legalAdjusted||(await this.adjustLegal(),await this.adjustEduLists())}get headingM(){return this.card.querySelector('[slot="heading-m"]')}get mainPrice(){return this.headingM.querySelector(`${te}[data-template="price"]`)}get divider(){return this.card.variant==="plans-education"?dt`<div class="divider"></div>`:Gt}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=[],r=this.card.querySelector(`[slot="heading-m"] ${te}[data-template="price"]`);r&&t.push(r);let i=t.map(async n=>{let a=n.cloneNode(!0);await n.onceSettled(),n?.options&&(n.options.displayPerUnit&&(n.dataset.displayPerUnit="false"),n.options.displayTax&&(n.dataset.displayTax="false"),n.options.displayPlanType&&(n.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),n.parentNode.insertBefore(a,n.nextSibling),await a.onceSettled())});await Promise.all(i)}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let r=this.mainPrice;if(!r)return;await r.onceSettled();let i=r.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?dt`<label id="stock-checkbox">
+`;
+
+// src/variants/plans.js
+var PLANS_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "subtitle" },
+  prices: { tag: "p", slot: "heading-m" },
+  promoText: { tag: "p", slot: "promo-text" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  callout: { tag: "div", slot: "callout-content" },
+  quantitySelect: { tag: "div", slot: "quantity-select" },
+  addon: true,
+  secureLabel: true,
+  planType: true,
+  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-gray-700-plans",
+    "spectrum-green-900-plans"
+  ],
+  allowedBorderColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-green-900-plans"
+  ],
+  borderColor: { attribute: "border-color" },
+  size: ["wide", "super-wide"],
+  whatsIncluded: { tag: "div", slot: "whats-included" },
+  ctas: { slot: "footer", size: "m" },
+  style: "consonant",
+  perUnitLabel: { tag: "span", slot: "per-unit-label" }
+};
+var PLANS_EDUCATION_AEM_FRAGMENT_MAPPING = {
+  ...function() {
+    const { whatsIncluded, size, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+    return rest;
+  }(),
+  title: { tag: "h3", slot: "heading-s" },
+  secureLabel: false
+};
+var PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
+  ...function() {
+    const { subtitle, whatsIncluded, size, quantitySelect, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+    return rest;
+  }()
+};
+var Plans = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    this.adaptForMedia = this.adaptForMedia.bind(this);
+  }
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+  }
+  getGlobalCSS() {
+    return CSS5;
+  }
+  /**
+   * Moves a slot to its proper place (body or footer) depending on card size and screen size
+   * @param {string} name
+   * @param {string[]} sizes
+   * @param {boolean} shouldBeInFooter
+   * @returns
+   */
+  adjustSlotPlacement(name, sizes, shouldBeInFooter) {
+    const shadowRoot = this.card.shadowRoot;
+    const footer = shadowRoot.querySelector("footer");
+    const size = this.card.getAttribute("size");
+    if (!size) return;
+    const slotInFooter = shadowRoot.querySelector(
+      `footer slot[name="${name}"]`
+    );
+    const slotInBody = shadowRoot.querySelector(
+      `.body slot[name="${name}"]`
+    );
+    const body = shadowRoot.querySelector(".body");
+    if (!size.includes("wide")) {
+      footer?.classList.remove("wide-footer");
+      if (slotInFooter) slotInFooter.remove();
+    }
+    if (!sizes.includes(size)) return;
+    footer?.classList.toggle("wide-footer", isDesktop());
+    if (!shouldBeInFooter && slotInFooter) {
+      if (slotInBody) slotInFooter.remove();
+      else {
+        const bodyPlaceholder = body.querySelector(
+          `[data-placeholder-for="${name}"]`
+        );
+        if (bodyPlaceholder) bodyPlaceholder.replaceWith(slotInFooter);
+        else body.appendChild(slotInFooter);
+      }
+      return;
+    }
+    if (shouldBeInFooter && slotInBody) {
+      const bodyPlaceholder = document.createElement("div");
+      bodyPlaceholder.setAttribute("data-placeholder-for", name);
+      bodyPlaceholder.classList.add("slot-placeholder");
+      if (!slotInFooter) {
+        const slotInBodyClone = slotInBody.cloneNode(true);
+        footer.prepend(slotInBodyClone);
+      }
+      slotInBody.replaceWith(bodyPlaceholder);
+    }
+  }
+  adaptForMedia() {
+    if (!this.card.closest(
+      "merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns"
+    )) {
+      this.card.removeAttribute("size");
+      return;
+    }
+    this.adjustSlotPlacement("addon", ["super-wide"], isDesktop());
+    this.adjustSlotPlacement(
+      "callout-content",
+      ["super-wide"],
+      isDesktop()
+    );
+  }
+  adjustCallout() {
+    const tooltipIcon = this.card.querySelector(
+      '[slot="callout-content"] .icon-button'
+    );
+    if (tooltipIcon && tooltipIcon.title) {
+      tooltipIcon.dataset.tooltip = tooltipIcon.title;
+      tooltipIcon.removeAttribute("title");
+      tooltipIcon.classList.add("hide-tooltip");
+      document.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        if (event.target !== tooltipIcon) {
+          tooltipIcon.classList.add("hide-tooltip");
+        } else {
+          event.target.classList.toggle("hide-tooltip");
+        }
+      });
+      document.addEventListener("mouseover", (event) => {
+        event.preventDefault();
+        if (event.target !== tooltipIcon) {
+          tooltipIcon.classList.add("hide-tooltip");
+        } else {
+          event.target.classList.remove("hide-tooltip");
+        }
+      });
+    }
+  }
+  async adjustEduLists() {
+    if (this.card.variant !== "plans-education") return;
+    const existingSpacer = this.card.querySelector(".spacer");
+    if (existingSpacer) return;
+    const body = this.card.querySelector('[slot="body-xs"]');
+    if (!body) return;
+    const list = body.querySelector("ul");
+    if (!list) return;
+    const listHeader = list.previousElementSibling;
+    const spacer = document.createElement("div");
+    spacer.classList.add("spacer");
+    body.insertBefore(spacer, listHeader);
+    const intersectionObs = new IntersectionObserver(([entry]) => {
+      if (entry.boundingClientRect.height === 0) return;
+      let offset = 0;
+      const heading = this.card.querySelector('[slot="heading-s"]');
+      if (heading) offset += getOuterHeight(heading);
+      const subtitle = this.card.querySelector('[slot="subtitle"]');
+      if (subtitle) offset += getOuterHeight(subtitle);
+      const price2 = this.card.querySelector('[slot="heading-m"]');
+      if (price2) offset += 8 + getOuterHeight(price2);
+      for (const child of body.childNodes) {
+        if (child.classList.contains("spacer")) break;
+        offset += getOuterHeight(child);
+      }
+      const maxOffset = this.card.parentElement.style.getPropertyValue(
+        "--merch-card-plans-edu-list-max-offset"
+      );
+      if (offset > (parseFloat(maxOffset) || 0)) {
+        this.card.parentElement.style.setProperty(
+          "--merch-card-plans-edu-list-max-offset",
+          `${offset}px`
+        );
+      }
+      this.card.style.setProperty(
+        "--merch-card-plans-edu-list-offset",
+        `${offset}px`
+      );
+      intersectionObs.disconnect();
+    });
+    intersectionObs.observe(this.card);
+  }
+  async postCardUpdateHook() {
+    this.adaptForMedia();
+    this.adjustTitleWidth();
+    this.adjustAddon();
+    this.adjustCallout();
+    if (!this.legalAdjusted) {
+      await this.adjustLegal();
+      await this.adjustEduLists();
+    }
+  }
+  get headingM() {
+    return this.card.querySelector('[slot="heading-m"]');
+  }
+  get mainPrice() {
+    const price2 = this.headingM.querySelector(
+      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    return price2;
+  }
+  get divider() {
+    return this.card.variant === "plans-education" ? html6`<div class="divider"></div>` : nothing2;
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const prices = [];
+      const headingPrice = this.card.querySelector(
+        `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+      );
+      if (headingPrice) prices.push(headingPrice);
+      const legalPromises = prices.map(async (price2) => {
+        const legal2 = price2.cloneNode(true);
+        await price2.onceSettled();
+        if (!price2?.options) return;
+        if (price2.options.displayPerUnit)
+          price2.dataset.displayPerUnit = "false";
+        if (price2.options.displayTax)
+          price2.dataset.displayTax = "false";
+        if (price2.options.displayPlanType)
+          price2.dataset.displayPlanType = "false";
+        legal2.setAttribute("data-template", "legal");
+        price2.parentNode.insertBefore(legal2, price2.nextSibling);
+        await legal2.onceSettled();
+      });
+      await Promise.all(legalPromises);
+    } catch {
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    addon.setAttribute("custom-checkbox", "");
+    const price2 = this.mainPrice;
+    if (!price2) return;
+    await price2.onceSettled();
+    const planType = price2.value?.[0]?.planType;
+    if (!planType) return;
+    addon.planType = planType;
+  }
+  get stockCheckbox() {
+    return this.card.checkboxLabel ? html6`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>`:Gt}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?Gt:dt`<slot name="icons"></slot>`}connectedCallbackHook(){let t=Nt();t?.addEventListener&&t.addEventListener("change",this.adaptForMedia);let r=Mt();r?.addEventListener&&r.addEventListener("change",this.adaptForMedia)}disconnectedCallbackHook(){let t=Nt();t?.removeEventListener&&t.removeEventListener("change",this.adaptForMedia);let r=Mt();r?.removeEventListener&&r.removeEventListener("change",this.adaptForMedia)}renderLayout(){return dt` ${this.badge}
+            </label>` : nothing2;
+  }
+  get icons() {
+    if (!this.card.querySelector('[slot="icons"]') && !this.card.getAttribute("id"))
+      return nothing2;
+    return html6`<slot name="icons"></slot>`;
+  }
+  connectedCallbackHook() {
+    const mobileWatcher = matchMobile();
+    if (mobileWatcher?.addEventListener)
+      mobileWatcher.addEventListener("change", this.adaptForMedia);
+    const desktopWatcher = matchDesktop();
+    if (desktopWatcher?.addEventListener)
+      desktopWatcher.addEventListener("change", this.adaptForMedia);
+  }
+  disconnectedCallbackHook() {
+    const mobileWatcher = matchMobile();
+    if (mobileWatcher?.removeEventListener)
+      mobileWatcher.removeEventListener("change", this.adaptForMedia);
+    const desktopWatcher = matchDesktop();
+    if (desktopWatcher?.removeEventListener)
+      desktopWatcher.removeEventListener("change", this.adaptForMedia);
+  }
+  renderLayout() {
+    return html6` ${this.badge}
             <div class="body">
                 ${this.icons}
                 <slot name="heading-xs"></slot>
@@ -1332,7 +2538,10 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
                 <slot name="badge"></slot>
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`}};g(W,"variantStyle",zo`
+            <slot></slot>`;
+  }
+};
+__publicField(Plans, "variantStyle", css3`
         :host([variant^='plans']) {
             min-height: 273px;
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
@@ -1436,7 +2645,25 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
             line-height: 21px;
             padding: 2px 10px 3px;
         }
-    `),g(W,"collectionOptions",{customHeaderArea:t=>t.sidenav?dt`<slot name="resultsText"></slot>`:Gt,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]}});import{html as jr,css as Vo}from"/deps/lit-all.min.js";var tn=`
+    `);
+__publicField(Plans, "collectionOptions", {
+  customHeaderArea: (collection) => {
+    if (!collection.sidenav) return nothing2;
+    return html6`<slot name="resultsText"></slot>`;
+  },
+  headerVisibility: {
+    search: false,
+    sort: false,
+    result: ["mobile", "tablet"],
+    custom: ["desktop"]
+  }
+});
+
+// src/variants/product.js
+import { html as html7, css as css4 } from "/deps/lit-all.min.js";
+
+// src/variants/product.css.js
+var CSS6 = `
 :root {
   --consonant-merch-card-product-width: 300px;
 }
@@ -1479,7 +2706,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Tablet */
-@media screen and ${k} {
+@media screen and ${TABLET_UP} {
     .two-merch-cards.product,
     .three-merch-cards.product,
     .four-merch-cards.product {
@@ -1488,7 +2715,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-product-width: 378px;
     --consonant-merch-card-product-width-4clm: 276px;
@@ -1502,19 +2729,125 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
       grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
   }
 }
-`;var Fe=class extends I{constructor(t){super(t),this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return tn}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(r=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${r}"]`),r))}renderLayout(){return jr` ${this.badge}
+`;
+
+// src/variants/product.js
+var Product = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
+  }
+  getGlobalCSS() {
+    return CSS6;
+  }
+  adjustProductBodySlots() {
+    if (this.card.getBoundingClientRect().width === 0) return;
+    const slots = [
+      "heading-xs",
+      "body-xxs",
+      "body-xs",
+      "promo-text",
+      "callout-content",
+      "addon",
+      "body-lower"
+    ];
+    slots.forEach(
+      (slot) => this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
+        slot
+      )
+    );
+  }
+  renderLayout() {
+    return html7` ${this.badge}
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":jr`<slot name="promo-text"></slot>`}
+                ${!this.promoBottom ? html7`<slot name="promo-text"></slot>` : ""}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?jr`<slot name="promo-text"></slot>`:""}
+                ${this.promoBottom ? html7`<slot name="promo-text"></slot>` : ""}
                 <slot name="callout-content"></slot>
                 <slot name="addon"></slot>
                 <slot name="body-lower"></slot>
             </div>
-            ${this.secureLabelFooter}`}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),Ot()||this.adjustProductBodySlots(),this.adjustTitleWidth())}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${te}[data-template="price"]`)}toggleAddon(t){let r=this.mainPrice,i=this.headingXSSlot;if(!r&&i){let n=t?.getAttribute("plan-type"),a=null;if(t&&n&&(a=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(o=>o.remove()),t.checked){if(a){let o=_e("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},a.innerHTML);this.card.appendChild(o)}}else{let o=_e("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(o)}}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let r=this.mainPrice,i=this.card.planType;r&&(await r.onceSettled(),i=r.value?.[0]?.planType),i&&(t.planType=i)}};g(Fe,"variantStyle",Vo`
+            ${this.secureLabelFooter}`;
+  }
+  connectedCallbackHook() {
+    window.addEventListener("resize", this.postCardUpdateHook);
+  }
+  disconnectedCallbackHook() {
+    window.removeEventListener("resize", this.postCardUpdateHook);
+  }
+  postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    this.adjustAddon();
+    if (!isMobile()) {
+      this.adjustProductBodySlots();
+    }
+    this.adjustTitleWidth();
+  }
+  get headingXSSlot() {
+    return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0];
+  }
+  get mainPrice() {
+    const price2 = this.card.querySelector(
+      `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    return price2;
+  }
+  toggleAddon(merchAddon) {
+    const mainPrice = this.mainPrice;
+    const headingXSSlot = this.headingXSSlot;
+    if (!mainPrice && headingXSSlot) {
+      const planType = merchAddon?.getAttribute("plan-type");
+      let visibleSpan = null;
+      if (merchAddon && planType) {
+        const matchingP = merchAddon.querySelector(
+          `p[data-plan-type="${planType}"]`
+        );
+        visibleSpan = matchingP?.querySelector(
+          'span[is="inline-price"]'
+        );
+      }
+      this.card.querySelectorAll('p[slot="heading-xs"]').forEach((p) => p.remove());
+      if (merchAddon.checked) {
+        if (visibleSpan) {
+          const replacementP = createTag(
+            "p",
+            {
+              class: "addon-heading-xs-price-addon",
+              slot: "heading-xs"
+            },
+            visibleSpan.innerHTML
+          );
+          this.card.appendChild(replacementP);
+        }
+      } else {
+        const freeP = createTag(
+          "p",
+          { class: "card-heading", id: "free", slot: "heading-xs" },
+          "Free"
+        );
+        this.card.appendChild(freeP);
+      }
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    const price2 = this.mainPrice;
+    let planType = this.card.planType;
+    if (price2) {
+      await price2.onceSettled();
+      planType = price2.value?.[0]?.planType;
+    }
+    if (!planType) return;
+    addon.planType = planType;
+  }
+};
+__publicField(Product, "variantStyle", css4`
         :host([variant='product']) > slot:not([name='icons']) {
             display: block;
         }
@@ -1547,7 +2880,13 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         :host([variant='product']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `);import{html as qr,css as jo}from"/deps/lit-all.min.js";var rn=`
+    `);
+
+// src/variants/segment.js
+import { html as html8, css as css5 } from "/deps/lit-all.min.js";
+
+// src/variants/segment.css.js
+var CSS7 = `
 :root {
   --consonant-merch-card-segment-width: 378px;
 }
@@ -1561,13 +2900,13 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Mobile */
-@media screen and ${Z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
 }
 
-@media screen and ${k} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
@@ -1580,7 +2919,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-segment-width: 302px;
   }
@@ -1593,25 +2932,48 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 }
-`;var Ge=class extends I{constructor(t){super(t)}getGlobalCSS(){return rn}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return qr` ${this.badge}
+`;
+
+// src/variants/segment.js
+var Segment = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS7;
+  }
+  postCardUpdateHook() {
+    this.adjustTitleWidth();
+  }
+  renderLayout() {
+    return html8` ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":qr`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`}
+                ${!this.promoBottom ? html8`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?qr`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`:""}
+                ${this.promoBottom ? html8`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
             </div>
             <hr />
-            ${this.secureLabelFooter}`}};g(Ge,"variantStyle",jo`
+            ${this.secureLabelFooter}`;
+  }
+};
+__publicField(Segment, "variantStyle", css5`
         :host([variant='segment']) {
             min-height: 214px;
         }
         :host([variant='segment']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `);import{html as Wr,css as qo}from"/deps/lit-all.min.js";var nn=`
+    `);
+
+// src/variants/special-offer.js
+import { html as html9, css as css6 } from "/deps/lit-all.min.js";
+
+// src/variants/special-offer.css.js
+var CSS8 = `
 :root {
   --consonant-merch-card-special-offers-width: 378px;
 }
@@ -1628,13 +2990,13 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
   grid-template-columns: minmax(300px, var(--consonant-merch-card-special-offers-width));
 }
 
-@media screen and ${Z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
 } 
   
-@media screen and ${k} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
@@ -1647,36 +3009,61 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
 }
 
 /* desktop */
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
   .three-merch-cards.special-offers,
   .four-merch-cards.special-offers {
     grid-template-columns: repeat(3, minmax(300px, var(--consonant-merch-card-special-offers-width)));
   }
 }
 
-@media screen and ${xe} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.special-offers {
     grid-template-columns: repeat(4, minmax(300px, var(--consonant-merch-card-special-offers-width)));
   }
 }
-`;var an={name:{tag:"h4",slot:"detail-m"},title:{tag:"h4",slot:"detail-m"},backgroundImage:{tag:"div",slot:"bg-image"},prices:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"}},$e=class extends I{constructor(t){super(t)}getGlobalCSS(){return nn}get headingSelector(){return'[slot="detail-m"]'}renderLayout(){return Wr`${this.cardImage}
+`;
+
+// src/variants/special-offer.js
+var SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
+  name: { tag: "h4", slot: "detail-m" },
+  title: { tag: "h4", slot: "detail-m" },
+  backgroundImage: { tag: "div", slot: "bg-image" },
+  prices: { tag: "h3", slot: "heading-xs" },
+  description: { tag: "div", slot: "body-xs" },
+  ctas: { slot: "footer", size: "l" }
+};
+var SpecialOffer = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS8;
+  }
+  get headingSelector() {
+    return '[slot="detail-m"]';
+  }
+  renderLayout() {
+    return html9`${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xs"></slot>
             </div>
-            ${this.evergreen?Wr`
+            ${this.evergreen ? html9`
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card.detailBg}"
+                          style="background: ${this.card["detailBg"]}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  `:Wr`
+                  ` : html9`
                       <hr />
                       ${this.secureLabelFooter}
                   `}
-            <slot></slot>`}};g($e,"variantStyle",qo`
+            <slot></slot>`;
+  }
+};
+__publicField(SpecialOffer, "variantStyle", css6`
         :host([variant='special-offers']) {
             min-height: 439px;
         }
@@ -1688,7 +3075,13 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
         :host([variant='special-offers'].center) {
             text-align: center;
         }
-    `);import{html as Wo,css as Yo}from"/deps/lit-all.min.js";var on=`
+    `);
+
+// src/variants/simplified-pricing-express.js
+import { html as html10, css as css7 } from "/deps/lit-all.min.js";
+
+// src/variants/simplified-pricing-express.css.js
+var CSS9 = `
 :root {
     --merch-card-simplified-pricing-express-width: 311px;
 }
@@ -1718,7 +3111,7 @@ merch-card-collection.simplified-pricing-express p {
 }
 
 /* Desktop - 3 columns */
-@media screen and ${N} {
+@media screen and ${DESKTOP_UP} {
     merch-card-collection.simplified-pricing-express {
         grid-template-columns: repeat(3, 1fr);
         max-width: calc(3 * var(--merch-card-simplified-pricing-express-width) + 32px);
@@ -1901,7 +3294,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 /* Tooltip containers - overflow handled by Shadow DOM */
 
 /* Mobile styles */
-@media screen and ${Z} {
+@media screen and ${MOBILE_LANDSCAPE} {
   merch-card-collection.simplified-pricing-express {
     gap: 8px;
   }
@@ -1936,7 +3329,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Collapse/expand styles for all tablet and mobile viewports */
-@media screen and ${ae} {
+@media screen and ${TABLET_DOWN} {
   /* Collapsed state - hide content sections */
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="price"],
@@ -1976,7 +3369,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Tablet styles - extending mobile styles with specific adjustments */
-@media screen and ${k} and ${ae} {
+@media screen and ${TABLET_UP} and ${TABLET_DOWN} {
   merch-card-collection.simplified-pricing-express {
     padding: var(--spacing-m) 32px;
     grid-template-columns: 1fr;
@@ -2004,7 +3397,138 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] button.spectrum-Bu
 merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent .spectrum-Button-label {
     color: var(--spectrum-white, #ffffff);
 }
-`;var zt=()=>window.matchMedia(ae).matches,Yr={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},ze=class extends I{getGlobalCSS(){return on}get aemFragmentMapping(){return Yr}get headingSelector(){return'[slot="heading-xs"]'}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),requestAnimationFrame(()=>{this.card?.hasAttribute("data-default-card")&&zt()&&this.card.setAttribute("data-expanded","true")}))}setupAccordion(){let t=this.card;if(!t)return;let r=()=>{if(zt()){let n=t.hasAttribute("data-default-card");t.setAttribute("data-expanded",n?"true":"false")}else t.removeAttribute("data-expanded")};r();let i=window.matchMedia(ae);this.mediaQueryListener=()=>{r()},i.addEventListener("change",this.mediaQueryListener),this.attributeObserver=new MutationObserver(n=>{n.forEach(a=>{a.type==="attributes"&&a.attributeName==="data-default-card"&&this.card.hasAttribute("data-default-card")&&zt()&&this.card.setAttribute("data-expanded","true")})}),this.attributeObserver.observe(this.card,{attributes:!0,attributeOldValue:!0})}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(ae).removeEventListener("change",this.mediaQueryListener),this.attributeObserver&&this.attributeObserver.disconnect()}handleChevronClick(t){t.preventDefault(),t.stopPropagation();let r=this.card;if(!r||!zt())return;let a=r.getAttribute("data-expanded")==="true"?"false":"true";r.setAttribute("data-expanded",a)}renderLayout(){return Wo`
+`;
+
+// src/variants/simplified-pricing-express.js
+var isTabletOrBelow = () => window.matchMedia(TABLET_DOWN).matches;
+var SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
+  title: {
+    tag: "h3",
+    slot: "heading-xs",
+    maxCount: 250,
+    withSuffix: true
+  },
+  badge: {
+    tag: "div",
+    slot: "badge",
+    default: "spectrum-blue-400"
+  },
+  allowedBadgeColors: [
+    "spectrum-blue-400",
+    "spectrum-gray-300",
+    "spectrum-yellow-300",
+    "gradient-purple-blue",
+    "gradient-firefly-spectrum"
+  ],
+  description: {
+    tag: "div",
+    slot: "body-xs",
+    maxCount: 2e3,
+    withSuffix: false
+  },
+  prices: {
+    tag: "div",
+    slot: "price"
+  },
+  ctas: {
+    slot: "cta",
+    size: "XL"
+  },
+  borderColor: {
+    attribute: "border-color",
+    specialValues: {
+      gray: "var(--spectrum-gray-300)",
+      blue: "var(--spectrum-blue-400)",
+      "gradient-purple-blue": "linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)",
+      "gradient-firefly-spectrum": "linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"
+    }
+  },
+  disabledAttributes: [
+    "badgeColor",
+    "badgeBorderColor",
+    "trialBadgeColor",
+    "trialBadgeBorderColor"
+  ],
+  supportsDefaultChild: true
+};
+var SimplifiedPricingExpress = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS9;
+  }
+  get aemFragmentMapping() {
+    return SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING;
+  }
+  get headingSelector() {
+    return '[slot="heading-xs"]';
+  }
+  connectedCallbackHook() {
+    if (!this.card || this.card.failed) {
+      return;
+    }
+    this.setupAccordion();
+    requestAnimationFrame(() => {
+      if (this.card?.hasAttribute("data-default-card") && isTabletOrBelow()) {
+        this.card.setAttribute("data-expanded", "true");
+      }
+    });
+  }
+  setupAccordion() {
+    const merchCard = this.card;
+    if (!merchCard) {
+      return;
+    }
+    const updateExpandedState = () => {
+      if (isTabletOrBelow()) {
+        const isDefaultCard = merchCard.hasAttribute("data-default-card");
+        merchCard.setAttribute(
+          "data-expanded",
+          isDefaultCard ? "true" : "false"
+        );
+      } else {
+        merchCard.removeAttribute("data-expanded");
+      }
+    };
+    updateExpandedState();
+    const mediaQuery = window.matchMedia(TABLET_DOWN);
+    this.mediaQueryListener = () => {
+      updateExpandedState();
+    };
+    mediaQuery.addEventListener("change", this.mediaQueryListener);
+    this.attributeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes" && mutation.attributeName === "data-default-card" && this.card.hasAttribute("data-default-card") && isTabletOrBelow()) {
+          this.card.setAttribute("data-expanded", "true");
+        }
+      });
+    });
+    this.attributeObserver.observe(this.card, {
+      attributes: true,
+      attributeOldValue: true
+    });
+  }
+  disconnectedCallbackHook() {
+    if (this.mediaQueryListener) {
+      const mediaQuery = window.matchMedia(TABLET_DOWN);
+      mediaQuery.removeEventListener("change", this.mediaQueryListener);
+    }
+    if (this.attributeObserver) {
+      this.attributeObserver.disconnect();
+    }
+  }
+  handleChevronClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const merchCard = this.card;
+    if (!merchCard || !isTabletOrBelow()) {
+      return;
+    }
+    const currentExpanded = merchCard.getAttribute("data-expanded");
+    const isExpanded = currentExpanded === "true";
+    const newExpanded = !isExpanded ? "true" : "false";
+    merchCard.setAttribute("data-expanded", newExpanded);
+  }
+  renderLayout() {
+    return html10`
             <div class="badge-wrapper">
                 <slot name="badge"></slot>
             </div>
@@ -2014,7 +3538,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                     <slot name="trial-badge"></slot>
                     <button
                         class="chevron-button"
-                        @click=${t=>this.handleChevronClick(t)}
+                        @click=${(e) => this.handleChevronClick(e)}
                     >
                         <svg
                             class="chevron-icon"
@@ -2042,7 +3566,10 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 </div>
             </div>
             <slot></slot>
-        `}};g(ze,"variantStyle",Yo`
+        `;
+  }
+};
+__publicField(SimplifiedPricingExpress, "variantStyle", css7`
         :host([variant='simplified-pricing-express']) {
             /* CSS Variables */
             --merch-card-simplified-pricing-express-width: 365px;
@@ -2418,7 +3945,13 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 padding: 16px 16px 35px 16px;
             }
         }
-    `);import{css as Xo,html as Ko}from"/deps/lit-all.min.js";var sn=`
+    `);
+
+// src/variants/mini.js
+import { css as css8, html as html11 } from "/deps/lit-all.min.js";
+
+// src/variants/mini.css.js
+var CSS10 = `
 merch-card[variant="mini"] {
   color: var(--spectrum-body-color);
   width: 400px;
@@ -2451,7 +3984,59 @@ merch-card[variant="mini"] span.promo-duration-text,
 merch-card[variant="mini"] span.renewal-text {
     display: block;
 }
-`;var cn={title:{tag:"p",slot:"title"},prices:{tag:"p",slot:"prices"},description:{tag:"p",slot:"description"},planType:!0,ctas:{slot:"ctas",size:"S"}},Ve=class extends I{constructor(){super(...arguments);g(this,"legal")}async postCardUpdateHook(){await this.card.updateComplete,this.adjustLegal()}getGlobalCSS(){return sn}get headingSelector(){return'[slot="title"]'}priceOptionsProvider(r,i){i.literals={...i.literals,strikethroughAriaLabel:"",alternativePriceAriaLabel:""},i.space=!0,i.displayAnnual=this.card.settings?.displayAnnual??!1}adjustLegal(){if(this.legal!==void 0)return;let r=this.card.querySelector(`${te}[data-template="price"]`);if(!r)return;let i=r.cloneNode(!0);this.legal=i,r.dataset.displayTax="false",i.dataset.template="legal",i.dataset.displayPlanType=this.card?.settings?.displayPlanType??!0,i.setAttribute("slot","legal"),this.card.appendChild(i)}renderLayout(){return Ko`
+`;
+
+// src/variants/mini.js
+var MINI_AEM_FRAGMENT_MAPPING = {
+  title: { tag: "p", slot: "title" },
+  prices: { tag: "p", slot: "prices" },
+  description: {
+    tag: "p",
+    slot: "description"
+  },
+  planType: true,
+  ctas: { slot: "ctas", size: "S" }
+};
+var Mini = class extends VariantLayout {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "legal");
+  }
+  async postCardUpdateHook() {
+    await this.card.updateComplete;
+    this.adjustLegal();
+  }
+  getGlobalCSS() {
+    return CSS10;
+  }
+  get headingSelector() {
+    return '[slot="title"]';
+  }
+  priceOptionsProvider(element, options) {
+    options.literals = {
+      ...options.literals,
+      strikethroughAriaLabel: "",
+      alternativePriceAriaLabel: ""
+    };
+    options.space = true;
+    options.displayAnnual = this.card.settings?.displayAnnual ?? false;
+  }
+  adjustLegal() {
+    if (this.legal !== void 0) return;
+    const price2 = this.card.querySelector(
+      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    if (!price2) return;
+    const legal2 = price2.cloneNode(true);
+    this.legal = legal2;
+    price2.dataset.displayTax = "false";
+    legal2.dataset.template = "legal";
+    legal2.dataset.displayPlanType = this.card?.settings?.displayPlanType ?? true;
+    legal2.setAttribute("slot", "legal");
+    this.card.appendChild(legal2);
+  }
+  renderLayout() {
+    return html11`
             ${this.badge}
             <div class="body">
                 <slot name="title"></slot>
@@ -2460,29 +4045,7062 @@ merch-card[variant="mini"] span.renewal-text {
                 <slot name="description"></slot>
                 <slot name="ctas"></slot>
             </div>
-        `}};g(Ve,"variantStyle",Xo`
+        `;
+  }
+};
+__publicField(Mini, "variantStyle", css8`
         :host([variant='mini']) {
             min-width: 209px;
             min-height: 103px;
             background-color: var(--spectrum-background-base-color);
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
         }
-    `);var ln=new Map,re=(e,t,r=null,i=null,n)=>{ln.set(e,{class:t,fragmentMapping:r,style:i,collectionOptions:n})};re("catalog",De,qi,De.variantStyle);re("image",Ut);re("inline-heading",Ft);re("mini-compare-chart",Ue,null,Ue.variantStyle);re("plans",W,$t,W.variantStyle,W.collectionOptions);re("plans-students",W,en,W.variantStyle,W.collectionOptions);re("plans-education",W,Ji,W.variantStyle,W.collectionOptions);re("product",Fe,null,Fe.variantStyle);re("segment",Ge,null,Ge.variantStyle);re("special-offers",$e,an,$e.variantStyle);re("simplified-pricing-express",ze,Yr,ze.variantStyle);re("mini",Ve,cn,Ve.variantStyle);function Bt(e){return ln.get(e)?.fragmentMapping}var hn="tacocat.js";var Xr=(e,t)=>String(e??"").toLowerCase()==String(t??"").toLowerCase(),dn=e=>`${e??""}`.replace(/[&<>'"]/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[t]??t)??"";function O(e,t={},{metadata:r=!0,search:i=!0,storage:n=!0}={}){let a;if(i&&a==null){let o=new URLSearchParams(window.location.search),s=je(i)?i:e;a=o.get(s)}if(n&&a==null){let o=je(n)?n:e;a=window.sessionStorage.getItem(o)??window.localStorage.getItem(o)}if(r&&a==null){let o=Qo(je(r)?r:e);a=document.documentElement.querySelector(`meta[name="${o}"]`)?.content}return a??t[e]}var Zo=e=>typeof e=="boolean",Vt=e=>typeof e=="function",jt=e=>typeof e=="number",pn=e=>e!=null&&typeof e=="object";var je=e=>typeof e=="string",mn=e=>je(e)&&e,pt=e=>jt(e)&&Number.isFinite(e)&&e>0;function qt(e,t=r=>r==null||r===""){return e!=null&&Object.entries(e).forEach(([r,i])=>{t(i)&&delete e[r]}),e}function A(e,t){if(Zo(e))return e;let r=String(e);return r==="1"||r==="true"?!0:r==="0"||r==="false"?!1:t}function mt(e,t,r){let i=Object.values(t);return i.find(n=>Xr(n,e))??r??i[0]}function Qo(e=""){return String(e).replace(/(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,(t,r,i)=>`${r}-${i}`).replace(/\W+/gu,"-").toLowerCase()}function un(e,t=1){return jt(e)||(e=Number.parseInt(e,10)),!Number.isNaN(e)&&e>0&&Number.isFinite(e)?e:t}var Jo=Date.now(),Kr=()=>`(+${Date.now()-Jo}ms)`,Wt=new Set,es=A(O("tacocat.debug",{},{metadata:!1}),!1);function fn(e){let t=`[${hn}/${e}]`,r=(o,s,...c)=>o?!0:(n(s,...c),!1),i=es?(o,...s)=>{console.debug(`${t} ${o}`,...s,Kr())}:()=>{},n=(o,...s)=>{let c=`${t} ${o}`;Wt.forEach(([l])=>l(c,...s))};return{assert:r,debug:i,error:n,warn:(o,...s)=>{let c=`${t} ${o}`;Wt.forEach(([,l])=>l(c,...s))}}}function ts(e,t){let r=[e,t];return Wt.add(r),()=>{Wt.delete(r)}}ts((e,...t)=>{console.error(e,...t,Kr())},(e,...t)=>{console.warn(e,...t,Kr())});var rs="no promo",gn="promo-tag",is="yellow",ns="neutral",as=(e,t,r)=>{let i=a=>a||rs,n=r?` (was "${i(t)}")`:"";return`${i(e)}${n}`},os="cancel-context",Yt=(e,t)=>{let r=e===os,i=!r&&e?.length>0,n=(i||r)&&(t&&t!=e||!t&&!r),a=n&&i||!n&&!!t,o=a?e||t:void 0;return{effectivePromoCode:o,overridenPromoCode:e,className:a?gn:`${gn} no-promo`,text:as(o,t,n),variant:a?is:ns,isOverriden:n}};var Zr;(function(e){e.BASE="BASE",e.TRIAL="TRIAL",e.PROMOTION="PROMOTION"})(Zr||(Zr={}));var Q;(function(e){e.MONTH="MONTH",e.YEAR="YEAR",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.PERPETUAL="PERPETUAL",e.TERM_LICENSE="TERM_LICENSE",e.ACCESS_PASS="ACCESS_PASS",e.THREE_MONTHS="THREE_MONTHS",e.SIX_MONTHS="SIX_MONTHS"})(Q||(Q={}));var ie;(function(e){e.ANNUAL="ANNUAL",e.MONTHLY="MONTHLY",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.P1D="P1D",e.P1Y="P1Y",e.P3Y="P3Y",e.P10Y="P10Y",e.P15Y="P15Y",e.P3D="P3D",e.P7D="P7D",e.P30D="P30D",e.HALF_YEARLY="HALF_YEARLY",e.QUARTERLY="QUARTERLY"})(ie||(ie={}));var Qr;(function(e){e.INDIVIDUAL="INDIVIDUAL",e.TEAM="TEAM",e.ENTERPRISE="ENTERPRISE"})(Qr||(Qr={}));var Jr;(function(e){e.COM="COM",e.EDU="EDU",e.GOV="GOV"})(Jr||(Jr={}));var ei;(function(e){e.DIRECT="DIRECT",e.INDIRECT="INDIRECT"})(ei||(ei={}));var ti;(function(e){e.ENTERPRISE_PRODUCT="ENTERPRISE_PRODUCT",e.ETLA="ETLA",e.RETAIL="RETAIL",e.VIP="VIP",e.VIPMP="VIPMP",e.FREE="FREE"})(ti||(ti={}));var ri="ABM",ii="PUF",ni="M2M",ai="PERPETUAL",oi="P3Y",ss="TAX_INCLUSIVE_DETAILS",cs="TAX_EXCLUSIVE",xn={ABM:ri,PUF:ii,M2M:ni,PERPETUAL:ai,P3Y:oi},Zh={[ri]:{commitment:Q.YEAR,term:ie.MONTHLY},[ii]:{commitment:Q.YEAR,term:ie.ANNUAL},[ni]:{commitment:Q.MONTH,term:ie.MONTHLY},[ai]:{commitment:Q.PERPETUAL,term:void 0},[oi]:{commitment:Q.THREE_MONTHS,term:ie.P3Y}},bn="Value is not an offer",Xt=e=>{if(typeof e!="object")return bn;let{commitment:t,term:r}=e,i=ls(t,r);return{...e,planType:i}};var ls=(e,t)=>{switch(e){case void 0:return bn;case"":return"";case Q.YEAR:return t===ie.MONTHLY?ri:t===ie.ANNUAL?ii:"";case Q.MONTH:return t===ie.MONTHLY?ni:"";case Q.PERPETUAL:return ai;case Q.TERM_LICENSE:return t===ie.P3Y?oi:"";default:return""}};function vn(e){let{priceDetails:t}=e,{price:r,priceWithoutDiscount:i,priceWithoutTax:n,priceWithoutDiscountAndTax:a,taxDisplay:o}=t;if(o!==ss)return e;let s={...e,priceDetails:{...t,price:n??r,priceWithoutDiscount:a??i,taxDisplay:cs}};return s.offerType==="TRIAL"&&s.priceDetails.price===0&&(s.priceDetails.price=s.priceDetails.priceWithoutDiscount),s}var hs="mas-commerce-service",ds={requestId:nt,etag:"Etag",lastModified:"Last-Modified",serverTiming:"server-timing"};function ut(e,{country:t,forceTaxExclusive:r}){let i;if(e.length<2)i=e;else{let n=t==="GB"?"EN":"MULT";e.sort((a,o)=>a.language===n?-1:o.language===n?1:0),e.sort((a,o)=>!a.term&&o.term?-1:a.term&&!o.term?1:0),i=[e[0]]}return r&&(i=i.map(vn)),i}var Kt=e=>window.setTimeout(e);function qe(e,t=1){if(e==null)return[t];let r=(Array.isArray(e)?e:String(e).split(",")).map(un).filter(pt);return r.length||(r=[t]),r}function Zt(e){return e==null?[]:(Array.isArray(e)?e:String(e).split(",")).filter(mn)}function Y(){return document.getElementsByTagName(hs)?.[0]}function En(e){let t={};if(!e?.headers)return t;let r=e.headers;for(let[i,n]of Object.entries(ds)){let a=r.get(n);a&&(a=a.replace(/[,;]/g,"|"),a=a.replace(/[| ]+/g,"|"),t[i]=a)}return t}var Pe={clientId:"merch-at-scale",delimiter:"\xB6",ignoredProperties:["analytics","literals","element"],serializableTypes:["Array","Object"],sampleRate:1,tags:"acom",isProdDomain:!1},yn=1e3;function ps(e){return e instanceof Error||typeof e?.originatingRequest=="string"}function An(e){if(e==null)return;let t=typeof e;if(t==="function")return e.name?`function ${e.name}`:"function";if(t==="object"){if(e instanceof Error)return e.message;if(typeof e.originatingRequest=="string"){let{message:i,originatingRequest:n,status:a}=e;return[i,a,n].filter(Boolean).join(" ")}let r=e[Symbol.toStringTag]??Object.getPrototypeOf(e).constructor.name;if(!Pe.serializableTypes.includes(r))return r}return e}function ms(e,t){if(!Pe.ignoredProperties.includes(e))return An(t)}var si={append(e){if(e.level!=="error")return;let{message:t,params:r}=e,i=[],n=[],a=t;r.forEach(l=>{l!=null&&(ps(l)?i:n).push(l)}),i.length&&(a+=" "+i.map(An).join(" "));let{pathname:o,search:s}=window.location,c=`${Pe.delimiter}page=${o}${s}`;c.length>yn&&(c=`${c.slice(0,yn)}<trunc>`),a+=c,n.length&&(a+=`${Pe.delimiter}facts=`,a+=JSON.stringify(n,ms)),window.lana?.log(a,Pe)}};function Qt(e){Object.assign(Pe,Object.fromEntries(Object.entries(e).filter(([t,r])=>t in Pe&&r!==""&&r!==null&&r!==void 0&&!Number.isNaN(r))))}var Sn={LOCAL:"local",PROD:"prod",STAGE:"stage"},ci={DEBUG:"debug",ERROR:"error",INFO:"info",WARN:"warn"},li=new Set,hi=new Set,Tn=new Map,wn={append({level:e,message:t,params:r,timestamp:i,source:n}){console[e](`${i}ms [${n}] %c${t}`,"font-weight: bold;",...r)}},_n={filter:({level:e})=>e!==ci.DEBUG},us={filter:()=>!1};function fs(e,t,r,i,n){return{level:e,message:t,namespace:r,get params(){return i.length===1&&Vt(i[0])&&(i=i[0](),Array.isArray(i)||(i=[i])),i},source:n,timestamp:performance.now().toFixed(3)}}function gs(e){[...hi].every(t=>t(e))&&li.forEach(t=>t(e))}function Pn(e){let t=(Tn.get(e)??0)+1;Tn.set(e,t);let r=`${e} #${t}`,i={id:r,namespace:e,module:n=>Pn(`${i.namespace}/${n}`),updateConfig:Qt};return Object.values(ci).forEach(n=>{i[n]=(a,...o)=>gs(fs(n,a,e,o,r))}),Object.seal(i)}function Jt(...e){e.forEach(t=>{let{append:r,filter:i}=t;Vt(i)&&hi.add(i),Vt(r)&&li.add(r)})}function xs(e={}){let{name:t}=e,r=A(O("commerce.debug",{search:!0,storage:!0}),t===Sn.LOCAL);return Jt(r?wn:_n),t===Sn.PROD&&Jt(si),ne}function bs(){li.clear(),hi.clear()}var ne={...Pn(Nr),Level:ci,Plugins:{consoleAppender:wn,debugFilter:_n,quietFilter:us,lanaAppender:si},init:xs,reset:bs,use:Jt};var We=class e extends Error{constructor(t,r,i){if(super(t,{cause:i}),this.name="MasError",r.response){let n=r.response.headers?.get(nt);n&&(r.requestId=n),r.response.status&&(r.status=r.response.status,r.statusText=r.response.statusText),r.response.url&&(r.url=r.response.url)}delete r.response,this.context=r,Error.captureStackTrace&&Error.captureStackTrace(this,e)}toString(){let t=Object.entries(this.context||{}).map(([i,n])=>`${i}: ${JSON.stringify(n)}`).join(", "),r=`${this.name}: ${this.message}`;return t&&(r+=` (${t})`),this.cause&&(r+=`
-Caused by: ${this.cause}`),r}};var vs={[oe]:Tr,[be]:wr,[de]:_r},Es={[oe]:Lr,[de]:Rr},ft,ye=class{constructor(t){z(this,ft);g(this,"changes",new Map);g(this,"connected",!1);g(this,"error");g(this,"log");g(this,"options");g(this,"promises",[]);g(this,"state",be);g(this,"timer",null);g(this,"value");g(this,"version",0);g(this,"wrapperElement");this.wrapperElement=t,this.log=ne.module("mas-element")}update(){[oe,be,de].forEach(t=>{this.wrapperElement.classList.toggle(vs[t],t===this.state)})}notify(){(this.state===de||this.state===oe)&&(this.state===de?this.promises.forEach(({resolve:r})=>r(this.wrapperElement)):this.state===oe&&this.promises.forEach(({reject:r})=>r(this.error)),this.promises=[]);let t=this.error;this.error instanceof We&&(t={message:this.error.message,...this.error.context}),this.wrapperElement.dispatchEvent(new CustomEvent(Es[this.state],{bubbles:!0,detail:t}))}attributeChangedCallback(t,r,i){this.changes.set(t,i),this.requestUpdate()}connectedCallback(){V(this,ft,Y()),this.requestUpdate(!0)}disconnectedCallback(){this.connected&&(this.connected=!1,this.log?.debug("Disconnected:",{element:this.wrapperElement}))}onceSettled(){let{error:t,promises:r,state:i}=this;return de===i?Promise.resolve(this.wrapperElement):oe===i?Promise.reject(t):new Promise((n,a)=>{r.push({resolve:n,reject:a})})}toggleResolved(t,r,i){return t!==this.version?!1:(i!==void 0&&(this.options=i),this.state=de,this.value=r,this.update(),this.log?.debug("Resolved:",{element:this.wrapperElement,value:r}),Kt(()=>this.notify()),!0)}toggleFailed(t,r,i){if(t!==this.version)return!1;i!==void 0&&(this.options=i),this.error=r,this.state=oe,this.update();let n=this.wrapperElement.getAttribute("is");return this.log?.error(`${n}: Failed to render: ${r.message}`,{element:this.wrapperElement,...r.context,...P(this,ft)?.duration}),Kt(()=>this.notify()),!0}togglePending(t){return this.version++,t&&(this.options=t),this.state=be,this.update(),this.log?.debug("Pending:",{osi:this.wrapperElement?.options?.wcsOsi}),this.version}requestUpdate(t=!1){if(!this.wrapperElement.isConnected||!Y()||this.timer)return;let{error:r,options:i,state:n,value:a,version:o}=this;this.state=be,this.timer=Kt(async()=>{this.timer=null;let s=null;if(this.changes.size&&(s=Object.fromEntries(this.changes.entries()),this.changes.clear()),this.connected?this.log?.debug("Updated:",{element:this.wrapperElement,changes:s}):(this.connected=!0,this.log?.debug("Connected:",{element:this.wrapperElement,changes:s})),s||t)try{await this.wrapperElement.render?.()===!1&&this.state===be&&this.version===o&&(this.state=n,this.error=r,this.value=a,this.update(),this.notify())}catch(c){this.toggleFailed(this.version,c,i)}})}};ft=new WeakMap;function Cn(e={}){return Object.entries(e).forEach(([t,r])=>{(r==null||r===""||r?.length===0)&&delete e[t]}),e}function er(e,t={}){let{tag:r,is:i}=e,n=document.createElement(r,{is:i});return n.setAttribute("is",i),Object.assign(n.dataset,Cn(t)),n}function Ln(e,t={}){return e instanceof HTMLElement?(Object.assign(e.dataset,Cn(t)),e):null}function ys(e){return`https://${e==="PRODUCTION"?"www.adobe.com":"www.stage.adobe.com"}/offers/promo-terms.html`}var Re,Ce=class Ce extends HTMLAnchorElement{constructor(){super();g(this,"masElement",new ye(this));z(this,Re);this.setAttribute("is",Ce.is)}get isUptLink(){return!0}initializeWcsData(r,i){this.setAttribute("data-wcs-osi",r),i&&this.setAttribute("data-promotion-code",i)}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),V(this,Re,st()),P(this,Re)&&(this.log=P(this,Re).log.module("upt-link"))}disconnectedCallback(){this.masElement.disconnectedCallback(),V(this,Re,void 0)}requestUpdate(r=!1){this.masElement.requestUpdate(r)}onceSettled(){return this.masElement.onceSettled()}async render(){let r=st();if(!r)return!1;this.dataset.imsCountry||r.imsCountryPromise.then(o=>{o&&(this.dataset.imsCountry=o)});let i=r.collectCheckoutOptions({},this);if(!i.wcsOsi)return this.log.error("Missing 'data-wcs-osi' attribute on upt-link."),!1;let n=this.masElement.togglePending(i),a=r.resolveOfferSelectors(i);try{let[[o]]=await Promise.all(a),{country:s,language:c,env:l}=i,h=`locale=${c}_${s}&country=${s}&offer_id=${o.offerId}`,u=this.getAttribute("data-promotion-code");u&&(h+=`&promotion_code=${encodeURIComponent(u)}`),this.href=`${ys(l)}?${h}`,this.masElement.toggleResolved(n,o,i)}catch(o){let s=new Error(`Could not resolve offer selectors for id: ${i.wcsOsi}.`,o.message);return this.masElement.toggleFailed(n,s,i),!1}}static createFrom(r){let i=new Ce;for(let n of r.attributes)n.name!=="is"&&(n.name==="class"&&n.value.includes("upt-link")?i.setAttribute("class",n.value.replace("upt-link","").trim()):i.setAttribute(n.name,n.value));return i.innerHTML=r.innerHTML,i.setAttribute("tabindex",0),i}};Re=new WeakMap,g(Ce,"is","upt-link"),g(Ce,"tag","a"),g(Ce,"observedAttributes",["data-wcs-osi","data-promotion-code","data-ims-country"]);var Le=Ce;window.customElements.get(Le.is)||window.customElements.define(Le.is,Le,{extends:Le.tag});function Rn(e){return e&&(e.startsWith("plans")?"plans":e)}var Nn="download",Mn="upgrade",On={e:"EDU",t:"TEAM"};function In(e,t={},r=""){let i=Y();if(!i)return null;let{checkoutMarketSegment:n,checkoutWorkflow:a,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:h,promotionCode:u,quantity:p,wcsOsi:d,extraOptions:m,analyticsId:f}=i.collectCheckoutOptions(t),x=er(e,{checkoutMarketSegment:n,checkoutWorkflow:a,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:h,promotionCode:u,quantity:p,wcsOsi:d,extraOptions:m,analyticsId:f});return r&&(x.innerHTML=`<span style="pointer-events: none;">${r}</span>`),x}function kn(e){return class extends e{constructor(){super(...arguments);g(this,"checkoutActionHandler");g(this,"masElement",new ye(this))}attributeChangedCallback(i,n,a){this.masElement.attributeChangedCallback(i,n,a)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.clickHandler)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.clickHandler)}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get marketSegment(){let i=this.options?.ms??this.value?.[0].marketSegments?.[0];return On[i]??i}get customerSegment(){let i=this.options?.cs??this.value?.[0]?.customerSegment;return On[i]??i}get is3in1Modal(){return Object.values(we).includes(this.getAttribute("data-modal"))}get isOpen3in1Modal(){let i=document.querySelector("meta[name=mas-ff-3in1]");return this.is3in1Modal&&(!i||i.content!=="off")}requestUpdate(i=!1){return this.masElement.requestUpdate(i)}static get observedAttributes(){return["data-checkout-workflow","data-checkout-workflow-step","data-extra-options","data-ims-country","data-perpetual","data-promotion-code","data-quantity","data-template","data-wcs-osi","data-entitlement","data-upgrade","data-modal"]}async render(i={}){let n=Y();if(!n)return!1;this.dataset.imsCountry||n.imsCountryPromise.then(u=>{u&&(this.dataset.imsCountry=u)}),i.imsCountry=null;let a=n.collectCheckoutOptions(i,this);if(!a.wcsOsi.length)return!1;let o;try{o=JSON.parse(a.extraOptions??"{}")}catch(u){this.masElement.log?.error("cannot parse exta checkout options",u)}let s=this.masElement.togglePending(a);this.setCheckoutUrl("");let c=n.resolveOfferSelectors(a),l=await Promise.all(c);l=l.map(u=>ut(u,a)),a.country=this.dataset.imsCountry||a.country;let h=await n.buildCheckoutAction?.(l.flat(),{...o,...a},this);return this.renderOffers(l.flat(),a,{},h,s)}renderOffers(i,n,a={},o=void 0,s=void 0){let c=Y();if(!c)return!1;if(n={...JSON.parse(this.dataset.extraOptions??"{}"),...n,...a},s??(s=this.masElement.togglePending(n)),this.checkoutActionHandler&&(this.checkoutActionHandler=void 0),o){this.classList.remove(Nn,Mn),this.masElement.toggleResolved(s,i,n);let{url:h,text:u,className:p,handler:d}=o;h&&this.setCheckoutUrl(h),u&&(this.firstElementChild.innerHTML=u),p&&this.classList.add(...p.split(" ")),d&&(this.setCheckoutUrl("#"),this.checkoutActionHandler=d.bind(this))}if(i.length){if(this.masElement.toggleResolved(s,i,n)){if(!this.classList.contains(Nn)&&!this.classList.contains(Mn)){let h=c.buildCheckoutURL(i,n);this.setCheckoutUrl(n.modal==="true"?"#":h)}return!0}}else{let h=new Error(`Not provided: ${n?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(s,h,n))return this.setCheckoutUrl("#"),!0}}setCheckoutUrl(){}clickHandler(i){}updateOptions(i={}){let n=Y();if(!n)return!1;let{checkoutMarketSegment:a,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:h,perpetual:u,promotionCode:p,quantity:d,wcsOsi:m}=n.collectCheckoutOptions(i);return Ln(this,{checkoutMarketSegment:a,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:h,perpetual:u,promotionCode:p,quantity:d,wcsOsi:m}),!0}}}var gt=class gt extends kn(HTMLAnchorElement){static createCheckoutLink(t={},r=""){return In(gt,t,r)}setCheckoutUrl(t){this.setAttribute("href",t)}get isCheckoutLink(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}}};g(gt,"is","checkout-link"),g(gt,"tag","a");var pe=gt;window.customElements.get(pe.is)||window.customElements.define(pe.is,pe,{extends:pe.tag});var As="p_draft_landscape",Ss="/store/",Ts=new Map([["countrySpecific","cs"],["customerSegment","cs"],["quantity","q"],["authCode","code"],["checkoutPromoCode","apc"],["rurl","rUrl"],["curl","cUrl"],["ctxrturl","ctxRtUrl"],["country","co"],["language","lang"],["clientId","cli"],["context","ctx"],["productArrangementCode","pa"],["addonProductArrangementCode","ao"],["offerType","ot"],["marketSegment","ms"]]),di=new Set(["af","ai","ao","apc","appctxid","cli","co","cs","csm","ctx","ctxRtUrl","DCWATC","dp","fr","gsp","ijt","lang","lo","mal","ms","mv","mv2","nglwfdata","ot","otac","pa","pcid","promoid","q","rf","sc","scl","sdid","sid","spint","svar","th","thm","trackingid","usid","workflowid","context.guid","so.ca","so.su","so.tr","so.va"]),ws=["env","workflowStep","clientId","country"],Hn=e=>Ts.get(e)??e;function pi(e,t,r){for(let[i,n]of Object.entries(e)){let a=Hn(i);n!=null&&r.has(a)&&t.set(a,n)}}function _s(e){switch(e){case Dr.PRODUCTION:return"https://commerce.adobe.com";default:return"https://commerce-stg.adobe.com"}}function Ps(e,t){for(let r in e){let i=e[r];for(let[n,a]of Object.entries(i)){if(a==null)continue;let o=Hn(n);t.set(`items[${r}][${o}]`,a)}}}function Cs({url:e,modal:t,is3in1:r}){if(!r||!e?.searchParams)return e;e.searchParams.set("rtc","t"),e.searchParams.set("lo","sl");let i=e.searchParams.get("af");return e.searchParams.set("af",[i,"uc_new_user_iframe","uc_new_system_close"].filter(Boolean).join(",")),e.searchParams.get("cli")!=="doc_cloud"&&e.searchParams.set("cli",t===we.CRM?"creative":"mini_plans"),e}function Dn(e){Ls(e);let{env:t,items:r,workflowStep:i,marketSegment:n,customerSegment:a,offerType:o,productArrangementCode:s,landscape:c,modal:l,is3in1:h,preselectPlan:u,...p}=e,d=new URL(_s(t));if(d.pathname=`${Ss}${i}`,i!==q.SEGMENTATION&&i!==q.CHANGE_PLAN_TEAM_PLANS&&Ps(r,d.searchParams),pi({...p},d.searchParams,di),c===ve.DRAFT&&pi({af:As},d.searchParams,di),i===q.SEGMENTATION){let m={marketSegment:n,offerType:o,customerSegment:a,productArrangementCode:s,quantity:r?.[0]?.quantity,addonProductArrangementCode:s?r?.find(f=>f.productArrangementCode!==s)?.productArrangementCode:r?.[1]?.productArrangementCode};u?.toLowerCase()==="edu"?d.searchParams.set("ms","EDU"):u?.toLowerCase()==="team"&&d.searchParams.set("cs","TEAM"),pi(m,d.searchParams,di),d.searchParams.get("ot")==="PROMOTION"&&d.searchParams.delete("ot"),d=Cs({url:d,modal:l,is3in1:h})}return d.toString()}function Ls(e){for(let t of ws)if(!e[t])throw new Error('Argument "checkoutData" is not valid, missing: '+t);if(e.workflowStep!==q.SEGMENTATION&&e.workflowStep!==q.CHANGE_PLAN_TEAM_PLANS&&!e.items)throw new Error('Argument "checkoutData" is not valid, missing: items');return!0}var v=Object.freeze({checkoutClientId:"adobe_com",checkoutWorkflowStep:q.EMAIL,country:"US",displayOldPrice:!1,displayPerUnit:!1,displayRecurrence:!0,displayTax:!1,displayPlanType:!1,env:he.PRODUCTION,forceTaxExclusive:!1,language:"en",entitlement:!1,extraOptions:{},modal:!1,promotionCode:"",quantity:1,alternativePrice:!1,wcsApiKey:"wcms-commerce-ims-ro-user-milo",wcsURL:"https://www.adobe.com/web_commerce_artifact",landscape:ve.PUBLISHED});function Bn({settings:e,providers:t}){function r(a,o){let{checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:h,promotionCode:u,quantity:p,preselectPlan:d,env:m}=e,f={checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:h,promotionCode:u,quantity:p,preselectPlan:d,env:m};if(o)for(let ge of t.checkout)ge(o,f);let{checkoutMarketSegment:x,checkoutWorkflowStep:y=c,imsCountry:_,country:b=_??l,language:S=h,quantity:M=p,entitlement:C,upgrade:H,modal:U,perpetual:G,promotionCode:D=u,wcsOsi:$,extraOptions:L,...le}=Object.assign(f,o?.dataset??{},a??{}),J=mt(y,q,v.checkoutWorkflowStep);return f=qt({...le,extraOptions:L,checkoutClientId:s,checkoutMarketSegment:x,country:b,quantity:qe(M,v.quantity),checkoutWorkflowStep:J,language:S,entitlement:A(C),upgrade:A(H),modal:U,perpetual:A(G),promotionCode:Yt(D).effectivePromoCode,wcsOsi:Zt($),preselectPlan:d}),f}function i(a,o){if(!Array.isArray(a)||!a.length||!o)return"";let{env:s,landscape:c}=e,{checkoutClientId:l,checkoutMarketSegment:h,checkoutWorkflowStep:u,country:p,promotionCode:d,quantity:m,preselectPlan:f,ms:x,cs:y,..._}=r(o),b=document.querySelector("meta[name=mas-ff-3in1]"),S=Object.values(we).includes(o.modal)&&(!b||b.content!=="off"),M=window.frameElement||S?"if":"fp",[{productArrangementCode:C,marketSegments:[H],customerSegment:U,offerType:G}]=a,D=x??H??h,$=y??U;f?.toLowerCase()==="edu"?D="EDU":f?.toLowerCase()==="team"&&($="TEAM");let L={is3in1:S,checkoutPromoCode:d,clientId:l,context:M,country:p,env:s,items:[],marketSegment:D,customerSegment:$,offerType:G,productArrangementCode:C,workflowStep:u,landscape:c,..._},le=m[0]>1?m[0]:void 0;if(a.length===1){let{offerId:J}=a[0];L.items.push({id:J,quantity:le})}else L.items.push(...a.map(({offerId:J,productArrangementCode:ge})=>({id:J,quantity:le,...S?{productArrangementCode:ge}:{}})));return Dn(L)}let{createCheckoutLink:n}=pe;return{CheckoutLink:pe,CheckoutWorkflowStep:q,buildCheckoutURL:i,collectCheckoutOptions:r,createCheckoutLink:n}}function Rs({interval:e=200,maxAttempts:t=25}={}){let r=ne.module("ims");return new Promise(i=>{r.debug("Waing for IMS to be ready");let n=0;function a(){window.adobeIMS?.initialized?i():++n>t?(r.debug("Timeout"),i()):setTimeout(a,e)}a()})}function Ns(e){return e.then(()=>window.adobeIMS?.isSignedInUser()??!1)}function Ms(e){let t=ne.module("ims");return e.then(r=>r?window.adobeIMS.getProfile().then(({countryCode:i})=>(t.debug("Got user country:",i),i),i=>{t.error("Unable to get user country:",i)}):null)}function Un({}){let e=Rs(),t=Ns(e),r=Ms(t);return{imsReadyPromise:e,imsSignedInPromise:t,imsCountryPromise:r}}var Fn=window.masPriceLiterals;function Gn(e){if(Array.isArray(Fn)){let t=i=>Fn.find(n=>Xr(n.lang,i)),r=t(e.language)??t(v.language);if(r)return Object.freeze(r)}return{}}var mi=function(e,t){return mi=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(r,i){r.__proto__=i}||function(r,i){for(var n in i)Object.prototype.hasOwnProperty.call(i,n)&&(r[n]=i[n])},mi(e,t)};function xt(e,t){if(typeof t!="function"&&t!==null)throw new TypeError("Class extends value "+String(t)+" is not a constructor or null");mi(e,t);function r(){this.constructor=e}e.prototype=t===null?Object.create(t):(r.prototype=t.prototype,new r)}var T=function(){return T=Object.assign||function(t){for(var r,i=1,n=arguments.length;i<n;i++){r=arguments[i];for(var a in r)Object.prototype.hasOwnProperty.call(r,a)&&(t[a]=r[a])}return t},T.apply(this,arguments)};function tr(e,t,r){if(r||arguments.length===2)for(var i=0,n=t.length,a;i<n;i++)(a||!(i in t))&&(a||(a=Array.prototype.slice.call(t,0,i)),a[i]=t[i]);return e.concat(a||Array.prototype.slice.call(t))}var E;(function(e){e[e.EXPECT_ARGUMENT_CLOSING_BRACE=1]="EXPECT_ARGUMENT_CLOSING_BRACE",e[e.EMPTY_ARGUMENT=2]="EMPTY_ARGUMENT",e[e.MALFORMED_ARGUMENT=3]="MALFORMED_ARGUMENT",e[e.EXPECT_ARGUMENT_TYPE=4]="EXPECT_ARGUMENT_TYPE",e[e.INVALID_ARGUMENT_TYPE=5]="INVALID_ARGUMENT_TYPE",e[e.EXPECT_ARGUMENT_STYLE=6]="EXPECT_ARGUMENT_STYLE",e[e.INVALID_NUMBER_SKELETON=7]="INVALID_NUMBER_SKELETON",e[e.INVALID_DATE_TIME_SKELETON=8]="INVALID_DATE_TIME_SKELETON",e[e.EXPECT_NUMBER_SKELETON=9]="EXPECT_NUMBER_SKELETON",e[e.EXPECT_DATE_TIME_SKELETON=10]="EXPECT_DATE_TIME_SKELETON",e[e.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE=11]="UNCLOSED_QUOTE_IN_ARGUMENT_STYLE",e[e.EXPECT_SELECT_ARGUMENT_OPTIONS=12]="EXPECT_SELECT_ARGUMENT_OPTIONS",e[e.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE=13]="EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE=14]="INVALID_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR=15]="EXPECT_SELECT_ARGUMENT_SELECTOR",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR=16]="EXPECT_PLURAL_ARGUMENT_SELECTOR",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT=17]="EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT=18]="EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT",e[e.INVALID_PLURAL_ARGUMENT_SELECTOR=19]="INVALID_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_PLURAL_ARGUMENT_SELECTOR=20]="DUPLICATE_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_SELECT_ARGUMENT_SELECTOR=21]="DUPLICATE_SELECT_ARGUMENT_SELECTOR",e[e.MISSING_OTHER_CLAUSE=22]="MISSING_OTHER_CLAUSE",e[e.INVALID_TAG=23]="INVALID_TAG",e[e.INVALID_TAG_NAME=25]="INVALID_TAG_NAME",e[e.UNMATCHED_CLOSING_TAG=26]="UNMATCHED_CLOSING_TAG",e[e.UNCLOSED_TAG=27]="UNCLOSED_TAG"})(E||(E={}));var R;(function(e){e[e.literal=0]="literal",e[e.argument=1]="argument",e[e.number=2]="number",e[e.date=3]="date",e[e.time=4]="time",e[e.select=5]="select",e[e.plural=6]="plural",e[e.pound=7]="pound",e[e.tag=8]="tag"})(R||(R={}));var Ne;(function(e){e[e.number=0]="number",e[e.dateTime=1]="dateTime"})(Ne||(Ne={}));function ui(e){return e.type===R.literal}function $n(e){return e.type===R.argument}function rr(e){return e.type===R.number}function ir(e){return e.type===R.date}function nr(e){return e.type===R.time}function ar(e){return e.type===R.select}function or(e){return e.type===R.plural}function zn(e){return e.type===R.pound}function sr(e){return e.type===R.tag}function cr(e){return!!(e&&typeof e=="object"&&e.type===Ne.number)}function bt(e){return!!(e&&typeof e=="object"&&e.type===Ne.dateTime)}var fi=/[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;var Os=/(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;function Vn(e){var t={};return e.replace(Os,function(r){var i=r.length;switch(r[0]){case"G":t.era=i===4?"long":i===5?"narrow":"short";break;case"y":t.year=i===2?"2-digit":"numeric";break;case"Y":case"u":case"U":case"r":throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");case"q":case"Q":throw new RangeError("`q/Q` (quarter) patterns are not supported");case"M":case"L":t.month=["numeric","2-digit","short","long","narrow"][i-1];break;case"w":case"W":throw new RangeError("`w/W` (week) patterns are not supported");case"d":t.day=["numeric","2-digit"][i-1];break;case"D":case"F":case"g":throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");case"E":t.weekday=i===4?"short":i===5?"narrow":"short";break;case"e":if(i<4)throw new RangeError("`e..eee` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"c":if(i<4)throw new RangeError("`c..ccc` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"a":t.hour12=!0;break;case"b":case"B":throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");case"h":t.hourCycle="h12",t.hour=["numeric","2-digit"][i-1];break;case"H":t.hourCycle="h23",t.hour=["numeric","2-digit"][i-1];break;case"K":t.hourCycle="h11",t.hour=["numeric","2-digit"][i-1];break;case"k":t.hourCycle="h24",t.hour=["numeric","2-digit"][i-1];break;case"j":case"J":case"C":throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");case"m":t.minute=["numeric","2-digit"][i-1];break;case"s":t.second=["numeric","2-digit"][i-1];break;case"S":case"A":throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");case"z":t.timeZoneName=i<4?"short":"long";break;case"Z":case"O":case"v":case"V":case"X":case"x":throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead")}return""}),t}var jn=/[\t-\r \x85\u200E\u200F\u2028\u2029]/i;function Xn(e){if(e.length===0)throw new Error("Number skeleton cannot be empty");for(var t=e.split(jn).filter(function(p){return p.length>0}),r=[],i=0,n=t;i<n.length;i++){var a=n[i],o=a.split("/");if(o.length===0)throw new Error("Invalid number skeleton");for(var s=o[0],c=o.slice(1),l=0,h=c;l<h.length;l++){var u=h[l];if(u.length===0)throw new Error("Invalid number skeleton")}r.push({stem:s,options:c})}return r}function Is(e){return e.replace(/^(.*?)-/,"")}var qn=/^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,Kn=/^(@+)?(\+|#+)?[rs]?$/g,ks=/(\*)(0+)|(#+)(0+)|(0+)/g,Zn=/^(0+)$/;function Wn(e){var t={};return e[e.length-1]==="r"?t.roundingPriority="morePrecision":e[e.length-1]==="s"&&(t.roundingPriority="lessPrecision"),e.replace(Kn,function(r,i,n){return typeof n!="string"?(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length):n==="+"?t.minimumSignificantDigits=i.length:i[0]==="#"?t.maximumSignificantDigits=i.length:(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length+(typeof n=="string"?n.length:0)),""}),t}function Qn(e){switch(e){case"sign-auto":return{signDisplay:"auto"};case"sign-accounting":case"()":return{currencySign:"accounting"};case"sign-always":case"+!":return{signDisplay:"always"};case"sign-accounting-always":case"()!":return{signDisplay:"always",currencySign:"accounting"};case"sign-except-zero":case"+?":return{signDisplay:"exceptZero"};case"sign-accounting-except-zero":case"()?":return{signDisplay:"exceptZero",currencySign:"accounting"};case"sign-never":case"+_":return{signDisplay:"never"}}}function Hs(e){var t;if(e[0]==="E"&&e[1]==="E"?(t={notation:"engineering"},e=e.slice(2)):e[0]==="E"&&(t={notation:"scientific"},e=e.slice(1)),t){var r=e.slice(0,2);if(r==="+!"?(t.signDisplay="always",e=e.slice(2)):r==="+?"&&(t.signDisplay="exceptZero",e=e.slice(2)),!Zn.test(e))throw new Error("Malformed concise eng/scientific notation");t.minimumIntegerDigits=e.length}return t}function Yn(e){var t={},r=Qn(e);return r||t}function Jn(e){for(var t={},r=0,i=e;r<i.length;r++){var n=i[r];switch(n.stem){case"percent":case"%":t.style="percent";continue;case"%x100":t.style="percent",t.scale=100;continue;case"currency":t.style="currency",t.currency=n.options[0];continue;case"group-off":case",_":t.useGrouping=!1;continue;case"precision-integer":case".":t.maximumFractionDigits=0;continue;case"measure-unit":case"unit":t.style="unit",t.unit=Is(n.options[0]);continue;case"compact-short":case"K":t.notation="compact",t.compactDisplay="short";continue;case"compact-long":case"KK":t.notation="compact",t.compactDisplay="long";continue;case"scientific":t=T(T(T({},t),{notation:"scientific"}),n.options.reduce(function(c,l){return T(T({},c),Yn(l))},{}));continue;case"engineering":t=T(T(T({},t),{notation:"engineering"}),n.options.reduce(function(c,l){return T(T({},c),Yn(l))},{}));continue;case"notation-simple":t.notation="standard";continue;case"unit-width-narrow":t.currencyDisplay="narrowSymbol",t.unitDisplay="narrow";continue;case"unit-width-short":t.currencyDisplay="code",t.unitDisplay="short";continue;case"unit-width-full-name":t.currencyDisplay="name",t.unitDisplay="long";continue;case"unit-width-iso-code":t.currencyDisplay="symbol";continue;case"scale":t.scale=parseFloat(n.options[0]);continue;case"integer-width":if(n.options.length>1)throw new RangeError("integer-width stems only accept a single optional option");n.options[0].replace(ks,function(c,l,h,u,p,d){if(l)t.minimumIntegerDigits=h.length;else{if(u&&p)throw new Error("We currently do not support maximum integer digits");if(d)throw new Error("We currently do not support exact integer digits")}return""});continue}if(Zn.test(n.stem)){t.minimumIntegerDigits=n.stem.length;continue}if(qn.test(n.stem)){if(n.options.length>1)throw new RangeError("Fraction-precision stems only accept a single optional option");n.stem.replace(qn,function(c,l,h,u,p,d){return h==="*"?t.minimumFractionDigits=l.length:u&&u[0]==="#"?t.maximumFractionDigits=u.length:p&&d?(t.minimumFractionDigits=p.length,t.maximumFractionDigits=p.length+d.length):(t.minimumFractionDigits=l.length,t.maximumFractionDigits=l.length),""});var a=n.options[0];a==="w"?t=T(T({},t),{trailingZeroDisplay:"stripIfInteger"}):a&&(t=T(T({},t),Wn(a)));continue}if(Kn.test(n.stem)){t=T(T({},t),Wn(n.stem));continue}var o=Qn(n.stem);o&&(t=T(T({},t),o));var s=Hs(n.stem);s&&(t=T(T({},t),s))}return t}var vt={AX:["H"],BQ:["H"],CP:["H"],CZ:["H"],DK:["H"],FI:["H"],ID:["H"],IS:["H"],ML:["H"],NE:["H"],RU:["H"],SE:["H"],SJ:["H"],SK:["H"],AS:["h","H"],BT:["h","H"],DJ:["h","H"],ER:["h","H"],GH:["h","H"],IN:["h","H"],LS:["h","H"],PG:["h","H"],PW:["h","H"],SO:["h","H"],TO:["h","H"],VU:["h","H"],WS:["h","H"],"001":["H","h"],AL:["h","H","hB"],TD:["h","H","hB"],"ca-ES":["H","h","hB"],CF:["H","h","hB"],CM:["H","h","hB"],"fr-CA":["H","h","hB"],"gl-ES":["H","h","hB"],"it-CH":["H","h","hB"],"it-IT":["H","h","hB"],LU:["H","h","hB"],NP:["H","h","hB"],PF:["H","h","hB"],SC:["H","h","hB"],SM:["H","h","hB"],SN:["H","h","hB"],TF:["H","h","hB"],VA:["H","h","hB"],CY:["h","H","hb","hB"],GR:["h","H","hb","hB"],CO:["h","H","hB","hb"],DO:["h","H","hB","hb"],KP:["h","H","hB","hb"],KR:["h","H","hB","hb"],NA:["h","H","hB","hb"],PA:["h","H","hB","hb"],PR:["h","H","hB","hb"],VE:["h","H","hB","hb"],AC:["H","h","hb","hB"],AI:["H","h","hb","hB"],BW:["H","h","hb","hB"],BZ:["H","h","hb","hB"],CC:["H","h","hb","hB"],CK:["H","h","hb","hB"],CX:["H","h","hb","hB"],DG:["H","h","hb","hB"],FK:["H","h","hb","hB"],GB:["H","h","hb","hB"],GG:["H","h","hb","hB"],GI:["H","h","hb","hB"],IE:["H","h","hb","hB"],IM:["H","h","hb","hB"],IO:["H","h","hb","hB"],JE:["H","h","hb","hB"],LT:["H","h","hb","hB"],MK:["H","h","hb","hB"],MN:["H","h","hb","hB"],MS:["H","h","hb","hB"],NF:["H","h","hb","hB"],NG:["H","h","hb","hB"],NR:["H","h","hb","hB"],NU:["H","h","hb","hB"],PN:["H","h","hb","hB"],SH:["H","h","hb","hB"],SX:["H","h","hb","hB"],TA:["H","h","hb","hB"],ZA:["H","h","hb","hB"],"af-ZA":["H","h","hB","hb"],AR:["H","h","hB","hb"],CL:["H","h","hB","hb"],CR:["H","h","hB","hb"],CU:["H","h","hB","hb"],EA:["H","h","hB","hb"],"es-BO":["H","h","hB","hb"],"es-BR":["H","h","hB","hb"],"es-EC":["H","h","hB","hb"],"es-ES":["H","h","hB","hb"],"es-GQ":["H","h","hB","hb"],"es-PE":["H","h","hB","hb"],GT:["H","h","hB","hb"],HN:["H","h","hB","hb"],IC:["H","h","hB","hb"],KG:["H","h","hB","hb"],KM:["H","h","hB","hb"],LK:["H","h","hB","hb"],MA:["H","h","hB","hb"],MX:["H","h","hB","hb"],NI:["H","h","hB","hb"],PY:["H","h","hB","hb"],SV:["H","h","hB","hb"],UY:["H","h","hB","hb"],JP:["H","h","K"],AD:["H","hB"],AM:["H","hB"],AO:["H","hB"],AT:["H","hB"],AW:["H","hB"],BE:["H","hB"],BF:["H","hB"],BJ:["H","hB"],BL:["H","hB"],BR:["H","hB"],CG:["H","hB"],CI:["H","hB"],CV:["H","hB"],DE:["H","hB"],EE:["H","hB"],FR:["H","hB"],GA:["H","hB"],GF:["H","hB"],GN:["H","hB"],GP:["H","hB"],GW:["H","hB"],HR:["H","hB"],IL:["H","hB"],IT:["H","hB"],KZ:["H","hB"],MC:["H","hB"],MD:["H","hB"],MF:["H","hB"],MQ:["H","hB"],MZ:["H","hB"],NC:["H","hB"],NL:["H","hB"],PM:["H","hB"],PT:["H","hB"],RE:["H","hB"],RO:["H","hB"],SI:["H","hB"],SR:["H","hB"],ST:["H","hB"],TG:["H","hB"],TR:["H","hB"],WF:["H","hB"],YT:["H","hB"],BD:["h","hB","H"],PK:["h","hB","H"],AZ:["H","hB","h"],BA:["H","hB","h"],BG:["H","hB","h"],CH:["H","hB","h"],GE:["H","hB","h"],LI:["H","hB","h"],ME:["H","hB","h"],RS:["H","hB","h"],UA:["H","hB","h"],UZ:["H","hB","h"],XK:["H","hB","h"],AG:["h","hb","H","hB"],AU:["h","hb","H","hB"],BB:["h","hb","H","hB"],BM:["h","hb","H","hB"],BS:["h","hb","H","hB"],CA:["h","hb","H","hB"],DM:["h","hb","H","hB"],"en-001":["h","hb","H","hB"],FJ:["h","hb","H","hB"],FM:["h","hb","H","hB"],GD:["h","hb","H","hB"],GM:["h","hb","H","hB"],GU:["h","hb","H","hB"],GY:["h","hb","H","hB"],JM:["h","hb","H","hB"],KI:["h","hb","H","hB"],KN:["h","hb","H","hB"],KY:["h","hb","H","hB"],LC:["h","hb","H","hB"],LR:["h","hb","H","hB"],MH:["h","hb","H","hB"],MP:["h","hb","H","hB"],MW:["h","hb","H","hB"],NZ:["h","hb","H","hB"],SB:["h","hb","H","hB"],SG:["h","hb","H","hB"],SL:["h","hb","H","hB"],SS:["h","hb","H","hB"],SZ:["h","hb","H","hB"],TC:["h","hb","H","hB"],TT:["h","hb","H","hB"],UM:["h","hb","H","hB"],US:["h","hb","H","hB"],VC:["h","hb","H","hB"],VG:["h","hb","H","hB"],VI:["h","hb","H","hB"],ZM:["h","hb","H","hB"],BO:["H","hB","h","hb"],EC:["H","hB","h","hb"],ES:["H","hB","h","hb"],GQ:["H","hB","h","hb"],PE:["H","hB","h","hb"],AE:["h","hB","hb","H"],"ar-001":["h","hB","hb","H"],BH:["h","hB","hb","H"],DZ:["h","hB","hb","H"],EG:["h","hB","hb","H"],EH:["h","hB","hb","H"],HK:["h","hB","hb","H"],IQ:["h","hB","hb","H"],JO:["h","hB","hb","H"],KW:["h","hB","hb","H"],LB:["h","hB","hb","H"],LY:["h","hB","hb","H"],MO:["h","hB","hb","H"],MR:["h","hB","hb","H"],OM:["h","hB","hb","H"],PH:["h","hB","hb","H"],PS:["h","hB","hb","H"],QA:["h","hB","hb","H"],SA:["h","hB","hb","H"],SD:["h","hB","hb","H"],SY:["h","hB","hb","H"],TN:["h","hB","hb","H"],YE:["h","hB","hb","H"],AF:["H","hb","hB","h"],LA:["H","hb","hB","h"],CN:["H","hB","hb","h"],LV:["H","hB","hb","h"],TL:["H","hB","hb","h"],"zu-ZA":["H","hB","hb","h"],CD:["hB","H"],IR:["hB","H"],"hi-IN":["hB","h","H"],"kn-IN":["hB","h","H"],"ml-IN":["hB","h","H"],"te-IN":["hB","h","H"],KH:["hB","h","H","hb"],"ta-IN":["hB","h","hb","H"],BN:["hb","hB","h","H"],MY:["hb","hB","h","H"],ET:["hB","hb","h","H"],"gu-IN":["hB","hb","h","H"],"mr-IN":["hB","hb","h","H"],"pa-IN":["hB","hb","h","H"],TW:["hB","hb","h","H"],KE:["hB","hb","H","h"],MM:["hB","hb","H","h"],TZ:["hB","hb","H","h"],UG:["hB","hb","H","h"]};function ea(e,t){for(var r="",i=0;i<e.length;i++){var n=e.charAt(i);if(n==="j"){for(var a=0;i+1<e.length&&e.charAt(i+1)===n;)a++,i++;var o=1+(a&1),s=a<2?1:3+(a>>1),c="a",l=Ds(t);for((l=="H"||l=="k")&&(s=0);s-- >0;)r+=c;for(;o-- >0;)r=l+r}else n==="J"?r+="H":r+=n}return r}function Ds(e){var t=e.hourCycle;if(t===void 0&&e.hourCycles&&e.hourCycles.length&&(t=e.hourCycles[0]),t)switch(t){case"h24":return"k";case"h23":return"H";case"h12":return"h";case"h11":return"K";default:throw new Error("Invalid hourCycle")}var r=e.language,i;r!=="root"&&(i=e.maximize().region);var n=vt[i||""]||vt[r||""]||vt["".concat(r,"-001")]||vt["001"];return n[0]}var gi,Bs=new RegExp("^".concat(fi.source,"*")),Us=new RegExp("".concat(fi.source,"*$"));function w(e,t){return{start:e,end:t}}var Fs=!!String.prototype.startsWith,Gs=!!String.fromCodePoint,$s=!!Object.fromEntries,zs=!!String.prototype.codePointAt,Vs=!!String.prototype.trimStart,js=!!String.prototype.trimEnd,qs=!!Number.isSafeInteger,Ws=qs?Number.isSafeInteger:function(e){return typeof e=="number"&&isFinite(e)&&Math.floor(e)===e&&Math.abs(e)<=9007199254740991},bi=!0;try{ta=aa("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),bi=((gi=ta.exec("a"))===null||gi===void 0?void 0:gi[0])==="a"}catch{bi=!1}var ta,ra=Fs?function(t,r,i){return t.startsWith(r,i)}:function(t,r,i){return t.slice(i,i+r.length)===r},vi=Gs?String.fromCodePoint:function(){for(var t=[],r=0;r<arguments.length;r++)t[r]=arguments[r];for(var i="",n=t.length,a=0,o;n>a;){if(o=t[a++],o>1114111)throw RangeError(o+" is not a valid code point");i+=o<65536?String.fromCharCode(o):String.fromCharCode(((o-=65536)>>10)+55296,o%1024+56320)}return i},ia=$s?Object.fromEntries:function(t){for(var r={},i=0,n=t;i<n.length;i++){var a=n[i],o=a[0],s=a[1];r[o]=s}return r},na=zs?function(t,r){return t.codePointAt(r)}:function(t,r){var i=t.length;if(!(r<0||r>=i)){var n=t.charCodeAt(r),a;return n<55296||n>56319||r+1===i||(a=t.charCodeAt(r+1))<56320||a>57343?n:(n-55296<<10)+(a-56320)+65536}},Ys=Vs?function(t){return t.trimStart()}:function(t){return t.replace(Bs,"")},Xs=js?function(t){return t.trimEnd()}:function(t){return t.replace(Us,"")};function aa(e,t){return new RegExp(e,t)}var Ei;bi?(xi=aa("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),Ei=function(t,r){var i;xi.lastIndex=r;var n=xi.exec(t);return(i=n[1])!==null&&i!==void 0?i:""}):Ei=function(t,r){for(var i=[];;){var n=na(t,r);if(n===void 0||sa(n)||Qs(n))break;i.push(n),r+=n>=65536?2:1}return vi.apply(void 0,i)};var xi,oa=function(){function e(t,r){r===void 0&&(r={}),this.message=t,this.position={offset:0,line:1,column:1},this.ignoreTag=!!r.ignoreTag,this.locale=r.locale,this.requiresOtherClause=!!r.requiresOtherClause,this.shouldParseSkeletons=!!r.shouldParseSkeletons}return e.prototype.parse=function(){if(this.offset()!==0)throw Error("parser can only be used once");return this.parseMessage(0,"",!1)},e.prototype.parseMessage=function(t,r,i){for(var n=[];!this.isEOF();){var a=this.char();if(a===123){var o=this.parseArgument(t,i);if(o.err)return o;n.push(o.val)}else{if(a===125&&t>0)break;if(a===35&&(r==="plural"||r==="selectordinal")){var s=this.clonePosition();this.bump(),n.push({type:R.pound,location:w(s,this.clonePosition())})}else if(a===60&&!this.ignoreTag&&this.peek()===47){if(i)break;return this.error(E.UNMATCHED_CLOSING_TAG,w(this.clonePosition(),this.clonePosition()))}else if(a===60&&!this.ignoreTag&&yi(this.peek()||0)){var o=this.parseTag(t,r);if(o.err)return o;n.push(o.val)}else{var o=this.parseLiteral(t,r);if(o.err)return o;n.push(o.val)}}}return{val:n,err:null}},e.prototype.parseTag=function(t,r){var i=this.clonePosition();this.bump();var n=this.parseTagName();if(this.bumpSpace(),this.bumpIf("/>"))return{val:{type:R.literal,value:"<".concat(n,"/>"),location:w(i,this.clonePosition())},err:null};if(this.bumpIf(">")){var a=this.parseMessage(t+1,r,!0);if(a.err)return a;var o=a.val,s=this.clonePosition();if(this.bumpIf("</")){if(this.isEOF()||!yi(this.char()))return this.error(E.INVALID_TAG,w(s,this.clonePosition()));var c=this.clonePosition(),l=this.parseTagName();return n!==l?this.error(E.UNMATCHED_CLOSING_TAG,w(c,this.clonePosition())):(this.bumpSpace(),this.bumpIf(">")?{val:{type:R.tag,value:n,children:o,location:w(i,this.clonePosition())},err:null}:this.error(E.INVALID_TAG,w(s,this.clonePosition())))}else return this.error(E.UNCLOSED_TAG,w(i,this.clonePosition()))}else return this.error(E.INVALID_TAG,w(i,this.clonePosition()))},e.prototype.parseTagName=function(){var t=this.offset();for(this.bump();!this.isEOF()&&Zs(this.char());)this.bump();return this.message.slice(t,this.offset())},e.prototype.parseLiteral=function(t,r){for(var i=this.clonePosition(),n="";;){var a=this.tryParseQuote(r);if(a){n+=a;continue}var o=this.tryParseUnquoted(t,r);if(o){n+=o;continue}var s=this.tryParseLeftAngleBracket();if(s){n+=s;continue}break}var c=w(i,this.clonePosition());return{val:{type:R.literal,value:n,location:c},err:null}},e.prototype.tryParseLeftAngleBracket=function(){return!this.isEOF()&&this.char()===60&&(this.ignoreTag||!Ks(this.peek()||0))?(this.bump(),"<"):null},e.prototype.tryParseQuote=function(t){if(this.isEOF()||this.char()!==39)return null;switch(this.peek()){case 39:return this.bump(),this.bump(),"'";case 123:case 60:case 62:case 125:break;case 35:if(t==="plural"||t==="selectordinal")break;return null;default:return null}this.bump();var r=[this.char()];for(this.bump();!this.isEOF();){var i=this.char();if(i===39)if(this.peek()===39)r.push(39),this.bump();else{this.bump();break}else r.push(i);this.bump()}return vi.apply(void 0,r)},e.prototype.tryParseUnquoted=function(t,r){if(this.isEOF())return null;var i=this.char();return i===60||i===123||i===35&&(r==="plural"||r==="selectordinal")||i===125&&t>0?null:(this.bump(),vi(i))},e.prototype.parseArgument=function(t,r){var i=this.clonePosition();if(this.bump(),this.bumpSpace(),this.isEOF())return this.error(E.EXPECT_ARGUMENT_CLOSING_BRACE,w(i,this.clonePosition()));if(this.char()===125)return this.bump(),this.error(E.EMPTY_ARGUMENT,w(i,this.clonePosition()));var n=this.parseIdentifierIfPossible().value;if(!n)return this.error(E.MALFORMED_ARGUMENT,w(i,this.clonePosition()));if(this.bumpSpace(),this.isEOF())return this.error(E.EXPECT_ARGUMENT_CLOSING_BRACE,w(i,this.clonePosition()));switch(this.char()){case 125:return this.bump(),{val:{type:R.argument,value:n,location:w(i,this.clonePosition())},err:null};case 44:return this.bump(),this.bumpSpace(),this.isEOF()?this.error(E.EXPECT_ARGUMENT_CLOSING_BRACE,w(i,this.clonePosition())):this.parseArgumentOptions(t,r,n,i);default:return this.error(E.MALFORMED_ARGUMENT,w(i,this.clonePosition()))}},e.prototype.parseIdentifierIfPossible=function(){var t=this.clonePosition(),r=this.offset(),i=Ei(this.message,r),n=r+i.length;this.bumpTo(n);var a=this.clonePosition(),o=w(t,a);return{value:i,location:o}},e.prototype.parseArgumentOptions=function(t,r,i,n){var a,o=this.clonePosition(),s=this.parseIdentifierIfPossible().value,c=this.clonePosition();switch(s){case"":return this.error(E.EXPECT_ARGUMENT_TYPE,w(o,c));case"number":case"date":case"time":{this.bumpSpace();var l=null;if(this.bumpIf(",")){this.bumpSpace();var h=this.clonePosition(),u=this.parseSimpleArgStyleIfPossible();if(u.err)return u;var p=Xs(u.val);if(p.length===0)return this.error(E.EXPECT_ARGUMENT_STYLE,w(this.clonePosition(),this.clonePosition()));var d=w(h,this.clonePosition());l={style:p,styleLocation:d}}var m=this.tryParseArgumentClose(n);if(m.err)return m;var f=w(n,this.clonePosition());if(l&&ra(l?.style,"::",0)){var x=Ys(l.style.slice(2));if(s==="number"){var u=this.parseNumberSkeletonFromString(x,l.styleLocation);return u.err?u:{val:{type:R.number,value:i,location:f,style:u.val},err:null}}else{if(x.length===0)return this.error(E.EXPECT_DATE_TIME_SKELETON,f);var y=x;this.locale&&(y=ea(x,this.locale));var p={type:Ne.dateTime,pattern:y,location:l.styleLocation,parsedOptions:this.shouldParseSkeletons?Vn(y):{}},_=s==="date"?R.date:R.time;return{val:{type:_,value:i,location:f,style:p},err:null}}}return{val:{type:s==="number"?R.number:s==="date"?R.date:R.time,value:i,location:f,style:(a=l?.style)!==null&&a!==void 0?a:null},err:null}}case"plural":case"selectordinal":case"select":{var b=this.clonePosition();if(this.bumpSpace(),!this.bumpIf(","))return this.error(E.EXPECT_SELECT_ARGUMENT_OPTIONS,w(b,T({},b)));this.bumpSpace();var S=this.parseIdentifierIfPossible(),M=0;if(s!=="select"&&S.value==="offset"){if(!this.bumpIf(":"))return this.error(E.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,w(this.clonePosition(),this.clonePosition()));this.bumpSpace();var u=this.tryParseDecimalInteger(E.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,E.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);if(u.err)return u;this.bumpSpace(),S=this.parseIdentifierIfPossible(),M=u.val}var C=this.tryParsePluralOrSelectOptions(t,s,r,S);if(C.err)return C;var m=this.tryParseArgumentClose(n);if(m.err)return m;var H=w(n,this.clonePosition());return s==="select"?{val:{type:R.select,value:i,options:ia(C.val),location:H},err:null}:{val:{type:R.plural,value:i,options:ia(C.val),offset:M,pluralType:s==="plural"?"cardinal":"ordinal",location:H},err:null}}default:return this.error(E.INVALID_ARGUMENT_TYPE,w(o,c))}},e.prototype.tryParseArgumentClose=function(t){return this.isEOF()||this.char()!==125?this.error(E.EXPECT_ARGUMENT_CLOSING_BRACE,w(t,this.clonePosition())):(this.bump(),{val:!0,err:null})},e.prototype.parseSimpleArgStyleIfPossible=function(){for(var t=0,r=this.clonePosition();!this.isEOF();){var i=this.char();switch(i){case 39:{this.bump();var n=this.clonePosition();if(!this.bumpUntil("'"))return this.error(E.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE,w(n,this.clonePosition()));this.bump();break}case 123:{t+=1,this.bump();break}case 125:{if(t>0)t-=1;else return{val:this.message.slice(r.offset,this.offset()),err:null};break}default:this.bump();break}}return{val:this.message.slice(r.offset,this.offset()),err:null}},e.prototype.parseNumberSkeletonFromString=function(t,r){var i=[];try{i=Xn(t)}catch{return this.error(E.INVALID_NUMBER_SKELETON,r)}return{val:{type:Ne.number,tokens:i,location:r,parsedOptions:this.shouldParseSkeletons?Jn(i):{}},err:null}},e.prototype.tryParsePluralOrSelectOptions=function(t,r,i,n){for(var a,o=!1,s=[],c=new Set,l=n.value,h=n.location;;){if(l.length===0){var u=this.clonePosition();if(r!=="select"&&this.bumpIf("=")){var p=this.tryParseDecimalInteger(E.EXPECT_PLURAL_ARGUMENT_SELECTOR,E.INVALID_PLURAL_ARGUMENT_SELECTOR);if(p.err)return p;h=w(u,this.clonePosition()),l=this.message.slice(u.offset,this.offset())}else break}if(c.has(l))return this.error(r==="select"?E.DUPLICATE_SELECT_ARGUMENT_SELECTOR:E.DUPLICATE_PLURAL_ARGUMENT_SELECTOR,h);l==="other"&&(o=!0),this.bumpSpace();var d=this.clonePosition();if(!this.bumpIf("{"))return this.error(r==="select"?E.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT:E.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT,w(this.clonePosition(),this.clonePosition()));var m=this.parseMessage(t+1,r,i);if(m.err)return m;var f=this.tryParseArgumentClose(d);if(f.err)return f;s.push([l,{value:m.val,location:w(d,this.clonePosition())}]),c.add(l),this.bumpSpace(),a=this.parseIdentifierIfPossible(),l=a.value,h=a.location}return s.length===0?this.error(r==="select"?E.EXPECT_SELECT_ARGUMENT_SELECTOR:E.EXPECT_PLURAL_ARGUMENT_SELECTOR,w(this.clonePosition(),this.clonePosition())):this.requiresOtherClause&&!o?this.error(E.MISSING_OTHER_CLAUSE,w(this.clonePosition(),this.clonePosition())):{val:s,err:null}},e.prototype.tryParseDecimalInteger=function(t,r){var i=1,n=this.clonePosition();this.bumpIf("+")||this.bumpIf("-")&&(i=-1);for(var a=!1,o=0;!this.isEOF();){var s=this.char();if(s>=48&&s<=57)a=!0,o=o*10+(s-48),this.bump();else break}var c=w(n,this.clonePosition());return a?(o*=i,Ws(o)?{val:o,err:null}:this.error(r,c)):this.error(t,c)},e.prototype.offset=function(){return this.position.offset},e.prototype.isEOF=function(){return this.offset()===this.message.length},e.prototype.clonePosition=function(){return{offset:this.position.offset,line:this.position.line,column:this.position.column}},e.prototype.char=function(){var t=this.position.offset;if(t>=this.message.length)throw Error("out of bound");var r=na(this.message,t);if(r===void 0)throw Error("Offset ".concat(t," is at invalid UTF-16 code unit boundary"));return r},e.prototype.error=function(t,r){return{val:null,err:{kind:t,message:this.message,location:r}}},e.prototype.bump=function(){if(!this.isEOF()){var t=this.char();t===10?(this.position.line+=1,this.position.column=1,this.position.offset+=1):(this.position.column+=1,this.position.offset+=t<65536?1:2)}},e.prototype.bumpIf=function(t){if(ra(this.message,t,this.offset())){for(var r=0;r<t.length;r++)this.bump();return!0}return!1},e.prototype.bumpUntil=function(t){var r=this.offset(),i=this.message.indexOf(t,r);return i>=0?(this.bumpTo(i),!0):(this.bumpTo(this.message.length),!1)},e.prototype.bumpTo=function(t){if(this.offset()>t)throw Error("targetOffset ".concat(t," must be greater than or equal to the current offset ").concat(this.offset()));for(t=Math.min(t,this.message.length);;){var r=this.offset();if(r===t)break;if(r>t)throw Error("targetOffset ".concat(t," is at invalid UTF-16 code unit boundary"));if(this.bump(),this.isEOF())break}},e.prototype.bumpSpace=function(){for(;!this.isEOF()&&sa(this.char());)this.bump()},e.prototype.peek=function(){if(this.isEOF())return null;var t=this.char(),r=this.offset(),i=this.message.charCodeAt(r+(t>=65536?2:1));return i??null},e}();function yi(e){return e>=97&&e<=122||e>=65&&e<=90}function Ks(e){return yi(e)||e===47}function Zs(e){return e===45||e===46||e>=48&&e<=57||e===95||e>=97&&e<=122||e>=65&&e<=90||e==183||e>=192&&e<=214||e>=216&&e<=246||e>=248&&e<=893||e>=895&&e<=8191||e>=8204&&e<=8205||e>=8255&&e<=8256||e>=8304&&e<=8591||e>=11264&&e<=12271||e>=12289&&e<=55295||e>=63744&&e<=64975||e>=65008&&e<=65533||e>=65536&&e<=983039}function sa(e){return e>=9&&e<=13||e===32||e===133||e>=8206&&e<=8207||e===8232||e===8233}function Qs(e){return e>=33&&e<=35||e===36||e>=37&&e<=39||e===40||e===41||e===42||e===43||e===44||e===45||e>=46&&e<=47||e>=58&&e<=59||e>=60&&e<=62||e>=63&&e<=64||e===91||e===92||e===93||e===94||e===96||e===123||e===124||e===125||e===126||e===161||e>=162&&e<=165||e===166||e===167||e===169||e===171||e===172||e===174||e===176||e===177||e===182||e===187||e===191||e===215||e===247||e>=8208&&e<=8213||e>=8214&&e<=8215||e===8216||e===8217||e===8218||e>=8219&&e<=8220||e===8221||e===8222||e===8223||e>=8224&&e<=8231||e>=8240&&e<=8248||e===8249||e===8250||e>=8251&&e<=8254||e>=8257&&e<=8259||e===8260||e===8261||e===8262||e>=8263&&e<=8273||e===8274||e===8275||e>=8277&&e<=8286||e>=8592&&e<=8596||e>=8597&&e<=8601||e>=8602&&e<=8603||e>=8604&&e<=8607||e===8608||e>=8609&&e<=8610||e===8611||e>=8612&&e<=8613||e===8614||e>=8615&&e<=8621||e===8622||e>=8623&&e<=8653||e>=8654&&e<=8655||e>=8656&&e<=8657||e===8658||e===8659||e===8660||e>=8661&&e<=8691||e>=8692&&e<=8959||e>=8960&&e<=8967||e===8968||e===8969||e===8970||e===8971||e>=8972&&e<=8991||e>=8992&&e<=8993||e>=8994&&e<=9e3||e===9001||e===9002||e>=9003&&e<=9083||e===9084||e>=9085&&e<=9114||e>=9115&&e<=9139||e>=9140&&e<=9179||e>=9180&&e<=9185||e>=9186&&e<=9254||e>=9255&&e<=9279||e>=9280&&e<=9290||e>=9291&&e<=9311||e>=9472&&e<=9654||e===9655||e>=9656&&e<=9664||e===9665||e>=9666&&e<=9719||e>=9720&&e<=9727||e>=9728&&e<=9838||e===9839||e>=9840&&e<=10087||e===10088||e===10089||e===10090||e===10091||e===10092||e===10093||e===10094||e===10095||e===10096||e===10097||e===10098||e===10099||e===10100||e===10101||e>=10132&&e<=10175||e>=10176&&e<=10180||e===10181||e===10182||e>=10183&&e<=10213||e===10214||e===10215||e===10216||e===10217||e===10218||e===10219||e===10220||e===10221||e===10222||e===10223||e>=10224&&e<=10239||e>=10240&&e<=10495||e>=10496&&e<=10626||e===10627||e===10628||e===10629||e===10630||e===10631||e===10632||e===10633||e===10634||e===10635||e===10636||e===10637||e===10638||e===10639||e===10640||e===10641||e===10642||e===10643||e===10644||e===10645||e===10646||e===10647||e===10648||e>=10649&&e<=10711||e===10712||e===10713||e===10714||e===10715||e>=10716&&e<=10747||e===10748||e===10749||e>=10750&&e<=11007||e>=11008&&e<=11055||e>=11056&&e<=11076||e>=11077&&e<=11078||e>=11079&&e<=11084||e>=11085&&e<=11123||e>=11124&&e<=11125||e>=11126&&e<=11157||e===11158||e>=11159&&e<=11263||e>=11776&&e<=11777||e===11778||e===11779||e===11780||e===11781||e>=11782&&e<=11784||e===11785||e===11786||e===11787||e===11788||e===11789||e>=11790&&e<=11798||e===11799||e>=11800&&e<=11801||e===11802||e===11803||e===11804||e===11805||e>=11806&&e<=11807||e===11808||e===11809||e===11810||e===11811||e===11812||e===11813||e===11814||e===11815||e===11816||e===11817||e>=11818&&e<=11822||e===11823||e>=11824&&e<=11833||e>=11834&&e<=11835||e>=11836&&e<=11839||e===11840||e===11841||e===11842||e>=11843&&e<=11855||e>=11856&&e<=11857||e===11858||e>=11859&&e<=11903||e>=12289&&e<=12291||e===12296||e===12297||e===12298||e===12299||e===12300||e===12301||e===12302||e===12303||e===12304||e===12305||e>=12306&&e<=12307||e===12308||e===12309||e===12310||e===12311||e===12312||e===12313||e===12314||e===12315||e===12316||e===12317||e>=12318&&e<=12319||e===12320||e===12336||e===64830||e===64831||e>=65093&&e<=65094}function Ai(e){e.forEach(function(t){if(delete t.location,ar(t)||or(t))for(var r in t.options)delete t.options[r].location,Ai(t.options[r].value);else rr(t)&&cr(t.style)||(ir(t)||nr(t))&&bt(t.style)?delete t.style.location:sr(t)&&Ai(t.children)})}function ca(e,t){t===void 0&&(t={}),t=T({shouldParseSkeletons:!0,requiresOtherClause:!0},t);var r=new oa(e,t).parse();if(r.err){var i=SyntaxError(E[r.err.kind]);throw i.location=r.err.location,i.originalMessage=r.err.message,i}return t?.captureLocation||Ai(r.val),r.val}function Et(e,t){var r=t&&t.cache?t.cache:nc,i=t&&t.serializer?t.serializer:ic,n=t&&t.strategy?t.strategy:ec;return n(e,{cache:r,serializer:i})}function Js(e){return e==null||typeof e=="number"||typeof e=="boolean"}function la(e,t,r,i){var n=Js(i)?i:r(i),a=t.get(n);return typeof a>"u"&&(a=e.call(this,i),t.set(n,a)),a}function ha(e,t,r){var i=Array.prototype.slice.call(arguments,3),n=r(i),a=t.get(n);return typeof a>"u"&&(a=e.apply(this,i),t.set(n,a)),a}function Si(e,t,r,i,n){return r.bind(t,e,i,n)}function ec(e,t){var r=e.length===1?la:ha;return Si(e,this,r,t.cache.create(),t.serializer)}function tc(e,t){return Si(e,this,ha,t.cache.create(),t.serializer)}function rc(e,t){return Si(e,this,la,t.cache.create(),t.serializer)}var ic=function(){return JSON.stringify(arguments)};function Ti(){this.cache=Object.create(null)}Ti.prototype.get=function(e){return this.cache[e]};Ti.prototype.set=function(e,t){this.cache[e]=t};var nc={create:function(){return new Ti}},lr={variadic:tc,monadic:rc};var Me;(function(e){e.MISSING_VALUE="MISSING_VALUE",e.INVALID_VALUE="INVALID_VALUE",e.MISSING_INTL_API="MISSING_INTL_API"})(Me||(Me={}));var yt=function(e){xt(t,e);function t(r,i,n){var a=e.call(this,r)||this;return a.code=i,a.originalMessage=n,a}return t.prototype.toString=function(){return"[formatjs Error: ".concat(this.code,"] ").concat(this.message)},t}(Error);var wi=function(e){xt(t,e);function t(r,i,n,a){return e.call(this,'Invalid values for "'.concat(r,'": "').concat(i,'". Options are "').concat(Object.keys(n).join('", "'),'"'),Me.INVALID_VALUE,a)||this}return t}(yt);var da=function(e){xt(t,e);function t(r,i,n){return e.call(this,'Value for "'.concat(r,'" must be of type ').concat(i),Me.INVALID_VALUE,n)||this}return t}(yt);var pa=function(e){xt(t,e);function t(r,i){return e.call(this,'The intl string context variable "'.concat(r,'" was not provided to the string "').concat(i,'"'),Me.MISSING_VALUE,i)||this}return t}(yt);var j;(function(e){e[e.literal=0]="literal",e[e.object=1]="object"})(j||(j={}));function ac(e){return e.length<2?e:e.reduce(function(t,r){var i=t[t.length-1];return!i||i.type!==j.literal||r.type!==j.literal?t.push(r):i.value+=r.value,t},[])}function oc(e){return typeof e=="function"}function At(e,t,r,i,n,a,o){if(e.length===1&&ui(e[0]))return[{type:j.literal,value:e[0].value}];for(var s=[],c=0,l=e;c<l.length;c++){var h=l[c];if(ui(h)){s.push({type:j.literal,value:h.value});continue}if(zn(h)){typeof a=="number"&&s.push({type:j.literal,value:r.getNumberFormat(t).format(a)});continue}var u=h.value;if(!(n&&u in n))throw new pa(u,o);var p=n[u];if($n(h)){(!p||typeof p=="string"||typeof p=="number")&&(p=typeof p=="string"||typeof p=="number"?String(p):""),s.push({type:typeof p=="string"?j.literal:j.object,value:p});continue}if(ir(h)){var d=typeof h.style=="string"?i.date[h.style]:bt(h.style)?h.style.parsedOptions:void 0;s.push({type:j.literal,value:r.getDateTimeFormat(t,d).format(p)});continue}if(nr(h)){var d=typeof h.style=="string"?i.time[h.style]:bt(h.style)?h.style.parsedOptions:i.time.medium;s.push({type:j.literal,value:r.getDateTimeFormat(t,d).format(p)});continue}if(rr(h)){var d=typeof h.style=="string"?i.number[h.style]:cr(h.style)?h.style.parsedOptions:void 0;d&&d.scale&&(p=p*(d.scale||1)),s.push({type:j.literal,value:r.getNumberFormat(t,d).format(p)});continue}if(sr(h)){var m=h.children,f=h.value,x=n[f];if(!oc(x))throw new da(f,"function",o);var y=At(m,t,r,i,n,a),_=x(y.map(function(M){return M.value}));Array.isArray(_)||(_=[_]),s.push.apply(s,_.map(function(M){return{type:typeof M=="string"?j.literal:j.object,value:M}}))}if(ar(h)){var b=h.options[p]||h.options.other;if(!b)throw new wi(h.value,p,Object.keys(h.options),o);s.push.apply(s,At(b.value,t,r,i,n));continue}if(or(h)){var b=h.options["=".concat(p)];if(!b){if(!Intl.PluralRules)throw new yt(`Intl.PluralRules is not available in this environment.
-Try polyfilling it using "@formatjs/intl-pluralrules"
-`,Me.MISSING_INTL_API,o);var S=r.getPluralRules(t,{type:h.pluralType}).select(p-(h.offset||0));b=h.options[S]||h.options.other}if(!b)throw new wi(h.value,p,Object.keys(h.options),o);s.push.apply(s,At(b.value,t,r,i,n,p-(h.offset||0)));continue}}return ac(s)}function sc(e,t){return t?T(T(T({},e||{}),t||{}),Object.keys(e).reduce(function(r,i){return r[i]=T(T({},e[i]),t[i]||{}),r},{})):e}function cc(e,t){return t?Object.keys(e).reduce(function(r,i){return r[i]=sc(e[i],t[i]),r},T({},e)):e}function _i(e){return{create:function(){return{get:function(t){return e[t]},set:function(t,r){e[t]=r}}}}}function lc(e){return e===void 0&&(e={number:{},dateTime:{},pluralRules:{}}),{getNumberFormat:Et(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.NumberFormat).bind.apply(t,tr([void 0],r,!1)))},{cache:_i(e.number),strategy:lr.variadic}),getDateTimeFormat:Et(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.DateTimeFormat).bind.apply(t,tr([void 0],r,!1)))},{cache:_i(e.dateTime),strategy:lr.variadic}),getPluralRules:Et(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.PluralRules).bind.apply(t,tr([void 0],r,!1)))},{cache:_i(e.pluralRules),strategy:lr.variadic})}}var ma=function(){function e(t,r,i,n){var a=this;if(r===void 0&&(r=e.defaultLocale),this.formatterCache={number:{},dateTime:{},pluralRules:{}},this.format=function(o){var s=a.formatToParts(o);if(s.length===1)return s[0].value;var c=s.reduce(function(l,h){return!l.length||h.type!==j.literal||typeof l[l.length-1]!="string"?l.push(h.value):l[l.length-1]+=h.value,l},[]);return c.length<=1?c[0]||"":c},this.formatToParts=function(o){return At(a.ast,a.locales,a.formatters,a.formats,o,void 0,a.message)},this.resolvedOptions=function(){return{locale:a.resolvedLocale.toString()}},this.getAst=function(){return a.ast},this.locales=r,this.resolvedLocale=e.resolveLocale(r),typeof t=="string"){if(this.message=t,!e.__parse)throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");this.ast=e.__parse(t,{ignoreTag:n?.ignoreTag,locale:this.resolvedLocale})}else this.ast=t;if(!Array.isArray(this.ast))throw new TypeError("A message must be provided as a String or AST.");this.formats=cc(e.formats,i),this.formatters=n&&n.formatters||lc(this.formatterCache)}return Object.defineProperty(e,"defaultLocale",{get:function(){return e.memoizedDefaultLocale||(e.memoizedDefaultLocale=new Intl.NumberFormat().resolvedOptions().locale),e.memoizedDefaultLocale},enumerable:!1,configurable:!0}),e.memoizedDefaultLocale=null,e.resolveLocale=function(t){var r=Intl.NumberFormat.supportedLocalesOf(t);return r.length>0?new Intl.Locale(r[0]):new Intl.Locale(typeof t=="string"?t:t[0])},e.__parse=ca,e.formats={number:{integer:{maximumFractionDigits:0},currency:{style:"currency"},percent:{style:"percent"}},date:{short:{month:"numeric",day:"numeric",year:"2-digit"},medium:{month:"short",day:"numeric",year:"numeric"},long:{month:"long",day:"numeric",year:"numeric"},full:{weekday:"long",month:"long",day:"numeric",year:"numeric"}},time:{short:{hour:"numeric",minute:"numeric"},medium:{hour:"numeric",minute:"numeric",second:"numeric"},long:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"},full:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"}}},e}();var ua=ma;var hc=/[0-9\-+#]/,dc=/[^\d\-+#]/g;function fa(e){return e.search(hc)}function pc(e="#.##"){let t={},r=e.length,i=fa(e);t.prefix=i>0?e.substring(0,i):"";let n=fa(e.split("").reverse().join("")),a=r-n,o=e.substring(a,a+1),s=a+(o==="."||o===","?1:0);t.suffix=n>0?e.substring(s,r):"",t.mask=e.substring(i,s),t.maskHasNegativeSign=t.mask.charAt(0)==="-",t.maskHasPositiveSign=t.mask.charAt(0)==="+";let c=t.mask.match(dc);return t.decimal=c&&c[c.length-1]||".",t.separator=c&&c[1]&&c[0]||",",c=t.mask.split(t.decimal),t.integer=c[0],t.fraction=c[1],t}function mc(e,t,r){let i=!1,n={value:e};e<0&&(i=!0,n.value=-n.value),n.sign=i?"-":"",n.value=Number(n.value).toFixed(t.fraction&&t.fraction.length),n.value=Number(n.value).toString();let a=t.fraction&&t.fraction.lastIndexOf("0"),[o="0",s=""]=n.value.split(".");return(!s||s&&s.length<=a)&&(s=a<0?"":(+("0."+s)).toFixed(a+1).replace("0.","")),n.integer=o,n.fraction=s,uc(n,t),(n.result==="0"||n.result==="")&&(i=!1,n.sign=""),!i&&t.maskHasPositiveSign?n.sign="+":i&&t.maskHasPositiveSign?n.sign="-":i&&(n.sign=r&&r.enforceMaskSign&&!t.maskHasNegativeSign?"":"-"),n}function uc(e,t){e.result="";let r=t.integer.split(t.separator),i=r.join(""),n=i&&i.indexOf("0");if(n>-1)for(;e.integer.length<i.length-n;)e.integer="0"+e.integer;else Number(e.integer)===0&&(e.integer="");let a=r[1]&&r[r.length-1].length;if(a){let o=e.integer.length,s=o%a;for(let c=0;c<o;c++)e.result+=e.integer.charAt(c),!((c-s+1)%a)&&c<o-a&&(e.result+=t.separator)}else e.result=e.integer;return e.result+=t.fraction&&e.fraction?t.decimal+e.fraction:"",e}function fc(e,t,r={}){if(!e||isNaN(Number(t)))return t;let i=pc(e),n=mc(t,i,r);return i.prefix+n.sign+n.result+i.suffix}var ga=fc;var xa=".",gc=",",va=/^\s+/,Ea=/\s+$/,ba="&nbsp;",Pi=e=>e*12,ya=(e,t)=>{let{start:r,end:i,displaySummary:{amount:n,duration:a,minProductQuantity:o,outcomeType:s}={}}=e;if(!(n&&a&&s&&o))return!1;let c=t?new Date(t):new Date;if(!r||!i)return!1;let l=new Date(r),h=new Date(i);return c>=l&&c<=h},Oe={MONTH:"MONTH",YEAR:"YEAR"},xc={[ee.ANNUAL]:12,[ee.MONTHLY]:1,[ee.THREE_YEARS]:36,[ee.TWO_YEARS]:24},Ci=(e,t)=>({accept:e,round:t}),bc=[Ci(({divisor:e,price:t})=>t%e==0,({divisor:e,price:t})=>t/e),Ci(({usePrecision:e})=>e,({divisor:e,price:t})=>Math.round(t/e*100)/100),Ci(()=>!0,({divisor:e,price:t})=>Math.ceil(Math.floor(t*100/e)/100))],Li={[Te.YEAR]:{[ee.MONTHLY]:Oe.MONTH,[ee.ANNUAL]:Oe.YEAR},[Te.MONTH]:{[ee.MONTHLY]:Oe.MONTH}},vc=(e,t)=>e.indexOf(`'${t}'`)===0,Ec=(e,t=!0)=>{let r=e.replace(/'.*?'/,"").trim(),i=Sa(r);return!!i?t||(r=r.replace(/[,\.]0+/,i)):r=r.replace(/\s?(#.*0)(?!\s)?/,"$&"+Ac(e)),r},yc=e=>{let t=Sc(e),r=vc(e,t),i=e.replace(/'.*?'/,""),n=va.test(i)||Ea.test(i);return{currencySymbol:t,isCurrencyFirst:r,hasCurrencySpace:n}},Aa=e=>e.replace(va,ba).replace(Ea,ba),Ac=e=>e.match(/#(.?)#/)?.[1]===xa?gc:xa,Sc=e=>e.match(/'(.*?)'/)?.[1]??"",Sa=e=>e.match(/0(.?)0/)?.[1]??"";function Ye({formatString:e,price:t,usePrecision:r,isIndianPrice:i=!1},n,a=o=>o){let{currencySymbol:o,isCurrencyFirst:s,hasCurrencySpace:c}=yc(e),l=r?Sa(e):"",h=Ec(e,r),u=r?2:0,p=a(t,{currencySymbol:o}),d=i?p.toLocaleString("hi-IN",{minimumFractionDigits:u,maximumFractionDigits:u}):ga(h,p),m=r?d.lastIndexOf(l):d.length,f=d.substring(0,m),x=d.substring(m+1);return{accessiblePrice:e.replace(/'.*?'/,"SYMBOL").replace(/#.*0/,d).replace(/SYMBOL/,o),currencySymbol:o,decimals:x,decimalsDelimiter:l,hasCurrencySpace:c,integer:f,isCurrencyFirst:s,recurrenceTerm:n}}var Ta=e=>{let{commitment:t,term:r,usePrecision:i}=e,n=xc[r]??1;return Ye(e,n>1?Oe.MONTH:Li[t]?.[r],a=>{let o={divisor:n,price:a,usePrecision:i},{round:s}=bc.find(({accept:c})=>c(o));if(!s)throw new Error(`Missing rounding rule for: ${JSON.stringify(o)}`);return s(o)})},wa=({commitment:e,term:t,...r})=>Ye(r,Li[e]?.[t]),_a=e=>{let{commitment:t,instant:r,price:i,originalPrice:n,priceWithoutDiscount:a,promotion:o,quantity:s=1,term:c}=e;if(t===Te.YEAR&&c===ee.MONTHLY){if(!o)return Ye(e,Oe.YEAR,Pi);let{displaySummary:{outcomeType:l,duration:h,minProductQuantity:u=1}={}}=o;switch(l){case"PERCENTAGE_DISCOUNT":if(s>=u&&ya(o,r)){let p=parseInt(h.replace("P","").replace("M",""));if(isNaN(p))return Pi(i);let d=s*n*p,m=s*a*(12-p),f=Math.round((d+m)*100)/100;return Ye({...e,price:f},Oe.YEAR)}default:return Ye(e,Oe.YEAR,()=>Pi(a??i))}}return Ye(e,Li[t]?.[c])};var Ri={recurrenceLabel:"{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",recurrenceAriaLabel:"{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",perUnitLabel:"{perUnit, select, LICENSE {per license} other {}}",perUnitAriaLabel:"{perUnit, select, LICENSE {per license} other {}}",freeLabel:"Free",freeAriaLabel:"Free",taxExclusiveLabel:"{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",taxInclusiveLabel:"{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",alternativePriceAriaLabel:"Alternatively at",strikethroughAriaLabel:"Regularly at",planTypeLabel:"{planType, select, ABM {Annual, billed monthly} other {}}"},Tc=fn("ConsonantTemplates/price"),wc=/<\/?[^>]+(>|$)/g,B={container:"price",containerOptical:"price-optical",containerStrikethrough:"price-strikethrough",containerAlternative:"price-alternative",containerAnnual:"price-annual",containerAnnualPrefix:"price-annual-prefix",containerAnnualSuffix:"price-annual-suffix",disabled:"disabled",currencySpace:"price-currency-space",currencySymbol:"price-currency-symbol",decimals:"price-decimals",decimalsDelimiter:"price-decimals-delimiter",integer:"price-integer",recurrence:"price-recurrence",taxInclusivity:"price-tax-inclusivity",unitType:"price-unit-type"},Ae={perUnitLabel:"perUnitLabel",perUnitAriaLabel:"perUnitAriaLabel",recurrenceLabel:"recurrenceLabel",recurrenceAriaLabel:"recurrenceAriaLabel",taxExclusiveLabel:"taxExclusiveLabel",taxInclusiveLabel:"taxInclusiveLabel",strikethroughAriaLabel:"strikethroughAriaLabel",alternativePriceAriaLabel:"alternativePriceAriaLabel"},Ni="TAX_EXCLUSIVE",_c=e=>pn(e)?Object.entries(e).filter(([,t])=>je(t)||jt(t)||t===!0).reduce((t,[r,i])=>t+` ${r}${i===!0?"":'="'+dn(i)+'"'}`,""):"",F=(e,t,r,i=!1)=>`<span class="${e}${t?"":" "+B.disabled}"${_c(r)}>${i?Aa(t):t??""}</span>`;function me(e,t,r,i){let n=e[r];if(n==null)return"";try{return new ua(n.replace(wc,""),t).format(i)}catch{return Tc.error("Failed to format literal:",n),""}}function Pc(e,{accessibleLabel:t,altAccessibleLabel:r,currencySymbol:i,decimals:n,decimalsDelimiter:a,hasCurrencySpace:o,integer:s,isCurrencyFirst:c,recurrenceLabel:l,perUnitLabel:h,taxInclusivityLabel:u},p={}){let d=F(B.currencySymbol,i),m=F(B.currencySpace,o?"&nbsp;":""),f="";return t?f=`<sr-only class="strikethrough-aria-label">${t}</sr-only>`:r&&(f=`<sr-only class="alt-aria-label">${r}</sr-only>`),c&&(f+=d+m),f+=F(B.integer,s),f+=F(B.decimalsDelimiter,a),f+=F(B.decimals,n),c||(f+=m+d),f+=F(B.recurrence,l,null,!0),f+=F(B.unitType,h,null,!0),f+=F(B.taxInclusivity,u,!0),F(e,f,{...p})}var X=({isAlternativePrice:e=!1,displayOptical:t=!1,displayStrikethrough:r=!1,displayAnnual:i=!1,instant:n=void 0}={})=>({country:a,displayFormatted:o=!0,displayRecurrence:s=!0,displayPerUnit:c=!1,displayTax:l=!1,language:h,literals:u={},quantity:p=1,space:d=!1}={},{commitment:m,offerSelectorIds:f,formatString:x,price:y,priceWithoutDiscount:_,taxDisplay:b,taxTerm:S,term:M,usePrecision:C,promotion:H}={},U={})=>{Object.entries({country:a,formatString:x,language:h,price:y}).forEach(([po,mo])=>{if(mo==null)throw new Error(`Argument "${po}" is missing for osi ${f?.toString()}, country ${a}, language ${h}`)});let G={...Ri,...u},D=`${h.toLowerCase()}-${a.toUpperCase()}`,$=r&&_?_:y,L=t?Ta:wa;i&&(L=_a);let{accessiblePrice:le,recurrenceTerm:J,...ge}=L({commitment:m,formatString:x,instant:n,isIndianPrice:a==="IN",originalPrice:y,priceWithoutDiscount:_,price:t?y:$,promotion:H,quantity:p,term:M,usePrecision:C}),pr="",mr="",ur="";A(s)&&J&&(ur=me(G,D,Ae.recurrenceLabel,{recurrenceTerm:J}));let Ct="";A(c)&&(d&&(Ct+=" "),Ct+=me(G,D,Ae.perUnitLabel,{perUnit:"LICENSE"}));let Lt="";A(l)&&S&&(d&&(Lt+=" "),Lt+=me(G,D,b===Ni?Ae.taxExclusiveLabel:Ae.taxInclusiveLabel,{taxTerm:S})),r&&(pr=me(G,D,Ae.strikethroughAriaLabel,{strikethroughPrice:pr})),e&&(mr=me(G,D,Ae.alternativePriceAriaLabel,{alternativePrice:mr}));let Ie=B.container;if(t&&(Ie+=" "+B.containerOptical),r&&(Ie+=" "+B.containerStrikethrough),e&&(Ie+=" "+B.containerAlternative),i&&(Ie+=" "+B.containerAnnual),A(o))return Pc(Ie,{...ge,accessibleLabel:pr,altAccessibleLabel:mr,recurrenceLabel:ur,perUnitLabel:Ct,taxInclusivityLabel:Lt},U);let{currencySymbol:Hi,decimals:oo,decimalsDelimiter:so,hasCurrencySpace:Di,integer:co,isCurrencyFirst:lo}=ge,ke=[co,so,oo];lo?(ke.unshift(Di?"\xA0":""),ke.unshift(Hi)):(ke.push(Di?"\xA0":""),ke.push(Hi)),ke.push(ur,Ct,Lt);let ho=ke.join("");return F(Ie,ho,U)},Pa=()=>(e,t,r)=>{let n=(e.displayOldPrice===void 0||A(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price;return`${n?X({displayStrikethrough:!0})(e,t,r)+"&nbsp;":""}${X({isAlternativePrice:n})(e,t,r)}`},Ca=()=>(e,t,r)=>{let{instant:i}=e;try{i||(i=new URLSearchParams(document.location.search).get("instant")),i&&(i=new Date(i))}catch{i=void 0}let n={...e,displayTax:!1,displayPerUnit:!1},o=(e.displayOldPrice===void 0||A(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price;return`${o?X({displayStrikethrough:!0})(n,t,r)+"&nbsp;":""}${X({isAlternativePrice:o})(e,t,r)}${F(B.containerAnnualPrefix,"&nbsp;(")}${X({displayAnnual:!0,instant:i})(n,t,r)}${F(B.containerAnnualSuffix,")")}`},La=()=>(e,t,r)=>{let i={...e,displayTax:!1,displayPerUnit:!1};return`${X({isAlternativePrice:e.displayOldPrice})(e,t,r)}${F(B.containerAnnualPrefix,"&nbsp;(")}${X({displayAnnual:!0})(i,t,r)}${F(B.containerAnnualSuffix,")")}`};var St={...B,containerLegal:"price-legal",planType:"price-plan-type"},hr={...Ae,planTypeLabel:"planTypeLabel"};function Cc(e,{perUnitLabel:t,taxInclusivityLabel:r,planTypeLabel:i},n={}){let a="";return a+=F(St.unitType,t,null,!0),r&&i&&(r+=". "),a+=F(St.taxInclusivity,r,!0),a+=F(St.planType,i,null),F(e,a,{...n})}var Ra=({country:e,displayPerUnit:t=!1,displayTax:r=!1,displayPlanType:i=!1,language:n,literals:a={}}={},{taxDisplay:o,taxTerm:s,planType:c}={},l={})=>{let h={...Ri,...a},u=`${n.toLowerCase()}-${e.toUpperCase()}`,p="";A(t)&&(p=me(h,u,hr.perUnitLabel,{perUnit:"LICENSE"}));let d="";e==="US"&&n==="en"&&(r=!1),A(r)&&s&&(d=me(h,u,o===Ni?hr.taxExclusiveLabel:hr.taxInclusiveLabel,{taxTerm:s}));let m="";A(i)&&c&&(m=me(h,u,hr.planTypeLabel,{planType:c}));let f=St.container;return f+=" "+St.containerLegal,Cc(f,{perUnitLabel:p,taxInclusivityLabel:d,planTypeLabel:m},l)};var Na=X(),Ma=Pa(),Oa=X({displayOptical:!0}),Ia=X({displayStrikethrough:!0}),ka=X({displayAnnual:!0}),Ha=X({displayOptical:!0,isAlternativePrice:!0}),Da=X({isAlternativePrice:!0}),Ba=La(),Ua=Ca(),Fa=Ra;var Lc=(e,t)=>{if(!(!pt(e)||!pt(t)))return Math.floor((t-e)/t*100)},Ga=()=>(e,t)=>{let{price:r,priceWithoutDiscount:i}=t,n=Lc(r,i);return n===void 0?'<span class="no-discount"></span>':`<span class="discount">${n}%</span>`};var $a=Ga();var Va="INDIVIDUAL_COM",Mi="TEAM_COM",ja="INDIVIDUAL_EDU",Oi="TEAM_EDU",za=["GB_en","AU_en","FR_fr","AT_de","BE_en","BE_fr","BE_nl","BG_bg","CH_de","CH_fr","CH_it","CZ_cs","DE_de","DK_da","EE_et","EG_ar","EG_en","ES_es","FI_fi","GR_el","GR_en","HU_hu","IE_en","IT_it","LU_de","LU_en","LU_fr","NL_nl","NO_nb","PL_pl","PT_pt","RO_ro","SE_sv","SI_sl","SK_sk","TR_tr","UA_uk","ID_en","ID_in","IN_en","IN_hi","JP_ja","MY_en","MY_ms","NZ_en","TH_en","TH_th"],Rc={[Va]:["MU_en","LT_lt","LV_lv","NG_en","SA_ar","SA_en","SG_en","KR_ko"],[Mi]:["MU_en","LT_lt","LV_lv","NG_en","CO_es","KR_ko"],[ja]:["LT_lt","LV_lv","SA_en","SG_en"],[Oi]:["SG_en","KR_ko"]},Nc={MU_en:[!1,!1,!1,!1],NG_en:[!1,!1,!1,!1],AU_en:[!1,!1,!1,!1],JP_ja:[!1,!1,!1,!1],NZ_en:[!1,!1,!1,!1],TH_en:[!1,!1,!1,!1],TH_th:[!1,!1,!1,!1],CO_es:[!1,!0,!1,!1],AT_de:[!1,!1,!1,!0],SG_en:[!1,!1,!1,!0]},Mc=[Va,Mi,ja,Oi],Oc=e=>[Mi,Oi].includes(e),Ic=(e,t,r,i)=>{let n=`${e}_${t}`,a=`${r}_${i}`,o=Nc[n];if(o){let s=Mc.indexOf(a);return o[s]}return Oc(a)},kc=(e,t,r,i)=>{let n=`${e}_${t}`;if(za.includes(e)||za.includes(n))return!0;let a=Rc[`${r}_${i}`];return a?a.includes(e)||a.includes(n)?!0:v.displayTax:v.displayTax},Hc=async(e,t,r,i)=>{let n=kc(e,t,r,i);return{displayTax:n,forceTaxExclusive:n?Ic(e,t,r,i):v.forceTaxExclusive}},Tt=class Tt extends HTMLSpanElement{constructor(){super();g(this,"masElement",new ye(this));this.handleClick=this.handleClick.bind(this)}static get observedAttributes(){return["data-display-old-price","data-display-per-unit","data-display-recurrence","data-display-tax","data-display-plan-type","data-display-annual","data-perpetual","data-promotion-code","data-force-tax-exclusive","data-template","data-wcs-osi"]}static createInlinePrice(r){let i=Y();if(!i)return null;let{displayOldPrice:n,displayPerUnit:a,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:h,perpetual:u,promotionCode:p,quantity:d,alternativePrice:m,template:f,wcsOsi:x}=i.collectPriceOptions(r);return er(Tt,{displayOldPrice:n,displayPerUnit:a,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:h,perpetual:u,promotionCode:p,quantity:d,alternativePrice:m,template:f,wcsOsi:x})}get isInlinePrice(){return!0}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.handleClick)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.handleClick)}handleClick(r){r.target!==this&&(r.stopImmediatePropagation(),this.dispatchEvent(new MouseEvent("click",{bubbles:!0,cancelable:!0,view:window})))}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get isFailed(){return this.masElement.state===oe}requestUpdate(r=!1){return this.masElement.requestUpdate(r)}async render(r={}){if(!this.isConnected)return!1;let i=Y();if(!i)return!1;let n=i.collectPriceOptions(r,this),a={...i.settings,...n};if(!a.wcsOsi.length)return!1;try{let o=this.masElement.togglePending({});this.innerHTML="";let[s]=await i.resolveOfferSelectors(a),c=ut(await s,a),[l]=c;if(i.featureFlags[Ee]){if(n.displayPerUnit===void 0&&(a.displayPerUnit=l.customerSegment!=="INDIVIDUAL"),n.displayTax===void 0||n.forceTaxExclusive===void 0){let{country:h,language:u}=a,[p=""]=l.marketSegments,d=await Hc(h,u,l.customerSegment,p);n.displayTax===void 0&&(a.displayTax=d?.displayTax||a.displayTax),n.forceTaxExclusive===void 0&&(a.forceTaxExclusive=d?.forceTaxExclusive||a.forceTaxExclusive),a.forceTaxExclusive&&(c=ut(c,a))}}else n.displayOldPrice===void 0&&(a.displayOldPrice=!0);return this.renderOffers(c,a,o)}catch(o){throw this.innerHTML="",o}}renderOffers(r,i,n=void 0){if(!this.isConnected)return;let a=Y();if(!a)return!1;if(n??(n=this.masElement.togglePending()),r.length){if(this.masElement.toggleResolved(n,r,i)){this.innerHTML=a.buildPriceHTML(r,this.options);let o=this.closest("p, h3, div");if(!o||!o.querySelector('span[data-template="strikethrough"]')||o.querySelector(".alt-aria-label"))return!0;let s=o?.querySelectorAll('span[is="inline-price"]');return s.length>1&&s.length===o.querySelectorAll('span[data-template="strikethrough"]').length*2&&s.forEach(c=>{c.dataset.template!=="strikethrough"&&c.options&&!c.options.alternativePrice&&!c.isFailed&&(c.options.alternativePrice=!0,c.innerHTML=a.buildPriceHTML(r,c.options))}),!0}}else{let o=new Error(`Not provided: ${this.options?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(n,o,this.options))return this.innerHTML="",!0}return!1}};g(Tt,"is","inline-price"),g(Tt,"tag","span");var ue=Tt;window.customElements.get(ue.is)||window.customElements.define(ue.is,ue,{extends:ue.tag});function qa({literals:e,providers:t,settings:r}){function i(o,s=null){let c={country:r.country,language:r.language,locale:r.locale,literals:{...e.price}};if(s&&t?.price)for(let C of t.price)C(s,c);let{displayOldPrice:l,displayPerUnit:h,displayRecurrence:u,displayTax:p,displayPlanType:d,forceTaxExclusive:m,perpetual:f,displayAnnual:x,promotionCode:y,quantity:_,alternativePrice:b,wcsOsi:S,...M}=Object.assign(c,s?.dataset??{},o??{});return c=qt(Object.assign({...c,...M,displayOldPrice:A(l),displayPerUnit:A(h),displayRecurrence:A(u),displayTax:A(p),displayPlanType:A(d),forceTaxExclusive:A(m),perpetual:A(f),displayAnnual:A(x),promotionCode:Yt(y).effectivePromoCode,quantity:qe(_,v.quantity),alternativePrice:A(b),wcsOsi:Zt(S)})),c}function n(o,s){if(!Array.isArray(o)||!o.length||!s)return"";let{template:c}=s,l;switch(c){case"discount":l=$a;break;case"strikethrough":l=Ia;break;case"annual":l=ka;break;case"legal":l=Fa;break;default:s.template==="optical"&&s.alternativePrice?l=Ha:s.template==="optical"?l=Oa:s.displayAnnual&&o[0].planType==="ABM"?l=s.promotionCode?Ua:Ba:s.alternativePrice?l=Da:l=s.promotionCode?Ma:Na}let[h]=o;return h={...h,...h.priceDetails},l({...r,...s},h)}let a=ue.createInlinePrice;return{InlinePrice:ue,buildPriceHTML:n,collectPriceOptions:i,createInlinePrice:a}}function Dc({locale:e=void 0,country:t=void 0,language:r=void 0}={}){return r??(r=e?.split("_")?.[0]||v.language),t??(t=e?.split("_")?.[1]||v.country),e??(e=at.includes(`${r}_${t}`)?`${r}_${t}`:`${v.language}_${v.country}`),{locale:e,country:t,language:r}}function Wa(e={},t){let r=t.featureFlags[Ee],{commerce:i={}}=e,n=he.PRODUCTION,a=kr,o=O("checkoutClientId",i)??v.checkoutClientId,s=mt(O("checkoutWorkflowStep",i),q,v.checkoutWorkflowStep),c=v.displayOldPrice,l=v.displayPerUnit,h=A(O("displayRecurrence",i),v.displayRecurrence),u=A(O("displayTax",i),v.displayTax),p=A(O("displayPlanType",i),v.displayPlanType),d=A(O("entitlement",i),v.entitlement),m=A(O("modal",i),v.modal),f=A(O("forceTaxExclusive",i),v.forceTaxExclusive),x=O("promotionCode",i)??v.promotionCode,y=qe(O("quantity",i)),_=O("wcsApiKey",i)??v.wcsApiKey,b=i?.env==="stage",S=ve.PUBLISHED;["true",""].includes(i.allowOverride)&&(b=(O(Or,i,{metadata:!1})?.toLowerCase()??i?.env)==="stage",S=mt(O(Ir,i),ve,S)),b&&(n=he.STAGE,a=Hr);let C=O(Mr)??e.preview,H=typeof C<"u"&&C!=="off"&&C!=="false",U={};H&&(U={preview:H});let G=O("mas-io-url")??e.masIOUrl??`https://www${n===he.STAGE?".stage":""}.adobe.com/mas/io`,D=O("preselect-plan")??void 0;return{...Dc(e),...U,displayOldPrice:c,checkoutClientId:o,checkoutWorkflowStep:s,displayPerUnit:l,displayRecurrence:h,displayTax:u,displayPlanType:p,entitlement:d,extraOptions:v.extraOptions,modal:m,env:n,forceTaxExclusive:f,promotionCode:x,quantity:y,alternativePrice:v.alternativePrice,wcsApiKey:_,wcsURL:a,landscape:S,masIOUrl:G,...D&&{preselectPlan:D}}}async function Ya(e,t={},r=2,i=100){let n;for(let a=0;a<=r;a++)try{let o=await fetch(e,t);return o.retryCount=a,o}catch(o){if(n=o,n.retryCount=a,a>r)break;await new Promise(s=>setTimeout(s,i*(a+1)))}throw n}var Ii="wcs";function Xa({settings:e}){let t=ne.module(Ii),{env:r,wcsApiKey:i}=e,n=new Map,a=new Map,o,s=new Map;async function c(m,f,x=!0){let y=Y(),_=Cr;t.debug("Fetching:",m);let b="",S;if(m.offerSelectorIds.length>1)throw new Error("Multiple OSIs are not supported anymore");let M=new Map(f),[C]=m.offerSelectorIds,H=Date.now()+Math.random().toString(36).substring(2,7),U=`${Ii}:${C}:${H}${Br}`,G=`${Ii}:${C}:${H}${Ur}`,D;try{if(performance.mark(U),b=new URL(e.wcsURL),b.searchParams.set("offer_selector_ids",C),b.searchParams.set("country",m.country),b.searchParams.set("locale",m.locale),b.searchParams.set("landscape",r===he.STAGE?"ALL":e.landscape),b.searchParams.set("api_key",i),m.language&&b.searchParams.set("language",m.language),m.promotionCode&&b.searchParams.set("promotion_code",m.promotionCode),m.currency&&b.searchParams.set("currency",m.currency),S=await Ya(b.toString(),{credentials:"omit"}),S.ok){let $=[];try{let L=await S.json();t.debug("Fetched:",m,L),$=L.resolvedOffers??[]}catch(L){t.error(`Error parsing JSON: ${L.message}`,{...L.context,...y?.duration})}$=$.map(Xt),f.forEach(({resolve:L},le)=>{let J=$.filter(({offerSelectorIds:ge})=>ge.includes(le)).flat();J.length&&(M.delete(le),f.delete(le),L(J))})}else _=Pr}catch($){_=`Network error: ${$.message}`}finally{D=performance.measure(G,U),performance.clearMarks(U),performance.clearMeasures(G)}if(x&&f.size){t.debug("Missing:",{offerSelectorIds:[...f.keys()]});let $=En(S);f.forEach(L=>{L.reject(new We(_,{...m,...$,response:S,measure:Ht(D),...y?.duration}))})}}function l(){clearTimeout(o);let m=[...a.values()];a.clear(),m.forEach(({options:f,promises:x})=>c(f,x))}function h(m){if(!m||typeof m!="object")throw new TypeError("Cache must be a Map or similar object");let f=r===he.STAGE?"stage":"prod",x=m[f];if(!x||typeof x!="object"){t.warn(`No cache found for environment: ${r}`);return}for(let[y,_]of Object.entries(x))n.set(y,Promise.resolve(_.map(Xt)));t.debug(`Prefilled WCS cache with ${x.size} entries`)}function u(){let m=n.size;s=new Map(n),n.clear(),t.debug(`Moved ${m} cache entries to stale cache`)}function p(m,f,x){let y=Gr.includes(f)?f:v.language,_=$r.includes(m)?m:v.country;return{validCountry:_,validLanguage:m!=="GB"&&!x?"MULT":y,locale:at.includes(`${y}_${_}`)?`${y}_${_}`:`${v.language}_${v.country}`}}function d({country:m,language:f,perpetual:x=!1,promotionCode:y="",wcsOsi:_=[]}){let{validCountry:b,validLanguage:S,locale:M}=p(m,f,x),C=[b,S,y].filter(H=>H).join("-").toLowerCase();return _.map(H=>{let U=`${H}-${C}`;if(n.has(U))return n.get(U);let G=new Promise((D,$)=>{let L=a.get(C);L||(L={options:{country:b,locale:M,...x?{}:{language:S},offerSelectorIds:[]},promises:new Map},a.set(C,L)),y&&(L.options.promotionCode=y),L.options.offerSelectorIds.push(H),L.promises.set(H,{resolve:D,reject:$}),l()}).catch(D=>{if(s.has(U))return s.get(U);throw D});return n.set(U,G),G})}return{Commitment:Te,PlanType:xn,Term:ee,applyPlanType:Xt,resolveOfferSelectors:d,flushWcsCacheInternal:u,prefillWcsCache:h,validateLanguageAndLocale:p}}var Ka="mas-commerce-service",Za="mas-commerce-service:start",Qa="mas-commerce-service:ready",wt,Xe,Ke,Ja,eo,ki=class extends HTMLElement{constructor(){super(...arguments);z(this,Ke);z(this,wt);z(this,Xe);g(this,"lastLoggingTime",0)}async registerCheckoutAction(r){typeof r=="function"&&(this.buildCheckoutAction=async(i,n,a)=>{let o=await r?.(i,n,this.imsSignedInPromise,a);return o||null})}get featureFlags(){return P(this,Xe)||V(this,Xe,{[Ee]:Rt(this,Ke,eo).call(this,Ee)}),P(this,Xe)}activate(){let r=P(this,Ke,Ja),i=Wa(r,this);Qt(r.lana);let n=ne.init(r.hostEnv).module("service");n.debug("Activating:",r);let o={price:Gn(i)},s={checkout:new Set,price:new Set},c={literals:o,providers:s,settings:i};Object.defineProperties(this,Object.getOwnPropertyDescriptors({...Bn(c),...Un(c),...qa(c),...Xa(c),...zr,Log:ne,get defaults(){return v},get log(){return ne},get providers(){return{checkout(h){return s.checkout.add(h),()=>s.checkout.delete(h)},price(h){return s.price.add(h),()=>s.price.delete(h)},has:h=>s.price.has(h)||s.checkout.has(h)}},get settings(){return i}})),n.debug("Activated:",{literals:o,settings:i});let l=new CustomEvent(kt,{bubbles:!0,cancelable:!1,detail:this});performance.mark(Qa),V(this,wt,performance.measure(Qa,Za)),this.dispatchEvent(l),setTimeout(()=>{this.logFailedRequests()},1e4)}connectedCallback(){performance.mark(Za),this.activate()}flushWcsCache(){this.flushWcsCacheInternal(),this.log.debug("Flushed WCS cache")}refreshOffers(){this.flushWcsCacheInternal(),document.querySelectorAll(gr).forEach(r=>r.requestUpdate(!0)),this.log.debug("Refreshed WCS offers"),this.logFailedRequests()}refreshFragments(){this.flushWcsCacheInternal(),customElements.get("aem-fragment")?.cache.clear(),document.querySelectorAll("aem-fragment").forEach(r=>r.refresh(!1)),this.log.debug("Refreshed AEM fragments"),this.logFailedRequests()}get duration(){return{"mas-commerce-service:measure":Ht(P(this,wt))}}logFailedRequests(){let r=[...performance.getEntriesByType("resource")].filter(({startTime:n})=>n>this.lastLoggingTime).filter(({transferSize:n,duration:a,responseStatus:o})=>n===0&&a===0&&o<200||o>=400),i=Array.from(new Map(r.map(n=>[n.name,n])).values());if(i.some(({name:n})=>/(\/fragment\?|web_commerce_artifact)/.test(n))){let n=i.map(({name:a})=>a);this.log.error("Failed requests:",{failedUrls:n,...this.duration})}this.lastLoggingTime=performance.now().toFixed(3)}};wt=new WeakMap,Xe=new WeakMap,Ke=new WeakSet,Ja=function(){let r=this.getAttribute("env")??"prod",i={commerce:{env:r},hostEnv:{name:r},lana:{tags:this.getAttribute("lana-tags"),sampleRate:parseInt(this.getAttribute("lana-sample-rate")??1,10),isProdDomain:r==="prod"},masIOUrl:this.getAttribute("mas-io-url")};return["locale","country","language","preview"].forEach(n=>{let a=this.getAttribute(n);a&&(i[n]=a)}),["checkout-workflow-step","force-tax-exclusive","checkout-client-id","allow-override","wcs-api-key"].forEach(n=>{let a=this.getAttribute(n);if(a!=null){let o=n.replace(/-([a-z])/g,s=>s[1].toUpperCase());i.commerce[o]=a}}),i},eo=function(r){return["on","true",!0].includes(this.getAttribute(`data-${r}`)||O(r))};window.customElements.get(Ka)||window.customElements.define(Ka,ki);var no="merch-card-collection",Bc=2e4,Uc={catalog:["four-merch-cards"],plans:["four-merch-cards"],plansThreeColumns:["three-merch-cards"]},Fc={plans:!0},Gc=(e,{filter:t})=>e.filter(r=>r?.filters&&r?.filters.hasOwnProperty(t)),$c=(e,{types:t})=>t?(t=t.split(","),e.filter(r=>t.some(i=>r.types.includes(i)))):e,zc=e=>e.sort((t,r)=>(t.title??"").localeCompare(r.title??"","en",{sensitivity:"base"})),Vc=(e,{filter:t})=>e.sort((r,i)=>i.filters[t]?.order==null||isNaN(i.filters[t]?.order)?-1:r.filters[t]?.order==null||isNaN(r.filters[t]?.order)?1:r.filters[t].order-i.filters[t].order),jc=(e,{search:t})=>t?.length?(t=t.toLowerCase(),e.filter(r=>(r.title??"").toLowerCase().includes(t))):e,Se,Qe,Pt,dr,ao,Ze=class extends ro{constructor(){super();z(this,dr);z(this,Se,{});z(this,Qe);z(this,Pt);this.id=null,this.filter="all",this.hasMore=!1,this.resultCount=void 0,this.displayResult=!1,this.data=null,this.variant=null,this.hydrating=!1,this.hydrationReady=null,this.literalsHandlerAttached=!1}render(){return fe` <slot></slot>
-            ${this.footer}`}checkReady(){if(!this.querySelector("aem-fragment"))return Promise.resolve(!0);let i=new Promise(n=>setTimeout(()=>n(!1),Bc));return Promise.race([this.hydrationReady,i])}updated(r){if(!this.querySelector("merch-card"))return;let i=window.scrollY||document.documentElement.scrollTop,n=[...this.children].filter(l=>l.tagName==="MERCH-CARD");if(n.length===0)return;r.has("singleApp")&&this.singleApp&&n.forEach(l=>{l.updateFilters(l.name===this.singleApp)});let a=this.sort===se.alphabetical?zc:Vc,s=[Gc,$c,jc,a].reduce((l,h)=>h(l,this),n).map((l,h)=>[l,h]);if(this.resultCount=s.length,this.page&&this.limit){let l=this.page*this.limit;this.hasMore=s.length>l,s=s.filter(([,h])=>h<l)}let c=new Map(s.reverse());for(let l of c.keys())this.prepend(l);n.forEach(l=>{c.has(l)?(l.size=l.filters[this.filter]?.size,l.style.removeProperty("display"),l.requestUpdate()):(l.style.display="none",l.size=void 0)}),window.scrollTo(0,i),this.updateComplete.then(()=>{this.dispatchLiteralsChanged(),this.sidenav&&!this.literalsHandlerAttached&&(this.sidenav.addEventListener(Er,()=>{this.dispatchLiteralsChanged()}),this.literalsHandlerAttached=!0)})}dispatchLiteralsChanged(){this.dispatchEvent(new CustomEvent(rt,{detail:{resultCount:this.resultCount,searchTerm:this.search,filter:this.sidenav?.filters?.selectedText}}))}buildOverrideMap(){V(this,Se,{}),this.overrides?.split(",").forEach(r=>{let[i,n]=r?.split(":");i&&n&&(P(this,Se)[i]=n)})}connectedCallback(){super.connectedCallback(),V(this,Qe,st()),P(this,Qe)&&V(this,Pt,P(this,Qe).Log.module(no)),this.buildOverrideMap(),this.init()}async init(){await this.hydrate(),this.sidenav=this.parentElement.querySelector("merch-sidenav"),this.filtered?(this.filter=this.filtered,this.page=1):this.startDeeplink(),this.initializePlaceholders()}disconnectedCallback(){super.disconnectedCallback(),this.stopDeeplink?.()}initializeHeader(){let r=document.createElement("merch-card-collection-header");r.collection=this,r.classList.add(this.variant),this.parentElement.insertBefore(r,this),this.header=r,this.querySelectorAll("[placeholder]").forEach(n=>{let a=n.getAttribute("slot");this.header.placeholderKeys.includes(a)&&this.header.append(n)})}initializePlaceholders(){let r=this.data?.placeholders||{};for(let i of Object.keys(r)){let n=r[i],a=n.includes("<p>")?"div":"p",o=document.createElement(a);o.setAttribute("slot",i),o.setAttribute("placeholder",""),o.innerHTML=n,this.append(o)}}attachSidenav(r,i=!0){r&&(i&&this.parentElement.prepend(r),this.sidenav=r,this.sidenav.variant=this.variant,this.sidenav.classList.add(this.variant),Fc[this.variant]&&this.sidenav.setAttribute("autoclose",""),this.initializeHeader(),this.dispatchEvent(new CustomEvent(it)))}async hydrate(){if(this.hydrating)return!1;let r=this.querySelector("aem-fragment");if(!r)return;this.id=r.getAttribute("fragment"),this.hydrating=!0;let i;this.hydrationReady=new Promise(o=>{i=o});let n=this;function a(o,s){let c={cards:[],hierarchy:[],placeholders:o.placeholders};function l(h,u){for(let p of u){if(p.fieldName==="cards"){if(c.cards.findIndex(f=>f.id===p.identifier)!==-1)continue;c.cards.push(o.references[p.identifier].value);continue}let{fields:d}=o.references[p.identifier].value,m={label:d.label||"",icon:d.icon,iconLight:d.iconLight,queryLabel:d.queryLabel,cards:d.cards?d.cards.map(f=>s[f]||f):[],collections:[]};d.defaultchild&&(m.defaultchild=s[d.defaultchild]||d.defaultchild),h.push(m),l(m.collections,p.referencesTree)}}return l(c.hierarchy,o.referencesTree),c.hierarchy.length===0&&(n.filtered="all"),c}r.addEventListener(Ar,o=>{Rt(this,dr,ao).call(this,"Error loading AEM fragment",o.detail),this.hydrating=!1,r.remove()}),r.addEventListener(yr,async o=>{this.data=a(o.detail,P(this,Se));let{cards:s,hierarchy:c}=this.data,l=c.length===0&&o.detail.fields?.defaultchild?P(this,Se)[o.detail.fields.defaultchild]||o.detail.fields.defaultchild:null;r.cache.add(...s);let h=(d,m)=>{for(let f of d)if(f.defaultchild===m||f.collections&&h(f.collections,m))return!0;return!1};for(let d of s){let y=function(b){for(let S of b){let M=S.cards.indexOf(f);if(M===-1)continue;let C=S.queryLabel??S?.label?.toLowerCase()??"";m.filters[C]={order:M+1,size:d.fields.size},y(S.collections)}},m=document.createElement("merch-card"),f=P(this,Se)[d.id]||d.id;m.setAttribute("consonant",""),m.setAttribute("style",""),Bt(d.fields.variant)?.supportsDefaultChild&&(l?f===l:h(c,f))&&m.setAttribute("data-default-card","true"),y(c);let _=document.createElement("aem-fragment");_.setAttribute("fragment",f),m.append(_),Object.keys(m.filters).length===0&&(m.filters={all:{order:s.indexOf(d)+1,size:d.fields.size}}),this.append(m)}let u="",p=Rn(s[0]?.fields?.variant);this.variant=p,p==="plans"&&s.length===3&&!s.some(d=>d.fields?.size?.includes("wide"))&&(u="ThreeColumns"),p&&this.classList.add("merch-card-collection",p,...Uc[`${p}${u}`]||[]),this.displayResult=!0,this.hydrating=!1,r.remove(),i(!0)}),await this.hydrationReady}get footer(){if(!this.filtered)return fe`<div id="footer">
+    `);
+
+// src/variants/variants.js
+var variantRegistry = /* @__PURE__ */ new Map();
+var registerVariant = (name, variantClass, fragmentMapping = null, style = null, collectionOptions) => {
+  variantRegistry.set(name, {
+    class: variantClass,
+    fragmentMapping,
+    style,
+    collectionOptions
+  });
+};
+registerVariant(
+  "catalog",
+  Catalog,
+  CATALOG_AEM_FRAGMENT_MAPPING,
+  Catalog.variantStyle
+);
+registerVariant("image", Image);
+registerVariant("inline-heading", InlineHeading);
+registerVariant(
+  "mini-compare-chart",
+  MiniCompareChart,
+  null,
+  MiniCompareChart.variantStyle
+);
+registerVariant(
+  "plans",
+  Plans,
+  PLANS_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant(
+  "plans-students",
+  Plans,
+  PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant(
+  "plans-education",
+  Plans,
+  PLANS_EDUCATION_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant("product", Product, null, Product.variantStyle);
+registerVariant("segment", Segment, null, Segment.variantStyle);
+registerVariant(
+  "special-offers",
+  SpecialOffer,
+  SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
+  SpecialOffer.variantStyle
+);
+registerVariant(
+  "simplified-pricing-express",
+  SimplifiedPricingExpress,
+  SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+  SimplifiedPricingExpress.variantStyle
+);
+registerVariant("mini", Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
+function getFragmentMapping(variant) {
+  return variantRegistry.get(variant)?.fragmentMapping;
+}
+
+// ../node_modules/@dexter/tacocat-core/src/utilities.js
+var namespace = "tacocat.js";
+var equalsCaseInsensitive = (value1, value2) => String(value1 ?? "").toLowerCase() == String(value2 ?? "").toLowerCase();
+var escapeHtml = (html13) => `${html13 ?? ""}`.replace(
+  /[&<>'"]/g,
+  (tag) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;"
+  })[tag] ?? tag
+) ?? "";
+function getParameter(key, defaults = {}, { metadata = true, search = true, storage = true } = {}) {
+  let param;
+  if (search && param == null) {
+    const params = new URLSearchParams(window.location.search);
+    const searchKey = isString(search) ? search : key;
+    param = params.get(searchKey);
+  }
+  if (storage && param == null) {
+    const storageKey = isString(storage) ? storage : key;
+    param = window.sessionStorage.getItem(storageKey) ?? window.localStorage.getItem(storageKey);
+  }
+  if (metadata && param == null) {
+    const metadataKey = toKebabCase(isString(metadata) ? metadata : key);
+    const element = document.documentElement.querySelector(
+      `meta[name="${metadataKey}"]`
+    );
+    param = element?.content;
+  }
+  return param == null ? defaults[key] : param;
+}
+var isBoolean = (value) => typeof value === "boolean";
+var isFunction = (value) => typeof value === "function";
+var isNumber = (value) => typeof value === "number";
+var isObject = (value) => value != null && typeof value === "object";
+var isString = (value) => typeof value === "string";
+var isNotEmptyString = (value) => isString(value) && value;
+var isPositiveFiniteNumber = (value) => isNumber(value) && Number.isFinite(value) && value > 0;
+function omitProperties(target, test = (value) => value == null || value === "") {
+  if (target != null) {
+    Object.entries(target).forEach(([key, value]) => {
+      if (test(value)) delete target[key];
+    });
+  }
+  return target;
+}
+function toBoolean(value, defaultValue) {
+  if (isBoolean(value)) return value;
+  const string = String(value);
+  if (string === "1" || string === "true") return true;
+  if (string === "0" || string === "false") return false;
+  return defaultValue;
+}
+function toEnumeration(value, enumeration, defaultValue) {
+  const values = Object.values(enumeration);
+  return values.find((candidate) => equalsCaseInsensitive(candidate, value)) ?? defaultValue ?? values[0];
+}
+function toKebabCase(value = "") {
+  return String(value).replace(
+    /(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,
+    (_, p1, p2) => `${p1}-${p2}`
+  ).replace(/\W+/gu, "-").toLowerCase();
+}
+function toPositiveFiniteInteger(value, defaultValue = 1) {
+  if (!isNumber(value)) {
+    value = Number.parseInt(value, 10);
+  }
+  if (!Number.isNaN(value) && value > 0 && Number.isFinite(value)) {
+    return value;
+  }
+  return defaultValue;
+}
+
+// ../node_modules/@dexter/tacocat-core/src/log.js
+var epoch = Date.now();
+var suffix = () => `(+${Date.now() - epoch}ms)`;
+var loggers = /* @__PURE__ */ new Set();
+var isDebugEnabled = toBoolean(
+  getParameter("tacocat.debug", {}, { metadata: false }),
+  false
+);
+function createLog(source) {
+  const prefix = `[${namespace}/${source}]`;
+  const assert = (condition, message, ...args) => {
+    if (!condition) {
+      error(message, ...args);
+      return false;
+    }
+    return true;
+  };
+  const debug = isDebugEnabled ? (message, ...args) => {
+    console.debug(`${prefix} ${message}`, ...args, suffix());
+  } : () => {
+  };
+  const error = (message, ...args) => {
+    const prefixedMessage = `${prefix} ${message}`;
+    loggers.forEach(
+      ([errorLogger]) => errorLogger(prefixedMessage, ...args)
+    );
+  };
+  const warn = (message, ...args) => {
+    const prefixedMessage = `${prefix} ${message}`;
+    loggers.forEach(
+      ([, warnLogger]) => warnLogger(prefixedMessage, ...args)
+    );
+  };
+  return { assert, debug, error, warn };
+}
+function registerLogger(errorLogger, warnLogger) {
+  const logger = [errorLogger, warnLogger];
+  loggers.add(logger);
+  return () => {
+    loggers.delete(logger);
+  };
+}
+registerLogger(
+  (message, ...args) => {
+    console.error(message, ...args, suffix());
+  },
+  (message, ...args) => {
+    console.warn(message, ...args, suffix());
+  }
+);
+
+// ../node_modules/@dexter/tacocat-core/src/promotion.js
+var NO_PROMO_TEXT = "no promo";
+var CLASS = "promo-tag";
+var PROMO_VARIANT = "yellow";
+var NOPROMO_VARIANT = "neutral";
+var fullPromoText = (promo, old, isOverriden) => {
+  const promoText = (promo2) => promo2 || NO_PROMO_TEXT;
+  const suffix2 = isOverriden ? ` (was "${promoText(old)}")` : "";
+  return `${promoText(promo)}${suffix2}`;
+};
+var PROMO_CONTEXT_CANCEL_VALUE = "cancel-context";
+var computePromoStatus = (overriden, configured) => {
+  const localPromoUnset = overriden === PROMO_CONTEXT_CANCEL_VALUE;
+  const localPromoSet = !localPromoUnset && overriden?.length > 0;
+  const isOverriden = (localPromoSet || localPromoUnset) && //in case configured equals override, we consider no override
+  (configured && configured != overriden || //in case it does not have been configured, if overriden to cancel,
+  // we consider no override
+  !configured && !localPromoUnset);
+  const isPromo = isOverriden && localPromoSet || !isOverriden && !!configured;
+  const effectivePromoCode = isPromo ? overriden || configured : void 0;
+  return {
+    effectivePromoCode,
+    overridenPromoCode: overriden,
+    className: isPromo ? CLASS : `${CLASS} no-promo`,
+    text: fullPromoText(effectivePromoCode, configured, isOverriden),
+    variant: isPromo ? PROMO_VARIANT : NOPROMO_VARIANT,
+    isOverriden
+  };
+};
+
+// ../node_modules/@pandora/data-models-odm/esm/businessDimensions.js
+var OfferType;
+(function(OfferType2) {
+  OfferType2["BASE"] = "BASE";
+  OfferType2["TRIAL"] = "TRIAL";
+  OfferType2["PROMOTION"] = "PROMOTION";
+})(OfferType || (OfferType = {}));
+var Commitment2;
+(function(Commitment3) {
+  Commitment3["MONTH"] = "MONTH";
+  Commitment3["YEAR"] = "YEAR";
+  Commitment3["TWO_YEARS"] = "TWO_YEARS";
+  Commitment3["THREE_YEARS"] = "THREE_YEARS";
+  Commitment3["PERPETUAL"] = "PERPETUAL";
+  Commitment3["TERM_LICENSE"] = "TERM_LICENSE";
+  Commitment3["ACCESS_PASS"] = "ACCESS_PASS";
+  Commitment3["THREE_MONTHS"] = "THREE_MONTHS";
+  Commitment3["SIX_MONTHS"] = "SIX_MONTHS";
+})(Commitment2 || (Commitment2 = {}));
+var Term2;
+(function(Term3) {
+  Term3["ANNUAL"] = "ANNUAL";
+  Term3["MONTHLY"] = "MONTHLY";
+  Term3["TWO_YEARS"] = "TWO_YEARS";
+  Term3["THREE_YEARS"] = "THREE_YEARS";
+  Term3["P1D"] = "P1D";
+  Term3["P1Y"] = "P1Y";
+  Term3["P3Y"] = "P3Y";
+  Term3["P10Y"] = "P10Y";
+  Term3["P15Y"] = "P15Y";
+  Term3["P3D"] = "P3D";
+  Term3["P7D"] = "P7D";
+  Term3["P30D"] = "P30D";
+  Term3["HALF_YEARLY"] = "HALF_YEARLY";
+  Term3["QUARTERLY"] = "QUARTERLY";
+})(Term2 || (Term2 = {}));
+var CustomerSegment;
+(function(CustomerSegment2) {
+  CustomerSegment2["INDIVIDUAL"] = "INDIVIDUAL";
+  CustomerSegment2["TEAM"] = "TEAM";
+  CustomerSegment2["ENTERPRISE"] = "ENTERPRISE";
+})(CustomerSegment || (CustomerSegment = {}));
+var MarketSegment;
+(function(MarketSegment2) {
+  MarketSegment2["COM"] = "COM";
+  MarketSegment2["EDU"] = "EDU";
+  MarketSegment2["GOV"] = "GOV";
+})(MarketSegment || (MarketSegment = {}));
+var SalesChannel;
+(function(SalesChannel2) {
+  SalesChannel2["DIRECT"] = "DIRECT";
+  SalesChannel2["INDIRECT"] = "INDIRECT";
+})(SalesChannel || (SalesChannel = {}));
+var BuyingProgram;
+(function(BuyingProgram2) {
+  BuyingProgram2["ENTERPRISE_PRODUCT"] = "ENTERPRISE_PRODUCT";
+  BuyingProgram2["ETLA"] = "ETLA";
+  BuyingProgram2["RETAIL"] = "RETAIL";
+  BuyingProgram2["VIP"] = "VIP";
+  BuyingProgram2["VIPMP"] = "VIPMP";
+  BuyingProgram2["FREE"] = "FREE";
+})(BuyingProgram || (BuyingProgram = {}));
+
+// ../node_modules/@dexter/tacocat-core/src/wcsUtils.js
+var ABM = "ABM";
+var PUF = "PUF";
+var M2M = "M2M";
+var PERPETUAL = "PERPETUAL";
+var P3Y = "P3Y";
+var TAX_INCLUSIVE_DETAILS = "TAX_INCLUSIVE_DETAILS";
+var TAX_EXCLUSIVE = "TAX_EXCLUSIVE";
+var PlanType = {
+  ABM,
+  PUF,
+  M2M,
+  PERPETUAL,
+  P3Y
+};
+var planTypes = {
+  [ABM]: { commitment: Commitment2.YEAR, term: Term2.MONTHLY },
+  [PUF]: { commitment: Commitment2.YEAR, term: Term2.ANNUAL },
+  [M2M]: { commitment: Commitment2.MONTH, term: Term2.MONTHLY },
+  [PERPETUAL]: { commitment: Commitment2.PERPETUAL, term: void 0 },
+  [P3Y]: { commitment: Commitment2.THREE_MONTHS, term: Term2.P3Y }
+};
+var errorValueNotOffer = "Value is not an offer";
+var applyPlanType = (offer) => {
+  if (typeof offer !== "object") return errorValueNotOffer;
+  const { commitment, term } = offer;
+  const planType = getPlanType(commitment, term);
+  return { ...offer, planType };
+};
+var getPlanType = (commitment, term) => {
+  switch (commitment) {
+    case void 0:
+      return errorValueNotOffer;
+    case "":
+      return "";
+    case Commitment2.YEAR:
+      return term === Term2.MONTHLY ? ABM : term === Term2.ANNUAL ? PUF : "";
+    case Commitment2.MONTH:
+      return term === Term2.MONTHLY ? M2M : "";
+    case Commitment2.PERPETUAL:
+      return PERPETUAL;
+    case Commitment2.TERM_LICENSE:
+      return term === Term2.P3Y ? P3Y : "";
+    default:
+      return "";
+  }
+};
+function forceTaxExclusivePrice(offer) {
+  const { priceDetails } = offer;
+  const {
+    price: price2,
+    priceWithoutDiscount,
+    priceWithoutTax,
+    priceWithoutDiscountAndTax,
+    taxDisplay
+  } = priceDetails;
+  if (taxDisplay !== TAX_INCLUSIVE_DETAILS) return offer;
+  const amendedOffer = {
+    ...offer,
+    priceDetails: {
+      ...priceDetails,
+      price: priceWithoutTax ?? price2,
+      priceWithoutDiscount: priceWithoutDiscountAndTax ?? priceWithoutDiscount,
+      taxDisplay: TAX_EXCLUSIVE
+    }
+  };
+  if (amendedOffer.offerType === "TRIAL" && amendedOffer.priceDetails.price === 0) {
+    amendedOffer.priceDetails.price = amendedOffer.priceDetails.priceWithoutDiscount;
+  }
+  return amendedOffer;
+}
+
+// src/utilities.js
+var MAS_COMMERCE_SERVICE2 = "mas-commerce-service";
+var FETCH_INFO_HEADERS = {
+  requestId: HEADER_X_REQUEST_ID,
+  etag: "Etag",
+  lastModified: "Last-Modified",
+  serverTiming: "server-timing"
+};
+function selectOffers(offers, { country, forceTaxExclusive }) {
+  let selected;
+  if (offers.length < 2) selected = offers;
+  else {
+    const language = country === "GB" ? "EN" : "MULT";
+    offers.sort(
+      (a, b) => a.language === language ? -1 : b.language === language ? 1 : 0
+    );
+    offers.sort((a, b) => {
+      if (!a.term && b.term) return -1;
+      if (a.term && !b.term) return 1;
+      return 0;
+    });
+    selected = [offers[0]];
+  }
+  if (forceTaxExclusive) {
+    selected = selected.map(forceTaxExclusivePrice);
+  }
+  return selected;
+}
+var setImmediate = (getConfig) => window.setTimeout(getConfig);
+function toQuantity(value, defaultValue = 1) {
+  if (value == null) return [defaultValue];
+  let quantity = (Array.isArray(value) ? value : String(value).split(",")).map(toPositiveFiniteInteger).filter(isPositiveFiniteNumber);
+  if (!quantity.length) quantity = [defaultValue];
+  return quantity;
+}
+function toOfferSelectorIds(value) {
+  if (value == null) return [];
+  const ids = Array.isArray(value) ? value : String(value).split(",");
+  return ids.filter(isNotEmptyString);
+}
+function getService2() {
+  return document.getElementsByTagName(MAS_COMMERCE_SERVICE2)?.[0];
+}
+function getLogHeaders(response) {
+  const logHeaders = {};
+  if (!response?.headers) return logHeaders;
+  const headers = response.headers;
+  for (const [key, value] of Object.entries(FETCH_INFO_HEADERS)) {
+    let headerValue = headers.get(value);
+    if (headerValue) {
+      headerValue = headerValue.replace(/[,;]/g, "|");
+      headerValue = headerValue.replace(/[| ]+/g, "|");
+      logHeaders[key] = headerValue;
+    }
+  }
+  return logHeaders;
+}
+
+// src/lana.js
+var config = {
+  clientId: "merch-at-scale",
+  delimiter: "\xB6",
+  ignoredProperties: ["analytics", "literals", "element"],
+  serializableTypes: ["Array", "Object"],
+  sampleRate: 1,
+  tags: "acom",
+  isProdDomain: false
+};
+var PAGE_LIMIT = 1e3;
+function isError(value) {
+  return value instanceof Error || typeof value?.originatingRequest === "string";
+}
+function serializeValue(value) {
+  if (value == null) return void 0;
+  const type = typeof value;
+  if (type === "function") {
+    return value.name ? `function ${value.name}` : "function";
+  }
+  if (type === "object") {
+    if (value instanceof Error) return value.message;
+    if (typeof value.originatingRequest === "string") {
+      const { message, originatingRequest, status } = value;
+      return [message, status, originatingRequest].filter(Boolean).join(" ");
+    }
+    const objectType = value[Symbol.toStringTag] ?? Object.getPrototypeOf(value).constructor.name;
+    if (!config.serializableTypes.includes(objectType)) return objectType;
+  }
+  return value;
+}
+function serializeParam(key, value) {
+  if (config.ignoredProperties.includes(key)) return void 0;
+  return serializeValue(value);
+}
+var lanaAppender = {
+  append(entry) {
+    if (entry.level !== "error") return;
+    const { message, params } = entry;
+    const errors = [];
+    const values = [];
+    let payload = message;
+    params.forEach((param) => {
+      if (param != null) {
+        (isError(param) ? errors : values).push(param);
+      }
+    });
+    if (errors.length) {
+      payload += " " + errors.map(serializeValue).join(" ");
+    }
+    const { pathname, search } = window.location;
+    let page = `${config.delimiter}page=${pathname}${search}`;
+    if (page.length > PAGE_LIMIT) {
+      page = `${page.slice(0, PAGE_LIMIT)}<trunc>`;
+    }
+    payload += page;
+    if (values.length) {
+      payload += `${config.delimiter}facts=`;
+      payload += JSON.stringify(values, serializeParam);
+    }
+    window.lana?.log(payload, config);
+  }
+};
+function updateConfig(newConfig) {
+  Object.assign(
+    config,
+    Object.fromEntries(
+      Object.entries(newConfig).filter(
+        ([key, value]) => key in config && value !== "" && value !== null && value !== void 0 && !Number.isNaN(value)
+        // Correctly exclude NaN
+      )
+    )
+  );
+}
+
+// src/log.js
+var HostEnv = {
+  LOCAL: "local",
+  PROD: "prod",
+  STAGE: "stage"
+};
+var LogLevels = {
+  DEBUG: "debug",
+  ERROR: "error",
+  INFO: "info",
+  WARN: "warn"
+};
+var appenders = /* @__PURE__ */ new Set();
+var filters = /* @__PURE__ */ new Set();
+var loggerIndexes = /* @__PURE__ */ new Map();
+var consoleAppender = {
+  append({ level, message, params, timestamp, source }) {
+    console[level](
+      `${timestamp}ms [${source}] %c${message}`,
+      "font-weight: bold;",
+      ...params
+    );
+  }
+};
+var debugFilter = { filter: ({ level }) => level !== LogLevels.DEBUG };
+var quietFilter = { filter: () => false };
+function createEntry(level, message, namespace2, params, source) {
+  return {
+    level,
+    message,
+    namespace: namespace2,
+    get params() {
+      if (params.length === 1 && isFunction(params[0])) {
+        params = params[0]();
+        if (!Array.isArray(params)) params = [params];
+      }
+      return params;
+    },
+    source,
+    timestamp: performance.now().toFixed(3)
+  };
+}
+function handleEntry(entry) {
+  if ([...filters].every((filter) => filter(entry))) {
+    appenders.forEach((appender) => appender(entry));
+  }
+}
+function createLog2(namespace2) {
+  const index = (loggerIndexes.get(namespace2) ?? 0) + 1;
+  loggerIndexes.set(namespace2, index);
+  const id = `${namespace2} #${index}`;
+  const log2 = {
+    id,
+    namespace: namespace2,
+    module: (name) => createLog2(`${log2.namespace}/${name}`),
+    updateConfig
+  };
+  Object.values(LogLevels).forEach((level) => {
+    log2[level] = (message, ...params) => handleEntry(createEntry(level, message, namespace2, params, id));
+  });
+  return Object.seal(log2);
+}
+function use(...plugins) {
+  plugins.forEach((plugin) => {
+    const { append, filter } = plugin;
+    if (isFunction(filter)) filters.add(filter);
+    if (isFunction(append)) appenders.add(append);
+  });
+}
+function init(env = {}) {
+  const { name } = env;
+  const debug = toBoolean(
+    getParameter("commerce.debug", { search: true, storage: true }),
+    name === HostEnv.LOCAL
+  );
+  if (debug) use(consoleAppender);
+  else use(debugFilter);
+  if (name === HostEnv.PROD) use(lanaAppender);
+  return Log;
+}
+function reset() {
+  appenders.clear();
+  filters.clear();
+}
+var Log = {
+  ...createLog2(LOG_NAMESPACE),
+  Level: LogLevels,
+  Plugins: { consoleAppender, debugFilter, quietFilter, lanaAppender },
+  init,
+  reset,
+  use
+};
+
+// src/mas-error.js
+var MasError = class _MasError extends Error {
+  /**
+   * Creates a new MasError instance
+   * @param {string} message - The error message
+   * @param {Object} context - Additional context information about the error
+   * @param {unknown} cause - The original error that caused this error
+   */
+  constructor(message, context, cause) {
+    super(message, { cause });
+    this.name = "MasError";
+    if (context.response) {
+      const requestId = context.response.headers?.get(HEADER_X_REQUEST_ID);
+      if (requestId) {
+        context.requestId = requestId;
+      }
+      if (context.response.status) {
+        context.status = context.response.status;
+        context.statusText = context.response.statusText;
+      }
+      if (context.response.url) {
+        context.url = context.response.url;
+      }
+    }
+    delete context.response;
+    this.context = context;
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, _MasError);
+    }
+  }
+  /**
+   * Returns a string representation of the error including context
+   * @returns {string} String representation of the error
+   */
+  toString() {
+    const contextStr = Object.entries(this.context || {}).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ");
+    let errorString = `${this.name}: ${this.message}`;
+    if (contextStr) {
+      errorString += ` (${contextStr})`;
+    }
+    if (this.cause) {
+      errorString += `
+Caused by: ${this.cause}`;
+    }
+    return errorString;
+  }
+};
+
+// src/mas-element.js
+var StateClassName = {
+  [STATE_FAILED]: CLASS_NAME_FAILED,
+  [STATE_PENDING]: CLASS_NAME_PENDING,
+  [STATE_RESOLVED]: CLASS_NAME_RESOLVED
+};
+var StateEventType = {
+  [STATE_FAILED]: EVENT_TYPE_FAILED,
+  [STATE_RESOLVED]: EVENT_TYPE_RESOLVED
+};
+var _service;
+var MasElement = class {
+  constructor(wrapperElement) {
+    __privateAdd(this, _service);
+    __publicField(this, "changes", /* @__PURE__ */ new Map());
+    __publicField(this, "connected", false);
+    __publicField(this, "error");
+    __publicField(this, "log");
+    __publicField(this, "options");
+    __publicField(this, "promises", []);
+    __publicField(this, "state", STATE_PENDING);
+    __publicField(this, "timer", null);
+    __publicField(this, "value");
+    __publicField(this, "version", 0);
+    __publicField(this, "wrapperElement");
+    this.wrapperElement = wrapperElement;
+    this.log = Log.module("mas-element");
+  }
+  update() {
+    [STATE_FAILED, STATE_PENDING, STATE_RESOLVED].forEach((state) => {
+      this.wrapperElement.classList.toggle(
+        StateClassName[state],
+        state === this.state
+      );
+    });
+  }
+  notify() {
+    if (this.state === STATE_RESOLVED || this.state === STATE_FAILED) {
+      if (this.state === STATE_RESOLVED) {
+        this.promises.forEach(
+          ({ resolve }) => resolve(this.wrapperElement)
+        );
+      } else if (this.state === STATE_FAILED) {
+        this.promises.forEach(({ reject }) => reject(this.error));
+      }
+      this.promises = [];
+    }
+    let detail = this.error;
+    if (this.error instanceof MasError) {
+      detail = {
+        message: this.error.message,
+        ...this.error.context
+      };
+    }
+    this.wrapperElement.dispatchEvent(
+      new CustomEvent(StateEventType[this.state], {
+        bubbles: true,
+        detail
+      })
+    );
+  }
+  /**
+   * Adds name/value of the updated attribute to the `changes` map,
+   * requests placeholder update.
+   */
+  attributeChangedCallback(name, _, value) {
+    this.changes.set(name, value);
+    this.requestUpdate();
+  }
+  /**
+   * Triggers when this component is connected to DOM.
+   * Subscribes to the `ready` event of the commerce service,
+   * requests placeholder update.
+   */
+  connectedCallback() {
+    __privateSet(this, _service, getService2());
+    this.requestUpdate(true);
+  }
+  /**
+   * Triggers when this component is disconnected from DOM.
+   * Runs and then erases all disposers.
+   */
+  disconnectedCallback() {
+    if (this.connected) {
+      this.connected = false;
+      this.log?.debug("Disconnected:", { element: this.wrapperElement });
+    }
+  }
+  /**
+   * Returns a promise resolving to this placeholder
+   * when its value is resolved or rejected.
+   * If placeholder is not pending for completion of an async operation
+   * the returned promise is already resolved or rejected.
+   */
+  onceSettled() {
+    const { error, promises, state } = this;
+    if (STATE_RESOLVED === state)
+      return Promise.resolve(this.wrapperElement);
+    if (STATE_FAILED === state) return Promise.reject(error);
+    return new Promise((resolve, reject) => {
+      promises.push({ resolve, reject });
+    });
+  }
+  /**
+   * Sets component state to "RESOLVED".
+   * Updates its class list and stored value, notifies observers and fires "RESOLVED" event.
+   */
+  toggleResolved(version, value, options) {
+    if (version !== this.version) return false;
+    if (options !== void 0) this.options = options;
+    this.state = STATE_RESOLVED;
+    this.value = value;
+    this.update();
+    this.log?.debug("Resolved:", { element: this.wrapperElement, value });
+    setImmediate(() => this.notify());
+    return true;
+  }
+  /**
+   * Sets component state to "FAILED".
+   * Updates its class list and stored error, notifies observers and fires "FAILED" event.
+   */
+  toggleFailed(version, error, options) {
+    if (version !== this.version) return false;
+    if (options !== void 0) this.options = options;
+    this.error = error;
+    this.state = STATE_FAILED;
+    this.update();
+    const wcName = this.wrapperElement.getAttribute("is");
+    this.log?.error(`${wcName}: Failed to render: ${error.message}`, {
+      element: this.wrapperElement,
+      ...error.context,
+      ...__privateGet(this, _service)?.duration
+    });
+    setImmediate(() => this.notify());
+    return true;
+  }
+  /**
+   * Sets component state to "PENDING".
+   * Increments its version, updates CSS classes, notifies observers and fires "PENDING" event.
+   */
+  togglePending(options) {
+    this.version++;
+    if (options) this.options = options;
+    this.state = STATE_PENDING;
+    this.update();
+    this.log?.debug("Pending:", {
+      osi: this.wrapperElement?.options?.wcsOsi
+    });
+    return this.version;
+  }
+  /**
+   * Queues task to update this component.
+   * Skips rendering if update is not forced and no changes were accumulated since the previous update.
+   * Calls `render` method to perform the update.
+   * Restores previous state of the component if the `render` method returned `false`.
+   */
+  requestUpdate(force = false) {
+    if (!this.wrapperElement.isConnected || !getService2()) return;
+    if (this.timer) return;
+    const { error, options, state, value, version } = this;
+    this.state = STATE_PENDING;
+    this.timer = setImmediate(async () => {
+      this.timer = null;
+      let changes = null;
+      if (this.changes.size) {
+        changes = Object.fromEntries(this.changes.entries());
+        this.changes.clear();
+      }
+      if (this.connected) {
+        this.log?.debug("Updated:", {
+          element: this.wrapperElement,
+          changes
+        });
+      } else {
+        this.connected = true;
+        this.log?.debug("Connected:", {
+          element: this.wrapperElement,
+          changes
+        });
+      }
+      if (changes || force) {
+        try {
+          const result = await this.wrapperElement.render?.();
+          if (result === false && this.state === STATE_PENDING && this.version === version) {
+            this.state = state;
+            this.error = error;
+            this.value = value;
+            this.update();
+            this.notify();
+          }
+        } catch (error2) {
+          this.toggleFailed(this.version, error2, options);
+        }
+      }
+    });
+  }
+};
+_service = new WeakMap();
+function cleanupDataset(dataset = {}) {
+  Object.entries(dataset).forEach(([key, value]) => {
+    const remove = value == null || value === "" || value?.length === 0;
+    if (remove) delete dataset[key];
+  });
+  return dataset;
+}
+function createMasElement(Class, dataset = {}) {
+  const { tag, is } = Class;
+  const element = document.createElement(tag, { is });
+  element.setAttribute("is", is);
+  Object.assign(element.dataset, cleanupDataset(dataset));
+  return element;
+}
+function updateMasElement(element, dataset = {}) {
+  if (element instanceof HTMLElement) {
+    Object.assign(element.dataset, cleanupDataset(dataset));
+    return element;
+  }
+  return null;
+}
+
+// src/upt-link.js
+function getPromoTermsUrl(env) {
+  const host = env === "PRODUCTION" ? "www.adobe.com" : "www.stage.adobe.com";
+  return `https://${host}/offers/promo-terms.html`;
+}
+var _service2;
+var _UptLink = class _UptLink extends HTMLAnchorElement {
+  constructor() {
+    super();
+    __publicField(this, "masElement", new MasElement(this));
+    __privateAdd(this, _service2);
+    this.setAttribute("is", _UptLink.is);
+  }
+  get isUptLink() {
+    return true;
+  }
+  /**
+   * @param {string} osi
+   * @param {string} promotionCode
+   */
+  initializeWcsData(osi, promotionCode) {
+    this.setAttribute("data-wcs-osi", osi);
+    if (promotionCode)
+      this.setAttribute("data-promotion-code", promotionCode);
+  }
+  attributeChangedCallback(name, oldValue, value) {
+    this.masElement.attributeChangedCallback(name, oldValue, value);
+  }
+  connectedCallback() {
+    this.masElement.connectedCallback();
+    __privateSet(this, _service2, getService());
+    if (__privateGet(this, _service2)) {
+      this.log = __privateGet(this, _service2).log.module("upt-link");
+    }
+  }
+  disconnectedCallback() {
+    this.masElement.disconnectedCallback();
+    __privateSet(this, _service2, void 0);
+  }
+  requestUpdate(force = false) {
+    this.masElement.requestUpdate(force);
+  }
+  onceSettled() {
+    return this.masElement.onceSettled();
+  }
+  async render() {
+    const service = getService();
+    if (!service) return false;
+    if (!this.dataset.imsCountry) {
+      service.imsCountryPromise.then((countryCode) => {
+        if (countryCode) this.dataset.imsCountry = countryCode;
+      });
+    }
+    const options = service.collectCheckoutOptions({}, this);
+    if (!options.wcsOsi) {
+      this.log.error(`Missing 'data-wcs-osi' attribute on upt-link.`);
+      return false;
+    }
+    const version = this.masElement.togglePending(options);
+    const promises = service.resolveOfferSelectors(options);
+    try {
+      const [[offer]] = await Promise.all(promises);
+      const { country, language, env } = options;
+      let params = `locale=${language}_${country}&country=${country}&offer_id=${offer.offerId}`;
+      const promotionCode = this.getAttribute("data-promotion-code");
+      if (promotionCode)
+        params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
+      this.href = `${getPromoTermsUrl(env)}?${params}`;
+      this.masElement.toggleResolved(version, offer, options);
+    } catch (error) {
+      const masError = new Error(
+        `Could not resolve offer selectors for id: ${options.wcsOsi}.`,
+        error.message
+      );
+      this.masElement.toggleFailed(version, masError, options);
+      return false;
+    }
+  }
+  /**
+   * @param {HTMLElement} element
+   */
+  static createFrom(element) {
+    const uptLink = new _UptLink();
+    for (const attribute of element.attributes) {
+      if (attribute.name === "is") continue;
+      if (attribute.name === "class" && attribute.value.includes("upt-link"))
+        uptLink.setAttribute(
+          "class",
+          attribute.value.replace("upt-link", "").trim()
+        );
+      else uptLink.setAttribute(attribute.name, attribute.value);
+    }
+    uptLink.innerHTML = element.innerHTML;
+    uptLink.setAttribute("tabindex", 0);
+    return uptLink;
+  }
+};
+_service2 = new WeakMap();
+__publicField(_UptLink, "is", "upt-link");
+__publicField(_UptLink, "tag", "a");
+__publicField(_UptLink, "observedAttributes", [
+  "data-wcs-osi",
+  "data-promotion-code",
+  "data-ims-country"
+]);
+var UptLink = _UptLink;
+if (!window.customElements.get(UptLink.is)) {
+  window.customElements.define(UptLink.is, UptLink, {
+    extends: UptLink.tag
+  });
+}
+
+// src/hydrate.js
+function normalizeVariant(variant) {
+  if (!variant) return variant;
+  if (variant.startsWith("plans")) return "plans";
+  return variant;
+}
+
+// src/checkout-mixin.js
+var CLASS_NAME_DOWNLOAD = "download";
+var CLASS_NAME_UPGRADE = "upgrade";
+var CHECKOUT_PARAM_VALUE_MAPPING = {
+  e: "EDU",
+  t: "TEAM"
+};
+function createCheckoutElement(Class, options = {}, innerHTML = "") {
+  const service = getService2();
+  if (!service) return null;
+  const {
+    checkoutMarketSegment,
+    checkoutWorkflow,
+    checkoutWorkflowStep,
+    entitlement,
+    upgrade,
+    modal,
+    perpetual,
+    promotionCode,
+    quantity,
+    wcsOsi,
+    extraOptions,
+    analyticsId
+  } = service.collectCheckoutOptions(options);
+  const element = createMasElement(Class, {
+    checkoutMarketSegment,
+    checkoutWorkflow,
+    checkoutWorkflowStep,
+    entitlement,
+    upgrade,
+    modal,
+    perpetual,
+    promotionCode,
+    quantity,
+    wcsOsi,
+    extraOptions,
+    analyticsId
+  });
+  if (innerHTML)
+    element.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
+  return element;
+}
+function CheckoutMixin(Base) {
+  return class CheckoutBase extends Base {
+    constructor() {
+      super(...arguments);
+      /* c8 ignore next 1 */
+      __publicField(this, "checkoutActionHandler");
+      __publicField(this, "masElement", new MasElement(this));
+    }
+    attributeChangedCallback(name, oldValue, value) {
+      this.masElement.attributeChangedCallback(name, oldValue, value);
+    }
+    connectedCallback() {
+      this.masElement.connectedCallback();
+      this.addEventListener("click", this.clickHandler);
+    }
+    disconnectedCallback() {
+      this.masElement.disconnectedCallback();
+      this.removeEventListener("click", this.clickHandler);
+    }
+    onceSettled() {
+      return this.masElement.onceSettled();
+    }
+    get value() {
+      return this.masElement.value;
+    }
+    get options() {
+      return this.masElement.options;
+    }
+    get marketSegment() {
+      const value = this.options?.ms ?? this.value?.[0].marketSegments?.[0];
+      return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
+    }
+    get customerSegment() {
+      const value = this.options?.cs ?? this.value?.[0]?.customerSegment;
+      return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
+    }
+    get is3in1Modal() {
+      return Object.values(MODAL_TYPE_3_IN_1).includes(
+        this.getAttribute("data-modal")
+      );
+    }
+    get isOpen3in1Modal() {
+      const masFF3in1 = document.querySelector("meta[name=mas-ff-3in1]");
+      return this.is3in1Modal && (!masFF3in1 || masFF3in1.content !== "off");
+    }
+    requestUpdate(force = false) {
+      return this.masElement.requestUpdate(force);
+    }
+    static get observedAttributes() {
+      return [
+        "data-checkout-workflow",
+        "data-checkout-workflow-step",
+        "data-extra-options",
+        "data-ims-country",
+        "data-perpetual",
+        "data-promotion-code",
+        "data-quantity",
+        "data-template",
+        "data-wcs-osi",
+        "data-entitlement",
+        "data-upgrade",
+        "data-modal"
+      ];
+    }
+    async render(overrides = {}) {
+      const service = getService2();
+      if (!service) return false;
+      if (!this.dataset.imsCountry) {
+        service.imsCountryPromise.then((countryCode) => {
+          if (countryCode) this.dataset.imsCountry = countryCode;
+        });
+      }
+      overrides.imsCountry = null;
+      const options = service.collectCheckoutOptions(overrides, this);
+      if (!options.wcsOsi.length) return false;
+      let extraOptions;
+      try {
+        extraOptions = JSON.parse(options.extraOptions ?? "{}");
+      } catch (e) {
+        this.masElement.log?.error(
+          "cannot parse exta checkout options",
+          e
+        );
+      }
+      const version = this.masElement.togglePending(options);
+      this.setCheckoutUrl("");
+      const promises = service.resolveOfferSelectors(options);
+      let offers = await Promise.all(promises);
+      offers = offers.map((offer) => selectOffers(offer, options));
+      options.country = this.dataset.imsCountry || options.country;
+      const checkoutAction = await service.buildCheckoutAction?.(
+        offers.flat(),
+        { ...extraOptions, ...options },
+        this
+      );
+      return this.renderOffers(
+        offers.flat(),
+        options,
+        {},
+        checkoutAction,
+        version
+      );
+    }
+    /**
+     * Renders checkout link href for provided offers into this component.
+     * @param {Commerce.Wcs.Offer[]} offers
+     * @param {Commerce.Checkout.Options} options
+     * @param {Commerce.Checkout.AnyOptions} overrides
+     * @param {Commerce.Checkout.CheckoutAction} checkoutAction
+     * @param {number} version
+     */
+    renderOffers(offers, options, overrides = {}, checkoutAction = void 0, version = void 0) {
+      const service = getService2();
+      if (!service) return false;
+      const extraOptions = JSON.parse(this.dataset.extraOptions ?? "{}");
+      options = { ...extraOptions, ...options, ...overrides };
+      version ?? (version = this.masElement.togglePending(options));
+      if (this.checkoutActionHandler) {
+        this.checkoutActionHandler = void 0;
+      }
+      if (checkoutAction) {
+        this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
+        this.masElement.toggleResolved(version, offers, options);
+        const { url, text, className, handler } = checkoutAction;
+        if (url) {
+          this.setCheckoutUrl(url);
+        }
+        if (text) this.firstElementChild.innerHTML = text;
+        if (className) this.classList.add(...className.split(" "));
+        if (handler) {
+          this.setCheckoutUrl("#");
+          this.checkoutActionHandler = handler.bind(this);
+        }
+      }
+      if (offers.length) {
+        if (this.masElement.toggleResolved(version, offers, options)) {
+          if (!this.classList.contains(CLASS_NAME_DOWNLOAD) && !this.classList.contains(CLASS_NAME_UPGRADE)) {
+            const url = service.buildCheckoutURL(offers, options);
+            this.setCheckoutUrl(
+              options.modal === "true" ? "#" : url
+            );
+          }
+          return true;
+        }
+      } else {
+        const error = new Error(
+          `Not provided: ${options?.wcsOsi ?? "-"}`
+        );
+        if (this.masElement.toggleFailed(version, error, options)) {
+          this.setCheckoutUrl("#");
+          return true;
+        }
+      }
+    }
+    setCheckoutUrl() {
+    }
+    clickHandler(e) {
+    }
+    updateOptions(options = {}) {
+      const service = getService2();
+      if (!service) return false;
+      const {
+        checkoutMarketSegment,
+        checkoutWorkflow,
+        checkoutWorkflowStep,
+        entitlement,
+        upgrade,
+        modal,
+        perpetual,
+        promotionCode,
+        quantity,
+        wcsOsi
+      } = service.collectCheckoutOptions(options);
+      updateMasElement(this, {
+        checkoutMarketSegment,
+        checkoutWorkflow,
+        checkoutWorkflowStep,
+        entitlement,
+        upgrade,
+        modal,
+        perpetual,
+        promotionCode,
+        quantity,
+        wcsOsi
+      });
+      return true;
+    }
+  };
+}
+
+// src/checkout-link.js
+var _CheckoutLink = class _CheckoutLink extends CheckoutMixin(HTMLAnchorElement) {
+  static createCheckoutLink(options = {}, innerHTML = "") {
+    return createCheckoutElement(_CheckoutLink, options, innerHTML);
+  }
+  setCheckoutUrl(value) {
+    this.setAttribute("href", value);
+  }
+  get isCheckoutLink() {
+    return true;
+  }
+  clickHandler(e) {
+    if (this.checkoutActionHandler) {
+      this.checkoutActionHandler?.(e);
+      return;
+    }
+  }
+};
+__publicField(_CheckoutLink, "is", "checkout-link");
+__publicField(_CheckoutLink, "tag", "a");
+var CheckoutLink = _CheckoutLink;
+if (!window.customElements.get(CheckoutLink.is)) {
+  window.customElements.define(CheckoutLink.is, CheckoutLink, {
+    extends: CheckoutLink.tag
+  });
+}
+
+// src/buildCheckoutUrl.js
+var AF_DRAFT_LANDSCAPE = "p_draft_landscape";
+var UCV3_PREFIX = "/store/";
+var PARAMETERS = /* @__PURE__ */ new Map([
+  ["countrySpecific", "cs"],
+  ["customerSegment", "cs"],
+  ["quantity", "q"],
+  ["authCode", "code"],
+  ["checkoutPromoCode", "apc"],
+  ["rurl", "rUrl"],
+  ["curl", "cUrl"],
+  ["ctxrturl", "ctxRtUrl"],
+  ["country", "co"],
+  ["language", "lang"],
+  ["clientId", "cli"],
+  ["context", "ctx"],
+  ["productArrangementCode", "pa"],
+  ["addonProductArrangementCode", "ao"],
+  ["offerType", "ot"],
+  ["marketSegment", "ms"]
+]);
+var ALLOWED_KEYS = /* @__PURE__ */ new Set([
+  "af",
+  "ai",
+  "ao",
+  "apc",
+  "appctxid",
+  "cli",
+  "co",
+  "cs",
+  "csm",
+  "ctx",
+  "ctxRtUrl",
+  "DCWATC",
+  "dp",
+  // Enable digital payments for iframe context
+  "fr",
+  // represents the commerce app redirecting to UC
+  "gsp",
+  "ijt",
+  "lang",
+  "lo",
+  "mal",
+  "ms",
+  "mv",
+  "mv2",
+  "nglwfdata",
+  "ot",
+  "otac",
+  "pa",
+  "pcid",
+  // Unified Paywall configuration ID for analytics
+  "promoid",
+  "q",
+  "rf",
+  "sc",
+  "scl",
+  "sdid",
+  "sid",
+  // x-adobe-clientsession
+  "spint",
+  "svar",
+  "th",
+  "thm",
+  "trackingid",
+  "usid",
+  "workflowid",
+  "context.guid",
+  "so.ca",
+  "so.su",
+  "so.tr",
+  "so.va"
+]);
+var REQUIRED_KEYS = ["env", "workflowStep", "clientId", "country"];
+var mapParameterName = (field) => PARAMETERS.get(field) ?? field;
+function addParameters(inputParameters, resultParameters, allowedKeys) {
+  for (const [key, value] of Object.entries(inputParameters)) {
+    const mappedKey = mapParameterName(key);
+    if (value != null && allowedKeys.has(mappedKey)) {
+      resultParameters.set(mappedKey, value);
+    }
+  }
+}
+function getHostName(env) {
+  switch (env) {
+    case PROVIDER_ENVIRONMENT.PRODUCTION:
+      return "https://commerce.adobe.com";
+    default:
+      return "https://commerce-stg.adobe.com";
+  }
+}
+function setItemsParameter(items, parameters) {
+  for (const idx in items) {
+    const item = items[idx];
+    for (const [key, value] of Object.entries(item)) {
+      if (value == null) continue;
+      const parameterName = mapParameterName(key);
+      parameters.set(`items[${idx}][${parameterName}]`, value);
+    }
+  }
+}
+function add3in1Parameters({ url, modal, is3in1 }) {
+  if (!is3in1 || !url?.searchParams) return url;
+  url.searchParams.set("rtc", "t");
+  url.searchParams.set("lo", "sl");
+  const existingAf = url.searchParams.get("af");
+  url.searchParams.set(
+    "af",
+    [existingAf, "uc_new_user_iframe", "uc_new_system_close"].filter(Boolean).join(",")
+  );
+  if (url.searchParams.get("cli") !== "doc_cloud") {
+    url.searchParams.set(
+      "cli",
+      modal === MODAL_TYPE_3_IN_1.CRM ? "creative" : "mini_plans"
+    );
+  }
+  return url;
+}
+function buildCheckoutUrl(checkoutData) {
+  validateCheckoutData(checkoutData);
+  const {
+    env,
+    items,
+    workflowStep,
+    marketSegment,
+    customerSegment,
+    offerType,
+    productArrangementCode,
+    landscape,
+    modal,
+    is3in1,
+    preselectPlan,
+    ...rest
+  } = checkoutData;
+  let url = new URL(getHostName(env));
+  url.pathname = `${UCV3_PREFIX}${workflowStep}`;
+  if (workflowStep !== CheckoutWorkflowStep.SEGMENTATION && workflowStep !== CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS) {
+    setItemsParameter(items, url.searchParams);
+  }
+  addParameters({ ...rest }, url.searchParams, ALLOWED_KEYS);
+  if (landscape === Landscape.DRAFT) {
+    addParameters(
+      { af: AF_DRAFT_LANDSCAPE },
+      url.searchParams,
+      ALLOWED_KEYS
+    );
+  }
+  if (workflowStep === CheckoutWorkflowStep.SEGMENTATION) {
+    const segmentationParameters = {
+      marketSegment,
+      offerType,
+      customerSegment,
+      productArrangementCode,
+      quantity: items?.[0]?.quantity,
+      addonProductArrangementCode: productArrangementCode ? items?.find(
+        (item) => item.productArrangementCode !== productArrangementCode
+      )?.productArrangementCode : items?.[1]?.productArrangementCode
+    };
+    if (preselectPlan?.toLowerCase() === "edu") {
+      url.searchParams.set("ms", "EDU");
+    } else if (preselectPlan?.toLowerCase() === "team") {
+      url.searchParams.set("cs", "TEAM");
+    }
+    addParameters(segmentationParameters, url.searchParams, ALLOWED_KEYS);
+    if (url.searchParams.get("ot") === "PROMOTION")
+      url.searchParams.delete("ot");
+    url = add3in1Parameters({
+      url,
+      modal,
+      is3in1
+    });
+  }
+  return url.toString();
+}
+function validateCheckoutData(checkoutData) {
+  for (const key of REQUIRED_KEYS) {
+    if (!checkoutData[key]) {
+      throw new Error(
+        'Argument "checkoutData" is not valid, missing: ' + key
+      );
+    }
+  }
+  if (checkoutData.workflowStep !== CheckoutWorkflowStep.SEGMENTATION && checkoutData.workflowStep !== CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS && !checkoutData.items) {
+    throw new Error('Argument "checkoutData" is not valid, missing: items');
+  }
+  return true;
+}
+
+// src/defaults.js
+var Defaults = Object.freeze({
+  checkoutClientId: "adobe_com",
+  checkoutWorkflowStep: CheckoutWorkflowStep.EMAIL,
+  country: "US",
+  displayOldPrice: false,
+  displayPerUnit: false,
+  displayRecurrence: true,
+  displayTax: false,
+  displayPlanType: false,
+  env: Env.PRODUCTION,
+  forceTaxExclusive: false,
+  language: "en",
+  entitlement: false,
+  extraOptions: {},
+  modal: false,
+  promotionCode: "",
+  quantity: 1,
+  alternativePrice: false,
+  wcsApiKey: "wcms-commerce-ims-ro-user-milo",
+  wcsURL: "https://www.adobe.com/web_commerce_artifact",
+  landscape: Landscape.PUBLISHED
+});
+
+// src/checkout.js
+function Checkout({ settings, providers }) {
+  function collectCheckoutOptions(overrides, placeholder) {
+    const {
+      checkoutClientId,
+      checkoutWorkflowStep: defaultWorkflowStep,
+      country: defaultCountry,
+      language: defaultLanguage,
+      promotionCode: defaultPromotionCode,
+      quantity: defaultQuantity,
+      preselectPlan,
+      env
+    } = settings;
+    let options = {
+      checkoutClientId,
+      checkoutWorkflowStep: defaultWorkflowStep,
+      country: defaultCountry,
+      language: defaultLanguage,
+      promotionCode: defaultPromotionCode,
+      quantity: defaultQuantity,
+      preselectPlan,
+      env
+    };
+    if (placeholder) {
+      for (const provider of providers.checkout) {
+        provider(placeholder, options);
+      }
+    }
+    const {
+      checkoutMarketSegment,
+      checkoutWorkflowStep = defaultWorkflowStep,
+      imsCountry: imsCountry2,
+      country = imsCountry2 ?? defaultCountry,
+      language = defaultLanguage,
+      quantity = defaultQuantity,
+      entitlement,
+      upgrade,
+      modal,
+      perpetual,
+      promotionCode = defaultPromotionCode,
+      wcsOsi,
+      extraOptions,
+      ...rest
+    } = Object.assign(options, placeholder?.dataset ?? {}, overrides ?? {});
+    const workflowStep = toEnumeration(
+      checkoutWorkflowStep,
+      CheckoutWorkflowStep,
+      Defaults.checkoutWorkflowStep
+    );
+    options = omitProperties({
+      ...rest,
+      extraOptions,
+      checkoutClientId,
+      checkoutMarketSegment,
+      country,
+      quantity: toQuantity(quantity, Defaults.quantity),
+      checkoutWorkflowStep: workflowStep,
+      language,
+      entitlement: toBoolean(entitlement),
+      upgrade: toBoolean(upgrade),
+      modal,
+      perpetual: toBoolean(perpetual),
+      promotionCode: computePromoStatus(promotionCode).effectivePromoCode,
+      wcsOsi: toOfferSelectorIds(wcsOsi),
+      preselectPlan
+    });
+    return options;
+  }
+  function buildCheckoutURL(offers, options) {
+    if (!Array.isArray(offers) || !offers.length || !options) {
+      return "";
+    }
+    const { env, landscape } = settings;
+    const {
+      checkoutClientId: clientId,
+      checkoutMarketSegment,
+      checkoutWorkflowStep: workflowStep,
+      country,
+      promotionCode: checkoutPromoCode,
+      quantity: optionsQuantity,
+      preselectPlan,
+      ms,
+      cs,
+      ...rest
+    } = collectCheckoutOptions(options);
+    const masFF3in1 = document.querySelector("meta[name=mas-ff-3in1]");
+    const is3in1 = Object.values(MODAL_TYPE_3_IN_1).includes(options.modal) && (!masFF3in1 || masFF3in1.content !== "off");
+    const context = window.frameElement || is3in1 ? "if" : "fp";
+    const [
+      {
+        productArrangementCode,
+        marketSegments: [offerMarketSegment],
+        customerSegment: offerCustomerSegment,
+        offerType
+      }
+    ] = offers;
+    let marketSegment = ms ?? offerMarketSegment ?? checkoutMarketSegment;
+    let customerSegment = cs ?? offerCustomerSegment;
+    if (preselectPlan?.toLowerCase() === "edu") {
+      marketSegment = "EDU";
+    } else if (preselectPlan?.toLowerCase() === "team") {
+      customerSegment = "TEAM";
+    }
+    const data = {
+      is3in1,
+      checkoutPromoCode,
+      clientId,
+      context,
+      country,
+      env,
+      items: [],
+      marketSegment,
+      customerSegment,
+      offerType,
+      productArrangementCode,
+      workflowStep,
+      landscape,
+      ...rest
+    };
+    const quantity = optionsQuantity[0] > 1 ? optionsQuantity[0] : void 0;
+    if (offers.length === 1) {
+      const { offerId } = offers[0];
+      data.items.push({ id: offerId, quantity });
+    } else {
+      data.items.push(
+        ...offers.map(({ offerId, productArrangementCode: productArrangementCode2 }) => ({
+          id: offerId,
+          quantity,
+          ...is3in1 ? { productArrangementCode: productArrangementCode2 } : {}
+        }))
+      );
+    }
+    return buildCheckoutUrl(data);
+  }
+  const { createCheckoutLink } = CheckoutLink;
+  return {
+    CheckoutLink,
+    CheckoutWorkflowStep,
+    buildCheckoutURL,
+    collectCheckoutOptions,
+    createCheckoutLink
+  };
+}
+
+// src/ims.js
+function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
+  const log2 = Log.module("ims");
+  return new Promise((resolve) => {
+    log2.debug("Waing for IMS to be ready");
+    let count = 0;
+    function poll() {
+      if (window.adobeIMS?.initialized) {
+        resolve();
+      } else if (++count > maxAttempts) {
+        log2.debug("Timeout");
+        resolve();
+      } else {
+        setTimeout(poll, interval);
+      }
+    }
+    poll();
+  });
+}
+function imsSignedIn(imsReadyPromise) {
+  return imsReadyPromise.then(
+    () => window.adobeIMS?.isSignedInUser() ?? false
+  );
+}
+function imsCountry(imsSignedInPromise) {
+  const log2 = Log.module("ims");
+  return imsSignedInPromise.then((signedIn) => {
+    if (!signedIn) return null;
+    return window.adobeIMS.getProfile().then(
+      ({ countryCode }) => {
+        log2.debug("Got user country:", countryCode);
+        return countryCode;
+      },
+      (error) => {
+        log2.error("Unable to get user country:", error);
+        return void 0;
+      }
+    );
+  });
+}
+function Ims({}) {
+  const imsReadyPromise = imsReady();
+  const imsSignedInPromise = imsSignedIn(imsReadyPromise);
+  const imsCountryPromise = imsCountry(imsSignedInPromise);
+  return { imsReadyPromise, imsSignedInPromise, imsCountryPromise };
+}
+
+// src/literals.js
+var priceLiterals = window.masPriceLiterals;
+function getPriceLiterals(settings) {
+  if (Array.isArray(priceLiterals)) {
+    const find = (language) => priceLiterals.find(
+      (candidate) => equalsCaseInsensitive(candidate.lang, language)
+    );
+    const literals = find(settings.language) ?? find(Defaults.language);
+    if (literals) return Object.freeze(literals);
+  }
+  return {};
+}
+
+// ../node_modules/tslib/tslib.es6.mjs
+var extendStatics = function(d, b) {
+  extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
+    d2.__proto__ = b2;
+  } || function(d2, b2) {
+    for (var p in b2) if (Object.prototype.hasOwnProperty.call(b2, p)) d2[p] = b2[p];
+  };
+  return extendStatics(d, b);
+};
+function __extends(d, b) {
+  if (typeof b !== "function" && b !== null)
+    throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+  extendStatics(d, b);
+  function __() {
+    this.constructor = d;
+  }
+  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+var __assign = function() {
+  __assign = Object.assign || function __assign2(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+    }
+    return t;
+  };
+  return __assign.apply(this, arguments);
+};
+function __spreadArray(to, from, pack) {
+  if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+    if (ar || !(i in from)) {
+      if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+      ar[i] = from[i];
+    }
+  }
+  return to.concat(ar || Array.prototype.slice.call(from));
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/error.js
+var ErrorKind;
+(function(ErrorKind2) {
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_CLOSING_BRACE"] = 1] = "EXPECT_ARGUMENT_CLOSING_BRACE";
+  ErrorKind2[ErrorKind2["EMPTY_ARGUMENT"] = 2] = "EMPTY_ARGUMENT";
+  ErrorKind2[ErrorKind2["MALFORMED_ARGUMENT"] = 3] = "MALFORMED_ARGUMENT";
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_TYPE"] = 4] = "EXPECT_ARGUMENT_TYPE";
+  ErrorKind2[ErrorKind2["INVALID_ARGUMENT_TYPE"] = 5] = "INVALID_ARGUMENT_TYPE";
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_STYLE"] = 6] = "EXPECT_ARGUMENT_STYLE";
+  ErrorKind2[ErrorKind2["INVALID_NUMBER_SKELETON"] = 7] = "INVALID_NUMBER_SKELETON";
+  ErrorKind2[ErrorKind2["INVALID_DATE_TIME_SKELETON"] = 8] = "INVALID_DATE_TIME_SKELETON";
+  ErrorKind2[ErrorKind2["EXPECT_NUMBER_SKELETON"] = 9] = "EXPECT_NUMBER_SKELETON";
+  ErrorKind2[ErrorKind2["EXPECT_DATE_TIME_SKELETON"] = 10] = "EXPECT_DATE_TIME_SKELETON";
+  ErrorKind2[ErrorKind2["UNCLOSED_QUOTE_IN_ARGUMENT_STYLE"] = 11] = "UNCLOSED_QUOTE_IN_ARGUMENT_STYLE";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_OPTIONS"] = 12] = "EXPECT_SELECT_ARGUMENT_OPTIONS";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE"] = 13] = "EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE";
+  ErrorKind2[ErrorKind2["INVALID_PLURAL_ARGUMENT_OFFSET_VALUE"] = 14] = "INVALID_PLURAL_ARGUMENT_OFFSET_VALUE";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_SELECTOR"] = 15] = "EXPECT_SELECT_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_SELECTOR"] = 16] = "EXPECT_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT"] = 17] = "EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT"] = 18] = "EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT";
+  ErrorKind2[ErrorKind2["INVALID_PLURAL_ARGUMENT_SELECTOR"] = 19] = "INVALID_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["DUPLICATE_PLURAL_ARGUMENT_SELECTOR"] = 20] = "DUPLICATE_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["DUPLICATE_SELECT_ARGUMENT_SELECTOR"] = 21] = "DUPLICATE_SELECT_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["MISSING_OTHER_CLAUSE"] = 22] = "MISSING_OTHER_CLAUSE";
+  ErrorKind2[ErrorKind2["INVALID_TAG"] = 23] = "INVALID_TAG";
+  ErrorKind2[ErrorKind2["INVALID_TAG_NAME"] = 25] = "INVALID_TAG_NAME";
+  ErrorKind2[ErrorKind2["UNMATCHED_CLOSING_TAG"] = 26] = "UNMATCHED_CLOSING_TAG";
+  ErrorKind2[ErrorKind2["UNCLOSED_TAG"] = 27] = "UNCLOSED_TAG";
+})(ErrorKind || (ErrorKind = {}));
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/types.js
+var TYPE;
+(function(TYPE2) {
+  TYPE2[TYPE2["literal"] = 0] = "literal";
+  TYPE2[TYPE2["argument"] = 1] = "argument";
+  TYPE2[TYPE2["number"] = 2] = "number";
+  TYPE2[TYPE2["date"] = 3] = "date";
+  TYPE2[TYPE2["time"] = 4] = "time";
+  TYPE2[TYPE2["select"] = 5] = "select";
+  TYPE2[TYPE2["plural"] = 6] = "plural";
+  TYPE2[TYPE2["pound"] = 7] = "pound";
+  TYPE2[TYPE2["tag"] = 8] = "tag";
+})(TYPE || (TYPE = {}));
+var SKELETON_TYPE;
+(function(SKELETON_TYPE2) {
+  SKELETON_TYPE2[SKELETON_TYPE2["number"] = 0] = "number";
+  SKELETON_TYPE2[SKELETON_TYPE2["dateTime"] = 1] = "dateTime";
+})(SKELETON_TYPE || (SKELETON_TYPE = {}));
+function isLiteralElement(el) {
+  return el.type === TYPE.literal;
+}
+function isArgumentElement(el) {
+  return el.type === TYPE.argument;
+}
+function isNumberElement(el) {
+  return el.type === TYPE.number;
+}
+function isDateElement(el) {
+  return el.type === TYPE.date;
+}
+function isTimeElement(el) {
+  return el.type === TYPE.time;
+}
+function isSelectElement(el) {
+  return el.type === TYPE.select;
+}
+function isPluralElement(el) {
+  return el.type === TYPE.plural;
+}
+function isPoundElement(el) {
+  return el.type === TYPE.pound;
+}
+function isTagElement(el) {
+  return el.type === TYPE.tag;
+}
+function isNumberSkeleton(el) {
+  return !!(el && typeof el === "object" && el.type === SKELETON_TYPE.number);
+}
+function isDateTimeSkeleton(el) {
+  return !!(el && typeof el === "object" && el.type === SKELETON_TYPE.dateTime);
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js
+var SPACE_SEPARATOR_REGEX = /[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;
+
+// ../node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js
+var DATE_TIME_REGEX = /(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;
+function parseDateTimeSkeleton(skeleton) {
+  var result = {};
+  skeleton.replace(DATE_TIME_REGEX, function(match) {
+    var len = match.length;
+    switch (match[0]) {
+      // Era
+      case "G":
+        result.era = len === 4 ? "long" : len === 5 ? "narrow" : "short";
+        break;
+      // Year
+      case "y":
+        result.year = len === 2 ? "2-digit" : "numeric";
+        break;
+      case "Y":
+      case "u":
+      case "U":
+      case "r":
+        throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");
+      // Quarter
+      case "q":
+      case "Q":
+        throw new RangeError("`q/Q` (quarter) patterns are not supported");
+      // Month
+      case "M":
+      case "L":
+        result.month = ["numeric", "2-digit", "short", "long", "narrow"][len - 1];
+        break;
+      // Week
+      case "w":
+      case "W":
+        throw new RangeError("`w/W` (week) patterns are not supported");
+      case "d":
+        result.day = ["numeric", "2-digit"][len - 1];
+        break;
+      case "D":
+      case "F":
+      case "g":
+        throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");
+      // Weekday
+      case "E":
+        result.weekday = len === 4 ? "short" : len === 5 ? "narrow" : "short";
+        break;
+      case "e":
+        if (len < 4) {
+          throw new RangeError("`e..eee` (weekday) patterns are not supported");
+        }
+        result.weekday = ["short", "long", "narrow", "short"][len - 4];
+        break;
+      case "c":
+        if (len < 4) {
+          throw new RangeError("`c..ccc` (weekday) patterns are not supported");
+        }
+        result.weekday = ["short", "long", "narrow", "short"][len - 4];
+        break;
+      // Period
+      case "a":
+        result.hour12 = true;
+        break;
+      case "b":
+      // am, pm, noon, midnight
+      case "B":
+        throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");
+      // Hour
+      case "h":
+        result.hourCycle = "h12";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "H":
+        result.hourCycle = "h23";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "K":
+        result.hourCycle = "h11";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "k":
+        result.hourCycle = "h24";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "j":
+      case "J":
+      case "C":
+        throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");
+      // Minute
+      case "m":
+        result.minute = ["numeric", "2-digit"][len - 1];
+        break;
+      // Second
+      case "s":
+        result.second = ["numeric", "2-digit"][len - 1];
+        break;
+      case "S":
+      case "A":
+        throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");
+      // Zone
+      case "z":
+        result.timeZoneName = len < 4 ? "short" : "long";
+        break;
+      case "Z":
+      // 1..3, 4, 5: The ISO8601 varios formats
+      case "O":
+      // 1, 4: miliseconds in day short, long
+      case "v":
+      // 1, 4: generic non-location format
+      case "V":
+      // 1, 2, 3, 4: time zone ID or city
+      case "X":
+      // 1, 2, 3, 4: The ISO8601 varios formats
+      case "x":
+        throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead");
+    }
+    return "";
+  });
+  return result;
+}
+
+// ../node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js
+var WHITE_SPACE_REGEX = /[\t-\r \x85\u200E\u200F\u2028\u2029]/i;
+
+// ../node_modules/@formatjs/icu-skeleton-parser/lib/number.js
+function parseNumberSkeletonFromString(skeleton) {
+  if (skeleton.length === 0) {
+    throw new Error("Number skeleton cannot be empty");
+  }
+  var stringTokens = skeleton.split(WHITE_SPACE_REGEX).filter(function(x) {
+    return x.length > 0;
+  });
+  var tokens = [];
+  for (var _i = 0, stringTokens_1 = stringTokens; _i < stringTokens_1.length; _i++) {
+    var stringToken = stringTokens_1[_i];
+    var stemAndOptions = stringToken.split("/");
+    if (stemAndOptions.length === 0) {
+      throw new Error("Invalid number skeleton");
+    }
+    var stem = stemAndOptions[0], options = stemAndOptions.slice(1);
+    for (var _a2 = 0, options_1 = options; _a2 < options_1.length; _a2++) {
+      var option = options_1[_a2];
+      if (option.length === 0) {
+        throw new Error("Invalid number skeleton");
+      }
+    }
+    tokens.push({ stem, options });
+  }
+  return tokens;
+}
+function icuUnitToEcma(unit) {
+  return unit.replace(/^(.*?)-/, "");
+}
+var FRACTION_PRECISION_REGEX = /^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g;
+var SIGNIFICANT_PRECISION_REGEX = /^(@+)?(\+|#+)?[rs]?$/g;
+var INTEGER_WIDTH_REGEX = /(\*)(0+)|(#+)(0+)|(0+)/g;
+var CONCISE_INTEGER_WIDTH_REGEX = /^(0+)$/;
+function parseSignificantPrecision(str) {
+  var result = {};
+  if (str[str.length - 1] === "r") {
+    result.roundingPriority = "morePrecision";
+  } else if (str[str.length - 1] === "s") {
+    result.roundingPriority = "lessPrecision";
+  }
+  str.replace(SIGNIFICANT_PRECISION_REGEX, function(_, g1, g2) {
+    if (typeof g2 !== "string") {
+      result.minimumSignificantDigits = g1.length;
+      result.maximumSignificantDigits = g1.length;
+    } else if (g2 === "+") {
+      result.minimumSignificantDigits = g1.length;
+    } else if (g1[0] === "#") {
+      result.maximumSignificantDigits = g1.length;
+    } else {
+      result.minimumSignificantDigits = g1.length;
+      result.maximumSignificantDigits = g1.length + (typeof g2 === "string" ? g2.length : 0);
+    }
+    return "";
+  });
+  return result;
+}
+function parseSign(str) {
+  switch (str) {
+    case "sign-auto":
+      return {
+        signDisplay: "auto"
+      };
+    case "sign-accounting":
+    case "()":
+      return {
+        currencySign: "accounting"
+      };
+    case "sign-always":
+    case "+!":
+      return {
+        signDisplay: "always"
+      };
+    case "sign-accounting-always":
+    case "()!":
+      return {
+        signDisplay: "always",
+        currencySign: "accounting"
+      };
+    case "sign-except-zero":
+    case "+?":
+      return {
+        signDisplay: "exceptZero"
+      };
+    case "sign-accounting-except-zero":
+    case "()?":
+      return {
+        signDisplay: "exceptZero",
+        currencySign: "accounting"
+      };
+    case "sign-never":
+    case "+_":
+      return {
+        signDisplay: "never"
+      };
+  }
+}
+function parseConciseScientificAndEngineeringStem(stem) {
+  var result;
+  if (stem[0] === "E" && stem[1] === "E") {
+    result = {
+      notation: "engineering"
+    };
+    stem = stem.slice(2);
+  } else if (stem[0] === "E") {
+    result = {
+      notation: "scientific"
+    };
+    stem = stem.slice(1);
+  }
+  if (result) {
+    var signDisplay = stem.slice(0, 2);
+    if (signDisplay === "+!") {
+      result.signDisplay = "always";
+      stem = stem.slice(2);
+    } else if (signDisplay === "+?") {
+      result.signDisplay = "exceptZero";
+      stem = stem.slice(2);
+    }
+    if (!CONCISE_INTEGER_WIDTH_REGEX.test(stem)) {
+      throw new Error("Malformed concise eng/scientific notation");
+    }
+    result.minimumIntegerDigits = stem.length;
+  }
+  return result;
+}
+function parseNotationOptions(opt) {
+  var result = {};
+  var signOpts = parseSign(opt);
+  if (signOpts) {
+    return signOpts;
+  }
+  return result;
+}
+function parseNumberSkeleton(tokens) {
+  var result = {};
+  for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
+    var token = tokens_1[_i];
+    switch (token.stem) {
+      case "percent":
+      case "%":
+        result.style = "percent";
+        continue;
+      case "%x100":
+        result.style = "percent";
+        result.scale = 100;
+        continue;
+      case "currency":
+        result.style = "currency";
+        result.currency = token.options[0];
+        continue;
+      case "group-off":
+      case ",_":
+        result.useGrouping = false;
+        continue;
+      case "precision-integer":
+      case ".":
+        result.maximumFractionDigits = 0;
+        continue;
+      case "measure-unit":
+      case "unit":
+        result.style = "unit";
+        result.unit = icuUnitToEcma(token.options[0]);
+        continue;
+      case "compact-short":
+      case "K":
+        result.notation = "compact";
+        result.compactDisplay = "short";
+        continue;
+      case "compact-long":
+      case "KK":
+        result.notation = "compact";
+        result.compactDisplay = "long";
+        continue;
+      case "scientific":
+        result = __assign(__assign(__assign({}, result), { notation: "scientific" }), token.options.reduce(function(all, opt2) {
+          return __assign(__assign({}, all), parseNotationOptions(opt2));
+        }, {}));
+        continue;
+      case "engineering":
+        result = __assign(__assign(__assign({}, result), { notation: "engineering" }), token.options.reduce(function(all, opt2) {
+          return __assign(__assign({}, all), parseNotationOptions(opt2));
+        }, {}));
+        continue;
+      case "notation-simple":
+        result.notation = "standard";
+        continue;
+      // https://github.com/unicode-org/icu/blob/master/icu4c/source/i18n/unicode/unumberformatter.h
+      case "unit-width-narrow":
+        result.currencyDisplay = "narrowSymbol";
+        result.unitDisplay = "narrow";
+        continue;
+      case "unit-width-short":
+        result.currencyDisplay = "code";
+        result.unitDisplay = "short";
+        continue;
+      case "unit-width-full-name":
+        result.currencyDisplay = "name";
+        result.unitDisplay = "long";
+        continue;
+      case "unit-width-iso-code":
+        result.currencyDisplay = "symbol";
+        continue;
+      case "scale":
+        result.scale = parseFloat(token.options[0]);
+        continue;
+      // https://unicode-org.github.io/icu/userguide/format_parse/numbers/skeletons.html#integer-width
+      case "integer-width":
+        if (token.options.length > 1) {
+          throw new RangeError("integer-width stems only accept a single optional option");
+        }
+        token.options[0].replace(INTEGER_WIDTH_REGEX, function(_, g1, g2, g3, g4, g5) {
+          if (g1) {
+            result.minimumIntegerDigits = g2.length;
+          } else if (g3 && g4) {
+            throw new Error("We currently do not support maximum integer digits");
+          } else if (g5) {
+            throw new Error("We currently do not support exact integer digits");
+          }
+          return "";
+        });
+        continue;
+    }
+    if (CONCISE_INTEGER_WIDTH_REGEX.test(token.stem)) {
+      result.minimumIntegerDigits = token.stem.length;
+      continue;
+    }
+    if (FRACTION_PRECISION_REGEX.test(token.stem)) {
+      if (token.options.length > 1) {
+        throw new RangeError("Fraction-precision stems only accept a single optional option");
+      }
+      token.stem.replace(FRACTION_PRECISION_REGEX, function(_, g1, g2, g3, g4, g5) {
+        if (g2 === "*") {
+          result.minimumFractionDigits = g1.length;
+        } else if (g3 && g3[0] === "#") {
+          result.maximumFractionDigits = g3.length;
+        } else if (g4 && g5) {
+          result.minimumFractionDigits = g4.length;
+          result.maximumFractionDigits = g4.length + g5.length;
+        } else {
+          result.minimumFractionDigits = g1.length;
+          result.maximumFractionDigits = g1.length;
+        }
+        return "";
+      });
+      var opt = token.options[0];
+      if (opt === "w") {
+        result = __assign(__assign({}, result), { trailingZeroDisplay: "stripIfInteger" });
+      } else if (opt) {
+        result = __assign(__assign({}, result), parseSignificantPrecision(opt));
+      }
+      continue;
+    }
+    if (SIGNIFICANT_PRECISION_REGEX.test(token.stem)) {
+      result = __assign(__assign({}, result), parseSignificantPrecision(token.stem));
+      continue;
+    }
+    var signOpts = parseSign(token.stem);
+    if (signOpts) {
+      result = __assign(__assign({}, result), signOpts);
+    }
+    var conciseScientificAndEngineeringOpts = parseConciseScientificAndEngineeringStem(token.stem);
+    if (conciseScientificAndEngineeringOpts) {
+      result = __assign(__assign({}, result), conciseScientificAndEngineeringOpts);
+    }
+  }
+  return result;
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js
+var timeData = {
+  "AX": [
+    "H"
+  ],
+  "BQ": [
+    "H"
+  ],
+  "CP": [
+    "H"
+  ],
+  "CZ": [
+    "H"
+  ],
+  "DK": [
+    "H"
+  ],
+  "FI": [
+    "H"
+  ],
+  "ID": [
+    "H"
+  ],
+  "IS": [
+    "H"
+  ],
+  "ML": [
+    "H"
+  ],
+  "NE": [
+    "H"
+  ],
+  "RU": [
+    "H"
+  ],
+  "SE": [
+    "H"
+  ],
+  "SJ": [
+    "H"
+  ],
+  "SK": [
+    "H"
+  ],
+  "AS": [
+    "h",
+    "H"
+  ],
+  "BT": [
+    "h",
+    "H"
+  ],
+  "DJ": [
+    "h",
+    "H"
+  ],
+  "ER": [
+    "h",
+    "H"
+  ],
+  "GH": [
+    "h",
+    "H"
+  ],
+  "IN": [
+    "h",
+    "H"
+  ],
+  "LS": [
+    "h",
+    "H"
+  ],
+  "PG": [
+    "h",
+    "H"
+  ],
+  "PW": [
+    "h",
+    "H"
+  ],
+  "SO": [
+    "h",
+    "H"
+  ],
+  "TO": [
+    "h",
+    "H"
+  ],
+  "VU": [
+    "h",
+    "H"
+  ],
+  "WS": [
+    "h",
+    "H"
+  ],
+  "001": [
+    "H",
+    "h"
+  ],
+  "AL": [
+    "h",
+    "H",
+    "hB"
+  ],
+  "TD": [
+    "h",
+    "H",
+    "hB"
+  ],
+  "ca-ES": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CM": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "fr-CA": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "gl-ES": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "it-CH": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "it-IT": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "LU": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "NP": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "PF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SC": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SM": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SN": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "TF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "VA": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CY": [
+    "h",
+    "H",
+    "hb",
+    "hB"
+  ],
+  "GR": [
+    "h",
+    "H",
+    "hb",
+    "hB"
+  ],
+  "CO": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "DO": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "KP": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "KR": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "NA": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "PA": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "PR": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "VE": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "AC": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "AI": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "BW": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "BZ": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CC": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CX": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "DG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "FK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GB": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GI": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IE": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IM": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IO": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "JE": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "LT": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MN": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MS": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NF": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NR": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NU": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "PN": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "SH": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "SX": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "TA": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "ZA": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "af-ZA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "AR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CL": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CU": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "EA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-BO": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-BR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-EC": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-ES": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-GQ": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-PE": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "GT": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "HN": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "IC": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "KG": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "KM": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "LK": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "MA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "MX": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "NI": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "PY": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "SV": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "UY": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "JP": [
+    "H",
+    "h",
+    "K"
+  ],
+  "AD": [
+    "H",
+    "hB"
+  ],
+  "AM": [
+    "H",
+    "hB"
+  ],
+  "AO": [
+    "H",
+    "hB"
+  ],
+  "AT": [
+    "H",
+    "hB"
+  ],
+  "AW": [
+    "H",
+    "hB"
+  ],
+  "BE": [
+    "H",
+    "hB"
+  ],
+  "BF": [
+    "H",
+    "hB"
+  ],
+  "BJ": [
+    "H",
+    "hB"
+  ],
+  "BL": [
+    "H",
+    "hB"
+  ],
+  "BR": [
+    "H",
+    "hB"
+  ],
+  "CG": [
+    "H",
+    "hB"
+  ],
+  "CI": [
+    "H",
+    "hB"
+  ],
+  "CV": [
+    "H",
+    "hB"
+  ],
+  "DE": [
+    "H",
+    "hB"
+  ],
+  "EE": [
+    "H",
+    "hB"
+  ],
+  "FR": [
+    "H",
+    "hB"
+  ],
+  "GA": [
+    "H",
+    "hB"
+  ],
+  "GF": [
+    "H",
+    "hB"
+  ],
+  "GN": [
+    "H",
+    "hB"
+  ],
+  "GP": [
+    "H",
+    "hB"
+  ],
+  "GW": [
+    "H",
+    "hB"
+  ],
+  "HR": [
+    "H",
+    "hB"
+  ],
+  "IL": [
+    "H",
+    "hB"
+  ],
+  "IT": [
+    "H",
+    "hB"
+  ],
+  "KZ": [
+    "H",
+    "hB"
+  ],
+  "MC": [
+    "H",
+    "hB"
+  ],
+  "MD": [
+    "H",
+    "hB"
+  ],
+  "MF": [
+    "H",
+    "hB"
+  ],
+  "MQ": [
+    "H",
+    "hB"
+  ],
+  "MZ": [
+    "H",
+    "hB"
+  ],
+  "NC": [
+    "H",
+    "hB"
+  ],
+  "NL": [
+    "H",
+    "hB"
+  ],
+  "PM": [
+    "H",
+    "hB"
+  ],
+  "PT": [
+    "H",
+    "hB"
+  ],
+  "RE": [
+    "H",
+    "hB"
+  ],
+  "RO": [
+    "H",
+    "hB"
+  ],
+  "SI": [
+    "H",
+    "hB"
+  ],
+  "SR": [
+    "H",
+    "hB"
+  ],
+  "ST": [
+    "H",
+    "hB"
+  ],
+  "TG": [
+    "H",
+    "hB"
+  ],
+  "TR": [
+    "H",
+    "hB"
+  ],
+  "WF": [
+    "H",
+    "hB"
+  ],
+  "YT": [
+    "H",
+    "hB"
+  ],
+  "BD": [
+    "h",
+    "hB",
+    "H"
+  ],
+  "PK": [
+    "h",
+    "hB",
+    "H"
+  ],
+  "AZ": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "BA": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "BG": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "CH": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "GE": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "LI": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "ME": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "RS": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "UA": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "UZ": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "XK": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "AG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "AU": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BB": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BS": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "CA": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "DM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "en-001": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "FJ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "FM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GD": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GU": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GY": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "JM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KI": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KN": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KY": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "LC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "LR": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MH": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MP": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MW": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "NZ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SB": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SL": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SS": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SZ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "TC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "TT": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "UM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "US": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VI": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "ZM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BO": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "EC": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "ES": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "GQ": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "PE": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "AE": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "ar-001": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "BH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "DZ": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "EG": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "EH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "HK": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "IQ": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "JO": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "KW": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "LB": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "LY": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "MO": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "MR": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "OM": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "PH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "PS": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "QA": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SA": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SD": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SY": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "TN": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "YE": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "AF": [
+    "H",
+    "hb",
+    "hB",
+    "h"
+  ],
+  "LA": [
+    "H",
+    "hb",
+    "hB",
+    "h"
+  ],
+  "CN": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "LV": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "TL": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "zu-ZA": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "CD": [
+    "hB",
+    "H"
+  ],
+  "IR": [
+    "hB",
+    "H"
+  ],
+  "hi-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "kn-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "ml-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "te-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "KH": [
+    "hB",
+    "h",
+    "H",
+    "hb"
+  ],
+  "ta-IN": [
+    "hB",
+    "h",
+    "hb",
+    "H"
+  ],
+  "BN": [
+    "hb",
+    "hB",
+    "h",
+    "H"
+  ],
+  "MY": [
+    "hb",
+    "hB",
+    "h",
+    "H"
+  ],
+  "ET": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "gu-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "mr-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "pa-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "TW": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "KE": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "MM": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "TZ": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "UG": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ]
+};
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js
+function getBestPattern(skeleton, locale) {
+  var skeletonCopy = "";
+  for (var patternPos = 0; patternPos < skeleton.length; patternPos++) {
+    var patternChar = skeleton.charAt(patternPos);
+    if (patternChar === "j") {
+      var extraLength = 0;
+      while (patternPos + 1 < skeleton.length && skeleton.charAt(patternPos + 1) === patternChar) {
+        extraLength++;
+        patternPos++;
+      }
+      var hourLen = 1 + (extraLength & 1);
+      var dayPeriodLen = extraLength < 2 ? 1 : 3 + (extraLength >> 1);
+      var dayPeriodChar = "a";
+      var hourChar = getDefaultHourSymbolFromLocale(locale);
+      if (hourChar == "H" || hourChar == "k") {
+        dayPeriodLen = 0;
+      }
+      while (dayPeriodLen-- > 0) {
+        skeletonCopy += dayPeriodChar;
+      }
+      while (hourLen-- > 0) {
+        skeletonCopy = hourChar + skeletonCopy;
+      }
+    } else if (patternChar === "J") {
+      skeletonCopy += "H";
+    } else {
+      skeletonCopy += patternChar;
+    }
+  }
+  return skeletonCopy;
+}
+function getDefaultHourSymbolFromLocale(locale) {
+  var hourCycle = locale.hourCycle;
+  if (hourCycle === void 0 && // @ts-ignore hourCycle(s) is not identified yet
+  locale.hourCycles && // @ts-ignore
+  locale.hourCycles.length) {
+    hourCycle = locale.hourCycles[0];
+  }
+  if (hourCycle) {
+    switch (hourCycle) {
+      case "h24":
+        return "k";
+      case "h23":
+        return "H";
+      case "h12":
+        return "h";
+      case "h11":
+        return "K";
+      default:
+        throw new Error("Invalid hourCycle");
+    }
+  }
+  var languageTag = locale.language;
+  var regionTag;
+  if (languageTag !== "root") {
+    regionTag = locale.maximize().region;
+  }
+  var hourCycles = timeData[regionTag || ""] || timeData[languageTag || ""] || timeData["".concat(languageTag, "-001")] || timeData["001"];
+  return hourCycles[0];
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/parser.js
+var _a;
+var SPACE_SEPARATOR_START_REGEX = new RegExp("^".concat(SPACE_SEPARATOR_REGEX.source, "*"));
+var SPACE_SEPARATOR_END_REGEX = new RegExp("".concat(SPACE_SEPARATOR_REGEX.source, "*$"));
+function createLocation(start, end) {
+  return { start, end };
+}
+var hasNativeStartsWith = !!String.prototype.startsWith;
+var hasNativeFromCodePoint = !!String.fromCodePoint;
+var hasNativeFromEntries = !!Object.fromEntries;
+var hasNativeCodePointAt = !!String.prototype.codePointAt;
+var hasTrimStart = !!String.prototype.trimStart;
+var hasTrimEnd = !!String.prototype.trimEnd;
+var hasNativeIsSafeInteger = !!Number.isSafeInteger;
+var isSafeInteger = hasNativeIsSafeInteger ? Number.isSafeInteger : function(n) {
+  return typeof n === "number" && isFinite(n) && Math.floor(n) === n && Math.abs(n) <= 9007199254740991;
+};
+var REGEX_SUPPORTS_U_AND_Y = true;
+try {
+  re = RE("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu");
+  REGEX_SUPPORTS_U_AND_Y = ((_a = re.exec("a")) === null || _a === void 0 ? void 0 : _a[0]) === "a";
+} catch (_) {
+  REGEX_SUPPORTS_U_AND_Y = false;
+}
+var re;
+var startsWith = hasNativeStartsWith ? (
+  // Native
+  function startsWith2(s, search, position) {
+    return s.startsWith(search, position);
+  }
+) : (
+  // For IE11
+  function startsWith3(s, search, position) {
+    return s.slice(position, position + search.length) === search;
+  }
+);
+var fromCodePoint = hasNativeFromCodePoint ? String.fromCodePoint : (
+  // IE11
+  function fromCodePoint2() {
+    var codePoints = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      codePoints[_i] = arguments[_i];
+    }
+    var elements = "";
+    var length = codePoints.length;
+    var i = 0;
+    var code;
+    while (length > i) {
+      code = codePoints[i++];
+      if (code > 1114111)
+        throw RangeError(code + " is not a valid code point");
+      elements += code < 65536 ? String.fromCharCode(code) : String.fromCharCode(((code -= 65536) >> 10) + 55296, code % 1024 + 56320);
+    }
+    return elements;
+  }
+);
+var fromEntries = (
+  // native
+  hasNativeFromEntries ? Object.fromEntries : (
+    // Ponyfill
+    function fromEntries2(entries) {
+      var obj = {};
+      for (var _i = 0, entries_1 = entries; _i < entries_1.length; _i++) {
+        var _a2 = entries_1[_i], k = _a2[0], v = _a2[1];
+        obj[k] = v;
+      }
+      return obj;
+    }
+  )
+);
+var codePointAt = hasNativeCodePointAt ? (
+  // Native
+  function codePointAt2(s, index) {
+    return s.codePointAt(index);
+  }
+) : (
+  // IE 11
+  function codePointAt3(s, index) {
+    var size = s.length;
+    if (index < 0 || index >= size) {
+      return void 0;
+    }
+    var first = s.charCodeAt(index);
+    var second;
+    return first < 55296 || first > 56319 || index + 1 === size || (second = s.charCodeAt(index + 1)) < 56320 || second > 57343 ? first : (first - 55296 << 10) + (second - 56320) + 65536;
+  }
+);
+var trimStart = hasTrimStart ? (
+  // Native
+  function trimStart2(s) {
+    return s.trimStart();
+  }
+) : (
+  // Ponyfill
+  function trimStart3(s) {
+    return s.replace(SPACE_SEPARATOR_START_REGEX, "");
+  }
+);
+var trimEnd = hasTrimEnd ? (
+  // Native
+  function trimEnd2(s) {
+    return s.trimEnd();
+  }
+) : (
+  // Ponyfill
+  function trimEnd3(s) {
+    return s.replace(SPACE_SEPARATOR_END_REGEX, "");
+  }
+);
+function RE(s, flag) {
+  return new RegExp(s, flag);
+}
+var matchIdentifierAtIndex;
+if (REGEX_SUPPORTS_U_AND_Y) {
+  IDENTIFIER_PREFIX_RE_1 = RE("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu");
+  matchIdentifierAtIndex = function matchIdentifierAtIndex2(s, index) {
+    var _a2;
+    IDENTIFIER_PREFIX_RE_1.lastIndex = index;
+    var match = IDENTIFIER_PREFIX_RE_1.exec(s);
+    return (_a2 = match[1]) !== null && _a2 !== void 0 ? _a2 : "";
+  };
+} else {
+  matchIdentifierAtIndex = function matchIdentifierAtIndex2(s, index) {
+    var match = [];
+    while (true) {
+      var c = codePointAt(s, index);
+      if (c === void 0 || _isWhiteSpace(c) || _isPatternSyntax(c)) {
+        break;
+      }
+      match.push(c);
+      index += c >= 65536 ? 2 : 1;
+    }
+    return fromCodePoint.apply(void 0, match);
+  };
+}
+var IDENTIFIER_PREFIX_RE_1;
+var Parser = (
+  /** @class */
+  function() {
+    function Parser2(message, options) {
+      if (options === void 0) {
+        options = {};
+      }
+      this.message = message;
+      this.position = { offset: 0, line: 1, column: 1 };
+      this.ignoreTag = !!options.ignoreTag;
+      this.locale = options.locale;
+      this.requiresOtherClause = !!options.requiresOtherClause;
+      this.shouldParseSkeletons = !!options.shouldParseSkeletons;
+    }
+    Parser2.prototype.parse = function() {
+      if (this.offset() !== 0) {
+        throw Error("parser can only be used once");
+      }
+      return this.parseMessage(0, "", false);
+    };
+    Parser2.prototype.parseMessage = function(nestingLevel, parentArgType, expectingCloseTag) {
+      var elements = [];
+      while (!this.isEOF()) {
+        var char = this.char();
+        if (char === 123) {
+          var result = this.parseArgument(nestingLevel, expectingCloseTag);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        } else if (char === 125 && nestingLevel > 0) {
+          break;
+        } else if (char === 35 && (parentArgType === "plural" || parentArgType === "selectordinal")) {
+          var position = this.clonePosition();
+          this.bump();
+          elements.push({
+            type: TYPE.pound,
+            location: createLocation(position, this.clonePosition())
+          });
+        } else if (char === 60 && !this.ignoreTag && this.peek() === 47) {
+          if (expectingCloseTag) {
+            break;
+          } else {
+            return this.error(ErrorKind.UNMATCHED_CLOSING_TAG, createLocation(this.clonePosition(), this.clonePosition()));
+          }
+        } else if (char === 60 && !this.ignoreTag && _isAlpha(this.peek() || 0)) {
+          var result = this.parseTag(nestingLevel, parentArgType);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        } else {
+          var result = this.parseLiteral(nestingLevel, parentArgType);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        }
+      }
+      return { val: elements, err: null };
+    };
+    Parser2.prototype.parseTag = function(nestingLevel, parentArgType) {
+      var startPosition = this.clonePosition();
+      this.bump();
+      var tagName = this.parseTagName();
+      this.bumpSpace();
+      if (this.bumpIf("/>")) {
+        return {
+          val: {
+            type: TYPE.literal,
+            value: "<".concat(tagName, "/>"),
+            location: createLocation(startPosition, this.clonePosition())
+          },
+          err: null
+        };
+      } else if (this.bumpIf(">")) {
+        var childrenResult = this.parseMessage(nestingLevel + 1, parentArgType, true);
+        if (childrenResult.err) {
+          return childrenResult;
+        }
+        var children = childrenResult.val;
+        var endTagStartPosition = this.clonePosition();
+        if (this.bumpIf("</")) {
+          if (this.isEOF() || !_isAlpha(this.char())) {
+            return this.error(ErrorKind.INVALID_TAG, createLocation(endTagStartPosition, this.clonePosition()));
+          }
+          var closingTagNameStartPosition = this.clonePosition();
+          var closingTagName = this.parseTagName();
+          if (tagName !== closingTagName) {
+            return this.error(ErrorKind.UNMATCHED_CLOSING_TAG, createLocation(closingTagNameStartPosition, this.clonePosition()));
+          }
+          this.bumpSpace();
+          if (!this.bumpIf(">")) {
+            return this.error(ErrorKind.INVALID_TAG, createLocation(endTagStartPosition, this.clonePosition()));
+          }
+          return {
+            val: {
+              type: TYPE.tag,
+              value: tagName,
+              children,
+              location: createLocation(startPosition, this.clonePosition())
+            },
+            err: null
+          };
+        } else {
+          return this.error(ErrorKind.UNCLOSED_TAG, createLocation(startPosition, this.clonePosition()));
+        }
+      } else {
+        return this.error(ErrorKind.INVALID_TAG, createLocation(startPosition, this.clonePosition()));
+      }
+    };
+    Parser2.prototype.parseTagName = function() {
+      var startOffset = this.offset();
+      this.bump();
+      while (!this.isEOF() && _isPotentialElementNameChar(this.char())) {
+        this.bump();
+      }
+      return this.message.slice(startOffset, this.offset());
+    };
+    Parser2.prototype.parseLiteral = function(nestingLevel, parentArgType) {
+      var start = this.clonePosition();
+      var value = "";
+      while (true) {
+        var parseQuoteResult = this.tryParseQuote(parentArgType);
+        if (parseQuoteResult) {
+          value += parseQuoteResult;
+          continue;
+        }
+        var parseUnquotedResult = this.tryParseUnquoted(nestingLevel, parentArgType);
+        if (parseUnquotedResult) {
+          value += parseUnquotedResult;
+          continue;
+        }
+        var parseLeftAngleResult = this.tryParseLeftAngleBracket();
+        if (parseLeftAngleResult) {
+          value += parseLeftAngleResult;
+          continue;
+        }
+        break;
+      }
+      var location = createLocation(start, this.clonePosition());
+      return {
+        val: { type: TYPE.literal, value, location },
+        err: null
+      };
+    };
+    Parser2.prototype.tryParseLeftAngleBracket = function() {
+      if (!this.isEOF() && this.char() === 60 && (this.ignoreTag || // If at the opening tag or closing tag position, bail.
+      !_isAlphaOrSlash(this.peek() || 0))) {
+        this.bump();
+        return "<";
+      }
+      return null;
+    };
+    Parser2.prototype.tryParseQuote = function(parentArgType) {
+      if (this.isEOF() || this.char() !== 39) {
+        return null;
+      }
+      switch (this.peek()) {
+        case 39:
+          this.bump();
+          this.bump();
+          return "'";
+        // '{', '<', '>', '}'
+        case 123:
+        case 60:
+        case 62:
+        case 125:
+          break;
+        case 35:
+          if (parentArgType === "plural" || parentArgType === "selectordinal") {
+            break;
+          }
+          return null;
+        default:
+          return null;
+      }
+      this.bump();
+      var codePoints = [this.char()];
+      this.bump();
+      while (!this.isEOF()) {
+        var ch = this.char();
+        if (ch === 39) {
+          if (this.peek() === 39) {
+            codePoints.push(39);
+            this.bump();
+          } else {
+            this.bump();
+            break;
+          }
+        } else {
+          codePoints.push(ch);
+        }
+        this.bump();
+      }
+      return fromCodePoint.apply(void 0, codePoints);
+    };
+    Parser2.prototype.tryParseUnquoted = function(nestingLevel, parentArgType) {
+      if (this.isEOF()) {
+        return null;
+      }
+      var ch = this.char();
+      if (ch === 60 || ch === 123 || ch === 35 && (parentArgType === "plural" || parentArgType === "selectordinal") || ch === 125 && nestingLevel > 0) {
+        return null;
+      } else {
+        this.bump();
+        return fromCodePoint(ch);
+      }
+    };
+    Parser2.prototype.parseArgument = function(nestingLevel, expectingCloseTag) {
+      var openingBracePosition = this.clonePosition();
+      this.bump();
+      this.bumpSpace();
+      if (this.isEOF()) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      if (this.char() === 125) {
+        this.bump();
+        return this.error(ErrorKind.EMPTY_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      var value = this.parseIdentifierIfPossible().value;
+      if (!value) {
+        return this.error(ErrorKind.MALFORMED_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      this.bumpSpace();
+      if (this.isEOF()) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      switch (this.char()) {
+        // Simple argument: `{name}`
+        case 125: {
+          this.bump();
+          return {
+            val: {
+              type: TYPE.argument,
+              // value does not include the opening and closing braces.
+              value,
+              location: createLocation(openingBracePosition, this.clonePosition())
+            },
+            err: null
+          };
+        }
+        // Argument with options: `{name, format, ...}`
+        case 44: {
+          this.bump();
+          this.bumpSpace();
+          if (this.isEOF()) {
+            return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+          }
+          return this.parseArgumentOptions(nestingLevel, expectingCloseTag, value, openingBracePosition);
+        }
+        default:
+          return this.error(ErrorKind.MALFORMED_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+    };
+    Parser2.prototype.parseIdentifierIfPossible = function() {
+      var startingPosition = this.clonePosition();
+      var startOffset = this.offset();
+      var value = matchIdentifierAtIndex(this.message, startOffset);
+      var endOffset = startOffset + value.length;
+      this.bumpTo(endOffset);
+      var endPosition = this.clonePosition();
+      var location = createLocation(startingPosition, endPosition);
+      return { value, location };
+    };
+    Parser2.prototype.parseArgumentOptions = function(nestingLevel, expectingCloseTag, value, openingBracePosition) {
+      var _a2;
+      var typeStartPosition = this.clonePosition();
+      var argType = this.parseIdentifierIfPossible().value;
+      var typeEndPosition = this.clonePosition();
+      switch (argType) {
+        case "":
+          return this.error(ErrorKind.EXPECT_ARGUMENT_TYPE, createLocation(typeStartPosition, typeEndPosition));
+        case "number":
+        case "date":
+        case "time": {
+          this.bumpSpace();
+          var styleAndLocation = null;
+          if (this.bumpIf(",")) {
+            this.bumpSpace();
+            var styleStartPosition = this.clonePosition();
+            var result = this.parseSimpleArgStyleIfPossible();
+            if (result.err) {
+              return result;
+            }
+            var style = trimEnd(result.val);
+            if (style.length === 0) {
+              return this.error(ErrorKind.EXPECT_ARGUMENT_STYLE, createLocation(this.clonePosition(), this.clonePosition()));
+            }
+            var styleLocation = createLocation(styleStartPosition, this.clonePosition());
+            styleAndLocation = { style, styleLocation };
+          }
+          var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+          if (argCloseResult.err) {
+            return argCloseResult;
+          }
+          var location_1 = createLocation(openingBracePosition, this.clonePosition());
+          if (styleAndLocation && startsWith(styleAndLocation === null || styleAndLocation === void 0 ? void 0 : styleAndLocation.style, "::", 0)) {
+            var skeleton = trimStart(styleAndLocation.style.slice(2));
+            if (argType === "number") {
+              var result = this.parseNumberSkeletonFromString(skeleton, styleAndLocation.styleLocation);
+              if (result.err) {
+                return result;
+              }
+              return {
+                val: { type: TYPE.number, value, location: location_1, style: result.val },
+                err: null
+              };
+            } else {
+              if (skeleton.length === 0) {
+                return this.error(ErrorKind.EXPECT_DATE_TIME_SKELETON, location_1);
+              }
+              var dateTimePattern = skeleton;
+              if (this.locale) {
+                dateTimePattern = getBestPattern(skeleton, this.locale);
+              }
+              var style = {
+                type: SKELETON_TYPE.dateTime,
+                pattern: dateTimePattern,
+                location: styleAndLocation.styleLocation,
+                parsedOptions: this.shouldParseSkeletons ? parseDateTimeSkeleton(dateTimePattern) : {}
+              };
+              var type = argType === "date" ? TYPE.date : TYPE.time;
+              return {
+                val: { type, value, location: location_1, style },
+                err: null
+              };
+            }
+          }
+          return {
+            val: {
+              type: argType === "number" ? TYPE.number : argType === "date" ? TYPE.date : TYPE.time,
+              value,
+              location: location_1,
+              style: (_a2 = styleAndLocation === null || styleAndLocation === void 0 ? void 0 : styleAndLocation.style) !== null && _a2 !== void 0 ? _a2 : null
+            },
+            err: null
+          };
+        }
+        case "plural":
+        case "selectordinal":
+        case "select": {
+          var typeEndPosition_1 = this.clonePosition();
+          this.bumpSpace();
+          if (!this.bumpIf(",")) {
+            return this.error(ErrorKind.EXPECT_SELECT_ARGUMENT_OPTIONS, createLocation(typeEndPosition_1, __assign({}, typeEndPosition_1)));
+          }
+          this.bumpSpace();
+          var identifierAndLocation = this.parseIdentifierIfPossible();
+          var pluralOffset = 0;
+          if (argType !== "select" && identifierAndLocation.value === "offset") {
+            if (!this.bumpIf(":")) {
+              return this.error(ErrorKind.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, createLocation(this.clonePosition(), this.clonePosition()));
+            }
+            this.bumpSpace();
+            var result = this.tryParseDecimalInteger(ErrorKind.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, ErrorKind.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);
+            if (result.err) {
+              return result;
+            }
+            this.bumpSpace();
+            identifierAndLocation = this.parseIdentifierIfPossible();
+            pluralOffset = result.val;
+          }
+          var optionsResult = this.tryParsePluralOrSelectOptions(nestingLevel, argType, expectingCloseTag, identifierAndLocation);
+          if (optionsResult.err) {
+            return optionsResult;
+          }
+          var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+          if (argCloseResult.err) {
+            return argCloseResult;
+          }
+          var location_2 = createLocation(openingBracePosition, this.clonePosition());
+          if (argType === "select") {
+            return {
+              val: {
+                type: TYPE.select,
+                value,
+                options: fromEntries(optionsResult.val),
+                location: location_2
+              },
+              err: null
+            };
+          } else {
+            return {
+              val: {
+                type: TYPE.plural,
+                value,
+                options: fromEntries(optionsResult.val),
+                offset: pluralOffset,
+                pluralType: argType === "plural" ? "cardinal" : "ordinal",
+                location: location_2
+              },
+              err: null
+            };
+          }
+        }
+        default:
+          return this.error(ErrorKind.INVALID_ARGUMENT_TYPE, createLocation(typeStartPosition, typeEndPosition));
+      }
+    };
+    Parser2.prototype.tryParseArgumentClose = function(openingBracePosition) {
+      if (this.isEOF() || this.char() !== 125) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      this.bump();
+      return { val: true, err: null };
+    };
+    Parser2.prototype.parseSimpleArgStyleIfPossible = function() {
+      var nestedBraces = 0;
+      var startPosition = this.clonePosition();
+      while (!this.isEOF()) {
+        var ch = this.char();
+        switch (ch) {
+          case 39: {
+            this.bump();
+            var apostrophePosition = this.clonePosition();
+            if (!this.bumpUntil("'")) {
+              return this.error(ErrorKind.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE, createLocation(apostrophePosition, this.clonePosition()));
+            }
+            this.bump();
+            break;
+          }
+          case 123: {
+            nestedBraces += 1;
+            this.bump();
+            break;
+          }
+          case 125: {
+            if (nestedBraces > 0) {
+              nestedBraces -= 1;
+            } else {
+              return {
+                val: this.message.slice(startPosition.offset, this.offset()),
+                err: null
+              };
+            }
+            break;
+          }
+          default:
+            this.bump();
+            break;
+        }
+      }
+      return {
+        val: this.message.slice(startPosition.offset, this.offset()),
+        err: null
+      };
+    };
+    Parser2.prototype.parseNumberSkeletonFromString = function(skeleton, location) {
+      var tokens = [];
+      try {
+        tokens = parseNumberSkeletonFromString(skeleton);
+      } catch (e) {
+        return this.error(ErrorKind.INVALID_NUMBER_SKELETON, location);
+      }
+      return {
+        val: {
+          type: SKELETON_TYPE.number,
+          tokens,
+          location,
+          parsedOptions: this.shouldParseSkeletons ? parseNumberSkeleton(tokens) : {}
+        },
+        err: null
+      };
+    };
+    Parser2.prototype.tryParsePluralOrSelectOptions = function(nestingLevel, parentArgType, expectCloseTag, parsedFirstIdentifier) {
+      var _a2;
+      var hasOtherClause = false;
+      var options = [];
+      var parsedSelectors = /* @__PURE__ */ new Set();
+      var selector = parsedFirstIdentifier.value, selectorLocation = parsedFirstIdentifier.location;
+      while (true) {
+        if (selector.length === 0) {
+          var startPosition = this.clonePosition();
+          if (parentArgType !== "select" && this.bumpIf("=")) {
+            var result = this.tryParseDecimalInteger(ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR, ErrorKind.INVALID_PLURAL_ARGUMENT_SELECTOR);
+            if (result.err) {
+              return result;
+            }
+            selectorLocation = createLocation(startPosition, this.clonePosition());
+            selector = this.message.slice(startPosition.offset, this.offset());
+          } else {
+            break;
+          }
+        }
+        if (parsedSelectors.has(selector)) {
+          return this.error(parentArgType === "select" ? ErrorKind.DUPLICATE_SELECT_ARGUMENT_SELECTOR : ErrorKind.DUPLICATE_PLURAL_ARGUMENT_SELECTOR, selectorLocation);
+        }
+        if (selector === "other") {
+          hasOtherClause = true;
+        }
+        this.bumpSpace();
+        var openingBracePosition = this.clonePosition();
+        if (!this.bumpIf("{")) {
+          return this.error(parentArgType === "select" ? ErrorKind.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT : ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT, createLocation(this.clonePosition(), this.clonePosition()));
+        }
+        var fragmentResult = this.parseMessage(nestingLevel + 1, parentArgType, expectCloseTag);
+        if (fragmentResult.err) {
+          return fragmentResult;
+        }
+        var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+        if (argCloseResult.err) {
+          return argCloseResult;
+        }
+        options.push([
+          selector,
+          {
+            value: fragmentResult.val,
+            location: createLocation(openingBracePosition, this.clonePosition())
+          }
+        ]);
+        parsedSelectors.add(selector);
+        this.bumpSpace();
+        _a2 = this.parseIdentifierIfPossible(), selector = _a2.value, selectorLocation = _a2.location;
+      }
+      if (options.length === 0) {
+        return this.error(parentArgType === "select" ? ErrorKind.EXPECT_SELECT_ARGUMENT_SELECTOR : ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR, createLocation(this.clonePosition(), this.clonePosition()));
+      }
+      if (this.requiresOtherClause && !hasOtherClause) {
+        return this.error(ErrorKind.MISSING_OTHER_CLAUSE, createLocation(this.clonePosition(), this.clonePosition()));
+      }
+      return { val: options, err: null };
+    };
+    Parser2.prototype.tryParseDecimalInteger = function(expectNumberError, invalidNumberError) {
+      var sign = 1;
+      var startingPosition = this.clonePosition();
+      if (this.bumpIf("+")) {
+      } else if (this.bumpIf("-")) {
+        sign = -1;
+      }
+      var hasDigits = false;
+      var decimal = 0;
+      while (!this.isEOF()) {
+        var ch = this.char();
+        if (ch >= 48 && ch <= 57) {
+          hasDigits = true;
+          decimal = decimal * 10 + (ch - 48);
+          this.bump();
+        } else {
+          break;
+        }
+      }
+      var location = createLocation(startingPosition, this.clonePosition());
+      if (!hasDigits) {
+        return this.error(expectNumberError, location);
+      }
+      decimal *= sign;
+      if (!isSafeInteger(decimal)) {
+        return this.error(invalidNumberError, location);
+      }
+      return { val: decimal, err: null };
+    };
+    Parser2.prototype.offset = function() {
+      return this.position.offset;
+    };
+    Parser2.prototype.isEOF = function() {
+      return this.offset() === this.message.length;
+    };
+    Parser2.prototype.clonePosition = function() {
+      return {
+        offset: this.position.offset,
+        line: this.position.line,
+        column: this.position.column
+      };
+    };
+    Parser2.prototype.char = function() {
+      var offset = this.position.offset;
+      if (offset >= this.message.length) {
+        throw Error("out of bound");
+      }
+      var code = codePointAt(this.message, offset);
+      if (code === void 0) {
+        throw Error("Offset ".concat(offset, " is at invalid UTF-16 code unit boundary"));
+      }
+      return code;
+    };
+    Parser2.prototype.error = function(kind, location) {
+      return {
+        val: null,
+        err: {
+          kind,
+          message: this.message,
+          location
+        }
+      };
+    };
+    Parser2.prototype.bump = function() {
+      if (this.isEOF()) {
+        return;
+      }
+      var code = this.char();
+      if (code === 10) {
+        this.position.line += 1;
+        this.position.column = 1;
+        this.position.offset += 1;
+      } else {
+        this.position.column += 1;
+        this.position.offset += code < 65536 ? 1 : 2;
+      }
+    };
+    Parser2.prototype.bumpIf = function(prefix) {
+      if (startsWith(this.message, prefix, this.offset())) {
+        for (var i = 0; i < prefix.length; i++) {
+          this.bump();
+        }
+        return true;
+      }
+      return false;
+    };
+    Parser2.prototype.bumpUntil = function(pattern) {
+      var currentOffset = this.offset();
+      var index = this.message.indexOf(pattern, currentOffset);
+      if (index >= 0) {
+        this.bumpTo(index);
+        return true;
+      } else {
+        this.bumpTo(this.message.length);
+        return false;
+      }
+    };
+    Parser2.prototype.bumpTo = function(targetOffset) {
+      if (this.offset() > targetOffset) {
+        throw Error("targetOffset ".concat(targetOffset, " must be greater than or equal to the current offset ").concat(this.offset()));
+      }
+      targetOffset = Math.min(targetOffset, this.message.length);
+      while (true) {
+        var offset = this.offset();
+        if (offset === targetOffset) {
+          break;
+        }
+        if (offset > targetOffset) {
+          throw Error("targetOffset ".concat(targetOffset, " is at invalid UTF-16 code unit boundary"));
+        }
+        this.bump();
+        if (this.isEOF()) {
+          break;
+        }
+      }
+    };
+    Parser2.prototype.bumpSpace = function() {
+      while (!this.isEOF() && _isWhiteSpace(this.char())) {
+        this.bump();
+      }
+    };
+    Parser2.prototype.peek = function() {
+      if (this.isEOF()) {
+        return null;
+      }
+      var code = this.char();
+      var offset = this.offset();
+      var nextCode = this.message.charCodeAt(offset + (code >= 65536 ? 2 : 1));
+      return nextCode !== null && nextCode !== void 0 ? nextCode : null;
+    };
+    return Parser2;
+  }()
+);
+function _isAlpha(codepoint) {
+  return codepoint >= 97 && codepoint <= 122 || codepoint >= 65 && codepoint <= 90;
+}
+function _isAlphaOrSlash(codepoint) {
+  return _isAlpha(codepoint) || codepoint === 47;
+}
+function _isPotentialElementNameChar(c) {
+  return c === 45 || c === 46 || c >= 48 && c <= 57 || c === 95 || c >= 97 && c <= 122 || c >= 65 && c <= 90 || c == 183 || c >= 192 && c <= 214 || c >= 216 && c <= 246 || c >= 248 && c <= 893 || c >= 895 && c <= 8191 || c >= 8204 && c <= 8205 || c >= 8255 && c <= 8256 || c >= 8304 && c <= 8591 || c >= 11264 && c <= 12271 || c >= 12289 && c <= 55295 || c >= 63744 && c <= 64975 || c >= 65008 && c <= 65533 || c >= 65536 && c <= 983039;
+}
+function _isWhiteSpace(c) {
+  return c >= 9 && c <= 13 || c === 32 || c === 133 || c >= 8206 && c <= 8207 || c === 8232 || c === 8233;
+}
+function _isPatternSyntax(c) {
+  return c >= 33 && c <= 35 || c === 36 || c >= 37 && c <= 39 || c === 40 || c === 41 || c === 42 || c === 43 || c === 44 || c === 45 || c >= 46 && c <= 47 || c >= 58 && c <= 59 || c >= 60 && c <= 62 || c >= 63 && c <= 64 || c === 91 || c === 92 || c === 93 || c === 94 || c === 96 || c === 123 || c === 124 || c === 125 || c === 126 || c === 161 || c >= 162 && c <= 165 || c === 166 || c === 167 || c === 169 || c === 171 || c === 172 || c === 174 || c === 176 || c === 177 || c === 182 || c === 187 || c === 191 || c === 215 || c === 247 || c >= 8208 && c <= 8213 || c >= 8214 && c <= 8215 || c === 8216 || c === 8217 || c === 8218 || c >= 8219 && c <= 8220 || c === 8221 || c === 8222 || c === 8223 || c >= 8224 && c <= 8231 || c >= 8240 && c <= 8248 || c === 8249 || c === 8250 || c >= 8251 && c <= 8254 || c >= 8257 && c <= 8259 || c === 8260 || c === 8261 || c === 8262 || c >= 8263 && c <= 8273 || c === 8274 || c === 8275 || c >= 8277 && c <= 8286 || c >= 8592 && c <= 8596 || c >= 8597 && c <= 8601 || c >= 8602 && c <= 8603 || c >= 8604 && c <= 8607 || c === 8608 || c >= 8609 && c <= 8610 || c === 8611 || c >= 8612 && c <= 8613 || c === 8614 || c >= 8615 && c <= 8621 || c === 8622 || c >= 8623 && c <= 8653 || c >= 8654 && c <= 8655 || c >= 8656 && c <= 8657 || c === 8658 || c === 8659 || c === 8660 || c >= 8661 && c <= 8691 || c >= 8692 && c <= 8959 || c >= 8960 && c <= 8967 || c === 8968 || c === 8969 || c === 8970 || c === 8971 || c >= 8972 && c <= 8991 || c >= 8992 && c <= 8993 || c >= 8994 && c <= 9e3 || c === 9001 || c === 9002 || c >= 9003 && c <= 9083 || c === 9084 || c >= 9085 && c <= 9114 || c >= 9115 && c <= 9139 || c >= 9140 && c <= 9179 || c >= 9180 && c <= 9185 || c >= 9186 && c <= 9254 || c >= 9255 && c <= 9279 || c >= 9280 && c <= 9290 || c >= 9291 && c <= 9311 || c >= 9472 && c <= 9654 || c === 9655 || c >= 9656 && c <= 9664 || c === 9665 || c >= 9666 && c <= 9719 || c >= 9720 && c <= 9727 || c >= 9728 && c <= 9838 || c === 9839 || c >= 9840 && c <= 10087 || c === 10088 || c === 10089 || c === 10090 || c === 10091 || c === 10092 || c === 10093 || c === 10094 || c === 10095 || c === 10096 || c === 10097 || c === 10098 || c === 10099 || c === 10100 || c === 10101 || c >= 10132 && c <= 10175 || c >= 10176 && c <= 10180 || c === 10181 || c === 10182 || c >= 10183 && c <= 10213 || c === 10214 || c === 10215 || c === 10216 || c === 10217 || c === 10218 || c === 10219 || c === 10220 || c === 10221 || c === 10222 || c === 10223 || c >= 10224 && c <= 10239 || c >= 10240 && c <= 10495 || c >= 10496 && c <= 10626 || c === 10627 || c === 10628 || c === 10629 || c === 10630 || c === 10631 || c === 10632 || c === 10633 || c === 10634 || c === 10635 || c === 10636 || c === 10637 || c === 10638 || c === 10639 || c === 10640 || c === 10641 || c === 10642 || c === 10643 || c === 10644 || c === 10645 || c === 10646 || c === 10647 || c === 10648 || c >= 10649 && c <= 10711 || c === 10712 || c === 10713 || c === 10714 || c === 10715 || c >= 10716 && c <= 10747 || c === 10748 || c === 10749 || c >= 10750 && c <= 11007 || c >= 11008 && c <= 11055 || c >= 11056 && c <= 11076 || c >= 11077 && c <= 11078 || c >= 11079 && c <= 11084 || c >= 11085 && c <= 11123 || c >= 11124 && c <= 11125 || c >= 11126 && c <= 11157 || c === 11158 || c >= 11159 && c <= 11263 || c >= 11776 && c <= 11777 || c === 11778 || c === 11779 || c === 11780 || c === 11781 || c >= 11782 && c <= 11784 || c === 11785 || c === 11786 || c === 11787 || c === 11788 || c === 11789 || c >= 11790 && c <= 11798 || c === 11799 || c >= 11800 && c <= 11801 || c === 11802 || c === 11803 || c === 11804 || c === 11805 || c >= 11806 && c <= 11807 || c === 11808 || c === 11809 || c === 11810 || c === 11811 || c === 11812 || c === 11813 || c === 11814 || c === 11815 || c === 11816 || c === 11817 || c >= 11818 && c <= 11822 || c === 11823 || c >= 11824 && c <= 11833 || c >= 11834 && c <= 11835 || c >= 11836 && c <= 11839 || c === 11840 || c === 11841 || c === 11842 || c >= 11843 && c <= 11855 || c >= 11856 && c <= 11857 || c === 11858 || c >= 11859 && c <= 11903 || c >= 12289 && c <= 12291 || c === 12296 || c === 12297 || c === 12298 || c === 12299 || c === 12300 || c === 12301 || c === 12302 || c === 12303 || c === 12304 || c === 12305 || c >= 12306 && c <= 12307 || c === 12308 || c === 12309 || c === 12310 || c === 12311 || c === 12312 || c === 12313 || c === 12314 || c === 12315 || c === 12316 || c === 12317 || c >= 12318 && c <= 12319 || c === 12320 || c === 12336 || c === 64830 || c === 64831 || c >= 65093 && c <= 65094;
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/index.js
+function pruneLocation(els) {
+  els.forEach(function(el) {
+    delete el.location;
+    if (isSelectElement(el) || isPluralElement(el)) {
+      for (var k in el.options) {
+        delete el.options[k].location;
+        pruneLocation(el.options[k].value);
+      }
+    } else if (isNumberElement(el) && isNumberSkeleton(el.style)) {
+      delete el.style.location;
+    } else if ((isDateElement(el) || isTimeElement(el)) && isDateTimeSkeleton(el.style)) {
+      delete el.style.location;
+    } else if (isTagElement(el)) {
+      pruneLocation(el.children);
+    }
+  });
+}
+function parse(message, opts) {
+  if (opts === void 0) {
+    opts = {};
+  }
+  opts = __assign({ shouldParseSkeletons: true, requiresOtherClause: true }, opts);
+  var result = new Parser(message, opts).parse();
+  if (result.err) {
+    var error = SyntaxError(ErrorKind[result.err.kind]);
+    error.location = result.err.location;
+    error.originalMessage = result.err.message;
+    throw error;
+  }
+  if (!(opts === null || opts === void 0 ? void 0 : opts.captureLocation)) {
+    pruneLocation(result.val);
+  }
+  return result.val;
+}
+
+// ../node_modules/@formatjs/fast-memoize/lib/index.js
+function memoize(fn, options) {
+  var cache = options && options.cache ? options.cache : cacheDefault;
+  var serializer = options && options.serializer ? options.serializer : serializerDefault;
+  var strategy = options && options.strategy ? options.strategy : strategyDefault;
+  return strategy(fn, {
+    cache,
+    serializer
+  });
+}
+function isPrimitive(value) {
+  return value == null || typeof value === "number" || typeof value === "boolean";
+}
+function monadic(fn, cache, serializer, arg) {
+  var cacheKey = isPrimitive(arg) ? arg : serializer(arg);
+  var computedValue = cache.get(cacheKey);
+  if (typeof computedValue === "undefined") {
+    computedValue = fn.call(this, arg);
+    cache.set(cacheKey, computedValue);
+  }
+  return computedValue;
+}
+function variadic(fn, cache, serializer) {
+  var args = Array.prototype.slice.call(arguments, 3);
+  var cacheKey = serializer(args);
+  var computedValue = cache.get(cacheKey);
+  if (typeof computedValue === "undefined") {
+    computedValue = fn.apply(this, args);
+    cache.set(cacheKey, computedValue);
+  }
+  return computedValue;
+}
+function assemble(fn, context, strategy, cache, serialize) {
+  return strategy.bind(context, fn, cache, serialize);
+}
+function strategyDefault(fn, options) {
+  var strategy = fn.length === 1 ? monadic : variadic;
+  return assemble(fn, this, strategy, options.cache.create(), options.serializer);
+}
+function strategyVariadic(fn, options) {
+  return assemble(fn, this, variadic, options.cache.create(), options.serializer);
+}
+function strategyMonadic(fn, options) {
+  return assemble(fn, this, monadic, options.cache.create(), options.serializer);
+}
+var serializerDefault = function() {
+  return JSON.stringify(arguments);
+};
+function ObjectWithoutPrototypeCache() {
+  this.cache = /* @__PURE__ */ Object.create(null);
+}
+ObjectWithoutPrototypeCache.prototype.get = function(key) {
+  return this.cache[key];
+};
+ObjectWithoutPrototypeCache.prototype.set = function(key, value) {
+  this.cache[key] = value;
+};
+var cacheDefault = {
+  create: function create() {
+    return new ObjectWithoutPrototypeCache();
+  }
+};
+var strategies = {
+  variadic: strategyVariadic,
+  monadic: strategyMonadic
+};
+
+// ../node_modules/intl-messageformat/lib/src/error.js
+var ErrorCode;
+(function(ErrorCode2) {
+  ErrorCode2["MISSING_VALUE"] = "MISSING_VALUE";
+  ErrorCode2["INVALID_VALUE"] = "INVALID_VALUE";
+  ErrorCode2["MISSING_INTL_API"] = "MISSING_INTL_API";
+})(ErrorCode || (ErrorCode = {}));
+var FormatError = (
+  /** @class */
+  function(_super) {
+    __extends(FormatError2, _super);
+    function FormatError2(msg, code, originalMessage) {
+      var _this = _super.call(this, msg) || this;
+      _this.code = code;
+      _this.originalMessage = originalMessage;
+      return _this;
+    }
+    FormatError2.prototype.toString = function() {
+      return "[formatjs Error: ".concat(this.code, "] ").concat(this.message);
+    };
+    return FormatError2;
+  }(Error)
+);
+var InvalidValueError = (
+  /** @class */
+  function(_super) {
+    __extends(InvalidValueError2, _super);
+    function InvalidValueError2(variableId, value, options, originalMessage) {
+      return _super.call(this, 'Invalid values for "'.concat(variableId, '": "').concat(value, '". Options are "').concat(Object.keys(options).join('", "'), '"'), ErrorCode.INVALID_VALUE, originalMessage) || this;
+    }
+    return InvalidValueError2;
+  }(FormatError)
+);
+var InvalidValueTypeError = (
+  /** @class */
+  function(_super) {
+    __extends(InvalidValueTypeError2, _super);
+    function InvalidValueTypeError2(value, type, originalMessage) {
+      return _super.call(this, 'Value for "'.concat(value, '" must be of type ').concat(type), ErrorCode.INVALID_VALUE, originalMessage) || this;
+    }
+    return InvalidValueTypeError2;
+  }(FormatError)
+);
+var MissingValueError = (
+  /** @class */
+  function(_super) {
+    __extends(MissingValueError2, _super);
+    function MissingValueError2(variableId, originalMessage) {
+      return _super.call(this, 'The intl string context variable "'.concat(variableId, '" was not provided to the string "').concat(originalMessage, '"'), ErrorCode.MISSING_VALUE, originalMessage) || this;
+    }
+    return MissingValueError2;
+  }(FormatError)
+);
+
+// ../node_modules/intl-messageformat/lib/src/formatters.js
+var PART_TYPE;
+(function(PART_TYPE2) {
+  PART_TYPE2[PART_TYPE2["literal"] = 0] = "literal";
+  PART_TYPE2[PART_TYPE2["object"] = 1] = "object";
+})(PART_TYPE || (PART_TYPE = {}));
+function mergeLiteral(parts) {
+  if (parts.length < 2) {
+    return parts;
+  }
+  return parts.reduce(function(all, part) {
+    var lastPart = all[all.length - 1];
+    if (!lastPart || lastPart.type !== PART_TYPE.literal || part.type !== PART_TYPE.literal) {
+      all.push(part);
+    } else {
+      lastPart.value += part.value;
+    }
+    return all;
+  }, []);
+}
+function isFormatXMLElementFn(el) {
+  return typeof el === "function";
+}
+function formatToParts(els, locales, formatters, formats, values, currentPluralValue, originalMessage) {
+  if (els.length === 1 && isLiteralElement(els[0])) {
+    return [
+      {
+        type: PART_TYPE.literal,
+        value: els[0].value
+      }
+    ];
+  }
+  var result = [];
+  for (var _i = 0, els_1 = els; _i < els_1.length; _i++) {
+    var el = els_1[_i];
+    if (isLiteralElement(el)) {
+      result.push({
+        type: PART_TYPE.literal,
+        value: el.value
+      });
+      continue;
+    }
+    if (isPoundElement(el)) {
+      if (typeof currentPluralValue === "number") {
+        result.push({
+          type: PART_TYPE.literal,
+          value: formatters.getNumberFormat(locales).format(currentPluralValue)
+        });
+      }
+      continue;
+    }
+    var varName = el.value;
+    if (!(values && varName in values)) {
+      throw new MissingValueError(varName, originalMessage);
+    }
+    var value = values[varName];
+    if (isArgumentElement(el)) {
+      if (!value || typeof value === "string" || typeof value === "number") {
+        value = typeof value === "string" || typeof value === "number" ? String(value) : "";
+      }
+      result.push({
+        type: typeof value === "string" ? PART_TYPE.literal : PART_TYPE.object,
+        value
+      });
+      continue;
+    }
+    if (isDateElement(el)) {
+      var style = typeof el.style === "string" ? formats.date[el.style] : isDateTimeSkeleton(el.style) ? el.style.parsedOptions : void 0;
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getDateTimeFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isTimeElement(el)) {
+      var style = typeof el.style === "string" ? formats.time[el.style] : isDateTimeSkeleton(el.style) ? el.style.parsedOptions : formats.time.medium;
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getDateTimeFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isNumberElement(el)) {
+      var style = typeof el.style === "string" ? formats.number[el.style] : isNumberSkeleton(el.style) ? el.style.parsedOptions : void 0;
+      if (style && style.scale) {
+        value = value * (style.scale || 1);
+      }
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getNumberFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isTagElement(el)) {
+      var children = el.children, value_1 = el.value;
+      var formatFn = values[value_1];
+      if (!isFormatXMLElementFn(formatFn)) {
+        throw new InvalidValueTypeError(value_1, "function", originalMessage);
+      }
+      var parts = formatToParts(children, locales, formatters, formats, values, currentPluralValue);
+      var chunks = formatFn(parts.map(function(p) {
+        return p.value;
+      }));
+      if (!Array.isArray(chunks)) {
+        chunks = [chunks];
+      }
+      result.push.apply(result, chunks.map(function(c) {
+        return {
+          type: typeof c === "string" ? PART_TYPE.literal : PART_TYPE.object,
+          value: c
+        };
+      }));
+    }
+    if (isSelectElement(el)) {
+      var opt = el.options[value] || el.options.other;
+      if (!opt) {
+        throw new InvalidValueError(el.value, value, Object.keys(el.options), originalMessage);
+      }
+      result.push.apply(result, formatToParts(opt.value, locales, formatters, formats, values));
+      continue;
+    }
+    if (isPluralElement(el)) {
+      var opt = el.options["=".concat(value)];
+      if (!opt) {
+        if (!Intl.PluralRules) {
+          throw new FormatError('Intl.PluralRules is not available in this environment.\nTry polyfilling it using "@formatjs/intl-pluralrules"\n', ErrorCode.MISSING_INTL_API, originalMessage);
+        }
+        var rule = formatters.getPluralRules(locales, { type: el.pluralType }).select(value - (el.offset || 0));
+        opt = el.options[rule] || el.options.other;
+      }
+      if (!opt) {
+        throw new InvalidValueError(el.value, value, Object.keys(el.options), originalMessage);
+      }
+      result.push.apply(result, formatToParts(opt.value, locales, formatters, formats, values, value - (el.offset || 0)));
+      continue;
+    }
+  }
+  return mergeLiteral(result);
+}
+
+// ../node_modules/intl-messageformat/lib/src/core.js
+function mergeConfig(c1, c2) {
+  if (!c2) {
+    return c1;
+  }
+  return __assign(__assign(__assign({}, c1 || {}), c2 || {}), Object.keys(c1).reduce(function(all, k) {
+    all[k] = __assign(__assign({}, c1[k]), c2[k] || {});
+    return all;
+  }, {}));
+}
+function mergeConfigs(defaultConfig, configs) {
+  if (!configs) {
+    return defaultConfig;
+  }
+  return Object.keys(defaultConfig).reduce(function(all, k) {
+    all[k] = mergeConfig(defaultConfig[k], configs[k]);
+    return all;
+  }, __assign({}, defaultConfig));
+}
+function createFastMemoizeCache(store) {
+  return {
+    create: function() {
+      return {
+        get: function(key) {
+          return store[key];
+        },
+        set: function(key, value) {
+          store[key] = value;
+        }
+      };
+    }
+  };
+}
+function createDefaultFormatters(cache) {
+  if (cache === void 0) {
+    cache = {
+      number: {},
+      dateTime: {},
+      pluralRules: {}
+    };
+  }
+  return {
+    getNumberFormat: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.NumberFormat).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache.number),
+      strategy: strategies.variadic
+    }),
+    getDateTimeFormat: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.DateTimeFormat).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache.dateTime),
+      strategy: strategies.variadic
+    }),
+    getPluralRules: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.PluralRules).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache.pluralRules),
+      strategy: strategies.variadic
+    })
+  };
+}
+var IntlMessageFormat = (
+  /** @class */
+  function() {
+    function IntlMessageFormat2(message, locales, overrideFormats, opts) {
+      var _this = this;
+      if (locales === void 0) {
+        locales = IntlMessageFormat2.defaultLocale;
+      }
+      this.formatterCache = {
+        number: {},
+        dateTime: {},
+        pluralRules: {}
+      };
+      this.format = function(values) {
+        var parts = _this.formatToParts(values);
+        if (parts.length === 1) {
+          return parts[0].value;
+        }
+        var result = parts.reduce(function(all, part) {
+          if (!all.length || part.type !== PART_TYPE.literal || typeof all[all.length - 1] !== "string") {
+            all.push(part.value);
+          } else {
+            all[all.length - 1] += part.value;
+          }
+          return all;
+        }, []);
+        if (result.length <= 1) {
+          return result[0] || "";
+        }
+        return result;
+      };
+      this.formatToParts = function(values) {
+        return formatToParts(_this.ast, _this.locales, _this.formatters, _this.formats, values, void 0, _this.message);
+      };
+      this.resolvedOptions = function() {
+        return {
+          locale: _this.resolvedLocale.toString()
+        };
+      };
+      this.getAst = function() {
+        return _this.ast;
+      };
+      this.locales = locales;
+      this.resolvedLocale = IntlMessageFormat2.resolveLocale(locales);
+      if (typeof message === "string") {
+        this.message = message;
+        if (!IntlMessageFormat2.__parse) {
+          throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");
+        }
+        this.ast = IntlMessageFormat2.__parse(message, {
+          ignoreTag: opts === null || opts === void 0 ? void 0 : opts.ignoreTag,
+          locale: this.resolvedLocale
+        });
+      } else {
+        this.ast = message;
+      }
+      if (!Array.isArray(this.ast)) {
+        throw new TypeError("A message must be provided as a String or AST.");
+      }
+      this.formats = mergeConfigs(IntlMessageFormat2.formats, overrideFormats);
+      this.formatters = opts && opts.formatters || createDefaultFormatters(this.formatterCache);
+    }
+    Object.defineProperty(IntlMessageFormat2, "defaultLocale", {
+      get: function() {
+        if (!IntlMessageFormat2.memoizedDefaultLocale) {
+          IntlMessageFormat2.memoizedDefaultLocale = new Intl.NumberFormat().resolvedOptions().locale;
+        }
+        return IntlMessageFormat2.memoizedDefaultLocale;
+      },
+      enumerable: false,
+      configurable: true
+    });
+    IntlMessageFormat2.memoizedDefaultLocale = null;
+    IntlMessageFormat2.resolveLocale = function(locales) {
+      var supportedLocales = Intl.NumberFormat.supportedLocalesOf(locales);
+      if (supportedLocales.length > 0) {
+        return new Intl.Locale(supportedLocales[0]);
+      }
+      return new Intl.Locale(typeof locales === "string" ? locales : locales[0]);
+    };
+    IntlMessageFormat2.__parse = parse;
+    IntlMessageFormat2.formats = {
+      number: {
+        integer: {
+          maximumFractionDigits: 0
+        },
+        currency: {
+          style: "currency"
+        },
+        percent: {
+          style: "percent"
+        }
+      },
+      date: {
+        short: {
+          month: "numeric",
+          day: "numeric",
+          year: "2-digit"
+        },
+        medium: {
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        },
+        long: {
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        },
+        full: {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        }
+      },
+      time: {
+        short: {
+          hour: "numeric",
+          minute: "numeric"
+        },
+        medium: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric"
+        },
+        long: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+          timeZoneName: "short"
+        },
+        full: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+          timeZoneName: "short"
+        }
+      }
+    };
+    return IntlMessageFormat2;
+  }()
+);
+
+// ../node_modules/intl-messageformat/lib/index.js
+var lib_default = IntlMessageFormat;
+
+// src/price/numberFormat.js
+var maskRegex = /[0-9\-+#]/;
+var notMaskRegex = /[^\d\-+#]/g;
+function getIndex(mask) {
+  return mask.search(maskRegex);
+}
+function processMask(mask = "#.##") {
+  const maskObj = {};
+  const len = mask.length;
+  const start = getIndex(mask);
+  maskObj.prefix = start > 0 ? mask.substring(0, start) : "";
+  const end = getIndex(mask.split("").reverse().join(""));
+  const offset = len - end;
+  const substr = mask.substring(offset, offset + 1);
+  const indx = offset + (substr === "." || substr === "," ? 1 : 0);
+  maskObj.suffix = end > 0 ? mask.substring(indx, len) : "";
+  maskObj.mask = mask.substring(start, indx);
+  maskObj.maskHasNegativeSign = maskObj.mask.charAt(0) === "-";
+  maskObj.maskHasPositiveSign = maskObj.mask.charAt(0) === "+";
+  let result = maskObj.mask.match(notMaskRegex);
+  maskObj.decimal = result && result[result.length - 1] || ".";
+  maskObj.separator = result && result[1] && result[0] || ",";
+  result = maskObj.mask.split(maskObj.decimal);
+  maskObj.integer = result[0];
+  maskObj.fraction = result[1];
+  return maskObj;
+}
+function processValue(value, maskObj, options) {
+  let isNegative = false;
+  const valObj = {
+    value
+  };
+  if (value < 0) {
+    isNegative = true;
+    valObj.value = -valObj.value;
+  }
+  valObj.sign = isNegative ? "-" : "";
+  valObj.value = Number(valObj.value).toFixed(
+    maskObj.fraction && maskObj.fraction.length
+  );
+  valObj.value = Number(valObj.value).toString();
+  const posTrailZero = maskObj.fraction && maskObj.fraction.lastIndexOf("0");
+  let [valInteger = "0", valFraction = ""] = valObj.value.split(".");
+  if (!valFraction || valFraction && valFraction.length <= posTrailZero) {
+    valFraction = posTrailZero < 0 ? "" : Number("0." + valFraction).toFixed(posTrailZero + 1).replace("0.", "");
+  }
+  valObj.integer = valInteger;
+  valObj.fraction = valFraction;
+  addSeparators(valObj, maskObj);
+  if (valObj.result === "0" || valObj.result === "") {
+    isNegative = false;
+    valObj.sign = "";
+  }
+  if (!isNegative && maskObj.maskHasPositiveSign) {
+    valObj.sign = "+";
+  } else if (isNegative && maskObj.maskHasPositiveSign) {
+    valObj.sign = "-";
+  } else if (isNegative) {
+    valObj.sign = options && options.enforceMaskSign && !maskObj.maskHasNegativeSign ? "" : "-";
+  }
+  return valObj;
+}
+function addSeparators(valObj, maskObj) {
+  valObj.result = "";
+  const szSep = maskObj.integer.split(maskObj.separator);
+  const maskInteger = szSep.join("");
+  const posLeadZero = maskInteger && maskInteger.indexOf("0");
+  if (posLeadZero > -1) {
+    while (valObj.integer.length < maskInteger.length - posLeadZero) {
+      valObj.integer = "0" + valObj.integer;
+    }
+  } else if (Number(valObj.integer) === 0) {
+    valObj.integer = "";
+  }
+  const posSeparator = szSep[1] && szSep[szSep.length - 1].length;
+  if (posSeparator) {
+    const len = valObj.integer.length;
+    const offset = len % posSeparator;
+    for (let indx = 0; indx < len; indx++) {
+      valObj.result += valObj.integer.charAt(indx);
+      if (!((indx - offset + 1) % posSeparator) && indx < len - posSeparator) {
+        valObj.result += maskObj.separator;
+      }
+    }
+  } else {
+    valObj.result = valObj.integer;
+  }
+  valObj.result += maskObj.fraction && valObj.fraction ? maskObj.decimal + valObj.fraction : "";
+  return valObj;
+}
+function formatNumber(mask, value, options = {}) {
+  if (!mask || isNaN(Number(value))) {
+    return value;
+  }
+  const maskObj = processMask(mask);
+  const valObj = processValue(value, maskObj, options);
+  return maskObj.prefix + valObj.sign + valObj.result + maskObj.suffix;
+}
+var numberFormat_default = formatNumber;
+
+// src/price/utilities.js
+var DECIMAL_POINT = ".";
+var DECIMAL_COMMA = ",";
+var SPACE_START_PATTERN = /^\s+/;
+var SPACE_END_PATTERN = /\s+$/;
+var NBSP = "&nbsp;";
+var getAnnualPrice = (price2) => price2 * 12;
+var isPromotionActive = (promotion, instant) => {
+  const {
+    start,
+    end,
+    displaySummary: {
+      amount,
+      duration,
+      minProductQuantity,
+      outcomeType
+    } = {}
+  } = promotion;
+  if (!(amount && duration && outcomeType && minProductQuantity)) {
+    return false;
+  }
+  const now = instant ? new Date(instant) : /* @__PURE__ */ new Date();
+  if (!start || !end) {
+    return false;
+  }
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  return now >= startDate && now <= endDate;
+};
+var RecurrenceTerm = {
+  MONTH: "MONTH",
+  YEAR: "YEAR"
+};
+var opticalPriceDivisors = {
+  [Term.ANNUAL]: 12,
+  [Term.MONTHLY]: 1,
+  [Term.THREE_YEARS]: 36,
+  [Term.TWO_YEARS]: 24
+};
+var opticalPriceRoundingRule = (accept, round) => ({ accept, round });
+var opticalPriceRoundingRules = [
+  opticalPriceRoundingRule(
+    // optical price for the term is a multiple of the initial price
+    ({ divisor, price: price2 }) => price2 % divisor == 0,
+    ({ divisor, price: price2 }) => price2 / divisor
+  ),
+  opticalPriceRoundingRule(
+    // round optical price up to 2 decimals
+    ({ usePrecision }) => usePrecision,
+    ({ divisor, price: price2 }) => Math.round(price2 / divisor * 100) / 100
+  ),
+  opticalPriceRoundingRule(
+    // round optical price up to integer
+    () => true,
+    ({ divisor, price: price2 }) => Math.ceil(Math.floor(price2 * 100 / divisor) / 100)
+  )
+];
+var recurrenceTerms = {
+  [Commitment.YEAR]: {
+    [Term.MONTHLY]: RecurrenceTerm.MONTH,
+    [Term.ANNUAL]: RecurrenceTerm.YEAR
+  },
+  [Commitment.MONTH]: {
+    [Term.MONTHLY]: RecurrenceTerm.MONTH
+  }
+};
+var currencyIsFirstChar = (formatString, currencySymbol) => formatString.indexOf(`'${currencySymbol}'`) === 0;
+var extractNumberMask = (formatString, usePrecision = true) => {
+  let numberMask = formatString.replace(/'.*?'/, "").trim();
+  const decimalsDelimiter = findDecimalsDelimiter(numberMask);
+  const hasDecimalDelimiter = !!decimalsDelimiter;
+  if (!hasDecimalDelimiter) {
+    numberMask = numberMask.replace(
+      /\s?(#.*0)(?!\s)?/,
+      "$&" + getPossibleDecimalsDelimiter(formatString)
+    );
+  } else if (!usePrecision) {
+    numberMask = numberMask.replace(/[,\.]0+/, decimalsDelimiter);
+  }
+  return numberMask;
+};
+var getCurrencySymbolDetails = (formatString) => {
+  const currencySymbol = findCurrencySymbol(formatString);
+  const isCurrencyFirst = currencyIsFirstChar(formatString, currencySymbol);
+  const formatStringWithoutSymbol = formatString.replace(/'.*?'/, "");
+  const hasCurrencySpace = SPACE_START_PATTERN.test(formatStringWithoutSymbol) || SPACE_END_PATTERN.test(formatStringWithoutSymbol);
+  return { currencySymbol, isCurrencyFirst, hasCurrencySpace };
+};
+var makeSpacesAroundNonBreaking = (text) => {
+  return text.replace(SPACE_START_PATTERN, NBSP).replace(SPACE_END_PATTERN, NBSP);
+};
+var getPossibleDecimalsDelimiter = (formatString) => formatString.match(/#(.?)#/)?.[1] === DECIMAL_POINT ? DECIMAL_COMMA : DECIMAL_POINT;
+var findCurrencySymbol = (formatString) => formatString.match(/'(.*?)'/)?.[1] ?? "";
+var findDecimalsDelimiter = (formatString) => formatString.match(/0(.?)0/)?.[1] ?? "";
+function formatPrice({ formatString, price: price2, usePrecision, isIndianPrice = false }, recurrenceTerm, transformPrice = (formattedPrice) => formattedPrice) {
+  const { currencySymbol, isCurrencyFirst, hasCurrencySpace } = getCurrencySymbolDetails(formatString);
+  const decimalsDelimiter = usePrecision ? findDecimalsDelimiter(formatString) : "";
+  const numberMask = extractNumberMask(formatString, usePrecision);
+  const fractionDigits = usePrecision ? 2 : 0;
+  const transformedPrice = transformPrice(price2, { currencySymbol });
+  const formattedPrice = isIndianPrice ? transformedPrice.toLocaleString("hi-IN", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits
+  }) : numberFormat_default(numberMask, transformedPrice);
+  const decimalIndex = usePrecision ? formattedPrice.lastIndexOf(decimalsDelimiter) : formattedPrice.length;
+  const integer = formattedPrice.substring(0, decimalIndex);
+  const decimals = formattedPrice.substring(decimalIndex + 1);
+  const accessiblePrice = formatString.replace(/'.*?'/, "SYMBOL").replace(/#.*0/, formattedPrice).replace(/SYMBOL/, currencySymbol);
+  return {
+    accessiblePrice,
+    currencySymbol,
+    decimals,
+    decimalsDelimiter,
+    hasCurrencySpace,
+    integer,
+    isCurrencyFirst,
+    recurrenceTerm
+  };
+}
+var formatOpticalPrice = (data) => {
+  const { commitment, term, usePrecision } = data;
+  const divisor = opticalPriceDivisors[term] ?? 1;
+  return formatPrice(
+    data,
+    divisor > 1 ? RecurrenceTerm.MONTH : recurrenceTerms[commitment]?.[term],
+    (price2) => {
+      const priceData = {
+        divisor,
+        price: price2,
+        usePrecision
+      };
+      const { round } = opticalPriceRoundingRules.find(
+        ({ accept }) => accept(priceData)
+      );
+      if (!round)
+        throw new Error(
+          `Missing rounding rule for: ${JSON.stringify(priceData)}`
+        );
+      return round(priceData);
+    }
+  );
+};
+var formatRegularPrice = ({ commitment, term, ...data }) => formatPrice(data, recurrenceTerms[commitment]?.[term]);
+var formatAnnualPrice = (data) => {
+  const {
+    commitment,
+    instant,
+    price: price2,
+    originalPrice,
+    priceWithoutDiscount,
+    promotion,
+    quantity = 1,
+    term
+  } = data;
+  if (commitment === Commitment.YEAR && term === Term.MONTHLY) {
+    if (!promotion) {
+      return formatPrice(data, RecurrenceTerm.YEAR, getAnnualPrice);
+    }
+    const {
+      displaySummary: {
+        outcomeType,
+        duration,
+        minProductQuantity = 1
+      } = {}
+    } = promotion;
+    switch (outcomeType) {
+      case "PERCENTAGE_DISCOUNT": {
+        if (quantity >= minProductQuantity && isPromotionActive(promotion, instant)) {
+          const durationInMonths = parseInt(
+            duration.replace("P", "").replace("M", "")
+          );
+          if (isNaN(durationInMonths)) return getAnnualPrice(price2);
+          const discountPrice = quantity * originalPrice * durationInMonths;
+          const regularPrice = quantity * priceWithoutDiscount * (12 - durationInMonths);
+          const totalPrice = Math.round((discountPrice + regularPrice) * 100) / 100;
+          return formatPrice(
+            { ...data, price: totalPrice },
+            RecurrenceTerm.YEAR
+          );
+        }
+      }
+      default:
+        return formatPrice(
+          data,
+          RecurrenceTerm.YEAR,
+          () => getAnnualPrice(priceWithoutDiscount ?? price2)
+        );
+    }
+  }
+  return formatPrice(data, recurrenceTerms[commitment]?.[term]);
+};
+
+// src/price/template.js
+var defaultLiterals = {
+  recurrenceLabel: "{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",
+  recurrenceAriaLabel: "{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",
+  perUnitLabel: "{perUnit, select, LICENSE {per license} other {}}",
+  perUnitAriaLabel: "{perUnit, select, LICENSE {per license} other {}}",
+  freeLabel: "Free",
+  freeAriaLabel: "Free",
+  taxExclusiveLabel: "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+  taxInclusiveLabel: "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+  alternativePriceAriaLabel: "Alternatively at",
+  strikethroughAriaLabel: "Regularly at",
+  planTypeLabel: "{planType, select, ABM {Annual, billed monthly} other {}}"
+};
+var log = createLog("ConsonantTemplates/price");
+var htmlPattern = /<\/?[^>]+(>|$)/g;
+var cssClassNames = {
+  container: "price",
+  containerOptical: "price-optical",
+  containerStrikethrough: "price-strikethrough",
+  containerAlternative: "price-alternative",
+  containerAnnual: "price-annual",
+  containerAnnualPrefix: "price-annual-prefix",
+  containerAnnualSuffix: "price-annual-suffix",
+  disabled: "disabled",
+  currencySpace: "price-currency-space",
+  currencySymbol: "price-currency-symbol",
+  decimals: "price-decimals",
+  decimalsDelimiter: "price-decimals-delimiter",
+  integer: "price-integer",
+  recurrence: "price-recurrence",
+  taxInclusivity: "price-tax-inclusivity",
+  unitType: "price-unit-type"
+};
+var literalKeys = {
+  perUnitLabel: "perUnitLabel",
+  perUnitAriaLabel: "perUnitAriaLabel",
+  recurrenceLabel: "recurrenceLabel",
+  recurrenceAriaLabel: "recurrenceAriaLabel",
+  taxExclusiveLabel: "taxExclusiveLabel",
+  taxInclusiveLabel: "taxInclusiveLabel",
+  strikethroughAriaLabel: "strikethroughAriaLabel",
+  alternativePriceAriaLabel: "alternativePriceAriaLabel"
+};
+var WCS_TAX_DISPLAY_EXCLUSIVE = "TAX_EXCLUSIVE";
+var renderAttributes = (attributes) => isObject(attributes) ? Object.entries(attributes).filter(
+  ([, value]) => isString(value) || isNumber(value) || value === true
+).reduce(
+  (html13, [key, value]) => html13 + ` ${key}${value === true ? "" : '="' + escapeHtml(value) + '"'}`,
+  ""
+) : "";
+var renderSpan = (cssClass, content, attributes, convertSpaces = false) => {
+  return `<span class="${cssClass}${content ? "" : " " + cssClassNames.disabled}"${renderAttributes(attributes)}>${convertSpaces ? makeSpacesAroundNonBreaking(content) : content ?? ""}</span>`;
+};
+function formatLiteral(literals, locale, key, parameters) {
+  const literal = literals[key];
+  if (literal == void 0) {
+    return "";
+  }
+  try {
+    return new lib_default(
+      literal.replace(htmlPattern, ""),
+      locale
+    ).format(parameters);
+  } catch {
+    log.error("Failed to format literal:", literal);
+    return "";
+  }
+}
+function renderContainer(cssClass, {
+  accessibleLabel,
+  altAccessibleLabel,
+  currencySymbol,
+  decimals,
+  decimalsDelimiter,
+  hasCurrencySpace,
+  integer,
+  isCurrencyFirst,
+  recurrenceLabel,
+  perUnitLabel,
+  taxInclusivityLabel
+}, attributes = {}) {
+  const currencyMarkup = renderSpan(
+    cssClassNames.currencySymbol,
+    currencySymbol
+  );
+  const currencySpaceMarkup = renderSpan(
+    cssClassNames.currencySpace,
+    hasCurrencySpace ? "&nbsp;" : ""
+  );
+  let markup = "";
+  if (accessibleLabel)
+    markup = `<sr-only class="strikethrough-aria-label">${accessibleLabel}</sr-only>`;
+  else if (altAccessibleLabel)
+    markup = `<sr-only class="alt-aria-label">${altAccessibleLabel}</sr-only>`;
+  if (isCurrencyFirst) markup += currencyMarkup + currencySpaceMarkup;
+  markup += renderSpan(cssClassNames.integer, integer);
+  markup += renderSpan(cssClassNames.decimalsDelimiter, decimalsDelimiter);
+  markup += renderSpan(cssClassNames.decimals, decimals);
+  if (!isCurrencyFirst) markup += currencySpaceMarkup + currencyMarkup;
+  markup += renderSpan(cssClassNames.recurrence, recurrenceLabel, null, true);
+  markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
+  markup += renderSpan(
+    cssClassNames.taxInclusivity,
+    taxInclusivityLabel,
+    true
+  );
+  return renderSpan(cssClass, markup, {
+    ...attributes
+  });
+}
+var createPriceTemplate = ({
+  isAlternativePrice = false,
+  displayOptical = false,
+  displayStrikethrough = false,
+  displayAnnual = false,
+  instant = void 0
+} = {}) => ({
+  country,
+  displayFormatted = true,
+  displayRecurrence = true,
+  displayPerUnit = false,
+  displayTax = false,
+  language,
+  literals: priceLiterals2 = {},
+  quantity = 1,
+  space = false
+  // add a space between price literals
+} = {}, {
+  commitment,
+  offerSelectorIds,
+  formatString,
+  price: price2,
+  priceWithoutDiscount,
+  taxDisplay,
+  taxTerm,
+  term,
+  usePrecision,
+  promotion
+} = {}, attributes = {}) => {
+  Object.entries({
+    country,
+    formatString,
+    language,
+    price: price2
+  }).forEach(([key, value]) => {
+    if (value == null) {
+      throw new Error(
+        `Argument "${key}" is missing for osi ${offerSelectorIds?.toString()}, country ${country}, language ${language}`
+      );
+    }
+  });
+  const literals = {
+    ...defaultLiterals,
+    ...priceLiterals2
+  };
+  const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
+  const displayPrice = displayStrikethrough && priceWithoutDiscount ? priceWithoutDiscount : price2;
+  let method = displayOptical ? formatOpticalPrice : formatRegularPrice;
+  if (displayAnnual) {
+    method = formatAnnualPrice;
+  }
+  const { accessiblePrice, recurrenceTerm, ...formattedPrice } = method({
+    commitment,
+    formatString,
+    instant,
+    isIndianPrice: country === "IN",
+    originalPrice: price2,
+    priceWithoutDiscount,
+    price: displayOptical ? price2 : displayPrice,
+    promotion,
+    quantity,
+    term,
+    usePrecision
+  });
+  let accessibleLabel = "", altAccessibleLabel = "";
+  let recurrenceLabel = "";
+  if (toBoolean(displayRecurrence) && recurrenceTerm) {
+    recurrenceLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.recurrenceLabel,
+      {
+        recurrenceTerm
+      }
+    );
+  }
+  let perUnitLabel = "";
+  if (toBoolean(displayPerUnit)) {
+    if (space) {
+      perUnitLabel += " ";
+    }
+    perUnitLabel += formatLiteral(
+      literals,
+      locale,
+      literalKeys.perUnitLabel,
+      {
+        perUnit: "LICENSE"
+      }
+    );
+  }
+  let taxInclusivityLabel = "";
+  if (toBoolean(displayTax) && taxTerm) {
+    if (space) {
+      taxInclusivityLabel += " ";
+    }
+    taxInclusivityLabel += formatLiteral(
+      literals,
+      locale,
+      taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE ? literalKeys.taxExclusiveLabel : literalKeys.taxInclusiveLabel,
+      { taxTerm }
+    );
+  }
+  if (displayStrikethrough) {
+    accessibleLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.strikethroughAriaLabel,
+      {
+        strikethroughPrice: accessibleLabel
+      }
+    );
+  }
+  if (isAlternativePrice) {
+    altAccessibleLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.alternativePriceAriaLabel,
+      {
+        alternativePrice: altAccessibleLabel
+      }
+    );
+  }
+  let cssClass = cssClassNames.container;
+  if (displayOptical) {
+    cssClass += " " + cssClassNames.containerOptical;
+  }
+  if (displayStrikethrough) {
+    cssClass += " " + cssClassNames.containerStrikethrough;
+  }
+  if (isAlternativePrice) {
+    cssClass += " " + cssClassNames.containerAlternative;
+  }
+  if (displayAnnual) {
+    cssClass += " " + cssClassNames.containerAnnual;
+  }
+  if (toBoolean(displayFormatted)) {
+    return renderContainer(
+      cssClass,
+      {
+        ...formattedPrice,
+        accessibleLabel,
+        altAccessibleLabel,
+        recurrenceLabel,
+        perUnitLabel,
+        taxInclusivityLabel
+      },
+      attributes
+    );
+  }
+  const {
+    currencySymbol,
+    decimals,
+    decimalsDelimiter,
+    hasCurrencySpace,
+    integer,
+    isCurrencyFirst
+  } = formattedPrice;
+  const unformattedPrice = [integer, decimalsDelimiter, decimals];
+  if (isCurrencyFirst) {
+    unformattedPrice.unshift(hasCurrencySpace ? "\xA0" : "");
+    unformattedPrice.unshift(currencySymbol);
+  } else {
+    unformattedPrice.push(hasCurrencySpace ? "\xA0" : "");
+    unformattedPrice.push(currencySymbol);
+  }
+  unformattedPrice.push(
+    recurrenceLabel,
+    perUnitLabel,
+    taxInclusivityLabel
+  );
+  const content = unformattedPrice.join("");
+  return renderSpan(cssClass, content, attributes);
+};
+var createPromoPriceTemplate = () => (context, value, attributes) => {
+  const displayOldPrice = context.displayOldPrice === void 0 || toBoolean(context.displayOldPrice);
+  const shouldDisplayOldPrice = displayOldPrice && value.priceWithoutDiscount && value.priceWithoutDiscount != value.price;
+  return `${shouldDisplayOldPrice ? createPriceTemplate({
+    displayStrikethrough: true
+  })(context, value, attributes) + "&nbsp;" : ""}${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })(context, value, attributes)}`;
+};
+var createPromoPriceWithAnnualTemplate = () => (context, value, attributes) => {
+  let { instant } = context;
+  try {
+    if (!instant) {
+      instant = new URLSearchParams(document.location.search).get(
+        "instant"
+      );
+    }
+    if (instant) {
+      instant = new Date(instant);
+    }
+  } catch (e) {
+    instant = void 0;
+  }
+  const ctxStAnnual = {
+    ...context,
+    displayTax: false,
+    displayPerUnit: false
+  };
+  const displayOldPrice = context.displayOldPrice === void 0 || toBoolean(context.displayOldPrice);
+  const shouldDisplayOldPrice = displayOldPrice && value.priceWithoutDiscount && value.priceWithoutDiscount != value.price;
+  return `${shouldDisplayOldPrice ? createPriceTemplate({
+    displayStrikethrough: true
+  })(ctxStAnnual, value, attributes) + "&nbsp;" : ""}${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })(context, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, "&nbsp;(")}${createPriceTemplate(
+    {
+      displayAnnual: true,
+      instant
+    }
+  )(
+    ctxStAnnual,
+    value,
+    attributes
+  )}${renderSpan(cssClassNames.containerAnnualSuffix, ")")}`;
+};
+var createPriceWithAnnualTemplate = () => (context, value, attributes) => {
+  const ctxAnnual = {
+    ...context,
+    displayTax: false,
+    displayPerUnit: false
+  };
+  return `${createPriceTemplate({ isAlternativePrice: context.displayOldPrice })(context, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, "&nbsp;(")}${createPriceTemplate(
+    {
+      displayAnnual: true
+    }
+  )(
+    ctxAnnual,
+    value,
+    attributes
+  )}${renderSpan(cssClassNames.containerAnnualSuffix, ")")}`;
+};
+
+// src/price/legal.js
+var cssClassNames2 = {
+  ...cssClassNames,
+  containerLegal: "price-legal",
+  planType: "price-plan-type"
+};
+var literalKeys2 = {
+  ...literalKeys,
+  planTypeLabel: "planTypeLabel"
+};
+function renderContainer2(cssClass, { perUnitLabel, taxInclusivityLabel, planTypeLabel }, attributes = {}) {
+  let markup = "";
+  markup += renderSpan(cssClassNames2.unitType, perUnitLabel, null, true);
+  if (taxInclusivityLabel && planTypeLabel) {
+    taxInclusivityLabel += ". ";
+  }
+  markup += renderSpan(
+    cssClassNames2.taxInclusivity,
+    taxInclusivityLabel,
+    true
+  );
+  markup += renderSpan(cssClassNames2.planType, planTypeLabel, null);
+  return renderSpan(cssClass, markup, {
+    ...attributes
+  });
+}
+var legalTemplate = ({
+  country,
+  displayPerUnit = false,
+  displayTax = false,
+  displayPlanType = false,
+  language,
+  literals: priceLiterals2 = {}
+} = {}, { taxDisplay, taxTerm, planType } = {}, attributes = {}) => {
+  const literals = {
+    ...defaultLiterals,
+    ...priceLiterals2
+  };
+  const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
+  let perUnitLabel = "";
+  if (toBoolean(displayPerUnit)) {
+    perUnitLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys2.perUnitLabel,
+      {
+        perUnit: "LICENSE"
+      }
+    );
+  }
+  let taxInclusivityLabel = "";
+  if (country === "US" && language === "en") {
+    displayTax = false;
+  }
+  if (toBoolean(displayTax) && taxTerm) {
+    taxInclusivityLabel = formatLiteral(
+      literals,
+      locale,
+      taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE ? literalKeys2.taxExclusiveLabel : literalKeys2.taxInclusiveLabel,
+      { taxTerm }
+    );
+  }
+  let planTypeLabel = "";
+  if (toBoolean(displayPlanType) && planType) {
+    planTypeLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys2.planTypeLabel,
+      {
+        planType
+      }
+    );
+  }
+  let cssClass = cssClassNames2.container;
+  cssClass += " " + cssClassNames2.containerLegal;
+  return renderContainer2(
+    cssClass,
+    {
+      perUnitLabel,
+      taxInclusivityLabel,
+      planTypeLabel
+    },
+    attributes
+  );
+};
+
+// src/price/index.js
+var price = createPriceTemplate();
+var pricePromo = createPromoPriceTemplate();
+var priceOptical = createPriceTemplate({
+  displayOptical: true
+});
+var priceStrikethrough = createPriceTemplate({
+  displayStrikethrough: true
+});
+var priceAnnual = createPriceTemplate({
+  displayAnnual: true
+});
+var priceOpticalAlternative = createPriceTemplate({
+  displayOptical: true,
+  isAlternativePrice: true
+});
+var priceAlternative = createPriceTemplate({
+  isAlternativePrice: true
+});
+var priceWithAnnual = createPriceWithAnnualTemplate();
+var pricePromoWithAnnual = createPromoPriceWithAnnualTemplate();
+var legal = legalTemplate;
+
+// src/discount/template.js
+var getDiscount = (price2, priceWithoutDiscount) => {
+  if (!isPositiveFiniteNumber(price2) || !isPositiveFiniteNumber(priceWithoutDiscount))
+    return;
+  return Math.floor(
+    (priceWithoutDiscount - price2) / priceWithoutDiscount * 100
+  );
+};
+var createDiscountTemplate = () => (context, value) => {
+  const { price: price2, priceWithoutDiscount } = value;
+  const discount2 = getDiscount(price2, priceWithoutDiscount);
+  return discount2 === void 0 ? `<span class="no-discount"></span>` : `<span class="discount">${discount2}%</span>`;
+};
+
+// src/discount/index.js
+var discount = createDiscountTemplate();
+
+// src/inline-price.js
+var INDIVIDUAL = "INDIVIDUAL_COM";
+var BUSINESS = "TEAM_COM";
+var STUDENT = "INDIVIDUAL_EDU";
+var UNIVERSITY = "TEAM_EDU";
+var DISPLAY_ALL_TAX_COUNTRIES = [
+  "GB_en",
+  "AU_en",
+  "FR_fr",
+  "AT_de",
+  "BE_en",
+  "BE_fr",
+  "BE_nl",
+  "BG_bg",
+  "CH_de",
+  "CH_fr",
+  "CH_it",
+  "CZ_cs",
+  "DE_de",
+  "DK_da",
+  "EE_et",
+  "EG_ar",
+  "EG_en",
+  "ES_es",
+  "FI_fi",
+  "GR_el",
+  "GR_en",
+  "HU_hu",
+  "IE_en",
+  "IT_it",
+  "LU_de",
+  "LU_en",
+  "LU_fr",
+  "NL_nl",
+  "NO_nb",
+  "PL_pl",
+  "PT_pt",
+  "RO_ro",
+  "SE_sv",
+  "SI_sl",
+  "SK_sk",
+  "TR_tr",
+  "UA_uk",
+  "ID_en",
+  "ID_in",
+  "IN_en",
+  "IN_hi",
+  "JP_ja",
+  "MY_en",
+  "MY_ms",
+  "NZ_en",
+  "TH_en",
+  "TH_th"
+];
+var DISPLAY_TAX_MAP = {
+  [INDIVIDUAL]: [
+    "MU_en",
+    "LT_lt",
+    "LV_lv",
+    "NG_en",
+    "SA_ar",
+    "SA_en",
+    "SG_en",
+    "KR_ko"
+  ],
+  [BUSINESS]: ["MU_en", "LT_lt", "LV_lv", "NG_en", "CO_es", "KR_ko"],
+  [STUDENT]: ["LT_lt", "LV_lv", "SA_en", "SG_en"],
+  [UNIVERSITY]: ["SG_en", "KR_ko"]
+};
+var TAX_EXCLUDED_MAP = {
+  ["MU_en"]: [false, false, false, false],
+  ["NG_en"]: [false, false, false, false],
+  ["AU_en"]: [false, false, false, false],
+  ["JP_ja"]: [false, false, false, false],
+  ["NZ_en"]: [false, false, false, false],
+  ["TH_en"]: [false, false, false, false],
+  ["TH_th"]: [false, false, false, false],
+  ["CO_es"]: [false, true, false, false],
+  ["AT_de"]: [false, false, false, true],
+  ["SG_en"]: [false, false, false, true]
+};
+var TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
+var defaultTaxExcluded = (segment) => [BUSINESS, UNIVERSITY].includes(segment);
+var resolveTaxExclusive = (country, language, customerSegment, marketSegment) => {
+  const locale = `${country}_${language}`;
+  const segment = `${customerSegment}_${marketSegment}`;
+  const val = TAX_EXCLUDED_MAP[locale];
+  if (val) {
+    const index = TAX_EXCLUDED_MAP_INDEX.indexOf(segment);
+    return val[index];
+  }
+  return defaultTaxExcluded(segment);
+};
+var resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, marketSegment) => {
+  const locale = `${country}_${language}`;
+  if (DISPLAY_ALL_TAX_COUNTRIES.includes(country) || DISPLAY_ALL_TAX_COUNTRIES.includes(locale)) {
+    return true;
+  }
+  const segmentConfig = DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
+  if (!segmentConfig) {
+    return Defaults.displayTax;
+  }
+  if (segmentConfig.includes(country) || segmentConfig.includes(locale)) {
+    return true;
+  }
+  return Defaults.displayTax;
+};
+var resolvePriceTaxFlags = async (country, language, customerSegment, marketSegment) => {
+  const displayTax = resolveDisplayTaxForGeoAndSegment(
+    country,
+    language,
+    customerSegment,
+    marketSegment
+  );
+  return {
+    displayTax,
+    forceTaxExclusive: displayTax ? resolveTaxExclusive(
+      country,
+      language,
+      customerSegment,
+      marketSegment
+    ) : Defaults.forceTaxExclusive
+  };
+};
+var _InlinePrice = class _InlinePrice extends HTMLSpanElement {
+  constructor() {
+    super();
+    __publicField(this, "masElement", new MasElement(this));
+    this.handleClick = this.handleClick.bind(this);
+  }
+  static get observedAttributes() {
+    return [
+      "data-display-old-price",
+      "data-display-per-unit",
+      "data-display-recurrence",
+      "data-display-tax",
+      "data-display-plan-type",
+      "data-display-annual",
+      "data-perpetual",
+      "data-promotion-code",
+      "data-force-tax-exclusive",
+      "data-template",
+      "data-wcs-osi"
+    ];
+  }
+  static createInlinePrice(options) {
+    const service = getService2();
+    if (!service) return null;
+    const {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      displayAnnual,
+      forceTaxExclusive,
+      perpetual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      template,
+      wcsOsi
+    } = service.collectPriceOptions(options);
+    const element = createMasElement(_InlinePrice, {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      displayAnnual,
+      forceTaxExclusive,
+      perpetual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      template,
+      wcsOsi
+    });
+    return element;
+  }
+  get isInlinePrice() {
+    return true;
+  }
+  attributeChangedCallback(name, _, value) {
+    this.masElement.attributeChangedCallback(name, _, value);
+  }
+  connectedCallback() {
+    this.masElement.connectedCallback();
+    this.addEventListener("click", this.handleClick);
+  }
+  disconnectedCallback() {
+    this.masElement.disconnectedCallback();
+    this.removeEventListener("click", this.handleClick);
+  }
+  handleClick(event) {
+    if (event.target === this) return;
+    event.stopImmediatePropagation();
+    this.dispatchEvent(
+      new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      })
+    );
+  }
+  onceSettled() {
+    return this.masElement.onceSettled();
+  }
+  get value() {
+    return this.masElement.value;
+  }
+  get options() {
+    return this.masElement.options;
+  }
+  get isFailed() {
+    return this.masElement.state === STATE_FAILED;
+  }
+  requestUpdate(force = false) {
+    return this.masElement.requestUpdate(force);
+  }
+  /**
+   * Resolves associated osi via Wcs and renders price offer.
+   * @param {Record<string, any>} overrides
+   */
+  async render(overrides = {}) {
+    if (!this.isConnected) return false;
+    const service = getService2();
+    if (!service) return false;
+    const priceOptions = service.collectPriceOptions(overrides, this);
+    const options = {
+      ...service.settings,
+      ...priceOptions
+    };
+    if (!options.wcsOsi.length) return false;
+    try {
+      const version = this.masElement.togglePending({});
+      this.innerHTML = "";
+      const [offerSelectors] = await service.resolveOfferSelectors(options);
+      let offers = selectOffers(await offerSelectors, options);
+      let [offer] = offers;
+      if (service.featureFlags[FF_DEFAULTS]) {
+        if (priceOptions.displayPerUnit === void 0) {
+          options.displayPerUnit = offer.customerSegment !== "INDIVIDUAL";
+        }
+        if (priceOptions.displayTax === void 0 || priceOptions.forceTaxExclusive === void 0) {
+          const { country, language } = options;
+          const [marketSegment = ""] = offer.marketSegments;
+          const flags = await resolvePriceTaxFlags(
+            country,
+            language,
+            offer.customerSegment,
+            marketSegment
+          );
+          if (priceOptions.displayTax === void 0) {
+            options.displayTax = flags?.displayTax || options.displayTax;
+          }
+          if (priceOptions.forceTaxExclusive === void 0) {
+            options.forceTaxExclusive = flags?.forceTaxExclusive || options.forceTaxExclusive;
+          }
+          if (options.forceTaxExclusive) {
+            offers = selectOffers(offers, options);
+          }
+        }
+      } else {
+        if (priceOptions.displayOldPrice === void 0) {
+          options.displayOldPrice = true;
+        }
+      }
+      return this.renderOffers(offers, options, version);
+    } catch (error) {
+      this.innerHTML = "";
+      throw error;
+    }
+  }
+  // TODO: can be extended to accept array of offers and compute subtotal price
+  /**
+   * Renders price offer as HTML of this component
+   * using consonant price template functions
+   * @param {Offer[]} offers
+   * @param {Record<string, any>} options
+   * @param {number} version
+   */
+  renderOffers(offers, options, version = void 0) {
+    if (!this.isConnected) return;
+    const service = getService2();
+    if (!service) return false;
+    version ?? (version = this.masElement.togglePending());
+    if (offers.length) {
+      if (this.masElement.toggleResolved(version, offers, options)) {
+        this.innerHTML = service.buildPriceHTML(offers, this.options);
+        const parentEl = this.closest("p, h3, div");
+        if (!parentEl || !parentEl.querySelector(
+          'span[data-template="strikethrough"]'
+        ) || parentEl.querySelector(".alt-aria-label"))
+          return true;
+        const inlinePrices = parentEl?.querySelectorAll(
+          'span[is="inline-price"]'
+        );
+        if (inlinePrices.length > 1 && inlinePrices.length === parentEl.querySelectorAll(
+          'span[data-template="strikethrough"]'
+        ).length * 2) {
+          inlinePrices.forEach((price2) => {
+            if (price2.dataset.template !== "strikethrough" && price2.options && !price2.options.alternativePrice && !price2.isFailed) {
+              price2.options.alternativePrice = true;
+              price2.innerHTML = service.buildPriceHTML(
+                offers,
+                price2.options
+              );
+            }
+          });
+        }
+        return true;
+      }
+    } else {
+      const error = new Error(
+        `Not provided: ${this.options?.wcsOsi ?? "-"}`
+      );
+      if (this.masElement.toggleFailed(version, error, this.options)) {
+        this.innerHTML = "";
+        return true;
+      }
+    }
+    return false;
+  }
+};
+__publicField(_InlinePrice, "is", "inline-price");
+__publicField(_InlinePrice, "tag", "span");
+var InlinePrice = _InlinePrice;
+if (!window.customElements.get(InlinePrice.is)) {
+  window.customElements.define(InlinePrice.is, InlinePrice, {
+    extends: InlinePrice.tag
+  });
+}
+
+// src/price.js
+function Price({ literals, providers, settings }) {
+  function collectPriceOptions(overrides, placeholder = null) {
+    let options = {
+      country: settings.country,
+      language: settings.language,
+      locale: settings.locale,
+      literals: { ...literals.price }
+    };
+    if (placeholder && providers?.price) {
+      for (const provider of providers.price) {
+        provider(placeholder, options);
+      }
+    }
+    const {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      forceTaxExclusive,
+      perpetual,
+      displayAnnual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      wcsOsi,
+      ...rest
+    } = Object.assign(options, placeholder?.dataset ?? {}, overrides ?? {});
+    options = omitProperties(
+      Object.assign({
+        ...options,
+        ...rest,
+        displayOldPrice: toBoolean(displayOldPrice),
+        displayPerUnit: toBoolean(displayPerUnit),
+        displayRecurrence: toBoolean(displayRecurrence),
+        displayTax: toBoolean(displayTax),
+        displayPlanType: toBoolean(displayPlanType),
+        forceTaxExclusive: toBoolean(forceTaxExclusive),
+        perpetual: toBoolean(perpetual),
+        displayAnnual: toBoolean(displayAnnual),
+        promotionCode: computePromoStatus(promotionCode).effectivePromoCode,
+        quantity: toQuantity(quantity, Defaults.quantity),
+        alternativePrice: toBoolean(alternativePrice),
+        wcsOsi: toOfferSelectorIds(wcsOsi)
+      })
+    );
+    return options;
+  }
+  function buildPriceHTML(offers, options) {
+    if (!Array.isArray(offers) || !offers.length || !options) {
+      return "";
+    }
+    const { template } = options;
+    let method;
+    switch (template) {
+      // TODO: use price template name constants, export them from `consonant-templates`
+      case "discount":
+        method = discount;
+        break;
+      case "strikethrough":
+        method = priceStrikethrough;
+        break;
+      case "annual":
+        method = priceAnnual;
+        break;
+      case "legal":
+        method = legal;
+        break;
+      default:
+        if (options.template === "optical" && options.alternativePrice) {
+          method = priceOpticalAlternative;
+        } else if (options.template === "optical") {
+          method = priceOptical;
+        } else if (options.displayAnnual && offers[0].planType === "ABM") {
+          method = options.promotionCode ? pricePromoWithAnnual : priceWithAnnual;
+        } else if (options.alternativePrice) {
+          method = priceAlternative;
+        } else {
+          method = options.promotionCode ? pricePromo : price;
+        }
+    }
+    let [offer] = offers;
+    offer = { ...offer, ...offer.priceDetails };
+    return method({ ...settings, ...options }, offer);
+  }
+  const createInlinePrice = InlinePrice.createInlinePrice;
+  return {
+    InlinePrice,
+    buildPriceHTML,
+    collectPriceOptions,
+    createInlinePrice
+  };
+}
+
+// src/settings.js
+function getLocaleSettings({
+  locale = void 0,
+  country = void 0,
+  language = void 0
+} = {}) {
+  language ?? (language = locale?.split("_")?.[0] || Defaults.language);
+  country ?? (country = locale?.split("_")?.[1] || Defaults.country);
+  locale ?? (locale = SUPPORTED_LANGUAGE_COUNTRY.includes(`${language}_${country}`) ? `${language}_${country}` : `${Defaults.language}_${Defaults.country}`);
+  return { locale, country, language };
+}
+function getSettings(config2 = {}, service) {
+  const ffDefaults = service.featureFlags[FF_DEFAULTS];
+  const { commerce = {} } = config2;
+  let env = Env.PRODUCTION;
+  let wcsURL = WCS_PROD_URL;
+  const checkoutClientId = getParameter("checkoutClientId", commerce) ?? Defaults.checkoutClientId;
+  const checkoutWorkflowStep = toEnumeration(
+    getParameter("checkoutWorkflowStep", commerce),
+    CheckoutWorkflowStep,
+    Defaults.checkoutWorkflowStep
+  );
+  const displayOldPrice = Defaults.displayOldPrice;
+  const displayPerUnit = Defaults.displayPerUnit;
+  const displayRecurrence = toBoolean(
+    getParameter("displayRecurrence", commerce),
+    Defaults.displayRecurrence
+  );
+  const displayTax = toBoolean(
+    getParameter("displayTax", commerce),
+    Defaults.displayTax
+  );
+  const displayPlanType = toBoolean(
+    getParameter("displayPlanType", commerce),
+    Defaults.displayPlanType
+  );
+  const entitlement = toBoolean(
+    getParameter("entitlement", commerce),
+    Defaults.entitlement
+  );
+  const modal = toBoolean(getParameter("modal", commerce), Defaults.modal);
+  const forceTaxExclusive = toBoolean(
+    getParameter("forceTaxExclusive", commerce),
+    Defaults.forceTaxExclusive
+  );
+  const promotionCode = getParameter("promotionCode", commerce) ?? Defaults.promotionCode;
+  const quantity = toQuantity(getParameter("quantity", commerce));
+  const wcsApiKey = getParameter("wcsApiKey", commerce) ?? Defaults.wcsApiKey;
+  let isStage = commerce?.env === "stage";
+  let landscape = Landscape.PUBLISHED;
+  const allowOverride = ["true", ""].includes(commerce.allowOverride);
+  if (allowOverride) {
+    isStage = (getParameter(PARAM_ENV, commerce, {
+      metadata: false
+    })?.toLowerCase() ?? commerce?.env) === "stage";
+    landscape = toEnumeration(
+      getParameter(PARAM_LANDSCAPE, commerce),
+      Landscape,
+      landscape
+    );
+  }
+  if (isStage) {
+    env = Env.STAGE;
+    wcsURL = WCS_STAGE_URL;
+  }
+  const previewParam = getParameter(PARAM_MAS_PREVIEW) ?? config2.preview;
+  const preview = typeof previewParam != "undefined" && previewParam !== "off" && previewParam !== "false";
+  let previewSettings = {};
+  if (preview) previewSettings = { preview };
+  const masIOUrl = getParameter("mas-io-url") ?? config2.masIOUrl ?? `https://www${env === Env.STAGE ? ".stage" : ""}.adobe.com/mas/io`;
+  const preselectPlan = getParameter("preselect-plan") ?? void 0;
+  return {
+    ...getLocaleSettings(config2),
+    ...previewSettings,
+    displayOldPrice,
+    checkoutClientId,
+    checkoutWorkflowStep,
+    displayPerUnit,
+    displayRecurrence,
+    displayTax,
+    displayPlanType,
+    entitlement,
+    extraOptions: Defaults.extraOptions,
+    modal,
+    env,
+    forceTaxExclusive,
+    promotionCode,
+    quantity,
+    alternativePrice: Defaults.alternativePrice,
+    wcsApiKey,
+    wcsURL,
+    landscape,
+    masIOUrl,
+    ...preselectPlan && { preselectPlan }
+    // only add if defined
+  };
+}
+
+// src/utils/mas-fetch.js
+async function masFetch(resource, options = {}, retries = 2, baseDelay = 100) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(resource, options);
+      response.retryCount = attempt;
+      return response;
+    } catch (error) {
+      lastError = error;
+      lastError.retryCount = attempt;
+      if (attempt > retries) break;
+      await new Promise(
+        (resolve) => setTimeout(resolve, baseDelay * (attempt + 1))
+      );
+    }
+  }
+  throw lastError;
+}
+
+// src/wcs.js
+var NAMESPACE2 = "wcs";
+function Wcs({ settings }) {
+  const log2 = Log.module(NAMESPACE2);
+  const { env, wcsApiKey: apiKey } = settings;
+  const cache = /* @__PURE__ */ new Map();
+  const queue = /* @__PURE__ */ new Map();
+  let timer;
+  let staleCache = /* @__PURE__ */ new Map();
+  async function resolveWcsOffers(options, promises, reject = true) {
+    const service = getService2();
+    let message = ERROR_MESSAGE_OFFER_NOT_FOUND;
+    log2.debug("Fetching:", options);
+    let url = "";
+    let response;
+    if (options.offerSelectorIds.length > 1)
+      throw new Error("Multiple OSIs are not supported anymore");
+    const unresolvedPromises = new Map(promises);
+    const [osi] = options.offerSelectorIds;
+    const uniqueId = Date.now() + Math.random().toString(36).substring(2, 7);
+    const startMark = `${NAMESPACE2}:${osi}:${uniqueId}${MARK_START_SUFFIX}`;
+    const measureName = `${NAMESPACE2}:${osi}:${uniqueId}${MARK_DURATION_SUFFIX}`;
+    let measure;
+    try {
+      performance.mark(startMark);
+      url = new URL(settings.wcsURL);
+      url.searchParams.set("offer_selector_ids", osi);
+      url.searchParams.set("country", options.country);
+      url.searchParams.set("locale", options.locale);
+      url.searchParams.set(
+        "landscape",
+        env === Env.STAGE ? "ALL" : settings.landscape
+      );
+      url.searchParams.set("api_key", apiKey);
+      if (options.language) {
+        url.searchParams.set("language", options.language);
+      }
+      if (options.promotionCode) {
+        url.searchParams.set("promotion_code", options.promotionCode);
+      }
+      if (options.currency) {
+        url.searchParams.set("currency", options.currency);
+      }
+      response = await masFetch(url.toString(), {
+        credentials: "omit"
+      });
+      if (response.ok) {
+        let offers = [];
+        try {
+          const data = await response.json();
+          log2.debug("Fetched:", options, data);
+          offers = data.resolvedOffers ?? [];
+        } catch (e) {
+          log2.error(`Error parsing JSON: ${e.message}`, {
+            ...e.context,
+            ...service?.duration
+          });
+        }
+        offers = offers.map(applyPlanType);
+        promises.forEach(({ resolve }, offerSelectorId) => {
+          const resolved = offers.filter(
+            ({ offerSelectorIds }) => offerSelectorIds.includes(offerSelectorId)
+          ).flat();
+          if (resolved.length) {
+            unresolvedPromises.delete(offerSelectorId);
+            promises.delete(offerSelectorId);
+            resolve(resolved);
+          }
+        });
+      } else {
+        message = ERROR_MESSAGE_BAD_REQUEST;
+      }
+    } catch (e) {
+      message = `Network error: ${e.message}`;
+    } finally {
+      measure = performance.measure(measureName, startMark);
+      performance.clearMarks(startMark);
+      performance.clearMeasures(measureName);
+    }
+    if (reject && promises.size) {
+      log2.debug("Missing:", { offerSelectorIds: [...promises.keys()] });
+      const headers = getLogHeaders(response);
+      promises.forEach((promise) => {
+        promise.reject(
+          new MasError(message, {
+            ...options,
+            ...headers,
+            response,
+            measure: printMeasure(measure),
+            ...service?.duration
+          })
+        );
+      });
+    }
+  }
+  function flushQueue() {
+    clearTimeout(timer);
+    const pending = [...queue.values()];
+    queue.clear();
+    pending.forEach(
+      ({ options, promises }) => resolveWcsOffers(options, promises)
+    );
+  }
+  function prefillWcsCache(preloadedCache) {
+    if (!preloadedCache || typeof preloadedCache !== "object") {
+      throw new TypeError("Cache must be a Map or similar object");
+    }
+    const envKey = env === Env.STAGE ? "stage" : "prod";
+    const envCache = preloadedCache[envKey];
+    if (!envCache || typeof envCache !== "object") {
+      log2.warn(`No cache found for environment: ${env}`);
+      return;
+    }
+    for (const [key, value] of Object.entries(envCache)) {
+      cache.set(key, Promise.resolve(value.map(applyPlanType)));
+    }
+    log2.debug(`Prefilled WCS cache with ${envCache.size} entries`);
+  }
+  function flushWcsCacheInternal() {
+    const size = cache.size;
+    staleCache = new Map(cache);
+    cache.clear();
+    log2.debug(`Moved ${size} cache entries to stale cache`);
+  }
+  function validateLanguageAndLocale(country, language, perpetual) {
+    const validLanguage = SUPPORTED_LANGUAGES.includes(language) ? language : Defaults.language;
+    const validCountry = SUPPORTED_COUNTRIES.includes(country) ? country : Defaults.country;
+    return {
+      validCountry,
+      validLanguage: country !== "GB" && !perpetual ? "MULT" : validLanguage,
+      locale: SUPPORTED_LANGUAGE_COUNTRY.includes(
+        `${validLanguage}_${validCountry}`
+      ) ? `${validLanguage}_${validCountry}` : `${Defaults.language}_${Defaults.country}`
+    };
+  }
+  function resolveOfferSelectors({
+    country,
+    language,
+    perpetual = false,
+    promotionCode = "",
+    wcsOsi = []
+  }) {
+    const { validCountry, validLanguage, locale } = validateLanguageAndLocale(country, language, perpetual);
+    const groupKey = [validCountry, validLanguage, promotionCode].filter((val) => val).join("-").toLowerCase();
+    return wcsOsi.map((osi) => {
+      const cacheKey = `${osi}-${groupKey}`;
+      if (cache.has(cacheKey)) {
+        return cache.get(cacheKey);
+      }
+      const promiseWithFallback = new Promise((resolve, reject) => {
+        let group = queue.get(groupKey);
+        if (!group) {
+          const options = {
+            country: validCountry,
+            locale,
+            ...perpetual ? {} : { language: validLanguage },
+            offerSelectorIds: []
+          };
+          const promises = /* @__PURE__ */ new Map();
+          group = { options, promises };
+          queue.set(groupKey, group);
+        }
+        if (promotionCode) {
+          group.options.promotionCode = promotionCode;
+        }
+        group.options.offerSelectorIds.push(osi);
+        group.promises.set(osi, {
+          resolve,
+          reject
+        });
+        flushQueue();
+      }).catch((error) => {
+        if (staleCache.has(cacheKey)) {
+          return staleCache.get(cacheKey);
+        }
+        throw error;
+      });
+      cache.set(cacheKey, promiseWithFallback);
+      return promiseWithFallback;
+    });
+  }
+  return {
+    Commitment,
+    PlanType,
+    Term,
+    applyPlanType,
+    resolveOfferSelectors,
+    flushWcsCacheInternal,
+    prefillWcsCache,
+    validateLanguageAndLocale
+  };
+}
+
+// src/mas-commerce-service.js
+var TAG_NAME_SERVICE2 = "mas-commerce-service";
+var MARK_START = "mas-commerce-service:start";
+var MEASURE_READY = "mas-commerce-service:ready";
+var _measure, _featureFlags, _MasCommerceService_instances, config_get, getFeatureFlag_fn;
+var MasCommerceService = class extends HTMLElement {
+  constructor() {
+    super(...arguments);
+    __privateAdd(this, _MasCommerceService_instances);
+    __privateAdd(this, _measure);
+    __privateAdd(this, _featureFlags);
+    __publicField(this, "lastLoggingTime", 0);
+  }
+  async registerCheckoutAction(action) {
+    if (typeof action != "function") return;
+    this.buildCheckoutAction = async (offers, options, el) => {
+      const checkoutAction = await action?.(
+        offers,
+        options,
+        this.imsSignedInPromise,
+        el
+      );
+      if (checkoutAction) {
+        return checkoutAction;
+      }
+      return null;
+    };
+  }
+  get featureFlags() {
+    if (!__privateGet(this, _featureFlags)) {
+      __privateSet(this, _featureFlags, {
+        [FF_DEFAULTS]: __privateMethod(this, _MasCommerceService_instances, getFeatureFlag_fn).call(this, FF_DEFAULTS)
+      });
+    }
+    return __privateGet(this, _featureFlags);
+  }
+  activate() {
+    const config2 = __privateGet(this, _MasCommerceService_instances, config_get);
+    const settings = getSettings(config2, this);
+    updateConfig(config2.lana);
+    const log2 = Log.init(config2.hostEnv).module("service");
+    log2.debug("Activating:", config2);
+    const price2 = getPriceLiterals(settings);
+    const literals = { price: price2 };
+    const providers = {
+      checkout: /* @__PURE__ */ new Set(),
+      price: /* @__PURE__ */ new Set()
+    };
+    const startup = { literals, providers, settings };
+    Object.defineProperties(
+      this,
+      Object.getOwnPropertyDescriptors({
+        // Activate modules and expose their API as combined flat object
+        ...Checkout(startup),
+        ...Ims(startup),
+        ...Price(startup),
+        ...Wcs(startup),
+        ...constants_exports,
+        // Defined serviceweb  component API
+        Log,
+        get defaults() {
+          return Defaults;
+        },
+        get log() {
+          return Log;
+        },
+        /* c8 ignore next 11 */
+        get providers() {
+          return {
+            checkout(provider) {
+              providers.checkout.add(provider);
+              return () => providers.checkout.delete(provider);
+            },
+            price(provider) {
+              providers.price.add(provider);
+              return () => providers.price.delete(provider);
+            },
+            has: (providerFunction) => providers.price.has(providerFunction) || providers.checkout.has(providerFunction)
+          };
+        },
+        get settings() {
+          return settings;
+        }
+      })
+    );
+    log2.debug("Activated:", { literals, settings });
+    const event = new CustomEvent(EVENT_TYPE_READY, {
+      bubbles: true,
+      cancelable: false,
+      detail: this
+    });
+    performance.mark(MEASURE_READY);
+    __privateSet(this, _measure, performance.measure(MEASURE_READY, MARK_START));
+    this.dispatchEvent(event);
+    setTimeout(() => {
+      this.logFailedRequests();
+    }, 1e4);
+  }
+  connectedCallback() {
+    performance.mark(MARK_START);
+    this.activate();
+  }
+  flushWcsCache() {
+    this.flushWcsCacheInternal();
+    this.log.debug("Flushed WCS cache");
+  }
+  refreshOffers() {
+    this.flushWcsCacheInternal();
+    document.querySelectorAll(SELECTOR_MAS_ELEMENT).forEach((el) => el.requestUpdate(true));
+    this.log.debug("Refreshed WCS offers");
+    this.logFailedRequests();
+  }
+  refreshFragments() {
+    this.flushWcsCacheInternal();
+    customElements.get("aem-fragment")?.cache.clear();
+    document.querySelectorAll("aem-fragment").forEach((el) => el.refresh(false));
+    this.log.debug("Refreshed AEM fragments");
+    this.logFailedRequests();
+  }
+  get duration() {
+    return {
+      "mas-commerce-service:measure": printMeasure(__privateGet(this, _measure))
+    };
+  }
+  /**
+   * Logs failed network requests related to AEM fragments and WCS commerce artifacts.
+   * Identifies failed resources by checking for zero transfer size, zero duration,
+   * response status less than 200, or response status greater than or equal to 400.
+   * Only logs errors if any of the failed resources are fragment or commerce artifact requests.
+   */
+  /* c8 ignore next 21 */
+  logFailedRequests() {
+    const failedResources = [...performance.getEntriesByType("resource")].filter(({ startTime }) => startTime > this.lastLoggingTime).filter(
+      ({ transferSize, duration, responseStatus }) => transferSize === 0 && duration === 0 && responseStatus < 200 || responseStatus >= 400
+    );
+    const uniqueFailedResources = Array.from(
+      new Map(
+        failedResources.map((resource) => [resource.name, resource])
+      ).values()
+    );
+    if (uniqueFailedResources.some(
+      ({ name }) => /(\/fragment\?|web_commerce_artifact)/.test(name)
+    )) {
+      const failedUrls = uniqueFailedResources.map(({ name }) => name);
+      this.log.error("Failed requests:", {
+        failedUrls,
+        ...this.duration
+      });
+    }
+    this.lastLoggingTime = performance.now().toFixed(3);
+  }
+};
+_measure = new WeakMap();
+_featureFlags = new WeakMap();
+_MasCommerceService_instances = new WeakSet();
+config_get = function() {
+  const env = this.getAttribute("env") ?? "prod";
+  const config2 = {
+    commerce: { env },
+    hostEnv: { name: env },
+    lana: {
+      tags: this.getAttribute("lana-tags"),
+      sampleRate: parseInt(
+        this.getAttribute("lana-sample-rate") ?? 1,
+        10
+      ),
+      isProdDomain: env === "prod"
+    },
+    masIOUrl: this.getAttribute("mas-io-url")
+  };
+  ["locale", "country", "language", "preview"].forEach((attribute) => {
+    const value = this.getAttribute(attribute);
+    if (value) {
+      config2[attribute] = value;
+    }
+  });
+  [
+    "checkout-workflow-step",
+    "force-tax-exclusive",
+    "checkout-client-id",
+    "allow-override",
+    "wcs-api-key"
+  ].forEach((attribute) => {
+    const value = this.getAttribute(attribute);
+    if (value != null) {
+      const camelCaseAttribute = attribute.replace(
+        /-([a-z])/g,
+        (g) => g[1].toUpperCase()
+      );
+      config2.commerce[camelCaseAttribute] = value;
+    }
+  });
+  return config2;
+};
+getFeatureFlag_fn = function(ff) {
+  return ["on", "true", true].includes(
+    this.getAttribute(`data-${ff}`) || getParameter(ff)
+  );
+};
+if (!window.customElements.get(TAG_NAME_SERVICE2)) {
+  window.customElements.define(TAG_NAME_SERVICE2, MasCommerceService);
+}
+
+// src/merch-card-collection.js
+var MERCH_CARD_COLLECTION = "merch-card-collection";
+var MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 2e4;
+var VARIANT_CLASSES = {
+  catalog: ["four-merch-cards"],
+  plans: ["four-merch-cards"],
+  plansThreeColumns: ["three-merch-cards"]
+};
+var SIDENAV_AUTOCLOSE = {
+  plans: true
+};
+var categoryFilter = (elements, { filter }) => elements.filter(
+  (element) => element?.filters && element?.filters.hasOwnProperty(filter)
+);
+var typeFilter = (elements, { types }) => {
+  if (!types) return elements;
+  types = types.split(",");
+  return elements.filter(
+    (element) => types.some((type) => element.types.includes(type))
+  );
+};
+var alphabeticalSorter = (elements) => elements.sort(
+  (a, b) => (a.title ?? "").localeCompare(b.title ?? "", "en", {
+    sensitivity: "base"
+  })
+);
+var authoredSorter = (elements, { filter }) => elements.sort((a, b) => {
+  if (b.filters[filter]?.order == void 0 || isNaN(b.filters[filter]?.order))
+    return -1;
+  if (a.filters[filter]?.order == void 0 || isNaN(a.filters[filter]?.order))
+    return 1;
+  return a.filters[filter].order - b.filters[filter].order;
+});
+var searcher = (elements, { search }) => {
+  if (search?.length) {
+    search = search.toLowerCase();
+    return elements.filter((element) => {
+      const haystack = (element.title ?? "").toLowerCase();
+      return haystack.includes(search);
+    });
+  }
+  return elements;
+};
+var _overrideMap, _service3, _log, _MerchCardCollection_instances, fail_fn;
+var MerchCardCollection = class extends LitElement {
+  constructor() {
+    super();
+    __privateAdd(this, _MerchCardCollection_instances);
+    __privateAdd(this, _overrideMap, {});
+    __privateAdd(this, _service3);
+    __privateAdd(this, _log);
+    this.id = null;
+    this.filter = "all";
+    this.hasMore = false;
+    this.resultCount = void 0;
+    this.displayResult = false;
+    this.data = null;
+    this.variant = null;
+    this.hydrating = false;
+    this.hydrationReady = null;
+    this.literalsHandlerAttached = false;
+  }
+  render() {
+    return html12` <slot></slot>
+            ${this.footer}`;
+  }
+  checkReady() {
+    const aemFragment = this.querySelector("aem-fragment");
+    if (!aemFragment) return Promise.resolve(true);
+    const timeoutPromise = new Promise(
+      (resolve) => setTimeout(
+        () => resolve(false),
+        MERCH_CARD_COLLECTION_LOAD_TIMEOUT
+      )
+    );
+    return Promise.race([this.hydrationReady, timeoutPromise]);
+  }
+  updated(changedProperties) {
+    if (!this.querySelector("merch-card")) return;
+    let lastScrollTop = window.scrollY || document.documentElement.scrollTop;
+    const children = [...this.children].filter(
+      (child) => child.tagName === "MERCH-CARD"
+    );
+    if (children.length === 0) return;
+    if (changedProperties.has("singleApp") && this.singleApp) {
+      children.forEach((card) => {
+        card.updateFilters(card.name === this.singleApp);
+      });
+    }
+    const sorter = this.sort === SORT_ORDER.alphabetical ? alphabeticalSorter : authoredSorter;
+    const reducers = [categoryFilter, typeFilter, searcher, sorter];
+    let result = reducers.reduce((elements, reducer) => reducer(elements, this), children).map((element, index) => [element, index]);
+    this.resultCount = result.length;
+    if (this.page && this.limit) {
+      const pageSize = this.page * this.limit;
+      this.hasMore = result.length > pageSize;
+      result = result.filter(([, index]) => index < pageSize);
+    }
+    let reduced = new Map(result.reverse());
+    for (const card of reduced.keys()) {
+      this.prepend(card);
+    }
+    children.forEach((child) => {
+      if (reduced.has(child)) {
+        child.size = child.filters[this.filter]?.size;
+        child.style.removeProperty("display");
+        child.requestUpdate();
+      } else {
+        child.style.display = "none";
+        child.size = void 0;
+      }
+    });
+    window.scrollTo(0, lastScrollTop);
+    this.updateComplete.then(() => {
+      this.dispatchLiteralsChanged();
+      if (this.sidenav && !this.literalsHandlerAttached) {
+        this.sidenav.addEventListener(
+          EVENT_MERCH_SIDENAV_SELECT,
+          () => {
+            this.dispatchLiteralsChanged();
+          }
+        );
+        this.literalsHandlerAttached = true;
+      }
+    });
+  }
+  dispatchLiteralsChanged() {
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED, {
+        detail: {
+          resultCount: this.resultCount,
+          searchTerm: this.search,
+          filter: this.sidenav?.filters?.selectedText
+        }
+      })
+    );
+  }
+  buildOverrideMap() {
+    __privateSet(this, _overrideMap, {});
+    this.overrides?.split(",").forEach((token) => {
+      const [key, value] = token?.split(":");
+      if (key && value) {
+        __privateGet(this, _overrideMap)[key] = value;
+      }
+    });
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    __privateSet(this, _service3, getService());
+    if (__privateGet(this, _service3)) {
+      __privateSet(this, _log, __privateGet(this, _service3).Log.module(MERCH_CARD_COLLECTION));
+    }
+    this.buildOverrideMap();
+    this.init();
+  }
+  async init() {
+    await this.hydrate();
+    this.sidenav = this.parentElement.querySelector("merch-sidenav");
+    if (this.filtered) {
+      this.filter = this.filtered;
+      this.page = 1;
+    } else {
+      this.startDeeplink();
+    }
+    this.initializePlaceholders();
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopDeeplink?.();
+  }
+  initializeHeader() {
+    const header = document.createElement("merch-card-collection-header");
+    header.collection = this;
+    header.classList.add(this.variant);
+    this.parentElement.insertBefore(header, this);
+    this.header = header;
+    const existingPlaceholders = this.querySelectorAll("[placeholder]");
+    existingPlaceholders.forEach((placeholder) => {
+      const key = placeholder.getAttribute("slot");
+      if (this.header.placeholderKeys.includes(key)) {
+        this.header.append(placeholder);
+      }
+    });
+  }
+  initializePlaceholders() {
+    const placeholders = this.data?.placeholders || {};
+    for (const key of Object.keys(placeholders)) {
+      const value = placeholders[key];
+      const tag = value.includes("<p>") ? "div" : "p";
+      const placeholder = document.createElement(tag);
+      placeholder.setAttribute("slot", key);
+      placeholder.setAttribute("placeholder", "");
+      placeholder.innerHTML = value;
+      this.append(placeholder);
+    }
+  }
+  attachSidenav(sidenav, append = true) {
+    if (!sidenav) return;
+    if (append) this.parentElement.prepend(sidenav);
+    this.sidenav = sidenav;
+    this.sidenav.variant = this.variant;
+    this.sidenav.classList.add(this.variant);
+    if (SIDENAV_AUTOCLOSE[this.variant])
+      this.sidenav.setAttribute("autoclose", "");
+    this.initializeHeader();
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED)
+    );
+  }
+  async hydrate() {
+    if (this.hydrating) return false;
+    const aemFragment = this.querySelector("aem-fragment");
+    if (!aemFragment) return;
+    this.id = aemFragment.getAttribute("fragment");
+    this.hydrating = true;
+    let resolveHydration;
+    this.hydrationReady = new Promise((resolve) => {
+      resolveHydration = resolve;
+    });
+    const self = this;
+    function normalizePayload(fragment, overrideMap) {
+      const payload = {
+        cards: [],
+        hierarchy: [],
+        placeholders: fragment.placeholders
+      };
+      function traverseReferencesTree(root, references) {
+        for (const reference of references) {
+          if (reference.fieldName === "cards") {
+            if (payload.cards.findIndex(
+              (card) => card.id === reference.identifier
+            ) !== -1)
+              continue;
+            payload.cards.push(
+              fragment.references[reference.identifier].value
+            );
+            continue;
+          }
+          const { fields } = fragment.references[reference.identifier].value;
+          const collection = {
+            label: fields.label || "",
+            icon: fields.icon,
+            iconLight: fields.iconLight,
+            queryLabel: fields.queryLabel,
+            cards: fields.cards ? fields.cards.map(
+              (cardId) => overrideMap[cardId] || cardId
+            ) : [],
+            collections: []
+          };
+          if (fields.defaultchild) {
+            collection.defaultchild = overrideMap[fields.defaultchild] || fields.defaultchild;
+          }
+          root.push(collection);
+          traverseReferencesTree(
+            collection.collections,
+            reference.referencesTree
+          );
+        }
+      }
+      traverseReferencesTree(payload.hierarchy, fragment.referencesTree);
+      if (payload.hierarchy.length === 0) {
+        self.filtered = "all";
+      }
+      return payload;
+    }
+    aemFragment.addEventListener(EVENT_AEM_ERROR, (event) => {
+      __privateMethod(this, _MerchCardCollection_instances, fail_fn).call(this, "Error loading AEM fragment", event.detail);
+      this.hydrating = false;
+      aemFragment.remove();
+    });
+    aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
+      this.data = normalizePayload(event.detail, __privateGet(this, _overrideMap));
+      const { cards, hierarchy } = this.data;
+      const rootDefaultChild = hierarchy.length === 0 && event.detail.fields?.defaultchild ? __privateGet(this, _overrideMap)[event.detail.fields.defaultchild] || event.detail.fields.defaultchild : null;
+      aemFragment.cache.add(...cards);
+      const checkDefaultChild = (collections, fragmentId) => {
+        for (const collection of collections) {
+          if (collection.defaultchild === fragmentId) return true;
+          if (collection.collections && checkDefaultChild(collection.collections, fragmentId))
+            return true;
+        }
+        return false;
+      };
+      for (const fragment of cards) {
+        let populateFilters = function(level) {
+          for (const node of level) {
+            const index = node.cards.indexOf(fragmentId);
+            if (index === -1) continue;
+            const name = node.queryLabel ?? node?.label?.toLowerCase() ?? "";
+            merchCard.filters[name] = {
+              order: index + 1,
+              size: fragment.fields.size
+            };
+            populateFilters(node.collections);
+          }
+        };
+        const merchCard = document.createElement("merch-card");
+        const fragmentId = __privateGet(this, _overrideMap)[fragment.id] || fragment.id;
+        merchCard.setAttribute("consonant", "");
+        merchCard.setAttribute("style", "");
+        const variantMapping = getFragmentMapping(
+          fragment.fields.variant
+        );
+        if (variantMapping?.supportsDefaultChild) {
+          const isDefault = rootDefaultChild ? fragmentId === rootDefaultChild : checkDefaultChild(hierarchy, fragmentId);
+          if (isDefault) {
+            merchCard.setAttribute("data-default-card", "true");
+          }
+        }
+        populateFilters(hierarchy);
+        const mcAemFragment = document.createElement("aem-fragment");
+        mcAemFragment.setAttribute("fragment", fragmentId);
+        merchCard.append(mcAemFragment);
+        if (Object.keys(merchCard.filters).length === 0) {
+          merchCard.filters = {
+            all: {
+              order: cards.indexOf(fragment) + 1,
+              size: fragment.fields.size
+            }
+          };
+        }
+        this.append(merchCard);
+      }
+      let nmbOfColumns = "";
+      let variant = normalizeVariant(cards[0]?.fields?.variant);
+      this.variant = variant;
+      if (variant === "plans" && cards.length === 3 && !cards.some((card) => card.fields?.size?.includes("wide")))
+        nmbOfColumns = "ThreeColumns";
+      if (variant) {
+        this.classList.add(
+          "merch-card-collection",
+          variant,
+          ...VARIANT_CLASSES[`${variant}${nmbOfColumns}`] || []
+        );
+      }
+      this.displayResult = true;
+      this.hydrating = false;
+      aemFragment.remove();
+      resolveHydration(true);
+    });
+    await this.hydrationReady;
+  }
+  get footer() {
+    if (this.filtered) return;
+    return html12`<div id="footer">
             <sp-theme color="light" scale="medium">
                 ${this.showMoreButton}
             </sp-theme>
-        </div>`}get showMoreButton(){if(this.hasMore)return fe`<sp-button
+        </div>`;
+  }
+  get showMoreButton() {
+    if (!this.hasMore) return;
+    return html12`<sp-button
             variant="secondary"
             treatment="outline"
             style="order: 1000;"
             @click="${this.showMore}"
         >
             <slot name="showMoreText"></slot>
-        </sp-button>`}sortChanged(r){r.target.value===se.authored?tt({sort:void 0}):tt({sort:r.target.value}),this.dispatchEvent(new CustomEvent(br,{bubbles:!0,composed:!0,detail:{value:r.target.value}}))}async showMore(){this.dispatchEvent(new CustomEvent(vr,{bubbles:!0,composed:!0}));let r=this.page+1;tt({page:r}),this.page=r,await this.updateComplete}startDeeplink(){this.stopDeeplink=Gi(({category:r,filter:i,types:n,sort:a,search:o,single_app:s,page:c})=>{i=i||r,!this.filtered&&i&&i!==this.filter&&setTimeout(()=>{tt({page:void 0}),this.page=1},1),this.filtered||(this.filter=i??this.filter),this.types=n??"",this.search=o??"",this.singleApp=s,this.sort=a,this.page=Number(c)||1})}openFilters(r){this.sidenav?.showModal(r)}};Se=new WeakMap,Qe=new WeakMap,Pt=new WeakMap,dr=new WeakSet,ao=function(r,i={},n=!0){P(this,Pt).error(`merch-card-collection: ${r}`,i),this.failed=!0,n&&this.dispatchEvent(new CustomEvent(Sr,{detail:{...i,message:r},bubbles:!0,composed:!0}))},g(Ze,"properties",{id:{type:String,attribute:"id",reflect:!0},displayResult:{type:Boolean,attribute:"display-result"},filter:{type:String,attribute:"filter",reflect:!0},filtered:{type:String,attribute:"filtered",reflect:!0},hasMore:{type:Boolean},limit:{type:Number,attribute:"limit"},overrides:{type:String},page:{type:Number,attribute:"page",reflect:!0},resultCount:{type:Number},search:{type:String,attribute:"search",reflect:!0},sidenav:{type:Object},singleApp:{type:String,attribute:"single-app",reflect:!0},sort:{type:String,attribute:"sort",default:se.authored,reflect:!0},types:{type:String,attribute:"types",reflect:!0}}),g(Ze,"styles",io`
+        </sp-button>`;
+  }
+  sortChanged(event) {
+    if (event.target.value === SORT_ORDER.authored) {
+      pushState({ sort: void 0 });
+    } else {
+      pushState({ sort: event.target.value });
+    }
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SORT, {
+        bubbles: true,
+        composed: true,
+        detail: {
+          value: event.target.value
+        }
+      })
+    );
+  }
+  async showMore() {
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SHOWMORE, {
+        bubbles: true,
+        composed: true
+      })
+    );
+    const page = this.page + 1;
+    pushState({ page });
+    this.page = page;
+    await this.updateComplete;
+  }
+  startDeeplink() {
+    this.stopDeeplink = deeplink(
+      ({ category, filter, types, sort, search, single_app, page }) => {
+        filter = filter || category;
+        if (!this.filtered && filter && filter !== this.filter) {
+          setTimeout(() => {
+            pushState({ page: void 0 });
+            this.page = 1;
+          }, 1);
+        }
+        if (!this.filtered) {
+          this.filter = filter ?? this.filter;
+        }
+        this.types = types ?? "";
+        this.search = search ?? "";
+        this.singleApp = single_app;
+        this.sort = sort;
+        this.page = Number(page) || 1;
+      }
+    );
+  }
+  openFilters(e) {
+    this.sidenav?.showModal(e);
+  }
+};
+_overrideMap = new WeakMap();
+_service3 = new WeakMap();
+_log = new WeakMap();
+_MerchCardCollection_instances = new WeakSet();
+fail_fn = function(error, details = {}, dispatch = true) {
+  __privateGet(this, _log).error(`merch-card-collection: ${error}`, details);
+  this.failed = true;
+  if (!dispatch) return;
+  this.dispatchEvent(
+    new CustomEvent(EVENT_MAS_ERROR, {
+      detail: { ...details, message: error },
+      bubbles: true,
+      composed: true
+    })
+  );
+};
+__publicField(MerchCardCollection, "properties", {
+  id: { type: String, attribute: "id", reflect: true },
+  displayResult: { type: Boolean, attribute: "display-result" },
+  filter: { type: String, attribute: "filter", reflect: true },
+  filtered: { type: String, attribute: "filtered", reflect: true },
+  // freeze filter
+  hasMore: { type: Boolean },
+  limit: { type: Number, attribute: "limit" },
+  overrides: { type: String },
+  page: { type: Number, attribute: "page", reflect: true },
+  resultCount: {
+    type: Number
+  },
+  search: { type: String, attribute: "search", reflect: true },
+  sidenav: { type: Object },
+  singleApp: { type: String, attribute: "single-app", reflect: true },
+  sort: {
+    type: String,
+    attribute: "sort",
+    default: SORT_ORDER.authored,
+    reflect: true
+  },
+  types: { type: String, attribute: "types", reflect: true }
+});
+__publicField(MerchCardCollection, "styles", css9`
         #footer {
             grid-column: 1 / -1;
             justify-self: stretch;
@@ -2493,15 +11111,147 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         sp-theme {
             display: contents;
         }
-    `);Ze.SortOrder=se;customElements.define(no,Ze);var qc={filters:["noResultText","resultText","resultsText"],filtersMobile:["noResultText","resultMobileText","resultsMobileText"],search:["noSearchResultsText","searchResultText","searchResultsText"],searchMobile:["noSearchResultsMobileText","searchResultMobileText","searchResultsMobileText"]},Wc=(e,t,r)=>{e.querySelectorAll(`[data-placeholder="${t}"]`).forEach(n=>{n.innerText=r||""})},Yc={search:["mobile","tablet"],filter:["mobile","tablet"],sort:!0,result:!0,custom:!1},Xc={catalog:"l"},K,Je,_t=class extends ro{constructor(){super();z(this,K);z(this,Je);g(this,"tablet",new et(this,k));g(this,"desktop",new et(this,N));this.collection=null,V(this,K,{search:!1,filter:!1,sort:!1,result:!1,custom:!1}),this.updateLiterals=this.updateLiterals.bind(this),this.handleSidenavAttached=this.handleSidenavAttached.bind(this)}connectedCallback(){super.connectedCallback(),this.collection?.addEventListener(rt,this.updateLiterals),this.collection?.addEventListener(it,this.handleSidenavAttached),V(this,Je,customElements.get("merch-card"))}disconnectedCallback(){super.disconnectedCallback(),this.collection?.removeEventListener(rt,this.updateLiterals),this.collection?.removeEventListener(it,this.handleSidenavAttached)}willUpdate(){P(this,K).search=this.getVisibility("search"),P(this,K).filter=this.getVisibility("filter"),P(this,K).sort=this.getVisibility("sort"),P(this,K).result=this.getVisibility("result"),P(this,K).custom=this.getVisibility("custom")}parseVisibilityOptions(r,i){if(!r||!Object.hasOwn(r,i))return null;let n=r[i];return n===!1?!1:n===!0?!0:n.includes(this.currentMedia)}getVisibility(r){let i=P(this,Je).getCollectionOptions(this.collection?.variant)?.headerVisibility,n=this.parseVisibilityOptions(i,r);return n!==null?n:this.parseVisibilityOptions(Yc,r)}get sidenav(){return this.collection?.sidenav}get search(){return this.collection?.search}get resultCount(){return this.collection?.resultCount}get variant(){return this.collection?.variant}get isMobile(){return!this.isTablet&&!this.isDesktop}get isTablet(){return this.tablet.matches&&!this.desktop.matches}get isDesktop(){return this.desktop.matches}get currentMedia(){return this.isDesktop?"desktop":this.isTablet?"tablet":"mobile"}get searchAction(){if(!P(this,K).search)return ce;let r=ot(this,"searchText");return r?fe`
+    `);
+MerchCardCollection.SortOrder = SORT_ORDER;
+customElements.define(MERCH_CARD_COLLECTION, MerchCardCollection);
+var RESULT_TEXT_SLOT_NAMES = {
+  // no search
+  filters: ["noResultText", "resultText", "resultsText"],
+  filtersMobile: ["noResultText", "resultMobileText", "resultsMobileText"],
+  // search on desktop
+  search: ["noSearchResultsText", "searchResultText", "searchResultsText"],
+  // search on mobile
+  searchMobile: [
+    "noSearchResultsMobileText",
+    "searchResultMobileText",
+    "searchResultsMobileText"
+  ]
+};
+var updatePlaceholders = (el, key, value) => {
+  const placeholders = el.querySelectorAll(`[data-placeholder="${key}"]`);
+  placeholders.forEach((placeholder) => {
+    placeholder.innerText = value || "";
+  });
+};
+var defaultVisibility = {
+  search: ["mobile", "tablet"],
+  filter: ["mobile", "tablet"],
+  sort: true,
+  result: true,
+  custom: false
+};
+var SEARCH_SIZE = {
+  catalog: "l"
+};
+var _visibility, _merchCardElement;
+var MerchCardCollectionHeader = class extends LitElement {
+  constructor() {
+    super();
+    __privateAdd(this, _visibility);
+    __privateAdd(this, _merchCardElement);
+    __publicField(this, "tablet", new MatchMediaController(this, TABLET_UP));
+    __publicField(this, "desktop", new MatchMediaController(this, DESKTOP_UP));
+    this.collection = null;
+    __privateSet(this, _visibility, {
+      search: false,
+      filter: false,
+      sort: false,
+      result: false,
+      custom: false
+    });
+    this.updateLiterals = this.updateLiterals.bind(this);
+    this.handleSidenavAttached = this.handleSidenavAttached.bind(this);
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.collection?.addEventListener(
+      EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+      this.updateLiterals
+    );
+    this.collection?.addEventListener(
+      EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+      this.handleSidenavAttached
+    );
+    __privateSet(this, _merchCardElement, customElements.get("merch-card"));
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.collection?.removeEventListener(
+      EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+      this.updateLiterals
+    );
+    this.collection?.removeEventListener(
+      EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+      this.handleSidenavAttached
+    );
+  }
+  willUpdate() {
+    __privateGet(this, _visibility).search = this.getVisibility("search");
+    __privateGet(this, _visibility).filter = this.getVisibility("filter");
+    __privateGet(this, _visibility).sort = this.getVisibility("sort");
+    __privateGet(this, _visibility).result = this.getVisibility("result");
+    __privateGet(this, _visibility).custom = this.getVisibility("custom");
+  }
+  parseVisibilityOptions(visibility, type) {
+    if (!visibility) return null;
+    if (!Object.hasOwn(visibility, type)) return null;
+    const typeVisibility = visibility[type];
+    if (typeVisibility === false) return false;
+    if (typeVisibility === true) return true;
+    return typeVisibility.includes(this.currentMedia);
+  }
+  getVisibility(type) {
+    const visibility = __privateGet(this, _merchCardElement).getCollectionOptions(
+      this.collection?.variant
+    )?.headerVisibility;
+    const typeVisibility = this.parseVisibilityOptions(visibility, type);
+    if (typeVisibility !== null) return typeVisibility;
+    return this.parseVisibilityOptions(defaultVisibility, type);
+  }
+  get sidenav() {
+    return this.collection?.sidenav;
+  }
+  get search() {
+    return this.collection?.search;
+  }
+  get resultCount() {
+    return this.collection?.resultCount;
+  }
+  get variant() {
+    return this.collection?.variant;
+  }
+  get isMobile() {
+    return !this.isTablet && !this.isDesktop;
+  }
+  get isTablet() {
+    return this.tablet.matches && !this.desktop.matches;
+  }
+  get isDesktop() {
+    return this.desktop.matches;
+  }
+  get currentMedia() {
+    if (this.isDesktop) return "desktop";
+    if (this.isTablet) return "tablet";
+    return "mobile";
+  }
+  get searchAction() {
+    if (!__privateGet(this, _visibility).search) return nothing3;
+    const searchPlaceholder = getSlotText(this, "searchText");
+    if (!searchPlaceholder) return nothing3;
+    return html12`
             <merch-search deeplink="search" id="search">
                 <sp-search
                     id="search-bar"
-                    placeholder="${r}"
-                    .size=${Xc[this.variant]}
+                    placeholder="${searchPlaceholder}"
+                    .size=${SEARCH_SIZE[this.variant]}
                 ></sp-search>
             </merch-search>
-        `:ce}get filterAction(){return P(this,K).filter?this.sidenav?fe`
+        `;
+  }
+  get filterAction() {
+    if (!__privateGet(this, _visibility).filter) return nothing3;
+    if (!this.sidenav) return nothing3;
+    return html12`
             <sp-action-button
                 id="filter"
                 variant="secondary"
@@ -2509,41 +11259,113 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
                 @click="${this.openFilters}"
                 ><slot name="filtersText"></slot
             ></sp-action-button>
-        `:ce:ce}get sortAction(){if(!P(this,K).sort)return ce;let r=ot(this,"sortText");if(!r)return;let i=ot(this,"popularityText"),n=ot(this,"alphabeticallyText");if(!(i&&n))return;let a=this.collection?.sort===se.alphabetical;return fe`
+        `;
+  }
+  get sortAction() {
+    if (!__privateGet(this, _visibility).sort) return nothing3;
+    const sortText = getSlotText(this, "sortText");
+    if (!sortText) return;
+    const popularityText = getSlotText(this, "popularityText");
+    const alphabeticallyText = getSlotText(this, "alphabeticallyText");
+    if (!(popularityText && alphabeticallyText)) return;
+    const alphabetical = this.collection?.sort === SORT_ORDER.alphabetical;
+    return html12`
             <sp-action-menu
                 id="sort"
                 size="m"
                 @change="${this.collection?.sortChanged}"
                 selects="single"
-                value="${a?se.alphabetical:se.authored}"
+                value="${alphabetical ? SORT_ORDER.alphabetical : SORT_ORDER.authored}"
             >
                 <span slot="label-only"
-                    >${r}:
-                    ${a?n:i}</span
+                    >${sortText}:
+                    ${alphabetical ? alphabeticallyText : popularityText}</span
                 >
-                <sp-menu-item value="${se.authored}"
-                    >${i}</sp-menu-item
+                <sp-menu-item value="${SORT_ORDER.authored}"
+                    >${popularityText}</sp-menu-item
                 >
-                <sp-menu-item value="${se.alphabetical}"
-                    >${n}</sp-menu-item
+                <sp-menu-item value="${SORT_ORDER.alphabetical}"
+                    >${alphabeticallyText}</sp-menu-item
                 >
             </sp-action-menu>
-        `}get resultSlotName(){let r=`${this.search?"search":"filters"}${this.isMobile||this.isTablet?"Mobile":""}`;return qc[r][Math.min(this.resultCount,2)]}get resultLabel(){if(!P(this,K).result)return ce;if(!this.sidenav)return ce;let r=this.search?"search":"filter",i=this.resultCount?this.resultCount===1?"single":"multiple":"none";return fe` <div
+        `;
+  }
+  get resultSlotName() {
+    const slotType = `${this.search ? "search" : "filters"}${this.isMobile || this.isTablet ? "Mobile" : ""}`;
+    return RESULT_TEXT_SLOT_NAMES[slotType][Math.min(this.resultCount, 2)];
+  }
+  get resultLabel() {
+    if (!__privateGet(this, _visibility).result) return nothing3;
+    if (!this.sidenav) return nothing3;
+    const type = this.search ? "search" : "filter";
+    const quantity = !this.resultCount ? "none" : this.resultCount === 1 ? "single" : "multiple";
+    return html12` <div
             id="result"
             aria-live="polite"
-            type=${r}
-            quantity=${i}
+            type=${type}
+            quantity=${quantity}
         >
             <slot name="${this.resultSlotName}"></slot>
-        </div>`}get customArea(){if(!P(this,K).custom)return ce;let r=P(this,Je).getCollectionOptions(this.collection?.variant)?.customHeaderArea;if(!r)return ce;let i=r(this.collection);return!i||i===ce?ce:fe`<div id="custom" role="heading" aria-level="2">
-            ${i}
-        </div>`}openFilters(r){this.sidenav.showModal(r)}updateLiterals(r){Object.keys(r.detail).forEach(i=>{Wc(this,i,r.detail[i])}),this.requestUpdate()}handleSidenavAttached(){this.requestUpdate()}render(){return fe`
+        </div>`;
+  }
+  get customArea() {
+    if (!__privateGet(this, _visibility).custom) return nothing3;
+    const customHeaderAreaGetter = __privateGet(this, _merchCardElement).getCollectionOptions(
+      this.collection?.variant
+    )?.customHeaderArea;
+    if (!customHeaderAreaGetter) return nothing3;
+    const customHeaderArea = customHeaderAreaGetter(this.collection);
+    if (!customHeaderArea || customHeaderArea === nothing3) return nothing3;
+    return html12`<div id="custom" role="heading" aria-level="2">
+            ${customHeaderArea}
+        </div>`;
+  }
+  // #region Handlers
+  openFilters(event) {
+    this.sidenav.showModal(event);
+  }
+  updateLiterals(event) {
+    Object.keys(event.detail).forEach((key) => {
+      updatePlaceholders(this, key, event.detail[key]);
+    });
+    this.requestUpdate();
+  }
+  handleSidenavAttached() {
+    this.requestUpdate();
+  }
+  render() {
+    return html12`
             <sp-theme color="light" scale="medium">
                 <div id="header">
                     ${this.searchAction}${this.filterAction}${this.sortAction}${this.resultLabel}${this.customArea}
                 </div>
             </sp-theme>
-        `}get placeholderKeys(){return["searchText","filtersText","sortText","popularityText","alphabeticallyText","noResultText","resultText","resultsText","resultMobileText","resultsMobileText","noSearchResultsText","searchResultText","searchResultsText","noSearchResultsMobileText","searchResultMobileText","searchResultsMobileText"]}};K=new WeakMap,Je=new WeakMap,g(_t,"styles",io`
+        `;
+  }
+  get placeholderKeys() {
+    return [
+      "searchText",
+      "filtersText",
+      "sortText",
+      "popularityText",
+      "alphabeticallyText",
+      "noResultText",
+      "resultText",
+      "resultsText",
+      "resultMobileText",
+      "resultsMobileText",
+      "noSearchResultsText",
+      "searchResultText",
+      "searchResultsText",
+      "noSearchResultsMobileText",
+      "searchResultMobileText",
+      "searchResultsMobileText"
+    ];
+  }
+};
+_visibility = new WeakMap();
+_merchCardElement = new WeakMap();
+__publicField(MerchCardCollectionHeader, "styles", css9`
         :host {
             --merch-card-collection-header-max-width: var(
                 --merch-card-collection-card-width
@@ -2640,7 +11462,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         }
 
         /* tablets */
-        @media screen and ${to(k)} {
+        @media screen and ${unsafeCSS2(TABLET_UP)} {
             :host {
                 --merch-card-collection-header-max-width: auto;
                 --merch-card-collection-header-columns: 1fr fit-content(100%)
@@ -2651,11 +11473,20 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         }
 
         /* Laptop */
-        @media screen and ${to(N)} {
+        @media screen and ${unsafeCSS2(DESKTOP_UP)} {
             :host {
                 --merch-card-collection-header-columns: 1fr fit-content(100%);
                 --merch-card-collection-header-areas: 'result sort';
                 --merch-card-collection-header-result-font-size: inherit;
             }
         }
-    `);customElements.define("merch-card-collection-header",_t);export{Ze as MerchCardCollection,_t as default};
+    `);
+customElements.define(
+  "merch-card-collection-header",
+  MerchCardCollectionHeader
+);
+export {
+  MerchCardCollection,
+  MerchCardCollectionHeader as default
+};
+//# sourceMappingURL=merch-card-collection.js.map

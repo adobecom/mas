@@ -9,7 +9,7 @@ import {
     SUPPORTED_LANGUAGE_COUNTRY,
 } from './constants.js';
 import { Defaults } from './defaults.js';
-import { Env, CheckoutWorkflow, CheckoutWorkflowStep } from './constants.js';
+import { Env, CheckoutWorkflowStep } from './constants.js';
 
 import { getParameter, toBoolean, toEnumeration } from '@dexter/tacocat-core';
 

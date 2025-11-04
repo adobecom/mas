@@ -1,10 +1,418 @@
-var L=Object.defineProperty;var k=(o,e,t)=>e in o?L(o,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):o[e]=t;var r=(o,e,t)=>k(o,typeof e!="symbol"?e+"":e,t);import{html as x,css as z,LitElement as B,nothing as N}from"/deps/lit-all.min.js";var d=class{constructor(e,t){this.key=Symbol("match-media-key"),this.matches=!1,this.host=e,this.host.addController(this),this.media=window.matchMedia(t),this.matches=this.media.matches,this.onChange=this.onChange.bind(this),e.addController(this)}hostConnected(){var e;(e=this.media)==null||e.addEventListener("change",this.onChange)}hostDisconnected(){var e;(e=this.media)==null||e.removeEventListener("change",this.onChange)}onChange(e){this.matches!==e.matches&&(this.matches=e.matches,this.host.requestUpdate(this.key,!this.matches))}};import{html as P,LitElement as y}from"/deps/lit-all.min.js";var Z=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),j=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var D='span[is="inline-price"][data-wcs-osi]',w='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var I='a[is="upt-link"]',X=`${D},${w},${I}`;var A="merch-search:change";var h="merch-sidenav:select";var Q=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var J=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});function u(o,e){let t;return function(){let s=this,i=arguments;clearTimeout(t),t=setTimeout(()=>o.apply(s,i),e)}}function T(o,e={},t=null,s=null){let i=s?document.createElement(o,{is:s}):document.createElement(o);t instanceof HTMLElement?i.appendChild(t):i.innerHTML=t;for(let[n,a]of Object.entries(e))i.setAttribute(n,a);return i}function M(o){if(!window.history.pushState)return;let e=new URL(window.location.href);e.search=`?${o}`,window.history.pushState({path:e.href},"",e.href)}function v(o,e){let t=new URLSearchParams(window.location.hash.slice(1));t.set(o,e),window.location.hash=t.toString()}function S(o=[]){o.forEach(e=>{let t=new URLSearchParams(window.location.search),s=t.get(e);s&&(window.location.hash.includes(`${e}=`)?v(e,s):window.location.hash=window.location.hash?`${window.location.hash}&${e}=${s}`:`${e}=${s}`,t.delete(e),M(t.toString()))})}var f="hashchange";function g(o=window.location.hash){let e=[],t=o.replace(/^#/,"").split("&");for(let s of t){let[i,n=""]=s.split("=");i&&e.push([i,decodeURIComponent(n.replace(/\+/g," "))])}return Object.fromEntries(e)}function c(o,e){if(o.deeplink){let t={};t[o.deeplink]=e,O(t)}}function O(o){let e=new URLSearchParams(window.location.hash.slice(1));Object.entries(o).forEach(([i,n])=>{n?e.set(i,n):e.delete(i)}),e.sort();let t=e.toString();if(t===window.location.hash)return;let s=window.scrollY||document.documentElement.scrollTop;window.location.hash=t,window.scrollTo(0,s)}function l(o){let e=()=>{if(window.location.hash&&!window.location.hash.includes("="))return;let t=g(window.location.hash);o(t)};return e(),window.addEventListener(f,e),()=>{window.removeEventListener(f,e)}}var _=class extends y{get search(){return this.querySelector("sp-search")}constructor(){super(),this.handleInput=()=>{c(this,this.search.value),this.search.value&&this.dispatchEvent(new CustomEvent(A,{bubbles:!0,composed:!0,detail:{type:"search",value:this.search.value}}))},this.handleInputDebounced=u(this.handleInput.bind(this))}connectedCallback(){super.connectedCallback(),this.search&&(this.search.addEventListener("input",this.handleInputDebounced),this.search.addEventListener("submit",this.handleInputSubmit),this.updateComplete.then(()=>{this.setStateFromURL()}),this.startDeeplink())}disconnectedCallback(){super.disconnectedCallback(),this.search.removeEventListener("input",this.handleInputDebounced),this.search.removeEventListener("submit",this.handleInputSubmit),this.stopDeeplink?.()}setStateFromURL(){let t=g()[this.deeplink];t&&(this.search.value=t)}startDeeplink(){this.stopDeeplink=l(({search:e})=>{this.search.value=e??""})}handleInputSubmit(e){e.preventDefault()}render(){return P`<slot></slot>`}};r(_,"properties",{deeplink:{type:String}});customElements.define("merch-search",_);import{html as b,LitElement as H,css as U,nothing as V}from"/deps/lit-all.min.js";var p=class extends H{constructor(){super(),this.toggleIconColor=!1,this.handleClickDebounced=u(this.handleClick.bind(this))}selectElement(e,t=!0){e.selected=t,e.parentNode.tagName==="SP-SIDENAV-ITEM"&&this.selectElement(e.parentNode,!1);let s=e.querySelector(".selection");s?.setAttribute("selected",t);let i=s?.dataset,n=t&&this.toggleIconColor?i?.light:i?.dark;n&&e.querySelector("img")?.setAttribute("src",n),t&&(this.selectedElement=e,this.selectedText=i?.selectedText||e.label,this.selectedValue=e.value,setTimeout(()=>{e.selected=!0},1),this.dispatchEvent(new CustomEvent(h,{bubbles:!0,composed:!0,detail:{type:"sidenav",value:this.selectedValue,elt:this.selectedElement}})))}markCurrentItem(e){let t=e.closest("sp-sidenav");t&&(t.querySelectorAll("sp-sidenav-item[aria-current]").forEach(s=>{s.removeAttribute("aria-current")}),e.setAttribute("aria-current","true"))}handleClick({target:e},t=!0){let{value:s,parentNode:i}=e;this.selectElement(e),this.markCurrentItem(e),i?.tagName==="SP-SIDENAV"?(i.querySelectorAll("sp-sidenav-item[expanded],sp-sidenav-item[selected]").forEach(n=>{n.value!==s&&(n.expanded=!1,n.removeAttribute("aria-expanded"),this.selectElement(n,!1))}),i.querySelectorAll(".selection[selected=true]").forEach(n=>{let a=n.parentElement;a.value!==s&&this.selectElement(a,!1)})):i?.tagName==="SP-SIDENAV-ITEM"&&([...i.closest("sp-sidenav")?.querySelectorAll(":scope > sp-sidenav-item")].filter(a=>a!==i).forEach(a=>{a.expanded=!1,a.removeAttribute("aria-expanded")}),i.closest("sp-sidenav")?.querySelectorAll("sp-sidenav-item[selected]").forEach(a=>{a.value!==s&&this.selectElement(a,!1)})),t&&c(this,s)}selectionChanged(e){let{target:{value:t,parentNode:s}}=e;this.selectElement(this.querySelector(`sp-sidenav-item[value="${t}"]`)),c(this,t)}startDeeplink(){this.stopDeeplink=l(e=>{let t=e[this.deeplink]??"all",s=this.querySelector(`sp-sidenav-item[value="${t}"]`);s||(s=this.querySelector("sp-sidenav-item:first-child"),v(this.deeplink,s.value)),this.updateComplete.then(()=>{s.firstElementChild?.tagName==="SP-SIDENAV-ITEM"&&(s.expanded=!0,s.setAttribute("aria-expanded","true")),s.parentNode?.tagName==="SP-SIDENAV-ITEM"&&(s.parentNode.expanded=!0,s.parentNode.setAttribute("aria-expanded","true")),this.handleClick({target:s},!!window.location.hash.includes("category"))})})}connectedCallback(){super.connectedCallback(),this.addEventListener("click",this.handleClickDebounced),this.updateComplete.then(()=>{this.deeplink&&(S(["filter","single_app"]),this.startDeeplink())})}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener("click",this.handleClickDebounced),this.stopDeeplink?.()}render(){return b`<div
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+// src/sidenav/merch-sidenav.js
+import { html as html4, css as css3, LitElement as LitElement4, nothing as nothing2 } from "/deps/lit-all.min.js";
+
+// node_modules/@spectrum-web-components/reactive-controllers/src/MatchMedia.js
+var MatchMediaController = class {
+  constructor(e, t) {
+    this.key = Symbol("match-media-key");
+    this.matches = false;
+    this.host = e, this.host.addController(this), this.media = window.matchMedia(t), this.matches = this.media.matches, this.onChange = this.onChange.bind(this), e.addController(this);
+  }
+  hostConnected() {
+    var e;
+    (e = this.media) == null || e.addEventListener("change", this.onChange);
+  }
+  hostDisconnected() {
+    var e;
+    (e = this.media) == null || e.removeEventListener("change", this.onChange);
+  }
+  onChange(e) {
+    this.matches !== e.matches && (this.matches = e.matches, this.host.requestUpdate(this.key, !this.matches));
+  }
+};
+
+// src/merch-search.js
+import { html, LitElement } from "/deps/lit-all.min.js";
+
+// src/constants.js
+var Commitment = Object.freeze({
+  MONTH: "MONTH",
+  YEAR: "YEAR",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  PERPETUAL: "PERPETUAL",
+  TERM_LICENSE: "TERM_LICENSE",
+  ACCESS_PASS: "ACCESS_PASS",
+  THREE_MONTHS: "THREE_MONTHS",
+  SIX_MONTHS: "SIX_MONTHS"
+});
+var Term = Object.freeze({
+  ANNUAL: "ANNUAL",
+  MONTHLY: "MONTHLY",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  P1D: "P1D",
+  P1Y: "P1Y",
+  P3Y: "P3Y",
+  P10Y: "P10Y",
+  P15Y: "P15Y",
+  P3D: "P3D",
+  P7D: "P7D",
+  P30D: "P30D",
+  HALF_YEARLY: "HALF_YEARLY",
+  QUARTERLY: "QUARTERLY"
+});
+var SELECTOR_MAS_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
+var SELECTOR_MAS_CHECKOUT_LINK = 'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';
+var SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
+var SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
+var EVENT_MERCH_SEARCH_CHANGE = "merch-search:change";
+var EVENT_MERCH_SIDENAV_SELECT = "merch-sidenav:select";
+var CheckoutWorkflowStep = Object.freeze({
+  SEGMENTATION: "segmentation",
+  BUNDLE: "bundle",
+  COMMITMENT: "commitment",
+  RECOMMENDATION: "recommendation",
+  EMAIL: "email",
+  PAYMENT: "payment",
+  CHANGE_PLAN_TEAM_PLANS: "change-plan/team-upgrade/plans",
+  CHANGE_PLAN_TEAM_PAYMENT: "change-plan/team-upgrade/payment"
+});
+var Env = Object.freeze({
+  STAGE: "STAGE",
+  PRODUCTION: "PRODUCTION",
+  LOCAL: "LOCAL"
+});
+
+// src/utils.js
+function debounce(func, delay) {
+  let debounceTimer;
+  return function() {
+    const context = this;
+    const args = arguments;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => func.apply(context, args), delay);
+  };
+}
+function createTag(tag, attributes = {}, content = null, is = null) {
+  const element = is ? document.createElement(tag, { is }) : document.createElement(tag);
+  if (content instanceof HTMLElement) {
+    element.appendChild(content);
+  } else {
+    element.innerHTML = content;
+  }
+  for (const [key, value] of Object.entries(attributes)) {
+    element.setAttribute(key, value);
+  }
+  return element;
+}
+function historyPushState(queryParams) {
+  if (!window.history.pushState) return;
+  const newURL = new URL(window.location.href);
+  newURL.search = `?${queryParams}`;
+  window.history.pushState({ path: newURL.href }, "", newURL.href);
+}
+function updateHash(key, value) {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  hash.set(key, value);
+  window.location.hash = hash.toString();
+}
+function paramsToHash(keys = []) {
+  keys.forEach((key) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const value = urlParams.get(key);
+    if (!value) return;
+    if (window.location.hash.includes(`${key}=`)) {
+      updateHash(key, value);
+    } else {
+      window.location.hash = window.location.hash ? `${window.location.hash}&${key}=${value}` : `${key}=${value}`;
+    }
+    urlParams.delete(key);
+    historyPushState(urlParams.toString());
+  });
+}
+
+// src/deeplink.js
+var EVENT_HASHCHANGE = "hashchange";
+function parseState(hash = window.location.hash) {
+  const result = [];
+  const keyValuePairs = hash.replace(/^#/, "").split("&");
+  for (const pair of keyValuePairs) {
+    const [key, value = ""] = pair.split("=");
+    if (key) {
+      result.push([key, decodeURIComponent(value.replace(/\+/g, " "))]);
+    }
+  }
+  return Object.fromEntries(result);
+}
+function pushStateFromComponent(component, value) {
+  if (component.deeplink) {
+    const state = {};
+    state[component.deeplink] = value;
+    pushState(state);
+  }
+}
+function pushState(state) {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  Object.entries(state).forEach(([key, value2]) => {
+    if (value2) {
+      hash.set(key, value2);
+    } else {
+      hash.delete(key);
+    }
+  });
+  hash.sort();
+  const value = hash.toString();
+  if (value === window.location.hash) return;
+  let lastScrollTop = window.scrollY || document.documentElement.scrollTop;
+  window.location.hash = value;
+  window.scrollTo(0, lastScrollTop);
+}
+function deeplink(callback) {
+  const handler = () => {
+    if (window.location.hash && !window.location.hash.includes("=")) return;
+    const state = parseState(window.location.hash);
+    callback(state);
+  };
+  handler();
+  window.addEventListener(EVENT_HASHCHANGE, handler);
+  return () => {
+    window.removeEventListener(EVENT_HASHCHANGE, handler);
+  };
+}
+
+// src/merch-search.js
+var MerchSearch = class extends LitElement {
+  get search() {
+    return this.querySelector(`sp-search`);
+  }
+  constructor() {
+    super();
+    this.handleInput = () => {
+      pushStateFromComponent(this, this.search.value);
+      if (this.search.value) {
+        this.dispatchEvent(
+          new CustomEvent(EVENT_MERCH_SEARCH_CHANGE, {
+            bubbles: true,
+            composed: true,
+            detail: {
+              type: "search",
+              value: this.search.value
+            }
+          })
+        );
+      }
+    };
+    this.handleInputDebounced = debounce(this.handleInput.bind(this));
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    if (!this.search) return;
+    this.search.addEventListener("input", this.handleInputDebounced);
+    this.search.addEventListener("submit", this.handleInputSubmit);
+    this.updateComplete.then(() => {
+      this.setStateFromURL();
+    });
+    this.startDeeplink();
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.search.removeEventListener("input", this.handleInputDebounced);
+    this.search.removeEventListener("submit", this.handleInputSubmit);
+    this.stopDeeplink?.();
+  }
+  /*
+   * set the state of the search based on the URL
+   */
+  setStateFromURL() {
+    const state = parseState();
+    const value = state[this.deeplink];
+    if (value) {
+      this.search.value = value;
+    }
+  }
+  startDeeplink() {
+    this.stopDeeplink = deeplink(({ search }) => {
+      this.search.value = search ?? "";
+    });
+  }
+  handleInputSubmit(event) {
+    event.preventDefault();
+  }
+  render() {
+    return html`<slot></slot>`;
+  }
+};
+__publicField(MerchSearch, "properties", {
+  deeplink: { type: String }
+});
+customElements.define("merch-search", MerchSearch);
+
+// src/sidenav/merch-sidenav-list.js
+import { html as html2, LitElement as LitElement2, css, nothing } from "/deps/lit-all.min.js";
+var MerchSidenavList = class extends LitElement2 {
+  constructor() {
+    super();
+    this.toggleIconColor = false;
+    this.handleClickDebounced = debounce(this.handleClick.bind(this));
+  }
+  selectElement(element, selected = true) {
+    element.selected = selected;
+    if (element.parentNode.tagName === "SP-SIDENAV-ITEM") {
+      this.selectElement(element.parentNode, false);
+    }
+    const selectionElement = element.querySelector(".selection");
+    selectionElement?.setAttribute("selected", selected);
+    const selection = selectionElement?.dataset;
+    const iconSrc = selected && this.toggleIconColor ? selection?.light : selection?.dark;
+    if (iconSrc) {
+      element.querySelector("img")?.setAttribute("src", iconSrc);
+    }
+    if (selected) {
+      this.selectedElement = element;
+      this.selectedText = selection?.selectedText || element.label;
+      this.selectedValue = element.value;
+      setTimeout(() => {
+        element.selected = true;
+      }, 1);
+      this.dispatchEvent(
+        new CustomEvent(EVENT_MERCH_SIDENAV_SELECT, {
+          bubbles: true,
+          composed: true,
+          detail: {
+            type: "sidenav",
+            value: this.selectedValue,
+            elt: this.selectedElement
+          }
+        })
+      );
+    }
+  }
+  markCurrentItem(element) {
+    const sidenav = element.closest("sp-sidenav");
+    if (!sidenav) return;
+    sidenav.querySelectorAll("sp-sidenav-item[aria-current]").forEach((currentItem) => {
+      currentItem.removeAttribute("aria-current");
+    });
+    element.setAttribute("aria-current", "true");
+  }
+  /**
+   * click handler to manage first level items state of sidenav
+   * @param {*} param
+   */
+  handleClick({ target: item }, shouldUpdateHash = true) {
+    const { value, parentNode } = item;
+    this.selectElement(item);
+    this.markCurrentItem(item);
+    if (parentNode?.tagName === "SP-SIDENAV") {
+      parentNode.querySelectorAll(
+        "sp-sidenav-item[expanded],sp-sidenav-item[selected]"
+      ).forEach((item2) => {
+        if (item2.value !== value) {
+          item2.expanded = false;
+          item2.removeAttribute("aria-expanded");
+          this.selectElement(item2, false);
+        }
+      });
+      parentNode.querySelectorAll(".selection[selected=true]").forEach((selection) => {
+        const item2 = selection.parentElement;
+        if (item2.value !== value) {
+          this.selectElement(item2, false);
+        }
+      });
+    } else if (parentNode?.tagName === "SP-SIDENAV-ITEM") {
+      const topLevelItems = parentNode.closest("sp-sidenav")?.querySelectorAll(":scope > sp-sidenav-item");
+      [...topLevelItems].filter((item2) => item2 !== parentNode).forEach((item2) => {
+        item2.expanded = false;
+        item2.removeAttribute("aria-expanded");
+      });
+      parentNode.closest("sp-sidenav")?.querySelectorAll("sp-sidenav-item[selected]").forEach((item2) => {
+        if (item2.value !== value) {
+          this.selectElement(item2, false);
+        }
+      });
+    }
+    if (shouldUpdateHash) {
+      pushStateFromComponent(this, value);
+    }
+  }
+  /**
+   * leaf level item selection handler
+   * @param {*} event
+   */
+  selectionChanged(event) {
+    const {
+      target: { value, parentNode }
+    } = event;
+    this.selectElement(
+      this.querySelector(`sp-sidenav-item[value="${value}"]`)
+    );
+    pushStateFromComponent(this, value);
+  }
+  startDeeplink() {
+    this.stopDeeplink = deeplink((params) => {
+      const value = params[this.deeplink] ?? "all";
+      let element = this.querySelector(
+        `sp-sidenav-item[value="${value}"]`
+      );
+      if (!element) {
+        element = this.querySelector("sp-sidenav-item:first-child");
+        updateHash(this.deeplink, element.value);
+      }
+      this.updateComplete.then(() => {
+        if (element.firstElementChild?.tagName === "SP-SIDENAV-ITEM") {
+          element.expanded = true;
+          element.setAttribute("aria-expanded", "true");
+        }
+        if (element.parentNode?.tagName === "SP-SIDENAV-ITEM") {
+          element.parentNode.expanded = true;
+          element.parentNode.setAttribute("aria-expanded", "true");
+        }
+        this.handleClick(
+          { target: element },
+          !!window.location.hash.includes("category")
+        );
+      });
+    });
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener("click", this.handleClickDebounced);
+    this.updateComplete.then(() => {
+      if (!this.deeplink) return;
+      paramsToHash(["filter", "single_app"]);
+      this.startDeeplink();
+    });
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener("click", this.handleClickDebounced);
+    this.stopDeeplink?.();
+  }
+  render() {
+    return html2`<div
             aria-label="${this.label}"
-            @change="${e=>this.selectionChanged(e)}"
+            @change="${(e) => this.selectionChanged(e)}"
         >
-            ${this.sidenavListTitle?b`<h2>${this.sidenavListTitle}</h2>`:V}
+            ${this.sidenavListTitle ? html2`<h2>${this.sidenavListTitle}</h2>` : nothing}
             <slot></slot>
-        </div>`}};r(p,"properties",{sidenavListTitle:{type:String},label:{type:String},deeplink:{type:String,attribute:"deeplink"},selectedText:{type:String,reflect:!0,attribute:"selected-text"},selectedValue:{type:String,reflect:!0,attribute:"selected-value"},toggleIconColor:{type:Boolean,attribute:"toggle-icon-color"}}),r(p,"styles",U`
+        </div>`;
+  }
+};
+__publicField(MerchSidenavList, "properties", {
+  sidenavListTitle: { type: String },
+  label: { type: String },
+  deeplink: { type: String, attribute: "deeplink" },
+  selectedText: {
+    type: String,
+    reflect: true,
+    attribute: "selected-text"
+  },
+  selectedValue: {
+    type: String,
+    reflect: true,
+    attribute: "selected-value"
+  },
+  toggleIconColor: {
+    type: Boolean,
+    attribute: "toggle-icon-color"
+  }
+});
+__publicField(MerchSidenavList, "styles", css`
         :host {
             display: block;
             contain: content;
@@ -24,14 +432,94 @@ var L=Object.defineProperty;var k=(o,e,t)=>e in o?L(o,e,{enumerable:!0,configura
             position: absolute;
             right: 0;
         }
-    `);customElements.define("merch-sidenav-list",p);import{html as Y,LitElement as G,css as F}from"/deps/lit-all.min.js";var m=class extends G{constructor(){super(),this.selectedValues=[]}selectionChanged({target:e}){let t=e.getAttribute("name");if(t){let s=this.selectedValues.indexOf(t);e.checked&&s===-1?this.selectedValues.push(t):!e.checked&&s>=0&&this.selectedValues.splice(s,1)}c(this,this.selectedValues.join(","))}addGroupTitle(){let e="sidenav-checkbox-group-title",t=T("h3",{id:e});t.textContent=this.sidenavCheckboxTitle,this.prepend(t),this.setAttribute("role","group"),this.setAttribute("aria-labelledby",e)}startDeeplink(){this.stopDeeplink=l(({types:e})=>{if(e){let t=e.split(",");[...new Set([...t,...this.selectedValues])].forEach(s=>{let i=this.querySelector(`sp-checkbox[name=${s}]`);i&&(i.checked=t.includes(s))}),this.selectedValues=t}else this.selectedValues.forEach(t=>{let s=this.querySelector(`sp-checkbox[name=${t}]`);s&&(s.checked=!1)}),this.selectedValues=[]})}connectedCallback(){super.connectedCallback(),this.updateComplete.then(async()=>{this.addGroupTitle(),this.startDeeplink()})}disconnectedCallback(){this.stopDeeplink?.()}render(){return Y`<div aria-label="${this.label}">
+    `);
+customElements.define("merch-sidenav-list", MerchSidenavList);
+
+// src/sidenav/merch-sidenav-checkbox-group.js
+import { html as html3, LitElement as LitElement3, css as css2 } from "/deps/lit-all.min.js";
+var MerchSidenavCheckboxGroup = class extends LitElement3 {
+  constructor() {
+    super();
+    this.selectedValues = [];
+  }
+  /**
+   * leaf level item change handler
+   * @param {*} event
+   */
+  selectionChanged({ target }) {
+    const name = target.getAttribute("name");
+    if (name) {
+      const index = this.selectedValues.indexOf(name);
+      if (target.checked && index === -1) {
+        this.selectedValues.push(name);
+      } else if (!target.checked && index >= 0) {
+        this.selectedValues.splice(index, 1);
+      }
+    }
+    pushStateFromComponent(this, this.selectedValues.join(","));
+  }
+  addGroupTitle() {
+    const id = "sidenav-checkbox-group-title";
+    const h3El = createTag("h3", { id });
+    h3El.textContent = this.sidenavCheckboxTitle;
+    this.prepend(h3El);
+    this.setAttribute("role", "group");
+    this.setAttribute("aria-labelledby", id);
+  }
+  startDeeplink() {
+    this.stopDeeplink = deeplink(({ types }) => {
+      if (types) {
+        const newTypes = types.split(",");
+        [.../* @__PURE__ */ new Set([...newTypes, ...this.selectedValues])].forEach(
+          (name) => {
+            const checkbox = this.querySelector(
+              `sp-checkbox[name=${name}]`
+            );
+            if (checkbox)
+              checkbox.checked = newTypes.includes(name);
+          }
+        );
+        this.selectedValues = newTypes;
+      } else {
+        this.selectedValues.forEach((name) => {
+          const checkbox = this.querySelector(
+            `sp-checkbox[name=${name}]`
+          );
+          if (checkbox) checkbox.checked = false;
+        });
+        this.selectedValues = [];
+      }
+    });
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.updateComplete.then(async () => {
+      this.addGroupTitle();
+      this.startDeeplink();
+    });
+  }
+  disconnectedCallback() {
+    this.stopDeeplink?.();
+  }
+  render() {
+    return html3`<div aria-label="${this.label}">
             <div
-                @change="${e=>this.selectionChanged(e)}"
+                @change="${(e) => this.selectionChanged(e)}"
                 class="checkbox-group"
             >
                 <slot></slot>
             </div>
-        </div>`}};r(m,"properties",{sidenavCheckboxTitle:{type:String},label:{type:String},deeplink:{type:String},selectedValues:{type:Array,reflect:!0},value:{type:String}}),r(m,"styles",F`
+        </div>`;
+  }
+};
+__publicField(MerchSidenavCheckboxGroup, "properties", {
+  sidenavCheckboxTitle: { type: String },
+  label: { type: String },
+  deeplink: { type: String },
+  selectedValues: { type: Array, reflect: true },
+  value: { type: String }
+});
+__publicField(MerchSidenavCheckboxGroup, "styles", css2`
         :host {
             display: block;
             contain: content;
@@ -44,9 +532,88 @@ var L=Object.defineProperty;var k=(o,e,t)=>e in o?L(o,e,{enumerable:!0,configura
             display: flex;
             flex-direction: column;
         }
-    `);customElements.define("merch-sidenav-checkbox-group",m);var C="(max-width: 700px)";var R="(max-width: 1199px)";var $={catalog:"l"},q={catalog:"xl"},E=class extends B{constructor(){super();r(this,"mobileDevice",new d(this,C));r(this,"mobileAndTablet",new d(this,R));this.open=!1,this.autoclose=!1,this.variant=null,this.closeModal=this.closeModal.bind(this),this.handleSelection=this.handleSelection.bind(this)}connectedCallback(){super.connectedCallback(),this.addEventListener(h,this.handleSelection)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(h,this.handleSelection)}firstUpdated(){let t=$[this.variant];t&&this.querySelector("merch-search sp-search").setAttribute("size",t);let s=q[this.variant];s&&this.querySelectorAll("merch-sidenav-checkbox-group sp-checkbox").forEach(n=>{n.setAttribute("size",s)})}updated(){this.mobileAndTablet.matches?(this.modal=!0,this.style.padding=0,this.style.margin=0):(this.modal=!1,this.style.removeProperty("padding"),this.style.removeProperty("margin"),this.open&&this.closeModal())}get filters(){return this.querySelector("merch-sidenav-list")}get search(){return this.querySelector("merch-search")}render(){return this.mobileAndTablet.matches?this.asDialog:this.asAside}get asDialog(){if(!this.open)return N;let t=this.autoclose?N:x`<sp-link @click="${this.closeModal}"
-                  >${this.closeText||"Close"}</sp-link
-              >`;return x`
+    `);
+customElements.define(
+  "merch-sidenav-checkbox-group",
+  MerchSidenavCheckboxGroup
+);
+
+// src/media.js
+var SPECTRUM_MOBILE_LANDSCAPE = "(max-width: 700px)";
+var TABLET_DOWN = "(max-width: 1199px)";
+
+// src/sidenav/merch-sidenav.js
+var SEARCH_SIZE = {
+  catalog: "l"
+};
+var CHECKBOX_SIZE = {
+  catalog: "xl"
+};
+var MerchSideNav = class extends LitElement4 {
+  constructor() {
+    super();
+    __publicField(this, "mobileDevice", new MatchMediaController(this, SPECTRUM_MOBILE_LANDSCAPE));
+    __publicField(this, "mobileAndTablet", new MatchMediaController(this, TABLET_DOWN));
+    this.open = false;
+    this.autoclose = false;
+    this.variant = null;
+    this.closeModal = this.closeModal.bind(this);
+    this.handleSelection = this.handleSelection.bind(this);
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener(EVENT_MERCH_SIDENAV_SELECT, this.handleSelection);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener(
+      EVENT_MERCH_SIDENAV_SELECT,
+      this.handleSelection
+    );
+  }
+  firstUpdated() {
+    const searchSize = SEARCH_SIZE[this.variant];
+    if (searchSize) {
+      const search = this.querySelector("merch-search sp-search");
+      search.setAttribute("size", searchSize);
+    }
+    const checkboxSize = CHECKBOX_SIZE[this.variant];
+    if (checkboxSize) {
+      const checkboxes = this.querySelectorAll(
+        "merch-sidenav-checkbox-group sp-checkbox"
+      );
+      checkboxes.forEach((checkbox) => {
+        checkbox.setAttribute("size", checkboxSize);
+      });
+    }
+  }
+  updated() {
+    if (this.mobileAndTablet.matches) {
+      this.modal = true;
+      this.style.padding = 0;
+      this.style.margin = 0;
+    } else {
+      this.modal = false;
+      this.style.removeProperty("padding");
+      this.style.removeProperty("margin");
+      if (this.open) this.closeModal();
+    }
+  }
+  get filters() {
+    return this.querySelector("merch-sidenav-list");
+  }
+  get search() {
+    return this.querySelector("merch-search");
+  }
+  render() {
+    return this.mobileAndTablet.matches ? this.asDialog : this.asAside;
+  }
+  get asDialog() {
+    if (!this.open) return nothing2;
+    const closeButton = !this.autoclose ? html4`<sp-link @click="${this.closeModal}"
+                  >${this.closeText || "Close"}</sp-link
+              >` : nothing2;
+    return html4`
             <sp-theme color="light" scale="medium">
                 <sp-overlay type="modal" open @sp-closed=${this.closeModal}>
                     <sp-dialog-base
@@ -61,16 +628,43 @@ var L=Object.defineProperty;var k=(o,e,t)=>e in o?L(o,e,{enumerable:!0,configura
                                     <h2>${this.sidenavTitle}</h2>
                                     <slot></slot>
                                 </div>
-                                ${t}
+                                ${closeButton}
                             </div>
                         </div>
                     </sp-dialog-base>
                 </sp-overlay>
             </sp-theme>
-        `}get asAside(){return x`<sp-theme color="light" scale="medium"
+        `;
+  }
+  get asAside() {
+    return html4`<sp-theme color="light" scale="medium"
             ><h2>${this.sidenavTitle}</h2>
             <slot></slot
-        ></sp-theme>`}get dialog(){return this.shadowRoot.querySelector("sp-dialog-base")}handleSelection(){this.autoclose&&this.closeModal()}closeModal(){this.open=!1,document.querySelector("body")?.classList.remove("merch-modal")}showModal(){this.open=!0,document.querySelector("body")?.classList.add("merch-modal")}};r(E,"properties",{sidenavTitle:{type:String},closeText:{type:String,attribute:"close-text"},modal:{type:Boolean,reflect:!0},open:{type:Boolean,state:!0,reflect:!0},autoclose:{type:Boolean,attribute:"autoclose",reflect:!0}}),r(E,"styles",z`
+        ></sp-theme>`;
+  }
+  get dialog() {
+    return this.shadowRoot.querySelector("sp-dialog-base");
+  }
+  handleSelection() {
+    if (this.autoclose) this.closeModal();
+  }
+  closeModal() {
+    this.open = false;
+    document.querySelector("body")?.classList.remove("merch-modal");
+  }
+  showModal() {
+    this.open = true;
+    document.querySelector("body")?.classList.add("merch-modal");
+  }
+};
+__publicField(MerchSideNav, "properties", {
+  sidenavTitle: { type: String },
+  closeText: { type: String, attribute: "close-text" },
+  modal: { type: Boolean, reflect: true },
+  open: { type: Boolean, state: true, reflect: true },
+  autoclose: { type: Boolean, attribute: "autoclose", reflect: true }
+});
+__publicField(MerchSideNav, "styles", css3`
         :host {
             --merch-sidenav-padding: 16px;
             --merch-sidenav-collection-gap: 30px;
@@ -252,4 +846,9 @@ var L=Object.defineProperty;var k=(o,e,t)=>e in o?L(o,e,{enumerable:!0,configura
             font-size: var(--merch-sidenav-modal-close-font-size);
             line-height: var(--merch-sidenav-modal-close-line-height);
         }
-    `);customElements.define("merch-sidenav",E);export{E as MerchSideNav};
+    `);
+customElements.define("merch-sidenav", MerchSideNav);
+export {
+  MerchSideNav
+};
+//# sourceMappingURL=merch-sidenav.js.map

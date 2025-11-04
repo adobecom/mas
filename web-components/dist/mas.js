@@ -501,32 +501,715 @@ window.masPriceLiterals = {
     ":type": "sheet"
 }
 .data;
-var Io=Object.defineProperty;var $o=e=>{throw TypeError(e)};var Yc=(e,t,r)=>t in e?Io(e,t,{enumerable:!0,configurable:!0,writable:!0,value:r}):e[t]=r;var Xe=(e,t)=>()=>(e&&(t=e(e=0)),t);var Ho=(e,t)=>{for(var r in t)Io(e,r,{get:t[r],enumerable:!0})};var u=(e,t,r)=>Yc(e,typeof t!="symbol"?t+"":t,r),Gi=(e,t,r)=>t.has(e)||$o("Cannot "+r);var h=(e,t,r)=>(Gi(e,t,"read from private field"),r?r.call(e):t.get(e)),E=(e,t,r)=>t.has(e)?$o("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,r),v=(e,t,r,i)=>(Gi(e,t,"write to private field"),i?i.call(e,r):t.set(e,r),r),Z=(e,t,r)=>(Gi(e,t,"access private method"),r);var Do=(e,t,r,i)=>({set _(n){v(e,t,n,r)},get _(){return h(e,t,i)}});var fi,xi,Jn,Ps,Sr,je,y,eo,bi,to=Xe(()=>{fi=window,xi=fi.ShadowRoot&&(fi.ShadyCSS===void 0||fi.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,Jn=Symbol(),Ps=new WeakMap,Sr=class{constructor(t,r,i){if(this._$cssResult$=!0,i!==Jn)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=r}get styleSheet(){let t=this.o,r=this.t;if(xi&&t===void 0){let i=r!==void 0&&r.length===1;i&&(t=Ps.get(r)),t===void 0&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&Ps.set(r,t))}return t}toString(){return this.cssText}},je=e=>new Sr(typeof e=="string"?e:e+"",void 0,Jn),y=(e,...t)=>{let r=e.length===1?e[0]:t.reduce((i,n,o)=>i+(a=>{if(a._$cssResult$===!0)return a.cssText;if(typeof a=="number")return a;throw Error("Value passed to 'css' function must be a 'css' function result: "+a+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(n)+e[o+1],e[0]);return new Sr(r,e,Jn)},eo=(e,t)=>{xi?e.adoptedStyleSheets=t.map(r=>r instanceof CSSStyleSheet?r:r.styleSheet):t.forEach(r=>{let i=document.createElement("style"),n=fi.litNonce;n!==void 0&&i.setAttribute("nonce",n),i.textContent=r.cssText,e.appendChild(i)})},bi=xi?e=>e:e=>e instanceof CSSStyleSheet?(t=>{let r="";for(let i of t.cssRules)r+=i.cssText;return je(r)})(e):e});var ro,vi,Ls,th,Rs,no,Os,io,oo,Ie,yi=Xe(()=>{to();to();vi=window,Ls=vi.trustedTypes,th=Ls?Ls.emptyScript:"",Rs=vi.reactiveElementPolyfillSupport,no={toAttribute(e,t){switch(t){case Boolean:e=e?th:null;break;case Object:case Array:e=e==null?e:JSON.stringify(e)}return e},fromAttribute(e,t){let r=e;switch(t){case Boolean:r=e!==null;break;case Number:r=e===null?null:Number(e);break;case Object:case Array:try{r=JSON.parse(e)}catch{r=null}}return r}},Os=(e,t)=>t!==e&&(t==t||e==e),io={attribute:!0,type:String,converter:no,reflect:!1,hasChanged:Os},oo="finalized",Ie=class extends HTMLElement{constructor(){super(),this._$Ei=new Map,this.isUpdatePending=!1,this.hasUpdated=!1,this._$El=null,this._$Eu()}static addInitializer(t){var r;this.finalize(),((r=this.h)!==null&&r!==void 0?r:this.h=[]).push(t)}static get observedAttributes(){this.finalize();let t=[];return this.elementProperties.forEach((r,i)=>{let n=this._$Ep(i,r);n!==void 0&&(this._$Ev.set(n,i),t.push(n))}),t}static createProperty(t,r=io){if(r.state&&(r.attribute=!1),this.finalize(),this.elementProperties.set(t,r),!r.noAccessor&&!this.prototype.hasOwnProperty(t)){let i=typeof t=="symbol"?Symbol():"__"+t,n=this.getPropertyDescriptor(t,i,r);n!==void 0&&Object.defineProperty(this.prototype,t,n)}}static getPropertyDescriptor(t,r,i){return{get(){return this[r]},set(n){let o=this[t];this[r]=n,this.requestUpdate(t,o,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)||io}static finalize(){if(this.hasOwnProperty(oo))return!1;this[oo]=!0;let t=Object.getPrototypeOf(this);if(t.finalize(),t.h!==void 0&&(this.h=[...t.h]),this.elementProperties=new Map(t.elementProperties),this._$Ev=new Map,this.hasOwnProperty("properties")){let r=this.properties,i=[...Object.getOwnPropertyNames(r),...Object.getOwnPropertySymbols(r)];for(let n of i)this.createProperty(n,r[n])}return this.elementStyles=this.finalizeStyles(this.styles),!0}static finalizeStyles(t){let r=[];if(Array.isArray(t)){let i=new Set(t.flat(1/0).reverse());for(let n of i)r.unshift(bi(n))}else t!==void 0&&r.push(bi(t));return r}static _$Ep(t,r){let i=r.attribute;return i===!1?void 0:typeof i=="string"?i:typeof t=="string"?t.toLowerCase():void 0}_$Eu(){var t;this._$E_=new Promise(r=>this.enableUpdating=r),this._$AL=new Map,this._$Eg(),this.requestUpdate(),(t=this.constructor.h)===null||t===void 0||t.forEach(r=>r(this))}addController(t){var r,i;((r=this._$ES)!==null&&r!==void 0?r:this._$ES=[]).push(t),this.renderRoot!==void 0&&this.isConnected&&((i=t.hostConnected)===null||i===void 0||i.call(t))}removeController(t){var r;(r=this._$ES)===null||r===void 0||r.splice(this._$ES.indexOf(t)>>>0,1)}_$Eg(){this.constructor.elementProperties.forEach((t,r)=>{this.hasOwnProperty(r)&&(this._$Ei.set(r,this[r]),delete this[r])})}createRenderRoot(){var t;let r=(t=this.shadowRoot)!==null&&t!==void 0?t:this.attachShadow(this.constructor.shadowRootOptions);return eo(r,this.constructor.elementStyles),r}connectedCallback(){var t;this.renderRoot===void 0&&(this.renderRoot=this.createRenderRoot()),this.enableUpdating(!0),(t=this._$ES)===null||t===void 0||t.forEach(r=>{var i;return(i=r.hostConnected)===null||i===void 0?void 0:i.call(r)})}enableUpdating(t){}disconnectedCallback(){var t;(t=this._$ES)===null||t===void 0||t.forEach(r=>{var i;return(i=r.hostDisconnected)===null||i===void 0?void 0:i.call(r)})}attributeChangedCallback(t,r,i){this._$AK(t,i)}_$EO(t,r,i=io){var n;let o=this.constructor._$Ep(t,i);if(o!==void 0&&i.reflect===!0){let a=(((n=i.converter)===null||n===void 0?void 0:n.toAttribute)!==void 0?i.converter:no).toAttribute(r,i.type);this._$El=t,a==null?this.removeAttribute(o):this.setAttribute(o,a),this._$El=null}}_$AK(t,r){var i;let n=this.constructor,o=n._$Ev.get(t);if(o!==void 0&&this._$El!==o){let a=n.getPropertyOptions(o),s=typeof a.converter=="function"?{fromAttribute:a.converter}:((i=a.converter)===null||i===void 0?void 0:i.fromAttribute)!==void 0?a.converter:no;this._$El=o,this[o]=s.fromAttribute(r,a.type),this._$El=null}}requestUpdate(t,r,i){let n=!0;t!==void 0&&(((i=i||this.constructor.getPropertyOptions(t)).hasChanged||Os)(this[t],r)?(this._$AL.has(t)||this._$AL.set(t,r),i.reflect===!0&&this._$El!==t&&(this._$EC===void 0&&(this._$EC=new Map),this._$EC.set(t,i))):n=!1),!this.isUpdatePending&&n&&(this._$E_=this._$Ej())}async _$Ej(){this.isUpdatePending=!0;try{await this._$E_}catch(r){Promise.reject(r)}let t=this.scheduleUpdate();return t!=null&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){var t;if(!this.isUpdatePending)return;this.hasUpdated,this._$Ei&&(this._$Ei.forEach((n,o)=>this[o]=n),this._$Ei=void 0);let r=!1,i=this._$AL;try{r=this.shouldUpdate(i),r?(this.willUpdate(i),(t=this._$ES)===null||t===void 0||t.forEach(n=>{var o;return(o=n.hostUpdate)===null||o===void 0?void 0:o.call(n)}),this.update(i)):this._$Ek()}catch(n){throw r=!1,this._$Ek(),n}r&&this._$AE(i)}willUpdate(t){}_$AE(t){var r;(r=this._$ES)===null||r===void 0||r.forEach(i=>{var n;return(n=i.hostUpdated)===null||n===void 0?void 0:n.call(i)}),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$Ek(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$E_}shouldUpdate(t){return!0}update(t){this._$EC!==void 0&&(this._$EC.forEach((r,i)=>this._$EO(i,this[i],r)),this._$EC=void 0),this._$Ek()}updated(t){}firstUpdated(t){}};Ie[oo]=!0,Ie.elementProperties=new Map,Ie.elementStyles=[],Ie.shadowRootOptions={mode:"open"},Rs?.({ReactiveElement:Ie}),((ro=vi.reactiveElementVersions)!==null&&ro!==void 0?ro:vi.reactiveElementVersions=[]).push("1.6.3")});function Vs(e,t){if(!Array.isArray(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return Ns!==void 0?Ns.createHTML(t):t}function Rt(e,t,r=e,i){var n,o,a,s;if(t===pt)return t;let c=i!==void 0?(n=r._$Co)===null||n===void 0?void 0:n[i]:r._$Cl,l=Cr(t)?void 0:t._$litDirective$;return c?.constructor!==l&&((o=c?._$AO)===null||o===void 0||o.call(c,!1),l===void 0?c=void 0:(c=new l(e),c._$AT(e,r,i)),i!==void 0?((a=(s=r)._$Co)!==null&&a!==void 0?a:s._$Co=[])[i]=c:r._$Cl=c),c!==void 0&&(t=Rt(e,c._$AS(e,t.values),c,i)),t}var ao,Ei,Lt,Ns,co,qe,Bs,rh,ht,Tr,Cr,zs,ih,so,_r,Ms,Is,lt,$s,Hs,Fs,Gs,f,ug,pt,M,Ds,dt,nh,kr,lo,Pr,Ot,ho,oh,po,mo,uo,Us,js,wi=Xe(()=>{Ei=window,Lt=Ei.trustedTypes,Ns=Lt?Lt.createPolicy("lit-html",{createHTML:e=>e}):void 0,co="$lit$",qe=`lit$${(Math.random()+"").slice(9)}$`,Bs="?"+qe,rh=`<${Bs}>`,ht=document,Tr=()=>ht.createComment(""),Cr=e=>e===null||typeof e!="object"&&typeof e!="function",zs=Array.isArray,ih=e=>zs(e)||typeof e?.[Symbol.iterator]=="function",so=`[ 	
-\f\r]`,_r=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,Ms=/-->/g,Is=/>/g,lt=RegExp(`>|${so}(?:([^\\s"'>=/]+)(${so}*=${so}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`,"g"),$s=/'/g,Hs=/"/g,Fs=/^(?:script|style|textarea|title)$/i,Gs=e=>(t,...r)=>({_$litType$:e,strings:t,values:r}),f=Gs(1),ug=Gs(2),pt=Symbol.for("lit-noChange"),M=Symbol.for("lit-nothing"),Ds=new WeakMap,dt=ht.createTreeWalker(ht,129,null,!1);nh=(e,t)=>{let r=e.length-1,i=[],n,o=t===2?"<svg>":"",a=_r;for(let s=0;s<r;s++){let c=e[s],l,d,p=-1,m=0;for(;m<c.length&&(a.lastIndex=m,d=a.exec(c),d!==null);)m=a.lastIndex,a===_r?d[1]==="!--"?a=Ms:d[1]!==void 0?a=Is:d[2]!==void 0?(Fs.test(d[2])&&(n=RegExp("</"+d[2],"g")),a=lt):d[3]!==void 0&&(a=lt):a===lt?d[0]===">"?(a=n??_r,p=-1):d[1]===void 0?p=-2:(p=a.lastIndex-d[2].length,l=d[1],a=d[3]===void 0?lt:d[3]==='"'?Hs:$s):a===Hs||a===$s?a=lt:a===Ms||a===Is?a=_r:(a=lt,n=void 0);let g=a===lt&&e[s+1].startsWith("/>")?" ":"";o+=a===_r?c+rh:p>=0?(i.push(l),c.slice(0,p)+co+c.slice(p)+qe+g):c+qe+(p===-2?(i.push(void 0),s):g)}return[Vs(e,o+(e[r]||"<?>")+(t===2?"</svg>":"")),i]},kr=class e{constructor({strings:t,_$litType$:r},i){let n;this.parts=[];let o=0,a=0,s=t.length-1,c=this.parts,[l,d]=nh(t,r);if(this.el=e.createElement(l,i),dt.currentNode=this.el.content,r===2){let p=this.el.content,m=p.firstChild;m.remove(),p.append(...m.childNodes)}for(;(n=dt.nextNode())!==null&&c.length<s;){if(n.nodeType===1){if(n.hasAttributes()){let p=[];for(let m of n.getAttributeNames())if(m.endsWith(co)||m.startsWith(qe)){let g=d[a++];if(p.push(m),g!==void 0){let x=n.getAttribute(g.toLowerCase()+co).split(qe),b=/([.?@])?(.*)/.exec(g);c.push({type:1,index:o,name:b[2],strings:x,ctor:b[1]==="."?ho:b[1]==="?"?po:b[1]==="@"?mo:Ot})}else c.push({type:6,index:o})}for(let m of p)n.removeAttribute(m)}if(Fs.test(n.tagName)){let p=n.textContent.split(qe),m=p.length-1;if(m>0){n.textContent=Lt?Lt.emptyScript:"";for(let g=0;g<m;g++)n.append(p[g],Tr()),dt.nextNode(),c.push({type:2,index:++o});n.append(p[m],Tr())}}}else if(n.nodeType===8)if(n.data===Bs)c.push({type:2,index:o});else{let p=-1;for(;(p=n.data.indexOf(qe,p+1))!==-1;)c.push({type:7,index:o}),p+=qe.length-1}o++}}static createElement(t,r){let i=ht.createElement("template");return i.innerHTML=t,i}};lo=class{constructor(t,r){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=r}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){var r;let{el:{content:i},parts:n}=this._$AD,o=((r=t?.creationScope)!==null&&r!==void 0?r:ht).importNode(i,!0);dt.currentNode=o;let a=dt.nextNode(),s=0,c=0,l=n[0];for(;l!==void 0;){if(s===l.index){let d;l.type===2?d=new Pr(a,a.nextSibling,this,t):l.type===1?d=new l.ctor(a,l.name,l.strings,this,t):l.type===6&&(d=new uo(a,this,t)),this._$AV.push(d),l=n[++c]}s!==l?.index&&(a=dt.nextNode(),s++)}return dt.currentNode=ht,o}v(t){let r=0;for(let i of this._$AV)i!==void 0&&(i.strings!==void 0?(i._$AI(t,i,r),r+=i.strings.length-2):i._$AI(t[r])),r++}},Pr=class e{constructor(t,r,i,n){var o;this.type=2,this._$AH=M,this._$AN=void 0,this._$AA=t,this._$AB=r,this._$AM=i,this.options=n,this._$Cp=(o=n?.isConnected)===null||o===void 0||o}get _$AU(){var t,r;return(r=(t=this._$AM)===null||t===void 0?void 0:t._$AU)!==null&&r!==void 0?r:this._$Cp}get parentNode(){let t=this._$AA.parentNode,r=this._$AM;return r!==void 0&&t?.nodeType===11&&(t=r.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,r=this){t=Rt(this,t,r),Cr(t)?t===M||t==null||t===""?(this._$AH!==M&&this._$AR(),this._$AH=M):t!==this._$AH&&t!==pt&&this._(t):t._$litType$!==void 0?this.g(t):t.nodeType!==void 0?this.$(t):ih(t)?this.T(t):this._(t)}k(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}$(t){this._$AH!==t&&(this._$AR(),this._$AH=this.k(t))}_(t){this._$AH!==M&&Cr(this._$AH)?this._$AA.nextSibling.data=t:this.$(ht.createTextNode(t)),this._$AH=t}g(t){var r;let{values:i,_$litType$:n}=t,o=typeof n=="number"?this._$AC(t):(n.el===void 0&&(n.el=kr.createElement(Vs(n.h,n.h[0]),this.options)),n);if(((r=this._$AH)===null||r===void 0?void 0:r._$AD)===o)this._$AH.v(i);else{let a=new lo(o,this),s=a.u(this.options);a.v(i),this.$(s),this._$AH=a}}_$AC(t){let r=Ds.get(t.strings);return r===void 0&&Ds.set(t.strings,r=new kr(t)),r}T(t){zs(this._$AH)||(this._$AH=[],this._$AR());let r=this._$AH,i,n=0;for(let o of t)n===r.length?r.push(i=new e(this.k(Tr()),this.k(Tr()),this,this.options)):i=r[n],i._$AI(o),n++;n<r.length&&(this._$AR(i&&i._$AB.nextSibling,n),r.length=n)}_$AR(t=this._$AA.nextSibling,r){var i;for((i=this._$AP)===null||i===void 0||i.call(this,!1,!0,r);t&&t!==this._$AB;){let n=t.nextSibling;t.remove(),t=n}}setConnected(t){var r;this._$AM===void 0&&(this._$Cp=t,(r=this._$AP)===null||r===void 0||r.call(this,t))}},Ot=class{constructor(t,r,i,n,o){this.type=1,this._$AH=M,this._$AN=void 0,this.element=t,this.name=r,this._$AM=n,this.options=o,i.length>2||i[0]!==""||i[1]!==""?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=M}get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}_$AI(t,r=this,i,n){let o=this.strings,a=!1;if(o===void 0)t=Rt(this,t,r,0),a=!Cr(t)||t!==this._$AH&&t!==pt,a&&(this._$AH=t);else{let s=t,c,l;for(t=o[0],c=0;c<o.length-1;c++)l=Rt(this,s[i+c],r,c),l===pt&&(l=this._$AH[c]),a||(a=!Cr(l)||l!==this._$AH[c]),l===M?t=M:t!==M&&(t+=(l??"")+o[c+1]),this._$AH[c]=l}a&&!n&&this.j(t)}j(t){t===M?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}},ho=class extends Ot{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===M?void 0:t}},oh=Lt?Lt.emptyScript:"",po=class extends Ot{constructor(){super(...arguments),this.type=4}j(t){t&&t!==M?this.element.setAttribute(this.name,oh):this.element.removeAttribute(this.name)}},mo=class extends Ot{constructor(t,r,i,n,o){super(t,r,i,n,o),this.type=5}_$AI(t,r=this){var i;if((t=(i=Rt(this,t,r,0))!==null&&i!==void 0?i:M)===pt)return;let n=this._$AH,o=t===M&&n!==M||t.capture!==n.capture||t.once!==n.once||t.passive!==n.passive,a=t!==M&&(n===M||o);o&&this.element.removeEventListener(this.name,this,n),a&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){var r,i;typeof this._$AH=="function"?this._$AH.call((i=(r=this.options)===null||r===void 0?void 0:r.host)!==null&&i!==void 0?i:this.element,t):this._$AH.handleEvent(t)}},uo=class{constructor(t,r,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=r,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){Rt(this,t)}},Us=Ei.litHtmlPolyfillSupport;Us?.(kr,Pr),((ao=Ei.litHtmlVersions)!==null&&ao!==void 0?ao:Ei.litHtmlVersions=[]).push("2.8.0");js=(e,t,r)=>{var i,n;let o=(i=r?.renderBefore)!==null&&i!==void 0?i:t,a=o._$litPart$;if(a===void 0){let s=(n=r?.renderBefore)!==null&&n!==void 0?n:null;o._$litPart$=a=new Pr(t.insertBefore(Tr(),s),s,void 0,r??{})}return a._$AI(e),a}});var go,fo,I,qs,Ws=Xe(()=>{yi();yi();wi();wi();I=class extends Ie{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){var t,r;let i=super.createRenderRoot();return(t=(r=this.renderOptions).renderBefore)!==null&&t!==void 0||(r.renderBefore=i.firstChild),i}update(t){let r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=js(r,this.renderRoot,this.renderOptions)}connectedCallback(){var t;super.connectedCallback(),(t=this._$Do)===null||t===void 0||t.setConnected(!0)}disconnectedCallback(){var t;super.disconnectedCallback(),(t=this._$Do)===null||t===void 0||t.setConnected(!1)}render(){return pt}};I.finalized=!0,I._$litElement$=!0,(go=globalThis.litElementHydrateSupport)===null||go===void 0||go.call(globalThis,{LitElement:I});qs=globalThis.litElementPolyfillSupport;qs?.({LitElement:I});((fo=globalThis.litElementVersions)!==null&&fo!==void 0?fo:globalThis.litElementVersions=[]).push("3.3.3")});var Ys=Xe(()=>{});var O=Xe(()=>{yi();wi();Ws();Ys()});var xo={};Ho(xo,{default:()=>mt});function ah(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var mt,Ci=Xe(()=>{O();mt=class extends I{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs"}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?f`<merch-icon
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+var __privateWrapper = (obj, member, setter, getter) => ({
+  set _(value) {
+    __privateSet(obj, member, value, setter);
+  },
+  get _() {
+    return __privateGet(obj, member, getter);
+  }
+});
+
+// node_modules/@lit/reactive-element/css-tag.js
+var t, e, s, n, o, r, i, S, c;
+var init_css_tag = __esm({
+  "node_modules/@lit/reactive-element/css-tag.js"() {
+    t = window;
+    e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
+    s = Symbol();
+    n = /* @__PURE__ */ new WeakMap();
+    o = class {
+      constructor(t3, e4, n5) {
+        if (this._$cssResult$ = true, n5 !== s) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+        this.cssText = t3, this.t = e4;
+      }
+      get styleSheet() {
+        let t3 = this.o;
+        const s5 = this.t;
+        if (e && void 0 === t3) {
+          const e4 = void 0 !== s5 && 1 === s5.length;
+          e4 && (t3 = n.get(s5)), void 0 === t3 && ((this.o = t3 = new CSSStyleSheet()).replaceSync(this.cssText), e4 && n.set(s5, t3));
+        }
+        return t3;
+      }
+      toString() {
+        return this.cssText;
+      }
+    };
+    r = (t3) => new o("string" == typeof t3 ? t3 : t3 + "", void 0, s);
+    i = (t3, ...e4) => {
+      const n5 = 1 === t3.length ? t3[0] : e4.reduce((e5, s5, n6) => e5 + ((t4) => {
+        if (true === t4._$cssResult$) return t4.cssText;
+        if ("number" == typeof t4) return t4;
+        throw Error("Value passed to 'css' function must be a 'css' function result: " + t4 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+      })(s5) + t3[n6 + 1], t3[0]);
+      return new o(n5, t3, s);
+    };
+    S = (s5, n5) => {
+      e ? s5.adoptedStyleSheets = n5.map((t3) => t3 instanceof CSSStyleSheet ? t3 : t3.styleSheet) : n5.forEach((e4) => {
+        const n6 = document.createElement("style"), o5 = t.litNonce;
+        void 0 !== o5 && n6.setAttribute("nonce", o5), n6.textContent = e4.cssText, s5.appendChild(n6);
+      });
+    };
+    c = e ? (t3) => t3 : (t3) => t3 instanceof CSSStyleSheet ? ((t4) => {
+      let e4 = "";
+      for (const s5 of t4.cssRules) e4 += s5.cssText;
+      return r(e4);
+    })(t3) : t3;
+  }
+});
+
+// node_modules/@lit/reactive-element/reactive-element.js
+var s2, e2, r2, h, o2, n2, a, l, d, u;
+var init_reactive_element = __esm({
+  "node_modules/@lit/reactive-element/reactive-element.js"() {
+    init_css_tag();
+    init_css_tag();
+    e2 = window;
+    r2 = e2.trustedTypes;
+    h = r2 ? r2.emptyScript : "";
+    o2 = e2.reactiveElementPolyfillSupport;
+    n2 = { toAttribute(t3, i3) {
+      switch (i3) {
+        case Boolean:
+          t3 = t3 ? h : null;
+          break;
+        case Object:
+        case Array:
+          t3 = null == t3 ? t3 : JSON.stringify(t3);
+      }
+      return t3;
+    }, fromAttribute(t3, i3) {
+      let s5 = t3;
+      switch (i3) {
+        case Boolean:
+          s5 = null !== t3;
+          break;
+        case Number:
+          s5 = null === t3 ? null : Number(t3);
+          break;
+        case Object:
+        case Array:
+          try {
+            s5 = JSON.parse(t3);
+          } catch (t4) {
+            s5 = null;
+          }
+      }
+      return s5;
+    } };
+    a = (t3, i3) => i3 !== t3 && (i3 == i3 || t3 == t3);
+    l = { attribute: true, type: String, converter: n2, reflect: false, hasChanged: a };
+    d = "finalized";
+    u = class extends HTMLElement {
+      constructor() {
+        super(), this._$Ei = /* @__PURE__ */ new Map(), this.isUpdatePending = false, this.hasUpdated = false, this._$El = null, this._$Eu();
+      }
+      static addInitializer(t3) {
+        var i3;
+        this.finalize(), (null !== (i3 = this.h) && void 0 !== i3 ? i3 : this.h = []).push(t3);
+      }
+      static get observedAttributes() {
+        this.finalize();
+        const t3 = [];
+        return this.elementProperties.forEach((i3, s5) => {
+          const e4 = this._$Ep(s5, i3);
+          void 0 !== e4 && (this._$Ev.set(e4, s5), t3.push(e4));
+        }), t3;
+      }
+      static createProperty(t3, i3 = l) {
+        if (i3.state && (i3.attribute = false), this.finalize(), this.elementProperties.set(t3, i3), !i3.noAccessor && !this.prototype.hasOwnProperty(t3)) {
+          const s5 = "symbol" == typeof t3 ? Symbol() : "__" + t3, e4 = this.getPropertyDescriptor(t3, s5, i3);
+          void 0 !== e4 && Object.defineProperty(this.prototype, t3, e4);
+        }
+      }
+      static getPropertyDescriptor(t3, i3, s5) {
+        return { get() {
+          return this[i3];
+        }, set(e4) {
+          const r4 = this[t3];
+          this[i3] = e4, this.requestUpdate(t3, r4, s5);
+        }, configurable: true, enumerable: true };
+      }
+      static getPropertyOptions(t3) {
+        return this.elementProperties.get(t3) || l;
+      }
+      static finalize() {
+        if (this.hasOwnProperty(d)) return false;
+        this[d] = true;
+        const t3 = Object.getPrototypeOf(this);
+        if (t3.finalize(), void 0 !== t3.h && (this.h = [...t3.h]), this.elementProperties = new Map(t3.elementProperties), this._$Ev = /* @__PURE__ */ new Map(), this.hasOwnProperty("properties")) {
+          const t4 = this.properties, i3 = [...Object.getOwnPropertyNames(t4), ...Object.getOwnPropertySymbols(t4)];
+          for (const s5 of i3) this.createProperty(s5, t4[s5]);
+        }
+        return this.elementStyles = this.finalizeStyles(this.styles), true;
+      }
+      static finalizeStyles(i3) {
+        const s5 = [];
+        if (Array.isArray(i3)) {
+          const e4 = new Set(i3.flat(1 / 0).reverse());
+          for (const i4 of e4) s5.unshift(c(i4));
+        } else void 0 !== i3 && s5.push(c(i3));
+        return s5;
+      }
+      static _$Ep(t3, i3) {
+        const s5 = i3.attribute;
+        return false === s5 ? void 0 : "string" == typeof s5 ? s5 : "string" == typeof t3 ? t3.toLowerCase() : void 0;
+      }
+      _$Eu() {
+        var t3;
+        this._$E_ = new Promise((t4) => this.enableUpdating = t4), this._$AL = /* @__PURE__ */ new Map(), this._$Eg(), this.requestUpdate(), null === (t3 = this.constructor.h) || void 0 === t3 || t3.forEach((t4) => t4(this));
+      }
+      addController(t3) {
+        var i3, s5;
+        (null !== (i3 = this._$ES) && void 0 !== i3 ? i3 : this._$ES = []).push(t3), void 0 !== this.renderRoot && this.isConnected && (null === (s5 = t3.hostConnected) || void 0 === s5 || s5.call(t3));
+      }
+      removeController(t3) {
+        var i3;
+        null === (i3 = this._$ES) || void 0 === i3 || i3.splice(this._$ES.indexOf(t3) >>> 0, 1);
+      }
+      _$Eg() {
+        this.constructor.elementProperties.forEach((t3, i3) => {
+          this.hasOwnProperty(i3) && (this._$Ei.set(i3, this[i3]), delete this[i3]);
+        });
+      }
+      createRenderRoot() {
+        var t3;
+        const s5 = null !== (t3 = this.shadowRoot) && void 0 !== t3 ? t3 : this.attachShadow(this.constructor.shadowRootOptions);
+        return S(s5, this.constructor.elementStyles), s5;
+      }
+      connectedCallback() {
+        var t3;
+        void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()), this.enableUpdating(true), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
+          var i3;
+          return null === (i3 = t4.hostConnected) || void 0 === i3 ? void 0 : i3.call(t4);
+        });
+      }
+      enableUpdating(t3) {
+      }
+      disconnectedCallback() {
+        var t3;
+        null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
+          var i3;
+          return null === (i3 = t4.hostDisconnected) || void 0 === i3 ? void 0 : i3.call(t4);
+        });
+      }
+      attributeChangedCallback(t3, i3, s5) {
+        this._$AK(t3, s5);
+      }
+      _$EO(t3, i3, s5 = l) {
+        var e4;
+        const r4 = this.constructor._$Ep(t3, s5);
+        if (void 0 !== r4 && true === s5.reflect) {
+          const h3 = (void 0 !== (null === (e4 = s5.converter) || void 0 === e4 ? void 0 : e4.toAttribute) ? s5.converter : n2).toAttribute(i3, s5.type);
+          this._$El = t3, null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3), this._$El = null;
+        }
+      }
+      _$AK(t3, i3) {
+        var s5;
+        const e4 = this.constructor, r4 = e4._$Ev.get(t3);
+        if (void 0 !== r4 && this._$El !== r4) {
+          const t4 = e4.getPropertyOptions(r4), h3 = "function" == typeof t4.converter ? { fromAttribute: t4.converter } : void 0 !== (null === (s5 = t4.converter) || void 0 === s5 ? void 0 : s5.fromAttribute) ? t4.converter : n2;
+          this._$El = r4, this[r4] = h3.fromAttribute(i3, t4.type), this._$El = null;
+        }
+      }
+      requestUpdate(t3, i3, s5) {
+        let e4 = true;
+        void 0 !== t3 && (((s5 = s5 || this.constructor.getPropertyOptions(t3)).hasChanged || a)(this[t3], i3) ? (this._$AL.has(t3) || this._$AL.set(t3, i3), true === s5.reflect && this._$El !== t3 && (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()), this._$EC.set(t3, s5))) : e4 = false), !this.isUpdatePending && e4 && (this._$E_ = this._$Ej());
+      }
+      async _$Ej() {
+        this.isUpdatePending = true;
+        try {
+          await this._$E_;
+        } catch (t4) {
+          Promise.reject(t4);
+        }
+        const t3 = this.scheduleUpdate();
+        return null != t3 && await t3, !this.isUpdatePending;
+      }
+      scheduleUpdate() {
+        return this.performUpdate();
+      }
+      performUpdate() {
+        var t3;
+        if (!this.isUpdatePending) return;
+        this.hasUpdated, this._$Ei && (this._$Ei.forEach((t4, i4) => this[i4] = t4), this._$Ei = void 0);
+        let i3 = false;
+        const s5 = this._$AL;
+        try {
+          i3 = this.shouldUpdate(s5), i3 ? (this.willUpdate(s5), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
+            var i4;
+            return null === (i4 = t4.hostUpdate) || void 0 === i4 ? void 0 : i4.call(t4);
+          }), this.update(s5)) : this._$Ek();
+        } catch (t4) {
+          throw i3 = false, this._$Ek(), t4;
+        }
+        i3 && this._$AE(s5);
+      }
+      willUpdate(t3) {
+      }
+      _$AE(t3) {
+        var i3;
+        null === (i3 = this._$ES) || void 0 === i3 || i3.forEach((t4) => {
+          var i4;
+          return null === (i4 = t4.hostUpdated) || void 0 === i4 ? void 0 : i4.call(t4);
+        }), this.hasUpdated || (this.hasUpdated = true, this.firstUpdated(t3)), this.updated(t3);
+      }
+      _$Ek() {
+        this._$AL = /* @__PURE__ */ new Map(), this.isUpdatePending = false;
+      }
+      get updateComplete() {
+        return this.getUpdateComplete();
+      }
+      getUpdateComplete() {
+        return this._$E_;
+      }
+      shouldUpdate(t3) {
+        return true;
+      }
+      update(t3) {
+        void 0 !== this._$EC && (this._$EC.forEach((t4, i3) => this._$EO(i3, this[i3], t4)), this._$EC = void 0), this._$Ek();
+      }
+      updated(t3) {
+      }
+      firstUpdated(t3) {
+      }
+    };
+    u[d] = true, u.elementProperties = /* @__PURE__ */ new Map(), u.elementStyles = [], u.shadowRootOptions = { mode: "open" }, null == o2 || o2({ ReactiveElement: u }), (null !== (s2 = e2.reactiveElementVersions) && void 0 !== s2 ? s2 : e2.reactiveElementVersions = []).push("1.6.3");
+  }
+});
+
+// node_modules/lit-html/lit-html.js
+function P(t3, i3) {
+  if (!Array.isArray(t3) || !t3.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return void 0 !== e3 ? e3.createHTML(i3) : i3;
+}
+function S2(t3, i3, s5 = t3, e4) {
+  var o5, n5, l4, h3;
+  if (i3 === T) return i3;
+  let r4 = void 0 !== e4 ? null === (o5 = s5._$Co) || void 0 === o5 ? void 0 : o5[e4] : s5._$Cl;
+  const u3 = d2(i3) ? void 0 : i3._$litDirective$;
+  return (null == r4 ? void 0 : r4.constructor) !== u3 && (null === (n5 = null == r4 ? void 0 : r4._$AO) || void 0 === n5 || n5.call(r4, false), void 0 === u3 ? r4 = void 0 : (r4 = new u3(t3), r4._$AT(t3, s5, e4)), void 0 !== e4 ? (null !== (l4 = (h3 = s5)._$Co) && void 0 !== l4 ? l4 : h3._$Co = [])[e4] = r4 : s5._$Cl = r4), void 0 !== r4 && (i3 = S2(t3, r4._$AS(t3, i3.values), r4, e4)), i3;
+}
+var t2, i2, s3, e3, o3, n3, l2, h2, r3, u2, d2, c2, v, a2, f, _, m, p, g, $, y, w, x, b, T, A, E, C, V, N, M, R, k, H, I, L, z, Z, B, D;
+var init_lit_html = __esm({
+  "node_modules/lit-html/lit-html.js"() {
+    i2 = window;
+    s3 = i2.trustedTypes;
+    e3 = s3 ? s3.createPolicy("lit-html", { createHTML: (t3) => t3 }) : void 0;
+    o3 = "$lit$";
+    n3 = `lit$${(Math.random() + "").slice(9)}$`;
+    l2 = "?" + n3;
+    h2 = `<${l2}>`;
+    r3 = document;
+    u2 = () => r3.createComment("");
+    d2 = (t3) => null === t3 || "object" != typeof t3 && "function" != typeof t3;
+    c2 = Array.isArray;
+    v = (t3) => c2(t3) || "function" == typeof (null == t3 ? void 0 : t3[Symbol.iterator]);
+    a2 = "[ 	\n\f\r]";
+    f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
+    _ = /-->/g;
+    m = />/g;
+    p = RegExp(`>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g");
+    g = /'/g;
+    $ = /"/g;
+    y = /^(?:script|style|textarea|title)$/i;
+    w = (t3) => (i3, ...s5) => ({ _$litType$: t3, strings: i3, values: s5 });
+    x = w(1);
+    b = w(2);
+    T = Symbol.for("lit-noChange");
+    A = Symbol.for("lit-nothing");
+    E = /* @__PURE__ */ new WeakMap();
+    C = r3.createTreeWalker(r3, 129, null, false);
+    V = (t3, i3) => {
+      const s5 = t3.length - 1, e4 = [];
+      let l4, r4 = 2 === i3 ? "<svg>" : "", u3 = f;
+      for (let i4 = 0; i4 < s5; i4++) {
+        const s6 = t3[i4];
+        let d3, c3, v2 = -1, a3 = 0;
+        for (; a3 < s6.length && (u3.lastIndex = a3, c3 = u3.exec(s6), null !== c3); ) a3 = u3.lastIndex, u3 === f ? "!--" === c3[1] ? u3 = _ : void 0 !== c3[1] ? u3 = m : void 0 !== c3[2] ? (y.test(c3[2]) && (l4 = RegExp("</" + c3[2], "g")), u3 = p) : void 0 !== c3[3] && (u3 = p) : u3 === p ? ">" === c3[0] ? (u3 = null != l4 ? l4 : f, v2 = -1) : void 0 === c3[1] ? v2 = -2 : (v2 = u3.lastIndex - c3[2].length, d3 = c3[1], u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g) : u3 === $ || u3 === g ? u3 = p : u3 === _ || u3 === m ? u3 = f : (u3 = p, l4 = void 0);
+        const w2 = u3 === p && t3[i4 + 1].startsWith("/>") ? " " : "";
+        r4 += u3 === f ? s6 + h2 : v2 >= 0 ? (e4.push(d3), s6.slice(0, v2) + o3 + s6.slice(v2) + n3 + w2) : s6 + n3 + (-2 === v2 ? (e4.push(void 0), i4) : w2);
+      }
+      return [P(t3, r4 + (t3[s5] || "<?>") + (2 === i3 ? "</svg>" : "")), e4];
+    };
+    N = class _N {
+      constructor({ strings: t3, _$litType$: i3 }, e4) {
+        let h3;
+        this.parts = [];
+        let r4 = 0, d3 = 0;
+        const c3 = t3.length - 1, v2 = this.parts, [a3, f2] = V(t3, i3);
+        if (this.el = _N.createElement(a3, e4), C.currentNode = this.el.content, 2 === i3) {
+          const t4 = this.el.content, i4 = t4.firstChild;
+          i4.remove(), t4.append(...i4.childNodes);
+        }
+        for (; null !== (h3 = C.nextNode()) && v2.length < c3; ) {
+          if (1 === h3.nodeType) {
+            if (h3.hasAttributes()) {
+              const t4 = [];
+              for (const i4 of h3.getAttributeNames()) if (i4.endsWith(o3) || i4.startsWith(n3)) {
+                const s5 = f2[d3++];
+                if (t4.push(i4), void 0 !== s5) {
+                  const t5 = h3.getAttribute(s5.toLowerCase() + o3).split(n3), i5 = /([.?@])?(.*)/.exec(s5);
+                  v2.push({ type: 1, index: r4, name: i5[2], strings: t5, ctor: "." === i5[1] ? H : "?" === i5[1] ? L : "@" === i5[1] ? z : k });
+                } else v2.push({ type: 6, index: r4 });
+              }
+              for (const i4 of t4) h3.removeAttribute(i4);
+            }
+            if (y.test(h3.tagName)) {
+              const t4 = h3.textContent.split(n3), i4 = t4.length - 1;
+              if (i4 > 0) {
+                h3.textContent = s3 ? s3.emptyScript : "";
+                for (let s5 = 0; s5 < i4; s5++) h3.append(t4[s5], u2()), C.nextNode(), v2.push({ type: 2, index: ++r4 });
+                h3.append(t4[i4], u2());
+              }
+            }
+          } else if (8 === h3.nodeType) if (h3.data === l2) v2.push({ type: 2, index: r4 });
+          else {
+            let t4 = -1;
+            for (; -1 !== (t4 = h3.data.indexOf(n3, t4 + 1)); ) v2.push({ type: 7, index: r4 }), t4 += n3.length - 1;
+          }
+          r4++;
+        }
+      }
+      static createElement(t3, i3) {
+        const s5 = r3.createElement("template");
+        return s5.innerHTML = t3, s5;
+      }
+    };
+    M = class {
+      constructor(t3, i3) {
+        this._$AV = [], this._$AN = void 0, this._$AD = t3, this._$AM = i3;
+      }
+      get parentNode() {
+        return this._$AM.parentNode;
+      }
+      get _$AU() {
+        return this._$AM._$AU;
+      }
+      u(t3) {
+        var i3;
+        const { el: { content: s5 }, parts: e4 } = this._$AD, o5 = (null !== (i3 = null == t3 ? void 0 : t3.creationScope) && void 0 !== i3 ? i3 : r3).importNode(s5, true);
+        C.currentNode = o5;
+        let n5 = C.nextNode(), l4 = 0, h3 = 0, u3 = e4[0];
+        for (; void 0 !== u3; ) {
+          if (l4 === u3.index) {
+            let i4;
+            2 === u3.type ? i4 = new R(n5, n5.nextSibling, this, t3) : 1 === u3.type ? i4 = new u3.ctor(n5, u3.name, u3.strings, this, t3) : 6 === u3.type && (i4 = new Z(n5, this, t3)), this._$AV.push(i4), u3 = e4[++h3];
+          }
+          l4 !== (null == u3 ? void 0 : u3.index) && (n5 = C.nextNode(), l4++);
+        }
+        return C.currentNode = r3, o5;
+      }
+      v(t3) {
+        let i3 = 0;
+        for (const s5 of this._$AV) void 0 !== s5 && (void 0 !== s5.strings ? (s5._$AI(t3, s5, i3), i3 += s5.strings.length - 2) : s5._$AI(t3[i3])), i3++;
+      }
+    };
+    R = class _R {
+      constructor(t3, i3, s5, e4) {
+        var o5;
+        this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t3, this._$AB = i3, this._$AM = s5, this.options = e4, this._$Cp = null === (o5 = null == e4 ? void 0 : e4.isConnected) || void 0 === o5 || o5;
+      }
+      get _$AU() {
+        var t3, i3;
+        return null !== (i3 = null === (t3 = this._$AM) || void 0 === t3 ? void 0 : t3._$AU) && void 0 !== i3 ? i3 : this._$Cp;
+      }
+      get parentNode() {
+        let t3 = this._$AA.parentNode;
+        const i3 = this._$AM;
+        return void 0 !== i3 && 11 === (null == t3 ? void 0 : t3.nodeType) && (t3 = i3.parentNode), t3;
+      }
+      get startNode() {
+        return this._$AA;
+      }
+      get endNode() {
+        return this._$AB;
+      }
+      _$AI(t3, i3 = this) {
+        t3 = S2(this, t3, i3), d2(t3) ? t3 === A || null == t3 || "" === t3 ? (this._$AH !== A && this._$AR(), this._$AH = A) : t3 !== this._$AH && t3 !== T && this._(t3) : void 0 !== t3._$litType$ ? this.g(t3) : void 0 !== t3.nodeType ? this.$(t3) : v(t3) ? this.T(t3) : this._(t3);
+      }
+      k(t3) {
+        return this._$AA.parentNode.insertBefore(t3, this._$AB);
+      }
+      $(t3) {
+        this._$AH !== t3 && (this._$AR(), this._$AH = this.k(t3));
+      }
+      _(t3) {
+        this._$AH !== A && d2(this._$AH) ? this._$AA.nextSibling.data = t3 : this.$(r3.createTextNode(t3)), this._$AH = t3;
+      }
+      g(t3) {
+        var i3;
+        const { values: s5, _$litType$: e4 } = t3, o5 = "number" == typeof e4 ? this._$AC(t3) : (void 0 === e4.el && (e4.el = N.createElement(P(e4.h, e4.h[0]), this.options)), e4);
+        if ((null === (i3 = this._$AH) || void 0 === i3 ? void 0 : i3._$AD) === o5) this._$AH.v(s5);
+        else {
+          const t4 = new M(o5, this), i4 = t4.u(this.options);
+          t4.v(s5), this.$(i4), this._$AH = t4;
+        }
+      }
+      _$AC(t3) {
+        let i3 = E.get(t3.strings);
+        return void 0 === i3 && E.set(t3.strings, i3 = new N(t3)), i3;
+      }
+      T(t3) {
+        c2(this._$AH) || (this._$AH = [], this._$AR());
+        const i3 = this._$AH;
+        let s5, e4 = 0;
+        for (const o5 of t3) e4 === i3.length ? i3.push(s5 = new _R(this.k(u2()), this.k(u2()), this, this.options)) : s5 = i3[e4], s5._$AI(o5), e4++;
+        e4 < i3.length && (this._$AR(s5 && s5._$AB.nextSibling, e4), i3.length = e4);
+      }
+      _$AR(t3 = this._$AA.nextSibling, i3) {
+        var s5;
+        for (null === (s5 = this._$AP) || void 0 === s5 || s5.call(this, false, true, i3); t3 && t3 !== this._$AB; ) {
+          const i4 = t3.nextSibling;
+          t3.remove(), t3 = i4;
+        }
+      }
+      setConnected(t3) {
+        var i3;
+        void 0 === this._$AM && (this._$Cp = t3, null === (i3 = this._$AP) || void 0 === i3 || i3.call(this, t3));
+      }
+    };
+    k = class {
+      constructor(t3, i3, s5, e4, o5) {
+        this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t3, this.name = i3, this._$AM = e4, this.options = o5, s5.length > 2 || "" !== s5[0] || "" !== s5[1] ? (this._$AH = Array(s5.length - 1).fill(new String()), this.strings = s5) : this._$AH = A;
+      }
+      get tagName() {
+        return this.element.tagName;
+      }
+      get _$AU() {
+        return this._$AM._$AU;
+      }
+      _$AI(t3, i3 = this, s5, e4) {
+        const o5 = this.strings;
+        let n5 = false;
+        if (void 0 === o5) t3 = S2(this, t3, i3, 0), n5 = !d2(t3) || t3 !== this._$AH && t3 !== T, n5 && (this._$AH = t3);
+        else {
+          const e5 = t3;
+          let l4, h3;
+          for (t3 = o5[0], l4 = 0; l4 < o5.length - 1; l4++) h3 = S2(this, e5[s5 + l4], i3, l4), h3 === T && (h3 = this._$AH[l4]), n5 || (n5 = !d2(h3) || h3 !== this._$AH[l4]), h3 === A ? t3 = A : t3 !== A && (t3 += (null != h3 ? h3 : "") + o5[l4 + 1]), this._$AH[l4] = h3;
+        }
+        n5 && !e4 && this.j(t3);
+      }
+      j(t3) {
+        t3 === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, null != t3 ? t3 : "");
+      }
+    };
+    H = class extends k {
+      constructor() {
+        super(...arguments), this.type = 3;
+      }
+      j(t3) {
+        this.element[this.name] = t3 === A ? void 0 : t3;
+      }
+    };
+    I = s3 ? s3.emptyScript : "";
+    L = class extends k {
+      constructor() {
+        super(...arguments), this.type = 4;
+      }
+      j(t3) {
+        t3 && t3 !== A ? this.element.setAttribute(this.name, I) : this.element.removeAttribute(this.name);
+      }
+    };
+    z = class extends k {
+      constructor(t3, i3, s5, e4, o5) {
+        super(t3, i3, s5, e4, o5), this.type = 5;
+      }
+      _$AI(t3, i3 = this) {
+        var s5;
+        if ((t3 = null !== (s5 = S2(this, t3, i3, 0)) && void 0 !== s5 ? s5 : A) === T) return;
+        const e4 = this._$AH, o5 = t3 === A && e4 !== A || t3.capture !== e4.capture || t3.once !== e4.once || t3.passive !== e4.passive, n5 = t3 !== A && (e4 === A || o5);
+        o5 && this.element.removeEventListener(this.name, this, e4), n5 && this.element.addEventListener(this.name, this, t3), this._$AH = t3;
+      }
+      handleEvent(t3) {
+        var i3, s5;
+        "function" == typeof this._$AH ? this._$AH.call(null !== (s5 = null === (i3 = this.options) || void 0 === i3 ? void 0 : i3.host) && void 0 !== s5 ? s5 : this.element, t3) : this._$AH.handleEvent(t3);
+      }
+    };
+    Z = class {
+      constructor(t3, i3, s5) {
+        this.element = t3, this.type = 6, this._$AN = void 0, this._$AM = i3, this.options = s5;
+      }
+      get _$AU() {
+        return this._$AM._$AU;
+      }
+      _$AI(t3) {
+        S2(this, t3);
+      }
+    };
+    B = i2.litHtmlPolyfillSupport;
+    null == B || B(N, R), (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2 ? t2 : i2.litHtmlVersions = []).push("2.8.0");
+    D = (t3, i3, s5) => {
+      var e4, o5;
+      const n5 = null !== (e4 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== e4 ? e4 : i3;
+      let l4 = n5._$litPart$;
+      if (void 0 === l4) {
+        const t4 = null !== (o5 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== o5 ? o5 : null;
+        n5._$litPart$ = l4 = new R(i3.insertBefore(u2(), t4), t4, void 0, null != s5 ? s5 : {});
+      }
+      return l4._$AI(t3), l4;
+    };
+  }
+});
+
+// node_modules/lit-element/lit-element.js
+var l3, o4, s4, n4;
+var init_lit_element = __esm({
+  "node_modules/lit-element/lit-element.js"() {
+    init_reactive_element();
+    init_reactive_element();
+    init_lit_html();
+    init_lit_html();
+    s4 = class extends u {
+      constructor() {
+        super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
+      }
+      createRenderRoot() {
+        var t3, e4;
+        const i3 = super.createRenderRoot();
+        return null !== (t3 = (e4 = this.renderOptions).renderBefore) && void 0 !== t3 || (e4.renderBefore = i3.firstChild), i3;
+      }
+      update(t3) {
+        const i3 = this.render();
+        this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t3), this._$Do = D(i3, this.renderRoot, this.renderOptions);
+      }
+      connectedCallback() {
+        var t3;
+        super.connectedCallback(), null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(true);
+      }
+      disconnectedCallback() {
+        var t3;
+        super.disconnectedCallback(), null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(false);
+      }
+      render() {
+        return T;
+      }
+    };
+    s4.finalized = true, s4._$litElement$ = true, null === (l3 = globalThis.litElementHydrateSupport) || void 0 === l3 || l3.call(globalThis, { LitElement: s4 });
+    n4 = globalThis.litElementPolyfillSupport;
+    null == n4 || n4({ LitElement: s4 });
+    (null !== (o4 = globalThis.litElementVersions) && void 0 !== o4 ? o4 : globalThis.litElementVersions = []).push("3.3.3");
+  }
+});
+
+// node_modules/lit-html/is-server.js
+var init_is_server = __esm({
+  "node_modules/lit-html/is-server.js"() {
+  }
+});
+
+// node_modules/lit/index.js
+var init_lit = __esm({
+  "node_modules/lit/index.js"() {
+    init_reactive_element();
+    init_lit_html();
+    init_lit_element();
+    init_is_server();
+  }
+});
+
+// src/mas-mnemonic.js
+var mas_mnemonic_exports = {};
+__export(mas_mnemonic_exports, {
+  default: () => MasMnemonic
+});
+function hasSpectrumTooltip() {
+  return customElements.get("sp-tooltip") !== void 0 && customElements.get("overlay-trigger") !== void 0 && document.querySelector("sp-theme") !== null;
+}
+var MasMnemonic;
+var init_mas_mnemonic = __esm({
+  "src/mas-mnemonic.js"() {
+    init_lit();
+    MasMnemonic = class extends s4 {
+      constructor() {
+        super();
+        this.content = "";
+        this.placement = "top";
+        this.variant = "info";
+        this.size = "xs";
+      }
+      get effectiveContent() {
+        return this.tooltipText || this.mnemonicText || this.content || "";
+      }
+      get effectivePlacement() {
+        return this.tooltipPlacement || this.mnemonicPlacement || this.placement || "top";
+      }
+      renderIcon() {
+        if (!this.src) return x`<slot></slot>`;
+        return x`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:f`<slot></slot>`}render(){let t=this.effectiveContent,r=this.effectivePlacement;return t?ah()?f`
-                <overlay-trigger placement="${r}">
+        ></merch-icon>`;
+      }
+      render() {
+        const content = this.effectiveContent;
+        const placement = this.effectivePlacement;
+        if (!content) {
+          return this.renderIcon();
+        }
+        const useSpectrum = hasSpectrumTooltip();
+        if (useSpectrum) {
+          return x`
+                <overlay-trigger placement="${placement}">
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
-                        placement="${r}"
+                        placement="${placement}"
                         variant="${this.variant}"
                     >
-                        ${t}
+                        ${content}
                     </sp-tooltip>
                 </overlay-trigger>
-            `:f`
+            `;
+        } else {
+          return x`
                 <span
-                    class="css-tooltip ${r}"
-                    data-tooltip="${t}"
+                    class="css-tooltip ${placement}"
+                    data-tooltip="${content}"
                     tabindex="0"
                     role="img"
-                    aria-label="${t}"
+                    aria-label="${content}"
                 >
                     ${this.renderIcon()}
                 </span>
-            `:this.renderIcon()}};u(mt,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"}}),u(mt,"styles",y`
+            `;
+        }
+      }
+    };
+    __publicField(MasMnemonic, "properties", {
+      content: { type: String },
+      placement: { type: String },
+      variant: { type: String },
+      // Icon-based tooltip properties
+      src: { type: String },
+      size: { type: String },
+      tooltipText: { type: String, attribute: "tooltip-text" },
+      tooltipPlacement: { type: String, attribute: "tooltip-placement" },
+      // Support studio's mnemonic attribute names
+      mnemonicText: { type: String, attribute: "mnemonic-text" },
+      mnemonicPlacement: { type: String, attribute: "mnemonic-placement" }
+    });
+    __publicField(MasMnemonic, "styles", i`
         :host {
             display: contents;
             overflow: visible;
@@ -636,10 +1319,7013 @@ var Io=Object.defineProperty;var $o=e=>{throw TypeError(e)};var Yc=(e,t,r)=>t in
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);customElements.define("mas-mnemonic",mt)});var Ke={clientId:"merch-at-scale",delimiter:"\xB6",ignoredProperties:["analytics","literals","element"],serializableTypes:["Array","Object"],sampleRate:1,tags:"acom",isProdDomain:!1},Uo=1e3;function Xc(e){return e instanceof Error||typeof e?.originatingRequest=="string"}function Bo(e){if(e==null)return;let t=typeof e;if(t==="function")return e.name?`function ${e.name}`:"function";if(t==="object"){if(e instanceof Error)return e.message;if(typeof e.originatingRequest=="string"){let{message:i,originatingRequest:n,status:o}=e;return[i,o,n].filter(Boolean).join(" ")}let r=e[Symbol.toStringTag]??Object.getPrototypeOf(e).constructor.name;if(!Ke.serializableTypes.includes(r))return r}return e}function Kc(e,t){if(!Ke.ignoredProperties.includes(e))return Bo(t)}var Vi={append(e){if(e.level!=="error")return;let{message:t,params:r}=e,i=[],n=[],o=t;r.forEach(l=>{l!=null&&(Xc(l)?i:n).push(l)}),i.length&&(o+=" "+i.map(Bo).join(" "));let{pathname:a,search:s}=window.location,c=`${Ke.delimiter}page=${a}${s}`;c.length>Uo&&(c=`${c.slice(0,Uo)}<trunc>`),o+=c,n.length&&(o+=`${Ke.delimiter}facts=`,o+=JSON.stringify(n,Kc)),window.lana?.log(o,Ke)}};function Vr(e){Object.assign(Ke,Object.fromEntries(Object.entries(e).filter(([t,r])=>t in Ke&&r!==""&&r!==null&&r!==void 0&&!Number.isNaN(r))))}var pn={};Ho(pn,{CLASS_NAME_FAILED:()=>Xi,CLASS_NAME_HIDDEN:()=>Zc,CLASS_NAME_PENDING:()=>Ki,CLASS_NAME_RESOLVED:()=>Qi,CheckoutWorkflow:()=>Fo,CheckoutWorkflowStep:()=>re,Commitment:()=>Qe,ERROR_MESSAGE_BAD_REQUEST:()=>Zi,ERROR_MESSAGE_MISSING_LITERALS_URL:()=>ll,ERROR_MESSAGE_OFFER_NOT_FOUND:()=>Ji,EVENT_AEM_ERROR:()=>Je,EVENT_AEM_LOAD:()=>Ze,EVENT_MAS_ERROR:()=>Yi,EVENT_MAS_READY:()=>Wi,EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE:()=>qr,EVENT_MERCH_CARD_ACTION_MENU_TOGGLE:()=>ji,EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED:()=>ol,EVENT_MERCH_CARD_COLLECTION_SHOWMORE:()=>sl,EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED:()=>al,EVENT_MERCH_CARD_COLLECTION_SORT:()=>nl,EVENT_MERCH_CARD_QUANTITY_CHANGE:()=>wt,EVENT_MERCH_OFFER_READY:()=>Et,EVENT_MERCH_OFFER_SELECT_READY:()=>ir,EVENT_MERCH_QUANTITY_SELECTOR_CHANGE:()=>Pe,EVENT_MERCH_SEARCH_CHANGE:()=>il,EVENT_MERCH_SIDENAV_SELECT:()=>cl,EVENT_MERCH_STOCK_CHANGE:()=>tl,EVENT_MERCH_STORAGE_CHANGE:()=>rl,EVENT_OFFER_SELECTED:()=>qi,EVENT_TYPE_FAILED:()=>en,EVENT_TYPE_READY:()=>jr,EVENT_TYPE_RESOLVED:()=>At,Env:()=>Ae,FF_DEFAULTS:()=>ze,HEADER_X_REQUEST_ID:()=>nr,LOG_NAMESPACE:()=>tn,Landscape:()=>Be,MARK_DURATION_SUFFIX:()=>rt,MARK_START_SUFFIX:()=>tt,MODAL_TYPE_3_IN_1:()=>et,NAMESPACE:()=>Qc,PARAM_AOS_API_KEY:()=>dl,PARAM_ENV:()=>nn,PARAM_LANDSCAPE:()=>on,PARAM_MAS_PREVIEW:()=>rn,PARAM_WCS_API_KEY:()=>hl,PROVIDER_ENVIRONMENT:()=>cn,SELECTOR_MAS_CHECKOUT_LINK:()=>ge,SELECTOR_MAS_ELEMENT:()=>rr,SELECTOR_MAS_INLINE_PRICE:()=>z,SELECTOR_MAS_SP_BUTTON:()=>el,SELECTOR_MAS_UPT_LINK:()=>zo,SORT_ORDER:()=>gl,STATE_FAILED:()=>fe,STATE_PENDING:()=>Ue,STATE_RESOLVED:()=>Le,SUPPORTED_COUNTRIES:()=>hn,SUPPORTED_LANGUAGES:()=>dn,SUPPORTED_LANGUAGE_COUNTRY:()=>or,TAG_NAME_SERVICE:()=>Jc,TEMPLATE_PRICE:()=>pl,TEMPLATE_PRICE_ANNUAL:()=>ul,TEMPLATE_PRICE_LEGAL:()=>ln,TEMPLATE_PRICE_STRIKETHROUGH:()=>ml,Term:()=>pe,WCS_PROD_URL:()=>an,WCS_STAGE_URL:()=>sn});var Qe=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),pe=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"}),Qc="merch",Zc="hidden",jr="wcms:commerce:ready",Jc="mas-commerce-service",z='span[is="inline-price"][data-wcs-osi]',ge='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]',el="sp-button[data-wcs-osi]",zo='a[is="upt-link"]',rr=`${z},${ge},${zo}`,Et="merch-offer:ready",ir="merch-offer-select:ready",ji="merch-card:action-menu-toggle",qi="merch-offer:selected",tl="merch-stock:change",rl="merch-storage:change",Pe="merch-quantity-selector:change",wt="merch-card-quantity:change",qr="merch-modal:addon-and-quantity-update",il="merch-search:change",nl="merch-card-collection:sort",ol="merch-card-collection:literals-changed",al="merch-card-collection:sidenav-attached",sl="merch-card-collection:showmore",cl="merch-sidenav:select",Ze="aem:load",Je="aem:error",Wi="mas:ready",Yi="mas:error",Xi="placeholder-failed",Ki="placeholder-pending",Qi="placeholder-resolved",Zi="Bad WCS request",Ji="Commerce offer not found",ll="Literals URL not provided",en="mas:failed",At="mas:resolved",tn="mas/commerce",rn="mas.preview",nn="commerce.env",on="commerce.landscape",dl="commerce.aosKey",hl="commerce.wcsKey",an="https://www.adobe.com/web_commerce_artifact",sn="https://www.stage.adobe.com/web_commerce_artifact_stage",fe="failed",Ue="pending",Le="resolved",Be={DRAFT:"DRAFT",PUBLISHED:"PUBLISHED"},nr="X-Request-Id",re=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"}),Fo="UCv3",Ae=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"}),cn={PRODUCTION:"PRODUCTION"},et={TWP:"twp",D2P:"d2p",CRM:"crm"},tt=":start",rt=":duration",pl="price",ml="price-strikethrough",ul="annual",ln="legal",ze="mas-ff-defaults",gl={alphabetical:"alphabetical",authored:"authored"},or=["en_US","ar_DZ","ar_EG","ar_SA","bg_BG","cs_CZ","da_DK","de_AT","de_CH","de_DE","de_LU","el_GR","en_AU","en_AZ","en_BE","en_CA","en_DZ","en_EG","en_GB","en_GR","en_ID","en_IE","en_IN","en_LU","en_MT","en_MU","en_MY","en_NG","en_NZ","en_SA","en_SG","en_TH","en_ZA","es_AR","es_CL","es_CO","es_CR","es_DO","es_EC","es_ES","es_GT","es_MX","es_PE","es_US","et_EE","fi_FI","fr_BE","fr_CH","fr_FR","fr_LU","hi_IN","hu_HU","in_ID","it_CH","it_IT","iw_IL","ja_JP","ko_KR","lt_LT","lv_LV","ms_MY","nb_NO","nl_BE","nl_NL","pl_PL","pt_BR","pt_PT","ro_RO","ru_AZ","ru_RU","sk_SK","sl_SI","sv_SE","th_TH","tr_TR","uk_UA","zh-Hans_CN","zh-Hant_HK","zh-Hant_TW"],dn=["en","ar","bg","cs","da","de","el","es","et","fi","fr","hi","hu","in","it","iw","ja","ko","lt","lv","ms","MULT","nb","nl","pl","pt","ro","ru","sk","sl","sv","th","tr","uk","zh-Hans","zh-Hant","fr-ca","he","no","zh-hant","fil","id","vi"],hn=["AE","AFRICA","AR","AT","AU","AZ","BE","BG","BR","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GB","GE","GR","GT","HK","HU","ID","IE","IL","IN","IT","JP","KR","KW","LA","LT","LU","LV","MENA","MT","MU","MX","MY","NG","NL","NO","NZ","PE","PH","PL","PR","PT","QA","RO","RU","SA","SE","SG","SI","SK","TH","TR","TW","UA","UK","US","VN","ZA","CIS","hant"];var Go="tacocat.js";var mn=(e,t)=>String(e??"").toLowerCase()==String(t??"").toLowerCase(),Vo=e=>`${e??""}`.replace(/[&<>'"]/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[t]??t)??"";function H(e,t={},{metadata:r=!0,search:i=!0,storage:n=!0}={}){let o;if(i&&o==null){let a=new URLSearchParams(window.location.search),s=St(i)?i:e;o=a.get(s)}if(n&&o==null){let a=St(n)?n:e;o=window.sessionStorage.getItem(a)??window.localStorage.getItem(a)}if(r&&o==null){let a=xl(St(r)?r:e);o=document.documentElement.querySelector(`meta[name="${a}"]`)?.content}return o??t[e]}var fl=e=>typeof e=="boolean",Wr=e=>typeof e=="function",Yr=e=>typeof e=="number",jo=e=>e!=null&&typeof e=="object";var St=e=>typeof e=="string",qo=e=>St(e)&&e,ar=e=>Yr(e)&&Number.isFinite(e)&&e>0;function Xr(e,t=r=>r==null||r===""){return e!=null&&Object.entries(e).forEach(([r,i])=>{t(i)&&delete e[r]}),e}function T(e,t){if(fl(e))return e;let r=String(e);return r==="1"||r==="true"?!0:r==="0"||r==="false"?!1:t}function sr(e,t,r){let i=Object.values(t);return i.find(n=>mn(n,e))??r??i[0]}function xl(e=""){return String(e).replace(/(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,(t,r,i)=>`${r}-${i}`).replace(/\W+/gu,"-").toLowerCase()}function Wo(e,t=1){return Yr(e)||(e=Number.parseInt(e,10)),!Number.isNaN(e)&&e>0&&Number.isFinite(e)?e:t}var bl=Date.now(),un=()=>`(+${Date.now()-bl}ms)`,Kr=new Set,vl=T(H("tacocat.debug",{},{metadata:!1}),!1);function Yo(e){let t=`[${Go}/${e}]`,r=(a,s,...c)=>a?!0:(n(s,...c),!1),i=vl?(a,...s)=>{console.debug(`${t} ${a}`,...s,un())}:()=>{},n=(a,...s)=>{let c=`${t} ${a}`;Kr.forEach(([l])=>l(c,...s))};return{assert:r,debug:i,error:n,warn:(a,...s)=>{let c=`${t} ${a}`;Kr.forEach(([,l])=>l(c,...s))}}}function yl(e,t){let r=[e,t];return Kr.add(r),()=>{Kr.delete(r)}}yl((e,...t)=>{console.error(e,...t,un())},(e,...t)=>{console.warn(e,...t,un())});var El="no promo",Xo="promo-tag",wl="yellow",Al="neutral",Sl=(e,t,r)=>{let i=o=>o||El,n=r?` (was "${i(t)}")`:"";return`${i(e)}${n}`},_l="cancel-context",Qr=(e,t)=>{let r=e===_l,i=!r&&e?.length>0,n=(i||r)&&(t&&t!=e||!t&&!r),o=n&&i||!n&&!!t,a=o?e||t:void 0;return{effectivePromoCode:a,overridenPromoCode:e,className:o?Xo:`${Xo} no-promo`,text:Sl(a,t,n),variant:o?wl:Al,isOverriden:n}};var gn;(function(e){e.BASE="BASE",e.TRIAL="TRIAL",e.PROMOTION="PROMOTION"})(gn||(gn={}));var ce;(function(e){e.MONTH="MONTH",e.YEAR="YEAR",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.PERPETUAL="PERPETUAL",e.TERM_LICENSE="TERM_LICENSE",e.ACCESS_PASS="ACCESS_PASS",e.THREE_MONTHS="THREE_MONTHS",e.SIX_MONTHS="SIX_MONTHS"})(ce||(ce={}));var me;(function(e){e.ANNUAL="ANNUAL",e.MONTHLY="MONTHLY",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.P1D="P1D",e.P1Y="P1Y",e.P3Y="P3Y",e.P10Y="P10Y",e.P15Y="P15Y",e.P3D="P3D",e.P7D="P7D",e.P30D="P30D",e.HALF_YEARLY="HALF_YEARLY",e.QUARTERLY="QUARTERLY"})(me||(me={}));var fn;(function(e){e.INDIVIDUAL="INDIVIDUAL",e.TEAM="TEAM",e.ENTERPRISE="ENTERPRISE"})(fn||(fn={}));var xn;(function(e){e.COM="COM",e.EDU="EDU",e.GOV="GOV"})(xn||(xn={}));var bn;(function(e){e.DIRECT="DIRECT",e.INDIRECT="INDIRECT"})(bn||(bn={}));var vn;(function(e){e.ENTERPRISE_PRODUCT="ENTERPRISE_PRODUCT",e.ETLA="ETLA",e.RETAIL="RETAIL",e.VIP="VIP",e.VIPMP="VIPMP",e.FREE="FREE"})(vn||(vn={}));var yn="ABM",En="PUF",wn="M2M",An="PERPETUAL",Sn="P3Y",Tl="TAX_INCLUSIVE_DETAILS",Cl="TAX_EXCLUSIVE",Ko={ABM:yn,PUF:En,M2M:wn,PERPETUAL:An,P3Y:Sn},tp={[yn]:{commitment:ce.YEAR,term:me.MONTHLY},[En]:{commitment:ce.YEAR,term:me.ANNUAL},[wn]:{commitment:ce.MONTH,term:me.MONTHLY},[An]:{commitment:ce.PERPETUAL,term:void 0},[Sn]:{commitment:ce.THREE_MONTHS,term:me.P3Y}},Qo="Value is not an offer",cr=e=>{if(typeof e!="object")return Qo;let{commitment:t,term:r}=e,i=kl(t,r);return{...e,planType:i}};var kl=(e,t)=>{switch(e){case void 0:return Qo;case"":return"";case ce.YEAR:return t===me.MONTHLY?yn:t===me.ANNUAL?En:"";case ce.MONTH:return t===me.MONTHLY?wn:"";case ce.PERPETUAL:return An;case ce.TERM_LICENSE:return t===me.P3Y?Sn:"";default:return""}};function Zo(e){let{priceDetails:t}=e,{price:r,priceWithoutDiscount:i,priceWithoutTax:n,priceWithoutDiscountAndTax:o,taxDisplay:a}=t;if(a!==Tl)return e;let s={...e,priceDetails:{...t,price:n??r,priceWithoutDiscount:o??i,taxDisplay:Cl}};return s.offerType==="TRIAL"&&s.priceDetails.price===0&&(s.priceDetails.price=s.priceDetails.priceWithoutDiscount),s}var Pl="mas-commerce-service",Ll={requestId:nr,etag:"Etag",lastModified:"Last-Modified",serverTiming:"server-timing"};function lr(e,{country:t,forceTaxExclusive:r}){let i;if(e.length<2)i=e;else{let n=t==="GB"?"EN":"MULT";e.sort((o,a)=>o.language===n?-1:a.language===n?1:0),e.sort((o,a)=>!o.term&&a.term?-1:o.term&&!a.term?1:0),i=[e[0]]}return r&&(i=i.map(Zo)),i}var Zr=e=>window.setTimeout(e);function _t(e,t=1){if(e==null)return[t];let r=(Array.isArray(e)?e:String(e).split(",")).map(Wo).filter(ar);return r.length||(r=[t]),r}function Jr(e){return e==null?[]:(Array.isArray(e)?e:String(e).split(",")).filter(qo)}function ie(){return document.getElementsByTagName(Pl)?.[0]}function ei(e){let t={};if(!e?.headers)return t;let r=e.headers;for(let[i,n]of Object.entries(Ll)){let o=r.get(n);o&&(o=o.replace(/[,;]/g,"|"),o=o.replace(/[| ]+/g,"|"),t[i]=o)}return t}var Jo={LOCAL:"local",PROD:"prod",STAGE:"stage"},_n={DEBUG:"debug",ERROR:"error",INFO:"info",WARN:"warn"},Tn=new Set,Cn=new Set,ea=new Map,ta={append({level:e,message:t,params:r,timestamp:i,source:n}){console[e](`${i}ms [${n}] %c${t}`,"font-weight: bold;",...r)}},ra={filter:({level:e})=>e!==_n.DEBUG},Rl={filter:()=>!1};function Ol(e,t,r,i,n){return{level:e,message:t,namespace:r,get params(){return i.length===1&&Wr(i[0])&&(i=i[0](),Array.isArray(i)||(i=[i])),i},source:n,timestamp:performance.now().toFixed(3)}}function Nl(e){[...Cn].every(t=>t(e))&&Tn.forEach(t=>t(e))}function ia(e){let t=(ea.get(e)??0)+1;ea.set(e,t);let r=`${e} #${t}`,i={id:r,namespace:e,module:n=>ia(`${i.namespace}/${n}`),updateConfig:Vr};return Object.values(_n).forEach(n=>{i[n]=(o,...a)=>Nl(Ol(n,o,e,a,r))}),Object.seal(i)}function ti(...e){e.forEach(t=>{let{append:r,filter:i}=t;Wr(i)&&Cn.add(i),Wr(r)&&Tn.add(r)})}function Ml(e={}){let{name:t}=e,r=T(H("commerce.debug",{search:!0,storage:!0}),t===Jo.LOCAL);return ti(r?ta:ra),t===Jo.PROD&&ti(Vi),le}function Il(){Tn.clear(),Cn.clear()}var le={...ia(tn),Level:_n,Plugins:{consoleAppender:ta,debugFilter:ra,quietFilter:Rl,lanaAppender:Vi},init:Ml,reset:Il,use:ti};var Re=class e extends Error{constructor(t,r,i){if(super(t,{cause:i}),this.name="MasError",r.response){let n=r.response.headers?.get(nr);n&&(r.requestId=n),r.response.status&&(r.status=r.response.status,r.statusText=r.response.statusText),r.response.url&&(r.url=r.response.url)}delete r.response,this.context=r,Error.captureStackTrace&&Error.captureStackTrace(this,e)}toString(){let t=Object.entries(this.context||{}).map(([i,n])=>`${i}: ${JSON.stringify(n)}`).join(", "),r=`${this.name}: ${this.message}`;return t&&(r+=` (${t})`),this.cause&&(r+=`
-Caused by: ${this.cause}`),r}};var $l={[fe]:Xi,[Ue]:Ki,[Le]:Qi},Hl={[fe]:en,[Le]:At},dr,Fe=class{constructor(t){E(this,dr);u(this,"changes",new Map);u(this,"connected",!1);u(this,"error");u(this,"log");u(this,"options");u(this,"promises",[]);u(this,"state",Ue);u(this,"timer",null);u(this,"value");u(this,"version",0);u(this,"wrapperElement");this.wrapperElement=t,this.log=le.module("mas-element")}update(){[fe,Ue,Le].forEach(t=>{this.wrapperElement.classList.toggle($l[t],t===this.state)})}notify(){(this.state===Le||this.state===fe)&&(this.state===Le?this.promises.forEach(({resolve:r})=>r(this.wrapperElement)):this.state===fe&&this.promises.forEach(({reject:r})=>r(this.error)),this.promises=[]);let t=this.error;this.error instanceof Re&&(t={message:this.error.message,...this.error.context}),this.wrapperElement.dispatchEvent(new CustomEvent(Hl[this.state],{bubbles:!0,detail:t}))}attributeChangedCallback(t,r,i){this.changes.set(t,i),this.requestUpdate()}connectedCallback(){v(this,dr,ie()),this.requestUpdate(!0)}disconnectedCallback(){this.connected&&(this.connected=!1,this.log?.debug("Disconnected:",{element:this.wrapperElement}))}onceSettled(){let{error:t,promises:r,state:i}=this;return Le===i?Promise.resolve(this.wrapperElement):fe===i?Promise.reject(t):new Promise((n,o)=>{r.push({resolve:n,reject:o})})}toggleResolved(t,r,i){return t!==this.version?!1:(i!==void 0&&(this.options=i),this.state=Le,this.value=r,this.update(),this.log?.debug("Resolved:",{element:this.wrapperElement,value:r}),Zr(()=>this.notify()),!0)}toggleFailed(t,r,i){if(t!==this.version)return!1;i!==void 0&&(this.options=i),this.error=r,this.state=fe,this.update();let n=this.wrapperElement.getAttribute("is");return this.log?.error(`${n}: Failed to render: ${r.message}`,{element:this.wrapperElement,...r.context,...h(this,dr)?.duration}),Zr(()=>this.notify()),!0}togglePending(t){return this.version++,t&&(this.options=t),this.state=Ue,this.update(),this.log?.debug("Pending:",{osi:this.wrapperElement?.options?.wcsOsi}),this.version}requestUpdate(t=!1){if(!this.wrapperElement.isConnected||!ie()||this.timer)return;let{error:r,options:i,state:n,value:o,version:a}=this;this.state=Ue,this.timer=Zr(async()=>{this.timer=null;let s=null;if(this.changes.size&&(s=Object.fromEntries(this.changes.entries()),this.changes.clear()),this.connected?this.log?.debug("Updated:",{element:this.wrapperElement,changes:s}):(this.connected=!0,this.log?.debug("Connected:",{element:this.wrapperElement,changes:s})),s||t)try{await this.wrapperElement.render?.()===!1&&this.state===Ue&&this.version===a&&(this.state=n,this.error=r,this.value=o,this.update(),this.notify())}catch(c){this.toggleFailed(this.version,c,i)}})}};dr=new WeakMap;function na(e={}){return Object.entries(e).forEach(([t,r])=>{(r==null||r===""||r?.length===0)&&delete e[t]}),e}function ri(e,t={}){let{tag:r,is:i}=e,n=document.createElement(r,{is:i});return n.setAttribute("is",i),Object.assign(n.dataset,na(t)),n}function oa(e,t={}){return e instanceof HTMLElement?(Object.assign(e.dataset,na(t)),e):null}var aa="download",sa="upgrade",ca={e:"EDU",t:"TEAM"};function ii(e,t={},r=""){let i=ie();if(!i)return null;let{checkoutMarketSegment:n,checkoutWorkflow:o,checkoutWorkflowStep:a,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:p,quantity:m,wcsOsi:g,extraOptions:x,analyticsId:b}=i.collectCheckoutOptions(t),w=ri(e,{checkoutMarketSegment:n,checkoutWorkflow:o,checkoutWorkflowStep:a,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:p,quantity:m,wcsOsi:g,extraOptions:x,analyticsId:b});return r&&(w.innerHTML=`<span style="pointer-events: none;">${r}</span>`),w}function ni(e){return class extends e{constructor(){super(...arguments);u(this,"checkoutActionHandler");u(this,"masElement",new Fe(this))}attributeChangedCallback(i,n,o){this.masElement.attributeChangedCallback(i,n,o)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.clickHandler)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.clickHandler)}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get marketSegment(){let i=this.options?.ms??this.value?.[0].marketSegments?.[0];return ca[i]??i}get customerSegment(){let i=this.options?.cs??this.value?.[0]?.customerSegment;return ca[i]??i}get is3in1Modal(){return Object.values(et).includes(this.getAttribute("data-modal"))}get isOpen3in1Modal(){let i=document.querySelector("meta[name=mas-ff-3in1]");return this.is3in1Modal&&(!i||i.content!=="off")}requestUpdate(i=!1){return this.masElement.requestUpdate(i)}static get observedAttributes(){return["data-checkout-workflow","data-checkout-workflow-step","data-extra-options","data-ims-country","data-perpetual","data-promotion-code","data-quantity","data-template","data-wcs-osi","data-entitlement","data-upgrade","data-modal"]}async render(i={}){let n=ie();if(!n)return!1;this.dataset.imsCountry||n.imsCountryPromise.then(p=>{p&&(this.dataset.imsCountry=p)}),i.imsCountry=null;let o=n.collectCheckoutOptions(i,this);if(!o.wcsOsi.length)return!1;let a;try{a=JSON.parse(o.extraOptions??"{}")}catch(p){this.masElement.log?.error("cannot parse exta checkout options",p)}let s=this.masElement.togglePending(o);this.setCheckoutUrl("");let c=n.resolveOfferSelectors(o),l=await Promise.all(c);l=l.map(p=>lr(p,o)),o.country=this.dataset.imsCountry||o.country;let d=await n.buildCheckoutAction?.(l.flat(),{...a,...o},this);return this.renderOffers(l.flat(),o,{},d,s)}renderOffers(i,n,o={},a=void 0,s=void 0){let c=ie();if(!c)return!1;if(n={...JSON.parse(this.dataset.extraOptions??"{}"),...n,...o},s??(s=this.masElement.togglePending(n)),this.checkoutActionHandler&&(this.checkoutActionHandler=void 0),a){this.classList.remove(aa,sa),this.masElement.toggleResolved(s,i,n);let{url:d,text:p,className:m,handler:g}=a;d&&this.setCheckoutUrl(d),p&&(this.firstElementChild.innerHTML=p),m&&this.classList.add(...m.split(" ")),g&&(this.setCheckoutUrl("#"),this.checkoutActionHandler=g.bind(this))}if(i.length){if(this.masElement.toggleResolved(s,i,n)){if(!this.classList.contains(aa)&&!this.classList.contains(sa)){let d=c.buildCheckoutURL(i,n);this.setCheckoutUrl(n.modal==="true"?"#":d)}return!0}}else{let d=new Error(`Not provided: ${n?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(s,d,n))return this.setCheckoutUrl("#"),!0}}setCheckoutUrl(){}clickHandler(i){}updateOptions(i={}){let n=ie();if(!n)return!1;let{checkoutMarketSegment:o,checkoutWorkflow:a,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:p,promotionCode:m,quantity:g,wcsOsi:x}=n.collectCheckoutOptions(i);return oa(this,{checkoutMarketSegment:o,checkoutWorkflow:a,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:p,promotionCode:m,quantity:g,wcsOsi:x}),!0}}}var hr=class hr extends ni(HTMLAnchorElement){static createCheckoutLink(t={},r=""){return ii(hr,t,r)}setCheckoutUrl(t){this.setAttribute("href",t)}get isCheckoutLink(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}}};u(hr,"is","checkout-link"),u(hr,"tag","a");var Oe=hr;window.customElements.get(Oe.is)||window.customElements.define(Oe.is,Oe,{extends:Oe.tag});var Dl="p_draft_landscape",Ul="/store/",Bl=new Map([["countrySpecific","cs"],["customerSegment","cs"],["quantity","q"],["authCode","code"],["checkoutPromoCode","apc"],["rurl","rUrl"],["curl","cUrl"],["ctxrturl","ctxRtUrl"],["country","co"],["language","lang"],["clientId","cli"],["context","ctx"],["productArrangementCode","pa"],["addonProductArrangementCode","ao"],["offerType","ot"],["marketSegment","ms"]]),kn=new Set(["af","ai","ao","apc","appctxid","cli","co","cs","csm","ctx","ctxRtUrl","DCWATC","dp","fr","gsp","ijt","lang","lo","mal","ms","mv","mv2","nglwfdata","ot","otac","pa","pcid","promoid","q","rf","sc","scl","sdid","sid","spint","svar","th","thm","trackingid","usid","workflowid","context.guid","so.ca","so.su","so.tr","so.va"]),zl=["env","workflowStep","clientId","country"],la=e=>Bl.get(e)??e;function Pn(e,t,r){for(let[i,n]of Object.entries(e)){let o=la(i);n!=null&&r.has(o)&&t.set(o,n)}}function Fl(e){switch(e){case cn.PRODUCTION:return"https://commerce.adobe.com";default:return"https://commerce-stg.adobe.com"}}function Gl(e,t){for(let r in e){let i=e[r];for(let[n,o]of Object.entries(i)){if(o==null)continue;let a=la(n);t.set(`items[${r}][${a}]`,o)}}}function Vl({url:e,modal:t,is3in1:r}){if(!r||!e?.searchParams)return e;e.searchParams.set("rtc","t"),e.searchParams.set("lo","sl");let i=e.searchParams.get("af");return e.searchParams.set("af",[i,"uc_new_user_iframe","uc_new_system_close"].filter(Boolean).join(",")),e.searchParams.get("cli")!=="doc_cloud"&&e.searchParams.set("cli",t===et.CRM?"creative":"mini_plans"),e}function da(e){jl(e);let{env:t,items:r,workflowStep:i,marketSegment:n,customerSegment:o,offerType:a,productArrangementCode:s,landscape:c,modal:l,is3in1:d,preselectPlan:p,...m}=e,g=new URL(Fl(t));if(g.pathname=`${Ul}${i}`,i!==re.SEGMENTATION&&i!==re.CHANGE_PLAN_TEAM_PLANS&&Gl(r,g.searchParams),Pn({...m},g.searchParams,kn),c===Be.DRAFT&&Pn({af:Dl},g.searchParams,kn),i===re.SEGMENTATION){let x={marketSegment:n,offerType:a,customerSegment:o,productArrangementCode:s,quantity:r?.[0]?.quantity,addonProductArrangementCode:s?r?.find(b=>b.productArrangementCode!==s)?.productArrangementCode:r?.[1]?.productArrangementCode};p?.toLowerCase()==="edu"?g.searchParams.set("ms","EDU"):p?.toLowerCase()==="team"&&g.searchParams.set("cs","TEAM"),Pn(x,g.searchParams,kn),g.searchParams.get("ot")==="PROMOTION"&&g.searchParams.delete("ot"),g=Vl({url:g,modal:l,is3in1:d})}return g.toString()}function jl(e){for(let t of zl)if(!e[t])throw new Error('Argument "checkoutData" is not valid, missing: '+t);if(e.workflowStep!==re.SEGMENTATION&&e.workflowStep!==re.CHANGE_PLAN_TEAM_PLANS&&!e.items)throw new Error('Argument "checkoutData" is not valid, missing: items');return!0}var A=Object.freeze({checkoutClientId:"adobe_com",checkoutWorkflowStep:re.EMAIL,country:"US",displayOldPrice:!1,displayPerUnit:!1,displayRecurrence:!0,displayTax:!1,displayPlanType:!1,env:Ae.PRODUCTION,forceTaxExclusive:!1,language:"en",entitlement:!1,extraOptions:{},modal:!1,promotionCode:"",quantity:1,alternativePrice:!1,wcsApiKey:"wcms-commerce-ims-ro-user-milo",wcsURL:"https://www.adobe.com/web_commerce_artifact",landscape:Be.PUBLISHED});function ha({settings:e,providers:t}){function r(o,a){let{checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:p,quantity:m,preselectPlan:g,env:x}=e,b={checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:p,quantity:m,preselectPlan:g,env:x};if(a)for(let De of t.checkout)De(a,b);let{checkoutMarketSegment:w,checkoutWorkflowStep:P=c,imsCountry:R,country:_=R??l,language:N=d,quantity:G=m,entitlement:B,upgrade:V,modal:Y,perpetual:J,promotionCode:j=p,wcsOsi:ee,extraOptions:$,...we}=Object.assign(b,a?.dataset??{},o??{}),he=sr(P,re,A.checkoutWorkflowStep);return b=Xr({...we,extraOptions:$,checkoutClientId:s,checkoutMarketSegment:w,country:_,quantity:_t(G,A.quantity),checkoutWorkflowStep:he,language:N,entitlement:T(B),upgrade:T(V),modal:Y,perpetual:T(J),promotionCode:Qr(j).effectivePromoCode,wcsOsi:Jr(ee),preselectPlan:g}),b}function i(o,a){if(!Array.isArray(o)||!o.length||!a)return"";let{env:s,landscape:c}=e,{checkoutClientId:l,checkoutMarketSegment:d,checkoutWorkflowStep:p,country:m,promotionCode:g,quantity:x,preselectPlan:b,ms:w,cs:P,...R}=r(a),_=document.querySelector("meta[name=mas-ff-3in1]"),N=Object.values(et).includes(a.modal)&&(!_||_.content!=="off"),G=window.frameElement||N?"if":"fp",[{productArrangementCode:B,marketSegments:[V],customerSegment:Y,offerType:J}]=o,j=w??V??d,ee=P??Y;b?.toLowerCase()==="edu"?j="EDU":b?.toLowerCase()==="team"&&(ee="TEAM");let $={is3in1:N,checkoutPromoCode:g,clientId:l,context:G,country:m,env:s,items:[],marketSegment:j,customerSegment:ee,offerType:J,productArrangementCode:B,workflowStep:p,landscape:c,...R},we=x[0]>1?x[0]:void 0;if(o.length===1){let{offerId:he}=o[0];$.items.push({id:he,quantity:we})}else $.items.push(...o.map(({offerId:he,productArrangementCode:De})=>({id:he,quantity:we,...N?{productArrangementCode:De}:{}})));return da($)}let{createCheckoutLink:n}=Oe;return{CheckoutLink:Oe,CheckoutWorkflowStep:re,buildCheckoutURL:i,collectCheckoutOptions:r,createCheckoutLink:n}}function ql({interval:e=200,maxAttempts:t=25}={}){let r=le.module("ims");return new Promise(i=>{r.debug("Waing for IMS to be ready");let n=0;function o(){window.adobeIMS?.initialized?i():++n>t?(r.debug("Timeout"),i()):setTimeout(o,e)}o()})}function Wl(e){return e.then(()=>window.adobeIMS?.isSignedInUser()??!1)}function Yl(e){let t=le.module("ims");return e.then(r=>r?window.adobeIMS.getProfile().then(({countryCode:i})=>(t.debug("Got user country:",i),i),i=>{t.error("Unable to get user country:",i)}):null)}function pa({}){let e=ql(),t=Wl(e),r=Yl(t);return{imsReadyPromise:e,imsSignedInPromise:t,imsCountryPromise:r}}var ma=window.masPriceLiterals;function ua(e){if(Array.isArray(ma)){let t=i=>ma.find(n=>mn(n.lang,i)),r=t(e.language)??t(A.language);if(r)return Object.freeze(r)}return{}}var Ln=function(e,t){return Ln=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(r,i){r.__proto__=i}||function(r,i){for(var n in i)Object.prototype.hasOwnProperty.call(i,n)&&(r[n]=i[n])},Ln(e,t)};function pr(e,t){if(typeof t!="function"&&t!==null)throw new TypeError("Class extends value "+String(t)+" is not a constructor or null");Ln(e,t);function r(){this.constructor=e}e.prototype=t===null?Object.create(t):(r.prototype=t.prototype,new r)}var C=function(){return C=Object.assign||function(t){for(var r,i=1,n=arguments.length;i<n;i++){r=arguments[i];for(var o in r)Object.prototype.hasOwnProperty.call(r,o)&&(t[o]=r[o])}return t},C.apply(this,arguments)};function oi(e,t,r){if(r||arguments.length===2)for(var i=0,n=t.length,o;i<n;i++)(o||!(i in t))&&(o||(o=Array.prototype.slice.call(t,0,i)),o[i]=t[i]);return e.concat(o||Array.prototype.slice.call(t))}var S;(function(e){e[e.EXPECT_ARGUMENT_CLOSING_BRACE=1]="EXPECT_ARGUMENT_CLOSING_BRACE",e[e.EMPTY_ARGUMENT=2]="EMPTY_ARGUMENT",e[e.MALFORMED_ARGUMENT=3]="MALFORMED_ARGUMENT",e[e.EXPECT_ARGUMENT_TYPE=4]="EXPECT_ARGUMENT_TYPE",e[e.INVALID_ARGUMENT_TYPE=5]="INVALID_ARGUMENT_TYPE",e[e.EXPECT_ARGUMENT_STYLE=6]="EXPECT_ARGUMENT_STYLE",e[e.INVALID_NUMBER_SKELETON=7]="INVALID_NUMBER_SKELETON",e[e.INVALID_DATE_TIME_SKELETON=8]="INVALID_DATE_TIME_SKELETON",e[e.EXPECT_NUMBER_SKELETON=9]="EXPECT_NUMBER_SKELETON",e[e.EXPECT_DATE_TIME_SKELETON=10]="EXPECT_DATE_TIME_SKELETON",e[e.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE=11]="UNCLOSED_QUOTE_IN_ARGUMENT_STYLE",e[e.EXPECT_SELECT_ARGUMENT_OPTIONS=12]="EXPECT_SELECT_ARGUMENT_OPTIONS",e[e.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE=13]="EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE=14]="INVALID_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR=15]="EXPECT_SELECT_ARGUMENT_SELECTOR",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR=16]="EXPECT_PLURAL_ARGUMENT_SELECTOR",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT=17]="EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT=18]="EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT",e[e.INVALID_PLURAL_ARGUMENT_SELECTOR=19]="INVALID_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_PLURAL_ARGUMENT_SELECTOR=20]="DUPLICATE_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_SELECT_ARGUMENT_SELECTOR=21]="DUPLICATE_SELECT_ARGUMENT_SELECTOR",e[e.MISSING_OTHER_CLAUSE=22]="MISSING_OTHER_CLAUSE",e[e.INVALID_TAG=23]="INVALID_TAG",e[e.INVALID_TAG_NAME=25]="INVALID_TAG_NAME",e[e.UNMATCHED_CLOSING_TAG=26]="UNMATCHED_CLOSING_TAG",e[e.UNCLOSED_TAG=27]="UNCLOSED_TAG"})(S||(S={}));var D;(function(e){e[e.literal=0]="literal",e[e.argument=1]="argument",e[e.number=2]="number",e[e.date=3]="date",e[e.time=4]="time",e[e.select=5]="select",e[e.plural=6]="plural",e[e.pound=7]="pound",e[e.tag=8]="tag"})(D||(D={}));var it;(function(e){e[e.number=0]="number",e[e.dateTime=1]="dateTime"})(it||(it={}));function Rn(e){return e.type===D.literal}function ga(e){return e.type===D.argument}function ai(e){return e.type===D.number}function si(e){return e.type===D.date}function ci(e){return e.type===D.time}function li(e){return e.type===D.select}function di(e){return e.type===D.plural}function fa(e){return e.type===D.pound}function hi(e){return e.type===D.tag}function pi(e){return!!(e&&typeof e=="object"&&e.type===it.number)}function mr(e){return!!(e&&typeof e=="object"&&e.type===it.dateTime)}var On=/[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;var Xl=/(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;function xa(e){var t={};return e.replace(Xl,function(r){var i=r.length;switch(r[0]){case"G":t.era=i===4?"long":i===5?"narrow":"short";break;case"y":t.year=i===2?"2-digit":"numeric";break;case"Y":case"u":case"U":case"r":throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");case"q":case"Q":throw new RangeError("`q/Q` (quarter) patterns are not supported");case"M":case"L":t.month=["numeric","2-digit","short","long","narrow"][i-1];break;case"w":case"W":throw new RangeError("`w/W` (week) patterns are not supported");case"d":t.day=["numeric","2-digit"][i-1];break;case"D":case"F":case"g":throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");case"E":t.weekday=i===4?"short":i===5?"narrow":"short";break;case"e":if(i<4)throw new RangeError("`e..eee` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"c":if(i<4)throw new RangeError("`c..ccc` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"a":t.hour12=!0;break;case"b":case"B":throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");case"h":t.hourCycle="h12",t.hour=["numeric","2-digit"][i-1];break;case"H":t.hourCycle="h23",t.hour=["numeric","2-digit"][i-1];break;case"K":t.hourCycle="h11",t.hour=["numeric","2-digit"][i-1];break;case"k":t.hourCycle="h24",t.hour=["numeric","2-digit"][i-1];break;case"j":case"J":case"C":throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");case"m":t.minute=["numeric","2-digit"][i-1];break;case"s":t.second=["numeric","2-digit"][i-1];break;case"S":case"A":throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");case"z":t.timeZoneName=i<4?"short":"long";break;case"Z":case"O":case"v":case"V":case"X":case"x":throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead")}return""}),t}var ba=/[\t-\r \x85\u200E\u200F\u2028\u2029]/i;function wa(e){if(e.length===0)throw new Error("Number skeleton cannot be empty");for(var t=e.split(ba).filter(function(m){return m.length>0}),r=[],i=0,n=t;i<n.length;i++){var o=n[i],a=o.split("/");if(a.length===0)throw new Error("Invalid number skeleton");for(var s=a[0],c=a.slice(1),l=0,d=c;l<d.length;l++){var p=d[l];if(p.length===0)throw new Error("Invalid number skeleton")}r.push({stem:s,options:c})}return r}function Kl(e){return e.replace(/^(.*?)-/,"")}var va=/^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,Aa=/^(@+)?(\+|#+)?[rs]?$/g,Ql=/(\*)(0+)|(#+)(0+)|(0+)/g,Sa=/^(0+)$/;function ya(e){var t={};return e[e.length-1]==="r"?t.roundingPriority="morePrecision":e[e.length-1]==="s"&&(t.roundingPriority="lessPrecision"),e.replace(Aa,function(r,i,n){return typeof n!="string"?(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length):n==="+"?t.minimumSignificantDigits=i.length:i[0]==="#"?t.maximumSignificantDigits=i.length:(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length+(typeof n=="string"?n.length:0)),""}),t}function _a(e){switch(e){case"sign-auto":return{signDisplay:"auto"};case"sign-accounting":case"()":return{currencySign:"accounting"};case"sign-always":case"+!":return{signDisplay:"always"};case"sign-accounting-always":case"()!":return{signDisplay:"always",currencySign:"accounting"};case"sign-except-zero":case"+?":return{signDisplay:"exceptZero"};case"sign-accounting-except-zero":case"()?":return{signDisplay:"exceptZero",currencySign:"accounting"};case"sign-never":case"+_":return{signDisplay:"never"}}}function Zl(e){var t;if(e[0]==="E"&&e[1]==="E"?(t={notation:"engineering"},e=e.slice(2)):e[0]==="E"&&(t={notation:"scientific"},e=e.slice(1)),t){var r=e.slice(0,2);if(r==="+!"?(t.signDisplay="always",e=e.slice(2)):r==="+?"&&(t.signDisplay="exceptZero",e=e.slice(2)),!Sa.test(e))throw new Error("Malformed concise eng/scientific notation");t.minimumIntegerDigits=e.length}return t}function Ea(e){var t={},r=_a(e);return r||t}function Ta(e){for(var t={},r=0,i=e;r<i.length;r++){var n=i[r];switch(n.stem){case"percent":case"%":t.style="percent";continue;case"%x100":t.style="percent",t.scale=100;continue;case"currency":t.style="currency",t.currency=n.options[0];continue;case"group-off":case",_":t.useGrouping=!1;continue;case"precision-integer":case".":t.maximumFractionDigits=0;continue;case"measure-unit":case"unit":t.style="unit",t.unit=Kl(n.options[0]);continue;case"compact-short":case"K":t.notation="compact",t.compactDisplay="short";continue;case"compact-long":case"KK":t.notation="compact",t.compactDisplay="long";continue;case"scientific":t=C(C(C({},t),{notation:"scientific"}),n.options.reduce(function(c,l){return C(C({},c),Ea(l))},{}));continue;case"engineering":t=C(C(C({},t),{notation:"engineering"}),n.options.reduce(function(c,l){return C(C({},c),Ea(l))},{}));continue;case"notation-simple":t.notation="standard";continue;case"unit-width-narrow":t.currencyDisplay="narrowSymbol",t.unitDisplay="narrow";continue;case"unit-width-short":t.currencyDisplay="code",t.unitDisplay="short";continue;case"unit-width-full-name":t.currencyDisplay="name",t.unitDisplay="long";continue;case"unit-width-iso-code":t.currencyDisplay="symbol";continue;case"scale":t.scale=parseFloat(n.options[0]);continue;case"integer-width":if(n.options.length>1)throw new RangeError("integer-width stems only accept a single optional option");n.options[0].replace(Ql,function(c,l,d,p,m,g){if(l)t.minimumIntegerDigits=d.length;else{if(p&&m)throw new Error("We currently do not support maximum integer digits");if(g)throw new Error("We currently do not support exact integer digits")}return""});continue}if(Sa.test(n.stem)){t.minimumIntegerDigits=n.stem.length;continue}if(va.test(n.stem)){if(n.options.length>1)throw new RangeError("Fraction-precision stems only accept a single optional option");n.stem.replace(va,function(c,l,d,p,m,g){return d==="*"?t.minimumFractionDigits=l.length:p&&p[0]==="#"?t.maximumFractionDigits=p.length:m&&g?(t.minimumFractionDigits=m.length,t.maximumFractionDigits=m.length+g.length):(t.minimumFractionDigits=l.length,t.maximumFractionDigits=l.length),""});var o=n.options[0];o==="w"?t=C(C({},t),{trailingZeroDisplay:"stripIfInteger"}):o&&(t=C(C({},t),ya(o)));continue}if(Aa.test(n.stem)){t=C(C({},t),ya(n.stem));continue}var a=_a(n.stem);a&&(t=C(C({},t),a));var s=Zl(n.stem);s&&(t=C(C({},t),s))}return t}var ur={AX:["H"],BQ:["H"],CP:["H"],CZ:["H"],DK:["H"],FI:["H"],ID:["H"],IS:["H"],ML:["H"],NE:["H"],RU:["H"],SE:["H"],SJ:["H"],SK:["H"],AS:["h","H"],BT:["h","H"],DJ:["h","H"],ER:["h","H"],GH:["h","H"],IN:["h","H"],LS:["h","H"],PG:["h","H"],PW:["h","H"],SO:["h","H"],TO:["h","H"],VU:["h","H"],WS:["h","H"],"001":["H","h"],AL:["h","H","hB"],TD:["h","H","hB"],"ca-ES":["H","h","hB"],CF:["H","h","hB"],CM:["H","h","hB"],"fr-CA":["H","h","hB"],"gl-ES":["H","h","hB"],"it-CH":["H","h","hB"],"it-IT":["H","h","hB"],LU:["H","h","hB"],NP:["H","h","hB"],PF:["H","h","hB"],SC:["H","h","hB"],SM:["H","h","hB"],SN:["H","h","hB"],TF:["H","h","hB"],VA:["H","h","hB"],CY:["h","H","hb","hB"],GR:["h","H","hb","hB"],CO:["h","H","hB","hb"],DO:["h","H","hB","hb"],KP:["h","H","hB","hb"],KR:["h","H","hB","hb"],NA:["h","H","hB","hb"],PA:["h","H","hB","hb"],PR:["h","H","hB","hb"],VE:["h","H","hB","hb"],AC:["H","h","hb","hB"],AI:["H","h","hb","hB"],BW:["H","h","hb","hB"],BZ:["H","h","hb","hB"],CC:["H","h","hb","hB"],CK:["H","h","hb","hB"],CX:["H","h","hb","hB"],DG:["H","h","hb","hB"],FK:["H","h","hb","hB"],GB:["H","h","hb","hB"],GG:["H","h","hb","hB"],GI:["H","h","hb","hB"],IE:["H","h","hb","hB"],IM:["H","h","hb","hB"],IO:["H","h","hb","hB"],JE:["H","h","hb","hB"],LT:["H","h","hb","hB"],MK:["H","h","hb","hB"],MN:["H","h","hb","hB"],MS:["H","h","hb","hB"],NF:["H","h","hb","hB"],NG:["H","h","hb","hB"],NR:["H","h","hb","hB"],NU:["H","h","hb","hB"],PN:["H","h","hb","hB"],SH:["H","h","hb","hB"],SX:["H","h","hb","hB"],TA:["H","h","hb","hB"],ZA:["H","h","hb","hB"],"af-ZA":["H","h","hB","hb"],AR:["H","h","hB","hb"],CL:["H","h","hB","hb"],CR:["H","h","hB","hb"],CU:["H","h","hB","hb"],EA:["H","h","hB","hb"],"es-BO":["H","h","hB","hb"],"es-BR":["H","h","hB","hb"],"es-EC":["H","h","hB","hb"],"es-ES":["H","h","hB","hb"],"es-GQ":["H","h","hB","hb"],"es-PE":["H","h","hB","hb"],GT:["H","h","hB","hb"],HN:["H","h","hB","hb"],IC:["H","h","hB","hb"],KG:["H","h","hB","hb"],KM:["H","h","hB","hb"],LK:["H","h","hB","hb"],MA:["H","h","hB","hb"],MX:["H","h","hB","hb"],NI:["H","h","hB","hb"],PY:["H","h","hB","hb"],SV:["H","h","hB","hb"],UY:["H","h","hB","hb"],JP:["H","h","K"],AD:["H","hB"],AM:["H","hB"],AO:["H","hB"],AT:["H","hB"],AW:["H","hB"],BE:["H","hB"],BF:["H","hB"],BJ:["H","hB"],BL:["H","hB"],BR:["H","hB"],CG:["H","hB"],CI:["H","hB"],CV:["H","hB"],DE:["H","hB"],EE:["H","hB"],FR:["H","hB"],GA:["H","hB"],GF:["H","hB"],GN:["H","hB"],GP:["H","hB"],GW:["H","hB"],HR:["H","hB"],IL:["H","hB"],IT:["H","hB"],KZ:["H","hB"],MC:["H","hB"],MD:["H","hB"],MF:["H","hB"],MQ:["H","hB"],MZ:["H","hB"],NC:["H","hB"],NL:["H","hB"],PM:["H","hB"],PT:["H","hB"],RE:["H","hB"],RO:["H","hB"],SI:["H","hB"],SR:["H","hB"],ST:["H","hB"],TG:["H","hB"],TR:["H","hB"],WF:["H","hB"],YT:["H","hB"],BD:["h","hB","H"],PK:["h","hB","H"],AZ:["H","hB","h"],BA:["H","hB","h"],BG:["H","hB","h"],CH:["H","hB","h"],GE:["H","hB","h"],LI:["H","hB","h"],ME:["H","hB","h"],RS:["H","hB","h"],UA:["H","hB","h"],UZ:["H","hB","h"],XK:["H","hB","h"],AG:["h","hb","H","hB"],AU:["h","hb","H","hB"],BB:["h","hb","H","hB"],BM:["h","hb","H","hB"],BS:["h","hb","H","hB"],CA:["h","hb","H","hB"],DM:["h","hb","H","hB"],"en-001":["h","hb","H","hB"],FJ:["h","hb","H","hB"],FM:["h","hb","H","hB"],GD:["h","hb","H","hB"],GM:["h","hb","H","hB"],GU:["h","hb","H","hB"],GY:["h","hb","H","hB"],JM:["h","hb","H","hB"],KI:["h","hb","H","hB"],KN:["h","hb","H","hB"],KY:["h","hb","H","hB"],LC:["h","hb","H","hB"],LR:["h","hb","H","hB"],MH:["h","hb","H","hB"],MP:["h","hb","H","hB"],MW:["h","hb","H","hB"],NZ:["h","hb","H","hB"],SB:["h","hb","H","hB"],SG:["h","hb","H","hB"],SL:["h","hb","H","hB"],SS:["h","hb","H","hB"],SZ:["h","hb","H","hB"],TC:["h","hb","H","hB"],TT:["h","hb","H","hB"],UM:["h","hb","H","hB"],US:["h","hb","H","hB"],VC:["h","hb","H","hB"],VG:["h","hb","H","hB"],VI:["h","hb","H","hB"],ZM:["h","hb","H","hB"],BO:["H","hB","h","hb"],EC:["H","hB","h","hb"],ES:["H","hB","h","hb"],GQ:["H","hB","h","hb"],PE:["H","hB","h","hb"],AE:["h","hB","hb","H"],"ar-001":["h","hB","hb","H"],BH:["h","hB","hb","H"],DZ:["h","hB","hb","H"],EG:["h","hB","hb","H"],EH:["h","hB","hb","H"],HK:["h","hB","hb","H"],IQ:["h","hB","hb","H"],JO:["h","hB","hb","H"],KW:["h","hB","hb","H"],LB:["h","hB","hb","H"],LY:["h","hB","hb","H"],MO:["h","hB","hb","H"],MR:["h","hB","hb","H"],OM:["h","hB","hb","H"],PH:["h","hB","hb","H"],PS:["h","hB","hb","H"],QA:["h","hB","hb","H"],SA:["h","hB","hb","H"],SD:["h","hB","hb","H"],SY:["h","hB","hb","H"],TN:["h","hB","hb","H"],YE:["h","hB","hb","H"],AF:["H","hb","hB","h"],LA:["H","hb","hB","h"],CN:["H","hB","hb","h"],LV:["H","hB","hb","h"],TL:["H","hB","hb","h"],"zu-ZA":["H","hB","hb","h"],CD:["hB","H"],IR:["hB","H"],"hi-IN":["hB","h","H"],"kn-IN":["hB","h","H"],"ml-IN":["hB","h","H"],"te-IN":["hB","h","H"],KH:["hB","h","H","hb"],"ta-IN":["hB","h","hb","H"],BN:["hb","hB","h","H"],MY:["hb","hB","h","H"],ET:["hB","hb","h","H"],"gu-IN":["hB","hb","h","H"],"mr-IN":["hB","hb","h","H"],"pa-IN":["hB","hb","h","H"],TW:["hB","hb","h","H"],KE:["hB","hb","H","h"],MM:["hB","hb","H","h"],TZ:["hB","hb","H","h"],UG:["hB","hb","H","h"]};function Ca(e,t){for(var r="",i=0;i<e.length;i++){var n=e.charAt(i);if(n==="j"){for(var o=0;i+1<e.length&&e.charAt(i+1)===n;)o++,i++;var a=1+(o&1),s=o<2?1:3+(o>>1),c="a",l=Jl(t);for((l=="H"||l=="k")&&(s=0);s-- >0;)r+=c;for(;a-- >0;)r=l+r}else n==="J"?r+="H":r+=n}return r}function Jl(e){var t=e.hourCycle;if(t===void 0&&e.hourCycles&&e.hourCycles.length&&(t=e.hourCycles[0]),t)switch(t){case"h24":return"k";case"h23":return"H";case"h12":return"h";case"h11":return"K";default:throw new Error("Invalid hourCycle")}var r=e.language,i;r!=="root"&&(i=e.maximize().region);var n=ur[i||""]||ur[r||""]||ur["".concat(r,"-001")]||ur["001"];return n[0]}var Nn,ed=new RegExp("^".concat(On.source,"*")),td=new RegExp("".concat(On.source,"*$"));function k(e,t){return{start:e,end:t}}var rd=!!String.prototype.startsWith,id=!!String.fromCodePoint,nd=!!Object.fromEntries,od=!!String.prototype.codePointAt,ad=!!String.prototype.trimStart,sd=!!String.prototype.trimEnd,cd=!!Number.isSafeInteger,ld=cd?Number.isSafeInteger:function(e){return typeof e=="number"&&isFinite(e)&&Math.floor(e)===e&&Math.abs(e)<=9007199254740991},In=!0;try{ka=Oa("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),In=((Nn=ka.exec("a"))===null||Nn===void 0?void 0:Nn[0])==="a"}catch{In=!1}var ka,Pa=rd?function(t,r,i){return t.startsWith(r,i)}:function(t,r,i){return t.slice(i,i+r.length)===r},$n=id?String.fromCodePoint:function(){for(var t=[],r=0;r<arguments.length;r++)t[r]=arguments[r];for(var i="",n=t.length,o=0,a;n>o;){if(a=t[o++],a>1114111)throw RangeError(a+" is not a valid code point");i+=a<65536?String.fromCharCode(a):String.fromCharCode(((a-=65536)>>10)+55296,a%1024+56320)}return i},La=nd?Object.fromEntries:function(t){for(var r={},i=0,n=t;i<n.length;i++){var o=n[i],a=o[0],s=o[1];r[a]=s}return r},Ra=od?function(t,r){return t.codePointAt(r)}:function(t,r){var i=t.length;if(!(r<0||r>=i)){var n=t.charCodeAt(r),o;return n<55296||n>56319||r+1===i||(o=t.charCodeAt(r+1))<56320||o>57343?n:(n-55296<<10)+(o-56320)+65536}},dd=ad?function(t){return t.trimStart()}:function(t){return t.replace(ed,"")},hd=sd?function(t){return t.trimEnd()}:function(t){return t.replace(td,"")};function Oa(e,t){return new RegExp(e,t)}var Hn;In?(Mn=Oa("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),Hn=function(t,r){var i;Mn.lastIndex=r;var n=Mn.exec(t);return(i=n[1])!==null&&i!==void 0?i:""}):Hn=function(t,r){for(var i=[];;){var n=Ra(t,r);if(n===void 0||Ma(n)||ud(n))break;i.push(n),r+=n>=65536?2:1}return $n.apply(void 0,i)};var Mn,Na=function(){function e(t,r){r===void 0&&(r={}),this.message=t,this.position={offset:0,line:1,column:1},this.ignoreTag=!!r.ignoreTag,this.locale=r.locale,this.requiresOtherClause=!!r.requiresOtherClause,this.shouldParseSkeletons=!!r.shouldParseSkeletons}return e.prototype.parse=function(){if(this.offset()!==0)throw Error("parser can only be used once");return this.parseMessage(0,"",!1)},e.prototype.parseMessage=function(t,r,i){for(var n=[];!this.isEOF();){var o=this.char();if(o===123){var a=this.parseArgument(t,i);if(a.err)return a;n.push(a.val)}else{if(o===125&&t>0)break;if(o===35&&(r==="plural"||r==="selectordinal")){var s=this.clonePosition();this.bump(),n.push({type:D.pound,location:k(s,this.clonePosition())})}else if(o===60&&!this.ignoreTag&&this.peek()===47){if(i)break;return this.error(S.UNMATCHED_CLOSING_TAG,k(this.clonePosition(),this.clonePosition()))}else if(o===60&&!this.ignoreTag&&Dn(this.peek()||0)){var a=this.parseTag(t,r);if(a.err)return a;n.push(a.val)}else{var a=this.parseLiteral(t,r);if(a.err)return a;n.push(a.val)}}}return{val:n,err:null}},e.prototype.parseTag=function(t,r){var i=this.clonePosition();this.bump();var n=this.parseTagName();if(this.bumpSpace(),this.bumpIf("/>"))return{val:{type:D.literal,value:"<".concat(n,"/>"),location:k(i,this.clonePosition())},err:null};if(this.bumpIf(">")){var o=this.parseMessage(t+1,r,!0);if(o.err)return o;var a=o.val,s=this.clonePosition();if(this.bumpIf("</")){if(this.isEOF()||!Dn(this.char()))return this.error(S.INVALID_TAG,k(s,this.clonePosition()));var c=this.clonePosition(),l=this.parseTagName();return n!==l?this.error(S.UNMATCHED_CLOSING_TAG,k(c,this.clonePosition())):(this.bumpSpace(),this.bumpIf(">")?{val:{type:D.tag,value:n,children:a,location:k(i,this.clonePosition())},err:null}:this.error(S.INVALID_TAG,k(s,this.clonePosition())))}else return this.error(S.UNCLOSED_TAG,k(i,this.clonePosition()))}else return this.error(S.INVALID_TAG,k(i,this.clonePosition()))},e.prototype.parseTagName=function(){var t=this.offset();for(this.bump();!this.isEOF()&&md(this.char());)this.bump();return this.message.slice(t,this.offset())},e.prototype.parseLiteral=function(t,r){for(var i=this.clonePosition(),n="";;){var o=this.tryParseQuote(r);if(o){n+=o;continue}var a=this.tryParseUnquoted(t,r);if(a){n+=a;continue}var s=this.tryParseLeftAngleBracket();if(s){n+=s;continue}break}var c=k(i,this.clonePosition());return{val:{type:D.literal,value:n,location:c},err:null}},e.prototype.tryParseLeftAngleBracket=function(){return!this.isEOF()&&this.char()===60&&(this.ignoreTag||!pd(this.peek()||0))?(this.bump(),"<"):null},e.prototype.tryParseQuote=function(t){if(this.isEOF()||this.char()!==39)return null;switch(this.peek()){case 39:return this.bump(),this.bump(),"'";case 123:case 60:case 62:case 125:break;case 35:if(t==="plural"||t==="selectordinal")break;return null;default:return null}this.bump();var r=[this.char()];for(this.bump();!this.isEOF();){var i=this.char();if(i===39)if(this.peek()===39)r.push(39),this.bump();else{this.bump();break}else r.push(i);this.bump()}return $n.apply(void 0,r)},e.prototype.tryParseUnquoted=function(t,r){if(this.isEOF())return null;var i=this.char();return i===60||i===123||i===35&&(r==="plural"||r==="selectordinal")||i===125&&t>0?null:(this.bump(),$n(i))},e.prototype.parseArgument=function(t,r){var i=this.clonePosition();if(this.bump(),this.bumpSpace(),this.isEOF())return this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition()));if(this.char()===125)return this.bump(),this.error(S.EMPTY_ARGUMENT,k(i,this.clonePosition()));var n=this.parseIdentifierIfPossible().value;if(!n)return this.error(S.MALFORMED_ARGUMENT,k(i,this.clonePosition()));if(this.bumpSpace(),this.isEOF())return this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition()));switch(this.char()){case 125:return this.bump(),{val:{type:D.argument,value:n,location:k(i,this.clonePosition())},err:null};case 44:return this.bump(),this.bumpSpace(),this.isEOF()?this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition())):this.parseArgumentOptions(t,r,n,i);default:return this.error(S.MALFORMED_ARGUMENT,k(i,this.clonePosition()))}},e.prototype.parseIdentifierIfPossible=function(){var t=this.clonePosition(),r=this.offset(),i=Hn(this.message,r),n=r+i.length;this.bumpTo(n);var o=this.clonePosition(),a=k(t,o);return{value:i,location:a}},e.prototype.parseArgumentOptions=function(t,r,i,n){var o,a=this.clonePosition(),s=this.parseIdentifierIfPossible().value,c=this.clonePosition();switch(s){case"":return this.error(S.EXPECT_ARGUMENT_TYPE,k(a,c));case"number":case"date":case"time":{this.bumpSpace();var l=null;if(this.bumpIf(",")){this.bumpSpace();var d=this.clonePosition(),p=this.parseSimpleArgStyleIfPossible();if(p.err)return p;var m=hd(p.val);if(m.length===0)return this.error(S.EXPECT_ARGUMENT_STYLE,k(this.clonePosition(),this.clonePosition()));var g=k(d,this.clonePosition());l={style:m,styleLocation:g}}var x=this.tryParseArgumentClose(n);if(x.err)return x;var b=k(n,this.clonePosition());if(l&&Pa(l?.style,"::",0)){var w=dd(l.style.slice(2));if(s==="number"){var p=this.parseNumberSkeletonFromString(w,l.styleLocation);return p.err?p:{val:{type:D.number,value:i,location:b,style:p.val},err:null}}else{if(w.length===0)return this.error(S.EXPECT_DATE_TIME_SKELETON,b);var P=w;this.locale&&(P=Ca(w,this.locale));var m={type:it.dateTime,pattern:P,location:l.styleLocation,parsedOptions:this.shouldParseSkeletons?xa(P):{}},R=s==="date"?D.date:D.time;return{val:{type:R,value:i,location:b,style:m},err:null}}}return{val:{type:s==="number"?D.number:s==="date"?D.date:D.time,value:i,location:b,style:(o=l?.style)!==null&&o!==void 0?o:null},err:null}}case"plural":case"selectordinal":case"select":{var _=this.clonePosition();if(this.bumpSpace(),!this.bumpIf(","))return this.error(S.EXPECT_SELECT_ARGUMENT_OPTIONS,k(_,C({},_)));this.bumpSpace();var N=this.parseIdentifierIfPossible(),G=0;if(s!=="select"&&N.value==="offset"){if(!this.bumpIf(":"))return this.error(S.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,k(this.clonePosition(),this.clonePosition()));this.bumpSpace();var p=this.tryParseDecimalInteger(S.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,S.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);if(p.err)return p;this.bumpSpace(),N=this.parseIdentifierIfPossible(),G=p.val}var B=this.tryParsePluralOrSelectOptions(t,s,r,N);if(B.err)return B;var x=this.tryParseArgumentClose(n);if(x.err)return x;var V=k(n,this.clonePosition());return s==="select"?{val:{type:D.select,value:i,options:La(B.val),location:V},err:null}:{val:{type:D.plural,value:i,options:La(B.val),offset:G,pluralType:s==="plural"?"cardinal":"ordinal",location:V},err:null}}default:return this.error(S.INVALID_ARGUMENT_TYPE,k(a,c))}},e.prototype.tryParseArgumentClose=function(t){return this.isEOF()||this.char()!==125?this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(t,this.clonePosition())):(this.bump(),{val:!0,err:null})},e.prototype.parseSimpleArgStyleIfPossible=function(){for(var t=0,r=this.clonePosition();!this.isEOF();){var i=this.char();switch(i){case 39:{this.bump();var n=this.clonePosition();if(!this.bumpUntil("'"))return this.error(S.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE,k(n,this.clonePosition()));this.bump();break}case 123:{t+=1,this.bump();break}case 125:{if(t>0)t-=1;else return{val:this.message.slice(r.offset,this.offset()),err:null};break}default:this.bump();break}}return{val:this.message.slice(r.offset,this.offset()),err:null}},e.prototype.parseNumberSkeletonFromString=function(t,r){var i=[];try{i=wa(t)}catch{return this.error(S.INVALID_NUMBER_SKELETON,r)}return{val:{type:it.number,tokens:i,location:r,parsedOptions:this.shouldParseSkeletons?Ta(i):{}},err:null}},e.prototype.tryParsePluralOrSelectOptions=function(t,r,i,n){for(var o,a=!1,s=[],c=new Set,l=n.value,d=n.location;;){if(l.length===0){var p=this.clonePosition();if(r!=="select"&&this.bumpIf("=")){var m=this.tryParseDecimalInteger(S.EXPECT_PLURAL_ARGUMENT_SELECTOR,S.INVALID_PLURAL_ARGUMENT_SELECTOR);if(m.err)return m;d=k(p,this.clonePosition()),l=this.message.slice(p.offset,this.offset())}else break}if(c.has(l))return this.error(r==="select"?S.DUPLICATE_SELECT_ARGUMENT_SELECTOR:S.DUPLICATE_PLURAL_ARGUMENT_SELECTOR,d);l==="other"&&(a=!0),this.bumpSpace();var g=this.clonePosition();if(!this.bumpIf("{"))return this.error(r==="select"?S.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT:S.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT,k(this.clonePosition(),this.clonePosition()));var x=this.parseMessage(t+1,r,i);if(x.err)return x;var b=this.tryParseArgumentClose(g);if(b.err)return b;s.push([l,{value:x.val,location:k(g,this.clonePosition())}]),c.add(l),this.bumpSpace(),o=this.parseIdentifierIfPossible(),l=o.value,d=o.location}return s.length===0?this.error(r==="select"?S.EXPECT_SELECT_ARGUMENT_SELECTOR:S.EXPECT_PLURAL_ARGUMENT_SELECTOR,k(this.clonePosition(),this.clonePosition())):this.requiresOtherClause&&!a?this.error(S.MISSING_OTHER_CLAUSE,k(this.clonePosition(),this.clonePosition())):{val:s,err:null}},e.prototype.tryParseDecimalInteger=function(t,r){var i=1,n=this.clonePosition();this.bumpIf("+")||this.bumpIf("-")&&(i=-1);for(var o=!1,a=0;!this.isEOF();){var s=this.char();if(s>=48&&s<=57)o=!0,a=a*10+(s-48),this.bump();else break}var c=k(n,this.clonePosition());return o?(a*=i,ld(a)?{val:a,err:null}:this.error(r,c)):this.error(t,c)},e.prototype.offset=function(){return this.position.offset},e.prototype.isEOF=function(){return this.offset()===this.message.length},e.prototype.clonePosition=function(){return{offset:this.position.offset,line:this.position.line,column:this.position.column}},e.prototype.char=function(){var t=this.position.offset;if(t>=this.message.length)throw Error("out of bound");var r=Ra(this.message,t);if(r===void 0)throw Error("Offset ".concat(t," is at invalid UTF-16 code unit boundary"));return r},e.prototype.error=function(t,r){return{val:null,err:{kind:t,message:this.message,location:r}}},e.prototype.bump=function(){if(!this.isEOF()){var t=this.char();t===10?(this.position.line+=1,this.position.column=1,this.position.offset+=1):(this.position.column+=1,this.position.offset+=t<65536?1:2)}},e.prototype.bumpIf=function(t){if(Pa(this.message,t,this.offset())){for(var r=0;r<t.length;r++)this.bump();return!0}return!1},e.prototype.bumpUntil=function(t){var r=this.offset(),i=this.message.indexOf(t,r);return i>=0?(this.bumpTo(i),!0):(this.bumpTo(this.message.length),!1)},e.prototype.bumpTo=function(t){if(this.offset()>t)throw Error("targetOffset ".concat(t," must be greater than or equal to the current offset ").concat(this.offset()));for(t=Math.min(t,this.message.length);;){var r=this.offset();if(r===t)break;if(r>t)throw Error("targetOffset ".concat(t," is at invalid UTF-16 code unit boundary"));if(this.bump(),this.isEOF())break}},e.prototype.bumpSpace=function(){for(;!this.isEOF()&&Ma(this.char());)this.bump()},e.prototype.peek=function(){if(this.isEOF())return null;var t=this.char(),r=this.offset(),i=this.message.charCodeAt(r+(t>=65536?2:1));return i??null},e}();function Dn(e){return e>=97&&e<=122||e>=65&&e<=90}function pd(e){return Dn(e)||e===47}function md(e){return e===45||e===46||e>=48&&e<=57||e===95||e>=97&&e<=122||e>=65&&e<=90||e==183||e>=192&&e<=214||e>=216&&e<=246||e>=248&&e<=893||e>=895&&e<=8191||e>=8204&&e<=8205||e>=8255&&e<=8256||e>=8304&&e<=8591||e>=11264&&e<=12271||e>=12289&&e<=55295||e>=63744&&e<=64975||e>=65008&&e<=65533||e>=65536&&e<=983039}function Ma(e){return e>=9&&e<=13||e===32||e===133||e>=8206&&e<=8207||e===8232||e===8233}function ud(e){return e>=33&&e<=35||e===36||e>=37&&e<=39||e===40||e===41||e===42||e===43||e===44||e===45||e>=46&&e<=47||e>=58&&e<=59||e>=60&&e<=62||e>=63&&e<=64||e===91||e===92||e===93||e===94||e===96||e===123||e===124||e===125||e===126||e===161||e>=162&&e<=165||e===166||e===167||e===169||e===171||e===172||e===174||e===176||e===177||e===182||e===187||e===191||e===215||e===247||e>=8208&&e<=8213||e>=8214&&e<=8215||e===8216||e===8217||e===8218||e>=8219&&e<=8220||e===8221||e===8222||e===8223||e>=8224&&e<=8231||e>=8240&&e<=8248||e===8249||e===8250||e>=8251&&e<=8254||e>=8257&&e<=8259||e===8260||e===8261||e===8262||e>=8263&&e<=8273||e===8274||e===8275||e>=8277&&e<=8286||e>=8592&&e<=8596||e>=8597&&e<=8601||e>=8602&&e<=8603||e>=8604&&e<=8607||e===8608||e>=8609&&e<=8610||e===8611||e>=8612&&e<=8613||e===8614||e>=8615&&e<=8621||e===8622||e>=8623&&e<=8653||e>=8654&&e<=8655||e>=8656&&e<=8657||e===8658||e===8659||e===8660||e>=8661&&e<=8691||e>=8692&&e<=8959||e>=8960&&e<=8967||e===8968||e===8969||e===8970||e===8971||e>=8972&&e<=8991||e>=8992&&e<=8993||e>=8994&&e<=9e3||e===9001||e===9002||e>=9003&&e<=9083||e===9084||e>=9085&&e<=9114||e>=9115&&e<=9139||e>=9140&&e<=9179||e>=9180&&e<=9185||e>=9186&&e<=9254||e>=9255&&e<=9279||e>=9280&&e<=9290||e>=9291&&e<=9311||e>=9472&&e<=9654||e===9655||e>=9656&&e<=9664||e===9665||e>=9666&&e<=9719||e>=9720&&e<=9727||e>=9728&&e<=9838||e===9839||e>=9840&&e<=10087||e===10088||e===10089||e===10090||e===10091||e===10092||e===10093||e===10094||e===10095||e===10096||e===10097||e===10098||e===10099||e===10100||e===10101||e>=10132&&e<=10175||e>=10176&&e<=10180||e===10181||e===10182||e>=10183&&e<=10213||e===10214||e===10215||e===10216||e===10217||e===10218||e===10219||e===10220||e===10221||e===10222||e===10223||e>=10224&&e<=10239||e>=10240&&e<=10495||e>=10496&&e<=10626||e===10627||e===10628||e===10629||e===10630||e===10631||e===10632||e===10633||e===10634||e===10635||e===10636||e===10637||e===10638||e===10639||e===10640||e===10641||e===10642||e===10643||e===10644||e===10645||e===10646||e===10647||e===10648||e>=10649&&e<=10711||e===10712||e===10713||e===10714||e===10715||e>=10716&&e<=10747||e===10748||e===10749||e>=10750&&e<=11007||e>=11008&&e<=11055||e>=11056&&e<=11076||e>=11077&&e<=11078||e>=11079&&e<=11084||e>=11085&&e<=11123||e>=11124&&e<=11125||e>=11126&&e<=11157||e===11158||e>=11159&&e<=11263||e>=11776&&e<=11777||e===11778||e===11779||e===11780||e===11781||e>=11782&&e<=11784||e===11785||e===11786||e===11787||e===11788||e===11789||e>=11790&&e<=11798||e===11799||e>=11800&&e<=11801||e===11802||e===11803||e===11804||e===11805||e>=11806&&e<=11807||e===11808||e===11809||e===11810||e===11811||e===11812||e===11813||e===11814||e===11815||e===11816||e===11817||e>=11818&&e<=11822||e===11823||e>=11824&&e<=11833||e>=11834&&e<=11835||e>=11836&&e<=11839||e===11840||e===11841||e===11842||e>=11843&&e<=11855||e>=11856&&e<=11857||e===11858||e>=11859&&e<=11903||e>=12289&&e<=12291||e===12296||e===12297||e===12298||e===12299||e===12300||e===12301||e===12302||e===12303||e===12304||e===12305||e>=12306&&e<=12307||e===12308||e===12309||e===12310||e===12311||e===12312||e===12313||e===12314||e===12315||e===12316||e===12317||e>=12318&&e<=12319||e===12320||e===12336||e===64830||e===64831||e>=65093&&e<=65094}function Un(e){e.forEach(function(t){if(delete t.location,li(t)||di(t))for(var r in t.options)delete t.options[r].location,Un(t.options[r].value);else ai(t)&&pi(t.style)||(si(t)||ci(t))&&mr(t.style)?delete t.style.location:hi(t)&&Un(t.children)})}function Ia(e,t){t===void 0&&(t={}),t=C({shouldParseSkeletons:!0,requiresOtherClause:!0},t);var r=new Na(e,t).parse();if(r.err){var i=SyntaxError(S[r.err.kind]);throw i.location=r.err.location,i.originalMessage=r.err.message,i}return t?.captureLocation||Un(r.val),r.val}function gr(e,t){var r=t&&t.cache?t.cache:yd,i=t&&t.serializer?t.serializer:vd,n=t&&t.strategy?t.strategy:fd;return n(e,{cache:r,serializer:i})}function gd(e){return e==null||typeof e=="number"||typeof e=="boolean"}function $a(e,t,r,i){var n=gd(i)?i:r(i),o=t.get(n);return typeof o>"u"&&(o=e.call(this,i),t.set(n,o)),o}function Ha(e,t,r){var i=Array.prototype.slice.call(arguments,3),n=r(i),o=t.get(n);return typeof o>"u"&&(o=e.apply(this,i),t.set(n,o)),o}function Bn(e,t,r,i,n){return r.bind(t,e,i,n)}function fd(e,t){var r=e.length===1?$a:Ha;return Bn(e,this,r,t.cache.create(),t.serializer)}function xd(e,t){return Bn(e,this,Ha,t.cache.create(),t.serializer)}function bd(e,t){return Bn(e,this,$a,t.cache.create(),t.serializer)}var vd=function(){return JSON.stringify(arguments)};function zn(){this.cache=Object.create(null)}zn.prototype.get=function(e){return this.cache[e]};zn.prototype.set=function(e,t){this.cache[e]=t};var yd={create:function(){return new zn}},mi={variadic:xd,monadic:bd};var nt;(function(e){e.MISSING_VALUE="MISSING_VALUE",e.INVALID_VALUE="INVALID_VALUE",e.MISSING_INTL_API="MISSING_INTL_API"})(nt||(nt={}));var fr=function(e){pr(t,e);function t(r,i,n){var o=e.call(this,r)||this;return o.code=i,o.originalMessage=n,o}return t.prototype.toString=function(){return"[formatjs Error: ".concat(this.code,"] ").concat(this.message)},t}(Error);var Fn=function(e){pr(t,e);function t(r,i,n,o){return e.call(this,'Invalid values for "'.concat(r,'": "').concat(i,'". Options are "').concat(Object.keys(n).join('", "'),'"'),nt.INVALID_VALUE,o)||this}return t}(fr);var Da=function(e){pr(t,e);function t(r,i,n){return e.call(this,'Value for "'.concat(r,'" must be of type ').concat(i),nt.INVALID_VALUE,n)||this}return t}(fr);var Ua=function(e){pr(t,e);function t(r,i){return e.call(this,'The intl string context variable "'.concat(r,'" was not provided to the string "').concat(i,'"'),nt.MISSING_VALUE,i)||this}return t}(fr);var te;(function(e){e[e.literal=0]="literal",e[e.object=1]="object"})(te||(te={}));function Ed(e){return e.length<2?e:e.reduce(function(t,r){var i=t[t.length-1];return!i||i.type!==te.literal||r.type!==te.literal?t.push(r):i.value+=r.value,t},[])}function wd(e){return typeof e=="function"}function xr(e,t,r,i,n,o,a){if(e.length===1&&Rn(e[0]))return[{type:te.literal,value:e[0].value}];for(var s=[],c=0,l=e;c<l.length;c++){var d=l[c];if(Rn(d)){s.push({type:te.literal,value:d.value});continue}if(fa(d)){typeof o=="number"&&s.push({type:te.literal,value:r.getNumberFormat(t).format(o)});continue}var p=d.value;if(!(n&&p in n))throw new Ua(p,a);var m=n[p];if(ga(d)){(!m||typeof m=="string"||typeof m=="number")&&(m=typeof m=="string"||typeof m=="number"?String(m):""),s.push({type:typeof m=="string"?te.literal:te.object,value:m});continue}if(si(d)){var g=typeof d.style=="string"?i.date[d.style]:mr(d.style)?d.style.parsedOptions:void 0;s.push({type:te.literal,value:r.getDateTimeFormat(t,g).format(m)});continue}if(ci(d)){var g=typeof d.style=="string"?i.time[d.style]:mr(d.style)?d.style.parsedOptions:i.time.medium;s.push({type:te.literal,value:r.getDateTimeFormat(t,g).format(m)});continue}if(ai(d)){var g=typeof d.style=="string"?i.number[d.style]:pi(d.style)?d.style.parsedOptions:void 0;g&&g.scale&&(m=m*(g.scale||1)),s.push({type:te.literal,value:r.getNumberFormat(t,g).format(m)});continue}if(hi(d)){var x=d.children,b=d.value,w=n[b];if(!wd(w))throw new Da(b,"function",a);var P=xr(x,t,r,i,n,o),R=w(P.map(function(G){return G.value}));Array.isArray(R)||(R=[R]),s.push.apply(s,R.map(function(G){return{type:typeof G=="string"?te.literal:te.object,value:G}}))}if(li(d)){var _=d.options[m]||d.options.other;if(!_)throw new Fn(d.value,m,Object.keys(d.options),a);s.push.apply(s,xr(_.value,t,r,i,n));continue}if(di(d)){var _=d.options["=".concat(m)];if(!_){if(!Intl.PluralRules)throw new fr(`Intl.PluralRules is not available in this environment.
-Try polyfilling it using "@formatjs/intl-pluralrules"
-`,nt.MISSING_INTL_API,a);var N=r.getPluralRules(t,{type:d.pluralType}).select(m-(d.offset||0));_=d.options[N]||d.options.other}if(!_)throw new Fn(d.value,m,Object.keys(d.options),a);s.push.apply(s,xr(_.value,t,r,i,n,m-(d.offset||0)));continue}}return Ed(s)}function Ad(e,t){return t?C(C(C({},e||{}),t||{}),Object.keys(e).reduce(function(r,i){return r[i]=C(C({},e[i]),t[i]||{}),r},{})):e}function Sd(e,t){return t?Object.keys(e).reduce(function(r,i){return r[i]=Ad(e[i],t[i]),r},C({},e)):e}function Gn(e){return{create:function(){return{get:function(t){return e[t]},set:function(t,r){e[t]=r}}}}}function _d(e){return e===void 0&&(e={number:{},dateTime:{},pluralRules:{}}),{getNumberFormat:gr(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.NumberFormat).bind.apply(t,oi([void 0],r,!1)))},{cache:Gn(e.number),strategy:mi.variadic}),getDateTimeFormat:gr(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.DateTimeFormat).bind.apply(t,oi([void 0],r,!1)))},{cache:Gn(e.dateTime),strategy:mi.variadic}),getPluralRules:gr(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.PluralRules).bind.apply(t,oi([void 0],r,!1)))},{cache:Gn(e.pluralRules),strategy:mi.variadic})}}var Ba=function(){function e(t,r,i,n){var o=this;if(r===void 0&&(r=e.defaultLocale),this.formatterCache={number:{},dateTime:{},pluralRules:{}},this.format=function(a){var s=o.formatToParts(a);if(s.length===1)return s[0].value;var c=s.reduce(function(l,d){return!l.length||d.type!==te.literal||typeof l[l.length-1]!="string"?l.push(d.value):l[l.length-1]+=d.value,l},[]);return c.length<=1?c[0]||"":c},this.formatToParts=function(a){return xr(o.ast,o.locales,o.formatters,o.formats,a,void 0,o.message)},this.resolvedOptions=function(){return{locale:o.resolvedLocale.toString()}},this.getAst=function(){return o.ast},this.locales=r,this.resolvedLocale=e.resolveLocale(r),typeof t=="string"){if(this.message=t,!e.__parse)throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");this.ast=e.__parse(t,{ignoreTag:n?.ignoreTag,locale:this.resolvedLocale})}else this.ast=t;if(!Array.isArray(this.ast))throw new TypeError("A message must be provided as a String or AST.");this.formats=Sd(e.formats,i),this.formatters=n&&n.formatters||_d(this.formatterCache)}return Object.defineProperty(e,"defaultLocale",{get:function(){return e.memoizedDefaultLocale||(e.memoizedDefaultLocale=new Intl.NumberFormat().resolvedOptions().locale),e.memoizedDefaultLocale},enumerable:!1,configurable:!0}),e.memoizedDefaultLocale=null,e.resolveLocale=function(t){var r=Intl.NumberFormat.supportedLocalesOf(t);return r.length>0?new Intl.Locale(r[0]):new Intl.Locale(typeof t=="string"?t:t[0])},e.__parse=Ia,e.formats={number:{integer:{maximumFractionDigits:0},currency:{style:"currency"},percent:{style:"percent"}},date:{short:{month:"numeric",day:"numeric",year:"2-digit"},medium:{month:"short",day:"numeric",year:"numeric"},long:{month:"long",day:"numeric",year:"numeric"},full:{weekday:"long",month:"long",day:"numeric",year:"numeric"}},time:{short:{hour:"numeric",minute:"numeric"},medium:{hour:"numeric",minute:"numeric",second:"numeric"},long:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"},full:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"}}},e}();var za=Ba;var Td=/[0-9\-+#]/,Cd=/[^\d\-+#]/g;function Fa(e){return e.search(Td)}function kd(e="#.##"){let t={},r=e.length,i=Fa(e);t.prefix=i>0?e.substring(0,i):"";let n=Fa(e.split("").reverse().join("")),o=r-n,a=e.substring(o,o+1),s=o+(a==="."||a===","?1:0);t.suffix=n>0?e.substring(s,r):"",t.mask=e.substring(i,s),t.maskHasNegativeSign=t.mask.charAt(0)==="-",t.maskHasPositiveSign=t.mask.charAt(0)==="+";let c=t.mask.match(Cd);return t.decimal=c&&c[c.length-1]||".",t.separator=c&&c[1]&&c[0]||",",c=t.mask.split(t.decimal),t.integer=c[0],t.fraction=c[1],t}function Pd(e,t,r){let i=!1,n={value:e};e<0&&(i=!0,n.value=-n.value),n.sign=i?"-":"",n.value=Number(n.value).toFixed(t.fraction&&t.fraction.length),n.value=Number(n.value).toString();let o=t.fraction&&t.fraction.lastIndexOf("0"),[a="0",s=""]=n.value.split(".");return(!s||s&&s.length<=o)&&(s=o<0?"":(+("0."+s)).toFixed(o+1).replace("0.","")),n.integer=a,n.fraction=s,Ld(n,t),(n.result==="0"||n.result==="")&&(i=!1,n.sign=""),!i&&t.maskHasPositiveSign?n.sign="+":i&&t.maskHasPositiveSign?n.sign="-":i&&(n.sign=r&&r.enforceMaskSign&&!t.maskHasNegativeSign?"":"-"),n}function Ld(e,t){e.result="";let r=t.integer.split(t.separator),i=r.join(""),n=i&&i.indexOf("0");if(n>-1)for(;e.integer.length<i.length-n;)e.integer="0"+e.integer;else Number(e.integer)===0&&(e.integer="");let o=r[1]&&r[r.length-1].length;if(o){let a=e.integer.length,s=a%o;for(let c=0;c<a;c++)e.result+=e.integer.charAt(c),!((c-s+1)%o)&&c<a-o&&(e.result+=t.separator)}else e.result=e.integer;return e.result+=t.fraction&&e.fraction?t.decimal+e.fraction:"",e}function Rd(e,t,r={}){if(!e||isNaN(Number(t)))return t;let i=kd(e),n=Pd(t,i,r);return i.prefix+n.sign+n.result+i.suffix}var Ga=Rd;var Va=".",Od=",",qa=/^\s+/,Wa=/\s+$/,ja="&nbsp;",Vn=e=>e*12,Ya=(e,t)=>{let{start:r,end:i,displaySummary:{amount:n,duration:o,minProductQuantity:a,outcomeType:s}={}}=e;if(!(n&&o&&s&&a))return!1;let c=t?new Date(t):new Date;if(!r||!i)return!1;let l=new Date(r),d=new Date(i);return c>=l&&c<=d},ot={MONTH:"MONTH",YEAR:"YEAR"},Nd={[pe.ANNUAL]:12,[pe.MONTHLY]:1,[pe.THREE_YEARS]:36,[pe.TWO_YEARS]:24},jn=(e,t)=>({accept:e,round:t}),Md=[jn(({divisor:e,price:t})=>t%e==0,({divisor:e,price:t})=>t/e),jn(({usePrecision:e})=>e,({divisor:e,price:t})=>Math.round(t/e*100)/100),jn(()=>!0,({divisor:e,price:t})=>Math.ceil(Math.floor(t*100/e)/100))],qn={[Qe.YEAR]:{[pe.MONTHLY]:ot.MONTH,[pe.ANNUAL]:ot.YEAR},[Qe.MONTH]:{[pe.MONTHLY]:ot.MONTH}},Id=(e,t)=>e.indexOf(`'${t}'`)===0,$d=(e,t=!0)=>{let r=e.replace(/'.*?'/,"").trim(),i=Ka(r);return!!i?t||(r=r.replace(/[,\.]0+/,i)):r=r.replace(/\s?(#.*0)(?!\s)?/,"$&"+Dd(e)),r},Hd=e=>{let t=Ud(e),r=Id(e,t),i=e.replace(/'.*?'/,""),n=qa.test(i)||Wa.test(i);return{currencySymbol:t,isCurrencyFirst:r,hasCurrencySpace:n}},Xa=e=>e.replace(qa,ja).replace(Wa,ja),Dd=e=>e.match(/#(.?)#/)?.[1]===Va?Od:Va,Ud=e=>e.match(/'(.*?)'/)?.[1]??"",Ka=e=>e.match(/0(.?)0/)?.[1]??"";function Tt({formatString:e,price:t,usePrecision:r,isIndianPrice:i=!1},n,o=a=>a){let{currencySymbol:a,isCurrencyFirst:s,hasCurrencySpace:c}=Hd(e),l=r?Ka(e):"",d=$d(e,r),p=r?2:0,m=o(t,{currencySymbol:a}),g=i?m.toLocaleString("hi-IN",{minimumFractionDigits:p,maximumFractionDigits:p}):Ga(d,m),x=r?g.lastIndexOf(l):g.length,b=g.substring(0,x),w=g.substring(x+1);return{accessiblePrice:e.replace(/'.*?'/,"SYMBOL").replace(/#.*0/,g).replace(/SYMBOL/,a),currencySymbol:a,decimals:w,decimalsDelimiter:l,hasCurrencySpace:c,integer:b,isCurrencyFirst:s,recurrenceTerm:n}}var Qa=e=>{let{commitment:t,term:r,usePrecision:i}=e,n=Nd[r]??1;return Tt(e,n>1?ot.MONTH:qn[t]?.[r],o=>{let a={divisor:n,price:o,usePrecision:i},{round:s}=Md.find(({accept:c})=>c(a));if(!s)throw new Error(`Missing rounding rule for: ${JSON.stringify(a)}`);return s(a)})},Za=({commitment:e,term:t,...r})=>Tt(r,qn[e]?.[t]),Ja=e=>{let{commitment:t,instant:r,price:i,originalPrice:n,priceWithoutDiscount:o,promotion:a,quantity:s=1,term:c}=e;if(t===Qe.YEAR&&c===pe.MONTHLY){if(!a)return Tt(e,ot.YEAR,Vn);let{displaySummary:{outcomeType:l,duration:d,minProductQuantity:p=1}={}}=a;switch(l){case"PERCENTAGE_DISCOUNT":if(s>=p&&Ya(a,r)){let m=parseInt(d.replace("P","").replace("M",""));if(isNaN(m))return Vn(i);let g=s*n*m,x=s*o*(12-m),b=Math.round((g+x)*100)/100;return Tt({...e,price:b},ot.YEAR)}default:return Tt(e,ot.YEAR,()=>Vn(o??i))}}return Tt(e,qn[t]?.[c])};var Wn={recurrenceLabel:"{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",recurrenceAriaLabel:"{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",perUnitLabel:"{perUnit, select, LICENSE {per license} other {}}",perUnitAriaLabel:"{perUnit, select, LICENSE {per license} other {}}",freeLabel:"Free",freeAriaLabel:"Free",taxExclusiveLabel:"{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",taxInclusiveLabel:"{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",alternativePriceAriaLabel:"Alternatively at",strikethroughAriaLabel:"Regularly at",planTypeLabel:"{planType, select, ABM {Annual, billed monthly} other {}}"},Bd=Yo("ConsonantTemplates/price"),zd=/<\/?[^>]+(>|$)/g,q={container:"price",containerOptical:"price-optical",containerStrikethrough:"price-strikethrough",containerAlternative:"price-alternative",containerAnnual:"price-annual",containerAnnualPrefix:"price-annual-prefix",containerAnnualSuffix:"price-annual-suffix",disabled:"disabled",currencySpace:"price-currency-space",currencySymbol:"price-currency-symbol",decimals:"price-decimals",decimalsDelimiter:"price-decimals-delimiter",integer:"price-integer",recurrence:"price-recurrence",taxInclusivity:"price-tax-inclusivity",unitType:"price-unit-type"},Ge={perUnitLabel:"perUnitLabel",perUnitAriaLabel:"perUnitAriaLabel",recurrenceLabel:"recurrenceLabel",recurrenceAriaLabel:"recurrenceAriaLabel",taxExclusiveLabel:"taxExclusiveLabel",taxInclusiveLabel:"taxInclusiveLabel",strikethroughAriaLabel:"strikethroughAriaLabel",alternativePriceAriaLabel:"alternativePriceAriaLabel"},Yn="TAX_EXCLUSIVE",Fd=e=>jo(e)?Object.entries(e).filter(([,t])=>St(t)||Yr(t)||t===!0).reduce((t,[r,i])=>t+` ${r}${i===!0?"":'="'+Vo(i)+'"'}`,""):"",X=(e,t,r,i=!1)=>`<span class="${e}${t?"":" "+q.disabled}"${Fd(r)}>${i?Xa(t):t??""}</span>`;function Ne(e,t,r,i){let n=e[r];if(n==null)return"";try{return new za(n.replace(zd,""),t).format(i)}catch{return Bd.error("Failed to format literal:",n),""}}function Gd(e,{accessibleLabel:t,altAccessibleLabel:r,currencySymbol:i,decimals:n,decimalsDelimiter:o,hasCurrencySpace:a,integer:s,isCurrencyFirst:c,recurrenceLabel:l,perUnitLabel:d,taxInclusivityLabel:p},m={}){let g=X(q.currencySymbol,i),x=X(q.currencySpace,a?"&nbsp;":""),b="";return t?b=`<sr-only class="strikethrough-aria-label">${t}</sr-only>`:r&&(b=`<sr-only class="alt-aria-label">${r}</sr-only>`),c&&(b+=g+x),b+=X(q.integer,s),b+=X(q.decimalsDelimiter,o),b+=X(q.decimals,n),c||(b+=x+g),b+=X(q.recurrence,l,null,!0),b+=X(q.unitType,d,null,!0),b+=X(q.taxInclusivity,p,!0),X(e,b,{...m})}var ne=({isAlternativePrice:e=!1,displayOptical:t=!1,displayStrikethrough:r=!1,displayAnnual:i=!1,instant:n=void 0}={})=>({country:o,displayFormatted:a=!0,displayRecurrence:s=!0,displayPerUnit:c=!1,displayTax:l=!1,language:d,literals:p={},quantity:m=1,space:g=!1}={},{commitment:x,offerSelectorIds:b,formatString:w,price:P,priceWithoutDiscount:R,taxDisplay:_,taxTerm:N,term:G,usePrecision:B,promotion:V}={},Y={})=>{Object.entries({country:o,formatString:w,language:d,price:P}).forEach(([qc,Wc])=>{if(Wc==null)throw new Error(`Argument "${qc}" is missing for osi ${b?.toString()}, country ${o}, language ${d}`)});let J={...Wn,...p},j=`${d.toLowerCase()}-${o.toUpperCase()}`,ee=r&&R?R:P,$=t?Qa:Za;i&&($=Ja);let{accessiblePrice:we,recurrenceTerm:he,...De}=$({commitment:x,formatString:w,instant:n,isIndianPrice:o==="IN",originalPrice:P,priceWithoutDiscount:R,price:t?P:ee,promotion:V,quantity:m,term:G,usePrecision:B}),Bi="",zi="",Fi="";T(s)&&he&&(Fi=Ne(J,j,Ge.recurrenceLabel,{recurrenceTerm:he}));let Fr="";T(c)&&(g&&(Fr+=" "),Fr+=Ne(J,j,Ge.perUnitLabel,{perUnit:"LICENSE"}));let Gr="";T(l)&&N&&(g&&(Gr+=" "),Gr+=Ne(J,j,_===Yn?Ge.taxExclusiveLabel:Ge.taxInclusiveLabel,{taxTerm:N})),r&&(Bi=Ne(J,j,Ge.strikethroughAriaLabel,{strikethroughPrice:Bi})),e&&(zi=Ne(J,j,Ge.alternativePriceAriaLabel,{alternativePrice:zi}));let vt=q.container;if(t&&(vt+=" "+q.containerOptical),r&&(vt+=" "+q.containerStrikethrough),e&&(vt+=" "+q.containerAlternative),i&&(vt+=" "+q.containerAnnual),T(a))return Gd(vt,{...De,accessibleLabel:Bi,altAccessibleLabel:zi,recurrenceLabel:Fi,perUnitLabel:Fr,taxInclusivityLabel:Gr},Y);let{currencySymbol:No,decimals:zc,decimalsDelimiter:Fc,hasCurrencySpace:Mo,integer:Gc,isCurrencyFirst:Vc}=De,yt=[Gc,Fc,zc];Vc?(yt.unshift(Mo?"\xA0":""),yt.unshift(No)):(yt.push(Mo?"\xA0":""),yt.push(No)),yt.push(Fi,Fr,Gr);let jc=yt.join("");return X(vt,jc,Y)},es=()=>(e,t,r)=>{let n=(e.displayOldPrice===void 0||T(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price;return`${n?ne({displayStrikethrough:!0})(e,t,r)+"&nbsp;":""}${ne({isAlternativePrice:n})(e,t,r)}`},ts=()=>(e,t,r)=>{let{instant:i}=e;try{i||(i=new URLSearchParams(document.location.search).get("instant")),i&&(i=new Date(i))}catch{i=void 0}let n={...e,displayTax:!1,displayPerUnit:!1},a=(e.displayOldPrice===void 0||T(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price;return`${a?ne({displayStrikethrough:!0})(n,t,r)+"&nbsp;":""}${ne({isAlternativePrice:a})(e,t,r)}${X(q.containerAnnualPrefix,"&nbsp;(")}${ne({displayAnnual:!0,instant:i})(n,t,r)}${X(q.containerAnnualSuffix,")")}`},rs=()=>(e,t,r)=>{let i={...e,displayTax:!1,displayPerUnit:!1};return`${ne({isAlternativePrice:e.displayOldPrice})(e,t,r)}${X(q.containerAnnualPrefix,"&nbsp;(")}${ne({displayAnnual:!0})(i,t,r)}${X(q.containerAnnualSuffix,")")}`};var br={...q,containerLegal:"price-legal",planType:"price-plan-type"},ui={...Ge,planTypeLabel:"planTypeLabel"};function Vd(e,{perUnitLabel:t,taxInclusivityLabel:r,planTypeLabel:i},n={}){let o="";return o+=X(br.unitType,t,null,!0),r&&i&&(r+=". "),o+=X(br.taxInclusivity,r,!0),o+=X(br.planType,i,null),X(e,o,{...n})}var is=({country:e,displayPerUnit:t=!1,displayTax:r=!1,displayPlanType:i=!1,language:n,literals:o={}}={},{taxDisplay:a,taxTerm:s,planType:c}={},l={})=>{let d={...Wn,...o},p=`${n.toLowerCase()}-${e.toUpperCase()}`,m="";T(t)&&(m=Ne(d,p,ui.perUnitLabel,{perUnit:"LICENSE"}));let g="";e==="US"&&n==="en"&&(r=!1),T(r)&&s&&(g=Ne(d,p,a===Yn?ui.taxExclusiveLabel:ui.taxInclusiveLabel,{taxTerm:s}));let x="";T(i)&&c&&(x=Ne(d,p,ui.planTypeLabel,{planType:c}));let b=br.container;return b+=" "+br.containerLegal,Vd(b,{perUnitLabel:m,taxInclusivityLabel:g,planTypeLabel:x},l)};var ns=ne(),os=es(),as=ne({displayOptical:!0}),ss=ne({displayStrikethrough:!0}),cs=ne({displayAnnual:!0}),ls=ne({displayOptical:!0,isAlternativePrice:!0}),ds=ne({isAlternativePrice:!0}),hs=rs(),ps=ts(),ms=is;var jd=(e,t)=>{if(!(!ar(e)||!ar(t)))return Math.floor((t-e)/t*100)},us=()=>(e,t)=>{let{price:r,priceWithoutDiscount:i}=t,n=jd(r,i);return n===void 0?'<span class="no-discount"></span>':`<span class="discount">${n}%</span>`};var gs=us();var xs="INDIVIDUAL_COM",Xn="TEAM_COM",bs="INDIVIDUAL_EDU",Kn="TEAM_EDU",fs=["GB_en","AU_en","FR_fr","AT_de","BE_en","BE_fr","BE_nl","BG_bg","CH_de","CH_fr","CH_it","CZ_cs","DE_de","DK_da","EE_et","EG_ar","EG_en","ES_es","FI_fi","GR_el","GR_en","HU_hu","IE_en","IT_it","LU_de","LU_en","LU_fr","NL_nl","NO_nb","PL_pl","PT_pt","RO_ro","SE_sv","SI_sl","SK_sk","TR_tr","UA_uk","ID_en","ID_in","IN_en","IN_hi","JP_ja","MY_en","MY_ms","NZ_en","TH_en","TH_th"],qd={[xs]:["MU_en","LT_lt","LV_lv","NG_en","SA_ar","SA_en","SG_en","KR_ko"],[Xn]:["MU_en","LT_lt","LV_lv","NG_en","CO_es","KR_ko"],[bs]:["LT_lt","LV_lv","SA_en","SG_en"],[Kn]:["SG_en","KR_ko"]},Wd={MU_en:[!1,!1,!1,!1],NG_en:[!1,!1,!1,!1],AU_en:[!1,!1,!1,!1],JP_ja:[!1,!1,!1,!1],NZ_en:[!1,!1,!1,!1],TH_en:[!1,!1,!1,!1],TH_th:[!1,!1,!1,!1],CO_es:[!1,!0,!1,!1],AT_de:[!1,!1,!1,!0],SG_en:[!1,!1,!1,!0]},Yd=[xs,Xn,bs,Kn],Xd=e=>[Xn,Kn].includes(e),Kd=(e,t,r,i)=>{let n=`${e}_${t}`,o=`${r}_${i}`,a=Wd[n];if(a){let s=Yd.indexOf(o);return a[s]}return Xd(o)},Qd=(e,t,r,i)=>{let n=`${e}_${t}`;if(fs.includes(e)||fs.includes(n))return!0;let o=qd[`${r}_${i}`];return o?o.includes(e)||o.includes(n)?!0:A.displayTax:A.displayTax},vs=async(e,t,r,i)=>{let n=Qd(e,t,r,i);return{displayTax:n,forceTaxExclusive:n?Kd(e,t,r,i):A.forceTaxExclusive}},vr=class vr extends HTMLSpanElement{constructor(){super();u(this,"masElement",new Fe(this));this.handleClick=this.handleClick.bind(this)}static get observedAttributes(){return["data-display-old-price","data-display-per-unit","data-display-recurrence","data-display-tax","data-display-plan-type","data-display-annual","data-perpetual","data-promotion-code","data-force-tax-exclusive","data-template","data-wcs-osi"]}static createInlinePrice(r){let i=ie();if(!i)return null;let{displayOldPrice:n,displayPerUnit:o,displayRecurrence:a,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:p,promotionCode:m,quantity:g,alternativePrice:x,template:b,wcsOsi:w}=i.collectPriceOptions(r);return ri(vr,{displayOldPrice:n,displayPerUnit:o,displayRecurrence:a,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:p,promotionCode:m,quantity:g,alternativePrice:x,template:b,wcsOsi:w})}get isInlinePrice(){return!0}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.handleClick)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.handleClick)}handleClick(r){r.target!==this&&(r.stopImmediatePropagation(),this.dispatchEvent(new MouseEvent("click",{bubbles:!0,cancelable:!0,view:window})))}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get isFailed(){return this.masElement.state===fe}requestUpdate(r=!1){return this.masElement.requestUpdate(r)}async render(r={}){if(!this.isConnected)return!1;let i=ie();if(!i)return!1;let n=i.collectPriceOptions(r,this),o={...i.settings,...n};if(!o.wcsOsi.length)return!1;try{let a=this.masElement.togglePending({});this.innerHTML="";let[s]=await i.resolveOfferSelectors(o),c=lr(await s,o),[l]=c;if(i.featureFlags[ze]){if(n.displayPerUnit===void 0&&(o.displayPerUnit=l.customerSegment!=="INDIVIDUAL"),n.displayTax===void 0||n.forceTaxExclusive===void 0){let{country:d,language:p}=o,[m=""]=l.marketSegments,g=await vs(d,p,l.customerSegment,m);n.displayTax===void 0&&(o.displayTax=g?.displayTax||o.displayTax),n.forceTaxExclusive===void 0&&(o.forceTaxExclusive=g?.forceTaxExclusive||o.forceTaxExclusive),o.forceTaxExclusive&&(c=lr(c,o))}}else n.displayOldPrice===void 0&&(o.displayOldPrice=!0);return this.renderOffers(c,o,a)}catch(a){throw this.innerHTML="",a}}renderOffers(r,i,n=void 0){if(!this.isConnected)return;let o=ie();if(!o)return!1;if(n??(n=this.masElement.togglePending()),r.length){if(this.masElement.toggleResolved(n,r,i)){this.innerHTML=o.buildPriceHTML(r,this.options);let a=this.closest("p, h3, div");if(!a||!a.querySelector('span[data-template="strikethrough"]')||a.querySelector(".alt-aria-label"))return!0;let s=a?.querySelectorAll('span[is="inline-price"]');return s.length>1&&s.length===a.querySelectorAll('span[data-template="strikethrough"]').length*2&&s.forEach(c=>{c.dataset.template!=="strikethrough"&&c.options&&!c.options.alternativePrice&&!c.isFailed&&(c.options.alternativePrice=!0,c.innerHTML=o.buildPriceHTML(r,c.options))}),!0}}else{let a=new Error(`Not provided: ${this.options?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(n,a,this.options))return this.innerHTML="",!0}return!1}};u(vr,"is","inline-price"),u(vr,"tag","span");var Me=vr;window.customElements.get(Me.is)||window.customElements.define(Me.is,Me,{extends:Me.tag});function ys({literals:e,providers:t,settings:r}){function i(a,s=null){let c={country:r.country,language:r.language,locale:r.locale,literals:{...e.price}};if(s&&t?.price)for(let B of t.price)B(s,c);let{displayOldPrice:l,displayPerUnit:d,displayRecurrence:p,displayTax:m,displayPlanType:g,forceTaxExclusive:x,perpetual:b,displayAnnual:w,promotionCode:P,quantity:R,alternativePrice:_,wcsOsi:N,...G}=Object.assign(c,s?.dataset??{},a??{});return c=Xr(Object.assign({...c,...G,displayOldPrice:T(l),displayPerUnit:T(d),displayRecurrence:T(p),displayTax:T(m),displayPlanType:T(g),forceTaxExclusive:T(x),perpetual:T(b),displayAnnual:T(w),promotionCode:Qr(P).effectivePromoCode,quantity:_t(R,A.quantity),alternativePrice:T(_),wcsOsi:Jr(N)})),c}function n(a,s){if(!Array.isArray(a)||!a.length||!s)return"";let{template:c}=s,l;switch(c){case"discount":l=gs;break;case"strikethrough":l=ss;break;case"annual":l=cs;break;case"legal":l=ms;break;default:s.template==="optical"&&s.alternativePrice?l=ls:s.template==="optical"?l=as:s.displayAnnual&&a[0].planType==="ABM"?l=s.promotionCode?ps:hs:s.alternativePrice?l=ds:l=s.promotionCode?os:ns}let[d]=a;return d={...d,...d.priceDetails},l({...r,...s},d)}let o=Me.createInlinePrice;return{InlinePrice:Me,buildPriceHTML:n,collectPriceOptions:i,createInlinePrice:o}}function Zd({locale:e=void 0,country:t=void 0,language:r=void 0}={}){return r??(r=e?.split("_")?.[0]||A.language),t??(t=e?.split("_")?.[1]||A.country),e??(e=or.includes(`${r}_${t}`)?`${r}_${t}`:`${A.language}_${A.country}`),{locale:e,country:t,language:r}}function Es(e={},t){let r=t.featureFlags[ze],{commerce:i={}}=e,n=Ae.PRODUCTION,o=an,a=H("checkoutClientId",i)??A.checkoutClientId,s=sr(H("checkoutWorkflowStep",i),re,A.checkoutWorkflowStep),c=A.displayOldPrice,l=A.displayPerUnit,d=T(H("displayRecurrence",i),A.displayRecurrence),p=T(H("displayTax",i),A.displayTax),m=T(H("displayPlanType",i),A.displayPlanType),g=T(H("entitlement",i),A.entitlement),x=T(H("modal",i),A.modal),b=T(H("forceTaxExclusive",i),A.forceTaxExclusive),w=H("promotionCode",i)??A.promotionCode,P=_t(H("quantity",i)),R=H("wcsApiKey",i)??A.wcsApiKey,_=i?.env==="stage",N=Be.PUBLISHED;["true",""].includes(i.allowOverride)&&(_=(H(nn,i,{metadata:!1})?.toLowerCase()??i?.env)==="stage",N=sr(H(on,i),Be,N)),_&&(n=Ae.STAGE,o=sn);let B=H(rn)??e.preview,V=typeof B<"u"&&B!=="off"&&B!=="false",Y={};V&&(Y={preview:V});let J=H("mas-io-url")??e.masIOUrl??`https://www${n===Ae.STAGE?".stage":""}.adobe.com/mas/io`,j=H("preselect-plan")??void 0;return{...Zd(e),...Y,displayOldPrice:c,checkoutClientId:a,checkoutWorkflowStep:s,displayPerUnit:l,displayRecurrence:d,displayTax:p,displayPlanType:m,entitlement:g,extraOptions:A.extraOptions,modal:x,env:n,forceTaxExclusive:b,promotionCode:w,quantity:P,alternativePrice:A.alternativePrice,wcsApiKey:R,wcsURL:o,landscape:N,masIOUrl:J,...j&&{preselectPlan:j}}}async function gi(e,t={},r=2,i=100){let n;for(let o=0;o<=r;o++)try{let a=await fetch(e,t);return a.retryCount=o,a}catch(a){if(n=a,n.retryCount=o,o>r)break;await new Promise(s=>setTimeout(s,i*(o+1)))}throw n}var Jd="mas-commerce-service";function yr(e,t){let r;return function(){let i=this,n=arguments;clearTimeout(r),r=setTimeout(()=>e.apply(i,n),t)}}function oe(e,t={},r=null,i=null){let n=i?document.createElement(e,{is:i}):document.createElement(e);r instanceof HTMLElement?n.appendChild(r):n.innerHTML=r;for(let[o,a]of Object.entries(t))n.setAttribute(o,a);return n}function Se(e){return`startTime:${e.startTime.toFixed(2)}|duration:${e.duration.toFixed(2)}`}function ws(){return window.matchMedia("(max-width: 1024px)").matches}function at(){return document.getElementsByTagName(Jd)?.[0]}function Er(e){let t=window.getComputedStyle(e);return e.offsetHeight+parseFloat(t.marginTop)+parseFloat(t.marginBottom)}var Qn="wcs";function As({settings:e}){let t=le.module(Qn),{env:r,wcsApiKey:i}=e,n=new Map,o=new Map,a,s=new Map;async function c(x,b,w=!0){let P=ie(),R=Ji;t.debug("Fetching:",x);let _="",N;if(x.offerSelectorIds.length>1)throw new Error("Multiple OSIs are not supported anymore");let G=new Map(b),[B]=x.offerSelectorIds,V=Date.now()+Math.random().toString(36).substring(2,7),Y=`${Qn}:${B}:${V}${tt}`,J=`${Qn}:${B}:${V}${rt}`,j;try{if(performance.mark(Y),_=new URL(e.wcsURL),_.searchParams.set("offer_selector_ids",B),_.searchParams.set("country",x.country),_.searchParams.set("locale",x.locale),_.searchParams.set("landscape",r===Ae.STAGE?"ALL":e.landscape),_.searchParams.set("api_key",i),x.language&&_.searchParams.set("language",x.language),x.promotionCode&&_.searchParams.set("promotion_code",x.promotionCode),x.currency&&_.searchParams.set("currency",x.currency),N=await gi(_.toString(),{credentials:"omit"}),N.ok){let ee=[];try{let $=await N.json();t.debug("Fetched:",x,$),ee=$.resolvedOffers??[]}catch($){t.error(`Error parsing JSON: ${$.message}`,{...$.context,...P?.duration})}ee=ee.map(cr),b.forEach(({resolve:$},we)=>{let he=ee.filter(({offerSelectorIds:De})=>De.includes(we)).flat();he.length&&(G.delete(we),b.delete(we),$(he))})}else R=Zi}catch(ee){R=`Network error: ${ee.message}`}finally{j=performance.measure(J,Y),performance.clearMarks(Y),performance.clearMeasures(J)}if(w&&b.size){t.debug("Missing:",{offerSelectorIds:[...b.keys()]});let ee=ei(N);b.forEach($=>{$.reject(new Re(R,{...x,...ee,response:N,measure:Se(j),...P?.duration}))})}}function l(){clearTimeout(a);let x=[...o.values()];o.clear(),x.forEach(({options:b,promises:w})=>c(b,w))}function d(x){if(!x||typeof x!="object")throw new TypeError("Cache must be a Map or similar object");let b=r===Ae.STAGE?"stage":"prod",w=x[b];if(!w||typeof w!="object"){t.warn(`No cache found for environment: ${r}`);return}for(let[P,R]of Object.entries(w))n.set(P,Promise.resolve(R.map(cr)));t.debug(`Prefilled WCS cache with ${w.size} entries`)}function p(){let x=n.size;s=new Map(n),n.clear(),t.debug(`Moved ${x} cache entries to stale cache`)}function m(x,b,w){let P=dn.includes(b)?b:A.language,R=hn.includes(x)?x:A.country;return{validCountry:R,validLanguage:x!=="GB"&&!w?"MULT":P,locale:or.includes(`${P}_${R}`)?`${P}_${R}`:`${A.language}_${A.country}`}}function g({country:x,language:b,perpetual:w=!1,promotionCode:P="",wcsOsi:R=[]}){let{validCountry:_,validLanguage:N,locale:G}=m(x,b,w),B=[_,N,P].filter(V=>V).join("-").toLowerCase();return R.map(V=>{let Y=`${V}-${B}`;if(n.has(Y))return n.get(Y);let J=new Promise((j,ee)=>{let $=o.get(B);$||($={options:{country:_,locale:G,...w?{}:{language:N},offerSelectorIds:[]},promises:new Map},o.set(B,$)),P&&($.options.promotionCode=P),$.options.offerSelectorIds.push(V),$.promises.set(V,{resolve:j,reject:ee}),l()}).catch(j=>{if(s.has(Y))return s.get(Y);throw j});return n.set(Y,J),J})}return{Commitment:Qe,PlanType:Ko,Term:pe,applyPlanType:cr,resolveOfferSelectors:g,flushWcsCacheInternal:p,prefillWcsCache:d,validateLanguageAndLocale:m}}var Ss="mas-commerce-service",_s="mas-commerce-service:start",Ts="mas-commerce-service:ready",wr,Ct,kt,Cs,ks,Zn=class extends HTMLElement{constructor(){super(...arguments);E(this,kt);E(this,wr);E(this,Ct);u(this,"lastLoggingTime",0)}async registerCheckoutAction(r){typeof r=="function"&&(this.buildCheckoutAction=async(i,n,o)=>{let a=await r?.(i,n,this.imsSignedInPromise,o);return a||null})}get featureFlags(){return h(this,Ct)||v(this,Ct,{[ze]:Z(this,kt,ks).call(this,ze)}),h(this,Ct)}activate(){let r=h(this,kt,Cs),i=Es(r,this);Vr(r.lana);let n=le.init(r.hostEnv).module("service");n.debug("Activating:",r);let a={price:ua(i)},s={checkout:new Set,price:new Set},c={literals:a,providers:s,settings:i};Object.defineProperties(this,Object.getOwnPropertyDescriptors({...ha(c),...pa(c),...ys(c),...As(c),...pn,Log:le,get defaults(){return A},get log(){return le},get providers(){return{checkout(d){return s.checkout.add(d),()=>s.checkout.delete(d)},price(d){return s.price.add(d),()=>s.price.delete(d)},has:d=>s.price.has(d)||s.checkout.has(d)}},get settings(){return i}})),n.debug("Activated:",{literals:a,settings:i});let l=new CustomEvent(jr,{bubbles:!0,cancelable:!1,detail:this});performance.mark(Ts),v(this,wr,performance.measure(Ts,_s)),this.dispatchEvent(l),setTimeout(()=>{this.logFailedRequests()},1e4)}connectedCallback(){performance.mark(_s),this.activate()}flushWcsCache(){this.flushWcsCacheInternal(),this.log.debug("Flushed WCS cache")}refreshOffers(){this.flushWcsCacheInternal(),document.querySelectorAll(rr).forEach(r=>r.requestUpdate(!0)),this.log.debug("Refreshed WCS offers"),this.logFailedRequests()}refreshFragments(){this.flushWcsCacheInternal(),customElements.get("aem-fragment")?.cache.clear(),document.querySelectorAll("aem-fragment").forEach(r=>r.refresh(!1)),this.log.debug("Refreshed AEM fragments"),this.logFailedRequests()}get duration(){return{"mas-commerce-service:measure":Se(h(this,wr))}}logFailedRequests(){let r=[...performance.getEntriesByType("resource")].filter(({startTime:n})=>n>this.lastLoggingTime).filter(({transferSize:n,duration:o,responseStatus:a})=>n===0&&o===0&&a<200||a>=400),i=Array.from(new Map(r.map(n=>[n.name,n])).values());if(i.some(({name:n})=>/(\/fragment\?|web_commerce_artifact)/.test(n))){let n=i.map(({name:o})=>o);this.log.error("Failed requests:",{failedUrls:n,...this.duration})}this.lastLoggingTime=performance.now().toFixed(3)}};wr=new WeakMap,Ct=new WeakMap,kt=new WeakSet,Cs=function(){let r=this.getAttribute("env")??"prod",i={commerce:{env:r},hostEnv:{name:r},lana:{tags:this.getAttribute("lana-tags"),sampleRate:parseInt(this.getAttribute("lana-sample-rate")??1,10),isProdDomain:r==="prod"},masIOUrl:this.getAttribute("mas-io-url")};return["locale","country","language","preview"].forEach(n=>{let o=this.getAttribute(n);o&&(i[n]=o)}),["checkout-workflow-step","force-tax-exclusive","checkout-client-id","allow-override","wcs-api-key"].forEach(n=>{let o=this.getAttribute(n);if(o!=null){let a=n.replace(/-([a-z])/g,s=>s[1].toUpperCase());i.commerce[a]=o}}),i},ks=function(r){return["on","true",!0].includes(this.getAttribute(`data-${r}`)||H(r))};window.customElements.get(Ss)||window.customElements.define(Ss,Zn);var Ar=class Ar extends ni(HTMLButtonElement){static createCheckoutButton(t={},r=""){return ii(Ar,t,r)}setCheckoutUrl(t){this.setAttribute("data-href",t)}get href(){return this.getAttribute("data-href")}get isCheckoutButton(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}this.href&&(window.location.href=this.href)}};u(Ar,"is","checkout-button"),u(Ar,"tag","button");var Pt=Ar;window.customElements.get(Pt.is)||window.customElements.define(Pt.is,Pt,{extends:Pt.tag});function eh(e){return`https://${e==="PRODUCTION"?"www.adobe.com":"www.stage.adobe.com"}/offers/promo-terms.html`}var ct,st=class st extends HTMLAnchorElement{constructor(){super();u(this,"masElement",new Fe(this));E(this,ct);this.setAttribute("is",st.is)}get isUptLink(){return!0}initializeWcsData(r,i){this.setAttribute("data-wcs-osi",r),i&&this.setAttribute("data-promotion-code",i)}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),v(this,ct,at()),h(this,ct)&&(this.log=h(this,ct).log.module("upt-link"))}disconnectedCallback(){this.masElement.disconnectedCallback(),v(this,ct,void 0)}requestUpdate(r=!1){this.masElement.requestUpdate(r)}onceSettled(){return this.masElement.onceSettled()}async render(){let r=at();if(!r)return!1;this.dataset.imsCountry||r.imsCountryPromise.then(a=>{a&&(this.dataset.imsCountry=a)});let i=r.collectCheckoutOptions({},this);if(!i.wcsOsi)return this.log.error("Missing 'data-wcs-osi' attribute on upt-link."),!1;let n=this.masElement.togglePending(i),o=r.resolveOfferSelectors(i);try{let[[a]]=await Promise.all(o),{country:s,language:c,env:l}=i,d=`locale=${c}_${s}&country=${s}&offer_id=${a.offerId}`,p=this.getAttribute("data-promotion-code");p&&(d+=`&promotion_code=${encodeURIComponent(p)}`),this.href=`${eh(l)}?${d}`,this.masElement.toggleResolved(n,a,i)}catch(a){let s=new Error(`Could not resolve offer selectors for id: ${i.wcsOsi}.`,a.message);return this.masElement.toggleFailed(n,s,i),!1}}static createFrom(r){let i=new st;for(let n of r.attributes)n.name!=="is"&&(n.name==="class"&&n.value.includes("upt-link")?i.setAttribute("class",n.value.replace("upt-link","").trim()):i.setAttribute(n.name,n.value));return i.innerHTML=r.innerHTML,i.setAttribute("tabindex",0),i}};ct=new WeakMap,u(st,"is","upt-link"),u(st,"tag","a"),u(st,"observedAttributes",["data-wcs-osi","data-promotion-code","data-ims-country"]);var Ve=st;window.customElements.get(Ve.is)||window.customElements.define(Ve.is,Ve,{extends:Ve.tag});O();O();var de="(max-width: 767px)",xe="(max-width: 1199px)",F="(min-width: 768px)",U="(min-width: 1200px)",_e="(min-width: 1600px)";function Ai(){return window.matchMedia(de)}function Si(){return window.matchMedia(U)}function _i(){return Ai().matches}function Ti(){return Si().matches}var Xs=y`
+    `);
+    customElements.define("mas-mnemonic", MasMnemonic);
+  }
+});
+
+// src/lana.js
+var config = {
+  clientId: "merch-at-scale",
+  delimiter: "\xB6",
+  ignoredProperties: ["analytics", "literals", "element"],
+  serializableTypes: ["Array", "Object"],
+  sampleRate: 1,
+  tags: "acom",
+  isProdDomain: false
+};
+var PAGE_LIMIT = 1e3;
+function isError(value) {
+  return value instanceof Error || typeof value?.originatingRequest === "string";
+}
+function serializeValue(value) {
+  if (value == null) return void 0;
+  const type = typeof value;
+  if (type === "function") {
+    return value.name ? `function ${value.name}` : "function";
+  }
+  if (type === "object") {
+    if (value instanceof Error) return value.message;
+    if (typeof value.originatingRequest === "string") {
+      const { message, originatingRequest, status } = value;
+      return [message, status, originatingRequest].filter(Boolean).join(" ");
+    }
+    const objectType = value[Symbol.toStringTag] ?? Object.getPrototypeOf(value).constructor.name;
+    if (!config.serializableTypes.includes(objectType)) return objectType;
+  }
+  return value;
+}
+function serializeParam(key, value) {
+  if (config.ignoredProperties.includes(key)) return void 0;
+  return serializeValue(value);
+}
+var lanaAppender = {
+  append(entry) {
+    if (entry.level !== "error") return;
+    const { message, params } = entry;
+    const errors = [];
+    const values = [];
+    let payload = message;
+    params.forEach((param) => {
+      if (param != null) {
+        (isError(param) ? errors : values).push(param);
+      }
+    });
+    if (errors.length) {
+      payload += " " + errors.map(serializeValue).join(" ");
+    }
+    const { pathname, search } = window.location;
+    let page = `${config.delimiter}page=${pathname}${search}`;
+    if (page.length > PAGE_LIMIT) {
+      page = `${page.slice(0, PAGE_LIMIT)}<trunc>`;
+    }
+    payload += page;
+    if (values.length) {
+      payload += `${config.delimiter}facts=`;
+      payload += JSON.stringify(values, serializeParam);
+    }
+    window.lana?.log(payload, config);
+  }
+};
+function updateConfig(newConfig) {
+  Object.assign(
+    config,
+    Object.fromEntries(
+      Object.entries(newConfig).filter(
+        ([key, value]) => key in config && value !== "" && value !== null && value !== void 0 && !Number.isNaN(value)
+        // Correctly exclude NaN
+      )
+    )
+  );
+}
+
+// src/constants.js
+var constants_exports = {};
+__export(constants_exports, {
+  CLASS_NAME_FAILED: () => CLASS_NAME_FAILED,
+  CLASS_NAME_HIDDEN: () => CLASS_NAME_HIDDEN,
+  CLASS_NAME_PENDING: () => CLASS_NAME_PENDING,
+  CLASS_NAME_RESOLVED: () => CLASS_NAME_RESOLVED,
+  CheckoutWorkflow: () => CheckoutWorkflow,
+  CheckoutWorkflowStep: () => CheckoutWorkflowStep,
+  Commitment: () => Commitment,
+  ERROR_MESSAGE_BAD_REQUEST: () => ERROR_MESSAGE_BAD_REQUEST,
+  ERROR_MESSAGE_MISSING_LITERALS_URL: () => ERROR_MESSAGE_MISSING_LITERALS_URL,
+  ERROR_MESSAGE_OFFER_NOT_FOUND: () => ERROR_MESSAGE_OFFER_NOT_FOUND,
+  EVENT_AEM_ERROR: () => EVENT_AEM_ERROR,
+  EVENT_AEM_LOAD: () => EVENT_AEM_LOAD,
+  EVENT_MAS_ERROR: () => EVENT_MAS_ERROR,
+  EVENT_MAS_READY: () => EVENT_MAS_READY,
+  EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE: () => EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+  EVENT_MERCH_CARD_ACTION_MENU_TOGGLE: () => EVENT_MERCH_CARD_ACTION_MENU_TOGGLE,
+  EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED: () => EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+  EVENT_MERCH_CARD_COLLECTION_SHOWMORE: () => EVENT_MERCH_CARD_COLLECTION_SHOWMORE,
+  EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED: () => EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+  EVENT_MERCH_CARD_COLLECTION_SORT: () => EVENT_MERCH_CARD_COLLECTION_SORT,
+  EVENT_MERCH_CARD_QUANTITY_CHANGE: () => EVENT_MERCH_CARD_QUANTITY_CHANGE,
+  EVENT_MERCH_OFFER_READY: () => EVENT_MERCH_OFFER_READY,
+  EVENT_MERCH_OFFER_SELECT_READY: () => EVENT_MERCH_OFFER_SELECT_READY,
+  EVENT_MERCH_QUANTITY_SELECTOR_CHANGE: () => EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+  EVENT_MERCH_SEARCH_CHANGE: () => EVENT_MERCH_SEARCH_CHANGE,
+  EVENT_MERCH_SIDENAV_SELECT: () => EVENT_MERCH_SIDENAV_SELECT,
+  EVENT_MERCH_STOCK_CHANGE: () => EVENT_MERCH_STOCK_CHANGE,
+  EVENT_MERCH_STORAGE_CHANGE: () => EVENT_MERCH_STORAGE_CHANGE,
+  EVENT_OFFER_SELECTED: () => EVENT_OFFER_SELECTED,
+  EVENT_TYPE_FAILED: () => EVENT_TYPE_FAILED,
+  EVENT_TYPE_READY: () => EVENT_TYPE_READY,
+  EVENT_TYPE_RESOLVED: () => EVENT_TYPE_RESOLVED,
+  Env: () => Env,
+  FF_DEFAULTS: () => FF_DEFAULTS,
+  HEADER_X_REQUEST_ID: () => HEADER_X_REQUEST_ID,
+  LOG_NAMESPACE: () => LOG_NAMESPACE,
+  Landscape: () => Landscape,
+  MARK_DURATION_SUFFIX: () => MARK_DURATION_SUFFIX,
+  MARK_START_SUFFIX: () => MARK_START_SUFFIX,
+  MODAL_TYPE_3_IN_1: () => MODAL_TYPE_3_IN_1,
+  NAMESPACE: () => NAMESPACE,
+  PARAM_AOS_API_KEY: () => PARAM_AOS_API_KEY,
+  PARAM_ENV: () => PARAM_ENV,
+  PARAM_LANDSCAPE: () => PARAM_LANDSCAPE,
+  PARAM_MAS_PREVIEW: () => PARAM_MAS_PREVIEW,
+  PARAM_WCS_API_KEY: () => PARAM_WCS_API_KEY,
+  PROVIDER_ENVIRONMENT: () => PROVIDER_ENVIRONMENT,
+  SELECTOR_MAS_CHECKOUT_LINK: () => SELECTOR_MAS_CHECKOUT_LINK,
+  SELECTOR_MAS_ELEMENT: () => SELECTOR_MAS_ELEMENT,
+  SELECTOR_MAS_INLINE_PRICE: () => SELECTOR_MAS_INLINE_PRICE,
+  SELECTOR_MAS_SP_BUTTON: () => SELECTOR_MAS_SP_BUTTON,
+  SELECTOR_MAS_UPT_LINK: () => SELECTOR_MAS_UPT_LINK,
+  SORT_ORDER: () => SORT_ORDER,
+  STATE_FAILED: () => STATE_FAILED,
+  STATE_PENDING: () => STATE_PENDING,
+  STATE_RESOLVED: () => STATE_RESOLVED,
+  SUPPORTED_COUNTRIES: () => SUPPORTED_COUNTRIES,
+  SUPPORTED_LANGUAGES: () => SUPPORTED_LANGUAGES,
+  SUPPORTED_LANGUAGE_COUNTRY: () => SUPPORTED_LANGUAGE_COUNTRY,
+  TAG_NAME_SERVICE: () => TAG_NAME_SERVICE,
+  TEMPLATE_PRICE: () => TEMPLATE_PRICE,
+  TEMPLATE_PRICE_ANNUAL: () => TEMPLATE_PRICE_ANNUAL,
+  TEMPLATE_PRICE_LEGAL: () => TEMPLATE_PRICE_LEGAL,
+  TEMPLATE_PRICE_STRIKETHROUGH: () => TEMPLATE_PRICE_STRIKETHROUGH,
+  Term: () => Term,
+  WCS_PROD_URL: () => WCS_PROD_URL,
+  WCS_STAGE_URL: () => WCS_STAGE_URL
+});
+var Commitment = Object.freeze({
+  MONTH: "MONTH",
+  YEAR: "YEAR",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  PERPETUAL: "PERPETUAL",
+  TERM_LICENSE: "TERM_LICENSE",
+  ACCESS_PASS: "ACCESS_PASS",
+  THREE_MONTHS: "THREE_MONTHS",
+  SIX_MONTHS: "SIX_MONTHS"
+});
+var Term = Object.freeze({
+  ANNUAL: "ANNUAL",
+  MONTHLY: "MONTHLY",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  P1D: "P1D",
+  P1Y: "P1Y",
+  P3Y: "P3Y",
+  P10Y: "P10Y",
+  P15Y: "P15Y",
+  P3D: "P3D",
+  P7D: "P7D",
+  P30D: "P30D",
+  HALF_YEARLY: "HALF_YEARLY",
+  QUARTERLY: "QUARTERLY"
+});
+var NAMESPACE = "merch";
+var CLASS_NAME_HIDDEN = "hidden";
+var EVENT_TYPE_READY = "wcms:commerce:ready";
+var TAG_NAME_SERVICE = "mas-commerce-service";
+var SELECTOR_MAS_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
+var SELECTOR_MAS_CHECKOUT_LINK = 'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';
+var SELECTOR_MAS_SP_BUTTON = "sp-button[data-wcs-osi]";
+var SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
+var SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
+var EVENT_MERCH_OFFER_READY = "merch-offer:ready";
+var EVENT_MERCH_OFFER_SELECT_READY = "merch-offer-select:ready";
+var EVENT_MERCH_CARD_ACTION_MENU_TOGGLE = "merch-card:action-menu-toggle";
+var EVENT_OFFER_SELECTED = "merch-offer:selected";
+var EVENT_MERCH_STOCK_CHANGE = "merch-stock:change";
+var EVENT_MERCH_STORAGE_CHANGE = "merch-storage:change";
+var EVENT_MERCH_QUANTITY_SELECTOR_CHANGE = "merch-quantity-selector:change";
+var EVENT_MERCH_CARD_QUANTITY_CHANGE = "merch-card-quantity:change";
+var EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE = "merch-modal:addon-and-quantity-update";
+var EVENT_MERCH_SEARCH_CHANGE = "merch-search:change";
+var EVENT_MERCH_CARD_COLLECTION_SORT = "merch-card-collection:sort";
+var EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED = "merch-card-collection:literals-changed";
+var EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED = "merch-card-collection:sidenav-attached";
+var EVENT_MERCH_CARD_COLLECTION_SHOWMORE = "merch-card-collection:showmore";
+var EVENT_MERCH_SIDENAV_SELECT = "merch-sidenav:select";
+var EVENT_AEM_LOAD = "aem:load";
+var EVENT_AEM_ERROR = "aem:error";
+var EVENT_MAS_READY = "mas:ready";
+var EVENT_MAS_ERROR = "mas:error";
+var CLASS_NAME_FAILED = "placeholder-failed";
+var CLASS_NAME_PENDING = "placeholder-pending";
+var CLASS_NAME_RESOLVED = "placeholder-resolved";
+var ERROR_MESSAGE_BAD_REQUEST = "Bad WCS request";
+var ERROR_MESSAGE_OFFER_NOT_FOUND = "Commerce offer not found";
+var ERROR_MESSAGE_MISSING_LITERALS_URL = "Literals URL not provided";
+var EVENT_TYPE_FAILED = "mas:failed";
+var EVENT_TYPE_RESOLVED = "mas:resolved";
+var LOG_NAMESPACE = "mas/commerce";
+var PARAM_MAS_PREVIEW = "mas.preview";
+var PARAM_ENV = "commerce.env";
+var PARAM_LANDSCAPE = "commerce.landscape";
+var PARAM_AOS_API_KEY = "commerce.aosKey";
+var PARAM_WCS_API_KEY = "commerce.wcsKey";
+var WCS_PROD_URL = "https://www.adobe.com/web_commerce_artifact";
+var WCS_STAGE_URL = "https://www.stage.adobe.com/web_commerce_artifact_stage";
+var STATE_FAILED = "failed";
+var STATE_PENDING = "pending";
+var STATE_RESOLVED = "resolved";
+var Landscape = {
+  DRAFT: "DRAFT",
+  PUBLISHED: "PUBLISHED"
+};
+var HEADER_X_REQUEST_ID = "X-Request-Id";
+var CheckoutWorkflowStep = Object.freeze({
+  SEGMENTATION: "segmentation",
+  BUNDLE: "bundle",
+  COMMITMENT: "commitment",
+  RECOMMENDATION: "recommendation",
+  EMAIL: "email",
+  PAYMENT: "payment",
+  CHANGE_PLAN_TEAM_PLANS: "change-plan/team-upgrade/plans",
+  CHANGE_PLAN_TEAM_PAYMENT: "change-plan/team-upgrade/payment"
+});
+var CheckoutWorkflow = "UCv3";
+var Env = Object.freeze({
+  STAGE: "STAGE",
+  PRODUCTION: "PRODUCTION",
+  LOCAL: "LOCAL"
+});
+var PROVIDER_ENVIRONMENT = {
+  PRODUCTION: "PRODUCTION"
+};
+var MODAL_TYPE_3_IN_1 = {
+  TWP: "twp",
+  D2P: "d2p",
+  CRM: "crm"
+};
+var MARK_START_SUFFIX = ":start";
+var MARK_DURATION_SUFFIX = ":duration";
+var TEMPLATE_PRICE = "price";
+var TEMPLATE_PRICE_STRIKETHROUGH = "price-strikethrough";
+var TEMPLATE_PRICE_ANNUAL = "annual";
+var TEMPLATE_PRICE_LEGAL = "legal";
+var FF_DEFAULTS = "mas-ff-defaults";
+var SORT_ORDER = {
+  alphabetical: "alphabetical",
+  authored: "authored"
+};
+var SUPPORTED_LANGUAGE_COUNTRY = [
+  "en_US",
+  "ar_DZ",
+  "ar_EG",
+  "ar_SA",
+  "bg_BG",
+  "cs_CZ",
+  "da_DK",
+  "de_AT",
+  "de_CH",
+  "de_DE",
+  "de_LU",
+  "el_GR",
+  "en_AU",
+  "en_AZ",
+  "en_BE",
+  "en_CA",
+  "en_DZ",
+  "en_EG",
+  "en_GB",
+  "en_GR",
+  "en_ID",
+  "en_IE",
+  "en_IN",
+  "en_LU",
+  "en_MT",
+  "en_MU",
+  "en_MY",
+  "en_NG",
+  "en_NZ",
+  "en_SA",
+  "en_SG",
+  "en_TH",
+  "en_ZA",
+  "es_AR",
+  "es_CL",
+  "es_CO",
+  "es_CR",
+  "es_DO",
+  "es_EC",
+  "es_ES",
+  "es_GT",
+  "es_MX",
+  "es_PE",
+  "es_US",
+  "et_EE",
+  "fi_FI",
+  "fr_BE",
+  "fr_CH",
+  "fr_FR",
+  "fr_LU",
+  "hi_IN",
+  "hu_HU",
+  "in_ID",
+  "it_CH",
+  "it_IT",
+  "iw_IL",
+  "ja_JP",
+  "ko_KR",
+  "lt_LT",
+  "lv_LV",
+  "ms_MY",
+  "nb_NO",
+  "nl_BE",
+  "nl_NL",
+  "pl_PL",
+  "pt_BR",
+  "pt_PT",
+  "ro_RO",
+  "ru_AZ",
+  "ru_RU",
+  "sk_SK",
+  "sl_SI",
+  "sv_SE",
+  "th_TH",
+  "tr_TR",
+  "uk_UA",
+  "zh-Hans_CN",
+  "zh-Hant_HK",
+  "zh-Hant_TW"
+];
+var SUPPORTED_LANGUAGES = [
+  "en",
+  "ar",
+  "bg",
+  "cs",
+  "da",
+  "de",
+  "el",
+  "es",
+  "et",
+  "fi",
+  "fr",
+  "hi",
+  "hu",
+  "in",
+  "it",
+  "iw",
+  "ja",
+  "ko",
+  "lt",
+  "lv",
+  "ms",
+  "nb",
+  "nl",
+  "pl",
+  "pt",
+  "ro",
+  "ru",
+  "sk",
+  "sl",
+  "sv",
+  "th",
+  "tr",
+  "uk",
+  "zh-Hans",
+  "zh-Hant",
+  "fr-ca",
+  "he",
+  "no",
+  "zh-hant",
+  "fil",
+  "id",
+  "vi",
+  "en-gb",
+  "es-419"
+];
+var SUPPORTED_COUNTRIES = [
+  "AE",
+  "AR",
+  "AT",
+  "AU",
+  "AZ",
+  "BE",
+  "BG",
+  "BR",
+  "CA",
+  "CH",
+  "CL",
+  "CN",
+  "CO",
+  "CR",
+  "CY",
+  "CZ",
+  "DE",
+  "DK",
+  "DO",
+  "DZ",
+  "EC",
+  "EE",
+  "EG",
+  "ES",
+  "FI",
+  "FR",
+  "GB",
+  "GE",
+  "GR",
+  "GT",
+  "HK",
+  "HU",
+  "ID",
+  "IE",
+  "IL",
+  "IN",
+  "IT",
+  "JP",
+  "KR",
+  "KW",
+  "LA",
+  "LT",
+  "LU",
+  "LV",
+  "MT",
+  "MU",
+  "MX",
+  "MY",
+  "NG",
+  "NL",
+  "NO",
+  "NZ",
+  "PE",
+  "PH",
+  "PL",
+  "PR",
+  "PT",
+  "QA",
+  "RO",
+  "RU",
+  "SA",
+  "SE",
+  "SG",
+  "SI",
+  "SK",
+  "TH",
+  "TR",
+  "TW",
+  "UA",
+  "US",
+  "VN",
+  "ZA"
+];
+
+// ../node_modules/@dexter/tacocat-core/src/utilities.js
+var namespace = "tacocat.js";
+var equalsCaseInsensitive = (value1, value2) => String(value1 ?? "").toLowerCase() == String(value2 ?? "").toLowerCase();
+var escapeHtml = (html) => `${html ?? ""}`.replace(
+  /[&<>'"]/g,
+  (tag) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;"
+  })[tag] ?? tag
+) ?? "";
+function getParameter(key, defaults = {}, { metadata = true, search = true, storage = true } = {}) {
+  let param;
+  if (search && param == null) {
+    const params = new URLSearchParams(window.location.search);
+    const searchKey = isString(search) ? search : key;
+    param = params.get(searchKey);
+  }
+  if (storage && param == null) {
+    const storageKey = isString(storage) ? storage : key;
+    param = window.sessionStorage.getItem(storageKey) ?? window.localStorage.getItem(storageKey);
+  }
+  if (metadata && param == null) {
+    const metadataKey = toKebabCase(isString(metadata) ? metadata : key);
+    const element = document.documentElement.querySelector(
+      `meta[name="${metadataKey}"]`
+    );
+    param = element?.content;
+  }
+  return param == null ? defaults[key] : param;
+}
+var isBoolean = (value) => typeof value === "boolean";
+var isFunction = (value) => typeof value === "function";
+var isNumber = (value) => typeof value === "number";
+var isObject = (value) => value != null && typeof value === "object";
+var isString = (value) => typeof value === "string";
+var isNotEmptyString = (value) => isString(value) && value;
+var isPositiveFiniteNumber = (value) => isNumber(value) && Number.isFinite(value) && value > 0;
+function omitProperties(target, test = (value) => value == null || value === "") {
+  if (target != null) {
+    Object.entries(target).forEach(([key, value]) => {
+      if (test(value)) delete target[key];
+    });
+  }
+  return target;
+}
+function toBoolean(value, defaultValue) {
+  if (isBoolean(value)) return value;
+  const string = String(value);
+  if (string === "1" || string === "true") return true;
+  if (string === "0" || string === "false") return false;
+  return defaultValue;
+}
+function toEnumeration(value, enumeration, defaultValue) {
+  const values = Object.values(enumeration);
+  return values.find((candidate) => equalsCaseInsensitive(candidate, value)) ?? defaultValue ?? values[0];
+}
+function toKebabCase(value = "") {
+  return String(value).replace(
+    /(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,
+    (_2, p1, p2) => `${p1}-${p2}`
+  ).replace(/\W+/gu, "-").toLowerCase();
+}
+function toPositiveFiniteInteger(value, defaultValue = 1) {
+  if (!isNumber(value)) {
+    value = Number.parseInt(value, 10);
+  }
+  if (!Number.isNaN(value) && value > 0 && Number.isFinite(value)) {
+    return value;
+  }
+  return defaultValue;
+}
+
+// ../node_modules/@dexter/tacocat-core/src/log.js
+var epoch = Date.now();
+var suffix = () => `(+${Date.now() - epoch}ms)`;
+var loggers = /* @__PURE__ */ new Set();
+var isDebugEnabled = toBoolean(
+  getParameter("tacocat.debug", {}, { metadata: false }),
+  false
+);
+function createLog(source) {
+  const prefix = `[${namespace}/${source}]`;
+  const assert = (condition, message, ...args) => {
+    if (!condition) {
+      error(message, ...args);
+      return false;
+    }
+    return true;
+  };
+  const debug = isDebugEnabled ? (message, ...args) => {
+    console.debug(`${prefix} ${message}`, ...args, suffix());
+  } : () => {
+  };
+  const error = (message, ...args) => {
+    const prefixedMessage = `${prefix} ${message}`;
+    loggers.forEach(
+      ([errorLogger]) => errorLogger(prefixedMessage, ...args)
+    );
+  };
+  const warn = (message, ...args) => {
+    const prefixedMessage = `${prefix} ${message}`;
+    loggers.forEach(
+      ([, warnLogger]) => warnLogger(prefixedMessage, ...args)
+    );
+  };
+  return { assert, debug, error, warn };
+}
+function registerLogger(errorLogger, warnLogger) {
+  const logger = [errorLogger, warnLogger];
+  loggers.add(logger);
+  return () => {
+    loggers.delete(logger);
+  };
+}
+registerLogger(
+  (message, ...args) => {
+    console.error(message, ...args, suffix());
+  },
+  (message, ...args) => {
+    console.warn(message, ...args, suffix());
+  }
+);
+
+// ../node_modules/@dexter/tacocat-core/src/promotion.js
+var NO_PROMO_TEXT = "no promo";
+var CLASS = "promo-tag";
+var PROMO_VARIANT = "yellow";
+var NOPROMO_VARIANT = "neutral";
+var fullPromoText = (promo, old, isOverriden) => {
+  const promoText = (promo2) => promo2 || NO_PROMO_TEXT;
+  const suffix2 = isOverriden ? ` (was "${promoText(old)}")` : "";
+  return `${promoText(promo)}${suffix2}`;
+};
+var PROMO_CONTEXT_CANCEL_VALUE = "cancel-context";
+var computePromoStatus = (overriden, configured) => {
+  const localPromoUnset = overriden === PROMO_CONTEXT_CANCEL_VALUE;
+  const localPromoSet = !localPromoUnset && overriden?.length > 0;
+  const isOverriden = (localPromoSet || localPromoUnset) && //in case configured equals override, we consider no override
+  (configured && configured != overriden || //in case it does not have been configured, if overriden to cancel,
+  // we consider no override
+  !configured && !localPromoUnset);
+  const isPromo = isOverriden && localPromoSet || !isOverriden && !!configured;
+  const effectivePromoCode = isPromo ? overriden || configured : void 0;
+  return {
+    effectivePromoCode,
+    overridenPromoCode: overriden,
+    className: isPromo ? CLASS : `${CLASS} no-promo`,
+    text: fullPromoText(effectivePromoCode, configured, isOverriden),
+    variant: isPromo ? PROMO_VARIANT : NOPROMO_VARIANT,
+    isOverriden
+  };
+};
+
+// ../node_modules/@pandora/data-models-odm/esm/businessDimensions.js
+var OfferType;
+(function(OfferType2) {
+  OfferType2["BASE"] = "BASE";
+  OfferType2["TRIAL"] = "TRIAL";
+  OfferType2["PROMOTION"] = "PROMOTION";
+})(OfferType || (OfferType = {}));
+var Commitment2;
+(function(Commitment3) {
+  Commitment3["MONTH"] = "MONTH";
+  Commitment3["YEAR"] = "YEAR";
+  Commitment3["TWO_YEARS"] = "TWO_YEARS";
+  Commitment3["THREE_YEARS"] = "THREE_YEARS";
+  Commitment3["PERPETUAL"] = "PERPETUAL";
+  Commitment3["TERM_LICENSE"] = "TERM_LICENSE";
+  Commitment3["ACCESS_PASS"] = "ACCESS_PASS";
+  Commitment3["THREE_MONTHS"] = "THREE_MONTHS";
+  Commitment3["SIX_MONTHS"] = "SIX_MONTHS";
+})(Commitment2 || (Commitment2 = {}));
+var Term2;
+(function(Term3) {
+  Term3["ANNUAL"] = "ANNUAL";
+  Term3["MONTHLY"] = "MONTHLY";
+  Term3["TWO_YEARS"] = "TWO_YEARS";
+  Term3["THREE_YEARS"] = "THREE_YEARS";
+  Term3["P1D"] = "P1D";
+  Term3["P1Y"] = "P1Y";
+  Term3["P3Y"] = "P3Y";
+  Term3["P10Y"] = "P10Y";
+  Term3["P15Y"] = "P15Y";
+  Term3["P3D"] = "P3D";
+  Term3["P7D"] = "P7D";
+  Term3["P30D"] = "P30D";
+  Term3["HALF_YEARLY"] = "HALF_YEARLY";
+  Term3["QUARTERLY"] = "QUARTERLY";
+})(Term2 || (Term2 = {}));
+var CustomerSegment;
+(function(CustomerSegment2) {
+  CustomerSegment2["INDIVIDUAL"] = "INDIVIDUAL";
+  CustomerSegment2["TEAM"] = "TEAM";
+  CustomerSegment2["ENTERPRISE"] = "ENTERPRISE";
+})(CustomerSegment || (CustomerSegment = {}));
+var MarketSegment;
+(function(MarketSegment2) {
+  MarketSegment2["COM"] = "COM";
+  MarketSegment2["EDU"] = "EDU";
+  MarketSegment2["GOV"] = "GOV";
+})(MarketSegment || (MarketSegment = {}));
+var SalesChannel;
+(function(SalesChannel2) {
+  SalesChannel2["DIRECT"] = "DIRECT";
+  SalesChannel2["INDIRECT"] = "INDIRECT";
+})(SalesChannel || (SalesChannel = {}));
+var BuyingProgram;
+(function(BuyingProgram2) {
+  BuyingProgram2["ENTERPRISE_PRODUCT"] = "ENTERPRISE_PRODUCT";
+  BuyingProgram2["ETLA"] = "ETLA";
+  BuyingProgram2["RETAIL"] = "RETAIL";
+  BuyingProgram2["VIP"] = "VIP";
+  BuyingProgram2["VIPMP"] = "VIPMP";
+  BuyingProgram2["FREE"] = "FREE";
+})(BuyingProgram || (BuyingProgram = {}));
+
+// ../node_modules/@dexter/tacocat-core/src/wcsUtils.js
+var ABM = "ABM";
+var PUF = "PUF";
+var M2M = "M2M";
+var PERPETUAL = "PERPETUAL";
+var P3Y = "P3Y";
+var TAX_INCLUSIVE_DETAILS = "TAX_INCLUSIVE_DETAILS";
+var TAX_EXCLUSIVE = "TAX_EXCLUSIVE";
+var PlanType = {
+  ABM,
+  PUF,
+  M2M,
+  PERPETUAL,
+  P3Y
+};
+var planTypes = {
+  [ABM]: { commitment: Commitment2.YEAR, term: Term2.MONTHLY },
+  [PUF]: { commitment: Commitment2.YEAR, term: Term2.ANNUAL },
+  [M2M]: { commitment: Commitment2.MONTH, term: Term2.MONTHLY },
+  [PERPETUAL]: { commitment: Commitment2.PERPETUAL, term: void 0 },
+  [P3Y]: { commitment: Commitment2.THREE_MONTHS, term: Term2.P3Y }
+};
+var errorValueNotOffer = "Value is not an offer";
+var applyPlanType = (offer) => {
+  if (typeof offer !== "object") return errorValueNotOffer;
+  const { commitment, term } = offer;
+  const planType = getPlanType(commitment, term);
+  return { ...offer, planType };
+};
+var getPlanType = (commitment, term) => {
+  switch (commitment) {
+    case void 0:
+      return errorValueNotOffer;
+    case "":
+      return "";
+    case Commitment2.YEAR:
+      return term === Term2.MONTHLY ? ABM : term === Term2.ANNUAL ? PUF : "";
+    case Commitment2.MONTH:
+      return term === Term2.MONTHLY ? M2M : "";
+    case Commitment2.PERPETUAL:
+      return PERPETUAL;
+    case Commitment2.TERM_LICENSE:
+      return term === Term2.P3Y ? P3Y : "";
+    default:
+      return "";
+  }
+};
+function forceTaxExclusivePrice(offer) {
+  const { priceDetails } = offer;
+  const {
+    price: price2,
+    priceWithoutDiscount,
+    priceWithoutTax,
+    priceWithoutDiscountAndTax,
+    taxDisplay
+  } = priceDetails;
+  if (taxDisplay !== TAX_INCLUSIVE_DETAILS) return offer;
+  const amendedOffer = {
+    ...offer,
+    priceDetails: {
+      ...priceDetails,
+      price: priceWithoutTax ?? price2,
+      priceWithoutDiscount: priceWithoutDiscountAndTax ?? priceWithoutDiscount,
+      taxDisplay: TAX_EXCLUSIVE
+    }
+  };
+  if (amendedOffer.offerType === "TRIAL" && amendedOffer.priceDetails.price === 0) {
+    amendedOffer.priceDetails.price = amendedOffer.priceDetails.priceWithoutDiscount;
+  }
+  return amendedOffer;
+}
+
+// src/utilities.js
+var MAS_COMMERCE_SERVICE = "mas-commerce-service";
+var FETCH_INFO_HEADERS = {
+  requestId: HEADER_X_REQUEST_ID,
+  etag: "Etag",
+  lastModified: "Last-Modified",
+  serverTiming: "server-timing"
+};
+function selectOffers(offers, { country, forceTaxExclusive }) {
+  let selected;
+  if (offers.length < 2) selected = offers;
+  else {
+    const language = country === "GB" ? "EN" : "MULT";
+    offers.sort(
+      (a3, b2) => a3.language === language ? -1 : b2.language === language ? 1 : 0
+    );
+    offers.sort((a3, b2) => {
+      if (!a3.term && b2.term) return -1;
+      if (a3.term && !b2.term) return 1;
+      return 0;
+    });
+    selected = [offers[0]];
+  }
+  if (forceTaxExclusive) {
+    selected = selected.map(forceTaxExclusivePrice);
+  }
+  return selected;
+}
+var setImmediate = (getConfig) => window.setTimeout(getConfig);
+function toQuantity(value, defaultValue = 1) {
+  if (value == null) return [defaultValue];
+  let quantity = (Array.isArray(value) ? value : String(value).split(",")).map(toPositiveFiniteInteger).filter(isPositiveFiniteNumber);
+  if (!quantity.length) quantity = [defaultValue];
+  return quantity;
+}
+function toOfferSelectorIds(value) {
+  if (value == null) return [];
+  const ids = Array.isArray(value) ? value : String(value).split(",");
+  return ids.filter(isNotEmptyString);
+}
+function getService() {
+  return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
+}
+function getLogHeaders(response) {
+  const logHeaders = {};
+  if (!response?.headers) return logHeaders;
+  const headers = response.headers;
+  for (const [key, value] of Object.entries(FETCH_INFO_HEADERS)) {
+    let headerValue = headers.get(value);
+    if (headerValue) {
+      headerValue = headerValue.replace(/[,;]/g, "|");
+      headerValue = headerValue.replace(/[| ]+/g, "|");
+      logHeaders[key] = headerValue;
+    }
+  }
+  return logHeaders;
+}
+
+// src/log.js
+var HostEnv = {
+  LOCAL: "local",
+  PROD: "prod",
+  STAGE: "stage"
+};
+var LogLevels = {
+  DEBUG: "debug",
+  ERROR: "error",
+  INFO: "info",
+  WARN: "warn"
+};
+var appenders = /* @__PURE__ */ new Set();
+var filters = /* @__PURE__ */ new Set();
+var loggerIndexes = /* @__PURE__ */ new Map();
+var consoleAppender = {
+  append({ level, message, params, timestamp, source }) {
+    console[level](
+      `${timestamp}ms [${source}] %c${message}`,
+      "font-weight: bold;",
+      ...params
+    );
+  }
+};
+var debugFilter = { filter: ({ level }) => level !== LogLevels.DEBUG };
+var quietFilter = { filter: () => false };
+function createEntry(level, message, namespace2, params, source) {
+  return {
+    level,
+    message,
+    namespace: namespace2,
+    get params() {
+      if (params.length === 1 && isFunction(params[0])) {
+        params = params[0]();
+        if (!Array.isArray(params)) params = [params];
+      }
+      return params;
+    },
+    source,
+    timestamp: performance.now().toFixed(3)
+  };
+}
+function handleEntry(entry) {
+  if ([...filters].every((filter) => filter(entry))) {
+    appenders.forEach((appender) => appender(entry));
+  }
+}
+function createLog2(namespace2) {
+  const index = (loggerIndexes.get(namespace2) ?? 0) + 1;
+  loggerIndexes.set(namespace2, index);
+  const id = `${namespace2} #${index}`;
+  const log2 = {
+    id,
+    namespace: namespace2,
+    module: (name) => createLog2(`${log2.namespace}/${name}`),
+    updateConfig
+  };
+  Object.values(LogLevels).forEach((level) => {
+    log2[level] = (message, ...params) => handleEntry(createEntry(level, message, namespace2, params, id));
+  });
+  return Object.seal(log2);
+}
+function use(...plugins) {
+  plugins.forEach((plugin) => {
+    const { append, filter } = plugin;
+    if (isFunction(filter)) filters.add(filter);
+    if (isFunction(append)) appenders.add(append);
+  });
+}
+function init(env = {}) {
+  const { name } = env;
+  const debug = toBoolean(
+    getParameter("commerce.debug", { search: true, storage: true }),
+    name === HostEnv.LOCAL
+  );
+  if (debug) use(consoleAppender);
+  else use(debugFilter);
+  if (name === HostEnv.PROD) use(lanaAppender);
+  return Log;
+}
+function reset() {
+  appenders.clear();
+  filters.clear();
+}
+var Log = {
+  ...createLog2(LOG_NAMESPACE),
+  Level: LogLevels,
+  Plugins: { consoleAppender, debugFilter, quietFilter, lanaAppender },
+  init,
+  reset,
+  use
+};
+
+// src/mas-error.js
+var MasError = class _MasError extends Error {
+  /**
+   * Creates a new MasError instance
+   * @param {string} message - The error message
+   * @param {Object} context - Additional context information about the error
+   * @param {unknown} cause - The original error that caused this error
+   */
+  constructor(message, context, cause) {
+    super(message, { cause });
+    this.name = "MasError";
+    if (context.response) {
+      const requestId = context.response.headers?.get(HEADER_X_REQUEST_ID);
+      if (requestId) {
+        context.requestId = requestId;
+      }
+      if (context.response.status) {
+        context.status = context.response.status;
+        context.statusText = context.response.statusText;
+      }
+      if (context.response.url) {
+        context.url = context.response.url;
+      }
+    }
+    delete context.response;
+    this.context = context;
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, _MasError);
+    }
+  }
+  /**
+   * Returns a string representation of the error including context
+   * @returns {string} String representation of the error
+   */
+  toString() {
+    const contextStr = Object.entries(this.context || {}).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ");
+    let errorString = `${this.name}: ${this.message}`;
+    if (contextStr) {
+      errorString += ` (${contextStr})`;
+    }
+    if (this.cause) {
+      errorString += `
+Caused by: ${this.cause}`;
+    }
+    return errorString;
+  }
+};
+
+// src/mas-element.js
+var StateClassName = {
+  [STATE_FAILED]: CLASS_NAME_FAILED,
+  [STATE_PENDING]: CLASS_NAME_PENDING,
+  [STATE_RESOLVED]: CLASS_NAME_RESOLVED
+};
+var StateEventType = {
+  [STATE_FAILED]: EVENT_TYPE_FAILED,
+  [STATE_RESOLVED]: EVENT_TYPE_RESOLVED
+};
+var _service;
+var MasElement = class {
+  constructor(wrapperElement) {
+    __privateAdd(this, _service);
+    __publicField(this, "changes", /* @__PURE__ */ new Map());
+    __publicField(this, "connected", false);
+    __publicField(this, "error");
+    __publicField(this, "log");
+    __publicField(this, "options");
+    __publicField(this, "promises", []);
+    __publicField(this, "state", STATE_PENDING);
+    __publicField(this, "timer", null);
+    __publicField(this, "value");
+    __publicField(this, "version", 0);
+    __publicField(this, "wrapperElement");
+    this.wrapperElement = wrapperElement;
+    this.log = Log.module("mas-element");
+  }
+  update() {
+    [STATE_FAILED, STATE_PENDING, STATE_RESOLVED].forEach((state) => {
+      this.wrapperElement.classList.toggle(
+        StateClassName[state],
+        state === this.state
+      );
+    });
+  }
+  notify() {
+    if (this.state === STATE_RESOLVED || this.state === STATE_FAILED) {
+      if (this.state === STATE_RESOLVED) {
+        this.promises.forEach(
+          ({ resolve }) => resolve(this.wrapperElement)
+        );
+      } else if (this.state === STATE_FAILED) {
+        this.promises.forEach(({ reject }) => reject(this.error));
+      }
+      this.promises = [];
+    }
+    let detail = this.error;
+    if (this.error instanceof MasError) {
+      detail = {
+        message: this.error.message,
+        ...this.error.context
+      };
+    }
+    this.wrapperElement.dispatchEvent(
+      new CustomEvent(StateEventType[this.state], {
+        bubbles: true,
+        detail
+      })
+    );
+  }
+  /**
+   * Adds name/value of the updated attribute to the `changes` map,
+   * requests placeholder update.
+   */
+  attributeChangedCallback(name, _2, value) {
+    this.changes.set(name, value);
+    this.requestUpdate();
+  }
+  /**
+   * Triggers when this component is connected to DOM.
+   * Subscribes to the `ready` event of the commerce service,
+   * requests placeholder update.
+   */
+  connectedCallback() {
+    __privateSet(this, _service, getService());
+    this.requestUpdate(true);
+  }
+  /**
+   * Triggers when this component is disconnected from DOM.
+   * Runs and then erases all disposers.
+   */
+  disconnectedCallback() {
+    if (this.connected) {
+      this.connected = false;
+      this.log?.debug("Disconnected:", { element: this.wrapperElement });
+    }
+  }
+  /**
+   * Returns a promise resolving to this placeholder
+   * when its value is resolved or rejected.
+   * If placeholder is not pending for completion of an async operation
+   * the returned promise is already resolved or rejected.
+   */
+  onceSettled() {
+    const { error, promises, state } = this;
+    if (STATE_RESOLVED === state)
+      return Promise.resolve(this.wrapperElement);
+    if (STATE_FAILED === state) return Promise.reject(error);
+    return new Promise((resolve, reject) => {
+      promises.push({ resolve, reject });
+    });
+  }
+  /**
+   * Sets component state to "RESOLVED".
+   * Updates its class list and stored value, notifies observers and fires "RESOLVED" event.
+   */
+  toggleResolved(version, value, options) {
+    if (version !== this.version) return false;
+    if (options !== void 0) this.options = options;
+    this.state = STATE_RESOLVED;
+    this.value = value;
+    this.update();
+    this.log?.debug("Resolved:", { element: this.wrapperElement, value });
+    setImmediate(() => this.notify());
+    return true;
+  }
+  /**
+   * Sets component state to "FAILED".
+   * Updates its class list and stored error, notifies observers and fires "FAILED" event.
+   */
+  toggleFailed(version, error, options) {
+    if (version !== this.version) return false;
+    if (options !== void 0) this.options = options;
+    this.error = error;
+    this.state = STATE_FAILED;
+    this.update();
+    const wcName = this.wrapperElement.getAttribute("is");
+    this.log?.error(`${wcName}: Failed to render: ${error.message}`, {
+      element: this.wrapperElement,
+      ...error.context,
+      ...__privateGet(this, _service)?.duration
+    });
+    setImmediate(() => this.notify());
+    return true;
+  }
+  /**
+   * Sets component state to "PENDING".
+   * Increments its version, updates CSS classes, notifies observers and fires "PENDING" event.
+   */
+  togglePending(options) {
+    this.version++;
+    if (options) this.options = options;
+    this.state = STATE_PENDING;
+    this.update();
+    this.log?.debug("Pending:", {
+      osi: this.wrapperElement?.options?.wcsOsi
+    });
+    return this.version;
+  }
+  /**
+   * Queues task to update this component.
+   * Skips rendering if update is not forced and no changes were accumulated since the previous update.
+   * Calls `render` method to perform the update.
+   * Restores previous state of the component if the `render` method returned `false`.
+   */
+  requestUpdate(force = false) {
+    if (!this.wrapperElement.isConnected || !getService()) return;
+    if (this.timer) return;
+    const { error, options, state, value, version } = this;
+    this.state = STATE_PENDING;
+    this.timer = setImmediate(async () => {
+      this.timer = null;
+      let changes = null;
+      if (this.changes.size) {
+        changes = Object.fromEntries(this.changes.entries());
+        this.changes.clear();
+      }
+      if (this.connected) {
+        this.log?.debug("Updated:", {
+          element: this.wrapperElement,
+          changes
+        });
+      } else {
+        this.connected = true;
+        this.log?.debug("Connected:", {
+          element: this.wrapperElement,
+          changes
+        });
+      }
+      if (changes || force) {
+        try {
+          const result = await this.wrapperElement.render?.();
+          if (result === false && this.state === STATE_PENDING && this.version === version) {
+            this.state = state;
+            this.error = error;
+            this.value = value;
+            this.update();
+            this.notify();
+          }
+        } catch (error2) {
+          this.toggleFailed(this.version, error2, options);
+        }
+      }
+    });
+  }
+};
+_service = new WeakMap();
+function cleanupDataset(dataset = {}) {
+  Object.entries(dataset).forEach(([key, value]) => {
+    const remove = value == null || value === "" || value?.length === 0;
+    if (remove) delete dataset[key];
+  });
+  return dataset;
+}
+function createMasElement(Class, dataset = {}) {
+  const { tag, is } = Class;
+  const element = document.createElement(tag, { is });
+  element.setAttribute("is", is);
+  Object.assign(element.dataset, cleanupDataset(dataset));
+  return element;
+}
+function updateMasElement(element, dataset = {}) {
+  if (element instanceof HTMLElement) {
+    Object.assign(element.dataset, cleanupDataset(dataset));
+    return element;
+  }
+  return null;
+}
+
+// src/checkout-mixin.js
+var CLASS_NAME_DOWNLOAD = "download";
+var CLASS_NAME_UPGRADE = "upgrade";
+var CHECKOUT_PARAM_VALUE_MAPPING = {
+  e: "EDU",
+  t: "TEAM"
+};
+function createCheckoutElement(Class, options = {}, innerHTML = "") {
+  const service = getService();
+  if (!service) return null;
+  const {
+    checkoutMarketSegment,
+    checkoutWorkflow,
+    checkoutWorkflowStep,
+    entitlement,
+    upgrade,
+    modal,
+    perpetual,
+    promotionCode,
+    quantity,
+    wcsOsi,
+    extraOptions,
+    analyticsId
+  } = service.collectCheckoutOptions(options);
+  const element = createMasElement(Class, {
+    checkoutMarketSegment,
+    checkoutWorkflow,
+    checkoutWorkflowStep,
+    entitlement,
+    upgrade,
+    modal,
+    perpetual,
+    promotionCode,
+    quantity,
+    wcsOsi,
+    extraOptions,
+    analyticsId
+  });
+  if (innerHTML)
+    element.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
+  return element;
+}
+function CheckoutMixin(Base) {
+  return class CheckoutBase extends Base {
+    constructor() {
+      super(...arguments);
+      /* c8 ignore next 1 */
+      __publicField(this, "checkoutActionHandler");
+      __publicField(this, "masElement", new MasElement(this));
+    }
+    attributeChangedCallback(name, oldValue, value) {
+      this.masElement.attributeChangedCallback(name, oldValue, value);
+    }
+    connectedCallback() {
+      this.masElement.connectedCallback();
+      this.addEventListener("click", this.clickHandler);
+    }
+    disconnectedCallback() {
+      this.masElement.disconnectedCallback();
+      this.removeEventListener("click", this.clickHandler);
+    }
+    onceSettled() {
+      return this.masElement.onceSettled();
+    }
+    get value() {
+      return this.masElement.value;
+    }
+    get options() {
+      return this.masElement.options;
+    }
+    get marketSegment() {
+      const value = this.options?.ms ?? this.value?.[0].marketSegments?.[0];
+      return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
+    }
+    get customerSegment() {
+      const value = this.options?.cs ?? this.value?.[0]?.customerSegment;
+      return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
+    }
+    get is3in1Modal() {
+      return Object.values(MODAL_TYPE_3_IN_1).includes(
+        this.getAttribute("data-modal")
+      );
+    }
+    get isOpen3in1Modal() {
+      const masFF3in1 = document.querySelector("meta[name=mas-ff-3in1]");
+      return this.is3in1Modal && (!masFF3in1 || masFF3in1.content !== "off");
+    }
+    requestUpdate(force = false) {
+      return this.masElement.requestUpdate(force);
+    }
+    static get observedAttributes() {
+      return [
+        "data-checkout-workflow",
+        "data-checkout-workflow-step",
+        "data-extra-options",
+        "data-ims-country",
+        "data-perpetual",
+        "data-promotion-code",
+        "data-quantity",
+        "data-template",
+        "data-wcs-osi",
+        "data-entitlement",
+        "data-upgrade",
+        "data-modal"
+      ];
+    }
+    async render(overrides = {}) {
+      const service = getService();
+      if (!service) return false;
+      if (!this.dataset.imsCountry) {
+        service.imsCountryPromise.then((countryCode) => {
+          if (countryCode) this.dataset.imsCountry = countryCode;
+        });
+      }
+      overrides.imsCountry = null;
+      const options = service.collectCheckoutOptions(overrides, this);
+      if (!options.wcsOsi.length) return false;
+      let extraOptions;
+      try {
+        extraOptions = JSON.parse(options.extraOptions ?? "{}");
+      } catch (e4) {
+        this.masElement.log?.error(
+          "cannot parse exta checkout options",
+          e4
+        );
+      }
+      const version = this.masElement.togglePending(options);
+      this.setCheckoutUrl("");
+      const promises = service.resolveOfferSelectors(options);
+      let offers = await Promise.all(promises);
+      offers = offers.map((offer) => selectOffers(offer, options));
+      options.country = this.dataset.imsCountry || options.country;
+      const checkoutAction = await service.buildCheckoutAction?.(
+        offers.flat(),
+        { ...extraOptions, ...options },
+        this
+      );
+      return this.renderOffers(
+        offers.flat(),
+        options,
+        {},
+        checkoutAction,
+        version
+      );
+    }
+    /**
+     * Renders checkout link href for provided offers into this component.
+     * @param {Commerce.Wcs.Offer[]} offers
+     * @param {Commerce.Checkout.Options} options
+     * @param {Commerce.Checkout.AnyOptions} overrides
+     * @param {Commerce.Checkout.CheckoutAction} checkoutAction
+     * @param {number} version
+     */
+    renderOffers(offers, options, overrides = {}, checkoutAction = void 0, version = void 0) {
+      const service = getService();
+      if (!service) return false;
+      const extraOptions = JSON.parse(this.dataset.extraOptions ?? "{}");
+      options = { ...extraOptions, ...options, ...overrides };
+      version ?? (version = this.masElement.togglePending(options));
+      if (this.checkoutActionHandler) {
+        this.checkoutActionHandler = void 0;
+      }
+      if (checkoutAction) {
+        this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
+        this.masElement.toggleResolved(version, offers, options);
+        const { url, text, className, handler } = checkoutAction;
+        if (url) {
+          this.setCheckoutUrl(url);
+        }
+        if (text) this.firstElementChild.innerHTML = text;
+        if (className) this.classList.add(...className.split(" "));
+        if (handler) {
+          this.setCheckoutUrl("#");
+          this.checkoutActionHandler = handler.bind(this);
+        }
+      }
+      if (offers.length) {
+        if (this.masElement.toggleResolved(version, offers, options)) {
+          if (!this.classList.contains(CLASS_NAME_DOWNLOAD) && !this.classList.contains(CLASS_NAME_UPGRADE)) {
+            const url = service.buildCheckoutURL(offers, options);
+            this.setCheckoutUrl(
+              options.modal === "true" ? "#" : url
+            );
+          }
+          return true;
+        }
+      } else {
+        const error = new Error(
+          `Not provided: ${options?.wcsOsi ?? "-"}`
+        );
+        if (this.masElement.toggleFailed(version, error, options)) {
+          this.setCheckoutUrl("#");
+          return true;
+        }
+      }
+    }
+    setCheckoutUrl() {
+    }
+    clickHandler(e4) {
+    }
+    updateOptions(options = {}) {
+      const service = getService();
+      if (!service) return false;
+      const {
+        checkoutMarketSegment,
+        checkoutWorkflow,
+        checkoutWorkflowStep,
+        entitlement,
+        upgrade,
+        modal,
+        perpetual,
+        promotionCode,
+        quantity,
+        wcsOsi
+      } = service.collectCheckoutOptions(options);
+      updateMasElement(this, {
+        checkoutMarketSegment,
+        checkoutWorkflow,
+        checkoutWorkflowStep,
+        entitlement,
+        upgrade,
+        modal,
+        perpetual,
+        promotionCode,
+        quantity,
+        wcsOsi
+      });
+      return true;
+    }
+  };
+}
+
+// src/checkout-link.js
+var _CheckoutLink = class _CheckoutLink extends CheckoutMixin(HTMLAnchorElement) {
+  static createCheckoutLink(options = {}, innerHTML = "") {
+    return createCheckoutElement(_CheckoutLink, options, innerHTML);
+  }
+  setCheckoutUrl(value) {
+    this.setAttribute("href", value);
+  }
+  get isCheckoutLink() {
+    return true;
+  }
+  clickHandler(e4) {
+    if (this.checkoutActionHandler) {
+      this.checkoutActionHandler?.(e4);
+      return;
+    }
+  }
+};
+__publicField(_CheckoutLink, "is", "checkout-link");
+__publicField(_CheckoutLink, "tag", "a");
+var CheckoutLink = _CheckoutLink;
+if (!window.customElements.get(CheckoutLink.is)) {
+  window.customElements.define(CheckoutLink.is, CheckoutLink, {
+    extends: CheckoutLink.tag
+  });
+}
+
+// src/buildCheckoutUrl.js
+var AF_DRAFT_LANDSCAPE = "p_draft_landscape";
+var UCV3_PREFIX = "/store/";
+var PARAMETERS = /* @__PURE__ */ new Map([
+  ["countrySpecific", "cs"],
+  ["customerSegment", "cs"],
+  ["quantity", "q"],
+  ["authCode", "code"],
+  ["checkoutPromoCode", "apc"],
+  ["rurl", "rUrl"],
+  ["curl", "cUrl"],
+  ["ctxrturl", "ctxRtUrl"],
+  ["country", "co"],
+  ["language", "lang"],
+  ["clientId", "cli"],
+  ["context", "ctx"],
+  ["productArrangementCode", "pa"],
+  ["addonProductArrangementCode", "ao"],
+  ["offerType", "ot"],
+  ["marketSegment", "ms"]
+]);
+var ALLOWED_KEYS = /* @__PURE__ */ new Set([
+  "af",
+  "ai",
+  "ao",
+  "apc",
+  "appctxid",
+  "cli",
+  "co",
+  "cs",
+  "csm",
+  "ctx",
+  "ctxRtUrl",
+  "DCWATC",
+  "dp",
+  // Enable digital payments for iframe context
+  "fr",
+  // represents the commerce app redirecting to UC
+  "gsp",
+  "ijt",
+  "lang",
+  "lo",
+  "mal",
+  "ms",
+  "mv",
+  "mv2",
+  "nglwfdata",
+  "ot",
+  "otac",
+  "pa",
+  "pcid",
+  // Unified Paywall configuration ID for analytics
+  "promoid",
+  "q",
+  "rf",
+  "sc",
+  "scl",
+  "sdid",
+  "sid",
+  // x-adobe-clientsession
+  "spint",
+  "svar",
+  "th",
+  "thm",
+  "trackingid",
+  "usid",
+  "workflowid",
+  "context.guid",
+  "so.ca",
+  "so.su",
+  "so.tr",
+  "so.va"
+]);
+var REQUIRED_KEYS = ["env", "workflowStep", "clientId", "country"];
+var mapParameterName = (field) => PARAMETERS.get(field) ?? field;
+function addParameters(inputParameters, resultParameters, allowedKeys) {
+  for (const [key, value] of Object.entries(inputParameters)) {
+    const mappedKey = mapParameterName(key);
+    if (value != null && allowedKeys.has(mappedKey)) {
+      resultParameters.set(mappedKey, value);
+    }
+  }
+}
+function getHostName(env) {
+  switch (env) {
+    case PROVIDER_ENVIRONMENT.PRODUCTION:
+      return "https://commerce.adobe.com";
+    default:
+      return "https://commerce-stg.adobe.com";
+  }
+}
+function setItemsParameter(items, parameters) {
+  for (const idx in items) {
+    const item = items[idx];
+    for (const [key, value] of Object.entries(item)) {
+      if (value == null) continue;
+      const parameterName = mapParameterName(key);
+      parameters.set(`items[${idx}][${parameterName}]`, value);
+    }
+  }
+}
+function add3in1Parameters({ url, modal, is3in1 }) {
+  if (!is3in1 || !url?.searchParams) return url;
+  url.searchParams.set("rtc", "t");
+  url.searchParams.set("lo", "sl");
+  const existingAf = url.searchParams.get("af");
+  url.searchParams.set(
+    "af",
+    [existingAf, "uc_new_user_iframe", "uc_new_system_close"].filter(Boolean).join(",")
+  );
+  if (url.searchParams.get("cli") !== "doc_cloud") {
+    url.searchParams.set(
+      "cli",
+      modal === MODAL_TYPE_3_IN_1.CRM ? "creative" : "mini_plans"
+    );
+  }
+  return url;
+}
+function buildCheckoutUrl(checkoutData) {
+  validateCheckoutData(checkoutData);
+  const {
+    env,
+    items,
+    workflowStep,
+    marketSegment,
+    customerSegment,
+    offerType,
+    productArrangementCode,
+    landscape,
+    modal,
+    is3in1,
+    preselectPlan,
+    ...rest
+  } = checkoutData;
+  let url = new URL(getHostName(env));
+  url.pathname = `${UCV3_PREFIX}${workflowStep}`;
+  if (workflowStep !== CheckoutWorkflowStep.SEGMENTATION && workflowStep !== CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS) {
+    setItemsParameter(items, url.searchParams);
+  }
+  addParameters({ ...rest }, url.searchParams, ALLOWED_KEYS);
+  if (landscape === Landscape.DRAFT) {
+    addParameters(
+      { af: AF_DRAFT_LANDSCAPE },
+      url.searchParams,
+      ALLOWED_KEYS
+    );
+  }
+  if (workflowStep === CheckoutWorkflowStep.SEGMENTATION) {
+    const segmentationParameters = {
+      marketSegment,
+      offerType,
+      customerSegment,
+      productArrangementCode,
+      quantity: items?.[0]?.quantity,
+      addonProductArrangementCode: productArrangementCode ? items?.find(
+        (item) => item.productArrangementCode !== productArrangementCode
+      )?.productArrangementCode : items?.[1]?.productArrangementCode
+    };
+    if (preselectPlan?.toLowerCase() === "edu") {
+      url.searchParams.set("ms", "EDU");
+    } else if (preselectPlan?.toLowerCase() === "team") {
+      url.searchParams.set("cs", "TEAM");
+    }
+    addParameters(segmentationParameters, url.searchParams, ALLOWED_KEYS);
+    if (url.searchParams.get("ot") === "PROMOTION")
+      url.searchParams.delete("ot");
+    url = add3in1Parameters({
+      url,
+      modal,
+      is3in1
+    });
+  }
+  return url.toString();
+}
+function validateCheckoutData(checkoutData) {
+  for (const key of REQUIRED_KEYS) {
+    if (!checkoutData[key]) {
+      throw new Error(
+        'Argument "checkoutData" is not valid, missing: ' + key
+      );
+    }
+  }
+  if (checkoutData.workflowStep !== CheckoutWorkflowStep.SEGMENTATION && checkoutData.workflowStep !== CheckoutWorkflowStep.CHANGE_PLAN_TEAM_PLANS && !checkoutData.items) {
+    throw new Error('Argument "checkoutData" is not valid, missing: items');
+  }
+  return true;
+}
+
+// src/defaults.js
+var Defaults = Object.freeze({
+  checkoutClientId: "adobe_com",
+  checkoutWorkflowStep: CheckoutWorkflowStep.EMAIL,
+  country: "US",
+  displayOldPrice: false,
+  displayPerUnit: false,
+  displayRecurrence: true,
+  displayTax: false,
+  displayPlanType: false,
+  env: Env.PRODUCTION,
+  forceTaxExclusive: false,
+  language: "en",
+  entitlement: false,
+  extraOptions: {},
+  modal: false,
+  promotionCode: "",
+  quantity: 1,
+  alternativePrice: false,
+  wcsApiKey: "wcms-commerce-ims-ro-user-milo",
+  wcsURL: "https://www.adobe.com/web_commerce_artifact",
+  landscape: Landscape.PUBLISHED
+});
+
+// src/checkout.js
+function Checkout({ settings, providers }) {
+  function collectCheckoutOptions(overrides, placeholder) {
+    const {
+      checkoutClientId,
+      checkoutWorkflowStep: defaultWorkflowStep,
+      country: defaultCountry,
+      language: defaultLanguage,
+      promotionCode: defaultPromotionCode,
+      quantity: defaultQuantity,
+      preselectPlan,
+      env
+    } = settings;
+    let options = {
+      checkoutClientId,
+      checkoutWorkflowStep: defaultWorkflowStep,
+      country: defaultCountry,
+      language: defaultLanguage,
+      promotionCode: defaultPromotionCode,
+      quantity: defaultQuantity,
+      preselectPlan,
+      env
+    };
+    if (placeholder) {
+      for (const provider of providers.checkout) {
+        provider(placeholder, options);
+      }
+    }
+    const {
+      checkoutMarketSegment,
+      checkoutWorkflowStep = defaultWorkflowStep,
+      imsCountry: imsCountry2,
+      country = imsCountry2 ?? defaultCountry,
+      language = defaultLanguage,
+      quantity = defaultQuantity,
+      entitlement,
+      upgrade,
+      modal,
+      perpetual,
+      promotionCode = defaultPromotionCode,
+      wcsOsi,
+      extraOptions,
+      ...rest
+    } = Object.assign(options, placeholder?.dataset ?? {}, overrides ?? {});
+    const workflowStep = toEnumeration(
+      checkoutWorkflowStep,
+      CheckoutWorkflowStep,
+      Defaults.checkoutWorkflowStep
+    );
+    options = omitProperties({
+      ...rest,
+      extraOptions,
+      checkoutClientId,
+      checkoutMarketSegment,
+      country,
+      quantity: toQuantity(quantity, Defaults.quantity),
+      checkoutWorkflowStep: workflowStep,
+      language,
+      entitlement: toBoolean(entitlement),
+      upgrade: toBoolean(upgrade),
+      modal,
+      perpetual: toBoolean(perpetual),
+      promotionCode: computePromoStatus(promotionCode).effectivePromoCode,
+      wcsOsi: toOfferSelectorIds(wcsOsi),
+      preselectPlan
+    });
+    return options;
+  }
+  function buildCheckoutURL(offers, options) {
+    if (!Array.isArray(offers) || !offers.length || !options) {
+      return "";
+    }
+    const { env, landscape } = settings;
+    const {
+      checkoutClientId: clientId,
+      checkoutMarketSegment,
+      checkoutWorkflowStep: workflowStep,
+      country,
+      promotionCode: checkoutPromoCode,
+      quantity: optionsQuantity,
+      preselectPlan,
+      ms,
+      cs,
+      ...rest
+    } = collectCheckoutOptions(options);
+    const masFF3in1 = document.querySelector("meta[name=mas-ff-3in1]");
+    const is3in1 = Object.values(MODAL_TYPE_3_IN_1).includes(options.modal) && (!masFF3in1 || masFF3in1.content !== "off");
+    const context = window.frameElement || is3in1 ? "if" : "fp";
+    const [
+      {
+        productArrangementCode,
+        marketSegments: [offerMarketSegment],
+        customerSegment: offerCustomerSegment,
+        offerType
+      }
+    ] = offers;
+    let marketSegment = ms ?? offerMarketSegment ?? checkoutMarketSegment;
+    let customerSegment = cs ?? offerCustomerSegment;
+    if (preselectPlan?.toLowerCase() === "edu") {
+      marketSegment = "EDU";
+    } else if (preselectPlan?.toLowerCase() === "team") {
+      customerSegment = "TEAM";
+    }
+    const data = {
+      is3in1,
+      checkoutPromoCode,
+      clientId,
+      context,
+      country,
+      env,
+      items: [],
+      marketSegment,
+      customerSegment,
+      offerType,
+      productArrangementCode,
+      workflowStep,
+      landscape,
+      ...rest
+    };
+    const quantity = optionsQuantity[0] > 1 ? optionsQuantity[0] : void 0;
+    if (offers.length === 1) {
+      const { offerId } = offers[0];
+      data.items.push({ id: offerId, quantity });
+    } else {
+      data.items.push(
+        ...offers.map(({ offerId, productArrangementCode: productArrangementCode2 }) => ({
+          id: offerId,
+          quantity,
+          ...is3in1 ? { productArrangementCode: productArrangementCode2 } : {}
+        }))
+      );
+    }
+    return buildCheckoutUrl(data);
+  }
+  const { createCheckoutLink } = CheckoutLink;
+  return {
+    CheckoutLink,
+    CheckoutWorkflowStep,
+    buildCheckoutURL,
+    collectCheckoutOptions,
+    createCheckoutLink
+  };
+}
+
+// src/ims.js
+function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
+  const log2 = Log.module("ims");
+  return new Promise((resolve) => {
+    log2.debug("Waing for IMS to be ready");
+    let count = 0;
+    function poll() {
+      if (window.adobeIMS?.initialized) {
+        resolve();
+      } else if (++count > maxAttempts) {
+        log2.debug("Timeout");
+        resolve();
+      } else {
+        setTimeout(poll, interval);
+      }
+    }
+    poll();
+  });
+}
+function imsSignedIn(imsReadyPromise) {
+  return imsReadyPromise.then(
+    () => window.adobeIMS?.isSignedInUser() ?? false
+  );
+}
+function imsCountry(imsSignedInPromise) {
+  const log2 = Log.module("ims");
+  return imsSignedInPromise.then((signedIn) => {
+    if (!signedIn) return null;
+    return window.adobeIMS.getProfile().then(
+      ({ countryCode }) => {
+        log2.debug("Got user country:", countryCode);
+        return countryCode;
+      },
+      (error) => {
+        log2.error("Unable to get user country:", error);
+        return void 0;
+      }
+    );
+  });
+}
+function Ims({}) {
+  const imsReadyPromise = imsReady();
+  const imsSignedInPromise = imsSignedIn(imsReadyPromise);
+  const imsCountryPromise = imsCountry(imsSignedInPromise);
+  return { imsReadyPromise, imsSignedInPromise, imsCountryPromise };
+}
+
+// src/literals.js
+var priceLiterals = window.masPriceLiterals;
+function getPriceLiterals(settings) {
+  if (Array.isArray(priceLiterals)) {
+    const find = (language) => priceLiterals.find(
+      (candidate) => equalsCaseInsensitive(candidate.lang, language)
+    );
+    const literals = find(settings.language) ?? find(Defaults.language);
+    if (literals) return Object.freeze(literals);
+  }
+  return {};
+}
+
+// ../node_modules/tslib/tslib.es6.mjs
+var extendStatics = function(d3, b2) {
+  extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d4, b3) {
+    d4.__proto__ = b3;
+  } || function(d4, b3) {
+    for (var p2 in b3) if (Object.prototype.hasOwnProperty.call(b3, p2)) d4[p2] = b3[p2];
+  };
+  return extendStatics(d3, b2);
+};
+function __extends(d3, b2) {
+  if (typeof b2 !== "function" && b2 !== null)
+    throw new TypeError("Class extends value " + String(b2) + " is not a constructor or null");
+  extendStatics(d3, b2);
+  function __() {
+    this.constructor = d3;
+  }
+  d3.prototype = b2 === null ? Object.create(b2) : (__.prototype = b2.prototype, new __());
+}
+var __assign = function() {
+  __assign = Object.assign || function __assign2(t3) {
+    for (var s5, i3 = 1, n5 = arguments.length; i3 < n5; i3++) {
+      s5 = arguments[i3];
+      for (var p2 in s5) if (Object.prototype.hasOwnProperty.call(s5, p2)) t3[p2] = s5[p2];
+    }
+    return t3;
+  };
+  return __assign.apply(this, arguments);
+};
+function __spreadArray(to, from, pack) {
+  if (pack || arguments.length === 2) for (var i3 = 0, l4 = from.length, ar; i3 < l4; i3++) {
+    if (ar || !(i3 in from)) {
+      if (!ar) ar = Array.prototype.slice.call(from, 0, i3);
+      ar[i3] = from[i3];
+    }
+  }
+  return to.concat(ar || Array.prototype.slice.call(from));
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/error.js
+var ErrorKind;
+(function(ErrorKind2) {
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_CLOSING_BRACE"] = 1] = "EXPECT_ARGUMENT_CLOSING_BRACE";
+  ErrorKind2[ErrorKind2["EMPTY_ARGUMENT"] = 2] = "EMPTY_ARGUMENT";
+  ErrorKind2[ErrorKind2["MALFORMED_ARGUMENT"] = 3] = "MALFORMED_ARGUMENT";
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_TYPE"] = 4] = "EXPECT_ARGUMENT_TYPE";
+  ErrorKind2[ErrorKind2["INVALID_ARGUMENT_TYPE"] = 5] = "INVALID_ARGUMENT_TYPE";
+  ErrorKind2[ErrorKind2["EXPECT_ARGUMENT_STYLE"] = 6] = "EXPECT_ARGUMENT_STYLE";
+  ErrorKind2[ErrorKind2["INVALID_NUMBER_SKELETON"] = 7] = "INVALID_NUMBER_SKELETON";
+  ErrorKind2[ErrorKind2["INVALID_DATE_TIME_SKELETON"] = 8] = "INVALID_DATE_TIME_SKELETON";
+  ErrorKind2[ErrorKind2["EXPECT_NUMBER_SKELETON"] = 9] = "EXPECT_NUMBER_SKELETON";
+  ErrorKind2[ErrorKind2["EXPECT_DATE_TIME_SKELETON"] = 10] = "EXPECT_DATE_TIME_SKELETON";
+  ErrorKind2[ErrorKind2["UNCLOSED_QUOTE_IN_ARGUMENT_STYLE"] = 11] = "UNCLOSED_QUOTE_IN_ARGUMENT_STYLE";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_OPTIONS"] = 12] = "EXPECT_SELECT_ARGUMENT_OPTIONS";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE"] = 13] = "EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE";
+  ErrorKind2[ErrorKind2["INVALID_PLURAL_ARGUMENT_OFFSET_VALUE"] = 14] = "INVALID_PLURAL_ARGUMENT_OFFSET_VALUE";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_SELECTOR"] = 15] = "EXPECT_SELECT_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_SELECTOR"] = 16] = "EXPECT_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT"] = 17] = "EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT";
+  ErrorKind2[ErrorKind2["EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT"] = 18] = "EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT";
+  ErrorKind2[ErrorKind2["INVALID_PLURAL_ARGUMENT_SELECTOR"] = 19] = "INVALID_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["DUPLICATE_PLURAL_ARGUMENT_SELECTOR"] = 20] = "DUPLICATE_PLURAL_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["DUPLICATE_SELECT_ARGUMENT_SELECTOR"] = 21] = "DUPLICATE_SELECT_ARGUMENT_SELECTOR";
+  ErrorKind2[ErrorKind2["MISSING_OTHER_CLAUSE"] = 22] = "MISSING_OTHER_CLAUSE";
+  ErrorKind2[ErrorKind2["INVALID_TAG"] = 23] = "INVALID_TAG";
+  ErrorKind2[ErrorKind2["INVALID_TAG_NAME"] = 25] = "INVALID_TAG_NAME";
+  ErrorKind2[ErrorKind2["UNMATCHED_CLOSING_TAG"] = 26] = "UNMATCHED_CLOSING_TAG";
+  ErrorKind2[ErrorKind2["UNCLOSED_TAG"] = 27] = "UNCLOSED_TAG";
+})(ErrorKind || (ErrorKind = {}));
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/types.js
+var TYPE;
+(function(TYPE2) {
+  TYPE2[TYPE2["literal"] = 0] = "literal";
+  TYPE2[TYPE2["argument"] = 1] = "argument";
+  TYPE2[TYPE2["number"] = 2] = "number";
+  TYPE2[TYPE2["date"] = 3] = "date";
+  TYPE2[TYPE2["time"] = 4] = "time";
+  TYPE2[TYPE2["select"] = 5] = "select";
+  TYPE2[TYPE2["plural"] = 6] = "plural";
+  TYPE2[TYPE2["pound"] = 7] = "pound";
+  TYPE2[TYPE2["tag"] = 8] = "tag";
+})(TYPE || (TYPE = {}));
+var SKELETON_TYPE;
+(function(SKELETON_TYPE2) {
+  SKELETON_TYPE2[SKELETON_TYPE2["number"] = 0] = "number";
+  SKELETON_TYPE2[SKELETON_TYPE2["dateTime"] = 1] = "dateTime";
+})(SKELETON_TYPE || (SKELETON_TYPE = {}));
+function isLiteralElement(el) {
+  return el.type === TYPE.literal;
+}
+function isArgumentElement(el) {
+  return el.type === TYPE.argument;
+}
+function isNumberElement(el) {
+  return el.type === TYPE.number;
+}
+function isDateElement(el) {
+  return el.type === TYPE.date;
+}
+function isTimeElement(el) {
+  return el.type === TYPE.time;
+}
+function isSelectElement(el) {
+  return el.type === TYPE.select;
+}
+function isPluralElement(el) {
+  return el.type === TYPE.plural;
+}
+function isPoundElement(el) {
+  return el.type === TYPE.pound;
+}
+function isTagElement(el) {
+  return el.type === TYPE.tag;
+}
+function isNumberSkeleton(el) {
+  return !!(el && typeof el === "object" && el.type === SKELETON_TYPE.number);
+}
+function isDateTimeSkeleton(el) {
+  return !!(el && typeof el === "object" && el.type === SKELETON_TYPE.dateTime);
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/regex.generated.js
+var SPACE_SEPARATOR_REGEX = /[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;
+
+// ../node_modules/@formatjs/icu-skeleton-parser/lib/date-time.js
+var DATE_TIME_REGEX = /(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;
+function parseDateTimeSkeleton(skeleton) {
+  var result = {};
+  skeleton.replace(DATE_TIME_REGEX, function(match) {
+    var len = match.length;
+    switch (match[0]) {
+      // Era
+      case "G":
+        result.era = len === 4 ? "long" : len === 5 ? "narrow" : "short";
+        break;
+      // Year
+      case "y":
+        result.year = len === 2 ? "2-digit" : "numeric";
+        break;
+      case "Y":
+      case "u":
+      case "U":
+      case "r":
+        throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");
+      // Quarter
+      case "q":
+      case "Q":
+        throw new RangeError("`q/Q` (quarter) patterns are not supported");
+      // Month
+      case "M":
+      case "L":
+        result.month = ["numeric", "2-digit", "short", "long", "narrow"][len - 1];
+        break;
+      // Week
+      case "w":
+      case "W":
+        throw new RangeError("`w/W` (week) patterns are not supported");
+      case "d":
+        result.day = ["numeric", "2-digit"][len - 1];
+        break;
+      case "D":
+      case "F":
+      case "g":
+        throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");
+      // Weekday
+      case "E":
+        result.weekday = len === 4 ? "short" : len === 5 ? "narrow" : "short";
+        break;
+      case "e":
+        if (len < 4) {
+          throw new RangeError("`e..eee` (weekday) patterns are not supported");
+        }
+        result.weekday = ["short", "long", "narrow", "short"][len - 4];
+        break;
+      case "c":
+        if (len < 4) {
+          throw new RangeError("`c..ccc` (weekday) patterns are not supported");
+        }
+        result.weekday = ["short", "long", "narrow", "short"][len - 4];
+        break;
+      // Period
+      case "a":
+        result.hour12 = true;
+        break;
+      case "b":
+      // am, pm, noon, midnight
+      case "B":
+        throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");
+      // Hour
+      case "h":
+        result.hourCycle = "h12";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "H":
+        result.hourCycle = "h23";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "K":
+        result.hourCycle = "h11";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "k":
+        result.hourCycle = "h24";
+        result.hour = ["numeric", "2-digit"][len - 1];
+        break;
+      case "j":
+      case "J":
+      case "C":
+        throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");
+      // Minute
+      case "m":
+        result.minute = ["numeric", "2-digit"][len - 1];
+        break;
+      // Second
+      case "s":
+        result.second = ["numeric", "2-digit"][len - 1];
+        break;
+      case "S":
+      case "A":
+        throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");
+      // Zone
+      case "z":
+        result.timeZoneName = len < 4 ? "short" : "long";
+        break;
+      case "Z":
+      // 1..3, 4, 5: The ISO8601 varios formats
+      case "O":
+      // 1, 4: miliseconds in day short, long
+      case "v":
+      // 1, 4: generic non-location format
+      case "V":
+      // 1, 2, 3, 4: time zone ID or city
+      case "X":
+      // 1, 2, 3, 4: The ISO8601 varios formats
+      case "x":
+        throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead");
+    }
+    return "";
+  });
+  return result;
+}
+
+// ../node_modules/@formatjs/icu-skeleton-parser/lib/regex.generated.js
+var WHITE_SPACE_REGEX = /[\t-\r \x85\u200E\u200F\u2028\u2029]/i;
+
+// ../node_modules/@formatjs/icu-skeleton-parser/lib/number.js
+function parseNumberSkeletonFromString(skeleton) {
+  if (skeleton.length === 0) {
+    throw new Error("Number skeleton cannot be empty");
+  }
+  var stringTokens = skeleton.split(WHITE_SPACE_REGEX).filter(function(x2) {
+    return x2.length > 0;
+  });
+  var tokens = [];
+  for (var _i = 0, stringTokens_1 = stringTokens; _i < stringTokens_1.length; _i++) {
+    var stringToken = stringTokens_1[_i];
+    var stemAndOptions = stringToken.split("/");
+    if (stemAndOptions.length === 0) {
+      throw new Error("Invalid number skeleton");
+    }
+    var stem = stemAndOptions[0], options = stemAndOptions.slice(1);
+    for (var _a2 = 0, options_1 = options; _a2 < options_1.length; _a2++) {
+      var option = options_1[_a2];
+      if (option.length === 0) {
+        throw new Error("Invalid number skeleton");
+      }
+    }
+    tokens.push({ stem, options });
+  }
+  return tokens;
+}
+function icuUnitToEcma(unit) {
+  return unit.replace(/^(.*?)-/, "");
+}
+var FRACTION_PRECISION_REGEX = /^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g;
+var SIGNIFICANT_PRECISION_REGEX = /^(@+)?(\+|#+)?[rs]?$/g;
+var INTEGER_WIDTH_REGEX = /(\*)(0+)|(#+)(0+)|(0+)/g;
+var CONCISE_INTEGER_WIDTH_REGEX = /^(0+)$/;
+function parseSignificantPrecision(str) {
+  var result = {};
+  if (str[str.length - 1] === "r") {
+    result.roundingPriority = "morePrecision";
+  } else if (str[str.length - 1] === "s") {
+    result.roundingPriority = "lessPrecision";
+  }
+  str.replace(SIGNIFICANT_PRECISION_REGEX, function(_2, g1, g2) {
+    if (typeof g2 !== "string") {
+      result.minimumSignificantDigits = g1.length;
+      result.maximumSignificantDigits = g1.length;
+    } else if (g2 === "+") {
+      result.minimumSignificantDigits = g1.length;
+    } else if (g1[0] === "#") {
+      result.maximumSignificantDigits = g1.length;
+    } else {
+      result.minimumSignificantDigits = g1.length;
+      result.maximumSignificantDigits = g1.length + (typeof g2 === "string" ? g2.length : 0);
+    }
+    return "";
+  });
+  return result;
+}
+function parseSign(str) {
+  switch (str) {
+    case "sign-auto":
+      return {
+        signDisplay: "auto"
+      };
+    case "sign-accounting":
+    case "()":
+      return {
+        currencySign: "accounting"
+      };
+    case "sign-always":
+    case "+!":
+      return {
+        signDisplay: "always"
+      };
+    case "sign-accounting-always":
+    case "()!":
+      return {
+        signDisplay: "always",
+        currencySign: "accounting"
+      };
+    case "sign-except-zero":
+    case "+?":
+      return {
+        signDisplay: "exceptZero"
+      };
+    case "sign-accounting-except-zero":
+    case "()?":
+      return {
+        signDisplay: "exceptZero",
+        currencySign: "accounting"
+      };
+    case "sign-never":
+    case "+_":
+      return {
+        signDisplay: "never"
+      };
+  }
+}
+function parseConciseScientificAndEngineeringStem(stem) {
+  var result;
+  if (stem[0] === "E" && stem[1] === "E") {
+    result = {
+      notation: "engineering"
+    };
+    stem = stem.slice(2);
+  } else if (stem[0] === "E") {
+    result = {
+      notation: "scientific"
+    };
+    stem = stem.slice(1);
+  }
+  if (result) {
+    var signDisplay = stem.slice(0, 2);
+    if (signDisplay === "+!") {
+      result.signDisplay = "always";
+      stem = stem.slice(2);
+    } else if (signDisplay === "+?") {
+      result.signDisplay = "exceptZero";
+      stem = stem.slice(2);
+    }
+    if (!CONCISE_INTEGER_WIDTH_REGEX.test(stem)) {
+      throw new Error("Malformed concise eng/scientific notation");
+    }
+    result.minimumIntegerDigits = stem.length;
+  }
+  return result;
+}
+function parseNotationOptions(opt) {
+  var result = {};
+  var signOpts = parseSign(opt);
+  if (signOpts) {
+    return signOpts;
+  }
+  return result;
+}
+function parseNumberSkeleton(tokens) {
+  var result = {};
+  for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
+    var token = tokens_1[_i];
+    switch (token.stem) {
+      case "percent":
+      case "%":
+        result.style = "percent";
+        continue;
+      case "%x100":
+        result.style = "percent";
+        result.scale = 100;
+        continue;
+      case "currency":
+        result.style = "currency";
+        result.currency = token.options[0];
+        continue;
+      case "group-off":
+      case ",_":
+        result.useGrouping = false;
+        continue;
+      case "precision-integer":
+      case ".":
+        result.maximumFractionDigits = 0;
+        continue;
+      case "measure-unit":
+      case "unit":
+        result.style = "unit";
+        result.unit = icuUnitToEcma(token.options[0]);
+        continue;
+      case "compact-short":
+      case "K":
+        result.notation = "compact";
+        result.compactDisplay = "short";
+        continue;
+      case "compact-long":
+      case "KK":
+        result.notation = "compact";
+        result.compactDisplay = "long";
+        continue;
+      case "scientific":
+        result = __assign(__assign(__assign({}, result), { notation: "scientific" }), token.options.reduce(function(all, opt2) {
+          return __assign(__assign({}, all), parseNotationOptions(opt2));
+        }, {}));
+        continue;
+      case "engineering":
+        result = __assign(__assign(__assign({}, result), { notation: "engineering" }), token.options.reduce(function(all, opt2) {
+          return __assign(__assign({}, all), parseNotationOptions(opt2));
+        }, {}));
+        continue;
+      case "notation-simple":
+        result.notation = "standard";
+        continue;
+      // https://github.com/unicode-org/icu/blob/master/icu4c/source/i18n/unicode/unumberformatter.h
+      case "unit-width-narrow":
+        result.currencyDisplay = "narrowSymbol";
+        result.unitDisplay = "narrow";
+        continue;
+      case "unit-width-short":
+        result.currencyDisplay = "code";
+        result.unitDisplay = "short";
+        continue;
+      case "unit-width-full-name":
+        result.currencyDisplay = "name";
+        result.unitDisplay = "long";
+        continue;
+      case "unit-width-iso-code":
+        result.currencyDisplay = "symbol";
+        continue;
+      case "scale":
+        result.scale = parseFloat(token.options[0]);
+        continue;
+      // https://unicode-org.github.io/icu/userguide/format_parse/numbers/skeletons.html#integer-width
+      case "integer-width":
+        if (token.options.length > 1) {
+          throw new RangeError("integer-width stems only accept a single optional option");
+        }
+        token.options[0].replace(INTEGER_WIDTH_REGEX, function(_2, g1, g2, g3, g4, g5) {
+          if (g1) {
+            result.minimumIntegerDigits = g2.length;
+          } else if (g3 && g4) {
+            throw new Error("We currently do not support maximum integer digits");
+          } else if (g5) {
+            throw new Error("We currently do not support exact integer digits");
+          }
+          return "";
+        });
+        continue;
+    }
+    if (CONCISE_INTEGER_WIDTH_REGEX.test(token.stem)) {
+      result.minimumIntegerDigits = token.stem.length;
+      continue;
+    }
+    if (FRACTION_PRECISION_REGEX.test(token.stem)) {
+      if (token.options.length > 1) {
+        throw new RangeError("Fraction-precision stems only accept a single optional option");
+      }
+      token.stem.replace(FRACTION_PRECISION_REGEX, function(_2, g1, g2, g3, g4, g5) {
+        if (g2 === "*") {
+          result.minimumFractionDigits = g1.length;
+        } else if (g3 && g3[0] === "#") {
+          result.maximumFractionDigits = g3.length;
+        } else if (g4 && g5) {
+          result.minimumFractionDigits = g4.length;
+          result.maximumFractionDigits = g4.length + g5.length;
+        } else {
+          result.minimumFractionDigits = g1.length;
+          result.maximumFractionDigits = g1.length;
+        }
+        return "";
+      });
+      var opt = token.options[0];
+      if (opt === "w") {
+        result = __assign(__assign({}, result), { trailingZeroDisplay: "stripIfInteger" });
+      } else if (opt) {
+        result = __assign(__assign({}, result), parseSignificantPrecision(opt));
+      }
+      continue;
+    }
+    if (SIGNIFICANT_PRECISION_REGEX.test(token.stem)) {
+      result = __assign(__assign({}, result), parseSignificantPrecision(token.stem));
+      continue;
+    }
+    var signOpts = parseSign(token.stem);
+    if (signOpts) {
+      result = __assign(__assign({}, result), signOpts);
+    }
+    var conciseScientificAndEngineeringOpts = parseConciseScientificAndEngineeringStem(token.stem);
+    if (conciseScientificAndEngineeringOpts) {
+      result = __assign(__assign({}, result), conciseScientificAndEngineeringOpts);
+    }
+  }
+  return result;
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/time-data.generated.js
+var timeData = {
+  "AX": [
+    "H"
+  ],
+  "BQ": [
+    "H"
+  ],
+  "CP": [
+    "H"
+  ],
+  "CZ": [
+    "H"
+  ],
+  "DK": [
+    "H"
+  ],
+  "FI": [
+    "H"
+  ],
+  "ID": [
+    "H"
+  ],
+  "IS": [
+    "H"
+  ],
+  "ML": [
+    "H"
+  ],
+  "NE": [
+    "H"
+  ],
+  "RU": [
+    "H"
+  ],
+  "SE": [
+    "H"
+  ],
+  "SJ": [
+    "H"
+  ],
+  "SK": [
+    "H"
+  ],
+  "AS": [
+    "h",
+    "H"
+  ],
+  "BT": [
+    "h",
+    "H"
+  ],
+  "DJ": [
+    "h",
+    "H"
+  ],
+  "ER": [
+    "h",
+    "H"
+  ],
+  "GH": [
+    "h",
+    "H"
+  ],
+  "IN": [
+    "h",
+    "H"
+  ],
+  "LS": [
+    "h",
+    "H"
+  ],
+  "PG": [
+    "h",
+    "H"
+  ],
+  "PW": [
+    "h",
+    "H"
+  ],
+  "SO": [
+    "h",
+    "H"
+  ],
+  "TO": [
+    "h",
+    "H"
+  ],
+  "VU": [
+    "h",
+    "H"
+  ],
+  "WS": [
+    "h",
+    "H"
+  ],
+  "001": [
+    "H",
+    "h"
+  ],
+  "AL": [
+    "h",
+    "H",
+    "hB"
+  ],
+  "TD": [
+    "h",
+    "H",
+    "hB"
+  ],
+  "ca-ES": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CM": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "fr-CA": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "gl-ES": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "it-CH": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "it-IT": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "LU": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "NP": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "PF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SC": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SM": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "SN": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "TF": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "VA": [
+    "H",
+    "h",
+    "hB"
+  ],
+  "CY": [
+    "h",
+    "H",
+    "hb",
+    "hB"
+  ],
+  "GR": [
+    "h",
+    "H",
+    "hb",
+    "hB"
+  ],
+  "CO": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "DO": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "KP": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "KR": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "NA": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "PA": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "PR": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "VE": [
+    "h",
+    "H",
+    "hB",
+    "hb"
+  ],
+  "AC": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "AI": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "BW": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "BZ": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CC": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "CX": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "DG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "FK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GB": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "GI": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IE": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IM": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "IO": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "JE": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "LT": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MK": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MN": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "MS": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NF": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NG": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NR": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "NU": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "PN": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "SH": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "SX": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "TA": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "ZA": [
+    "H",
+    "h",
+    "hb",
+    "hB"
+  ],
+  "af-ZA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "AR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CL": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "CU": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "EA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-BO": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-BR": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-EC": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-ES": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-GQ": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "es-PE": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "GT": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "HN": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "IC": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "KG": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "KM": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "LK": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "MA": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "MX": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "NI": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "PY": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "SV": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "UY": [
+    "H",
+    "h",
+    "hB",
+    "hb"
+  ],
+  "JP": [
+    "H",
+    "h",
+    "K"
+  ],
+  "AD": [
+    "H",
+    "hB"
+  ],
+  "AM": [
+    "H",
+    "hB"
+  ],
+  "AO": [
+    "H",
+    "hB"
+  ],
+  "AT": [
+    "H",
+    "hB"
+  ],
+  "AW": [
+    "H",
+    "hB"
+  ],
+  "BE": [
+    "H",
+    "hB"
+  ],
+  "BF": [
+    "H",
+    "hB"
+  ],
+  "BJ": [
+    "H",
+    "hB"
+  ],
+  "BL": [
+    "H",
+    "hB"
+  ],
+  "BR": [
+    "H",
+    "hB"
+  ],
+  "CG": [
+    "H",
+    "hB"
+  ],
+  "CI": [
+    "H",
+    "hB"
+  ],
+  "CV": [
+    "H",
+    "hB"
+  ],
+  "DE": [
+    "H",
+    "hB"
+  ],
+  "EE": [
+    "H",
+    "hB"
+  ],
+  "FR": [
+    "H",
+    "hB"
+  ],
+  "GA": [
+    "H",
+    "hB"
+  ],
+  "GF": [
+    "H",
+    "hB"
+  ],
+  "GN": [
+    "H",
+    "hB"
+  ],
+  "GP": [
+    "H",
+    "hB"
+  ],
+  "GW": [
+    "H",
+    "hB"
+  ],
+  "HR": [
+    "H",
+    "hB"
+  ],
+  "IL": [
+    "H",
+    "hB"
+  ],
+  "IT": [
+    "H",
+    "hB"
+  ],
+  "KZ": [
+    "H",
+    "hB"
+  ],
+  "MC": [
+    "H",
+    "hB"
+  ],
+  "MD": [
+    "H",
+    "hB"
+  ],
+  "MF": [
+    "H",
+    "hB"
+  ],
+  "MQ": [
+    "H",
+    "hB"
+  ],
+  "MZ": [
+    "H",
+    "hB"
+  ],
+  "NC": [
+    "H",
+    "hB"
+  ],
+  "NL": [
+    "H",
+    "hB"
+  ],
+  "PM": [
+    "H",
+    "hB"
+  ],
+  "PT": [
+    "H",
+    "hB"
+  ],
+  "RE": [
+    "H",
+    "hB"
+  ],
+  "RO": [
+    "H",
+    "hB"
+  ],
+  "SI": [
+    "H",
+    "hB"
+  ],
+  "SR": [
+    "H",
+    "hB"
+  ],
+  "ST": [
+    "H",
+    "hB"
+  ],
+  "TG": [
+    "H",
+    "hB"
+  ],
+  "TR": [
+    "H",
+    "hB"
+  ],
+  "WF": [
+    "H",
+    "hB"
+  ],
+  "YT": [
+    "H",
+    "hB"
+  ],
+  "BD": [
+    "h",
+    "hB",
+    "H"
+  ],
+  "PK": [
+    "h",
+    "hB",
+    "H"
+  ],
+  "AZ": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "BA": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "BG": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "CH": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "GE": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "LI": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "ME": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "RS": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "UA": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "UZ": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "XK": [
+    "H",
+    "hB",
+    "h"
+  ],
+  "AG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "AU": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BB": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BS": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "CA": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "DM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "en-001": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "FJ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "FM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GD": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GU": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "GY": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "JM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KI": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KN": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "KY": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "LC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "LR": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MH": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MP": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "MW": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "NZ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SB": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SL": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SS": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "SZ": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "TC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "TT": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "UM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "US": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VC": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VG": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "VI": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "ZM": [
+    "h",
+    "hb",
+    "H",
+    "hB"
+  ],
+  "BO": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "EC": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "ES": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "GQ": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "PE": [
+    "H",
+    "hB",
+    "h",
+    "hb"
+  ],
+  "AE": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "ar-001": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "BH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "DZ": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "EG": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "EH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "HK": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "IQ": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "JO": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "KW": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "LB": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "LY": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "MO": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "MR": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "OM": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "PH": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "PS": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "QA": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SA": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SD": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "SY": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "TN": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "YE": [
+    "h",
+    "hB",
+    "hb",
+    "H"
+  ],
+  "AF": [
+    "H",
+    "hb",
+    "hB",
+    "h"
+  ],
+  "LA": [
+    "H",
+    "hb",
+    "hB",
+    "h"
+  ],
+  "CN": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "LV": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "TL": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "zu-ZA": [
+    "H",
+    "hB",
+    "hb",
+    "h"
+  ],
+  "CD": [
+    "hB",
+    "H"
+  ],
+  "IR": [
+    "hB",
+    "H"
+  ],
+  "hi-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "kn-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "ml-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "te-IN": [
+    "hB",
+    "h",
+    "H"
+  ],
+  "KH": [
+    "hB",
+    "h",
+    "H",
+    "hb"
+  ],
+  "ta-IN": [
+    "hB",
+    "h",
+    "hb",
+    "H"
+  ],
+  "BN": [
+    "hb",
+    "hB",
+    "h",
+    "H"
+  ],
+  "MY": [
+    "hb",
+    "hB",
+    "h",
+    "H"
+  ],
+  "ET": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "gu-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "mr-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "pa-IN": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "TW": [
+    "hB",
+    "hb",
+    "h",
+    "H"
+  ],
+  "KE": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "MM": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "TZ": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ],
+  "UG": [
+    "hB",
+    "hb",
+    "H",
+    "h"
+  ]
+};
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/date-time-pattern-generator.js
+function getBestPattern(skeleton, locale) {
+  var skeletonCopy = "";
+  for (var patternPos = 0; patternPos < skeleton.length; patternPos++) {
+    var patternChar = skeleton.charAt(patternPos);
+    if (patternChar === "j") {
+      var extraLength = 0;
+      while (patternPos + 1 < skeleton.length && skeleton.charAt(patternPos + 1) === patternChar) {
+        extraLength++;
+        patternPos++;
+      }
+      var hourLen = 1 + (extraLength & 1);
+      var dayPeriodLen = extraLength < 2 ? 1 : 3 + (extraLength >> 1);
+      var dayPeriodChar = "a";
+      var hourChar = getDefaultHourSymbolFromLocale(locale);
+      if (hourChar == "H" || hourChar == "k") {
+        dayPeriodLen = 0;
+      }
+      while (dayPeriodLen-- > 0) {
+        skeletonCopy += dayPeriodChar;
+      }
+      while (hourLen-- > 0) {
+        skeletonCopy = hourChar + skeletonCopy;
+      }
+    } else if (patternChar === "J") {
+      skeletonCopy += "H";
+    } else {
+      skeletonCopy += patternChar;
+    }
+  }
+  return skeletonCopy;
+}
+function getDefaultHourSymbolFromLocale(locale) {
+  var hourCycle = locale.hourCycle;
+  if (hourCycle === void 0 && // @ts-ignore hourCycle(s) is not identified yet
+  locale.hourCycles && // @ts-ignore
+  locale.hourCycles.length) {
+    hourCycle = locale.hourCycles[0];
+  }
+  if (hourCycle) {
+    switch (hourCycle) {
+      case "h24":
+        return "k";
+      case "h23":
+        return "H";
+      case "h12":
+        return "h";
+      case "h11":
+        return "K";
+      default:
+        throw new Error("Invalid hourCycle");
+    }
+  }
+  var languageTag = locale.language;
+  var regionTag;
+  if (languageTag !== "root") {
+    regionTag = locale.maximize().region;
+  }
+  var hourCycles = timeData[regionTag || ""] || timeData[languageTag || ""] || timeData["".concat(languageTag, "-001")] || timeData["001"];
+  return hourCycles[0];
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/parser.js
+var _a;
+var SPACE_SEPARATOR_START_REGEX = new RegExp("^".concat(SPACE_SEPARATOR_REGEX.source, "*"));
+var SPACE_SEPARATOR_END_REGEX = new RegExp("".concat(SPACE_SEPARATOR_REGEX.source, "*$"));
+function createLocation(start, end) {
+  return { start, end };
+}
+var hasNativeStartsWith = !!String.prototype.startsWith;
+var hasNativeFromCodePoint = !!String.fromCodePoint;
+var hasNativeFromEntries = !!Object.fromEntries;
+var hasNativeCodePointAt = !!String.prototype.codePointAt;
+var hasTrimStart = !!String.prototype.trimStart;
+var hasTrimEnd = !!String.prototype.trimEnd;
+var hasNativeIsSafeInteger = !!Number.isSafeInteger;
+var isSafeInteger = hasNativeIsSafeInteger ? Number.isSafeInteger : function(n5) {
+  return typeof n5 === "number" && isFinite(n5) && Math.floor(n5) === n5 && Math.abs(n5) <= 9007199254740991;
+};
+var REGEX_SUPPORTS_U_AND_Y = true;
+try {
+  re = RE("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu");
+  REGEX_SUPPORTS_U_AND_Y = ((_a = re.exec("a")) === null || _a === void 0 ? void 0 : _a[0]) === "a";
+} catch (_2) {
+  REGEX_SUPPORTS_U_AND_Y = false;
+}
+var re;
+var startsWith = hasNativeStartsWith ? (
+  // Native
+  function startsWith2(s5, search, position) {
+    return s5.startsWith(search, position);
+  }
+) : (
+  // For IE11
+  function startsWith3(s5, search, position) {
+    return s5.slice(position, position + search.length) === search;
+  }
+);
+var fromCodePoint = hasNativeFromCodePoint ? String.fromCodePoint : (
+  // IE11
+  function fromCodePoint2() {
+    var codePoints = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      codePoints[_i] = arguments[_i];
+    }
+    var elements = "";
+    var length = codePoints.length;
+    var i3 = 0;
+    var code;
+    while (length > i3) {
+      code = codePoints[i3++];
+      if (code > 1114111)
+        throw RangeError(code + " is not a valid code point");
+      elements += code < 65536 ? String.fromCharCode(code) : String.fromCharCode(((code -= 65536) >> 10) + 55296, code % 1024 + 56320);
+    }
+    return elements;
+  }
+);
+var fromEntries = (
+  // native
+  hasNativeFromEntries ? Object.fromEntries : (
+    // Ponyfill
+    function fromEntries2(entries) {
+      var obj = {};
+      for (var _i = 0, entries_1 = entries; _i < entries_1.length; _i++) {
+        var _a2 = entries_1[_i], k2 = _a2[0], v2 = _a2[1];
+        obj[k2] = v2;
+      }
+      return obj;
+    }
+  )
+);
+var codePointAt = hasNativeCodePointAt ? (
+  // Native
+  function codePointAt2(s5, index) {
+    return s5.codePointAt(index);
+  }
+) : (
+  // IE 11
+  function codePointAt3(s5, index) {
+    var size = s5.length;
+    if (index < 0 || index >= size) {
+      return void 0;
+    }
+    var first = s5.charCodeAt(index);
+    var second;
+    return first < 55296 || first > 56319 || index + 1 === size || (second = s5.charCodeAt(index + 1)) < 56320 || second > 57343 ? first : (first - 55296 << 10) + (second - 56320) + 65536;
+  }
+);
+var trimStart = hasTrimStart ? (
+  // Native
+  function trimStart2(s5) {
+    return s5.trimStart();
+  }
+) : (
+  // Ponyfill
+  function trimStart3(s5) {
+    return s5.replace(SPACE_SEPARATOR_START_REGEX, "");
+  }
+);
+var trimEnd = hasTrimEnd ? (
+  // Native
+  function trimEnd2(s5) {
+    return s5.trimEnd();
+  }
+) : (
+  // Ponyfill
+  function trimEnd3(s5) {
+    return s5.replace(SPACE_SEPARATOR_END_REGEX, "");
+  }
+);
+function RE(s5, flag) {
+  return new RegExp(s5, flag);
+}
+var matchIdentifierAtIndex;
+if (REGEX_SUPPORTS_U_AND_Y) {
+  IDENTIFIER_PREFIX_RE_1 = RE("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu");
+  matchIdentifierAtIndex = function matchIdentifierAtIndex2(s5, index) {
+    var _a2;
+    IDENTIFIER_PREFIX_RE_1.lastIndex = index;
+    var match = IDENTIFIER_PREFIX_RE_1.exec(s5);
+    return (_a2 = match[1]) !== null && _a2 !== void 0 ? _a2 : "";
+  };
+} else {
+  matchIdentifierAtIndex = function matchIdentifierAtIndex2(s5, index) {
+    var match = [];
+    while (true) {
+      var c3 = codePointAt(s5, index);
+      if (c3 === void 0 || _isWhiteSpace(c3) || _isPatternSyntax(c3)) {
+        break;
+      }
+      match.push(c3);
+      index += c3 >= 65536 ? 2 : 1;
+    }
+    return fromCodePoint.apply(void 0, match);
+  };
+}
+var IDENTIFIER_PREFIX_RE_1;
+var Parser = (
+  /** @class */
+  function() {
+    function Parser2(message, options) {
+      if (options === void 0) {
+        options = {};
+      }
+      this.message = message;
+      this.position = { offset: 0, line: 1, column: 1 };
+      this.ignoreTag = !!options.ignoreTag;
+      this.locale = options.locale;
+      this.requiresOtherClause = !!options.requiresOtherClause;
+      this.shouldParseSkeletons = !!options.shouldParseSkeletons;
+    }
+    Parser2.prototype.parse = function() {
+      if (this.offset() !== 0) {
+        throw Error("parser can only be used once");
+      }
+      return this.parseMessage(0, "", false);
+    };
+    Parser2.prototype.parseMessage = function(nestingLevel, parentArgType, expectingCloseTag) {
+      var elements = [];
+      while (!this.isEOF()) {
+        var char = this.char();
+        if (char === 123) {
+          var result = this.parseArgument(nestingLevel, expectingCloseTag);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        } else if (char === 125 && nestingLevel > 0) {
+          break;
+        } else if (char === 35 && (parentArgType === "plural" || parentArgType === "selectordinal")) {
+          var position = this.clonePosition();
+          this.bump();
+          elements.push({
+            type: TYPE.pound,
+            location: createLocation(position, this.clonePosition())
+          });
+        } else if (char === 60 && !this.ignoreTag && this.peek() === 47) {
+          if (expectingCloseTag) {
+            break;
+          } else {
+            return this.error(ErrorKind.UNMATCHED_CLOSING_TAG, createLocation(this.clonePosition(), this.clonePosition()));
+          }
+        } else if (char === 60 && !this.ignoreTag && _isAlpha(this.peek() || 0)) {
+          var result = this.parseTag(nestingLevel, parentArgType);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        } else {
+          var result = this.parseLiteral(nestingLevel, parentArgType);
+          if (result.err) {
+            return result;
+          }
+          elements.push(result.val);
+        }
+      }
+      return { val: elements, err: null };
+    };
+    Parser2.prototype.parseTag = function(nestingLevel, parentArgType) {
+      var startPosition = this.clonePosition();
+      this.bump();
+      var tagName = this.parseTagName();
+      this.bumpSpace();
+      if (this.bumpIf("/>")) {
+        return {
+          val: {
+            type: TYPE.literal,
+            value: "<".concat(tagName, "/>"),
+            location: createLocation(startPosition, this.clonePosition())
+          },
+          err: null
+        };
+      } else if (this.bumpIf(">")) {
+        var childrenResult = this.parseMessage(nestingLevel + 1, parentArgType, true);
+        if (childrenResult.err) {
+          return childrenResult;
+        }
+        var children = childrenResult.val;
+        var endTagStartPosition = this.clonePosition();
+        if (this.bumpIf("</")) {
+          if (this.isEOF() || !_isAlpha(this.char())) {
+            return this.error(ErrorKind.INVALID_TAG, createLocation(endTagStartPosition, this.clonePosition()));
+          }
+          var closingTagNameStartPosition = this.clonePosition();
+          var closingTagName = this.parseTagName();
+          if (tagName !== closingTagName) {
+            return this.error(ErrorKind.UNMATCHED_CLOSING_TAG, createLocation(closingTagNameStartPosition, this.clonePosition()));
+          }
+          this.bumpSpace();
+          if (!this.bumpIf(">")) {
+            return this.error(ErrorKind.INVALID_TAG, createLocation(endTagStartPosition, this.clonePosition()));
+          }
+          return {
+            val: {
+              type: TYPE.tag,
+              value: tagName,
+              children,
+              location: createLocation(startPosition, this.clonePosition())
+            },
+            err: null
+          };
+        } else {
+          return this.error(ErrorKind.UNCLOSED_TAG, createLocation(startPosition, this.clonePosition()));
+        }
+      } else {
+        return this.error(ErrorKind.INVALID_TAG, createLocation(startPosition, this.clonePosition()));
+      }
+    };
+    Parser2.prototype.parseTagName = function() {
+      var startOffset = this.offset();
+      this.bump();
+      while (!this.isEOF() && _isPotentialElementNameChar(this.char())) {
+        this.bump();
+      }
+      return this.message.slice(startOffset, this.offset());
+    };
+    Parser2.prototype.parseLiteral = function(nestingLevel, parentArgType) {
+      var start = this.clonePosition();
+      var value = "";
+      while (true) {
+        var parseQuoteResult = this.tryParseQuote(parentArgType);
+        if (parseQuoteResult) {
+          value += parseQuoteResult;
+          continue;
+        }
+        var parseUnquotedResult = this.tryParseUnquoted(nestingLevel, parentArgType);
+        if (parseUnquotedResult) {
+          value += parseUnquotedResult;
+          continue;
+        }
+        var parseLeftAngleResult = this.tryParseLeftAngleBracket();
+        if (parseLeftAngleResult) {
+          value += parseLeftAngleResult;
+          continue;
+        }
+        break;
+      }
+      var location = createLocation(start, this.clonePosition());
+      return {
+        val: { type: TYPE.literal, value, location },
+        err: null
+      };
+    };
+    Parser2.prototype.tryParseLeftAngleBracket = function() {
+      if (!this.isEOF() && this.char() === 60 && (this.ignoreTag || // If at the opening tag or closing tag position, bail.
+      !_isAlphaOrSlash(this.peek() || 0))) {
+        this.bump();
+        return "<";
+      }
+      return null;
+    };
+    Parser2.prototype.tryParseQuote = function(parentArgType) {
+      if (this.isEOF() || this.char() !== 39) {
+        return null;
+      }
+      switch (this.peek()) {
+        case 39:
+          this.bump();
+          this.bump();
+          return "'";
+        // '{', '<', '>', '}'
+        case 123:
+        case 60:
+        case 62:
+        case 125:
+          break;
+        case 35:
+          if (parentArgType === "plural" || parentArgType === "selectordinal") {
+            break;
+          }
+          return null;
+        default:
+          return null;
+      }
+      this.bump();
+      var codePoints = [this.char()];
+      this.bump();
+      while (!this.isEOF()) {
+        var ch = this.char();
+        if (ch === 39) {
+          if (this.peek() === 39) {
+            codePoints.push(39);
+            this.bump();
+          } else {
+            this.bump();
+            break;
+          }
+        } else {
+          codePoints.push(ch);
+        }
+        this.bump();
+      }
+      return fromCodePoint.apply(void 0, codePoints);
+    };
+    Parser2.prototype.tryParseUnquoted = function(nestingLevel, parentArgType) {
+      if (this.isEOF()) {
+        return null;
+      }
+      var ch = this.char();
+      if (ch === 60 || ch === 123 || ch === 35 && (parentArgType === "plural" || parentArgType === "selectordinal") || ch === 125 && nestingLevel > 0) {
+        return null;
+      } else {
+        this.bump();
+        return fromCodePoint(ch);
+      }
+    };
+    Parser2.prototype.parseArgument = function(nestingLevel, expectingCloseTag) {
+      var openingBracePosition = this.clonePosition();
+      this.bump();
+      this.bumpSpace();
+      if (this.isEOF()) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      if (this.char() === 125) {
+        this.bump();
+        return this.error(ErrorKind.EMPTY_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      var value = this.parseIdentifierIfPossible().value;
+      if (!value) {
+        return this.error(ErrorKind.MALFORMED_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      this.bumpSpace();
+      if (this.isEOF()) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      switch (this.char()) {
+        // Simple argument: `{name}`
+        case 125: {
+          this.bump();
+          return {
+            val: {
+              type: TYPE.argument,
+              // value does not include the opening and closing braces.
+              value,
+              location: createLocation(openingBracePosition, this.clonePosition())
+            },
+            err: null
+          };
+        }
+        // Argument with options: `{name, format, ...}`
+        case 44: {
+          this.bump();
+          this.bumpSpace();
+          if (this.isEOF()) {
+            return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+          }
+          return this.parseArgumentOptions(nestingLevel, expectingCloseTag, value, openingBracePosition);
+        }
+        default:
+          return this.error(ErrorKind.MALFORMED_ARGUMENT, createLocation(openingBracePosition, this.clonePosition()));
+      }
+    };
+    Parser2.prototype.parseIdentifierIfPossible = function() {
+      var startingPosition = this.clonePosition();
+      var startOffset = this.offset();
+      var value = matchIdentifierAtIndex(this.message, startOffset);
+      var endOffset = startOffset + value.length;
+      this.bumpTo(endOffset);
+      var endPosition = this.clonePosition();
+      var location = createLocation(startingPosition, endPosition);
+      return { value, location };
+    };
+    Parser2.prototype.parseArgumentOptions = function(nestingLevel, expectingCloseTag, value, openingBracePosition) {
+      var _a2;
+      var typeStartPosition = this.clonePosition();
+      var argType = this.parseIdentifierIfPossible().value;
+      var typeEndPosition = this.clonePosition();
+      switch (argType) {
+        case "":
+          return this.error(ErrorKind.EXPECT_ARGUMENT_TYPE, createLocation(typeStartPosition, typeEndPosition));
+        case "number":
+        case "date":
+        case "time": {
+          this.bumpSpace();
+          var styleAndLocation = null;
+          if (this.bumpIf(",")) {
+            this.bumpSpace();
+            var styleStartPosition = this.clonePosition();
+            var result = this.parseSimpleArgStyleIfPossible();
+            if (result.err) {
+              return result;
+            }
+            var style = trimEnd(result.val);
+            if (style.length === 0) {
+              return this.error(ErrorKind.EXPECT_ARGUMENT_STYLE, createLocation(this.clonePosition(), this.clonePosition()));
+            }
+            var styleLocation = createLocation(styleStartPosition, this.clonePosition());
+            styleAndLocation = { style, styleLocation };
+          }
+          var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+          if (argCloseResult.err) {
+            return argCloseResult;
+          }
+          var location_1 = createLocation(openingBracePosition, this.clonePosition());
+          if (styleAndLocation && startsWith(styleAndLocation === null || styleAndLocation === void 0 ? void 0 : styleAndLocation.style, "::", 0)) {
+            var skeleton = trimStart(styleAndLocation.style.slice(2));
+            if (argType === "number") {
+              var result = this.parseNumberSkeletonFromString(skeleton, styleAndLocation.styleLocation);
+              if (result.err) {
+                return result;
+              }
+              return {
+                val: { type: TYPE.number, value, location: location_1, style: result.val },
+                err: null
+              };
+            } else {
+              if (skeleton.length === 0) {
+                return this.error(ErrorKind.EXPECT_DATE_TIME_SKELETON, location_1);
+              }
+              var dateTimePattern = skeleton;
+              if (this.locale) {
+                dateTimePattern = getBestPattern(skeleton, this.locale);
+              }
+              var style = {
+                type: SKELETON_TYPE.dateTime,
+                pattern: dateTimePattern,
+                location: styleAndLocation.styleLocation,
+                parsedOptions: this.shouldParseSkeletons ? parseDateTimeSkeleton(dateTimePattern) : {}
+              };
+              var type = argType === "date" ? TYPE.date : TYPE.time;
+              return {
+                val: { type, value, location: location_1, style },
+                err: null
+              };
+            }
+          }
+          return {
+            val: {
+              type: argType === "number" ? TYPE.number : argType === "date" ? TYPE.date : TYPE.time,
+              value,
+              location: location_1,
+              style: (_a2 = styleAndLocation === null || styleAndLocation === void 0 ? void 0 : styleAndLocation.style) !== null && _a2 !== void 0 ? _a2 : null
+            },
+            err: null
+          };
+        }
+        case "plural":
+        case "selectordinal":
+        case "select": {
+          var typeEndPosition_1 = this.clonePosition();
+          this.bumpSpace();
+          if (!this.bumpIf(",")) {
+            return this.error(ErrorKind.EXPECT_SELECT_ARGUMENT_OPTIONS, createLocation(typeEndPosition_1, __assign({}, typeEndPosition_1)));
+          }
+          this.bumpSpace();
+          var identifierAndLocation = this.parseIdentifierIfPossible();
+          var pluralOffset = 0;
+          if (argType !== "select" && identifierAndLocation.value === "offset") {
+            if (!this.bumpIf(":")) {
+              return this.error(ErrorKind.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, createLocation(this.clonePosition(), this.clonePosition()));
+            }
+            this.bumpSpace();
+            var result = this.tryParseDecimalInteger(ErrorKind.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, ErrorKind.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);
+            if (result.err) {
+              return result;
+            }
+            this.bumpSpace();
+            identifierAndLocation = this.parseIdentifierIfPossible();
+            pluralOffset = result.val;
+          }
+          var optionsResult = this.tryParsePluralOrSelectOptions(nestingLevel, argType, expectingCloseTag, identifierAndLocation);
+          if (optionsResult.err) {
+            return optionsResult;
+          }
+          var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+          if (argCloseResult.err) {
+            return argCloseResult;
+          }
+          var location_2 = createLocation(openingBracePosition, this.clonePosition());
+          if (argType === "select") {
+            return {
+              val: {
+                type: TYPE.select,
+                value,
+                options: fromEntries(optionsResult.val),
+                location: location_2
+              },
+              err: null
+            };
+          } else {
+            return {
+              val: {
+                type: TYPE.plural,
+                value,
+                options: fromEntries(optionsResult.val),
+                offset: pluralOffset,
+                pluralType: argType === "plural" ? "cardinal" : "ordinal",
+                location: location_2
+              },
+              err: null
+            };
+          }
+        }
+        default:
+          return this.error(ErrorKind.INVALID_ARGUMENT_TYPE, createLocation(typeStartPosition, typeEndPosition));
+      }
+    };
+    Parser2.prototype.tryParseArgumentClose = function(openingBracePosition) {
+      if (this.isEOF() || this.char() !== 125) {
+        return this.error(ErrorKind.EXPECT_ARGUMENT_CLOSING_BRACE, createLocation(openingBracePosition, this.clonePosition()));
+      }
+      this.bump();
+      return { val: true, err: null };
+    };
+    Parser2.prototype.parseSimpleArgStyleIfPossible = function() {
+      var nestedBraces = 0;
+      var startPosition = this.clonePosition();
+      while (!this.isEOF()) {
+        var ch = this.char();
+        switch (ch) {
+          case 39: {
+            this.bump();
+            var apostrophePosition = this.clonePosition();
+            if (!this.bumpUntil("'")) {
+              return this.error(ErrorKind.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE, createLocation(apostrophePosition, this.clonePosition()));
+            }
+            this.bump();
+            break;
+          }
+          case 123: {
+            nestedBraces += 1;
+            this.bump();
+            break;
+          }
+          case 125: {
+            if (nestedBraces > 0) {
+              nestedBraces -= 1;
+            } else {
+              return {
+                val: this.message.slice(startPosition.offset, this.offset()),
+                err: null
+              };
+            }
+            break;
+          }
+          default:
+            this.bump();
+            break;
+        }
+      }
+      return {
+        val: this.message.slice(startPosition.offset, this.offset()),
+        err: null
+      };
+    };
+    Parser2.prototype.parseNumberSkeletonFromString = function(skeleton, location) {
+      var tokens = [];
+      try {
+        tokens = parseNumberSkeletonFromString(skeleton);
+      } catch (e4) {
+        return this.error(ErrorKind.INVALID_NUMBER_SKELETON, location);
+      }
+      return {
+        val: {
+          type: SKELETON_TYPE.number,
+          tokens,
+          location,
+          parsedOptions: this.shouldParseSkeletons ? parseNumberSkeleton(tokens) : {}
+        },
+        err: null
+      };
+    };
+    Parser2.prototype.tryParsePluralOrSelectOptions = function(nestingLevel, parentArgType, expectCloseTag, parsedFirstIdentifier) {
+      var _a2;
+      var hasOtherClause = false;
+      var options = [];
+      var parsedSelectors = /* @__PURE__ */ new Set();
+      var selector = parsedFirstIdentifier.value, selectorLocation = parsedFirstIdentifier.location;
+      while (true) {
+        if (selector.length === 0) {
+          var startPosition = this.clonePosition();
+          if (parentArgType !== "select" && this.bumpIf("=")) {
+            var result = this.tryParseDecimalInteger(ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR, ErrorKind.INVALID_PLURAL_ARGUMENT_SELECTOR);
+            if (result.err) {
+              return result;
+            }
+            selectorLocation = createLocation(startPosition, this.clonePosition());
+            selector = this.message.slice(startPosition.offset, this.offset());
+          } else {
+            break;
+          }
+        }
+        if (parsedSelectors.has(selector)) {
+          return this.error(parentArgType === "select" ? ErrorKind.DUPLICATE_SELECT_ARGUMENT_SELECTOR : ErrorKind.DUPLICATE_PLURAL_ARGUMENT_SELECTOR, selectorLocation);
+        }
+        if (selector === "other") {
+          hasOtherClause = true;
+        }
+        this.bumpSpace();
+        var openingBracePosition = this.clonePosition();
+        if (!this.bumpIf("{")) {
+          return this.error(parentArgType === "select" ? ErrorKind.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT : ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT, createLocation(this.clonePosition(), this.clonePosition()));
+        }
+        var fragmentResult = this.parseMessage(nestingLevel + 1, parentArgType, expectCloseTag);
+        if (fragmentResult.err) {
+          return fragmentResult;
+        }
+        var argCloseResult = this.tryParseArgumentClose(openingBracePosition);
+        if (argCloseResult.err) {
+          return argCloseResult;
+        }
+        options.push([
+          selector,
+          {
+            value: fragmentResult.val,
+            location: createLocation(openingBracePosition, this.clonePosition())
+          }
+        ]);
+        parsedSelectors.add(selector);
+        this.bumpSpace();
+        _a2 = this.parseIdentifierIfPossible(), selector = _a2.value, selectorLocation = _a2.location;
+      }
+      if (options.length === 0) {
+        return this.error(parentArgType === "select" ? ErrorKind.EXPECT_SELECT_ARGUMENT_SELECTOR : ErrorKind.EXPECT_PLURAL_ARGUMENT_SELECTOR, createLocation(this.clonePosition(), this.clonePosition()));
+      }
+      if (this.requiresOtherClause && !hasOtherClause) {
+        return this.error(ErrorKind.MISSING_OTHER_CLAUSE, createLocation(this.clonePosition(), this.clonePosition()));
+      }
+      return { val: options, err: null };
+    };
+    Parser2.prototype.tryParseDecimalInteger = function(expectNumberError, invalidNumberError) {
+      var sign = 1;
+      var startingPosition = this.clonePosition();
+      if (this.bumpIf("+")) {
+      } else if (this.bumpIf("-")) {
+        sign = -1;
+      }
+      var hasDigits = false;
+      var decimal = 0;
+      while (!this.isEOF()) {
+        var ch = this.char();
+        if (ch >= 48 && ch <= 57) {
+          hasDigits = true;
+          decimal = decimal * 10 + (ch - 48);
+          this.bump();
+        } else {
+          break;
+        }
+      }
+      var location = createLocation(startingPosition, this.clonePosition());
+      if (!hasDigits) {
+        return this.error(expectNumberError, location);
+      }
+      decimal *= sign;
+      if (!isSafeInteger(decimal)) {
+        return this.error(invalidNumberError, location);
+      }
+      return { val: decimal, err: null };
+    };
+    Parser2.prototype.offset = function() {
+      return this.position.offset;
+    };
+    Parser2.prototype.isEOF = function() {
+      return this.offset() === this.message.length;
+    };
+    Parser2.prototype.clonePosition = function() {
+      return {
+        offset: this.position.offset,
+        line: this.position.line,
+        column: this.position.column
+      };
+    };
+    Parser2.prototype.char = function() {
+      var offset = this.position.offset;
+      if (offset >= this.message.length) {
+        throw Error("out of bound");
+      }
+      var code = codePointAt(this.message, offset);
+      if (code === void 0) {
+        throw Error("Offset ".concat(offset, " is at invalid UTF-16 code unit boundary"));
+      }
+      return code;
+    };
+    Parser2.prototype.error = function(kind, location) {
+      return {
+        val: null,
+        err: {
+          kind,
+          message: this.message,
+          location
+        }
+      };
+    };
+    Parser2.prototype.bump = function() {
+      if (this.isEOF()) {
+        return;
+      }
+      var code = this.char();
+      if (code === 10) {
+        this.position.line += 1;
+        this.position.column = 1;
+        this.position.offset += 1;
+      } else {
+        this.position.column += 1;
+        this.position.offset += code < 65536 ? 1 : 2;
+      }
+    };
+    Parser2.prototype.bumpIf = function(prefix) {
+      if (startsWith(this.message, prefix, this.offset())) {
+        for (var i3 = 0; i3 < prefix.length; i3++) {
+          this.bump();
+        }
+        return true;
+      }
+      return false;
+    };
+    Parser2.prototype.bumpUntil = function(pattern) {
+      var currentOffset = this.offset();
+      var index = this.message.indexOf(pattern, currentOffset);
+      if (index >= 0) {
+        this.bumpTo(index);
+        return true;
+      } else {
+        this.bumpTo(this.message.length);
+        return false;
+      }
+    };
+    Parser2.prototype.bumpTo = function(targetOffset) {
+      if (this.offset() > targetOffset) {
+        throw Error("targetOffset ".concat(targetOffset, " must be greater than or equal to the current offset ").concat(this.offset()));
+      }
+      targetOffset = Math.min(targetOffset, this.message.length);
+      while (true) {
+        var offset = this.offset();
+        if (offset === targetOffset) {
+          break;
+        }
+        if (offset > targetOffset) {
+          throw Error("targetOffset ".concat(targetOffset, " is at invalid UTF-16 code unit boundary"));
+        }
+        this.bump();
+        if (this.isEOF()) {
+          break;
+        }
+      }
+    };
+    Parser2.prototype.bumpSpace = function() {
+      while (!this.isEOF() && _isWhiteSpace(this.char())) {
+        this.bump();
+      }
+    };
+    Parser2.prototype.peek = function() {
+      if (this.isEOF()) {
+        return null;
+      }
+      var code = this.char();
+      var offset = this.offset();
+      var nextCode = this.message.charCodeAt(offset + (code >= 65536 ? 2 : 1));
+      return nextCode !== null && nextCode !== void 0 ? nextCode : null;
+    };
+    return Parser2;
+  }()
+);
+function _isAlpha(codepoint) {
+  return codepoint >= 97 && codepoint <= 122 || codepoint >= 65 && codepoint <= 90;
+}
+function _isAlphaOrSlash(codepoint) {
+  return _isAlpha(codepoint) || codepoint === 47;
+}
+function _isPotentialElementNameChar(c3) {
+  return c3 === 45 || c3 === 46 || c3 >= 48 && c3 <= 57 || c3 === 95 || c3 >= 97 && c3 <= 122 || c3 >= 65 && c3 <= 90 || c3 == 183 || c3 >= 192 && c3 <= 214 || c3 >= 216 && c3 <= 246 || c3 >= 248 && c3 <= 893 || c3 >= 895 && c3 <= 8191 || c3 >= 8204 && c3 <= 8205 || c3 >= 8255 && c3 <= 8256 || c3 >= 8304 && c3 <= 8591 || c3 >= 11264 && c3 <= 12271 || c3 >= 12289 && c3 <= 55295 || c3 >= 63744 && c3 <= 64975 || c3 >= 65008 && c3 <= 65533 || c3 >= 65536 && c3 <= 983039;
+}
+function _isWhiteSpace(c3) {
+  return c3 >= 9 && c3 <= 13 || c3 === 32 || c3 === 133 || c3 >= 8206 && c3 <= 8207 || c3 === 8232 || c3 === 8233;
+}
+function _isPatternSyntax(c3) {
+  return c3 >= 33 && c3 <= 35 || c3 === 36 || c3 >= 37 && c3 <= 39 || c3 === 40 || c3 === 41 || c3 === 42 || c3 === 43 || c3 === 44 || c3 === 45 || c3 >= 46 && c3 <= 47 || c3 >= 58 && c3 <= 59 || c3 >= 60 && c3 <= 62 || c3 >= 63 && c3 <= 64 || c3 === 91 || c3 === 92 || c3 === 93 || c3 === 94 || c3 === 96 || c3 === 123 || c3 === 124 || c3 === 125 || c3 === 126 || c3 === 161 || c3 >= 162 && c3 <= 165 || c3 === 166 || c3 === 167 || c3 === 169 || c3 === 171 || c3 === 172 || c3 === 174 || c3 === 176 || c3 === 177 || c3 === 182 || c3 === 187 || c3 === 191 || c3 === 215 || c3 === 247 || c3 >= 8208 && c3 <= 8213 || c3 >= 8214 && c3 <= 8215 || c3 === 8216 || c3 === 8217 || c3 === 8218 || c3 >= 8219 && c3 <= 8220 || c3 === 8221 || c3 === 8222 || c3 === 8223 || c3 >= 8224 && c3 <= 8231 || c3 >= 8240 && c3 <= 8248 || c3 === 8249 || c3 === 8250 || c3 >= 8251 && c3 <= 8254 || c3 >= 8257 && c3 <= 8259 || c3 === 8260 || c3 === 8261 || c3 === 8262 || c3 >= 8263 && c3 <= 8273 || c3 === 8274 || c3 === 8275 || c3 >= 8277 && c3 <= 8286 || c3 >= 8592 && c3 <= 8596 || c3 >= 8597 && c3 <= 8601 || c3 >= 8602 && c3 <= 8603 || c3 >= 8604 && c3 <= 8607 || c3 === 8608 || c3 >= 8609 && c3 <= 8610 || c3 === 8611 || c3 >= 8612 && c3 <= 8613 || c3 === 8614 || c3 >= 8615 && c3 <= 8621 || c3 === 8622 || c3 >= 8623 && c3 <= 8653 || c3 >= 8654 && c3 <= 8655 || c3 >= 8656 && c3 <= 8657 || c3 === 8658 || c3 === 8659 || c3 === 8660 || c3 >= 8661 && c3 <= 8691 || c3 >= 8692 && c3 <= 8959 || c3 >= 8960 && c3 <= 8967 || c3 === 8968 || c3 === 8969 || c3 === 8970 || c3 === 8971 || c3 >= 8972 && c3 <= 8991 || c3 >= 8992 && c3 <= 8993 || c3 >= 8994 && c3 <= 9e3 || c3 === 9001 || c3 === 9002 || c3 >= 9003 && c3 <= 9083 || c3 === 9084 || c3 >= 9085 && c3 <= 9114 || c3 >= 9115 && c3 <= 9139 || c3 >= 9140 && c3 <= 9179 || c3 >= 9180 && c3 <= 9185 || c3 >= 9186 && c3 <= 9254 || c3 >= 9255 && c3 <= 9279 || c3 >= 9280 && c3 <= 9290 || c3 >= 9291 && c3 <= 9311 || c3 >= 9472 && c3 <= 9654 || c3 === 9655 || c3 >= 9656 && c3 <= 9664 || c3 === 9665 || c3 >= 9666 && c3 <= 9719 || c3 >= 9720 && c3 <= 9727 || c3 >= 9728 && c3 <= 9838 || c3 === 9839 || c3 >= 9840 && c3 <= 10087 || c3 === 10088 || c3 === 10089 || c3 === 10090 || c3 === 10091 || c3 === 10092 || c3 === 10093 || c3 === 10094 || c3 === 10095 || c3 === 10096 || c3 === 10097 || c3 === 10098 || c3 === 10099 || c3 === 10100 || c3 === 10101 || c3 >= 10132 && c3 <= 10175 || c3 >= 10176 && c3 <= 10180 || c3 === 10181 || c3 === 10182 || c3 >= 10183 && c3 <= 10213 || c3 === 10214 || c3 === 10215 || c3 === 10216 || c3 === 10217 || c3 === 10218 || c3 === 10219 || c3 === 10220 || c3 === 10221 || c3 === 10222 || c3 === 10223 || c3 >= 10224 && c3 <= 10239 || c3 >= 10240 && c3 <= 10495 || c3 >= 10496 && c3 <= 10626 || c3 === 10627 || c3 === 10628 || c3 === 10629 || c3 === 10630 || c3 === 10631 || c3 === 10632 || c3 === 10633 || c3 === 10634 || c3 === 10635 || c3 === 10636 || c3 === 10637 || c3 === 10638 || c3 === 10639 || c3 === 10640 || c3 === 10641 || c3 === 10642 || c3 === 10643 || c3 === 10644 || c3 === 10645 || c3 === 10646 || c3 === 10647 || c3 === 10648 || c3 >= 10649 && c3 <= 10711 || c3 === 10712 || c3 === 10713 || c3 === 10714 || c3 === 10715 || c3 >= 10716 && c3 <= 10747 || c3 === 10748 || c3 === 10749 || c3 >= 10750 && c3 <= 11007 || c3 >= 11008 && c3 <= 11055 || c3 >= 11056 && c3 <= 11076 || c3 >= 11077 && c3 <= 11078 || c3 >= 11079 && c3 <= 11084 || c3 >= 11085 && c3 <= 11123 || c3 >= 11124 && c3 <= 11125 || c3 >= 11126 && c3 <= 11157 || c3 === 11158 || c3 >= 11159 && c3 <= 11263 || c3 >= 11776 && c3 <= 11777 || c3 === 11778 || c3 === 11779 || c3 === 11780 || c3 === 11781 || c3 >= 11782 && c3 <= 11784 || c3 === 11785 || c3 === 11786 || c3 === 11787 || c3 === 11788 || c3 === 11789 || c3 >= 11790 && c3 <= 11798 || c3 === 11799 || c3 >= 11800 && c3 <= 11801 || c3 === 11802 || c3 === 11803 || c3 === 11804 || c3 === 11805 || c3 >= 11806 && c3 <= 11807 || c3 === 11808 || c3 === 11809 || c3 === 11810 || c3 === 11811 || c3 === 11812 || c3 === 11813 || c3 === 11814 || c3 === 11815 || c3 === 11816 || c3 === 11817 || c3 >= 11818 && c3 <= 11822 || c3 === 11823 || c3 >= 11824 && c3 <= 11833 || c3 >= 11834 && c3 <= 11835 || c3 >= 11836 && c3 <= 11839 || c3 === 11840 || c3 === 11841 || c3 === 11842 || c3 >= 11843 && c3 <= 11855 || c3 >= 11856 && c3 <= 11857 || c3 === 11858 || c3 >= 11859 && c3 <= 11903 || c3 >= 12289 && c3 <= 12291 || c3 === 12296 || c3 === 12297 || c3 === 12298 || c3 === 12299 || c3 === 12300 || c3 === 12301 || c3 === 12302 || c3 === 12303 || c3 === 12304 || c3 === 12305 || c3 >= 12306 && c3 <= 12307 || c3 === 12308 || c3 === 12309 || c3 === 12310 || c3 === 12311 || c3 === 12312 || c3 === 12313 || c3 === 12314 || c3 === 12315 || c3 === 12316 || c3 === 12317 || c3 >= 12318 && c3 <= 12319 || c3 === 12320 || c3 === 12336 || c3 === 64830 || c3 === 64831 || c3 >= 65093 && c3 <= 65094;
+}
+
+// ../node_modules/@formatjs/icu-messageformat-parser/lib/index.js
+function pruneLocation(els) {
+  els.forEach(function(el) {
+    delete el.location;
+    if (isSelectElement(el) || isPluralElement(el)) {
+      for (var k2 in el.options) {
+        delete el.options[k2].location;
+        pruneLocation(el.options[k2].value);
+      }
+    } else if (isNumberElement(el) && isNumberSkeleton(el.style)) {
+      delete el.style.location;
+    } else if ((isDateElement(el) || isTimeElement(el)) && isDateTimeSkeleton(el.style)) {
+      delete el.style.location;
+    } else if (isTagElement(el)) {
+      pruneLocation(el.children);
+    }
+  });
+}
+function parse(message, opts) {
+  if (opts === void 0) {
+    opts = {};
+  }
+  opts = __assign({ shouldParseSkeletons: true, requiresOtherClause: true }, opts);
+  var result = new Parser(message, opts).parse();
+  if (result.err) {
+    var error = SyntaxError(ErrorKind[result.err.kind]);
+    error.location = result.err.location;
+    error.originalMessage = result.err.message;
+    throw error;
+  }
+  if (!(opts === null || opts === void 0 ? void 0 : opts.captureLocation)) {
+    pruneLocation(result.val);
+  }
+  return result.val;
+}
+
+// ../node_modules/@formatjs/fast-memoize/lib/index.js
+function memoize(fn, options) {
+  var cache2 = options && options.cache ? options.cache : cacheDefault;
+  var serializer = options && options.serializer ? options.serializer : serializerDefault;
+  var strategy = options && options.strategy ? options.strategy : strategyDefault;
+  return strategy(fn, {
+    cache: cache2,
+    serializer
+  });
+}
+function isPrimitive(value) {
+  return value == null || typeof value === "number" || typeof value === "boolean";
+}
+function monadic(fn, cache2, serializer, arg) {
+  var cacheKey = isPrimitive(arg) ? arg : serializer(arg);
+  var computedValue = cache2.get(cacheKey);
+  if (typeof computedValue === "undefined") {
+    computedValue = fn.call(this, arg);
+    cache2.set(cacheKey, computedValue);
+  }
+  return computedValue;
+}
+function variadic(fn, cache2, serializer) {
+  var args = Array.prototype.slice.call(arguments, 3);
+  var cacheKey = serializer(args);
+  var computedValue = cache2.get(cacheKey);
+  if (typeof computedValue === "undefined") {
+    computedValue = fn.apply(this, args);
+    cache2.set(cacheKey, computedValue);
+  }
+  return computedValue;
+}
+function assemble(fn, context, strategy, cache2, serialize) {
+  return strategy.bind(context, fn, cache2, serialize);
+}
+function strategyDefault(fn, options) {
+  var strategy = fn.length === 1 ? monadic : variadic;
+  return assemble(fn, this, strategy, options.cache.create(), options.serializer);
+}
+function strategyVariadic(fn, options) {
+  return assemble(fn, this, variadic, options.cache.create(), options.serializer);
+}
+function strategyMonadic(fn, options) {
+  return assemble(fn, this, monadic, options.cache.create(), options.serializer);
+}
+var serializerDefault = function() {
+  return JSON.stringify(arguments);
+};
+function ObjectWithoutPrototypeCache() {
+  this.cache = /* @__PURE__ */ Object.create(null);
+}
+ObjectWithoutPrototypeCache.prototype.get = function(key) {
+  return this.cache[key];
+};
+ObjectWithoutPrototypeCache.prototype.set = function(key, value) {
+  this.cache[key] = value;
+};
+var cacheDefault = {
+  create: function create() {
+    return new ObjectWithoutPrototypeCache();
+  }
+};
+var strategies = {
+  variadic: strategyVariadic,
+  monadic: strategyMonadic
+};
+
+// ../node_modules/intl-messageformat/lib/src/error.js
+var ErrorCode;
+(function(ErrorCode2) {
+  ErrorCode2["MISSING_VALUE"] = "MISSING_VALUE";
+  ErrorCode2["INVALID_VALUE"] = "INVALID_VALUE";
+  ErrorCode2["MISSING_INTL_API"] = "MISSING_INTL_API";
+})(ErrorCode || (ErrorCode = {}));
+var FormatError = (
+  /** @class */
+  function(_super) {
+    __extends(FormatError2, _super);
+    function FormatError2(msg, code, originalMessage) {
+      var _this = _super.call(this, msg) || this;
+      _this.code = code;
+      _this.originalMessage = originalMessage;
+      return _this;
+    }
+    FormatError2.prototype.toString = function() {
+      return "[formatjs Error: ".concat(this.code, "] ").concat(this.message);
+    };
+    return FormatError2;
+  }(Error)
+);
+var InvalidValueError = (
+  /** @class */
+  function(_super) {
+    __extends(InvalidValueError2, _super);
+    function InvalidValueError2(variableId, value, options, originalMessage) {
+      return _super.call(this, 'Invalid values for "'.concat(variableId, '": "').concat(value, '". Options are "').concat(Object.keys(options).join('", "'), '"'), ErrorCode.INVALID_VALUE, originalMessage) || this;
+    }
+    return InvalidValueError2;
+  }(FormatError)
+);
+var InvalidValueTypeError = (
+  /** @class */
+  function(_super) {
+    __extends(InvalidValueTypeError2, _super);
+    function InvalidValueTypeError2(value, type, originalMessage) {
+      return _super.call(this, 'Value for "'.concat(value, '" must be of type ').concat(type), ErrorCode.INVALID_VALUE, originalMessage) || this;
+    }
+    return InvalidValueTypeError2;
+  }(FormatError)
+);
+var MissingValueError = (
+  /** @class */
+  function(_super) {
+    __extends(MissingValueError2, _super);
+    function MissingValueError2(variableId, originalMessage) {
+      return _super.call(this, 'The intl string context variable "'.concat(variableId, '" was not provided to the string "').concat(originalMessage, '"'), ErrorCode.MISSING_VALUE, originalMessage) || this;
+    }
+    return MissingValueError2;
+  }(FormatError)
+);
+
+// ../node_modules/intl-messageformat/lib/src/formatters.js
+var PART_TYPE;
+(function(PART_TYPE2) {
+  PART_TYPE2[PART_TYPE2["literal"] = 0] = "literal";
+  PART_TYPE2[PART_TYPE2["object"] = 1] = "object";
+})(PART_TYPE || (PART_TYPE = {}));
+function mergeLiteral(parts) {
+  if (parts.length < 2) {
+    return parts;
+  }
+  return parts.reduce(function(all, part) {
+    var lastPart = all[all.length - 1];
+    if (!lastPart || lastPart.type !== PART_TYPE.literal || part.type !== PART_TYPE.literal) {
+      all.push(part);
+    } else {
+      lastPart.value += part.value;
+    }
+    return all;
+  }, []);
+}
+function isFormatXMLElementFn(el) {
+  return typeof el === "function";
+}
+function formatToParts(els, locales, formatters, formats, values, currentPluralValue, originalMessage) {
+  if (els.length === 1 && isLiteralElement(els[0])) {
+    return [
+      {
+        type: PART_TYPE.literal,
+        value: els[0].value
+      }
+    ];
+  }
+  var result = [];
+  for (var _i = 0, els_1 = els; _i < els_1.length; _i++) {
+    var el = els_1[_i];
+    if (isLiteralElement(el)) {
+      result.push({
+        type: PART_TYPE.literal,
+        value: el.value
+      });
+      continue;
+    }
+    if (isPoundElement(el)) {
+      if (typeof currentPluralValue === "number") {
+        result.push({
+          type: PART_TYPE.literal,
+          value: formatters.getNumberFormat(locales).format(currentPluralValue)
+        });
+      }
+      continue;
+    }
+    var varName = el.value;
+    if (!(values && varName in values)) {
+      throw new MissingValueError(varName, originalMessage);
+    }
+    var value = values[varName];
+    if (isArgumentElement(el)) {
+      if (!value || typeof value === "string" || typeof value === "number") {
+        value = typeof value === "string" || typeof value === "number" ? String(value) : "";
+      }
+      result.push({
+        type: typeof value === "string" ? PART_TYPE.literal : PART_TYPE.object,
+        value
+      });
+      continue;
+    }
+    if (isDateElement(el)) {
+      var style = typeof el.style === "string" ? formats.date[el.style] : isDateTimeSkeleton(el.style) ? el.style.parsedOptions : void 0;
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getDateTimeFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isTimeElement(el)) {
+      var style = typeof el.style === "string" ? formats.time[el.style] : isDateTimeSkeleton(el.style) ? el.style.parsedOptions : formats.time.medium;
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getDateTimeFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isNumberElement(el)) {
+      var style = typeof el.style === "string" ? formats.number[el.style] : isNumberSkeleton(el.style) ? el.style.parsedOptions : void 0;
+      if (style && style.scale) {
+        value = value * (style.scale || 1);
+      }
+      result.push({
+        type: PART_TYPE.literal,
+        value: formatters.getNumberFormat(locales, style).format(value)
+      });
+      continue;
+    }
+    if (isTagElement(el)) {
+      var children = el.children, value_1 = el.value;
+      var formatFn = values[value_1];
+      if (!isFormatXMLElementFn(formatFn)) {
+        throw new InvalidValueTypeError(value_1, "function", originalMessage);
+      }
+      var parts = formatToParts(children, locales, formatters, formats, values, currentPluralValue);
+      var chunks = formatFn(parts.map(function(p2) {
+        return p2.value;
+      }));
+      if (!Array.isArray(chunks)) {
+        chunks = [chunks];
+      }
+      result.push.apply(result, chunks.map(function(c3) {
+        return {
+          type: typeof c3 === "string" ? PART_TYPE.literal : PART_TYPE.object,
+          value: c3
+        };
+      }));
+    }
+    if (isSelectElement(el)) {
+      var opt = el.options[value] || el.options.other;
+      if (!opt) {
+        throw new InvalidValueError(el.value, value, Object.keys(el.options), originalMessage);
+      }
+      result.push.apply(result, formatToParts(opt.value, locales, formatters, formats, values));
+      continue;
+    }
+    if (isPluralElement(el)) {
+      var opt = el.options["=".concat(value)];
+      if (!opt) {
+        if (!Intl.PluralRules) {
+          throw new FormatError('Intl.PluralRules is not available in this environment.\nTry polyfilling it using "@formatjs/intl-pluralrules"\n', ErrorCode.MISSING_INTL_API, originalMessage);
+        }
+        var rule = formatters.getPluralRules(locales, { type: el.pluralType }).select(value - (el.offset || 0));
+        opt = el.options[rule] || el.options.other;
+      }
+      if (!opt) {
+        throw new InvalidValueError(el.value, value, Object.keys(el.options), originalMessage);
+      }
+      result.push.apply(result, formatToParts(opt.value, locales, formatters, formats, values, value - (el.offset || 0)));
+      continue;
+    }
+  }
+  return mergeLiteral(result);
+}
+
+// ../node_modules/intl-messageformat/lib/src/core.js
+function mergeConfig(c1, c22) {
+  if (!c22) {
+    return c1;
+  }
+  return __assign(__assign(__assign({}, c1 || {}), c22 || {}), Object.keys(c1).reduce(function(all, k2) {
+    all[k2] = __assign(__assign({}, c1[k2]), c22[k2] || {});
+    return all;
+  }, {}));
+}
+function mergeConfigs(defaultConfig, configs) {
+  if (!configs) {
+    return defaultConfig;
+  }
+  return Object.keys(defaultConfig).reduce(function(all, k2) {
+    all[k2] = mergeConfig(defaultConfig[k2], configs[k2]);
+    return all;
+  }, __assign({}, defaultConfig));
+}
+function createFastMemoizeCache(store) {
+  return {
+    create: function() {
+      return {
+        get: function(key) {
+          return store[key];
+        },
+        set: function(key, value) {
+          store[key] = value;
+        }
+      };
+    }
+  };
+}
+function createDefaultFormatters(cache2) {
+  if (cache2 === void 0) {
+    cache2 = {
+      number: {},
+      dateTime: {},
+      pluralRules: {}
+    };
+  }
+  return {
+    getNumberFormat: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.NumberFormat).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache2.number),
+      strategy: strategies.variadic
+    }),
+    getDateTimeFormat: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.DateTimeFormat).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache2.dateTime),
+      strategy: strategies.variadic
+    }),
+    getPluralRules: memoize(function() {
+      var _a2;
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+      }
+      return new ((_a2 = Intl.PluralRules).bind.apply(_a2, __spreadArray([void 0], args, false)))();
+    }, {
+      cache: createFastMemoizeCache(cache2.pluralRules),
+      strategy: strategies.variadic
+    })
+  };
+}
+var IntlMessageFormat = (
+  /** @class */
+  function() {
+    function IntlMessageFormat2(message, locales, overrideFormats, opts) {
+      var _this = this;
+      if (locales === void 0) {
+        locales = IntlMessageFormat2.defaultLocale;
+      }
+      this.formatterCache = {
+        number: {},
+        dateTime: {},
+        pluralRules: {}
+      };
+      this.format = function(values) {
+        var parts = _this.formatToParts(values);
+        if (parts.length === 1) {
+          return parts[0].value;
+        }
+        var result = parts.reduce(function(all, part) {
+          if (!all.length || part.type !== PART_TYPE.literal || typeof all[all.length - 1] !== "string") {
+            all.push(part.value);
+          } else {
+            all[all.length - 1] += part.value;
+          }
+          return all;
+        }, []);
+        if (result.length <= 1) {
+          return result[0] || "";
+        }
+        return result;
+      };
+      this.formatToParts = function(values) {
+        return formatToParts(_this.ast, _this.locales, _this.formatters, _this.formats, values, void 0, _this.message);
+      };
+      this.resolvedOptions = function() {
+        return {
+          locale: _this.resolvedLocale.toString()
+        };
+      };
+      this.getAst = function() {
+        return _this.ast;
+      };
+      this.locales = locales;
+      this.resolvedLocale = IntlMessageFormat2.resolveLocale(locales);
+      if (typeof message === "string") {
+        this.message = message;
+        if (!IntlMessageFormat2.__parse) {
+          throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");
+        }
+        this.ast = IntlMessageFormat2.__parse(message, {
+          ignoreTag: opts === null || opts === void 0 ? void 0 : opts.ignoreTag,
+          locale: this.resolvedLocale
+        });
+      } else {
+        this.ast = message;
+      }
+      if (!Array.isArray(this.ast)) {
+        throw new TypeError("A message must be provided as a String or AST.");
+      }
+      this.formats = mergeConfigs(IntlMessageFormat2.formats, overrideFormats);
+      this.formatters = opts && opts.formatters || createDefaultFormatters(this.formatterCache);
+    }
+    Object.defineProperty(IntlMessageFormat2, "defaultLocale", {
+      get: function() {
+        if (!IntlMessageFormat2.memoizedDefaultLocale) {
+          IntlMessageFormat2.memoizedDefaultLocale = new Intl.NumberFormat().resolvedOptions().locale;
+        }
+        return IntlMessageFormat2.memoizedDefaultLocale;
+      },
+      enumerable: false,
+      configurable: true
+    });
+    IntlMessageFormat2.memoizedDefaultLocale = null;
+    IntlMessageFormat2.resolveLocale = function(locales) {
+      var supportedLocales = Intl.NumberFormat.supportedLocalesOf(locales);
+      if (supportedLocales.length > 0) {
+        return new Intl.Locale(supportedLocales[0]);
+      }
+      return new Intl.Locale(typeof locales === "string" ? locales : locales[0]);
+    };
+    IntlMessageFormat2.__parse = parse;
+    IntlMessageFormat2.formats = {
+      number: {
+        integer: {
+          maximumFractionDigits: 0
+        },
+        currency: {
+          style: "currency"
+        },
+        percent: {
+          style: "percent"
+        }
+      },
+      date: {
+        short: {
+          month: "numeric",
+          day: "numeric",
+          year: "2-digit"
+        },
+        medium: {
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        },
+        long: {
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        },
+        full: {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        }
+      },
+      time: {
+        short: {
+          hour: "numeric",
+          minute: "numeric"
+        },
+        medium: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric"
+        },
+        long: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+          timeZoneName: "short"
+        },
+        full: {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+          timeZoneName: "short"
+        }
+      }
+    };
+    return IntlMessageFormat2;
+  }()
+);
+
+// ../node_modules/intl-messageformat/lib/index.js
+var lib_default = IntlMessageFormat;
+
+// src/price/numberFormat.js
+var maskRegex = /[0-9\-+#]/;
+var notMaskRegex = /[^\d\-+#]/g;
+function getIndex(mask) {
+  return mask.search(maskRegex);
+}
+function processMask(mask = "#.##") {
+  const maskObj = {};
+  const len = mask.length;
+  const start = getIndex(mask);
+  maskObj.prefix = start > 0 ? mask.substring(0, start) : "";
+  const end = getIndex(mask.split("").reverse().join(""));
+  const offset = len - end;
+  const substr = mask.substring(offset, offset + 1);
+  const indx = offset + (substr === "." || substr === "," ? 1 : 0);
+  maskObj.suffix = end > 0 ? mask.substring(indx, len) : "";
+  maskObj.mask = mask.substring(start, indx);
+  maskObj.maskHasNegativeSign = maskObj.mask.charAt(0) === "-";
+  maskObj.maskHasPositiveSign = maskObj.mask.charAt(0) === "+";
+  let result = maskObj.mask.match(notMaskRegex);
+  maskObj.decimal = result && result[result.length - 1] || ".";
+  maskObj.separator = result && result[1] && result[0] || ",";
+  result = maskObj.mask.split(maskObj.decimal);
+  maskObj.integer = result[0];
+  maskObj.fraction = result[1];
+  return maskObj;
+}
+function processValue(value, maskObj, options) {
+  let isNegative = false;
+  const valObj = {
+    value
+  };
+  if (value < 0) {
+    isNegative = true;
+    valObj.value = -valObj.value;
+  }
+  valObj.sign = isNegative ? "-" : "";
+  valObj.value = Number(valObj.value).toFixed(
+    maskObj.fraction && maskObj.fraction.length
+  );
+  valObj.value = Number(valObj.value).toString();
+  const posTrailZero = maskObj.fraction && maskObj.fraction.lastIndexOf("0");
+  let [valInteger = "0", valFraction = ""] = valObj.value.split(".");
+  if (!valFraction || valFraction && valFraction.length <= posTrailZero) {
+    valFraction = posTrailZero < 0 ? "" : Number("0." + valFraction).toFixed(posTrailZero + 1).replace("0.", "");
+  }
+  valObj.integer = valInteger;
+  valObj.fraction = valFraction;
+  addSeparators(valObj, maskObj);
+  if (valObj.result === "0" || valObj.result === "") {
+    isNegative = false;
+    valObj.sign = "";
+  }
+  if (!isNegative && maskObj.maskHasPositiveSign) {
+    valObj.sign = "+";
+  } else if (isNegative && maskObj.maskHasPositiveSign) {
+    valObj.sign = "-";
+  } else if (isNegative) {
+    valObj.sign = options && options.enforceMaskSign && !maskObj.maskHasNegativeSign ? "" : "-";
+  }
+  return valObj;
+}
+function addSeparators(valObj, maskObj) {
+  valObj.result = "";
+  const szSep = maskObj.integer.split(maskObj.separator);
+  const maskInteger = szSep.join("");
+  const posLeadZero = maskInteger && maskInteger.indexOf("0");
+  if (posLeadZero > -1) {
+    while (valObj.integer.length < maskInteger.length - posLeadZero) {
+      valObj.integer = "0" + valObj.integer;
+    }
+  } else if (Number(valObj.integer) === 0) {
+    valObj.integer = "";
+  }
+  const posSeparator = szSep[1] && szSep[szSep.length - 1].length;
+  if (posSeparator) {
+    const len = valObj.integer.length;
+    const offset = len % posSeparator;
+    for (let indx = 0; indx < len; indx++) {
+      valObj.result += valObj.integer.charAt(indx);
+      if (!((indx - offset + 1) % posSeparator) && indx < len - posSeparator) {
+        valObj.result += maskObj.separator;
+      }
+    }
+  } else {
+    valObj.result = valObj.integer;
+  }
+  valObj.result += maskObj.fraction && valObj.fraction ? maskObj.decimal + valObj.fraction : "";
+  return valObj;
+}
+function formatNumber(mask, value, options = {}) {
+  if (!mask || isNaN(Number(value))) {
+    return value;
+  }
+  const maskObj = processMask(mask);
+  const valObj = processValue(value, maskObj, options);
+  return maskObj.prefix + valObj.sign + valObj.result + maskObj.suffix;
+}
+var numberFormat_default = formatNumber;
+
+// src/price/utilities.js
+var DECIMAL_POINT = ".";
+var DECIMAL_COMMA = ",";
+var SPACE_START_PATTERN = /^\s+/;
+var SPACE_END_PATTERN = /\s+$/;
+var NBSP = "&nbsp;";
+var getAnnualPrice = (price2) => price2 * 12;
+var isPromotionActive = (promotion, instant) => {
+  const {
+    start,
+    end,
+    displaySummary: {
+      amount,
+      duration,
+      minProductQuantity,
+      outcomeType
+    } = {}
+  } = promotion;
+  if (!(amount && duration && outcomeType && minProductQuantity)) {
+    return false;
+  }
+  const now = instant ? new Date(instant) : /* @__PURE__ */ new Date();
+  if (!start || !end) {
+    return false;
+  }
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  return now >= startDate && now <= endDate;
+};
+var RecurrenceTerm = {
+  MONTH: "MONTH",
+  YEAR: "YEAR"
+};
+var opticalPriceDivisors = {
+  [Term.ANNUAL]: 12,
+  [Term.MONTHLY]: 1,
+  [Term.THREE_YEARS]: 36,
+  [Term.TWO_YEARS]: 24
+};
+var opticalPriceRoundingRule = (accept, round) => ({ accept, round });
+var opticalPriceRoundingRules = [
+  opticalPriceRoundingRule(
+    // optical price for the term is a multiple of the initial price
+    ({ divisor, price: price2 }) => price2 % divisor == 0,
+    ({ divisor, price: price2 }) => price2 / divisor
+  ),
+  opticalPriceRoundingRule(
+    // round optical price up to 2 decimals
+    ({ usePrecision }) => usePrecision,
+    ({ divisor, price: price2 }) => Math.round(price2 / divisor * 100) / 100
+  ),
+  opticalPriceRoundingRule(
+    // round optical price up to integer
+    () => true,
+    ({ divisor, price: price2 }) => Math.ceil(Math.floor(price2 * 100 / divisor) / 100)
+  )
+];
+var recurrenceTerms = {
+  [Commitment.YEAR]: {
+    [Term.MONTHLY]: RecurrenceTerm.MONTH,
+    [Term.ANNUAL]: RecurrenceTerm.YEAR
+  },
+  [Commitment.MONTH]: {
+    [Term.MONTHLY]: RecurrenceTerm.MONTH
+  }
+};
+var currencyIsFirstChar = (formatString, currencySymbol) => formatString.indexOf(`'${currencySymbol}'`) === 0;
+var extractNumberMask = (formatString, usePrecision = true) => {
+  let numberMask = formatString.replace(/'.*?'/, "").trim();
+  const decimalsDelimiter = findDecimalsDelimiter(numberMask);
+  const hasDecimalDelimiter = !!decimalsDelimiter;
+  if (!hasDecimalDelimiter) {
+    numberMask = numberMask.replace(
+      /\s?(#.*0)(?!\s)?/,
+      "$&" + getPossibleDecimalsDelimiter(formatString)
+    );
+  } else if (!usePrecision) {
+    numberMask = numberMask.replace(/[,\.]0+/, decimalsDelimiter);
+  }
+  return numberMask;
+};
+var getCurrencySymbolDetails = (formatString) => {
+  const currencySymbol = findCurrencySymbol(formatString);
+  const isCurrencyFirst = currencyIsFirstChar(formatString, currencySymbol);
+  const formatStringWithoutSymbol = formatString.replace(/'.*?'/, "");
+  const hasCurrencySpace = SPACE_START_PATTERN.test(formatStringWithoutSymbol) || SPACE_END_PATTERN.test(formatStringWithoutSymbol);
+  return { currencySymbol, isCurrencyFirst, hasCurrencySpace };
+};
+var makeSpacesAroundNonBreaking = (text) => {
+  return text.replace(SPACE_START_PATTERN, NBSP).replace(SPACE_END_PATTERN, NBSP);
+};
+var getPossibleDecimalsDelimiter = (formatString) => formatString.match(/#(.?)#/)?.[1] === DECIMAL_POINT ? DECIMAL_COMMA : DECIMAL_POINT;
+var findCurrencySymbol = (formatString) => formatString.match(/'(.*?)'/)?.[1] ?? "";
+var findDecimalsDelimiter = (formatString) => formatString.match(/0(.?)0/)?.[1] ?? "";
+function formatPrice({ formatString, price: price2, usePrecision, isIndianPrice = false }, recurrenceTerm, transformPrice = (formattedPrice) => formattedPrice) {
+  const { currencySymbol, isCurrencyFirst, hasCurrencySpace } = getCurrencySymbolDetails(formatString);
+  const decimalsDelimiter = usePrecision ? findDecimalsDelimiter(formatString) : "";
+  const numberMask = extractNumberMask(formatString, usePrecision);
+  const fractionDigits = usePrecision ? 2 : 0;
+  const transformedPrice = transformPrice(price2, { currencySymbol });
+  const formattedPrice = isIndianPrice ? transformedPrice.toLocaleString("hi-IN", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits
+  }) : numberFormat_default(numberMask, transformedPrice);
+  const decimalIndex = usePrecision ? formattedPrice.lastIndexOf(decimalsDelimiter) : formattedPrice.length;
+  const integer = formattedPrice.substring(0, decimalIndex);
+  const decimals = formattedPrice.substring(decimalIndex + 1);
+  const accessiblePrice = formatString.replace(/'.*?'/, "SYMBOL").replace(/#.*0/, formattedPrice).replace(/SYMBOL/, currencySymbol);
+  return {
+    accessiblePrice,
+    currencySymbol,
+    decimals,
+    decimalsDelimiter,
+    hasCurrencySpace,
+    integer,
+    isCurrencyFirst,
+    recurrenceTerm
+  };
+}
+var formatOpticalPrice = (data) => {
+  const { commitment, term, usePrecision } = data;
+  const divisor = opticalPriceDivisors[term] ?? 1;
+  return formatPrice(
+    data,
+    divisor > 1 ? RecurrenceTerm.MONTH : recurrenceTerms[commitment]?.[term],
+    (price2) => {
+      const priceData = {
+        divisor,
+        price: price2,
+        usePrecision
+      };
+      const { round } = opticalPriceRoundingRules.find(
+        ({ accept }) => accept(priceData)
+      );
+      if (!round)
+        throw new Error(
+          `Missing rounding rule for: ${JSON.stringify(priceData)}`
+        );
+      return round(priceData);
+    }
+  );
+};
+var formatRegularPrice = ({ commitment, term, ...data }) => formatPrice(data, recurrenceTerms[commitment]?.[term]);
+var formatAnnualPrice = (data) => {
+  const {
+    commitment,
+    instant,
+    price: price2,
+    originalPrice,
+    priceWithoutDiscount,
+    promotion,
+    quantity = 1,
+    term
+  } = data;
+  if (commitment === Commitment.YEAR && term === Term.MONTHLY) {
+    if (!promotion) {
+      return formatPrice(data, RecurrenceTerm.YEAR, getAnnualPrice);
+    }
+    const {
+      displaySummary: {
+        outcomeType,
+        duration,
+        minProductQuantity = 1
+      } = {}
+    } = promotion;
+    switch (outcomeType) {
+      case "PERCENTAGE_DISCOUNT": {
+        if (quantity >= minProductQuantity && isPromotionActive(promotion, instant)) {
+          const durationInMonths = parseInt(
+            duration.replace("P", "").replace("M", "")
+          );
+          if (isNaN(durationInMonths)) return getAnnualPrice(price2);
+          const discountPrice = quantity * originalPrice * durationInMonths;
+          const regularPrice = quantity * priceWithoutDiscount * (12 - durationInMonths);
+          const totalPrice = Math.round((discountPrice + regularPrice) * 100) / 100;
+          return formatPrice(
+            { ...data, price: totalPrice },
+            RecurrenceTerm.YEAR
+          );
+        }
+      }
+      default:
+        return formatPrice(
+          data,
+          RecurrenceTerm.YEAR,
+          () => getAnnualPrice(priceWithoutDiscount ?? price2)
+        );
+    }
+  }
+  return formatPrice(data, recurrenceTerms[commitment]?.[term]);
+};
+
+// src/price/template.js
+var defaultLiterals = {
+  recurrenceLabel: "{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",
+  recurrenceAriaLabel: "{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",
+  perUnitLabel: "{perUnit, select, LICENSE {per license} other {}}",
+  perUnitAriaLabel: "{perUnit, select, LICENSE {per license} other {}}",
+  freeLabel: "Free",
+  freeAriaLabel: "Free",
+  taxExclusiveLabel: "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+  taxInclusiveLabel: "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+  alternativePriceAriaLabel: "Alternatively at",
+  strikethroughAriaLabel: "Regularly at",
+  planTypeLabel: "{planType, select, ABM {Annual, billed monthly} other {}}"
+};
+var log = createLog("ConsonantTemplates/price");
+var htmlPattern = /<\/?[^>]+(>|$)/g;
+var cssClassNames = {
+  container: "price",
+  containerOptical: "price-optical",
+  containerStrikethrough: "price-strikethrough",
+  containerAlternative: "price-alternative",
+  containerAnnual: "price-annual",
+  containerAnnualPrefix: "price-annual-prefix",
+  containerAnnualSuffix: "price-annual-suffix",
+  disabled: "disabled",
+  currencySpace: "price-currency-space",
+  currencySymbol: "price-currency-symbol",
+  decimals: "price-decimals",
+  decimalsDelimiter: "price-decimals-delimiter",
+  integer: "price-integer",
+  recurrence: "price-recurrence",
+  taxInclusivity: "price-tax-inclusivity",
+  unitType: "price-unit-type"
+};
+var literalKeys = {
+  perUnitLabel: "perUnitLabel",
+  perUnitAriaLabel: "perUnitAriaLabel",
+  recurrenceLabel: "recurrenceLabel",
+  recurrenceAriaLabel: "recurrenceAriaLabel",
+  taxExclusiveLabel: "taxExclusiveLabel",
+  taxInclusiveLabel: "taxInclusiveLabel",
+  strikethroughAriaLabel: "strikethroughAriaLabel",
+  alternativePriceAriaLabel: "alternativePriceAriaLabel"
+};
+var WCS_TAX_DISPLAY_EXCLUSIVE = "TAX_EXCLUSIVE";
+var renderAttributes = (attributes) => isObject(attributes) ? Object.entries(attributes).filter(
+  ([, value]) => isString(value) || isNumber(value) || value === true
+).reduce(
+  (html, [key, value]) => html + ` ${key}${value === true ? "" : '="' + escapeHtml(value) + '"'}`,
+  ""
+) : "";
+var renderSpan = (cssClass, content, attributes, convertSpaces = false) => {
+  return `<span class="${cssClass}${content ? "" : " " + cssClassNames.disabled}"${renderAttributes(attributes)}>${convertSpaces ? makeSpacesAroundNonBreaking(content) : content ?? ""}</span>`;
+};
+function formatLiteral(literals, locale, key, parameters) {
+  const literal = literals[key];
+  if (literal == void 0) {
+    return "";
+  }
+  try {
+    return new lib_default(
+      literal.replace(htmlPattern, ""),
+      locale
+    ).format(parameters);
+  } catch {
+    log.error("Failed to format literal:", literal);
+    return "";
+  }
+}
+function renderContainer(cssClass, {
+  accessibleLabel,
+  altAccessibleLabel,
+  currencySymbol,
+  decimals,
+  decimalsDelimiter,
+  hasCurrencySpace,
+  integer,
+  isCurrencyFirst,
+  recurrenceLabel,
+  perUnitLabel,
+  taxInclusivityLabel
+}, attributes = {}) {
+  const currencyMarkup = renderSpan(
+    cssClassNames.currencySymbol,
+    currencySymbol
+  );
+  const currencySpaceMarkup = renderSpan(
+    cssClassNames.currencySpace,
+    hasCurrencySpace ? "&nbsp;" : ""
+  );
+  let markup = "";
+  if (accessibleLabel)
+    markup = `<sr-only class="strikethrough-aria-label">${accessibleLabel}</sr-only>`;
+  else if (altAccessibleLabel)
+    markup = `<sr-only class="alt-aria-label">${altAccessibleLabel}</sr-only>`;
+  if (isCurrencyFirst) markup += currencyMarkup + currencySpaceMarkup;
+  markup += renderSpan(cssClassNames.integer, integer);
+  markup += renderSpan(cssClassNames.decimalsDelimiter, decimalsDelimiter);
+  markup += renderSpan(cssClassNames.decimals, decimals);
+  if (!isCurrencyFirst) markup += currencySpaceMarkup + currencyMarkup;
+  markup += renderSpan(cssClassNames.recurrence, recurrenceLabel, null, true);
+  markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
+  markup += renderSpan(
+    cssClassNames.taxInclusivity,
+    taxInclusivityLabel,
+    true
+  );
+  return renderSpan(cssClass, markup, {
+    ...attributes
+  });
+}
+var createPriceTemplate = ({
+  isAlternativePrice = false,
+  displayOptical = false,
+  displayStrikethrough = false,
+  displayAnnual = false,
+  instant = void 0
+} = {}) => ({
+  country,
+  displayFormatted = true,
+  displayRecurrence = true,
+  displayPerUnit = false,
+  displayTax = false,
+  language,
+  literals: priceLiterals2 = {},
+  quantity = 1,
+  space = false
+  // add a space between price literals
+} = {}, {
+  commitment,
+  offerSelectorIds,
+  formatString,
+  price: price2,
+  priceWithoutDiscount,
+  taxDisplay,
+  taxTerm,
+  term,
+  usePrecision,
+  promotion
+} = {}, attributes = {}) => {
+  Object.entries({
+    country,
+    formatString,
+    language,
+    price: price2
+  }).forEach(([key, value]) => {
+    if (value == null) {
+      throw new Error(
+        `Argument "${key}" is missing for osi ${offerSelectorIds?.toString()}, country ${country}, language ${language}`
+      );
+    }
+  });
+  const literals = {
+    ...defaultLiterals,
+    ...priceLiterals2
+  };
+  const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
+  const displayPrice = displayStrikethrough && priceWithoutDiscount ? priceWithoutDiscount : price2;
+  let method = displayOptical ? formatOpticalPrice : formatRegularPrice;
+  if (displayAnnual) {
+    method = formatAnnualPrice;
+  }
+  const { accessiblePrice, recurrenceTerm, ...formattedPrice } = method({
+    commitment,
+    formatString,
+    instant,
+    isIndianPrice: country === "IN",
+    originalPrice: price2,
+    priceWithoutDiscount,
+    price: displayOptical ? price2 : displayPrice,
+    promotion,
+    quantity,
+    term,
+    usePrecision
+  });
+  let accessibleLabel = "", altAccessibleLabel = "";
+  let recurrenceLabel = "";
+  if (toBoolean(displayRecurrence) && recurrenceTerm) {
+    recurrenceLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.recurrenceLabel,
+      {
+        recurrenceTerm
+      }
+    );
+  }
+  let perUnitLabel = "";
+  if (toBoolean(displayPerUnit)) {
+    if (space) {
+      perUnitLabel += " ";
+    }
+    perUnitLabel += formatLiteral(
+      literals,
+      locale,
+      literalKeys.perUnitLabel,
+      {
+        perUnit: "LICENSE"
+      }
+    );
+  }
+  let taxInclusivityLabel = "";
+  if (toBoolean(displayTax) && taxTerm) {
+    if (space) {
+      taxInclusivityLabel += " ";
+    }
+    taxInclusivityLabel += formatLiteral(
+      literals,
+      locale,
+      taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE ? literalKeys.taxExclusiveLabel : literalKeys.taxInclusiveLabel,
+      { taxTerm }
+    );
+  }
+  if (displayStrikethrough) {
+    accessibleLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.strikethroughAriaLabel,
+      {
+        strikethroughPrice: accessibleLabel
+      }
+    );
+  }
+  if (isAlternativePrice) {
+    altAccessibleLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys.alternativePriceAriaLabel,
+      {
+        alternativePrice: altAccessibleLabel
+      }
+    );
+  }
+  let cssClass = cssClassNames.container;
+  if (displayOptical) {
+    cssClass += " " + cssClassNames.containerOptical;
+  }
+  if (displayStrikethrough) {
+    cssClass += " " + cssClassNames.containerStrikethrough;
+  }
+  if (isAlternativePrice) {
+    cssClass += " " + cssClassNames.containerAlternative;
+  }
+  if (displayAnnual) {
+    cssClass += " " + cssClassNames.containerAnnual;
+  }
+  if (toBoolean(displayFormatted)) {
+    return renderContainer(
+      cssClass,
+      {
+        ...formattedPrice,
+        accessibleLabel,
+        altAccessibleLabel,
+        recurrenceLabel,
+        perUnitLabel,
+        taxInclusivityLabel
+      },
+      attributes
+    );
+  }
+  const {
+    currencySymbol,
+    decimals,
+    decimalsDelimiter,
+    hasCurrencySpace,
+    integer,
+    isCurrencyFirst
+  } = formattedPrice;
+  const unformattedPrice = [integer, decimalsDelimiter, decimals];
+  if (isCurrencyFirst) {
+    unformattedPrice.unshift(hasCurrencySpace ? "\xA0" : "");
+    unformattedPrice.unshift(currencySymbol);
+  } else {
+    unformattedPrice.push(hasCurrencySpace ? "\xA0" : "");
+    unformattedPrice.push(currencySymbol);
+  }
+  unformattedPrice.push(
+    recurrenceLabel,
+    perUnitLabel,
+    taxInclusivityLabel
+  );
+  const content = unformattedPrice.join("");
+  return renderSpan(cssClass, content, attributes);
+};
+var createPromoPriceTemplate = () => (context, value, attributes) => {
+  const displayOldPrice = context.displayOldPrice === void 0 || toBoolean(context.displayOldPrice);
+  const shouldDisplayOldPrice = displayOldPrice && value.priceWithoutDiscount && value.priceWithoutDiscount != value.price;
+  return `${shouldDisplayOldPrice ? createPriceTemplate({
+    displayStrikethrough: true
+  })(context, value, attributes) + "&nbsp;" : ""}${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })(context, value, attributes)}`;
+};
+var createPromoPriceWithAnnualTemplate = () => (context, value, attributes) => {
+  let { instant } = context;
+  try {
+    if (!instant) {
+      instant = new URLSearchParams(document.location.search).get(
+        "instant"
+      );
+    }
+    if (instant) {
+      instant = new Date(instant);
+    }
+  } catch (e4) {
+    instant = void 0;
+  }
+  const ctxStAnnual = {
+    ...context,
+    displayTax: false,
+    displayPerUnit: false
+  };
+  const displayOldPrice = context.displayOldPrice === void 0 || toBoolean(context.displayOldPrice);
+  const shouldDisplayOldPrice = displayOldPrice && value.priceWithoutDiscount && value.priceWithoutDiscount != value.price;
+  return `${shouldDisplayOldPrice ? createPriceTemplate({
+    displayStrikethrough: true
+  })(ctxStAnnual, value, attributes) + "&nbsp;" : ""}${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })(context, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, "&nbsp;(")}${createPriceTemplate(
+    {
+      displayAnnual: true,
+      instant
+    }
+  )(
+    ctxStAnnual,
+    value,
+    attributes
+  )}${renderSpan(cssClassNames.containerAnnualSuffix, ")")}`;
+};
+var createPriceWithAnnualTemplate = () => (context, value, attributes) => {
+  const ctxAnnual = {
+    ...context,
+    displayTax: false,
+    displayPerUnit: false
+  };
+  return `${createPriceTemplate({ isAlternativePrice: context.displayOldPrice })(context, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, "&nbsp;(")}${createPriceTemplate(
+    {
+      displayAnnual: true
+    }
+  )(
+    ctxAnnual,
+    value,
+    attributes
+  )}${renderSpan(cssClassNames.containerAnnualSuffix, ")")}`;
+};
+
+// src/price/legal.js
+var cssClassNames2 = {
+  ...cssClassNames,
+  containerLegal: "price-legal",
+  planType: "price-plan-type"
+};
+var literalKeys2 = {
+  ...literalKeys,
+  planTypeLabel: "planTypeLabel"
+};
+function renderContainer2(cssClass, { perUnitLabel, taxInclusivityLabel, planTypeLabel }, attributes = {}) {
+  let markup = "";
+  markup += renderSpan(cssClassNames2.unitType, perUnitLabel, null, true);
+  if (taxInclusivityLabel && planTypeLabel) {
+    taxInclusivityLabel += ". ";
+  }
+  markup += renderSpan(
+    cssClassNames2.taxInclusivity,
+    taxInclusivityLabel,
+    true
+  );
+  markup += renderSpan(cssClassNames2.planType, planTypeLabel, null);
+  return renderSpan(cssClass, markup, {
+    ...attributes
+  });
+}
+var legalTemplate = ({
+  country,
+  displayPerUnit = false,
+  displayTax = false,
+  displayPlanType = false,
+  language,
+  literals: priceLiterals2 = {}
+} = {}, { taxDisplay, taxTerm, planType } = {}, attributes = {}) => {
+  const literals = {
+    ...defaultLiterals,
+    ...priceLiterals2
+  };
+  const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
+  let perUnitLabel = "";
+  if (toBoolean(displayPerUnit)) {
+    perUnitLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys2.perUnitLabel,
+      {
+        perUnit: "LICENSE"
+      }
+    );
+  }
+  let taxInclusivityLabel = "";
+  if (country === "US" && language === "en") {
+    displayTax = false;
+  }
+  if (toBoolean(displayTax) && taxTerm) {
+    taxInclusivityLabel = formatLiteral(
+      literals,
+      locale,
+      taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE ? literalKeys2.taxExclusiveLabel : literalKeys2.taxInclusiveLabel,
+      { taxTerm }
+    );
+  }
+  let planTypeLabel = "";
+  if (toBoolean(displayPlanType) && planType) {
+    planTypeLabel = formatLiteral(
+      literals,
+      locale,
+      literalKeys2.planTypeLabel,
+      {
+        planType
+      }
+    );
+  }
+  let cssClass = cssClassNames2.container;
+  cssClass += " " + cssClassNames2.containerLegal;
+  return renderContainer2(
+    cssClass,
+    {
+      perUnitLabel,
+      taxInclusivityLabel,
+      planTypeLabel
+    },
+    attributes
+  );
+};
+
+// src/price/index.js
+var price = createPriceTemplate();
+var pricePromo = createPromoPriceTemplate();
+var priceOptical = createPriceTemplate({
+  displayOptical: true
+});
+var priceStrikethrough = createPriceTemplate({
+  displayStrikethrough: true
+});
+var priceAnnual = createPriceTemplate({
+  displayAnnual: true
+});
+var priceOpticalAlternative = createPriceTemplate({
+  displayOptical: true,
+  isAlternativePrice: true
+});
+var priceAlternative = createPriceTemplate({
+  isAlternativePrice: true
+});
+var priceWithAnnual = createPriceWithAnnualTemplate();
+var pricePromoWithAnnual = createPromoPriceWithAnnualTemplate();
+var legal = legalTemplate;
+
+// src/discount/template.js
+var getDiscount = (price2, priceWithoutDiscount) => {
+  if (!isPositiveFiniteNumber(price2) || !isPositiveFiniteNumber(priceWithoutDiscount))
+    return;
+  return Math.floor(
+    (priceWithoutDiscount - price2) / priceWithoutDiscount * 100
+  );
+};
+var createDiscountTemplate = () => (context, value) => {
+  const { price: price2, priceWithoutDiscount } = value;
+  const discount2 = getDiscount(price2, priceWithoutDiscount);
+  return discount2 === void 0 ? `<span class="no-discount"></span>` : `<span class="discount">${discount2}%</span>`;
+};
+
+// src/discount/index.js
+var discount = createDiscountTemplate();
+
+// src/inline-price.js
+var INDIVIDUAL = "INDIVIDUAL_COM";
+var BUSINESS = "TEAM_COM";
+var STUDENT = "INDIVIDUAL_EDU";
+var UNIVERSITY = "TEAM_EDU";
+var DISPLAY_ALL_TAX_COUNTRIES = [
+  "GB_en",
+  "AU_en",
+  "FR_fr",
+  "AT_de",
+  "BE_en",
+  "BE_fr",
+  "BE_nl",
+  "BG_bg",
+  "CH_de",
+  "CH_fr",
+  "CH_it",
+  "CZ_cs",
+  "DE_de",
+  "DK_da",
+  "EE_et",
+  "EG_ar",
+  "EG_en",
+  "ES_es",
+  "FI_fi",
+  "GR_el",
+  "GR_en",
+  "HU_hu",
+  "IE_en",
+  "IT_it",
+  "LU_de",
+  "LU_en",
+  "LU_fr",
+  "NL_nl",
+  "NO_nb",
+  "PL_pl",
+  "PT_pt",
+  "RO_ro",
+  "SE_sv",
+  "SI_sl",
+  "SK_sk",
+  "TR_tr",
+  "UA_uk",
+  "ID_en",
+  "ID_in",
+  "IN_en",
+  "IN_hi",
+  "JP_ja",
+  "MY_en",
+  "MY_ms",
+  "NZ_en",
+  "TH_en",
+  "TH_th"
+];
+var DISPLAY_TAX_MAP = {
+  [INDIVIDUAL]: [
+    "MU_en",
+    "LT_lt",
+    "LV_lv",
+    "NG_en",
+    "SA_ar",
+    "SA_en",
+    "SG_en",
+    "KR_ko"
+  ],
+  [BUSINESS]: ["MU_en", "LT_lt", "LV_lv", "NG_en", "CO_es", "KR_ko"],
+  [STUDENT]: ["LT_lt", "LV_lv", "SA_en", "SG_en"],
+  [UNIVERSITY]: ["SG_en", "KR_ko"]
+};
+var TAX_EXCLUDED_MAP = {
+  ["MU_en"]: [false, false, false, false],
+  ["NG_en"]: [false, false, false, false],
+  ["AU_en"]: [false, false, false, false],
+  ["JP_ja"]: [false, false, false, false],
+  ["NZ_en"]: [false, false, false, false],
+  ["TH_en"]: [false, false, false, false],
+  ["TH_th"]: [false, false, false, false],
+  ["CO_es"]: [false, true, false, false],
+  ["AT_de"]: [false, false, false, true],
+  ["SG_en"]: [false, false, false, true]
+};
+var TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
+var defaultTaxExcluded = (segment) => [BUSINESS, UNIVERSITY].includes(segment);
+var resolveTaxExclusive = (country, language, customerSegment, marketSegment) => {
+  const locale = `${country}_${language}`;
+  const segment = `${customerSegment}_${marketSegment}`;
+  const val = TAX_EXCLUDED_MAP[locale];
+  if (val) {
+    const index = TAX_EXCLUDED_MAP_INDEX.indexOf(segment);
+    return val[index];
+  }
+  return defaultTaxExcluded(segment);
+};
+var resolveDisplayTaxForGeoAndSegment = (country, language, customerSegment, marketSegment) => {
+  const locale = `${country}_${language}`;
+  if (DISPLAY_ALL_TAX_COUNTRIES.includes(country) || DISPLAY_ALL_TAX_COUNTRIES.includes(locale)) {
+    return true;
+  }
+  const segmentConfig = DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
+  if (!segmentConfig) {
+    return Defaults.displayTax;
+  }
+  if (segmentConfig.includes(country) || segmentConfig.includes(locale)) {
+    return true;
+  }
+  return Defaults.displayTax;
+};
+var resolvePriceTaxFlags = async (country, language, customerSegment, marketSegment) => {
+  const displayTax = resolveDisplayTaxForGeoAndSegment(
+    country,
+    language,
+    customerSegment,
+    marketSegment
+  );
+  return {
+    displayTax,
+    forceTaxExclusive: displayTax ? resolveTaxExclusive(
+      country,
+      language,
+      customerSegment,
+      marketSegment
+    ) : Defaults.forceTaxExclusive
+  };
+};
+var _InlinePrice = class _InlinePrice extends HTMLSpanElement {
+  constructor() {
+    super();
+    __publicField(this, "masElement", new MasElement(this));
+    this.handleClick = this.handleClick.bind(this);
+  }
+  static get observedAttributes() {
+    return [
+      "data-display-old-price",
+      "data-display-per-unit",
+      "data-display-recurrence",
+      "data-display-tax",
+      "data-display-plan-type",
+      "data-display-annual",
+      "data-perpetual",
+      "data-promotion-code",
+      "data-force-tax-exclusive",
+      "data-template",
+      "data-wcs-osi"
+    ];
+  }
+  static createInlinePrice(options) {
+    const service = getService();
+    if (!service) return null;
+    const {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      displayAnnual,
+      forceTaxExclusive,
+      perpetual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      template,
+      wcsOsi
+    } = service.collectPriceOptions(options);
+    const element = createMasElement(_InlinePrice, {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      displayAnnual,
+      forceTaxExclusive,
+      perpetual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      template,
+      wcsOsi
+    });
+    return element;
+  }
+  get isInlinePrice() {
+    return true;
+  }
+  attributeChangedCallback(name, _2, value) {
+    this.masElement.attributeChangedCallback(name, _2, value);
+  }
+  connectedCallback() {
+    this.masElement.connectedCallback();
+    this.addEventListener("click", this.handleClick);
+  }
+  disconnectedCallback() {
+    this.masElement.disconnectedCallback();
+    this.removeEventListener("click", this.handleClick);
+  }
+  handleClick(event) {
+    if (event.target === this) return;
+    event.stopImmediatePropagation();
+    this.dispatchEvent(
+      new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      })
+    );
+  }
+  onceSettled() {
+    return this.masElement.onceSettled();
+  }
+  get value() {
+    return this.masElement.value;
+  }
+  get options() {
+    return this.masElement.options;
+  }
+  get isFailed() {
+    return this.masElement.state === STATE_FAILED;
+  }
+  requestUpdate(force = false) {
+    return this.masElement.requestUpdate(force);
+  }
+  /**
+   * Resolves associated osi via Wcs and renders price offer.
+   * @param {Record<string, any>} overrides
+   */
+  async render(overrides = {}) {
+    if (!this.isConnected) return false;
+    const service = getService();
+    if (!service) return false;
+    const priceOptions = service.collectPriceOptions(overrides, this);
+    const options = {
+      ...service.settings,
+      ...priceOptions
+    };
+    if (!options.wcsOsi.length) return false;
+    try {
+      const version = this.masElement.togglePending({});
+      this.innerHTML = "";
+      const [offerSelectors] = await service.resolveOfferSelectors(options);
+      let offers = selectOffers(await offerSelectors, options);
+      let [offer] = offers;
+      if (service.featureFlags[FF_DEFAULTS]) {
+        if (priceOptions.displayPerUnit === void 0) {
+          options.displayPerUnit = offer.customerSegment !== "INDIVIDUAL";
+        }
+        if (priceOptions.displayTax === void 0 || priceOptions.forceTaxExclusive === void 0) {
+          const { country, language } = options;
+          const [marketSegment = ""] = offer.marketSegments;
+          const flags = await resolvePriceTaxFlags(
+            country,
+            language,
+            offer.customerSegment,
+            marketSegment
+          );
+          if (priceOptions.displayTax === void 0) {
+            options.displayTax = flags?.displayTax || options.displayTax;
+          }
+          if (priceOptions.forceTaxExclusive === void 0) {
+            options.forceTaxExclusive = flags?.forceTaxExclusive || options.forceTaxExclusive;
+          }
+          if (options.forceTaxExclusive) {
+            offers = selectOffers(offers, options);
+          }
+        }
+      } else {
+        if (priceOptions.displayOldPrice === void 0) {
+          options.displayOldPrice = true;
+        }
+      }
+      return this.renderOffers(offers, options, version);
+    } catch (error) {
+      this.innerHTML = "";
+      throw error;
+    }
+  }
+  // TODO: can be extended to accept array of offers and compute subtotal price
+  /**
+   * Renders price offer as HTML of this component
+   * using consonant price template functions
+   * @param {Offer[]} offers
+   * @param {Record<string, any>} options
+   * @param {number} version
+   */
+  renderOffers(offers, options, version = void 0) {
+    if (!this.isConnected) return;
+    const service = getService();
+    if (!service) return false;
+    version ?? (version = this.masElement.togglePending());
+    if (offers.length) {
+      if (this.masElement.toggleResolved(version, offers, options)) {
+        this.innerHTML = service.buildPriceHTML(offers, this.options);
+        const parentEl = this.closest("p, h3, div");
+        if (!parentEl || !parentEl.querySelector(
+          'span[data-template="strikethrough"]'
+        ) || parentEl.querySelector(".alt-aria-label"))
+          return true;
+        const inlinePrices = parentEl?.querySelectorAll(
+          'span[is="inline-price"]'
+        );
+        if (inlinePrices.length > 1 && inlinePrices.length === parentEl.querySelectorAll(
+          'span[data-template="strikethrough"]'
+        ).length * 2) {
+          inlinePrices.forEach((price2) => {
+            if (price2.dataset.template !== "strikethrough" && price2.options && !price2.options.alternativePrice && !price2.isFailed) {
+              price2.options.alternativePrice = true;
+              price2.innerHTML = service.buildPriceHTML(
+                offers,
+                price2.options
+              );
+            }
+          });
+        }
+        return true;
+      }
+    } else {
+      const error = new Error(
+        `Not provided: ${this.options?.wcsOsi ?? "-"}`
+      );
+      if (this.masElement.toggleFailed(version, error, this.options)) {
+        this.innerHTML = "";
+        return true;
+      }
+    }
+    return false;
+  }
+};
+__publicField(_InlinePrice, "is", "inline-price");
+__publicField(_InlinePrice, "tag", "span");
+var InlinePrice = _InlinePrice;
+if (!window.customElements.get(InlinePrice.is)) {
+  window.customElements.define(InlinePrice.is, InlinePrice, {
+    extends: InlinePrice.tag
+  });
+}
+
+// src/price.js
+function Price({ literals, providers, settings }) {
+  function collectPriceOptions(overrides, placeholder = null) {
+    let options = {
+      country: settings.country,
+      language: settings.language,
+      locale: settings.locale,
+      literals: { ...literals.price }
+    };
+    if (placeholder && providers?.price) {
+      for (const provider of providers.price) {
+        provider(placeholder, options);
+      }
+    }
+    const {
+      displayOldPrice,
+      displayPerUnit,
+      displayRecurrence,
+      displayTax,
+      displayPlanType,
+      forceTaxExclusive,
+      perpetual,
+      displayAnnual,
+      promotionCode,
+      quantity,
+      alternativePrice,
+      wcsOsi,
+      ...rest
+    } = Object.assign(options, placeholder?.dataset ?? {}, overrides ?? {});
+    options = omitProperties(
+      Object.assign({
+        ...options,
+        ...rest,
+        displayOldPrice: toBoolean(displayOldPrice),
+        displayPerUnit: toBoolean(displayPerUnit),
+        displayRecurrence: toBoolean(displayRecurrence),
+        displayTax: toBoolean(displayTax),
+        displayPlanType: toBoolean(displayPlanType),
+        forceTaxExclusive: toBoolean(forceTaxExclusive),
+        perpetual: toBoolean(perpetual),
+        displayAnnual: toBoolean(displayAnnual),
+        promotionCode: computePromoStatus(promotionCode).effectivePromoCode,
+        quantity: toQuantity(quantity, Defaults.quantity),
+        alternativePrice: toBoolean(alternativePrice),
+        wcsOsi: toOfferSelectorIds(wcsOsi)
+      })
+    );
+    return options;
+  }
+  function buildPriceHTML(offers, options) {
+    if (!Array.isArray(offers) || !offers.length || !options) {
+      return "";
+    }
+    const { template } = options;
+    let method;
+    switch (template) {
+      // TODO: use price template name constants, export them from `consonant-templates`
+      case "discount":
+        method = discount;
+        break;
+      case "strikethrough":
+        method = priceStrikethrough;
+        break;
+      case "annual":
+        method = priceAnnual;
+        break;
+      case "legal":
+        method = legal;
+        break;
+      default:
+        if (options.template === "optical" && options.alternativePrice) {
+          method = priceOpticalAlternative;
+        } else if (options.template === "optical") {
+          method = priceOptical;
+        } else if (options.displayAnnual && offers[0].planType === "ABM") {
+          method = options.promotionCode ? pricePromoWithAnnual : priceWithAnnual;
+        } else if (options.alternativePrice) {
+          method = priceAlternative;
+        } else {
+          method = options.promotionCode ? pricePromo : price;
+        }
+    }
+    let [offer] = offers;
+    offer = { ...offer, ...offer.priceDetails };
+    return method({ ...settings, ...options }, offer);
+  }
+  const createInlinePrice = InlinePrice.createInlinePrice;
+  return {
+    InlinePrice,
+    buildPriceHTML,
+    collectPriceOptions,
+    createInlinePrice
+  };
+}
+
+// src/settings.js
+function getLocaleSettings({
+  locale = void 0,
+  country = void 0,
+  language = void 0
+} = {}) {
+  language ?? (language = locale?.split("_")?.[0] || Defaults.language);
+  country ?? (country = locale?.split("_")?.[1] || Defaults.country);
+  locale ?? (locale = SUPPORTED_LANGUAGE_COUNTRY.includes(`${language}_${country}`) ? `${language}_${country}` : `${Defaults.language}_${Defaults.country}`);
+  return { locale, country, language };
+}
+function getSettings(config2 = {}, service) {
+  const ffDefaults = service.featureFlags[FF_DEFAULTS];
+  const { commerce = {} } = config2;
+  let env = Env.PRODUCTION;
+  let wcsURL = WCS_PROD_URL;
+  const checkoutClientId = getParameter("checkoutClientId", commerce) ?? Defaults.checkoutClientId;
+  const checkoutWorkflowStep = toEnumeration(
+    getParameter("checkoutWorkflowStep", commerce),
+    CheckoutWorkflowStep,
+    Defaults.checkoutWorkflowStep
+  );
+  const displayOldPrice = Defaults.displayOldPrice;
+  const displayPerUnit = Defaults.displayPerUnit;
+  const displayRecurrence = toBoolean(
+    getParameter("displayRecurrence", commerce),
+    Defaults.displayRecurrence
+  );
+  const displayTax = toBoolean(
+    getParameter("displayTax", commerce),
+    Defaults.displayTax
+  );
+  const displayPlanType = toBoolean(
+    getParameter("displayPlanType", commerce),
+    Defaults.displayPlanType
+  );
+  const entitlement = toBoolean(
+    getParameter("entitlement", commerce),
+    Defaults.entitlement
+  );
+  const modal = toBoolean(getParameter("modal", commerce), Defaults.modal);
+  const forceTaxExclusive = toBoolean(
+    getParameter("forceTaxExclusive", commerce),
+    Defaults.forceTaxExclusive
+  );
+  const promotionCode = getParameter("promotionCode", commerce) ?? Defaults.promotionCode;
+  const quantity = toQuantity(getParameter("quantity", commerce));
+  const wcsApiKey = getParameter("wcsApiKey", commerce) ?? Defaults.wcsApiKey;
+  let isStage = commerce?.env === "stage";
+  let landscape = Landscape.PUBLISHED;
+  const allowOverride = ["true", ""].includes(commerce.allowOverride);
+  if (allowOverride) {
+    isStage = (getParameter(PARAM_ENV, commerce, {
+      metadata: false
+    })?.toLowerCase() ?? commerce?.env) === "stage";
+    landscape = toEnumeration(
+      getParameter(PARAM_LANDSCAPE, commerce),
+      Landscape,
+      landscape
+    );
+  }
+  if (isStage) {
+    env = Env.STAGE;
+    wcsURL = WCS_STAGE_URL;
+  }
+  const previewParam = getParameter(PARAM_MAS_PREVIEW) ?? config2.preview;
+  const preview = typeof previewParam != "undefined" && previewParam !== "off" && previewParam !== "false";
+  let previewSettings = {};
+  if (preview) previewSettings = { preview };
+  const masIOUrl = getParameter("mas-io-url") ?? config2.masIOUrl ?? `https://www${env === Env.STAGE ? ".stage" : ""}.adobe.com/mas/io`;
+  const preselectPlan = getParameter("preselect-plan") ?? void 0;
+  return {
+    ...getLocaleSettings(config2),
+    ...previewSettings,
+    displayOldPrice,
+    checkoutClientId,
+    checkoutWorkflowStep,
+    displayPerUnit,
+    displayRecurrence,
+    displayTax,
+    displayPlanType,
+    entitlement,
+    extraOptions: Defaults.extraOptions,
+    modal,
+    env,
+    forceTaxExclusive,
+    promotionCode,
+    quantity,
+    alternativePrice: Defaults.alternativePrice,
+    wcsApiKey,
+    wcsURL,
+    landscape,
+    masIOUrl,
+    ...preselectPlan && { preselectPlan }
+    // only add if defined
+  };
+}
+
+// src/utils/mas-fetch.js
+async function masFetch(resource, options = {}, retries = 2, baseDelay = 100) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(resource, options);
+      response.retryCount = attempt;
+      return response;
+    } catch (error) {
+      lastError = error;
+      lastError.retryCount = attempt;
+      if (attempt > retries) break;
+      await new Promise(
+        (resolve) => setTimeout(resolve, baseDelay * (attempt + 1))
+      );
+    }
+  }
+  throw lastError;
+}
+
+// src/utils.js
+var MAS_COMMERCE_SERVICE2 = "mas-commerce-service";
+function debounce(func, delay) {
+  let debounceTimer;
+  return function() {
+    const context = this;
+    const args = arguments;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => func.apply(context, args), delay);
+  };
+}
+function createTag(tag, attributes = {}, content = null, is = null) {
+  const element = is ? document.createElement(tag, { is }) : document.createElement(tag);
+  if (content instanceof HTMLElement) {
+    element.appendChild(content);
+  } else {
+    element.innerHTML = content;
+  }
+  for (const [key, value] of Object.entries(attributes)) {
+    element.setAttribute(key, value);
+  }
+  return element;
+}
+function printMeasure(measure) {
+  return `startTime:${measure.startTime.toFixed(2)}|duration:${measure.duration.toFixed(2)}`;
+}
+function isMobileOrTablet() {
+  return window.matchMedia("(max-width: 1024px)").matches;
+}
+function getService2() {
+  return document.getElementsByTagName(MAS_COMMERCE_SERVICE2)?.[0];
+}
+function getOuterHeight(element) {
+  const style = window.getComputedStyle(element);
+  return element.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+}
+
+// src/wcs.js
+var NAMESPACE2 = "wcs";
+function Wcs({ settings }) {
+  const log2 = Log.module(NAMESPACE2);
+  const { env, wcsApiKey: apiKey } = settings;
+  const cache2 = /* @__PURE__ */ new Map();
+  const queue = /* @__PURE__ */ new Map();
+  let timer;
+  let staleCache = /* @__PURE__ */ new Map();
+  async function resolveWcsOffers(options, promises, reject = true) {
+    const service = getService();
+    let message = ERROR_MESSAGE_OFFER_NOT_FOUND;
+    log2.debug("Fetching:", options);
+    let url = "";
+    let response;
+    if (options.offerSelectorIds.length > 1)
+      throw new Error("Multiple OSIs are not supported anymore");
+    const unresolvedPromises = new Map(promises);
+    const [osi] = options.offerSelectorIds;
+    const uniqueId = Date.now() + Math.random().toString(36).substring(2, 7);
+    const startMark = `${NAMESPACE2}:${osi}:${uniqueId}${MARK_START_SUFFIX}`;
+    const measureName = `${NAMESPACE2}:${osi}:${uniqueId}${MARK_DURATION_SUFFIX}`;
+    let measure;
+    try {
+      performance.mark(startMark);
+      url = new URL(settings.wcsURL);
+      url.searchParams.set("offer_selector_ids", osi);
+      url.searchParams.set("country", options.country);
+      url.searchParams.set("locale", options.locale);
+      url.searchParams.set(
+        "landscape",
+        env === Env.STAGE ? "ALL" : settings.landscape
+      );
+      url.searchParams.set("api_key", apiKey);
+      if (options.language) {
+        url.searchParams.set("language", options.language);
+      }
+      if (options.promotionCode) {
+        url.searchParams.set("promotion_code", options.promotionCode);
+      }
+      if (options.currency) {
+        url.searchParams.set("currency", options.currency);
+      }
+      response = await masFetch(url.toString(), {
+        credentials: "omit"
+      });
+      if (response.ok) {
+        let offers = [];
+        try {
+          const data = await response.json();
+          log2.debug("Fetched:", options, data);
+          offers = data.resolvedOffers ?? [];
+        } catch (e4) {
+          log2.error(`Error parsing JSON: ${e4.message}`, {
+            ...e4.context,
+            ...service?.duration
+          });
+        }
+        offers = offers.map(applyPlanType);
+        promises.forEach(({ resolve }, offerSelectorId) => {
+          const resolved = offers.filter(
+            ({ offerSelectorIds }) => offerSelectorIds.includes(offerSelectorId)
+          ).flat();
+          if (resolved.length) {
+            unresolvedPromises.delete(offerSelectorId);
+            promises.delete(offerSelectorId);
+            resolve(resolved);
+          }
+        });
+      } else {
+        message = ERROR_MESSAGE_BAD_REQUEST;
+      }
+    } catch (e4) {
+      message = `Network error: ${e4.message}`;
+    } finally {
+      measure = performance.measure(measureName, startMark);
+      performance.clearMarks(startMark);
+      performance.clearMeasures(measureName);
+    }
+    if (reject && promises.size) {
+      log2.debug("Missing:", { offerSelectorIds: [...promises.keys()] });
+      const headers = getLogHeaders(response);
+      promises.forEach((promise) => {
+        promise.reject(
+          new MasError(message, {
+            ...options,
+            ...headers,
+            response,
+            measure: printMeasure(measure),
+            ...service?.duration
+          })
+        );
+      });
+    }
+  }
+  function flushQueue() {
+    clearTimeout(timer);
+    const pending = [...queue.values()];
+    queue.clear();
+    pending.forEach(
+      ({ options, promises }) => resolveWcsOffers(options, promises)
+    );
+  }
+  function prefillWcsCache(preloadedCache) {
+    if (!preloadedCache || typeof preloadedCache !== "object") {
+      throw new TypeError("Cache must be a Map or similar object");
+    }
+    const envKey = env === Env.STAGE ? "stage" : "prod";
+    const envCache = preloadedCache[envKey];
+    if (!envCache || typeof envCache !== "object") {
+      log2.warn(`No cache found for environment: ${env}`);
+      return;
+    }
+    for (const [key, value] of Object.entries(envCache)) {
+      cache2.set(key, Promise.resolve(value.map(applyPlanType)));
+    }
+    log2.debug(`Prefilled WCS cache with ${envCache.size} entries`);
+  }
+  function flushWcsCacheInternal() {
+    const size = cache2.size;
+    staleCache = new Map(cache2);
+    cache2.clear();
+    log2.debug(`Moved ${size} cache entries to stale cache`);
+  }
+  function validateLanguageAndLocale(country, language, perpetual) {
+    const validLanguage = SUPPORTED_LANGUAGES.includes(language) ? language : Defaults.language;
+    const validCountry = SUPPORTED_COUNTRIES.includes(country) ? country : Defaults.country;
+    return {
+      validCountry,
+      validLanguage: country !== "GB" && !perpetual ? "MULT" : validLanguage,
+      locale: SUPPORTED_LANGUAGE_COUNTRY.includes(
+        `${validLanguage}_${validCountry}`
+      ) ? `${validLanguage}_${validCountry}` : `${Defaults.language}_${Defaults.country}`
+    };
+  }
+  function resolveOfferSelectors({
+    country,
+    language,
+    perpetual = false,
+    promotionCode = "",
+    wcsOsi = []
+  }) {
+    const { validCountry, validLanguage, locale } = validateLanguageAndLocale(country, language, perpetual);
+    const groupKey = [validCountry, validLanguage, promotionCode].filter((val) => val).join("-").toLowerCase();
+    return wcsOsi.map((osi) => {
+      const cacheKey = `${osi}-${groupKey}`;
+      if (cache2.has(cacheKey)) {
+        return cache2.get(cacheKey);
+      }
+      const promiseWithFallback = new Promise((resolve, reject) => {
+        let group = queue.get(groupKey);
+        if (!group) {
+          const options = {
+            country: validCountry,
+            locale,
+            ...perpetual ? {} : { language: validLanguage },
+            offerSelectorIds: []
+          };
+          const promises = /* @__PURE__ */ new Map();
+          group = { options, promises };
+          queue.set(groupKey, group);
+        }
+        if (promotionCode) {
+          group.options.promotionCode = promotionCode;
+        }
+        group.options.offerSelectorIds.push(osi);
+        group.promises.set(osi, {
+          resolve,
+          reject
+        });
+        flushQueue();
+      }).catch((error) => {
+        if (staleCache.has(cacheKey)) {
+          return staleCache.get(cacheKey);
+        }
+        throw error;
+      });
+      cache2.set(cacheKey, promiseWithFallback);
+      return promiseWithFallback;
+    });
+  }
+  return {
+    Commitment,
+    PlanType,
+    Term,
+    applyPlanType,
+    resolveOfferSelectors,
+    flushWcsCacheInternal,
+    prefillWcsCache,
+    validateLanguageAndLocale
+  };
+}
+
+// src/mas-commerce-service.js
+var TAG_NAME_SERVICE2 = "mas-commerce-service";
+var MARK_START = "mas-commerce-service:start";
+var MEASURE_READY = "mas-commerce-service:ready";
+var _measure, _featureFlags, _MasCommerceService_instances, config_get, getFeatureFlag_fn;
+var MasCommerceService = class extends HTMLElement {
+  constructor() {
+    super(...arguments);
+    __privateAdd(this, _MasCommerceService_instances);
+    __privateAdd(this, _measure);
+    __privateAdd(this, _featureFlags);
+    __publicField(this, "lastLoggingTime", 0);
+  }
+  async registerCheckoutAction(action) {
+    if (typeof action != "function") return;
+    this.buildCheckoutAction = async (offers, options, el) => {
+      const checkoutAction = await action?.(
+        offers,
+        options,
+        this.imsSignedInPromise,
+        el
+      );
+      if (checkoutAction) {
+        return checkoutAction;
+      }
+      return null;
+    };
+  }
+  get featureFlags() {
+    if (!__privateGet(this, _featureFlags)) {
+      __privateSet(this, _featureFlags, {
+        [FF_DEFAULTS]: __privateMethod(this, _MasCommerceService_instances, getFeatureFlag_fn).call(this, FF_DEFAULTS)
+      });
+    }
+    return __privateGet(this, _featureFlags);
+  }
+  activate() {
+    const config2 = __privateGet(this, _MasCommerceService_instances, config_get);
+    const settings = getSettings(config2, this);
+    updateConfig(config2.lana);
+    const log2 = Log.init(config2.hostEnv).module("service");
+    log2.debug("Activating:", config2);
+    const price2 = getPriceLiterals(settings);
+    const literals = { price: price2 };
+    const providers = {
+      checkout: /* @__PURE__ */ new Set(),
+      price: /* @__PURE__ */ new Set()
+    };
+    const startup = { literals, providers, settings };
+    Object.defineProperties(
+      this,
+      Object.getOwnPropertyDescriptors({
+        // Activate modules and expose their API as combined flat object
+        ...Checkout(startup),
+        ...Ims(startup),
+        ...Price(startup),
+        ...Wcs(startup),
+        ...constants_exports,
+        // Defined serviceweb  component API
+        Log,
+        get defaults() {
+          return Defaults;
+        },
+        get log() {
+          return Log;
+        },
+        /* c8 ignore next 11 */
+        get providers() {
+          return {
+            checkout(provider) {
+              providers.checkout.add(provider);
+              return () => providers.checkout.delete(provider);
+            },
+            price(provider) {
+              providers.price.add(provider);
+              return () => providers.price.delete(provider);
+            },
+            has: (providerFunction) => providers.price.has(providerFunction) || providers.checkout.has(providerFunction)
+          };
+        },
+        get settings() {
+          return settings;
+        }
+      })
+    );
+    log2.debug("Activated:", { literals, settings });
+    const event = new CustomEvent(EVENT_TYPE_READY, {
+      bubbles: true,
+      cancelable: false,
+      detail: this
+    });
+    performance.mark(MEASURE_READY);
+    __privateSet(this, _measure, performance.measure(MEASURE_READY, MARK_START));
+    this.dispatchEvent(event);
+    setTimeout(() => {
+      this.logFailedRequests();
+    }, 1e4);
+  }
+  connectedCallback() {
+    performance.mark(MARK_START);
+    this.activate();
+  }
+  flushWcsCache() {
+    this.flushWcsCacheInternal();
+    this.log.debug("Flushed WCS cache");
+  }
+  refreshOffers() {
+    this.flushWcsCacheInternal();
+    document.querySelectorAll(SELECTOR_MAS_ELEMENT).forEach((el) => el.requestUpdate(true));
+    this.log.debug("Refreshed WCS offers");
+    this.logFailedRequests();
+  }
+  refreshFragments() {
+    this.flushWcsCacheInternal();
+    customElements.get("aem-fragment")?.cache.clear();
+    document.querySelectorAll("aem-fragment").forEach((el) => el.refresh(false));
+    this.log.debug("Refreshed AEM fragments");
+    this.logFailedRequests();
+  }
+  get duration() {
+    return {
+      "mas-commerce-service:measure": printMeasure(__privateGet(this, _measure))
+    };
+  }
+  /**
+   * Logs failed network requests related to AEM fragments and WCS commerce artifacts.
+   * Identifies failed resources by checking for zero transfer size, zero duration,
+   * response status less than 200, or response status greater than or equal to 400.
+   * Only logs errors if any of the failed resources are fragment or commerce artifact requests.
+   */
+  /* c8 ignore next 21 */
+  logFailedRequests() {
+    const failedResources = [...performance.getEntriesByType("resource")].filter(({ startTime }) => startTime > this.lastLoggingTime).filter(
+      ({ transferSize, duration, responseStatus }) => transferSize === 0 && duration === 0 && responseStatus < 200 || responseStatus >= 400
+    );
+    const uniqueFailedResources = Array.from(
+      new Map(
+        failedResources.map((resource) => [resource.name, resource])
+      ).values()
+    );
+    if (uniqueFailedResources.some(
+      ({ name }) => /(\/fragment\?|web_commerce_artifact)/.test(name)
+    )) {
+      const failedUrls = uniqueFailedResources.map(({ name }) => name);
+      this.log.error("Failed requests:", {
+        failedUrls,
+        ...this.duration
+      });
+    }
+    this.lastLoggingTime = performance.now().toFixed(3);
+  }
+};
+_measure = new WeakMap();
+_featureFlags = new WeakMap();
+_MasCommerceService_instances = new WeakSet();
+config_get = function() {
+  const env = this.getAttribute("env") ?? "prod";
+  const config2 = {
+    commerce: { env },
+    hostEnv: { name: env },
+    lana: {
+      tags: this.getAttribute("lana-tags"),
+      sampleRate: parseInt(
+        this.getAttribute("lana-sample-rate") ?? 1,
+        10
+      ),
+      isProdDomain: env === "prod"
+    },
+    masIOUrl: this.getAttribute("mas-io-url")
+  };
+  ["locale", "country", "language", "preview"].forEach((attribute) => {
+    const value = this.getAttribute(attribute);
+    if (value) {
+      config2[attribute] = value;
+    }
+  });
+  [
+    "checkout-workflow-step",
+    "force-tax-exclusive",
+    "checkout-client-id",
+    "allow-override",
+    "wcs-api-key"
+  ].forEach((attribute) => {
+    const value = this.getAttribute(attribute);
+    if (value != null) {
+      const camelCaseAttribute = attribute.replace(
+        /-([a-z])/g,
+        (g2) => g2[1].toUpperCase()
+      );
+      config2.commerce[camelCaseAttribute] = value;
+    }
+  });
+  return config2;
+};
+getFeatureFlag_fn = function(ff) {
+  return ["on", "true", true].includes(
+    this.getAttribute(`data-${ff}`) || getParameter(ff)
+  );
+};
+if (!window.customElements.get(TAG_NAME_SERVICE2)) {
+  window.customElements.define(TAG_NAME_SERVICE2, MasCommerceService);
+}
+
+// src/checkout-button.js
+var _CheckoutButton = class _CheckoutButton extends CheckoutMixin(HTMLButtonElement) {
+  static createCheckoutButton(options = {}, innerHTML = "") {
+    return createCheckoutElement(_CheckoutButton, options, innerHTML);
+  }
+  setCheckoutUrl(value) {
+    this.setAttribute("data-href", value);
+  }
+  get href() {
+    return this.getAttribute("data-href");
+  }
+  get isCheckoutButton() {
+    return true;
+  }
+  clickHandler(e4) {
+    if (this.checkoutActionHandler) {
+      this.checkoutActionHandler?.(e4);
+      return;
+    }
+    if (this.href) {
+      window.location.href = this.href;
+    }
+  }
+};
+__publicField(_CheckoutButton, "is", "checkout-button");
+__publicField(_CheckoutButton, "tag", "button");
+var CheckoutButton = _CheckoutButton;
+if (!window.customElements.get(CheckoutButton.is)) {
+  window.customElements.define(CheckoutButton.is, CheckoutButton, {
+    extends: CheckoutButton.tag
+  });
+}
+
+// src/upt-link.js
+function getPromoTermsUrl(env) {
+  const host = env === "PRODUCTION" ? "www.adobe.com" : "www.stage.adobe.com";
+  return `https://${host}/offers/promo-terms.html`;
+}
+var _service2;
+var _UptLink = class _UptLink extends HTMLAnchorElement {
+  constructor() {
+    super();
+    __publicField(this, "masElement", new MasElement(this));
+    __privateAdd(this, _service2);
+    this.setAttribute("is", _UptLink.is);
+  }
+  get isUptLink() {
+    return true;
+  }
+  /**
+   * @param {string} osi
+   * @param {string} promotionCode
+   */
+  initializeWcsData(osi, promotionCode) {
+    this.setAttribute("data-wcs-osi", osi);
+    if (promotionCode)
+      this.setAttribute("data-promotion-code", promotionCode);
+  }
+  attributeChangedCallback(name, oldValue, value) {
+    this.masElement.attributeChangedCallback(name, oldValue, value);
+  }
+  connectedCallback() {
+    this.masElement.connectedCallback();
+    __privateSet(this, _service2, getService2());
+    if (__privateGet(this, _service2)) {
+      this.log = __privateGet(this, _service2).log.module("upt-link");
+    }
+  }
+  disconnectedCallback() {
+    this.masElement.disconnectedCallback();
+    __privateSet(this, _service2, void 0);
+  }
+  requestUpdate(force = false) {
+    this.masElement.requestUpdate(force);
+  }
+  onceSettled() {
+    return this.masElement.onceSettled();
+  }
+  async render() {
+    const service = getService2();
+    if (!service) return false;
+    if (!this.dataset.imsCountry) {
+      service.imsCountryPromise.then((countryCode) => {
+        if (countryCode) this.dataset.imsCountry = countryCode;
+      });
+    }
+    const options = service.collectCheckoutOptions({}, this);
+    if (!options.wcsOsi) {
+      this.log.error(`Missing 'data-wcs-osi' attribute on upt-link.`);
+      return false;
+    }
+    const version = this.masElement.togglePending(options);
+    const promises = service.resolveOfferSelectors(options);
+    try {
+      const [[offer]] = await Promise.all(promises);
+      const { country, language, env } = options;
+      let params = `locale=${language}_${country}&country=${country}&offer_id=${offer.offerId}`;
+      const promotionCode = this.getAttribute("data-promotion-code");
+      if (promotionCode)
+        params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
+      this.href = `${getPromoTermsUrl(env)}?${params}`;
+      this.masElement.toggleResolved(version, offer, options);
+    } catch (error) {
+      const masError = new Error(
+        `Could not resolve offer selectors for id: ${options.wcsOsi}.`,
+        error.message
+      );
+      this.masElement.toggleFailed(version, masError, options);
+      return false;
+    }
+  }
+  /**
+   * @param {HTMLElement} element
+   */
+  static createFrom(element) {
+    const uptLink = new _UptLink();
+    for (const attribute of element.attributes) {
+      if (attribute.name === "is") continue;
+      if (attribute.name === "class" && attribute.value.includes("upt-link"))
+        uptLink.setAttribute(
+          "class",
+          attribute.value.replace("upt-link", "").trim()
+        );
+      else uptLink.setAttribute(attribute.name, attribute.value);
+    }
+    uptLink.innerHTML = element.innerHTML;
+    uptLink.setAttribute("tabindex", 0);
+    return uptLink;
+  }
+};
+_service2 = new WeakMap();
+__publicField(_UptLink, "is", "upt-link");
+__publicField(_UptLink, "tag", "a");
+__publicField(_UptLink, "observedAttributes", [
+  "data-wcs-osi",
+  "data-promotion-code",
+  "data-ims-country"
+]);
+var UptLink = _UptLink;
+if (!window.customElements.get(UptLink.is)) {
+  window.customElements.define(UptLink.is, UptLink, {
+    extends: UptLink.tag
+  });
+}
+
+// src/merch-card.js
+init_lit();
+
+// src/merch-card.css.js
+init_lit();
+
+// src/media.js
+var MOBILE_LANDSCAPE = "(max-width: 767px)";
+var TABLET_DOWN = "(max-width: 1199px)";
+var TABLET_UP = "(min-width: 768px)";
+var DESKTOP_UP = "(min-width: 1200px)";
+var LARGE_DESKTOP = "(min-width: 1600px)";
+function matchMobile() {
+  return window.matchMedia(MOBILE_LANDSCAPE);
+}
+function matchDesktop() {
+  return window.matchMedia(DESKTOP_UP);
+}
+function isMobile() {
+  return matchMobile().matches;
+}
+function isDesktop() {
+  return matchDesktop().matches;
+}
+
+// src/merch-card.css.js
+var styles = i`
     :host {
         --consonant-merch-card-background-color: #fff;
         --consonant-merch-card-border: 1px solid
@@ -877,9 +8563,12 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
     ::slotted([slot='price']) {
         color: var(--consonant-merch-card-price-color);
     }
-`,Ks=()=>[y`
+`;
+var sizeStyles = () => {
+  const styles5 = [
+    i`
             /* Tablet */
-            @media screen and ${je(F)} {
+            @media screen and ${r(TABLET_UP)} {
                 :host([size='wide']),
                 :host([size='super-wide']) {
                     width: 100%;
@@ -888,22 +8577,91 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
             }
 
             /* Laptop */
-            @media screen and ${je(U)} {
+            @media screen and ${r(DESKTOP_UP)} {
                 :host([size='wide']) {
                     grid-column: span 2;
                 }
             }
-        `];O();function sh(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var Nt=class extends I{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(sh())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(r=>{let i="",n="top";if(r.tagName==="SP-TOOLTIP")i=r.textContent,n=r.getAttribute("placement")||"top";else if(r.tagName==="OVERLAY-TRIGGER"){let o=r.querySelector("sp-tooltip");o&&(i=o.textContent,n=o.getAttribute("placement")||r.getAttribute("placement")||"top")}if(i){let o=document.createElement("mas-mnemonic");o.setAttribute("content",i),o.setAttribute("placement",n);let a=this.querySelector("img"),s=this.querySelector("a");s&&s.contains(a)?o.appendChild(s):a&&o.appendChild(a),this.innerHTML="",this.appendChild(o),Promise.resolve().then(()=>Ci())}r.remove()})}render(){let{href:t}=this;return t?f`<a href="${t}">
+        `
+  ];
+  return styles5;
+};
+
+// src/merch-icon.js
+init_lit();
+function hasSpectrumTooltip2() {
+  return customElements.get("sp-tooltip") !== void 0 || document.querySelector("sp-theme") !== null;
+}
+var MerchIcon = class extends s4 {
+  constructor() {
+    super();
+    this.size = "m";
+    this.alt = "";
+    this.loading = "lazy";
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    setTimeout(() => this.handleTooltips(), 0);
+  }
+  handleTooltips() {
+    if (hasSpectrumTooltip2()) return;
+    const tooltipElements = this.querySelectorAll(
+      "sp-tooltip, overlay-trigger"
+    );
+    tooltipElements.forEach((element) => {
+      let content = "";
+      let placement = "top";
+      if (element.tagName === "SP-TOOLTIP") {
+        content = element.textContent;
+        placement = element.getAttribute("placement") || "top";
+      } else if (element.tagName === "OVERLAY-TRIGGER") {
+        const tooltip = element.querySelector("sp-tooltip");
+        if (tooltip) {
+          content = tooltip.textContent;
+          placement = tooltip.getAttribute("placement") || element.getAttribute("placement") || "top";
+        }
+      }
+      if (content) {
+        const masMnemonic = document.createElement("mas-mnemonic");
+        masMnemonic.setAttribute("content", content);
+        masMnemonic.setAttribute("placement", placement);
+        const img = this.querySelector("img");
+        const link = this.querySelector("a");
+        if (link && link.contains(img)) {
+          masMnemonic.appendChild(link);
+        } else if (img) {
+          masMnemonic.appendChild(img);
+        }
+        this.innerHTML = "";
+        this.appendChild(masMnemonic);
+        Promise.resolve().then(() => init_mas_mnemonic());
+      }
+      element.remove();
+    });
+  }
+  render() {
+    const { href } = this;
+    return href ? x`<a href="${href}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>`:f` <img
+              </a>` : x` <img
                   src="${this.src}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`}};u(Nt,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),u(Nt,"styles",y`
+              />`;
+  }
+};
+__publicField(MerchIcon, "properties", {
+  size: { type: String, attribute: true },
+  src: { type: String, attribute: true },
+  alt: { type: String, attribute: true },
+  href: { type: String, attribute: true },
+  loading: { type: String, attribute: true }
+});
+__publicField(MerchIcon, "styles", i`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -941,7 +8699,125 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `);customElements.define("merch-icon",Nt);var Lr,ut,Rr,Or,Mt,ki=class extends HTMLElement{constructor(){super();E(this,Lr,"");E(this,ut);E(this,Rr,[]);E(this,Or,[]);E(this,Mt);v(this,Mt,yr(()=>{this.isConnected&&(this.parentElement.style.background=this.value,h(this,ut)?this.parentElement.style.borderRadius=h(this,ut):h(this,ut)===""&&(this.parentElement.style.borderRadius=""))},1))}static get observedAttributes(){return["colors","positions","angle","border-radius"]}get value(){let r=h(this,Rr).map((i,n)=>{let o=h(this,Or)[n]||"";return`${i} ${o}`}).join(", ");return`linear-gradient(${h(this,Lr)}, ${r})`}connectedCallback(){h(this,Mt).call(this)}attributeChangedCallback(r,i,n){r==="border-radius"&&v(this,ut,n?.trim()),r==="colors"&&n?v(this,Rr,n?.split(",").map(o=>o.trim())??[]):r==="positions"&&n?v(this,Or,n?.split(",").map(o=>o.trim())??[]):r==="angle"&&v(this,Lr,n?.trim()??""),h(this,Mt).call(this)}};Lr=new WeakMap,ut=new WeakMap,Rr=new WeakMap,Or=new WeakMap,Mt=new WeakMap;customElements.define("merch-gradient",ki);O();var It=class extends I{constructor(){super(),this.planType=void 0,this.checked=!1,this.updatePlanType=this.updatePlanType.bind(this),this.handleChange=this.handleChange.bind(this),this.handleCustomClick=this.handleCustomClick.bind(this)}getOsi(t,r){let o=({TRIAL:["TRIAL"],BASE:["BASE","PROMOTION","TRIAL"],PROMOTION:["PROMOTION","BASE","TRIAL"]}[r]||[r]).map(s=>`p[data-plan-type="${t}"] ${z}[data-offer-type="${s}"]`).join(", ");return this.querySelector(o)?.dataset?.wcsOsi}connectedCallback(){super.connectedCallback(),this.addEventListener(At,this.updatePlanType)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(At,this.updatePlanType)}updatePlanType(t){if(t.target.tagName!=="SPAN")return;let r=t.target,i=r?.value?.[0];i&&(r.setAttribute("data-offer-type",i.offerType),r.closest("p").setAttribute("data-plan-type",i.planType))}handleChange(t){this.checked=t.target.checked,this.dispatchEvent(new CustomEvent("change",{detail:{checked:this.checked},bubbles:!0,composed:!0}))}handleCustomClick(){this.shadowRoot.querySelector("input").click()}handleKeyDown(t){t.key===" "&&(t.preventDefault(),this.handleCustomClick())}render(){return f` <input
+    `);
+customElements.define("merch-icon", MerchIcon);
+
+// src/merch-gradient.js
+var _angle, _borderRadius, _colors, _positions, _updateParentBackground;
+var MerchGradient = class extends HTMLElement {
+  constructor() {
+    super();
+    __privateAdd(this, _angle, "");
+    __privateAdd(this, _borderRadius);
+    __privateAdd(this, _colors, []);
+    __privateAdd(this, _positions, []);
+    __privateAdd(this, _updateParentBackground);
+    __privateSet(this, _updateParentBackground, debounce(() => {
+      if (!this.isConnected) return;
+      this.parentElement.style.background = this.value;
+      if (__privateGet(this, _borderRadius)) {
+        this.parentElement.style.borderRadius = __privateGet(this, _borderRadius);
+      } else if (__privateGet(this, _borderRadius) === "") {
+        this.parentElement.style.borderRadius = "";
+      }
+    }, 1));
+  }
+  static get observedAttributes() {
+    return ["colors", "positions", "angle", "border-radius"];
+  }
+  get value() {
+    const stops = __privateGet(this, _colors).map((color, index) => {
+      const position = __privateGet(this, _positions)[index] || "";
+      return `${color} ${position}`;
+    }).join(", ");
+    return `linear-gradient(${__privateGet(this, _angle)}, ${stops})`;
+  }
+  connectedCallback() {
+    __privateGet(this, _updateParentBackground).call(this);
+  }
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === "border-radius") {
+      __privateSet(this, _borderRadius, newValue?.trim());
+    }
+    if (name === "colors" && newValue) {
+      __privateSet(this, _colors, newValue?.split(",").map((color) => color.trim()) ?? []);
+    } else if (name === "positions" && newValue) {
+      __privateSet(this, _positions, newValue?.split(",").map((position) => position.trim()) ?? []);
+    } else if (name === "angle") {
+      __privateSet(this, _angle, newValue?.trim() ?? "");
+    }
+    __privateGet(this, _updateParentBackground).call(this);
+  }
+};
+_angle = new WeakMap();
+_borderRadius = new WeakMap();
+_colors = new WeakMap();
+_positions = new WeakMap();
+_updateParentBackground = new WeakMap();
+customElements.define("merch-gradient", MerchGradient);
+
+// src/merch-addon.js
+init_lit();
+var MerchAddon = class extends s4 {
+  constructor() {
+    super();
+    this.planType = void 0;
+    this.checked = false;
+    this.updatePlanType = this.updatePlanType.bind(this);
+    this.handleChange = this.handleChange.bind(this);
+    this.handleCustomClick = this.handleCustomClick.bind(this);
+  }
+  getOsi(planType, offerType) {
+    const offerTypeOptions = {
+      TRIAL: ["TRIAL"],
+      BASE: ["BASE", "PROMOTION", "TRIAL"],
+      PROMOTION: ["PROMOTION", "BASE", "TRIAL"]
+    };
+    const priorityList = offerTypeOptions[offerType] || [offerType];
+    const selector = priorityList.map(
+      (type) => `p[data-plan-type="${planType}"] ${SELECTOR_MAS_INLINE_PRICE}[data-offer-type="${type}"]`
+    ).join(", ");
+    const el = this.querySelector(selector);
+    return el?.dataset?.wcsOsi;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener(EVENT_TYPE_RESOLVED, this.updatePlanType);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener(EVENT_TYPE_RESOLVED, this.updatePlanType);
+  }
+  updatePlanType(e4) {
+    if (e4.target.tagName !== "SPAN") return;
+    const price2 = e4.target;
+    const offer = price2?.value?.[0];
+    if (!offer) return;
+    price2.setAttribute("data-offer-type", offer.offerType);
+    price2.closest("p").setAttribute("data-plan-type", offer.planType);
+  }
+  handleChange(e4) {
+    this.checked = e4.target.checked;
+    this.dispatchEvent(
+      new CustomEvent("change", {
+        detail: { checked: this.checked },
+        bubbles: true,
+        composed: true
+      })
+    );
+  }
+  handleCustomClick() {
+    const addonCheckbox = this.shadowRoot.querySelector("input");
+    addonCheckbox.click();
+  }
+  handleKeyDown(e4) {
+    if (e4.key === " ") {
+      e4.preventDefault();
+      this.handleCustomClick();
+    }
+  }
+  render() {
+    return x` <input
                 type="checkbox"
                 id="addon-checkbox"
                 .checked=${this.checked}
@@ -959,7 +8835,19 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
             </span>
             <label id="custom-checkbox-label" for="addon-checkbox">
                 <slot></slot>
-            </label>`}};u(It,"properties",{planType:{type:String,attribute:"plan-type",reflect:!0},checked:{type:Boolean,reflect:!0},customCheckbox:{type:Boolean,attribute:"custom-checkbox",reflect:!0}}),u(It,"styles",y`
+            </label>`;
+  }
+};
+__publicField(MerchAddon, "properties", {
+  planType: { type: String, attribute: "plan-type", reflect: true },
+  checked: { type: Boolean, reflect: true },
+  customCheckbox: {
+    type: Boolean,
+    attribute: "custom-checkbox",
+    reflect: true
+  }
+});
+__publicField(MerchAddon, "styles", i`
         :host {
             --merch-addon-gap: 9px;
             --merch-addon-align: start;
@@ -1024,24 +8912,135 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `);customElements.define("merch-addon",It);O();var $t,Nr=class Nr{constructor(t){u(this,"card");E(this,$t);this.card=t,this.insertVariantStyle()}getContainer(){return v(this,$t,h(this,$t)??this.card.closest('[class*="-merch-cards"]')??this.card.parentElement),h(this,$t)}insertVariantStyle(){if(!Nr.styleMap[this.card.variant]){Nr.styleMap[this.card.variant]=!0;let t=document.createElement("style");t.innerHTML=this.getGlobalCSS(),document.head.appendChild(t)}}updateCardElementMinHeight(t,r){if(!t)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),o=parseInt(this.getContainer().style.getPropertyValue(i))||0;n>o&&this.getContainer().style.setProperty(i,`${n}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
+    `);
+customElements.define("merch-addon", MerchAddon);
+
+// src/variants/variant-layout.js
+init_lit();
+var _container;
+var _VariantLayout = class _VariantLayout {
+  constructor(card) {
+    __publicField(this, "card");
+    __privateAdd(this, _container);
+    this.card = card;
+    this.insertVariantStyle();
+  }
+  getContainer() {
+    __privateSet(this, _container, __privateGet(this, _container) ?? this.card.closest('[class*="-merch-cards"]') ?? this.card.parentElement);
+    return __privateGet(this, _container);
+  }
+  insertVariantStyle() {
+    if (!_VariantLayout.styleMap[this.card.variant]) {
+      _VariantLayout.styleMap[this.card.variant] = true;
+      const styles5 = document.createElement("style");
+      styles5.innerHTML = this.getGlobalCSS();
+      document.head.appendChild(styles5);
+    }
+  }
+  updateCardElementMinHeight(el, name) {
+    if (!el) return;
+    const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
+    const height = Math.max(
+      0,
+      parseInt(window.getComputedStyle(el).height) || 0
+    );
+    const maxMinHeight = parseInt(
+      this.getContainer().style.getPropertyValue(
+        elMinHeightPropertyName
+      )
+    ) || 0;
+    if (height > maxMinHeight) {
+      this.getContainer().style.setProperty(
+        elMinHeightPropertyName,
+        `${height}px`
+      );
+    }
+  }
+  get badge() {
+    let additionalStyles;
+    if (!this.card.badgeBackgroundColor || !this.card.badgeColor || !this.card.badgeText) {
+      return;
+    }
+    if (this.evergreen) {
+      additionalStyles = `border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`;
+    }
+    return x`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
                 style="background-color: ${this.card.badgeBackgroundColor};
                 color: ${this.card.badgeColor};
-                ${t}"
+                ${additionalStyles}"
             >
                 ${this.card.badgeText}
             </div>
-        `}get cardImage(){return f` <div class="image">
+        `;
+  }
+  get cardImage() {
+    return x` <div class="image">
             <slot name="bg-image"></slot>
             ${this.badge}
-        </div>`}getGlobalCSS(){return""}get theme(){return document.querySelector("sp-theme")}get evergreen(){return this.card.classList.contains("intro-pricing")}get promoBottom(){return this.card.classList.contains("promo-bottom")}get headingSelector(){return'[slot="heading-xs"]'}get secureLabel(){return this.card.secureLabel?f`<span class="secure-transaction-label"
+        </div>`;
+  }
+  /* c8 ignore next 3 */
+  getGlobalCSS() {
+    return "";
+  }
+  /* c8 ignore next 3 */
+  get theme() {
+    return document.querySelector("sp-theme");
+  }
+  get evergreen() {
+    return this.card.classList.contains("intro-pricing");
+  }
+  get promoBottom() {
+    return this.card.classList.contains("promo-bottom");
+  }
+  get headingSelector() {
+    return '[slot="heading-xs"]';
+  }
+  get secureLabel() {
+    return this.card.secureLabel ? x`<span class="secure-transaction-label"
                   >${this.card.secureLabel}</span
-              >`:M}get secureLabelFooter(){return f`<footer>
+              >` : A;
+  }
+  get secureLabelFooter() {
+    return x`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}renderLayout(){}get aemFragmentMapping(){return Pi(this.card.variant)}};$t=new WeakMap,u(Nr,"styleMap",{});var L=Nr;O();var Qs=`
+        </footer>`;
+  }
+  async adjustTitleWidth() {
+    const cardWidth = this.card.getBoundingClientRect().width;
+    const badgeWidth = this.card.badgeElement?.getBoundingClientRect().width || 0;
+    if (cardWidth === 0 || badgeWidth === 0) return;
+    this.card.style.setProperty(
+      "--consonant-merch-card-heading-xs-max-width",
+      `${Math.round(cardWidth - badgeWidth - 16)}px`
+      // consonant-merch-spacing-xs
+    );
+  }
+  async postCardUpdateHook() {
+  }
+  connectedCallbackHook() {
+  }
+  disconnectedCallbackHook() {
+  }
+  /* c8 ignore next 3 */
+  renderLayout() {
+  }
+  get aemFragmentMapping() {
+    return getFragmentMapping(this.card.variant);
+  }
+};
+_container = new WeakMap();
+__publicField(_VariantLayout, "styleMap", {});
+var VariantLayout = _VariantLayout;
+
+// src/variants/catalog.js
+init_lit();
+
+// src/variants/catalog.css.js
+var CSS = `
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;
@@ -1097,19 +9096,19 @@ merch-card-collection-header.catalog {
     --merch-card-collection-header-search-max-width: 244px;
 }
 
-@media screen and ${de} {
+@media screen and ${MOBILE_LANDSCAPE} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-columns: min-content auto;
     }
 }
 
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-column-gap: 16px;
     }
 }
 
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
     :root {
         --consonant-merch-card-catalog-width: 276px;
     }
@@ -1164,13 +9163,72 @@ merch-card[variant="catalog"] .payment-details {
   font-style: italic;
   font-weight: 400;
   line-height: var(--consonant-merch-card-body-line-height);
-}`;var Zs={badge:!0,ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"}},Ht=class extends L{constructor(r){super(r);u(this,"dispatchActionMenuToggle",()=>{this.card.dispatchEvent(new CustomEvent(ji,{bubbles:!0,composed:!0,detail:{card:this.card.name,type:"action-menu"}}))});u(this,"toggleActionMenu",r=>{if(!this.actionMenuContentSlot||!r||r.type!=="click"&&r.code!=="Space"&&r.code!=="Enter")return;r.preventDefault(),this.actionMenuContentSlot.classList.toggle("hidden");let i=this.actionMenuContentSlot.classList.contains("hidden");i||this.dispatchActionMenuToggle(),this.setAriaExpanded(this.actionMenu,(!i).toString())});u(this,"toggleActionMenuFromCard",r=>{let i=r?.type==="mouseleave"?!0:void 0;this.card.blur(),this.actionMenu?.classList.remove("always-visible"),this.actionMenuContentSlot&&(i||this.dispatchActionMenuToggle(),this.actionMenuContentSlot.classList.toggle("hidden",i),this.setAriaExpanded(this.actionMenu,"false"))});u(this,"hideActionMenu",r=>{this.actionMenuContentSlot?.classList.add("hidden"),this.setAriaExpanded(this.actionMenu,"false")})}get actionMenu(){return this.card.shadowRoot.querySelector(".action-menu")}get actionMenuContentSlot(){return this.card.shadowRoot.querySelector('slot[name="action-menu-content"]')}renderLayout(){return f` <div class="body">
+}`;
+
+// src/variants/catalog.js
+var CATALOG_AEM_FRAGMENT_MAPPING = {
+  badge: true,
+  ctas: { slot: "footer", size: "m" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  prices: { tag: "h3", slot: "heading-xs" },
+  size: ["wide", "super-wide"],
+  title: { tag: "h3", slot: "heading-xs" }
+};
+var Catalog = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __publicField(this, "dispatchActionMenuToggle", () => {
+      this.card.dispatchEvent(
+        new CustomEvent(EVENT_MERCH_CARD_ACTION_MENU_TOGGLE, {
+          bubbles: true,
+          composed: true,
+          detail: {
+            card: this.card.name,
+            type: "action-menu"
+          }
+        })
+      );
+    });
+    __publicField(this, "toggleActionMenu", (e4) => {
+      if (!this.actionMenuContentSlot || !e4 || e4.type !== "click" && e4.code !== "Space" && e4.code !== "Enter")
+        return;
+      e4.preventDefault();
+      this.actionMenuContentSlot.classList.toggle("hidden");
+      const isHidden = this.actionMenuContentSlot.classList.contains("hidden");
+      if (!isHidden) this.dispatchActionMenuToggle();
+      this.setAriaExpanded(this.actionMenu, (!isHidden).toString());
+    });
+    __publicField(this, "toggleActionMenuFromCard", (e4) => {
+      const retract = e4?.type === "mouseleave" ? true : void 0;
+      this.card.blur();
+      this.actionMenu?.classList.remove("always-visible");
+      if (!this.actionMenuContentSlot) return;
+      if (!retract) this.dispatchActionMenuToggle();
+      this.actionMenuContentSlot.classList.toggle("hidden", retract);
+      this.setAriaExpanded(this.actionMenu, "false");
+    });
+    __publicField(this, "hideActionMenu", (e4) => {
+      this.actionMenuContentSlot?.classList.add("hidden");
+      this.setAriaExpanded(this.actionMenu, "false");
+    });
+  }
+  get actionMenu() {
+    return this.card.shadowRoot.querySelector(".action-menu");
+  }
+  get actionMenuContentSlot() {
+    return this.card.shadowRoot.querySelector(
+      'slot[name="action-menu-content"]'
+    );
+  }
+  renderLayout() {
+    return x` <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot> ${this.badge}
                     <div
                         class="action-menu
-                ${ws()&&this.card.actionMenu?"always-visible":""}
-                ${this.card.actionMenu?"invisible":"hidden"}"
+                ${isMobileOrTablet() && this.card.actionMenu ? "always-visible" : ""}
+                ${!this.card.actionMenu ? "hidden" : "invisible"}"
                         @click="${this.toggleActionMenu}"
                         @keypress="${this.toggleActionMenu}"
                         tabindex="0"
@@ -1183,21 +9241,39 @@ merch-card[variant="catalog"] .payment-details {
                 <slot
                     name="action-menu-content"
                     class="action-menu-content
-            ${this.card.actionMenuContent?"":"hidden"}"
+            ${!this.card.actionMenuContent ? "hidden" : ""}"
                     @focusout="${this.hideActionMenu}"
                     >${this.card.actionMenuContent}
                 </slot>
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":f`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`}
+                ${!this.promoBottom ? x`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?f`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`:""}
+                ${this.promoBottom ? x`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`}getGlobalCSS(){return Qs}setAriaExpanded(r,i){r.setAttribute("aria-expanded",i)}connectedCallbackHook(){this.card.addEventListener("mouseleave",this.toggleActionMenuFromCard)}disconnectedCallbackHook(){this.card.removeEventListener("mouseleave",this.toggleActionMenuFromCard)}};u(Ht,"variantStyle",y`
+            <slot></slot>`;
+  }
+  getGlobalCSS() {
+    return CSS;
+  }
+  setAriaExpanded(element, value) {
+    element.setAttribute("aria-expanded", value);
+  }
+  connectedCallbackHook() {
+    this.card.addEventListener("mouseleave", this.toggleActionMenuFromCard);
+  }
+  disconnectedCallbackHook() {
+    this.card.removeEventListener(
+      "mouseleave",
+      this.toggleActionMenuFromCard
+    );
+  }
+};
+__publicField(Catalog, "variantStyle", i`
         :host([variant='catalog']) {
             min-height: 330px;
             width: var(--consonant-merch-card-catalog-width);
@@ -1215,7 +9291,13 @@ merch-card[variant="catalog"] .payment-details {
             margin-left: var(--consonant-merch-spacing-xxs);
             box-sizing: border-box;
         }
-    `);O();var Js=`
+    `);
+
+// src/variants/image.js
+init_lit();
+
+// src/variants/image.css.js
+var CSS2 = `
 :root {
   --consonant-merch-card-image-width: 300px;
 }
@@ -1227,7 +9309,7 @@ merch-card[variant="catalog"] .payment-details {
   grid-template-columns: var(--consonant-merch-card-image-width);
 }
 
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
   .two-merch-cards.image,
   .three-merch-cards.image,
   .four-merch-cards.image {
@@ -1235,7 +9317,7 @@ merch-card[variant="catalog"] .payment-details {
   }
 }
 
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-image-width: 378px;
     --consonant-merch-card-image-width-4clm: 276px;
@@ -1249,26 +9331,45 @@ merch-card[variant="catalog"] .payment-details {
       grid-template-columns: repeat(4, var(--consonant-merch-card-image-width-4clm));
   }
 }
-`;var Li=class extends L{constructor(t){super(t)}getGlobalCSS(){return Js}renderLayout(){return f`${this.cardImage}
+`;
+
+// src/variants/image.js
+var Image2 = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS2;
+  }
+  renderLayout() {
+    return x`${this.cardImage}
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?f`<slot name="body-xs"></slot
-                          ><slot name="promo-text"></slot>`:f`<slot name="promo-text"></slot
+                ${this.promoBottom ? x`<slot name="body-xs"></slot
+                          ><slot name="promo-text"></slot>` : x`<slot name="promo-text"></slot
                           ><slot name="body-xs"></slot>`}
             </div>
-            ${this.evergreen?f`
+            ${this.evergreen ? x`
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card.detailBg}"
+                          style="background: ${this.card["detailBg"]}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  `:f`
+                  ` : x`
                       <hr />
                       ${this.secureLabelFooter}
-                  `}`}};O();var ec=`
+                  `}`;
+  }
+};
+
+// src/variants/inline-heading.js
+init_lit();
+
+// src/variants/inline-heading.css.js
+var CSS3 = `
 :root {
   --consonant-merch-card-inline-heading-width: 300px;
 }
@@ -1280,7 +9381,7 @@ merch-card[variant="catalog"] .payment-details {
     grid-template-columns: var(--consonant-merch-card-inline-heading-width);
 }
 
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
   .two-merch-cards.inline-heading,
   .three-merch-cards.inline-heading,
   .four-merch-cards.inline-heading {
@@ -1288,7 +9389,7 @@ merch-card[variant="catalog"] .payment-details {
   }
 }
 
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-inline-heading-width: 378px;
   }
@@ -1299,12 +9400,23 @@ merch-card[variant="catalog"] .payment-details {
   }
 }
 
-@media screen and ${_e} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.inline-heading {
       grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
   }
 }
-`;var Ri=class extends L{constructor(t){super(t)}getGlobalCSS(){return ec}renderLayout(){return f` ${this.badge}
+`;
+
+// src/variants/inline-heading.js
+var InlineHeading = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS3;
+  }
+  renderLayout() {
+    return x` ${this.badge}
             <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot>
@@ -1312,7 +9424,15 @@ merch-card[variant="catalog"] .payment-details {
                 </div>
                 <slot name="body-xs"></slot>
             </div>
-            ${this.card.customHr?"":f`<hr />`} ${this.secureLabelFooter}`}};O();var tc=`
+            ${!this.card.customHr ? x`<hr />` : ""} ${this.secureLabelFooter}`;
+  }
+};
+
+// src/variants/mini-compare-chart.js
+init_lit();
+
+// src/variants/mini-compare-chart.css.js
+var CSS4 = `
   :root {
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-border-color: #E9E9E9;
@@ -1651,7 +9771,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* mini compare mobile */ 
-@media screen and ${de} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -1694,7 +9814,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${xe} {
+@media screen and ${TABLET_DOWN} {
   merch-card[variant="mini-compare-chart"] [slot="heading-m"] {
     font-size: var(--consonant-merch-card-body-s-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
@@ -1725,7 +9845,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
     line-height: var(--consonant-merch-card-body-s-line-height);
   }
 }
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -1767,7 +9887,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 378px;
     --consonant-merch-card-mini-compare-chart-wide-width: 484px;  
@@ -1788,7 +9908,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${_e} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.mini-compare-chart {
       grid-template-columns: repeat(4, var(--consonant-merch-card-mini-compare-chart-width));
   }
@@ -1829,20 +9949,184 @@ merch-card .footer-row-cell:nth-child(7) {
 merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;var ch=32,Dt=class extends L{constructor(r){super(r);u(this,"getRowMinHeightPropertyName",r=>`--consonant-merch-card-footer-row-${r}-min-height`);u(this,"getMiniCompareFooter",()=>{let r=this.card.secureLabel?f`<slot name="secure-transaction-label">
+`;
+
+// src/variants/mini-compare-chart.js
+var FOOTER_ROW_MIN_HEIGHT = 32;
+var MiniCompareChart = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    __publicField(this, "getRowMinHeightPropertyName", (index) => `--consonant-merch-card-footer-row-${index}-min-height`);
+    __publicField(this, "getMiniCompareFooter", () => {
+      const secureLabel = this.card.secureLabel ? x`<slot name="secure-transaction-label">
                   <span class="secure-transaction-label"
                       >${this.card.secureLabel}</span
                   ></slot
-              >`:f`<slot name="secure-transaction-label"></slot>`;return f`<footer>${r}<slot name="footer"></slot></footer>`})}getGlobalCSS(){return tc}adjustMiniCompareBodySlots(){if(this.card.getBoundingClientRect().width<=2)return;this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(".top-section"),"top-section");let r=["heading-m","body-m","heading-m-price","body-xxs","price-commitment","offers","promo-text","callout-content"];this.card.classList.contains("bullet-list")&&r.push("footer-rows"),r.forEach(n=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${n}"]`),n)),this.updateCardElementMinHeight(this.card.shadowRoot.querySelector("footer"),"footer"),this.card.shadowRoot.querySelector(".mini-compare-chart-badge")?.textContent!==""&&this.getContainer().style.setProperty("--consonant-merch-card-mini-compare-chart-top-section-mobile-height","32px")}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let r=this.card.querySelector('[slot="footer-rows"] ul');!r||!r.children||[...r.children].forEach((i,n)=>{let o=Math.max(ch,parseFloat(window.getComputedStyle(i).height)||0),a=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(n+1)))||0;o>a&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(n+1),`${o}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(i=>{let n=i.querySelector(".footer-row-cell-description");n&&!n.textContent.trim()&&i.remove()})}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${z}[data-template="price"]`)}get headingMPriceSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0]}toggleAddon(r){let i=this.mainPrice,n=this.headingMPriceSlot;if(!i&&n){let o=r?.getAttribute("plan-type"),a=null;if(r&&o&&(a=r.querySelector(`p[data-plan-type="${o}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-m-price"]').forEach(s=>s.remove()),r.checked){if(a){let s=oe("p",{class:"addon-heading-m-price-addon",slot:"heading-m-price"},a.innerHTML);this.card.appendChild(s)}}else{let s=oe("p",{class:"card-heading",id:"free",slot:"heading-m-price"},"Free");this.card.appendChild(s)}}}async adjustAddon(){await this.card.updateComplete;let r=this.card.addon;if(!r)return;let i=this.mainPrice,n=this.card.planType;if(i&&(await i.onceSettled(),n=i.value?.[0]?.planType),!n)return;r.planType=n,this.card.querySelector("merch-addon[plan-type]")?.updateComplete.then(()=>{this.updateCardElementMinHeight(this.card.shadowRoot.querySelector('slot[name="addon"]'),"addon")})}renderLayout(){return f` <div class="top-section${this.badge?" badge":""}">
+              >` : x`<slot name="secure-transaction-label"></slot>`;
+      return x`<footer>${secureLabel}<slot name="footer"></slot></footer>`;
+    });
+  }
+  getGlobalCSS() {
+    return CSS4;
+  }
+  adjustMiniCompareBodySlots() {
+    if (this.card.getBoundingClientRect().width <= 2) return;
+    this.updateCardElementMinHeight(
+      this.card.shadowRoot.querySelector(".top-section"),
+      "top-section"
+    );
+    let slots = [
+      "heading-m",
+      "body-m",
+      "heading-m-price",
+      "body-xxs",
+      "price-commitment",
+      "offers",
+      "promo-text",
+      "callout-content"
+    ];
+    if (this.card.classList.contains("bullet-list")) {
+      slots.push("footer-rows");
+    }
+    slots.forEach(
+      (slot) => this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
+        slot
+      )
+    );
+    this.updateCardElementMinHeight(
+      this.card.shadowRoot.querySelector("footer"),
+      "footer"
+    );
+    const badge = this.card.shadowRoot.querySelector(
+      ".mini-compare-chart-badge"
+    );
+    if (badge?.textContent !== "") {
+      this.getContainer().style.setProperty(
+        "--consonant-merch-card-mini-compare-chart-top-section-mobile-height",
+        "32px"
+      );
+    }
+  }
+  adjustMiniCompareFooterRows() {
+    if (this.card.getBoundingClientRect().width === 0) return;
+    const footerRows = this.card.querySelector('[slot="footer-rows"] ul');
+    if (!footerRows || !footerRows.children) return;
+    [...footerRows.children].forEach((el, index) => {
+      const height = Math.max(
+        FOOTER_ROW_MIN_HEIGHT,
+        parseFloat(window.getComputedStyle(el).height) || 0
+      );
+      const maxMinHeight = parseFloat(
+        this.getContainer().style.getPropertyValue(
+          this.getRowMinHeightPropertyName(index + 1)
+        )
+      ) || 0;
+      if (height > maxMinHeight) {
+        this.getContainer().style.setProperty(
+          this.getRowMinHeightPropertyName(index + 1),
+          `${height}px`
+        );
+      }
+    });
+  }
+  removeEmptyRows() {
+    const footerRows = this.card.querySelectorAll(".footer-row-cell");
+    footerRows.forEach((row) => {
+      const rowDescription = row.querySelector(
+        ".footer-row-cell-description"
+      );
+      if (rowDescription) {
+        const isEmpty = !rowDescription.textContent.trim();
+        if (isEmpty) {
+          row.remove();
+        }
+      }
+    });
+  }
+  get mainPrice() {
+    const price2 = this.card.querySelector(
+      `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    return price2;
+  }
+  get headingMPriceSlot() {
+    return this.card.shadowRoot.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0];
+  }
+  toggleAddon(merchAddon) {
+    const mainPrice = this.mainPrice;
+    const headingMPriceSlot = this.headingMPriceSlot;
+    if (!mainPrice && headingMPriceSlot) {
+      const planType = merchAddon?.getAttribute("plan-type");
+      let visibleSpan = null;
+      if (merchAddon && planType) {
+        const matchingP = merchAddon.querySelector(
+          `p[data-plan-type="${planType}"]`
+        );
+        visibleSpan = matchingP?.querySelector(
+          'span[is="inline-price"]'
+        );
+      }
+      this.card.querySelectorAll('p[slot="heading-m-price"]').forEach((p2) => p2.remove());
+      if (merchAddon.checked) {
+        if (visibleSpan) {
+          const replacementP = createTag(
+            "p",
+            {
+              class: "addon-heading-m-price-addon",
+              slot: "heading-m-price"
+            },
+            visibleSpan.innerHTML
+          );
+          this.card.appendChild(replacementP);
+        }
+      } else {
+        const freeP = createTag(
+          "p",
+          {
+            class: "card-heading",
+            id: "free",
+            slot: "heading-m-price"
+          },
+          "Free"
+        );
+        this.card.appendChild(freeP);
+      }
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    const price2 = this.mainPrice;
+    let planType = this.card.planType;
+    if (price2) {
+      await price2.onceSettled();
+      planType = price2.value?.[0]?.planType;
+    }
+    if (!planType) return;
+    addon.planType = planType;
+    const addonWithPlanType = this.card.querySelector(
+      "merch-addon[plan-type]"
+    );
+    addonWithPlanType?.updateComplete.then(() => {
+      this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="addon"]`),
+        "addon"
+      );
+    });
+  }
+  renderLayout() {
+    return x` <div class="top-section${this.badge ? " badge" : ""}">
                 <slot name="icons"></slot> ${this.badge}
             </div>
             <slot name="heading-m"></slot>
-            ${this.card.classList.contains("bullet-list")?f`<slot name="heading-m-price"></slot>
+            ${this.card.classList.contains("bullet-list") ? x`<slot name="heading-m-price"></slot>
                       <slot name="price-commitment"></slot>
                       <slot name="body-xxs"></slot>
                       <slot name="promo-text"></slot>
                       <slot name="body-m"></slot>
-                      <slot name="offers"></slot>`:f`<slot name="body-m"></slot>
+                      <slot name="offers"></slot>` : x`<slot name="body-m"></slot>
                       <slot name="heading-m-price"></slot>
                       <slot name="body-xxs"></slot>
                       <slot name="price-commitment"></slot>
@@ -1851,7 +10135,20 @@ merch-card .footer-row-cell:nth-child(8) {
             <slot name="callout-content"></slot>
             <slot name="addon"></slot>
             ${this.getMiniCompareFooter()}
-            <slot name="footer-rows"><slot name="body-s"></slot></slot>`}async postCardUpdateHook(){await Promise.all(this.card.prices.map(r=>r.onceSettled())),await this.adjustAddon(),_i()?this.removeEmptyRows():(this.adjustMiniCompareBodySlots(),this.adjustMiniCompareFooterRows())}};u(Dt,"variantStyle",y`
+            <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
+  }
+  async postCardUpdateHook() {
+    await Promise.all(this.card.prices.map((price2) => price2.onceSettled()));
+    await this.adjustAddon();
+    if (isMobile()) {
+      this.removeEmptyRows();
+    } else {
+      this.adjustMiniCompareBodySlots();
+      this.adjustMiniCompareFooterRows();
+    }
+  }
+};
+__publicField(MiniCompareChart, "variantStyle", i`
         :host([variant='mini-compare-chart']) > slot:not([name='icons']) {
             display: block;
         }
@@ -1910,7 +10207,7 @@ merch-card .footer-row-cell:nth-child(8) {
             color: #505050;
         }
 
-        @media screen and ${je(xe)} {
+        @media screen and ${r(TABLET_DOWN)} {
             [class*'-merch-cards']
                 :host([variant='mini-compare-chart'])
                 footer {
@@ -1920,7 +10217,7 @@ merch-card .footer-row-cell:nth-child(8) {
             }
         }
 
-        @media screen and ${je(U)} {
+        @media screen and ${r(DESKTOP_UP)} {
             :host([variant='mini-compare-chart']) footer {
                 padding: var(--consonant-merch-spacing-xs)
                     var(--consonant-merch-spacing-s)
@@ -1985,7 +10282,13 @@ merch-card .footer-row-cell:nth-child(8) {
             slot[name='footer-rows'] {
             justify-content: flex-start;
         }
-    `);O();var rc=`
+    `);
+
+// src/variants/plans.js
+init_lit();
+
+// src/variants/plans.css.js
+var CSS5 = `
 :root {
     --consonant-merch-card-plans-width: 302px;
     --consonant-merch-card-plans-icon-size: 40px;
@@ -2198,7 +10501,7 @@ merch-card[variant^="plans"] merch-addon span[data-template="price"] {
 }
 
 /* Mobile */
-@media screen and ${de} {
+@media screen and ${MOBILE_LANDSCAPE} {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
@@ -2279,7 +10582,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Tablet */
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
     .four-merch-cards.plans .foreground {
         max-width: unset;
     }
@@ -2290,7 +10593,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
     :root {
         --consonant-merch-card-plans-width: 276px;
     }
@@ -2324,7 +10627,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Large desktop */
-@media screen and ${_e} {
+@media screen and ${LARGE_DESKTOP} {
     .columns .four-merch-cards.plans {
         grid-template-columns: repeat(2, var(--consonant-merch-card-plans-width));
     }
@@ -2333,11 +10636,289 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         --merch-sidenav-collection-gap: 54px;
     }
 }
-`;var Oi={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},ic={...function(){let{whatsIncluded:e,size:t,...r}=Oi;return r}(),title:{tag:"h3",slot:"heading-s"},secureLabel:!1},nc={...function(){let{subtitle:e,whatsIncluded:t,size:r,quantitySelect:i,...n}=Oi;return n}()},ae=class extends L{constructor(t){super(t),this.adaptForMedia=this.adaptForMedia.bind(this)}priceOptionsProvider(t,r){t.dataset.template===ln&&(r.displayPlanType=this.card?.settings?.displayPlanType??!1)}getGlobalCSS(){return rc}adjustSlotPlacement(t,r,i){let n=this.card.shadowRoot,o=n.querySelector("footer"),a=this.card.getAttribute("size");if(!a)return;let s=n.querySelector(`footer slot[name="${t}"]`),c=n.querySelector(`.body slot[name="${t}"]`),l=n.querySelector(".body");if(a.includes("wide")||(o?.classList.remove("wide-footer"),s&&s.remove()),!!r.includes(a)){if(o?.classList.toggle("wide-footer",Ti()),!i&&s){if(c)s.remove();else{let d=l.querySelector(`[data-placeholder-for="${t}"]`);d?d.replaceWith(s):l.appendChild(s)}return}if(i&&c){let d=document.createElement("div");if(d.setAttribute("data-placeholder-for",t),d.classList.add("slot-placeholder"),!s){let p=c.cloneNode(!0);o.prepend(p)}c.replaceWith(d)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns")){this.card.removeAttribute("size");return}this.adjustSlotPlacement("addon",["super-wide"],Ti()),this.adjustSlotPlacement("callout-content",["super-wide"],Ti())}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');t&&t.title&&(t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip"),document.addEventListener("touchstart",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.toggle("hide-tooltip")}),document.addEventListener("mouseover",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.remove("hide-tooltip")}))}async adjustEduLists(){if(this.card.variant!=="plans-education"||this.card.querySelector(".spacer"))return;let r=this.card.querySelector('[slot="body-xs"]');if(!r)return;let i=r.querySelector("ul");if(!i)return;let n=i.previousElementSibling,o=document.createElement("div");o.classList.add("spacer"),r.insertBefore(o,n);let a=new IntersectionObserver(([s])=>{if(s.boundingClientRect.height===0)return;let c=0,l=this.card.querySelector('[slot="heading-s"]');l&&(c+=Er(l));let d=this.card.querySelector('[slot="subtitle"]');d&&(c+=Er(d));let p=this.card.querySelector('[slot="heading-m"]');p&&(c+=8+Er(p));for(let g of r.childNodes){if(g.classList.contains("spacer"))break;c+=Er(g)}let m=this.card.parentElement.style.getPropertyValue("--merch-card-plans-edu-list-max-offset");c>(parseFloat(m)||0)&&this.card.parentElement.style.setProperty("--merch-card-plans-edu-list-max-offset",`${c}px`),this.card.style.setProperty("--merch-card-plans-edu-list-offset",`${c}px`),a.disconnect()});a.observe(this.card)}async postCardUpdateHook(){this.adaptForMedia(),this.adjustTitleWidth(),this.adjustAddon(),this.adjustCallout(),this.legalAdjusted||(await this.adjustLegal(),await this.adjustEduLists())}get headingM(){return this.card.querySelector('[slot="heading-m"]')}get mainPrice(){return this.headingM.querySelector(`${z}[data-template="price"]`)}get divider(){return this.card.variant==="plans-education"?f`<div class="divider"></div>`:M}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=[],r=this.card.querySelector(`[slot="heading-m"] ${z}[data-template="price"]`);r&&t.push(r);let i=t.map(async n=>{let o=n.cloneNode(!0);await n.onceSettled(),n?.options&&(n.options.displayPerUnit&&(n.dataset.displayPerUnit="false"),n.options.displayTax&&(n.dataset.displayTax="false"),n.options.displayPlanType&&(n.dataset.displayPlanType="false"),o.setAttribute("data-template","legal"),n.parentNode.insertBefore(o,n.nextSibling),await o.onceSettled())});await Promise.all(i)}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let r=this.mainPrice;if(!r)return;await r.onceSettled();let i=r.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?f`<label id="stock-checkbox">
+`;
+
+// src/variants/plans.js
+var PLANS_AEM_FRAGMENT_MAPPING = {
+  cardName: { attribute: "name" },
+  title: { tag: "h3", slot: "heading-xs" },
+  subtitle: { tag: "p", slot: "subtitle" },
+  prices: { tag: "p", slot: "heading-m" },
+  promoText: { tag: "p", slot: "promo-text" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  callout: { tag: "div", slot: "callout-content" },
+  quantitySelect: { tag: "div", slot: "quantity-select" },
+  addon: true,
+  secureLabel: true,
+  planType: true,
+  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300-plans" },
+  allowedBadgeColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-gray-700-plans",
+    "spectrum-green-900-plans"
+  ],
+  allowedBorderColors: [
+    "spectrum-yellow-300-plans",
+    "spectrum-gray-300-plans",
+    "spectrum-green-900-plans"
+  ],
+  borderColor: { attribute: "border-color" },
+  size: ["wide", "super-wide"],
+  whatsIncluded: { tag: "div", slot: "whats-included" },
+  ctas: { slot: "footer", size: "m" },
+  style: "consonant",
+  perUnitLabel: { tag: "span", slot: "per-unit-label" }
+};
+var PLANS_EDUCATION_AEM_FRAGMENT_MAPPING = {
+  ...function() {
+    const { whatsIncluded, size, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+    return rest;
+  }(),
+  title: { tag: "h3", slot: "heading-s" },
+  secureLabel: false
+};
+var PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
+  ...function() {
+    const { subtitle, whatsIncluded, size, quantitySelect, ...rest } = PLANS_AEM_FRAGMENT_MAPPING;
+    return rest;
+  }()
+};
+var Plans = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    this.adaptForMedia = this.adaptForMedia.bind(this);
+  }
+  priceOptionsProvider(element, options) {
+    if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+    options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+  }
+  getGlobalCSS() {
+    return CSS5;
+  }
+  /**
+   * Moves a slot to its proper place (body or footer) depending on card size and screen size
+   * @param {string} name
+   * @param {string[]} sizes
+   * @param {boolean} shouldBeInFooter
+   * @returns
+   */
+  adjustSlotPlacement(name, sizes, shouldBeInFooter) {
+    const shadowRoot = this.card.shadowRoot;
+    const footer = shadowRoot.querySelector("footer");
+    const size = this.card.getAttribute("size");
+    if (!size) return;
+    const slotInFooter = shadowRoot.querySelector(
+      `footer slot[name="${name}"]`
+    );
+    const slotInBody = shadowRoot.querySelector(
+      `.body slot[name="${name}"]`
+    );
+    const body = shadowRoot.querySelector(".body");
+    if (!size.includes("wide")) {
+      footer?.classList.remove("wide-footer");
+      if (slotInFooter) slotInFooter.remove();
+    }
+    if (!sizes.includes(size)) return;
+    footer?.classList.toggle("wide-footer", isDesktop());
+    if (!shouldBeInFooter && slotInFooter) {
+      if (slotInBody) slotInFooter.remove();
+      else {
+        const bodyPlaceholder = body.querySelector(
+          `[data-placeholder-for="${name}"]`
+        );
+        if (bodyPlaceholder) bodyPlaceholder.replaceWith(slotInFooter);
+        else body.appendChild(slotInFooter);
+      }
+      return;
+    }
+    if (shouldBeInFooter && slotInBody) {
+      const bodyPlaceholder = document.createElement("div");
+      bodyPlaceholder.setAttribute("data-placeholder-for", name);
+      bodyPlaceholder.classList.add("slot-placeholder");
+      if (!slotInFooter) {
+        const slotInBodyClone = slotInBody.cloneNode(true);
+        footer.prepend(slotInBodyClone);
+      }
+      slotInBody.replaceWith(bodyPlaceholder);
+    }
+  }
+  adaptForMedia() {
+    if (!this.card.closest(
+      "merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns"
+    )) {
+      this.card.removeAttribute("size");
+      return;
+    }
+    this.adjustSlotPlacement("addon", ["super-wide"], isDesktop());
+    this.adjustSlotPlacement(
+      "callout-content",
+      ["super-wide"],
+      isDesktop()
+    );
+  }
+  adjustCallout() {
+    const tooltipIcon = this.card.querySelector(
+      '[slot="callout-content"] .icon-button'
+    );
+    if (tooltipIcon && tooltipIcon.title) {
+      tooltipIcon.dataset.tooltip = tooltipIcon.title;
+      tooltipIcon.removeAttribute("title");
+      tooltipIcon.classList.add("hide-tooltip");
+      document.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        if (event.target !== tooltipIcon) {
+          tooltipIcon.classList.add("hide-tooltip");
+        } else {
+          event.target.classList.toggle("hide-tooltip");
+        }
+      });
+      document.addEventListener("mouseover", (event) => {
+        event.preventDefault();
+        if (event.target !== tooltipIcon) {
+          tooltipIcon.classList.add("hide-tooltip");
+        } else {
+          event.target.classList.remove("hide-tooltip");
+        }
+      });
+    }
+  }
+  async adjustEduLists() {
+    if (this.card.variant !== "plans-education") return;
+    const existingSpacer = this.card.querySelector(".spacer");
+    if (existingSpacer) return;
+    const body = this.card.querySelector('[slot="body-xs"]');
+    if (!body) return;
+    const list = body.querySelector("ul");
+    if (!list) return;
+    const listHeader = list.previousElementSibling;
+    const spacer = document.createElement("div");
+    spacer.classList.add("spacer");
+    body.insertBefore(spacer, listHeader);
+    const intersectionObs = new IntersectionObserver(([entry]) => {
+      if (entry.boundingClientRect.height === 0) return;
+      let offset = 0;
+      const heading = this.card.querySelector('[slot="heading-s"]');
+      if (heading) offset += getOuterHeight(heading);
+      const subtitle = this.card.querySelector('[slot="subtitle"]');
+      if (subtitle) offset += getOuterHeight(subtitle);
+      const price2 = this.card.querySelector('[slot="heading-m"]');
+      if (price2) offset += 8 + getOuterHeight(price2);
+      for (const child of body.childNodes) {
+        if (child.classList.contains("spacer")) break;
+        offset += getOuterHeight(child);
+      }
+      const maxOffset = this.card.parentElement.style.getPropertyValue(
+        "--merch-card-plans-edu-list-max-offset"
+      );
+      if (offset > (parseFloat(maxOffset) || 0)) {
+        this.card.parentElement.style.setProperty(
+          "--merch-card-plans-edu-list-max-offset",
+          `${offset}px`
+        );
+      }
+      this.card.style.setProperty(
+        "--merch-card-plans-edu-list-offset",
+        `${offset}px`
+      );
+      intersectionObs.disconnect();
+    });
+    intersectionObs.observe(this.card);
+  }
+  async postCardUpdateHook() {
+    this.adaptForMedia();
+    this.adjustTitleWidth();
+    this.adjustAddon();
+    this.adjustCallout();
+    if (!this.legalAdjusted) {
+      await this.adjustLegal();
+      await this.adjustEduLists();
+    }
+  }
+  get headingM() {
+    return this.card.querySelector('[slot="heading-m"]');
+  }
+  get mainPrice() {
+    const price2 = this.headingM.querySelector(
+      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    return price2;
+  }
+  get divider() {
+    return this.card.variant === "plans-education" ? x`<div class="divider"></div>` : A;
+  }
+  async adjustLegal() {
+    if (this.legalAdjusted) return;
+    try {
+      this.legalAdjusted = true;
+      await this.card.updateComplete;
+      await customElements.whenDefined("inline-price");
+      const prices = [];
+      const headingPrice = this.card.querySelector(
+        `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+      );
+      if (headingPrice) prices.push(headingPrice);
+      const legalPromises = prices.map(async (price2) => {
+        const legal2 = price2.cloneNode(true);
+        await price2.onceSettled();
+        if (!price2?.options) return;
+        if (price2.options.displayPerUnit)
+          price2.dataset.displayPerUnit = "false";
+        if (price2.options.displayTax)
+          price2.dataset.displayTax = "false";
+        if (price2.options.displayPlanType)
+          price2.dataset.displayPlanType = "false";
+        legal2.setAttribute("data-template", "legal");
+        price2.parentNode.insertBefore(legal2, price2.nextSibling);
+        await legal2.onceSettled();
+      });
+      await Promise.all(legalPromises);
+    } catch {
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    addon.setAttribute("custom-checkbox", "");
+    const price2 = this.mainPrice;
+    if (!price2) return;
+    await price2.onceSettled();
+    const planType = price2.value?.[0]?.planType;
+    if (!planType) return;
+    addon.planType = planType;
+  }
+  get stockCheckbox() {
+    return this.card.checkboxLabel ? x`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>`:M}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?M:f`<slot name="icons"></slot>`}connectedCallbackHook(){let t=Ai();t?.addEventListener&&t.addEventListener("change",this.adaptForMedia);let r=Si();r?.addEventListener&&r.addEventListener("change",this.adaptForMedia)}disconnectedCallbackHook(){let t=Ai();t?.removeEventListener&&t.removeEventListener("change",this.adaptForMedia);let r=Si();r?.removeEventListener&&r.removeEventListener("change",this.adaptForMedia)}renderLayout(){return f` ${this.badge}
+            </label>` : A;
+  }
+  get icons() {
+    if (!this.card.querySelector('[slot="icons"]') && !this.card.getAttribute("id"))
+      return A;
+    return x`<slot name="icons"></slot>`;
+  }
+  connectedCallbackHook() {
+    const mobileWatcher = matchMobile();
+    if (mobileWatcher?.addEventListener)
+      mobileWatcher.addEventListener("change", this.adaptForMedia);
+    const desktopWatcher = matchDesktop();
+    if (desktopWatcher?.addEventListener)
+      desktopWatcher.addEventListener("change", this.adaptForMedia);
+  }
+  disconnectedCallbackHook() {
+    const mobileWatcher = matchMobile();
+    if (mobileWatcher?.removeEventListener)
+      mobileWatcher.removeEventListener("change", this.adaptForMedia);
+    const desktopWatcher = matchDesktop();
+    if (desktopWatcher?.removeEventListener)
+      desktopWatcher.removeEventListener("change", this.adaptForMedia);
+  }
+  renderLayout() {
+    return x` ${this.badge}
             <div class="body">
                 ${this.icons}
                 <slot name="heading-xs"></slot>
@@ -2358,7 +10939,10 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
                 <slot name="badge"></slot>
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`}};u(ae,"variantStyle",y`
+            <slot></slot>`;
+  }
+};
+__publicField(Plans, "variantStyle", i`
         :host([variant^='plans']) {
             min-height: 273px;
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
@@ -2462,7 +11046,25 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
             line-height: 21px;
             padding: 2px 10px 3px;
         }
-    `),u(ae,"collectionOptions",{customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:M,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]}});O();var oc=`
+    `);
+__publicField(Plans, "collectionOptions", {
+  customHeaderArea: (collection) => {
+    if (!collection.sidenav) return A;
+    return x`<slot name="resultsText"></slot>`;
+  },
+  headerVisibility: {
+    search: false,
+    sort: false,
+    result: ["mobile", "tablet"],
+    custom: ["desktop"]
+  }
+});
+
+// src/variants/product.js
+init_lit();
+
+// src/variants/product.css.js
+var CSS6 = `
 :root {
   --consonant-merch-card-product-width: 300px;
 }
@@ -2505,7 +11107,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Tablet */
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
     .two-merch-cards.product,
     .three-merch-cards.product,
     .four-merch-cards.product {
@@ -2514,7 +11116,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-product-width: 378px;
     --consonant-merch-card-product-width-4clm: 276px;
@@ -2528,19 +11130,125 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
       grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
   }
 }
-`;var Ut=class extends L{constructor(t){super(t),this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return oc}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(r=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${r}"]`),r))}renderLayout(){return f` ${this.badge}
+`;
+
+// src/variants/product.js
+var Product = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+    this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
+  }
+  getGlobalCSS() {
+    return CSS6;
+  }
+  adjustProductBodySlots() {
+    if (this.card.getBoundingClientRect().width === 0) return;
+    const slots = [
+      "heading-xs",
+      "body-xxs",
+      "body-xs",
+      "promo-text",
+      "callout-content",
+      "addon",
+      "body-lower"
+    ];
+    slots.forEach(
+      (slot) => this.updateCardElementMinHeight(
+        this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
+        slot
+      )
+    );
+  }
+  renderLayout() {
+    return x` ${this.badge}
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":f`<slot name="promo-text"></slot>`}
+                ${!this.promoBottom ? x`<slot name="promo-text"></slot>` : ""}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?f`<slot name="promo-text"></slot>`:""}
+                ${this.promoBottom ? x`<slot name="promo-text"></slot>` : ""}
                 <slot name="callout-content"></slot>
                 <slot name="addon"></slot>
                 <slot name="body-lower"></slot>
             </div>
-            ${this.secureLabelFooter}`}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),_i()||this.adjustProductBodySlots(),this.adjustTitleWidth())}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${z}[data-template="price"]`)}toggleAddon(t){let r=this.mainPrice,i=this.headingXSSlot;if(!r&&i){let n=t?.getAttribute("plan-type"),o=null;if(t&&n&&(o=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(a=>a.remove()),t.checked){if(o){let a=oe("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},o.innerHTML);this.card.appendChild(a)}}else{let a=oe("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(a)}}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let r=this.mainPrice,i=this.card.planType;r&&(await r.onceSettled(),i=r.value?.[0]?.planType),i&&(t.planType=i)}};u(Ut,"variantStyle",y`
+            ${this.secureLabelFooter}`;
+  }
+  connectedCallbackHook() {
+    window.addEventListener("resize", this.postCardUpdateHook);
+  }
+  disconnectedCallbackHook() {
+    window.removeEventListener("resize", this.postCardUpdateHook);
+  }
+  postCardUpdateHook() {
+    if (!this.card.isConnected) return;
+    this.adjustAddon();
+    if (!isMobile()) {
+      this.adjustProductBodySlots();
+    }
+    this.adjustTitleWidth();
+  }
+  get headingXSSlot() {
+    return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0];
+  }
+  get mainPrice() {
+    const price2 = this.card.querySelector(
+      `[slot="heading-xs"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    return price2;
+  }
+  toggleAddon(merchAddon) {
+    const mainPrice = this.mainPrice;
+    const headingXSSlot = this.headingXSSlot;
+    if (!mainPrice && headingXSSlot) {
+      const planType = merchAddon?.getAttribute("plan-type");
+      let visibleSpan = null;
+      if (merchAddon && planType) {
+        const matchingP = merchAddon.querySelector(
+          `p[data-plan-type="${planType}"]`
+        );
+        visibleSpan = matchingP?.querySelector(
+          'span[is="inline-price"]'
+        );
+      }
+      this.card.querySelectorAll('p[slot="heading-xs"]').forEach((p2) => p2.remove());
+      if (merchAddon.checked) {
+        if (visibleSpan) {
+          const replacementP = createTag(
+            "p",
+            {
+              class: "addon-heading-xs-price-addon",
+              slot: "heading-xs"
+            },
+            visibleSpan.innerHTML
+          );
+          this.card.appendChild(replacementP);
+        }
+      } else {
+        const freeP = createTag(
+          "p",
+          { class: "card-heading", id: "free", slot: "heading-xs" },
+          "Free"
+        );
+        this.card.appendChild(freeP);
+      }
+    }
+  }
+  async adjustAddon() {
+    await this.card.updateComplete;
+    const addon = this.card.addon;
+    if (!addon) return;
+    const price2 = this.mainPrice;
+    let planType = this.card.planType;
+    if (price2) {
+      await price2.onceSettled();
+      planType = price2.value?.[0]?.planType;
+    }
+    if (!planType) return;
+    addon.planType = planType;
+  }
+};
+__publicField(Product, "variantStyle", i`
         :host([variant='product']) > slot:not([name='icons']) {
             display: block;
         }
@@ -2573,7 +11281,13 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         :host([variant='product']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `);O();var ac=`
+    `);
+
+// src/variants/segment.js
+init_lit();
+
+// src/variants/segment.css.js
+var CSS7 = `
 :root {
   --consonant-merch-card-segment-width: 378px;
 }
@@ -2587,13 +11301,13 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Mobile */
-@media screen and ${de} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
 }
 
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
@@ -2606,7 +11320,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-segment-width: 302px;
   }
@@ -2619,25 +11333,48 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 }
-`;var Bt=class extends L{constructor(t){super(t)}getGlobalCSS(){return ac}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return f` ${this.badge}
+`;
+
+// src/variants/segment.js
+var Segment = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS7;
+  }
+  postCardUpdateHook() {
+    this.adjustTitleWidth();
+  }
+  renderLayout() {
+    return x` ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom?"":f`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`}
+                ${!this.promoBottom ? x`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom?f`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`:""}
+                ${this.promoBottom ? x`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>` : ""}
             </div>
             <hr />
-            ${this.secureLabelFooter}`}};u(Bt,"variantStyle",y`
+            ${this.secureLabelFooter}`;
+  }
+};
+__publicField(Segment, "variantStyle", i`
         :host([variant='segment']) {
             min-height: 214px;
         }
         :host([variant='segment']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `);O();var sc=`
+    `);
+
+// src/variants/special-offer.js
+init_lit();
+
+// src/variants/special-offer.css.js
+var CSS8 = `
 :root {
   --consonant-merch-card-special-offers-width: 378px;
 }
@@ -2654,13 +11391,13 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
   grid-template-columns: minmax(300px, var(--consonant-merch-card-special-offers-width));
 }
 
-@media screen and ${de} {
+@media screen and ${MOBILE_LANDSCAPE} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
 } 
   
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
@@ -2673,36 +11410,61 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
   .three-merch-cards.special-offers,
   .four-merch-cards.special-offers {
     grid-template-columns: repeat(3, minmax(300px, var(--consonant-merch-card-special-offers-width)));
   }
 }
 
-@media screen and ${_e} {
+@media screen and ${LARGE_DESKTOP} {
   .four-merch-cards.special-offers {
     grid-template-columns: repeat(4, minmax(300px, var(--consonant-merch-card-special-offers-width)));
   }
 }
-`;var cc={name:{tag:"h4",slot:"detail-m"},title:{tag:"h4",slot:"detail-m"},backgroundImage:{tag:"div",slot:"bg-image"},prices:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"}},zt=class extends L{constructor(t){super(t)}getGlobalCSS(){return sc}get headingSelector(){return'[slot="detail-m"]'}renderLayout(){return f`${this.cardImage}
+`;
+
+// src/variants/special-offer.js
+var SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
+  name: { tag: "h4", slot: "detail-m" },
+  title: { tag: "h4", slot: "detail-m" },
+  backgroundImage: { tag: "div", slot: "bg-image" },
+  prices: { tag: "h3", slot: "heading-xs" },
+  description: { tag: "div", slot: "body-xs" },
+  ctas: { slot: "footer", size: "l" }
+};
+var SpecialOffer = class extends VariantLayout {
+  constructor(card) {
+    super(card);
+  }
+  getGlobalCSS() {
+    return CSS8;
+  }
+  get headingSelector() {
+    return '[slot="detail-m"]';
+  }
+  renderLayout() {
+    return x`${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xs"></slot>
             </div>
-            ${this.evergreen?f`
+            ${this.evergreen ? x`
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card.detailBg}"
+                          style="background: ${this.card["detailBg"]}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  `:f`
+                  ` : x`
                       <hr />
                       ${this.secureLabelFooter}
                   `}
-            <slot></slot>`}};u(zt,"variantStyle",y`
+            <slot></slot>`;
+  }
+};
+__publicField(SpecialOffer, "variantStyle", i`
         :host([variant='special-offers']) {
             min-height: 439px;
         }
@@ -2714,7 +11476,13 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
         :host([variant='special-offers'].center) {
             text-align: center;
         }
-    `);O();var lc=`
+    `);
+
+// src/variants/simplified-pricing-express.js
+init_lit();
+
+// src/variants/simplified-pricing-express.css.js
+var CSS9 = `
 :root {
     --merch-card-simplified-pricing-express-width: 311px;
 }
@@ -2744,7 +11512,7 @@ merch-card-collection.simplified-pricing-express p {
 }
 
 /* Desktop - 3 columns */
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
     merch-card-collection.simplified-pricing-express {
         grid-template-columns: repeat(3, 1fr);
         max-width: calc(3 * var(--merch-card-simplified-pricing-express-width) + 32px);
@@ -2927,7 +11695,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 /* Tooltip containers - overflow handled by Shadow DOM */
 
 /* Mobile styles */
-@media screen and ${de} {
+@media screen and ${MOBILE_LANDSCAPE} {
   merch-card-collection.simplified-pricing-express {
     gap: 8px;
   }
@@ -2962,7 +11730,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Collapse/expand styles for all tablet and mobile viewports */
-@media screen and ${xe} {
+@media screen and ${TABLET_DOWN} {
   /* Collapsed state - hide content sections */
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="price"],
@@ -3002,7 +11770,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Tablet styles - extending mobile styles with specific adjustments */
-@media screen and ${F} and ${xe} {
+@media screen and ${TABLET_UP} and ${TABLET_DOWN} {
   merch-card-collection.simplified-pricing-express {
     padding: var(--spacing-m) 32px;
     grid-template-columns: 1fr;
@@ -3030,7 +11798,138 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] button.spectrum-Bu
 merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent .spectrum-Button-label {
     color: var(--spectrum-white, #ffffff);
 }
-`;var Ni=()=>window.matchMedia(xe).matches,bo={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},Ft=class extends L{getGlobalCSS(){return lc}get aemFragmentMapping(){return bo}get headingSelector(){return'[slot="heading-xs"]'}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),requestAnimationFrame(()=>{this.card?.hasAttribute("data-default-card")&&Ni()&&this.card.setAttribute("data-expanded","true")}))}setupAccordion(){let t=this.card;if(!t)return;let r=()=>{if(Ni()){let n=t.hasAttribute("data-default-card");t.setAttribute("data-expanded",n?"true":"false")}else t.removeAttribute("data-expanded")};r();let i=window.matchMedia(xe);this.mediaQueryListener=()=>{r()},i.addEventListener("change",this.mediaQueryListener),this.attributeObserver=new MutationObserver(n=>{n.forEach(o=>{o.type==="attributes"&&o.attributeName==="data-default-card"&&this.card.hasAttribute("data-default-card")&&Ni()&&this.card.setAttribute("data-expanded","true")})}),this.attributeObserver.observe(this.card,{attributes:!0,attributeOldValue:!0})}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(xe).removeEventListener("change",this.mediaQueryListener),this.attributeObserver&&this.attributeObserver.disconnect()}handleChevronClick(t){t.preventDefault(),t.stopPropagation();let r=this.card;if(!r||!Ni())return;let o=r.getAttribute("data-expanded")==="true"?"false":"true";r.setAttribute("data-expanded",o)}renderLayout(){return f`
+`;
+
+// src/variants/simplified-pricing-express.js
+var isTabletOrBelow = () => window.matchMedia(TABLET_DOWN).matches;
+var SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
+  title: {
+    tag: "h3",
+    slot: "heading-xs",
+    maxCount: 250,
+    withSuffix: true
+  },
+  badge: {
+    tag: "div",
+    slot: "badge",
+    default: "spectrum-blue-400"
+  },
+  allowedBadgeColors: [
+    "spectrum-blue-400",
+    "spectrum-gray-300",
+    "spectrum-yellow-300",
+    "gradient-purple-blue",
+    "gradient-firefly-spectrum"
+  ],
+  description: {
+    tag: "div",
+    slot: "body-xs",
+    maxCount: 2e3,
+    withSuffix: false
+  },
+  prices: {
+    tag: "div",
+    slot: "price"
+  },
+  ctas: {
+    slot: "cta",
+    size: "XL"
+  },
+  borderColor: {
+    attribute: "border-color",
+    specialValues: {
+      gray: "var(--spectrum-gray-300)",
+      blue: "var(--spectrum-blue-400)",
+      "gradient-purple-blue": "linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)",
+      "gradient-firefly-spectrum": "linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"
+    }
+  },
+  disabledAttributes: [
+    "badgeColor",
+    "badgeBorderColor",
+    "trialBadgeColor",
+    "trialBadgeBorderColor"
+  ],
+  supportsDefaultChild: true
+};
+var SimplifiedPricingExpress = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS9;
+  }
+  get aemFragmentMapping() {
+    return SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING;
+  }
+  get headingSelector() {
+    return '[slot="heading-xs"]';
+  }
+  connectedCallbackHook() {
+    if (!this.card || this.card.failed) {
+      return;
+    }
+    this.setupAccordion();
+    requestAnimationFrame(() => {
+      if (this.card?.hasAttribute("data-default-card") && isTabletOrBelow()) {
+        this.card.setAttribute("data-expanded", "true");
+      }
+    });
+  }
+  setupAccordion() {
+    const merchCard = this.card;
+    if (!merchCard) {
+      return;
+    }
+    const updateExpandedState = () => {
+      if (isTabletOrBelow()) {
+        const isDefaultCard = merchCard.hasAttribute("data-default-card");
+        merchCard.setAttribute(
+          "data-expanded",
+          isDefaultCard ? "true" : "false"
+        );
+      } else {
+        merchCard.removeAttribute("data-expanded");
+      }
+    };
+    updateExpandedState();
+    const mediaQuery = window.matchMedia(TABLET_DOWN);
+    this.mediaQueryListener = () => {
+      updateExpandedState();
+    };
+    mediaQuery.addEventListener("change", this.mediaQueryListener);
+    this.attributeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes" && mutation.attributeName === "data-default-card" && this.card.hasAttribute("data-default-card") && isTabletOrBelow()) {
+          this.card.setAttribute("data-expanded", "true");
+        }
+      });
+    });
+    this.attributeObserver.observe(this.card, {
+      attributes: true,
+      attributeOldValue: true
+    });
+  }
+  disconnectedCallbackHook() {
+    if (this.mediaQueryListener) {
+      const mediaQuery = window.matchMedia(TABLET_DOWN);
+      mediaQuery.removeEventListener("change", this.mediaQueryListener);
+    }
+    if (this.attributeObserver) {
+      this.attributeObserver.disconnect();
+    }
+  }
+  handleChevronClick(e4) {
+    e4.preventDefault();
+    e4.stopPropagation();
+    const merchCard = this.card;
+    if (!merchCard || !isTabletOrBelow()) {
+      return;
+    }
+    const currentExpanded = merchCard.getAttribute("data-expanded");
+    const isExpanded = currentExpanded === "true";
+    const newExpanded = !isExpanded ? "true" : "false";
+    merchCard.setAttribute("data-expanded", newExpanded);
+  }
+  renderLayout() {
+    return x`
             <div class="badge-wrapper">
                 <slot name="badge"></slot>
             </div>
@@ -3040,7 +11939,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                     <slot name="trial-badge"></slot>
                     <button
                         class="chevron-button"
-                        @click=${t=>this.handleChevronClick(t)}
+                        @click=${(e4) => this.handleChevronClick(e4)}
                     >
                         <svg
                             class="chevron-icon"
@@ -3068,7 +11967,10 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 </div>
             </div>
             <slot></slot>
-        `}};u(Ft,"variantStyle",y`
+        `;
+  }
+};
+__publicField(SimplifiedPricingExpress, "variantStyle", i`
         :host([variant='simplified-pricing-express']) {
             /* CSS Variables */
             --merch-card-simplified-pricing-express-width: 365px;
@@ -3444,7 +12346,13 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 padding: 16px 16px 35px 16px;
             }
         }
-    `);O();var dc=`
+    `);
+
+// src/variants/mini.js
+init_lit();
+
+// src/variants/mini.css.js
+var CSS10 = `
 merch-card[variant="mini"] {
   color: var(--spectrum-body-color);
   width: 400px;
@@ -3477,7 +12385,59 @@ merch-card[variant="mini"] span.promo-duration-text,
 merch-card[variant="mini"] span.renewal-text {
     display: block;
 }
-`;var hc={title:{tag:"p",slot:"title"},prices:{tag:"p",slot:"prices"},description:{tag:"p",slot:"description"},planType:!0,ctas:{slot:"ctas",size:"S"}},Gt=class extends L{constructor(){super(...arguments);u(this,"legal")}async postCardUpdateHook(){await this.card.updateComplete,this.adjustLegal()}getGlobalCSS(){return dc}get headingSelector(){return'[slot="title"]'}priceOptionsProvider(r,i){i.literals={...i.literals,strikethroughAriaLabel:"",alternativePriceAriaLabel:""},i.space=!0,i.displayAnnual=this.card.settings?.displayAnnual??!1}adjustLegal(){if(this.legal!==void 0)return;let r=this.card.querySelector(`${z}[data-template="price"]`);if(!r)return;let i=r.cloneNode(!0);this.legal=i,r.dataset.displayTax="false",i.dataset.template="legal",i.dataset.displayPlanType=this.card?.settings?.displayPlanType??!0,i.setAttribute("slot","legal"),this.card.appendChild(i)}renderLayout(){return f`
+`;
+
+// src/variants/mini.js
+var MINI_AEM_FRAGMENT_MAPPING = {
+  title: { tag: "p", slot: "title" },
+  prices: { tag: "p", slot: "prices" },
+  description: {
+    tag: "p",
+    slot: "description"
+  },
+  planType: true,
+  ctas: { slot: "ctas", size: "S" }
+};
+var Mini = class extends VariantLayout {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "legal");
+  }
+  async postCardUpdateHook() {
+    await this.card.updateComplete;
+    this.adjustLegal();
+  }
+  getGlobalCSS() {
+    return CSS10;
+  }
+  get headingSelector() {
+    return '[slot="title"]';
+  }
+  priceOptionsProvider(element, options) {
+    options.literals = {
+      ...options.literals,
+      strikethroughAriaLabel: "",
+      alternativePriceAriaLabel: ""
+    };
+    options.space = true;
+    options.displayAnnual = this.card.settings?.displayAnnual ?? false;
+  }
+  adjustLegal() {
+    if (this.legal !== void 0) return;
+    const price2 = this.card.querySelector(
+      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`
+    );
+    if (!price2) return;
+    const legal2 = price2.cloneNode(true);
+    this.legal = legal2;
+    price2.dataset.displayTax = "false";
+    legal2.dataset.template = "legal";
+    legal2.dataset.displayPlanType = this.card?.settings?.displayPlanType ?? true;
+    legal2.setAttribute("slot", "legal");
+    this.card.appendChild(legal2);
+  }
+  renderLayout() {
+    return x`
             ${this.badge}
             <div class="body">
                 <slot name="title"></slot>
@@ -3486,14 +12446,107 @@ merch-card[variant="mini"] span.renewal-text {
                 <slot name="description"></slot>
                 <slot name="ctas"></slot>
             </div>
-        `}};u(Gt,"variantStyle",y`
+        `;
+  }
+};
+__publicField(Mini, "variantStyle", i`
         :host([variant='mini']) {
             min-width: 209px;
             min-height: 103px;
             background-color: var(--spectrum-background-base-color);
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
         }
-    `);var Mi=new Map,W=(e,t,r=null,i=null,n)=>{Mi.set(e,{class:t,fragmentMapping:r,style:i,collectionOptions:n})};W("catalog",Ht,Zs,Ht.variantStyle);W("image",Li);W("inline-heading",Ri);W("mini-compare-chart",Dt,null,Dt.variantStyle);W("plans",ae,Oi,ae.variantStyle,ae.collectionOptions);W("plans-students",ae,nc,ae.variantStyle,ae.collectionOptions);W("plans-education",ae,ic,ae.variantStyle,ae.collectionOptions);W("product",Ut,null,Ut.variantStyle);W("segment",Bt,null,Bt.variantStyle);W("special-offers",zt,cc,zt.variantStyle);W("simplified-pricing-express",Ft,bo,Ft.variantStyle);W("mini",Gt,hc,Gt.variantStyle);var vo=e=>{let t=Mi.get(e.variant);if(!t)return;let{class:r,style:i}=t;if(i)try{let n=new CSSStyleSheet;n.replaceSync(i.cssText),e.shadowRoot.adoptedStyleSheets.push(n)}catch{let o=document.createElement("style");o.textContent=i.cssText,e.shadowRoot.appendChild(o)}return new r(e)};function Pi(e){return Mi.get(e)?.fragmentMapping}function pc(e){return Mi.get(e)?.collectionOptions}var mc=document.createElement("style");mc.innerHTML=`
+    `);
+
+// src/variants/variants.js
+var variantRegistry = /* @__PURE__ */ new Map();
+var registerVariant = (name, variantClass, fragmentMapping = null, style = null, collectionOptions) => {
+  variantRegistry.set(name, {
+    class: variantClass,
+    fragmentMapping,
+    style,
+    collectionOptions
+  });
+};
+registerVariant(
+  "catalog",
+  Catalog,
+  CATALOG_AEM_FRAGMENT_MAPPING,
+  Catalog.variantStyle
+);
+registerVariant("image", Image2);
+registerVariant("inline-heading", InlineHeading);
+registerVariant(
+  "mini-compare-chart",
+  MiniCompareChart,
+  null,
+  MiniCompareChart.variantStyle
+);
+registerVariant(
+  "plans",
+  Plans,
+  PLANS_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant(
+  "plans-students",
+  Plans,
+  PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant(
+  "plans-education",
+  Plans,
+  PLANS_EDUCATION_AEM_FRAGMENT_MAPPING,
+  Plans.variantStyle,
+  Plans.collectionOptions
+);
+registerVariant("product", Product, null, Product.variantStyle);
+registerVariant("segment", Segment, null, Segment.variantStyle);
+registerVariant(
+  "special-offers",
+  SpecialOffer,
+  SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
+  SpecialOffer.variantStyle
+);
+registerVariant(
+  "simplified-pricing-express",
+  SimplifiedPricingExpress,
+  SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+  SimplifiedPricingExpress.variantStyle
+);
+registerVariant("mini", Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
+var getVariantLayout = (card) => {
+  const variantInfo = variantRegistry.get(card.variant);
+  if (!variantInfo) {
+    return void 0;
+  }
+  const { class: VariantClass, style } = variantInfo;
+  if (style) {
+    try {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(style.cssText);
+      card.shadowRoot.adoptedStyleSheets.push(sheet);
+    } catch (e4) {
+      const styleElement = document.createElement("style");
+      styleElement.textContent = style.cssText;
+      card.shadowRoot.appendChild(styleElement);
+    }
+  }
+  return new VariantClass(card);
+};
+function getFragmentMapping(variant) {
+  return variantRegistry.get(variant)?.fragmentMapping;
+}
+function getCollectionOptions(variant) {
+  return variantRegistry.get(variant)?.collectionOptions;
+}
+
+// src/global.css.js
+var styles2 = document.createElement("style");
+styles2.innerHTML = `
 :root {
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;
@@ -4180,7 +13233,7 @@ merch-card [slot='callout-content'] .icon-button::before {
   }
 }
 
-@media screen and ${F} {
+@media screen and ${TABLET_UP} {
     .two-merch-cards,
     .three-merch-cards,
     .four-merch-cards {
@@ -4188,7 +13241,7 @@ merch-card [slot='callout-content'] .icon-button::before {
     }
 }
 
-@media screen and ${U} {
+@media screen and ${DESKTOP_UP} {
     .four-merch-cards {
         grid-template-columns: repeat(4, var(--merch-card-collection-card-width));
     }
@@ -4199,14 +13252,489 @@ merch-card [slot='callout-content'] .icon-button::before {
     }
 }
 
-@media screen and ${_e} {
+@media screen and ${LARGE_DESKTOP} {
     .four-merch-cards,
     merch-sidenav ~ .four-merch-cards {
         grid-template-columns: repeat(4, var(--merch-card-collection-card-width));
     }
 }
 
-`;document.head.appendChild(mc);var uc="fragment",gc="author",fc="preview",xc="loading",bc="timeout",yo="aem-fragment",vc="eager",yc="cache",lh=[vc,yc],Te,gt,be,Eo=class{constructor(){E(this,Te,new Map);E(this,gt,new Map);E(this,be,new Map)}clear(){h(this,Te).clear(),h(this,gt).clear(),h(this,be).clear()}add(t,r=!0){if(!this.has(t.id)&&!this.has(t.fields?.originalId)){if(h(this,Te).set(t.id,t),t.fields?.originalId&&h(this,Te).set(t.fields.originalId,t),h(this,be).has(t.id)){let[,i]=h(this,be).get(t.id);i()}if(h(this,be).has(t.fields?.originalId)){let[,i]=h(this,be).get(t.fields?.originalId);i()}if(!(!r||typeof t.references!="object"||Array.isArray(t.references)))for(let i in t.references){let{type:n,value:o}=t.references[i];n==="content-fragment"&&(o.settings={...t?.settings,...o.settings},o.placeholders={...t?.placeholders,...o.placeholders},o.dictionary={...t?.dictionary,...o.dictionary},o.priceLiterals={...t?.priceLiterals,...o.priceLiterals},this.add(o,t))}}}has(t){return h(this,Te).has(t)}entries(){return h(this,Te).entries()}get(t){return h(this,Te).get(t)}getAsPromise(t){let[r]=h(this,be).get(t)??[];if(r)return r;let i;return r=new Promise(n=>{i=n,this.has(t)&&n()}),h(this,be).set(t,[r,i]),r}getFetchInfo(t){let r=h(this,gt).get(t);return r||(r={url:null,retryCount:0,stale:!1,measure:null,status:null},h(this,gt).set(t,r)),r}remove(t){h(this,Te).delete(t),h(this,gt).delete(t),h(this,be).delete(t)}};Te=new WeakMap,gt=new WeakMap,be=new WeakMap;var We=new Eo,Vt,Ce,$e,ue,se,K,Mr,Ir,ve,$r,Hr,jt,ye,Ec,wc,wo,Ac,Ii=class extends HTMLElement{constructor(){super(...arguments);E(this,ye);u(this,"cache",We);E(this,Vt);E(this,Ce,null);E(this,$e,null);E(this,ue,null);E(this,se);E(this,K);E(this,Mr,vc);E(this,Ir,5e3);E(this,ve);E(this,$r,!1);E(this,Hr,0);E(this,jt)}static get observedAttributes(){return[uc,xc,bc,gc,fc]}attributeChangedCallback(r,i,n){r===uc&&(v(this,se,n),v(this,K,We.getFetchInfo(n))),r===xc&&lh.includes(n)&&v(this,Mr,n),r===bc&&v(this,Ir,parseInt(n,10)),r===gc&&v(this,$r,["","true"].includes(n)),r===fc&&v(this,jt,n)}connectedCallback(){if(!h(this,ve)){if(h(this,ue)??v(this,ue,at(this)),v(this,jt,h(this,ue).settings?.preview),h(this,Vt)??v(this,Vt,h(this,ue).log.module(`${yo}[${h(this,se)}]`)),!h(this,se)||h(this,se)==="#"){h(this,K)??v(this,K,We.getFetchInfo("missing-fragment-id")),Z(this,ye,wo).call(this,"Missing fragment id");return}this.refresh(!1)}}get fetchInfo(){return Object.fromEntries(Object.entries(h(this,K)).filter(([r,i])=>i!=null).map(([r,i])=>[`aem-fragment:${r}`,i]))}async refresh(r=!0){if(h(this,ve)&&!await Promise.race([h(this,ve),Promise.resolve(!1)]))return;r&&We.remove(h(this,se)),h(this,Mr)===yc&&await Promise.race([We.getAsPromise(h(this,se)),new Promise(s=>setTimeout(s,h(this,Ir)))]);try{v(this,ve,Z(this,ye,Ac).call(this)),await h(this,ve)}catch(s){return Z(this,ye,wo).call(this,s.message),!1}let{references:i,referencesTree:n,placeholders:o,wcs:a}=h(this,Ce)||{};return a&&!H("mas.disableWcsCache")&&h(this,ue).prefillWcsCache(a),this.dispatchEvent(new CustomEvent(Ze,{detail:{...this.data,references:i,referencesTree:n,placeholders:o,...h(this,K)},bubbles:!0,composed:!0})),h(this,ve)}get updateComplete(){return h(this,ve)??Promise.reject(new Error("AEM fragment cannot be loaded"))}get data(){return h(this,$e)?h(this,$e):(h(this,$r)?this.transformAuthorData():this.transformPublishData(),h(this,$e))}transformAuthorData(){let{fields:r,id:i,tags:n,settings:o={},priceLiterals:a={},dictionary:s={},placeholders:c={}}=h(this,Ce);v(this,$e,r.reduce((l,{name:d,multiple:p,values:m})=>(l.fields[d]=p?m:m[0],l),{fields:{},id:i,tags:n,settings:o,priceLiterals:a,dictionary:s,placeholders:c}))}transformPublishData(){let{fields:r,id:i,tags:n,settings:o={},priceLiterals:a={},dictionary:s={},placeholders:c={}}=h(this,Ce);v(this,$e,Object.entries(r).reduce((l,[d,p])=>(l.fields[d]=p?.mimeType?p.value:p??"",l),{fields:{},id:i,tags:n,settings:o,priceLiterals:a,dictionary:s,placeholders:c}))}getFragmentClientUrl(){let i=new URLSearchParams(window.location.search).get("maslibs");if(!i||i.trim()==="")return"https://mas.adobe.com/studio/libs/fragment-client.js";let n=i.trim().toLowerCase();if(n==="local")return"http://localhost:3030/studio/libs/fragment-client.js";let{hostname:o}=window.location,a=o.endsWith(".page")?"page":"live";return n.includes("--")?`https://${n}.aem.${a}/studio/libs/fragment-client.js`:`https://${n}--mas--adobecom.aem.${a}/studio/libs/fragment-client.js`}async generatePreview(){let r=this.getFragmentClientUrl(),{previewFragment:i}=await import(r);return await i(h(this,se),{locale:h(this,ue).settings.locale,apiKey:h(this,ue).settings.wcsApiKey})}};Vt=new WeakMap,Ce=new WeakMap,$e=new WeakMap,ue=new WeakMap,se=new WeakMap,K=new WeakMap,Mr=new WeakMap,Ir=new WeakMap,ve=new WeakMap,$r=new WeakMap,Hr=new WeakMap,jt=new WeakMap,ye=new WeakSet,Ec=async function(r){Do(this,Hr)._++;let i=`${yo}:${h(this,se)}:${h(this,Hr)}`,n=`${i}${tt}`,o=`${i}${rt}`;if(h(this,jt))return await this.generatePreview();performance.mark(n);let a;try{if(h(this,K).stale=!1,h(this,K).url=r,a=await gi(r,{cache:"default",credentials:"omit"}),Z(this,ye,wc).call(this,a),h(this,K).status=a?.status,h(this,K).measure=Se(performance.measure(o,n)),h(this,K).retryCount=a.retryCount,!a?.ok)throw new Re("Unexpected fragment response",{response:a,...h(this,ue).duration});return await a.json()}catch(s){if(h(this,K).measure=Se(performance.measure(o,n)),h(this,K).retryCount=s.retryCount,h(this,Ce))return h(this,K).stale=!0,h(this,Vt).error("Serving stale data",h(this,K)),h(this,Ce);let c=s.message??"unknown";throw new Re(`Failed to fetch fragment: ${c}`,{})}},wc=function(r){Object.assign(h(this,K),ei(r))},wo=function(r){v(this,ve,null),h(this,K).message=r,this.classList.add("error");let i={...h(this,K),...h(this,ue).duration};h(this,Vt).error(r,i),this.dispatchEvent(new CustomEvent(Je,{detail:i,bubbles:!0,composed:!0}))},Ac=async function(){var c;this.classList.remove("error"),v(this,$e,null);let r=We.get(h(this,se));if(r)return v(this,Ce,r),!0;let{masIOUrl:i,wcsApiKey:n,country:o,locale:a}=h(this,ue).settings,s=`${i}/fragment?id=${h(this,se)}&api_key=${n}&locale=${a}`;return o&&!a.endsWith(`_${o}`)&&(s+=`&country=${o}`),r=await Z(this,ye,Ec).call(this,s),(c=r.fields).originalId??(c.originalId=h(this,se)),We.add(r),v(this,Ce,r),!0},u(Ii,"cache",We);customElements.define(yo,Ii);O();var qt=class extends I{constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent}connectedCallback(){this.borderColor&&this.borderColor!=="Transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-border-radius","4px 0 0 4px"),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.textContent="",super.connectedCallback()}render(){return f`<div class="badge">${this.text}</div>`}};u(qt,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"}}),u(qt,"styles",y`
+`;
+document.head.appendChild(styles2);
+
+// src/aem-fragment.js
+var ATTRIBUTE_FRAGMENT = "fragment";
+var ATTRIBUTE_AUTHOR = "author";
+var ATTRIBUTE_PREVIEW = "preview";
+var ATTRIBUTE_LOADING = "loading";
+var ATTRIBUTE_TIMEOUT = "timeout";
+var AEM_FRAGMENT_TAG_NAME = "aem-fragment";
+var LOADING_EAGER = "eager";
+var LOADING_CACHE = "cache";
+var LOADING_VALUES = [LOADING_EAGER, LOADING_CACHE];
+var _fragmentCache, _fetchInfos, _promises;
+var FragmentCache = class {
+  constructor() {
+    __privateAdd(this, _fragmentCache, /* @__PURE__ */ new Map());
+    __privateAdd(this, _fetchInfos, /* @__PURE__ */ new Map());
+    __privateAdd(this, _promises, /* @__PURE__ */ new Map());
+  }
+  clear() {
+    __privateGet(this, _fragmentCache).clear();
+    __privateGet(this, _fetchInfos).clear();
+    __privateGet(this, _promises).clear();
+  }
+  /**
+   * Add fragment to cache
+   * @param {Object} fragment fragment object.
+   */
+  add(fragment, references = true) {
+    if (this.has(fragment.id)) return;
+    if (this.has(fragment.fields?.originalId)) return;
+    __privateGet(this, _fragmentCache).set(fragment.id, fragment);
+    if (fragment.fields?.originalId) {
+      __privateGet(this, _fragmentCache).set(fragment.fields.originalId, fragment);
+    }
+    if (__privateGet(this, _promises).has(fragment.id)) {
+      const [, resolve] = __privateGet(this, _promises).get(fragment.id);
+      resolve();
+    }
+    if (__privateGet(this, _promises).has(fragment.fields?.originalId)) {
+      const [, resolve] = __privateGet(this, _promises).get(fragment.fields?.originalId);
+      resolve();
+    }
+    if (!references || typeof fragment.references !== "object" || Array.isArray(fragment.references))
+      return;
+    for (const key in fragment.references) {
+      const { type, value } = fragment.references[key];
+      if (type === "content-fragment") {
+        value.settings = {
+          ...fragment?.settings,
+          ...value.settings
+        };
+        value.placeholders = {
+          ...fragment?.placeholders,
+          ...value.placeholders
+        };
+        value.dictionary = {
+          ...fragment?.dictionary,
+          ...value.dictionary
+        };
+        value.priceLiterals = {
+          ...fragment?.priceLiterals,
+          ...value.priceLiterals
+        };
+        this.add(value, fragment);
+      }
+    }
+  }
+  has(fragmentId) {
+    return __privateGet(this, _fragmentCache).has(fragmentId);
+  }
+  entries() {
+    return __privateGet(this, _fragmentCache).entries();
+  }
+  get(key) {
+    return __privateGet(this, _fragmentCache).get(key);
+  }
+  getAsPromise(key) {
+    let [promise] = __privateGet(this, _promises).get(key) ?? [];
+    if (promise) {
+      return promise;
+    }
+    let resolveFn;
+    promise = new Promise((resolve) => {
+      resolveFn = resolve;
+      if (this.has(key)) {
+        resolve();
+      }
+    });
+    __privateGet(this, _promises).set(key, [promise, resolveFn]);
+    return promise;
+  }
+  getFetchInfo(fragmentId) {
+    let fetchInfo = __privateGet(this, _fetchInfos).get(fragmentId);
+    if (!fetchInfo) {
+      fetchInfo = {
+        url: null,
+        retryCount: 0,
+        stale: false,
+        measure: null,
+        status: null
+      };
+      __privateGet(this, _fetchInfos).set(fragmentId, fetchInfo);
+    }
+    return fetchInfo;
+  }
+  remove(fragmentId) {
+    __privateGet(this, _fragmentCache).delete(fragmentId);
+    __privateGet(this, _fetchInfos).delete(fragmentId);
+    __privateGet(this, _promises).delete(fragmentId);
+  }
+};
+_fragmentCache = new WeakMap();
+_fetchInfos = new WeakMap();
+_promises = new WeakMap();
+var cache = new FragmentCache();
+var _log, _rawData, _data, _service3, _fragmentId, _fetchInfo, _loading, _timeout, _fetchPromise, _author, _fetchCount, _preview, _AemFragment_instances, getFragmentById_fn, applyHeaders_fn, fail_fn, fetchData_fn;
+var AemFragment = class extends HTMLElement {
+  constructor() {
+    super(...arguments);
+    __privateAdd(this, _AemFragment_instances);
+    __publicField(this, "cache", cache);
+    __privateAdd(this, _log);
+    __privateAdd(this, _rawData, null);
+    __privateAdd(this, _data, null);
+    __privateAdd(this, _service3, null);
+    /**
+     * @type {string} fragment id
+     */
+    __privateAdd(this, _fragmentId);
+    __privateAdd(this, _fetchInfo);
+    __privateAdd(this, _loading, LOADING_EAGER);
+    __privateAdd(this, _timeout, 5e3);
+    /**
+     * Internal promise to track if fetching is in progress.
+     */
+    __privateAdd(this, _fetchPromise);
+    __privateAdd(this, _author, false);
+    __privateAdd(this, _fetchCount, 0);
+    __privateAdd(this, _preview);
+  }
+  static get observedAttributes() {
+    return [
+      ATTRIBUTE_FRAGMENT,
+      ATTRIBUTE_LOADING,
+      ATTRIBUTE_TIMEOUT,
+      ATTRIBUTE_AUTHOR,
+      ATTRIBUTE_PREVIEW
+    ];
+  }
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === ATTRIBUTE_FRAGMENT) {
+      __privateSet(this, _fragmentId, newValue);
+      __privateSet(this, _fetchInfo, cache.getFetchInfo(newValue));
+    }
+    if (name === ATTRIBUTE_LOADING && LOADING_VALUES.includes(newValue)) {
+      __privateSet(this, _loading, newValue);
+    }
+    if (name === ATTRIBUTE_TIMEOUT) {
+      __privateSet(this, _timeout, parseInt(newValue, 10));
+    }
+    if (name === ATTRIBUTE_AUTHOR) {
+      __privateSet(this, _author, ["", "true"].includes(newValue));
+    }
+    if (name === ATTRIBUTE_PREVIEW) {
+      __privateSet(this, _preview, newValue);
+    }
+  }
+  connectedCallback() {
+    if (__privateGet(this, _fetchPromise)) return;
+    __privateGet(this, _service3) ?? __privateSet(this, _service3, getService2(this));
+    __privateSet(this, _preview, __privateGet(this, _service3).settings?.preview);
+    __privateGet(this, _log) ?? __privateSet(this, _log, __privateGet(this, _service3).log.module(
+      `${AEM_FRAGMENT_TAG_NAME}[${__privateGet(this, _fragmentId)}]`
+    ));
+    if (!__privateGet(this, _fragmentId) || __privateGet(this, _fragmentId) === "#") {
+      __privateGet(this, _fetchInfo) ?? __privateSet(this, _fetchInfo, cache.getFetchInfo("missing-fragment-id"));
+      __privateMethod(this, _AemFragment_instances, fail_fn).call(this, "Missing fragment id");
+      return;
+    }
+    this.refresh(false);
+  }
+  get fetchInfo() {
+    return Object.fromEntries(
+      Object.entries(__privateGet(this, _fetchInfo)).filter(([key, value]) => value != void 0).map(([key, value]) => [`aem-fragment:${key}`, value])
+    );
+  }
+  async refresh(flushCache = true) {
+    if (__privateGet(this, _fetchPromise)) {
+      const ready = await Promise.race([
+        __privateGet(this, _fetchPromise),
+        Promise.resolve(false)
+      ]);
+      if (!ready) return;
+    }
+    if (flushCache) {
+      cache.remove(__privateGet(this, _fragmentId));
+    }
+    if (__privateGet(this, _loading) === LOADING_CACHE) {
+      await Promise.race([
+        cache.getAsPromise(__privateGet(this, _fragmentId)),
+        new Promise((resolve) => setTimeout(resolve, __privateGet(this, _timeout)))
+      ]);
+    }
+    try {
+      __privateSet(this, _fetchPromise, __privateMethod(this, _AemFragment_instances, fetchData_fn).call(this));
+      await __privateGet(this, _fetchPromise);
+    } catch (e4) {
+      __privateMethod(this, _AemFragment_instances, fail_fn).call(this, e4.message);
+      return false;
+    }
+    const { references, referencesTree, placeholders, wcs } = __privateGet(this, _rawData) || {};
+    if (wcs && !getParameter("mas.disableWcsCache")) {
+      __privateGet(this, _service3).prefillWcsCache(wcs);
+    }
+    this.dispatchEvent(
+      new CustomEvent(EVENT_AEM_LOAD, {
+        detail: {
+          ...this.data,
+          references,
+          referencesTree,
+          placeholders,
+          ...__privateGet(this, _fetchInfo)
+          // Spread all fetch info
+        },
+        bubbles: true,
+        composed: true
+      })
+    );
+    return __privateGet(this, _fetchPromise);
+  }
+  get updateComplete() {
+    return __privateGet(this, _fetchPromise) ?? Promise.reject(new Error("AEM fragment cannot be loaded"));
+  }
+  get data() {
+    if (__privateGet(this, _data)) return __privateGet(this, _data);
+    if (__privateGet(this, _author)) {
+      this.transformAuthorData();
+    } else {
+      this.transformPublishData();
+    }
+    return __privateGet(this, _data);
+  }
+  transformAuthorData() {
+    const {
+      fields,
+      id,
+      tags,
+      settings = {},
+      priceLiterals: priceLiterals2 = {},
+      dictionary = {},
+      placeholders = {}
+    } = __privateGet(this, _rawData);
+    __privateSet(this, _data, fields.reduce(
+      (acc, { name, multiple, values }) => {
+        acc.fields[name] = multiple ? values : values[0];
+        return acc;
+      },
+      {
+        fields: {},
+        id,
+        tags,
+        settings,
+        priceLiterals: priceLiterals2,
+        dictionary,
+        placeholders
+      }
+    ));
+  }
+  transformPublishData() {
+    const {
+      fields,
+      id,
+      tags,
+      settings = {},
+      priceLiterals: priceLiterals2 = {},
+      dictionary = {},
+      placeholders = {}
+    } = __privateGet(this, _rawData);
+    __privateSet(this, _data, Object.entries(fields).reduce(
+      (acc, [key, value]) => {
+        acc.fields[key] = value?.mimeType ? value.value : value ?? "";
+        return acc;
+      },
+      {
+        fields: {},
+        id,
+        tags,
+        settings,
+        priceLiterals: priceLiterals2,
+        dictionary,
+        placeholders
+      }
+    ));
+  }
+  /**
+   * Gets the URL for loading fragment-client.js based on maslibs parameter
+   * @returns {string} URL for fragment-client.js
+   */
+  getFragmentClientUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const masLibs = urlParams.get("maslibs");
+    if (!masLibs || masLibs.trim() === "") {
+      return "https://mas.adobe.com/studio/libs/fragment-client.js";
+    }
+    const sanitizedMasLibs = masLibs.trim().toLowerCase();
+    if (sanitizedMasLibs === "local") {
+      return "http://localhost:3030/studio/libs/fragment-client.js";
+    }
+    const { hostname } = window.location;
+    const extension = hostname.endsWith(".page") ? "page" : "live";
+    if (sanitizedMasLibs.includes("--")) {
+      return `https://${sanitizedMasLibs}.aem.${extension}/studio/libs/fragment-client.js`;
+    }
+    return `https://${sanitizedMasLibs}--mas--adobecom.aem.${extension}/studio/libs/fragment-client.js`;
+  }
+  async generatePreview() {
+    const fragmentClientUrl = this.getFragmentClientUrl();
+    const { previewFragment } = await import(fragmentClientUrl);
+    const data = await previewFragment(__privateGet(this, _fragmentId), {
+      locale: __privateGet(this, _service3).settings.locale,
+      apiKey: __privateGet(this, _service3).settings.wcsApiKey
+    });
+    return data;
+  }
+};
+_log = new WeakMap();
+_rawData = new WeakMap();
+_data = new WeakMap();
+_service3 = new WeakMap();
+_fragmentId = new WeakMap();
+_fetchInfo = new WeakMap();
+_loading = new WeakMap();
+_timeout = new WeakMap();
+_fetchPromise = new WeakMap();
+_author = new WeakMap();
+_fetchCount = new WeakMap();
+_preview = new WeakMap();
+_AemFragment_instances = new WeakSet();
+getFragmentById_fn = async function(endpoint) {
+  __privateWrapper(this, _fetchCount)._++;
+  const markPrefix = `${AEM_FRAGMENT_TAG_NAME}:${__privateGet(this, _fragmentId)}:${__privateGet(this, _fetchCount)}`;
+  const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
+  const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
+  if (__privateGet(this, _preview)) {
+    return await this.generatePreview();
+  }
+  performance.mark(startMarkName);
+  let response;
+  try {
+    __privateGet(this, _fetchInfo).stale = false;
+    __privateGet(this, _fetchInfo).url = endpoint;
+    response = await masFetch(endpoint, {
+      cache: "default",
+      credentials: "omit"
+    });
+    __privateMethod(this, _AemFragment_instances, applyHeaders_fn).call(this, response);
+    __privateGet(this, _fetchInfo).status = response?.status;
+    __privateGet(this, _fetchInfo).measure = printMeasure(
+      performance.measure(measureName, startMarkName)
+    );
+    __privateGet(this, _fetchInfo).retryCount = response.retryCount;
+    if (!response?.ok) {
+      throw new MasError("Unexpected fragment response", {
+        response,
+        ...__privateGet(this, _service3).duration
+      });
+    }
+    return await response.json();
+  } catch (e4) {
+    __privateGet(this, _fetchInfo).measure = printMeasure(
+      performance.measure(measureName, startMarkName)
+    );
+    __privateGet(this, _fetchInfo).retryCount = e4.retryCount;
+    if (__privateGet(this, _rawData)) {
+      __privateGet(this, _fetchInfo).stale = true;
+      __privateGet(this, _log).error(`Serving stale data`, __privateGet(this, _fetchInfo));
+      return __privateGet(this, _rawData);
+    }
+    const reason = e4.message ?? "unknown";
+    throw new MasError(`Failed to fetch fragment: ${reason}`, {});
+  }
+};
+applyHeaders_fn = function(response) {
+  Object.assign(__privateGet(this, _fetchInfo), getLogHeaders(response));
+};
+fail_fn = function(message) {
+  __privateSet(this, _fetchPromise, null);
+  __privateGet(this, _fetchInfo).message = message;
+  this.classList.add("error");
+  const detail = {
+    ...__privateGet(this, _fetchInfo),
+    ...__privateGet(this, _service3).duration
+  };
+  __privateGet(this, _log).error(message, detail);
+  this.dispatchEvent(
+    new CustomEvent(EVENT_AEM_ERROR, {
+      detail,
+      bubbles: true,
+      composed: true
+    })
+  );
+};
+fetchData_fn = async function() {
+  var _a2;
+  this.classList.remove("error");
+  __privateSet(this, _data, null);
+  let fragment = cache.get(__privateGet(this, _fragmentId));
+  if (fragment) {
+    __privateSet(this, _rawData, fragment);
+    return true;
+  }
+  const { masIOUrl, wcsApiKey, country, locale } = __privateGet(this, _service3).settings;
+  let endpoint = `${masIOUrl}/fragment?id=${__privateGet(this, _fragmentId)}&api_key=${wcsApiKey}&locale=${locale}`;
+  if (country && !locale.endsWith(`_${country}`)) {
+    endpoint += `&country=${country}`;
+  }
+  fragment = await __privateMethod(this, _AemFragment_instances, getFragmentById_fn).call(this, endpoint);
+  (_a2 = fragment.fields).originalId ?? (_a2.originalId = __privateGet(this, _fragmentId));
+  cache.add(fragment);
+  __privateSet(this, _rawData, fragment);
+  return true;
+};
+// TO be deprecated
+__publicField(AemFragment, "cache", cache);
+customElements.define(AEM_FRAGMENT_TAG_NAME, AemFragment);
+
+// src/merch-badge.js
+init_lit();
+var MerchBadge = class extends s4 {
+  constructor() {
+    super();
+    this.color = "";
+    this.variant = "";
+    this.backgroundColor = "";
+    this.borderColor = "";
+    this.text = this.textContent;
+  }
+  connectedCallback() {
+    if (this.borderColor && this.borderColor !== "Transparent") {
+      this.style.setProperty(
+        "--merch-badge-border",
+        `1px solid var(--${this.borderColor})`
+      );
+    } else {
+      this.style.setProperty(
+        "--merch-badge-border",
+        `1px solid var(--${this.backgroundColor})`
+      );
+    }
+    this.style.setProperty(
+      "--merch-badge-background-color",
+      `var(--${this.backgroundColor})`
+    );
+    this.style.setProperty("--merch-badge-color", this.color);
+    this.style.setProperty("--merch-badge-padding", "2px 10px 3px 10px");
+    this.style.setProperty("--merch-badge-border-radius", "4px 0 0 4px");
+    this.style.setProperty(
+      "--merch-badge-font-size",
+      "var(--consonant-merch-card-body-xs-font-size)"
+    );
+    this.textContent = "";
+    super.connectedCallback();
+  }
+  render() {
+    return x`<div class="badge">${this.text}</div>`;
+  }
+};
+__publicField(MerchBadge, "properties", {
+  color: { type: String },
+  variant: { type: String },
+  backgroundColor: { type: String, attribute: "background-color" },
+  borderColor: { type: String, attribute: "border-color" }
+});
+__publicField(MerchBadge, "styles", i`
         :host {
             display: block;
             background-color: var(--merch-badge-background-color);
@@ -4219,10 +13747,23 @@ merch-card [slot='callout-content'] .icon-button::before {
             position: relative;
             left: 1px;
         }
-    `);customElements.define("merch-badge",qt);O();var Dr=class extends I{constructor(){super()}render(){return f`
+    `);
+customElements.define("merch-badge", MerchBadge);
+
+// src/merch-mnemonic-list.js
+init_lit();
+var MerchMnemonicList = class extends s4 {
+  constructor() {
+    super();
+  }
+  render() {
+    return x`
             <slot name="icon"></slot>
             <slot name="description">${this.description}</slot>
-        `}};u(Dr,"styles",y`
+        `;
+  }
+};
+__publicField(MerchMnemonicList, "styles", i`
         :host {
             display: flex;
             flex-wrap: nowrap;
@@ -4247,11 +13788,57 @@ merch-card [slot='callout-content'] .icon-button::before {
         :host .hidden {
             display: none;
         }
-    `),u(Dr,"properties",{description:{type:String,attribute:!0}});customElements.define("merch-mnemonic-list",Dr);O();var Ur=class extends I{updated(){this.hideSeeMoreEls()}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((t,r)=>{r>=5&&(t.style.display=this.showAll?"flex":"none")})}constructor(){super(),this.showAll=!1,this.mobileRows=this.mobileRows===void 0?5:this.mobileRows}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}render(){return f`<slot name="heading"></slot>
+    `);
+__publicField(MerchMnemonicList, "properties", {
+  description: { type: String, attribute: true }
+});
+customElements.define("merch-mnemonic-list", MerchMnemonicList);
+
+// src/merch-whats-included.js
+init_lit();
+var MerchWhatsIncluded = class extends s4 {
+  updated() {
+    this.hideSeeMoreEls();
+  }
+  hideSeeMoreEls() {
+    if (this.isMobile) {
+      this.rows.forEach((node, index) => {
+        if (index >= 5) {
+          node.style.display = this.showAll ? "flex" : "none";
+        }
+      });
+    }
+  }
+  constructor() {
+    super();
+    this.showAll = false;
+    this.mobileRows = this.mobileRows === void 0 ? 5 : this.mobileRows;
+  }
+  toggle() {
+    this.showAll = !this.showAll;
+    this.dispatchEvent(
+      new CustomEvent("hide-see-more-elements", {
+        bubbles: true,
+        composed: true
+      })
+    );
+    this.requestUpdate();
+  }
+  render() {
+    return x`<slot name="heading"></slot>
             <slot name="content"></slot>
-            ${this.isMobile&&this.rows.length>this.mobileRows?f`<div @click=${this.toggle} class="see-more">
-                      ${this.showAll?"- See less":"+ See more"}
-                  </div>`:f``}`}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}get rows(){return this.querySelectorAll("merch-mnemonic-list")}};u(Ur,"styles",y`
+            ${this.isMobile && this.rows.length > this.mobileRows ? x`<div @click=${this.toggle} class="see-more">
+                      ${this.showAll ? "- See less" : "+ See more"}
+                  </div>` : x``}`;
+  }
+  get isMobile() {
+    return window.matchMedia("(max-width: 767px)").matches;
+  }
+  get rows() {
+    return this.querySelectorAll("merch-mnemonic-list");
+  }
+};
+__publicField(MerchWhatsIncluded, "styles", i`
         :host {
             display: flex;
             flex-wrap: wrap;
@@ -4280,7 +13867,1492 @@ merch-card [slot='callout-content'] .icon-button::before {
             text-decoration: underline;
             color: var(--link-color-dark);
         }
-    `),u(Ur,"properties",{heading:{type:String,attribute:!0},mobileRows:{type:Number,attribute:!0}});customElements.define("merch-whats-included",Ur);var dh="#000000",Ao="#F8D904",hh="#EAEAEA",ph="#31A547",mh=/(accent|primary|secondary)(-(outline|link))?/,uh="mas:product_code/",gh="daa-ll",Hi="daa-lh",fh=["XL","L","M","S"],So="...";function Ee(e,t,r,i){let n=i[e];if(t[e]&&n){let o={slot:n?.slot},a=t[e];if(n.maxCount&&typeof a=="string"){let[c,l]=Nh(a,n.maxCount,n.withSuffix);c!==a&&(o.title=l,a=c)}let s=oe(n.tag,o,a);r.append(s)}}function xh(e,t,r){let i=e.mnemonicIcon?.map((o,a)=>({icon:o,alt:e.mnemonicAlt[a]??"",link:e.mnemonicLink[a]??""}));i?.forEach(({icon:o,alt:a,link:s})=>{if(s&&!/^https?:/.test(s))try{s=new URL(`https://${s}`).href.toString()}catch{s="#"}let c={slot:"icons",src:o,loading:t.loading,size:r?.size??"l"};a&&(c.alt=a),s&&(c.href=s);let l=oe("merch-icon",c);t.append(l)});let n=t.shadowRoot.querySelector('slot[name="icons"]');!i?.length&&n&&n.remove()}function bh(e,t,r){if(r.badge?.slot){if(e.badge?.length&&!e.badge?.startsWith("<merch-badge")){let i=Ao,n=!1;r.allowedBadgeColors?.includes(r.badge?.default)&&(i=r.badge?.default,e.borderColor||(n=!0));let o=e.badgeBackgroundColor||i,a=e.borderColor||"";n&&(a=r.badge?.default,e.borderColor=r.badge?.default),e.badge=`<merch-badge variant="${e.variant}" background-color="${o}" border-color="${a}">${e.badge}</merch-badge>`}Ee("badge",e,t,r)}else e.badge?(t.setAttribute("badge-text",e.badge),r.disabledAttributes?.includes("badgeColor")||t.setAttribute("badge-color",e.badgeColor||dh),r.disabledAttributes?.includes("badgeBackgroundColor")||t.setAttribute("badge-background-color",e.badgeBackgroundColor||Ao),t.setAttribute("border-color",e.badgeBackgroundColor||Ao)):t.setAttribute("border-color",e.borderColor||hh)}function vh(e,t,r){if(r.trialBadge&&e.trialBadge){if(!e.trialBadge.startsWith("<merch-badge")){let i=!r.disabledAttributes?.includes("trialBadgeBorderColor")&&e.trialBadgeBorderColor||ph;e.trialBadge=`<merch-badge variant="${e.variant}" border-color="${i}">${e.trialBadge}</merch-badge>`}Ee("trialBadge",e,t,r)}}function yh(e,t,r){r?.includes(e.size)&&t.setAttribute("size",e.size)}function Eh(e,t){e.cardName&&t.setAttribute("name",e.cardName)}function wh(e,t,r){Ee("cardTitle",e,t,{cardTitle:r})}function Ah(e,t,r){Ee("subtitle",e,t,r)}function Sh(e,t,r,i){if(!e.backgroundColor||e.backgroundColor.toLowerCase()==="default"){t.style.removeProperty("--merch-card-custom-background-color"),t.removeAttribute("background-color");return}r?.[e.backgroundColor]?(t.style.setProperty("--merch-card-custom-background-color",`var(${r[e.backgroundColor]})`),t.setAttribute("background-color",e.backgroundColor)):i?.attribute&&e.backgroundColor&&(t.setAttribute(i.attribute,e.backgroundColor),t.style.removeProperty("--merch-card-custom-background-color"))}function _h(e,t,r){let i=r?.borderColor,n="--consonant-merch-card-border-color";if(e.borderColor?.toLowerCase()==="transparent")t.style.setProperty(n,"transparent");else if(e.borderColor&&i)if(i?.specialValues?.[e.borderColor]?.includes("gradient")||/-gradient/.test(e.borderColor)){t.setAttribute("gradient-border","true");let s=e.borderColor;if(i?.specialValues){for(let[c,l]of Object.entries(i.specialValues))if(l===e.borderColor){s=c;break}}t.setAttribute("border-color",s),t.style.removeProperty(n)}else t.style.setProperty(n,`var(--${e.borderColor})`)}function Th(e,t,r){if(e.backgroundImage){let i={loading:t.loading??"lazy",src:e.backgroundImage};if(e.backgroundImageAltText?i.alt=e.backgroundImageAltText:i.role="none",!r)return;if(r?.attribute){t.setAttribute(r.attribute,e.backgroundImage);return}t.append(oe(r.tag,{slot:r.slot},oe("img",i)))}}function $i(e){return!e||typeof e!="string"||e.includes("<mas-mnemonic")&&Promise.resolve().then(()=>(Ci(),xo)).catch(console.error),e}function Ch(e,t,r){e.prices&&(e.prices=$i(e.prices)),Ee("prices",e,t,r)}function _c(e,t,r){let i=e.hasAttribute("data-wcs-osi")&&!!e.getAttribute("data-wcs-osi"),n=e.className||"",o=mh.exec(n)?.[0]??"accent",a=o.includes("accent"),s=o.includes("primary"),c=o.includes("secondary"),l=o.includes("-outline"),d=o.includes("-link");e.classList.remove("accent","primary","secondary");let p;if(t.consonant)p=Hh(e,a,i,d,s);else if(d)p=e;else{let m;a?m="accent":s?m="primary":c&&(m="secondary"),p=t.spectrum==="swc"?$h(e,r,l,m,i):Ih(e,r,l,m,i)}return p}function kh(e,t){let{slot:r}=t?.description,i=e.querySelectorAll(`[slot="${r}"] a[data-wcs-osi]`);i.length&&i.forEach(n=>{let o=_c(n,e,t);n.replaceWith(o)})}function Ph(e,t,r){e.description&&(e.description=$i(e.description)),e.promoText&&(e.promoText=$i(e.promoText)),Ee("promoText",e,t,r),Ee("description",e,t,r),kh(t,r),Ee("callout",e,t,r),Ee("quantitySelect",e,t,r),Ee("whatsIncluded",e,t,r)}function Lh(e,t,r){if(!r.addon)return;let i=e.addon?.replace(/[{}]/g,"");if(!i||/disabled/.test(i))return;let n=oe("merch-addon",{slot:"addon"},i);[...n.querySelectorAll(z)].forEach(o=>{let a=o.parentElement;a?.nodeName==="P"&&a.setAttribute("data-plan-type","")}),t.append(n)}function Rh(e,t,r){e.addonConfirmation&&Ee("addonConfirmation",e,t,r)}function Oh(e,t,r,i){i?.secureLabel&&r?.secureLabel&&t.setAttribute("secure-label",i.secureLabel)}function Nh(e,t,r=!0){try{let i=typeof e!="string"?"":e,n=Sc(i);if(n.length<=t)return[i,n];let o=0,a=!1,s=r?t-So.length<1?1:t-So.length:t,c=[];for(let p of i){if(o++,p==="<")if(a=!0,i[o]==="/")c.pop();else{let m="";for(let g of i.substring(o)){if(g===" "||g===">")break;m+=g}c.push(m)}if(p==="/"&&i[o]===">"&&c.pop(),p===">"){a=!1;continue}if(!a&&(s--,s===0))break}let l=i.substring(0,o).trim();if(c.length>0){c[0]==="p"&&c.shift();for(let p of c.reverse())l+=`</${p}>`}return[`${l}${r?So:""}`,n]}catch{let n=typeof e=="string"?e:"",o=Sc(n);return[n,o]}}function Sc(e){if(!e)return"";let t="",r=!1;for(let i of e){if(i==="<"&&(r=!0),i===">"){r=!1;continue}r||(t+=i)}return t}function Mh(e,t){t.querySelectorAll("a.upt-link").forEach(i=>{let n=Ve.createFrom(i);i.replaceWith(n),n.initializeWcsData(e.osi,e.promoCode)})}function Ih(e,t,r,i,n){let o=e;n?o=customElements.get("checkout-button").createCheckoutButton({},e.innerHTML):o.innerHTML=`<span>${o.textContent}</span>`,o.setAttribute("tabindex",0);for(let d of e.attributes)["class","is"].includes(d.name)||o.setAttribute(d.name,d.value);o.firstElementChild?.classList.add("spectrum-Button-label");let a=t?.ctas?.size??"M",s=`spectrum-Button--${i}`,c=fh.includes(a)?`spectrum-Button--size${a}`:"spectrum-Button--sizeM",l=["spectrum-Button",s,c];return r&&l.push("spectrum-Button--outline"),o.classList.add(...l),o}function $h(e,t,r,i,n){let o=e;n&&(o=customElements.get("checkout-button").createCheckoutButton(e.dataset),o.connectedCallback(),o.render());let a="fill";r&&(a="outline");let s=oe("sp-button",{treatment:a,variant:i,tabIndex:0,size:t?.ctas?.size??"m",...e.dataset.analyticsId&&{"data-analytics-id":e.dataset.analyticsId}},e.innerHTML);return s.source=o,(n?o.onceSettled():Promise.resolve(o)).then(c=>{s.setAttribute("data-navigation-url",c.href)}),s.addEventListener("click",c=>{c.defaultPrevented||o.click()}),s}function Hh(e,t,r,i,n){let o=e;return r&&(o=customElements.get("checkout-link").createCheckoutLink(e.dataset,e.innerHTML)),i||(o.classList.add("button","con-button"),t&&o.classList.add("blue"),n&&o.classList.add("primary")),o}function Dh(e,t,r,i){if(e.ctas){e.ctas=$i(e.ctas);let{slot:n}=r.ctas,o=oe("div",{slot:n},e.ctas),a=[...o.querySelectorAll("a")].map(s=>_c(s,t,r));o.innerHTML="",o.append(...a),t.append(o)}}function Uh(e,t){let{tags:r}=e,i=r?.find(o=>o.startsWith(uh))?.split("/").pop();if(!i)return;t.setAttribute(Hi,i),[...t.shadowRoot.querySelectorAll("a[data-analytics-id],button[data-analytics-id]"),...t.querySelectorAll("a[data-analytics-id],button[data-analytics-id]")].forEach((o,a)=>{o.setAttribute(gh,`${o.dataset.analyticsId}-${a+1}`)})}function Bh(e){e.spectrum==="css"&&[["primary-link","primary"],["secondary-link","secondary"]].forEach(([t,r])=>{e.querySelectorAll(`a.${t}`).forEach(i=>{i.classList.remove(t),i.classList.add("spectrum-Link",`spectrum-Link--${r}`)})})}function zh(e){e.querySelectorAll("[slot]").forEach(i=>{i.remove()}),e.variant=void 0,["checkbox-label","stock-offer-osis","secure-label","background-image","background-color","border-color","badge-background-color","badge-color","badge-text","gradient-border","size",Hi].forEach(i=>e.removeAttribute(i));let r=["wide-strip","thin-strip"];e.classList.remove(...r)}async function Tc(e,t){if(!e){let c=t?.id||"unknown";throw console.error(`hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${c}).`),new Error(`hydrate: Fragment is undefined for card (merchCard id: ${c}).`)}if(!e.fields){let c=e.id||"unknown",l=t?.id||"unknown";throw console.error(`hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'. Cannot hydrate.`),new Error(`hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'.`)}let{id:r,fields:i,settings:n={},priceLiterals:o}=e,{variant:a}=i;if(!a)throw new Error(`hydrate: no variant found in payload ${r}`);zh(t),t.settings=n,o&&(t.priceLiterals=o),t.id??(t.id=e.id),t.variant=a,await t.updateComplete;let{aemFragmentMapping:s}=t.variantLayout;if(!s)throw new Error(`hydrate: variant mapping not found for ${r}`);s.style==="consonant"&&t.setAttribute("consonant",!0),xh(i,t,s.mnemonics),bh(i,t,s),vh(i,t,s),yh(i,t,s.size),Eh(i,t),wh(i,t,s.title),Ah(i,t,s),Ch(i,t,s),Th(i,t,s.backgroundImage),Sh(i,t,s.allowedColors,s.backgroundColor),_h(i,t,s),Ph(i,t,s),Lh(i,t,s),Rh(i,t,s),Oh(i,t,s,n),Mh(i,t),Dh(i,t,s,a),Uh(i,t),Bh(t)}var To="merch-card",_o=2e4,Cc="merch-card:";function kc(e,t){let r=e.closest(To);if(!r)return t;r.priceLiterals&&(t.literals??(t.literals={}),Object.assign(t.literals,r.priceLiterals)),r.variantLayout?.priceOptionsProvider?.(e,t)}function Fh(e){e.providers.has(kc)||e.providers.price(kc)}var Gh=0,Wt,Yt,Xt,He,xt,ke,bt,Q,ft,Di,Pc,Ui,Ye=class extends I{constructor(){super();E(this,Q);E(this,Wt);E(this,Yt);E(this,Xt);E(this,He);E(this,xt);E(this,ke);E(this,bt,new Promise(r=>{v(this,ke,r)}));u(this,"customerSegment");u(this,"marketSegment");u(this,"variantLayout");this.id=null,this.failed=!1,this.filters={},this.types="",this.selected=!1,this.spectrum="css",this.loading="lazy",this.handleAemFragmentEvents=this.handleAemFragmentEvents.bind(this),this.handleMerchOfferSelectReady=this.handleMerchOfferSelectReady.bind(this)}firstUpdated(){this.variantLayout=vo(this),this.variantLayout?.connectedCallbackHook()}willUpdate(r){(r.has("variant")||!this.variantLayout)&&(this.variantLayout=vo(this),this.variantLayout?.connectedCallbackHook())}updated(r){(r.has("badgeBackgroundColor")||r.has("borderColor"))&&this.style.setProperty("--consonant-merch-card-border",this.computedBorderStyle),r.has("backgroundColor")&&this.style.setProperty("--merch-card-custom-background-color",this.backgroundColor?`var(--${this.backgroundColor})`:"");try{this.variantLayoutPromise=this.variantLayout?.postCardUpdateHook(r)}catch(i){Z(this,Q,ft).call(this,`Error in postCardUpdateHook: ${i.message}`,{},!1)}}get theme(){return this.closest("sp-theme")}get dir(){return this.closest("[dir]")?.getAttribute("dir")??"ltr"}render(){if(!(!this.isConnected||!this.variantLayout||this.style.display==="none"))return this.variantLayout.renderLayout()}get computedBorderStyle(){return["ccd-slice","ccd-suggested","ah-promoted-plans","simplified-pricing-express"].includes(this.variant)?"":`1px solid ${this.borderColor?this.borderColor:this.badgeBackgroundColor}`}get badgeElement(){return this.shadowRoot.getElementById("badge")}get headingmMSlot(){return this.shadowRoot.querySelector('slot[name="heading-m"]').assignedElements()[0]}get footerSlot(){return this.shadowRoot.querySelector('slot[name="footer"]')?.assignedElements()[0]}get descriptionSlot(){return this.shadowRoot.querySelector('slot[name="body-xs"')?.assignedElements()[0]}get descriptionSlotCompare(){return this.shadowRoot.querySelector('slot[name="body-m"')?.assignedElements()[0]}get price(){return this.headingmMSlot?.querySelector(z)}get checkoutLinks(){return[...this.footerSlot?.querySelectorAll(ge)??[]]}get checkoutLinksDescription(){return[...this.descriptionSlot?.querySelectorAll(ge)??[]]}get checkoutLinkDescriptionCompare(){return[...this.descriptionSlotCompare?.querySelectorAll(ge)??[]]}get activeDescriptionLinks(){return this.variant==="mini-compare-chart"?this.checkoutLinkDescriptionCompare:this.checkoutLinksDescription}async toggleStockOffer({target:r}){if(!this.stockOfferOsis)return;let i=this.checkoutLinks;if(i.length!==0)for(let n of i){await n.onceSettled();let o=n.value?.[0]?.planType;if(!o)return;let a=this.stockOfferOsis[o];if(!a)return;let s=n.dataset.wcsOsi.split(",").filter(c=>c!==a);r.checked&&s.push(a),n.dataset.wcsOsi=s.join(",")}}changeHandler(r){r.target.tagName==="MERCH-ADDON"&&this.toggleAddon(r.target)}toggleAddon(r){this.variantLayout?.toggleAddon?.(r);let i=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(i.length===0)return;let n=o=>{let{offerType:a,planType:s}=o.value?.[0]??{};if(!a||!s)return;let c=r.getOsi(s,a),l=(o.dataset.wcsOsi||"").split(",").filter(d=>d&&d!==c);r.checked&&l.push(c),o.dataset.wcsOsi=l.join(",")};i.forEach(n)}handleQuantitySelection(r){let i=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(i.length!==0)for(let n of i)n.dataset.quantity=r.detail.option}get titleElement(){return this.querySelector(this.variantLayout?.headingSelector||".card-heading")}get title(){return this.titleElement?.textContent?.trim()}get description(){return this.querySelector('[slot="body-xs"]')?.textContent?.trim()}updateFilters(r){let i={...this.filters};Object.keys(i).forEach(n=>{if(r){i[n].order=Math.min(i[n].order||2,2);return}let o=i[n].order;o===1||isNaN(o)||(i[n].order=Number(o)+1)}),this.filters=i}includes(r){return this.textContent.match(new RegExp(r,"i"))!==null}connectedCallback(){var i;super.connectedCallback(),h(this,Yt)||v(this,Yt,Gh++),this.aemFragment||((i=h(this,ke))==null||i.call(this),v(this,ke,void 0)),this.id??(this.id=this.getAttribute("id")??this.aemFragment?.getAttribute("fragment"));let r=this.id??h(this,Yt);v(this,xt,`${Cc}${r}${tt}`),v(this,Wt,`${Cc}${r}${rt}`),performance.mark(h(this,xt)),v(this,He,at()),Fh(h(this,He)),v(this,Xt,h(this,He).Log.module(To)),this.addEventListener(Pe,this.handleQuantitySelection),this.addEventListener(qr,this.handleAddonAndQuantityUpdate),this.addEventListener(ir,this.handleMerchOfferSelectReady),this.addEventListener(Je,this.handleAemFragmentEvents),this.addEventListener(Ze,this.handleAemFragmentEvents),this.addEventListener("change",this.changeHandler),this.aemFragment||setTimeout(()=>this.checkReady(),0)}disconnectedCallback(){super.disconnectedCallback(),this.variantLayout?.disconnectedCallbackHook(),this.removeEventListener(Pe,this.handleQuantitySelection),this.removeEventListener(Je,this.handleAemFragmentEvents),this.removeEventListener(Ze,this.handleAemFragmentEvents),this.removeEventListener("change",this.changeHandler),this.removeEventListener(qr,this.handleAddonAndQuantityUpdate)}async handleAemFragmentEvents(r){var i;if(this.isConnected&&(r.type===Je&&Z(this,Q,ft).call(this,"AEM fragment cannot be loaded"),r.type===Ze&&(this.failed=!1,r.target.nodeName==="AEM-FRAGMENT"))){let n=r.detail;try{h(this,ke)||v(this,bt,new Promise(o=>{v(this,ke,o)})),Tc(n,this)}catch(o){Z(this,Q,ft).call(this,`hydration has failed: ${o.message}`)}finally{(i=h(this,ke))==null||i.call(this),v(this,ke,void 0)}this.checkReady()}}async checkReady(){if(!this.isConnected)return;h(this,bt)&&(await h(this,bt),v(this,bt,void 0)),this.variantLayoutPromise&&(await this.variantLayoutPromise,this.variantLayoutPromise=void 0);let r=new Promise(a=>setTimeout(()=>a("timeout"),_o));if(this.aemFragment){let a=await Promise.race([this.aemFragment.updateComplete,r]);if(a===!1||a==="timeout"){let s=a==="timeout"?`AEM fragment was not resolved within ${_o} timeout`:"AEM fragment cannot be loaded";Z(this,Q,ft).call(this,s,{},!1);return}}let i=[...this.querySelectorAll(rr)],n=Promise.all(i.map(a=>a.onceSettled().catch(()=>a))).then(a=>a.every(s=>s.classList.contains("placeholder-resolved"))),o=await Promise.race([n,r]);if(o===!0){this.measure=performance.measure(h(this,Wt),h(this,xt));let a={...this.aemFragment?.fetchInfo,...h(this,He).duration,measure:Se(this.measure)};return this.dispatchEvent(new CustomEvent(Wi,{bubbles:!0,composed:!0,detail:a})),this}else{this.measure=performance.measure(h(this,Wt),h(this,xt));let a={measure:Se(this.measure),...h(this,He).duration};o==="timeout"?Z(this,Q,ft).call(this,`Contains offers that were not resolved within ${_o} timeout`,a):Z(this,Q,ft).call(this,"Contains unresolved offers",a)}}get aemFragment(){return this.querySelector("aem-fragment")}get addon(){return this.querySelector("merch-addon")}get quantitySelect(){return this.querySelector("merch-quantity-select")}get addonCheckbox(){return this.querySelector("merch-addon")}displayFooterElementsInColumn(){if(!this.classList.contains("product"))return;let r=this.shadowRoot.querySelector(".secure-transaction-label");(this.footerSlot?.querySelectorAll(ge)).length===2&&r&&r.parentElement.classList.add("footer-column")}handleMerchOfferSelectReady(){this.offerSelect&&!this.offerSelect.planType||this.displayFooterElementsInColumn()}get dynamicPrice(){return this.querySelector('[slot="price"]')}handleAddonAndQuantityUpdate({detail:{id:r,items:i}}){if(!r||!i?.length||this.closest('[role="tabpanel"][hidden="true"]'))return;let o=this.checkoutLinks.find(d=>d.getAttribute("data-modal-id")===r);if(!o)return;let s=new URL(o.getAttribute("href")).searchParams.get("pa"),c=i.find(d=>d.productArrangementCode===s)?.quantity,l=!!i.find(d=>d.productArrangementCode!==s);if(c&&this.quantitySelect?.dispatchEvent(new CustomEvent(wt,{detail:{quantity:c},bubbles:!0,composed:!0})),this.addonCheckbox&&this.addonCheckbox.checked!==l){this.toggleStockOffer({target:this.addonCheckbox});let d=new Event("change",{bubbles:!0,cancelable:!0});Object.defineProperty(d,"target",{writable:!1,value:{checked:l}}),this.addonCheckbox.handleChange(d)}}get prices(){return Array.from(this.querySelectorAll(z))}get promoPrice(){if(!this.querySelector("span.price-strikethrough"))return;let r=this.querySelector(".price.price-alternative");if(r||(r=this.querySelector(`${z}[data-template="price"] > span`)),!!r)return r=r.innerText,r}get regularPrice(){return h(this,Q,Di)?.innerText}get promotionCode(){let r=[...this.querySelectorAll(`${z}[data-promotion-code],${ge}[data-promotion-code]`)].map(n=>n.dataset.promotionCode),i=[...new Set(r)];return i.length>1&&h(this,Xt)?.warn(`Multiple different promotion codes found: ${i.join(", ")}`),r[0]}get annualPrice(){return this.querySelector(`${z}[data-template="price"] > .price.price-annual`)?.innerText}get promoText(){}get taxText(){return(h(this,Q,Pc)??h(this,Q,Di))?.querySelector("span.price-tax-inclusivity")?.textContent?.trim()||void 0}get recurrenceText(){return h(this,Q,Di)?.querySelector("span.price-recurrence")?.textContent?.trim()}get planTypeText(){return this.querySelector('[is="inline-price"][data-template="legal"] span.price-plan-type')?.textContent?.trim()}get seeTermsInfo(){let r=this.querySelector('a[is="upt-link"]');if(r)return Z(this,Q,Ui).call(this,r)}get renewalText(){return this.querySelector("span.renewal-text")?.textContent?.trim()}get promoDurationText(){return this.querySelector("span.promo-duration-text")?.textContent?.trim()}get ctas(){let r=this.querySelector('[slot="ctas"], [slot="footer"]')?.querySelectorAll(`${ge}, a`);return Array.from(r??[])}get primaryCta(){return Z(this,Q,Ui).call(this,this.ctas.find(r=>r.variant==="accent"||r.matches(".spectrum-Button--accent,.con-button.blue")))}get secondaryCta(){return Z(this,Q,Ui).call(this,this.ctas.find(r=>r.variant!=="accent"&&!r.matches(".spectrum-Button--accent,.con-button.blue")))}};Wt=new WeakMap,Yt=new WeakMap,Xt=new WeakMap,He=new WeakMap,xt=new WeakMap,ke=new WeakMap,bt=new WeakMap,Q=new WeakSet,ft=function(r,i={},n=!0){if(!this.isConnected)return;let a=this.aemFragment?.getAttribute("fragment");a=`[${a}]`;let s={...this.aemFragment?.fetchInfo,...h(this,He).duration,...i,message:r};h(this,Xt).error(`merch-card${a}: ${r}`,s),this.failed=!0,n&&this.dispatchEvent(new CustomEvent(Yi,{bubbles:!0,composed:!0,detail:s}))},Di=function(){return this.querySelector("span.price-strikethrough")??this.querySelector(`${z}[data-template="price"] > span`)},Pc=function(){return this.querySelector(`${z}[data-template="legal"]`)},Ui=function(r){if(r)return{text:r.innerText.trim(),analyticsId:r.dataset.analyticsId,href:r.getAttribute("href")??r.dataset.href}},u(Ye,"properties",{id:{type:String,attribute:"id",reflect:!0},name:{type:String,attribute:"name",reflect:!0},variant:{type:String,reflect:!0},size:{type:String,attribute:"size",reflect:!0},badgeColor:{type:String,attribute:"badge-color",reflect:!0},borderColor:{type:String,attribute:"border-color",reflect:!0},backgroundColor:{type:String,attribute:"background-color",reflect:!0},badgeBackgroundColor:{type:String,attribute:"badge-background-color",reflect:!0},backgroundImage:{type:String,attribute:"background-image",reflect:!0},badgeText:{type:String,attribute:"badge-text"},actionMenu:{type:Boolean,attribute:"action-menu"},actionMenuLabel:{type:String,attribute:"action-menu-label"},customHr:{type:Boolean,attribute:"custom-hr"},consonant:{type:Boolean,attribute:"consonant"},failed:{type:Boolean,attribute:"failed",reflect:!0},spectrum:{type:String,attribute:"spectrum"},detailBg:{type:String,attribute:"detail-bg"},secureLabel:{type:String,attribute:"secure-label"},checkboxLabel:{type:String,attribute:"checkbox-label"},addonTitle:{type:String,attribute:"addon-title"},addonOffers:{type:Object,attribute:"addon-offers"},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},storageOption:{type:String,attribute:"storage",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},settings:{type:Object,attribute:!1},stockOfferOsis:{type:Object,attribute:"stock-offer-osis",converter:{fromAttribute:r=>{if(!r)return;let[i,n,o]=r.split(",");return{PUF:i,ABM:n,M2M:o}}}},filters:{type:String,reflect:!0,converter:{fromAttribute:r=>Object.fromEntries(r.split(",").map(i=>{let[n,o,a]=i.split(":"),s=Number(o);return[n,{order:isNaN(s)?void 0:s,size:a}]})),toAttribute:r=>Object.entries(r).map(([i,{order:n,size:o}])=>[i,n,o].filter(a=>a!=null).join(":")).join(",")}},types:{type:String,attribute:"types",reflect:!0},merchOffer:{type:Object},analyticsId:{type:String,attribute:Hi,reflect:!0},loading:{type:String},priceLiterals:{type:Object}}),u(Ye,"styles",[Xs,...Ks()]),u(Ye,"registerVariant",W),u(Ye,"getCollectionOptions",pc),u(Ye,"getFragmentMapping",Pi);customElements.define(To,Ye);O();var Kt,Br=class extends I{constructor(){super();E(this,Kt);this.defaults={},this.variant="plans"}saveContainerDefaultValues(){let r=this.closest(this.getAttribute("container")),i=r?.querySelector('[slot="description"]:not(merch-offer > *)')?.cloneNode(!0),n=r?.badgeText;return{description:i,badgeText:n}}getSlottedElement(r,i){return(i||this.closest(this.getAttribute("container"))).querySelector(`[slot="${r}"]:not(merch-offer > *)`)}updateSlot(r,i){let n=this.getSlottedElement(r,i);if(!n)return;let o=this.selectedOffer.getOptionValue(r)?this.selectedOffer.getOptionValue(r):this.defaults[r];o&&n.replaceWith(o.cloneNode(!0))}handleOfferSelection(r){let i=r.detail;this.selectOffer(i)}handleOfferSelectionByQuantity(r){let i=r.detail.option,n=Number.parseInt(i),o=this.findAppropriateOffer(n);this.selectOffer(o),this.getSlottedElement("cta").setAttribute("data-quantity",n)}selectOffer(r){if(!r)return;let i=this.selectedOffer;i&&(i.selected=!1),r.selected=!0,this.selectedOffer=r,this.planType=r.planType,this.updateContainer(),this.updateComplete.then(()=>{this.dispatchEvent(new CustomEvent(qi,{detail:this,bubbles:!0}))})}findAppropriateOffer(r){let i=null;return this.offers.find(o=>{let a=Number.parseInt(o.getAttribute("value"));if(a===r)return!0;if(a>r)return!1;i=o})||i}updateBadgeText(r){this.selectedOffer.badgeText===""?r.badgeText=null:this.selectedOffer.badgeText?r.badgeText=this.selectedOffer.badgeText:r.badgeText=this.defaults.badgeText}updateContainer(){let r=this.closest(this.getAttribute("container"));!r||!this.selectedOffer||(this.updateSlot("cta",r),this.updateSlot("secondary-cta",r),this.updateSlot("price",r),!this.manageableMode&&(this.updateSlot("description",r),this.updateBadgeText(r)))}render(){return f`<fieldset><slot class="${this.variant}"></slot></fieldset>`}connectedCallback(){super.connectedCallback(),this.addEventListener("focusin",this.handleFocusin),this.addEventListener("click",this.handleFocusin),this.addEventListener(Et,this.handleOfferSelectReady);let r=this.closest("merch-quantity-select");this.manageableMode=r,this.offers=[...this.querySelectorAll("merch-offer")],v(this,Kt,this.handleOfferSelectionByQuantity.bind(this)),this.manageableMode?r.addEventListener(Pe,h(this,Kt)):this.defaults=this.saveContainerDefaultValues(),this.selectedOffer=this.offers[0],this.planType&&this.updateContainer()}get miniCompareMobileCard(){return this.merchCard?.variant==="mini-compare-chart"&&this.isMobile}get merchCard(){return this.closest("merch-card")}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(Pe,h(this,Kt)),this.removeEventListener(Et,this.handleOfferSelectReady),this.removeEventListener("focusin",this.handleFocusin),this.removeEventListener("click",this.handleFocusin)}get price(){return this.querySelector('merch-offer[aria-selected] [is="inline-price"]')}get customerSegment(){return this.selectedOffer?.customerSegment}get marketSegment(){return this.selectedOffer?.marketSegment}handleFocusin(r){r.target?.nodeName==="MERCH-OFFER"&&(r.preventDefault(),r.stopImmediatePropagation(),this.selectOffer(r.target))}async handleOfferSelectReady(){this.planType||this.querySelector("merch-offer:not([plan-type])")||(this.planType=this.selectedOffer.planType,await this.updateComplete,this.selectOffer(this.selectedOffer??this.querySelector("merch-offer[aria-selected]")??this.querySelector("merch-offer")),this.dispatchEvent(new CustomEvent(ir,{bubbles:!0})))}};Kt=new WeakMap,u(Br,"styles",y`
+    `);
+__publicField(MerchWhatsIncluded, "properties", {
+  heading: { type: String, attribute: true },
+  mobileRows: { type: Number, attribute: true }
+});
+customElements.define("merch-whats-included", MerchWhatsIncluded);
+
+// src/hydrate.js
+var DEFAULT_BADGE_COLOR = "#000000";
+var DEFAULT_BADGE_BACKGROUND_COLOR = "#F8D904";
+var DEFAULT_BORDER_COLOR = "#EAEAEA";
+var DEFAULT_TRIAL_BADGE_BORDER_COLOR = "#31A547";
+var CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
+var ANALYTICS_TAG = "mas:product_code/";
+var ANALYTICS_LINK_ATTR = "daa-ll";
+var ANALYTICS_SECTION_ATTR = "daa-lh";
+var SPECTRUM_BUTTON_SIZES = ["XL", "L", "M", "S"];
+var TEXT_TRUNCATE_SUFFIX = "...";
+function appendSlot(fieldName, fields, el, mapping) {
+  const config2 = mapping[fieldName];
+  if (fields[fieldName] && config2) {
+    const attributes = { slot: config2?.slot };
+    let content = fields[fieldName];
+    if (config2.maxCount && typeof content === "string") {
+      const [truncatedContent, cleanContent] = getTruncatedTextData(
+        content,
+        config2.maxCount,
+        config2.withSuffix
+      );
+      if (truncatedContent !== content) {
+        attributes.title = cleanContent;
+        content = truncatedContent;
+      }
+    }
+    const tag = createTag(config2.tag, attributes, content);
+    el.append(tag);
+  }
+}
+function processMnemonics(fields, merchCard, mnemonicsConfig) {
+  const mnemonics = fields.mnemonicIcon?.map((icon, index) => ({
+    icon,
+    alt: fields.mnemonicAlt[index] ?? "",
+    link: fields.mnemonicLink[index] ?? ""
+  }));
+  mnemonics?.forEach(({ icon: src, alt, link: href }) => {
+    if (href && !/^https?:/.test(href)) {
+      try {
+        href = new URL(`https://${href}`).href.toString();
+      } catch (e4) {
+        href = "#";
+      }
+    }
+    const attrs = {
+      slot: "icons",
+      src,
+      loading: merchCard.loading,
+      size: mnemonicsConfig?.size ?? "l"
+    };
+    if (alt) attrs.alt = alt;
+    if (href) attrs.href = href;
+    const merchIcon = createTag("merch-icon", attrs);
+    merchCard.append(merchIcon);
+  });
+  const slotIcons = merchCard.shadowRoot.querySelector('slot[name="icons"]');
+  if (!mnemonics?.length && slotIcons) {
+    slotIcons.remove();
+  }
+}
+function processBadge(fields, merchCard, mapping) {
+  if (mapping.badge?.slot) {
+    if (fields.badge?.length && !fields.badge?.startsWith("<merch-badge")) {
+      let badgeDefaultBgColor = DEFAULT_BADGE_BACKGROUND_COLOR;
+      let setBorderColorForBadge = false;
+      if (mapping.allowedBadgeColors?.includes(mapping.badge?.default)) {
+        badgeDefaultBgColor = mapping.badge?.default;
+        if (!fields.borderColor) {
+          setBorderColorForBadge = true;
+        }
+      }
+      const bgColorToUse = fields.badgeBackgroundColor || badgeDefaultBgColor;
+      let borderColorToUse = fields.borderColor || "";
+      if (setBorderColorForBadge) {
+        borderColorToUse = mapping.badge?.default;
+        fields.borderColor = mapping.badge?.default;
+      }
+      fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge}</merch-badge>`;
+    }
+    appendSlot("badge", fields, merchCard, mapping);
+  } else {
+    if (fields.badge) {
+      merchCard.setAttribute("badge-text", fields.badge);
+      if (!mapping.disabledAttributes?.includes("badgeColor")) {
+        merchCard.setAttribute(
+          "badge-color",
+          fields.badgeColor || DEFAULT_BADGE_COLOR
+        );
+      }
+      if (!mapping.disabledAttributes?.includes("badgeBackgroundColor")) {
+        merchCard.setAttribute(
+          "badge-background-color",
+          fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR
+        );
+      }
+      merchCard.setAttribute(
+        "border-color",
+        fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR
+      );
+    } else {
+      merchCard.setAttribute(
+        "border-color",
+        fields.borderColor || DEFAULT_BORDER_COLOR
+      );
+    }
+  }
+}
+function processTrialBadge(fields, merchCard, mapping) {
+  if (mapping.trialBadge && fields.trialBadge) {
+    if (!fields.trialBadge.startsWith("<merch-badge")) {
+      const borderColorToUse = !mapping.disabledAttributes?.includes(
+        "trialBadgeBorderColor"
+      ) && fields.trialBadgeBorderColor || DEFAULT_TRIAL_BADGE_BORDER_COLOR;
+      fields.trialBadge = `<merch-badge variant="${fields.variant}" border-color="${borderColorToUse}">${fields.trialBadge}</merch-badge>`;
+    }
+    appendSlot("trialBadge", fields, merchCard, mapping);
+  }
+}
+function processSize(fields, merchCard, sizeConfig) {
+  if (sizeConfig?.includes(fields.size)) {
+    merchCard.setAttribute("size", fields.size);
+  }
+}
+function processCardName(fields, merchCard) {
+  if (fields.cardName) {
+    merchCard.setAttribute("name", fields.cardName);
+  }
+}
+function processTitle(fields, merchCard, titleConfig) {
+  appendSlot("cardTitle", fields, merchCard, { cardTitle: titleConfig });
+}
+function processSubtitle(fields, merchCard, mapping) {
+  appendSlot("subtitle", fields, merchCard, mapping);
+}
+function processBackgroundColor(fields, merchCard, allowedColors, backgroundColorConfig) {
+  if (!fields.backgroundColor || fields.backgroundColor.toLowerCase() === "default") {
+    merchCard.style.removeProperty("--merch-card-custom-background-color");
+    merchCard.removeAttribute("background-color");
+    return;
+  }
+  if (allowedColors?.[fields.backgroundColor]) {
+    merchCard.style.setProperty(
+      "--merch-card-custom-background-color",
+      `var(${allowedColors[fields.backgroundColor]})`
+    );
+    merchCard.setAttribute("background-color", fields.backgroundColor);
+  } else if (backgroundColorConfig?.attribute && fields.backgroundColor) {
+    merchCard.setAttribute(
+      backgroundColorConfig.attribute,
+      fields.backgroundColor
+    );
+    merchCard.style.removeProperty("--merch-card-custom-background-color");
+  }
+}
+function processBorderColor(fields, merchCard, variantMapping) {
+  const borderColorConfig = variantMapping?.borderColor;
+  const customBorderColor = "--consonant-merch-card-border-color";
+  if (fields.borderColor?.toLowerCase() === "transparent") {
+    merchCard.style.setProperty(customBorderColor, "transparent");
+  } else if (fields.borderColor && borderColorConfig) {
+    const specialValue = borderColorConfig?.specialValues?.[fields.borderColor];
+    const isGradient = specialValue?.includes("gradient") || /-gradient/.test(fields.borderColor);
+    if (isGradient) {
+      merchCard.setAttribute("gradient-border", "true");
+      let borderColorKey = fields.borderColor;
+      if (borderColorConfig?.specialValues) {
+        for (const [key, value] of Object.entries(
+          borderColorConfig.specialValues
+        )) {
+          if (value === fields.borderColor) {
+            borderColorKey = key;
+            break;
+          }
+        }
+      }
+      merchCard.setAttribute("border-color", borderColorKey);
+      merchCard.style.removeProperty(customBorderColor);
+    } else {
+      merchCard.style.setProperty(
+        customBorderColor,
+        `var(--${fields.borderColor})`
+      );
+    }
+  }
+}
+function processBackgroundImage(fields, merchCard, backgroundImageConfig) {
+  if (fields.backgroundImage) {
+    const imgAttributes = {
+      loading: merchCard.loading ?? "lazy",
+      src: fields.backgroundImage
+    };
+    if (fields.backgroundImageAltText) {
+      imgAttributes.alt = fields.backgroundImageAltText;
+    } else {
+      imgAttributes.role = "none";
+    }
+    if (!backgroundImageConfig) return;
+    if (backgroundImageConfig?.attribute) {
+      merchCard.setAttribute(
+        backgroundImageConfig.attribute,
+        fields.backgroundImage
+      );
+      return;
+    }
+    merchCard.append(
+      createTag(
+        backgroundImageConfig.tag,
+        { slot: backgroundImageConfig.slot },
+        createTag("img", imgAttributes)
+      )
+    );
+  }
+}
+function processMnemonicElements(htmlContent) {
+  if (!htmlContent || typeof htmlContent !== "string") return htmlContent;
+  if (htmlContent.includes("<mas-mnemonic")) {
+    Promise.resolve().then(() => (init_mas_mnemonic(), mas_mnemonic_exports)).catch(console.error);
+  }
+  return htmlContent;
+}
+function processPrices(fields, merchCard, mapping) {
+  if (fields.prices) {
+    fields.prices = processMnemonicElements(fields.prices);
+  }
+  appendSlot("prices", fields, merchCard, mapping);
+}
+function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
+  const isCheckoutLink = linkElement.hasAttribute("data-wcs-osi") && Boolean(linkElement.getAttribute("data-wcs-osi"));
+  const originalClassName = linkElement.className || "";
+  const checkoutLinkStyle = CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? "accent";
+  const isAccent = checkoutLinkStyle.includes("accent");
+  const isPrimary = checkoutLinkStyle.includes("primary");
+  const isSecondary = checkoutLinkStyle.includes("secondary");
+  const isOutline = checkoutLinkStyle.includes("-outline");
+  const isLinkStyle = checkoutLinkStyle.includes("-link");
+  linkElement.classList.remove("accent", "primary", "secondary");
+  let newButtonElement;
+  if (merchCard.consonant) {
+    newButtonElement = createConsonantButton(
+      linkElement,
+      isAccent,
+      isCheckoutLink,
+      isLinkStyle,
+      isPrimary
+    );
+  } else if (isLinkStyle) {
+    newButtonElement = linkElement;
+  } else {
+    let variant;
+    if (isAccent) {
+      variant = "accent";
+    } else if (isPrimary) {
+      variant = "primary";
+    } else if (isSecondary) {
+      variant = "secondary";
+    }
+    newButtonElement = merchCard.spectrum === "swc" ? createSpectrumSwcButton(
+      linkElement,
+      aemFragmentMapping,
+      isOutline,
+      variant,
+      isCheckoutLink
+    ) : createSpectrumCssButton(
+      linkElement,
+      aemFragmentMapping,
+      isOutline,
+      variant,
+      isCheckoutLink
+    );
+  }
+  return newButtonElement;
+}
+function processDescriptionLinks(merchCard, aemFragmentMapping) {
+  const { slot } = aemFragmentMapping?.description;
+  const links = merchCard.querySelectorAll(
+    `[slot="${slot}"] a[data-wcs-osi]`
+  );
+  if (!links.length) return;
+  links.forEach((link) => {
+    const checkoutLink = transformLinkToButton(
+      link,
+      merchCard,
+      aemFragmentMapping
+    );
+    link.replaceWith(checkoutLink);
+  });
+}
+function processDescription(fields, merchCard, mapping) {
+  if (fields.description) {
+    fields.description = processMnemonicElements(fields.description);
+  }
+  if (fields.promoText) {
+    fields.promoText = processMnemonicElements(fields.promoText);
+  }
+  appendSlot("promoText", fields, merchCard, mapping);
+  appendSlot("description", fields, merchCard, mapping);
+  processDescriptionLinks(merchCard, mapping);
+  appendSlot("callout", fields, merchCard, mapping);
+  appendSlot("quantitySelect", fields, merchCard, mapping);
+  appendSlot("whatsIncluded", fields, merchCard, mapping);
+}
+function processAddon(fields, merchCard, mapping) {
+  if (!mapping.addon) return;
+  let addonField = fields.addon?.replace(/[{}]/g, "");
+  if (!addonField) return;
+  if (/disabled/.test(addonField)) return;
+  const addon = createTag("merch-addon", { slot: "addon" }, addonField);
+  [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
+    const parent = span.parentElement;
+    if (parent?.nodeName !== "P") return;
+    parent.setAttribute("data-plan-type", "");
+  });
+  merchCard.append(addon);
+}
+function processAddonConfirmation(fields, merchCard, mapping) {
+  if (fields.addonConfirmation) {
+    appendSlot("addonConfirmation", fields, merchCard, mapping);
+  }
+}
+function processStockOffersAndSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
+  if (settings?.secureLabel && aemFragmentMapping?.secureLabel) {
+    merchCard.setAttribute("secure-label", settings.secureLabel);
+  }
+}
+function getTruncatedTextData(text, limit, withSuffix = true) {
+  try {
+    const _text = typeof text !== "string" ? "" : text;
+    const cleanText = clearTags(_text);
+    if (cleanText.length <= limit) return [_text, cleanText];
+    let index = 0;
+    let inTag = false;
+    let remaining = withSuffix ? limit - TEXT_TRUNCATE_SUFFIX.length < 1 ? 1 : limit - TEXT_TRUNCATE_SUFFIX.length : limit;
+    let openTags = [];
+    for (const char of _text) {
+      index++;
+      if (char === "<") {
+        inTag = true;
+        if (_text[index] === "/") {
+          openTags.pop();
+        } else {
+          let tagName = "";
+          for (const tagChar of _text.substring(index)) {
+            if (tagChar === " " || tagChar === ">") break;
+            tagName += tagChar;
+          }
+          openTags.push(tagName);
+        }
+      }
+      if (char === "/") {
+        if (_text[index] === ">") {
+          openTags.pop();
+        }
+      }
+      if (char === ">") {
+        inTag = false;
+        continue;
+      }
+      if (inTag) continue;
+      remaining--;
+      if (remaining === 0) break;
+    }
+    let trimmedText = _text.substring(0, index).trim();
+    if (openTags.length > 0) {
+      if (openTags[0] === "p") openTags.shift();
+      for (const tag of openTags.reverse()) {
+        trimmedText += `</${tag}>`;
+      }
+    }
+    let truncatedText = `${trimmedText}${withSuffix ? TEXT_TRUNCATE_SUFFIX : ""}`;
+    return [truncatedText, cleanText];
+  } catch (error) {
+    const fallbackText = typeof text === "string" ? text : "";
+    const cleanFallback = clearTags(fallbackText);
+    return [fallbackText, cleanFallback];
+  }
+}
+function clearTags(text) {
+  if (!text) return "";
+  let result = "";
+  let inTag = false;
+  for (const char of text) {
+    if (char === "<") inTag = true;
+    if (char === ">") {
+      inTag = false;
+      continue;
+    }
+    if (inTag) continue;
+    result += char;
+  }
+  return result;
+}
+function processUptLinks(fields, merchCard) {
+  const placeholders = merchCard.querySelectorAll("a.upt-link");
+  placeholders.forEach((placeholder) => {
+    const uptLink = UptLink.createFrom(placeholder);
+    placeholder.replaceWith(uptLink);
+    uptLink.initializeWcsData(fields.osi, fields.promoCode);
+  });
+}
+function createSpectrumCssButton(cta, aemFragmentMapping, isOutline, variant, isCheckout) {
+  let button = cta;
+  if (isCheckout) {
+    const CheckoutButton2 = customElements.get("checkout-button");
+    button = CheckoutButton2.createCheckoutButton({}, cta.innerHTML);
+  } else {
+    button.innerHTML = `<span>${button.textContent}</span>`;
+  }
+  button.setAttribute("tabindex", 0);
+  for (const attr of cta.attributes) {
+    if (["class", "is"].includes(attr.name)) continue;
+    button.setAttribute(attr.name, attr.value);
+  }
+  button.firstElementChild?.classList.add("spectrum-Button-label");
+  const size = aemFragmentMapping?.ctas?.size ?? "M";
+  const variantClass = `spectrum-Button--${variant}`;
+  const sizeClass = SPECTRUM_BUTTON_SIZES.includes(size) ? `spectrum-Button--size${size}` : "spectrum-Button--sizeM";
+  const spectrumClass = ["spectrum-Button", variantClass, sizeClass];
+  if (isOutline) {
+    spectrumClass.push("spectrum-Button--outline");
+  }
+  button.classList.add(...spectrumClass);
+  return button;
+}
+function createSpectrumSwcButton(cta, aemFragmentMapping, isOutline, variant, isCheckout) {
+  let button = cta;
+  if (isCheckout) {
+    const CheckoutButton2 = customElements.get("checkout-button");
+    button = CheckoutButton2.createCheckoutButton(cta.dataset);
+    button.connectedCallback();
+    button.render();
+  }
+  let treatment = "fill";
+  if (isOutline) {
+    treatment = "outline";
+  }
+  const spectrumCta = createTag(
+    "sp-button",
+    {
+      treatment,
+      variant,
+      tabIndex: 0,
+      size: aemFragmentMapping?.ctas?.size ?? "m",
+      ...cta.dataset.analyticsId && {
+        "data-analytics-id": cta.dataset.analyticsId
+      }
+    },
+    cta.innerHTML
+  );
+  spectrumCta.source = button;
+  (isCheckout ? button.onceSettled() : Promise.resolve(button)).then(
+    (target) => {
+      spectrumCta.setAttribute("data-navigation-url", target.href);
+    }
+  );
+  spectrumCta.addEventListener("click", (e4) => {
+    if (e4.defaultPrevented) return;
+    button.click();
+  });
+  return spectrumCta;
+}
+function createConsonantButton(cta, isAccent, isCheckout, isLinkStyle, isPrimary) {
+  let button = cta;
+  if (isCheckout) {
+    const CheckoutLink2 = customElements.get("checkout-link");
+    button = CheckoutLink2.createCheckoutLink(cta.dataset, cta.innerHTML);
+  }
+  if (!isLinkStyle) {
+    button.classList.add("button", "con-button");
+    if (isAccent) {
+      button.classList.add("blue");
+    }
+    if (isPrimary) {
+      button.classList.add("primary");
+    }
+  }
+  return button;
+}
+function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
+  if (fields.ctas) {
+    fields.ctas = processMnemonicElements(fields.ctas);
+    const { slot } = aemFragmentMapping.ctas;
+    const footer = createTag("div", { slot }, fields.ctas);
+    const ctas = [...footer.querySelectorAll("a")].map((cta) => {
+      const checkoutButton = transformLinkToButton(
+        cta,
+        merchCard,
+        aemFragmentMapping
+      );
+      return checkoutButton;
+    });
+    footer.innerHTML = "";
+    footer.append(...ctas);
+    merchCard.append(footer);
+  }
+}
+function processAnalytics(fields, merchCard) {
+  const { tags } = fields;
+  const cardAnalyticsId = tags?.find((tag) => tag.startsWith(ANALYTICS_TAG))?.split("/").pop();
+  if (!cardAnalyticsId) return;
+  merchCard.setAttribute(ANALYTICS_SECTION_ATTR, cardAnalyticsId);
+  const elements = [
+    ...merchCard.shadowRoot.querySelectorAll(
+      `a[data-analytics-id],button[data-analytics-id]`
+    ),
+    ...merchCard.querySelectorAll(
+      `a[data-analytics-id],button[data-analytics-id]`
+    )
+  ];
+  elements.forEach((el, index) => {
+    el.setAttribute(
+      ANALYTICS_LINK_ATTR,
+      `${el.dataset.analyticsId}-${index + 1}`
+    );
+  });
+}
+function updateLinksCSS(merchCard) {
+  if (merchCard.spectrum !== "css") return;
+  [
+    ["primary-link", "primary"],
+    ["secondary-link", "secondary"]
+  ].forEach(([className, variant]) => {
+    merchCard.querySelectorAll(`a.${className}`).forEach((link) => {
+      link.classList.remove(className);
+      link.classList.add("spectrum-Link", `spectrum-Link--${variant}`);
+    });
+  });
+}
+function cleanup(merchCard) {
+  merchCard.querySelectorAll("[slot]").forEach((el) => {
+    el.remove();
+  });
+  merchCard.variant = void 0;
+  const attributesToRemove = [
+    "checkbox-label",
+    "stock-offer-osis",
+    "secure-label",
+    "background-image",
+    "background-color",
+    "border-color",
+    "badge-background-color",
+    "badge-color",
+    "badge-text",
+    "gradient-border",
+    "size",
+    ANALYTICS_SECTION_ATTR
+  ];
+  attributesToRemove.forEach((attr) => merchCard.removeAttribute(attr));
+  const classesToRemove = ["wide-strip", "thin-strip"];
+  merchCard.classList.remove(...classesToRemove);
+}
+async function hydrate(fragment, merchCard) {
+  if (!fragment) {
+    const cardIdForError = merchCard?.id || "unknown";
+    console.error(
+      `hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${cardIdForError}).`
+    );
+    throw new Error(
+      `hydrate: Fragment is undefined for card (merchCard id: ${cardIdForError}).`
+    );
+  }
+  if (!fragment.fields) {
+    const problemId = fragment.id || "unknown";
+    const cardIdForError = merchCard?.id || "unknown";
+    console.error(
+      `hydrate: Fragment for card ID '${problemId}' (merchCard id: ${cardIdForError}) is missing 'fields'. Cannot hydrate.`
+    );
+    throw new Error(
+      `hydrate: Fragment for card ID '${problemId}' (merchCard id: ${cardIdForError}) is missing 'fields'.`
+    );
+  }
+  const { id, fields, settings = {}, priceLiterals: priceLiterals2 } = fragment;
+  const { variant } = fields;
+  if (!variant) throw new Error(`hydrate: no variant found in payload ${id}`);
+  cleanup(merchCard);
+  merchCard.settings = settings;
+  if (priceLiterals2) merchCard.priceLiterals = priceLiterals2;
+  merchCard.id ?? (merchCard.id = fragment.id);
+  merchCard.variant = variant;
+  await merchCard.updateComplete;
+  const { aemFragmentMapping: mapping } = merchCard.variantLayout;
+  if (!mapping)
+    throw new Error(`hydrate: variant mapping not found for ${id}`);
+  if (mapping.style === "consonant") {
+    merchCard.setAttribute("consonant", true);
+  }
+  processMnemonics(fields, merchCard, mapping.mnemonics);
+  processBadge(fields, merchCard, mapping);
+  processTrialBadge(fields, merchCard, mapping);
+  processSize(fields, merchCard, mapping.size);
+  processCardName(fields, merchCard);
+  processTitle(fields, merchCard, mapping.title);
+  processSubtitle(fields, merchCard, mapping);
+  processPrices(fields, merchCard, mapping);
+  processBackgroundImage(fields, merchCard, mapping.backgroundImage);
+  processBackgroundColor(
+    fields,
+    merchCard,
+    mapping.allowedColors,
+    mapping.backgroundColor
+  );
+  processBorderColor(fields, merchCard, mapping);
+  processDescription(fields, merchCard, mapping);
+  processAddon(fields, merchCard, mapping);
+  processAddonConfirmation(fields, merchCard, mapping);
+  processStockOffersAndSecureLabel(fields, merchCard, mapping, settings);
+  processUptLinks(fields, merchCard);
+  processCTAs(fields, merchCard, mapping, variant);
+  processAnalytics(fields, merchCard);
+  updateLinksCSS(merchCard);
+}
+
+// src/merch-card.js
+var MERCH_CARD = "merch-card";
+var MERCH_CARD_LOAD_TIMEOUT = 2e4;
+var MARK_MERCH_CARD_PREFIX = "merch-card:";
+function priceOptionsProvider(element, options) {
+  const card = element.closest(MERCH_CARD);
+  if (!card) return options;
+  if (card.priceLiterals) {
+    options.literals ?? (options.literals = {});
+    Object.assign(options.literals, card.priceLiterals);
+  }
+  card.variantLayout?.priceOptionsProvider?.(element, options);
+}
+function registerPriceOptionsProvider(masCommerceService) {
+  if (masCommerceService.providers.has(priceOptionsProvider)) return;
+  masCommerceService.providers.price(priceOptionsProvider);
+}
+var idCounter = 0;
+var _durationMarkName, _internalId, _log2, _service4, _startMarkName, _resolveHydration, _hydrationPromise, _MerchCard_instances, fail_fn2, regularPrice_get, legal_get, getCta_fn;
+var MerchCard = class extends s4 {
+  constructor() {
+    super();
+    __privateAdd(this, _MerchCard_instances);
+    __privateAdd(this, _durationMarkName);
+    __privateAdd(this, _internalId);
+    // internal unique card identifier
+    __privateAdd(this, _log2);
+    __privateAdd(this, _service4);
+    __privateAdd(this, _startMarkName);
+    __privateAdd(this, _resolveHydration);
+    __privateAdd(this, _hydrationPromise, new Promise((resolve) => {
+      __privateSet(this, _resolveHydration, resolve);
+    }));
+    __publicField(this, "customerSegment");
+    __publicField(this, "marketSegment");
+    /**
+     * @type {VariantLayout}
+     */
+    __publicField(this, "variantLayout");
+    this.id = null;
+    this.failed = false;
+    this.filters = {};
+    this.types = "";
+    this.selected = false;
+    this.spectrum = "css";
+    this.loading = "lazy";
+    this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
+    this.handleMerchOfferSelectReady = this.handleMerchOfferSelectReady.bind(this);
+  }
+  firstUpdated() {
+    this.variantLayout = getVariantLayout(this);
+    this.variantLayout?.connectedCallbackHook();
+  }
+  willUpdate(changedProperties) {
+    if (changedProperties.has("variant") || !this.variantLayout) {
+      this.variantLayout = getVariantLayout(this);
+      this.variantLayout?.connectedCallbackHook();
+    }
+  }
+  updated(changedProperties) {
+    if (changedProperties.has("badgeBackgroundColor") || changedProperties.has("borderColor")) {
+      this.style.setProperty(
+        "--consonant-merch-card-border",
+        this.computedBorderStyle
+      );
+    }
+    if (changedProperties.has("backgroundColor")) {
+      this.style.setProperty(
+        "--merch-card-custom-background-color",
+        this.backgroundColor ? `var(--${this.backgroundColor})` : ""
+      );
+    }
+    try {
+      this.variantLayoutPromise = this.variantLayout?.postCardUpdateHook(changedProperties);
+    } catch (e4) {
+      __privateMethod(this, _MerchCard_instances, fail_fn2).call(this, `Error in postCardUpdateHook: ${e4.message}`, {}, false);
+    }
+  }
+  get theme() {
+    return this.closest("sp-theme");
+  }
+  get dir() {
+    return this.closest("[dir]")?.getAttribute("dir") ?? "ltr";
+  }
+  render() {
+    if (!this.isConnected || !this.variantLayout || this.style.display === "none")
+      return;
+    return this.variantLayout.renderLayout();
+  }
+  get computedBorderStyle() {
+    if (![
+      "ccd-slice",
+      "ccd-suggested",
+      "ah-promoted-plans",
+      "simplified-pricing-express"
+    ].includes(this.variant)) {
+      return `1px solid ${this.borderColor ? this.borderColor : this.badgeBackgroundColor}`;
+    }
+    return "";
+  }
+  get badgeElement() {
+    return this.shadowRoot.getElementById("badge");
+  }
+  get headingmMSlot() {
+    return this.shadowRoot.querySelector('slot[name="heading-m"]').assignedElements()[0];
+  }
+  get footerSlot() {
+    return this.shadowRoot.querySelector('slot[name="footer"]')?.assignedElements()[0];
+  }
+  get descriptionSlot() {
+    return this.shadowRoot.querySelector('slot[name="body-xs"')?.assignedElements()[0];
+  }
+  get descriptionSlotCompare() {
+    return this.shadowRoot.querySelector('slot[name="body-m"')?.assignedElements()[0];
+  }
+  get price() {
+    return this.headingmMSlot?.querySelector(SELECTOR_MAS_INLINE_PRICE);
+  }
+  get checkoutLinks() {
+    return [
+      ...this.footerSlot?.querySelectorAll(SELECTOR_MAS_CHECKOUT_LINK) ?? []
+    ];
+  }
+  get checkoutLinksDescription() {
+    return [
+      ...this.descriptionSlot?.querySelectorAll(
+        SELECTOR_MAS_CHECKOUT_LINK
+      ) ?? []
+    ];
+  }
+  get checkoutLinkDescriptionCompare() {
+    return [
+      ...this.descriptionSlotCompare?.querySelectorAll(
+        SELECTOR_MAS_CHECKOUT_LINK
+      ) ?? []
+    ];
+  }
+  get activeDescriptionLinks() {
+    if (this.variant === "mini-compare-chart") {
+      return this.checkoutLinkDescriptionCompare;
+    }
+    return this.checkoutLinksDescription;
+  }
+  async toggleStockOffer({ target }) {
+    if (!this.stockOfferOsis) return;
+    const elements = this.checkoutLinks;
+    if (elements.length === 0) return;
+    for (const element of elements) {
+      await element.onceSettled();
+      const planType = element.value?.[0]?.planType;
+      if (!planType) return;
+      const stockOfferOsi = this.stockOfferOsis[planType];
+      if (!stockOfferOsi) return;
+      const osis = element.dataset.wcsOsi.split(",").filter((osi) => osi !== stockOfferOsi);
+      if (target.checked) {
+        osis.push(stockOfferOsi);
+      }
+      element.dataset.wcsOsi = osis.join(",");
+    }
+  }
+  changeHandler(event) {
+    if (event.target.tagName === "MERCH-ADDON") {
+      this.toggleAddon(event.target);
+    }
+  }
+  toggleAddon(merchAddon) {
+    this.variantLayout?.toggleAddon?.(merchAddon);
+    const allLinks = [
+      ...this.checkoutLinks,
+      ...this.activeDescriptionLinks ?? []
+    ];
+    if (allLinks.length === 0) return;
+    const updateOsi = (link) => {
+      const { offerType, planType } = link.value?.[0] ?? {};
+      if (!offerType || !planType) return;
+      const addonOsi = merchAddon.getOsi(planType, offerType);
+      const osis = (link.dataset.wcsOsi || "").split(",").filter((osi) => osi && osi !== addonOsi);
+      if (merchAddon.checked) {
+        osis.push(addonOsi);
+      }
+      link.dataset.wcsOsi = osis.join(",");
+    };
+    allLinks.forEach(updateOsi);
+  }
+  handleQuantitySelection(event) {
+    const allLinks = [
+      ...this.checkoutLinks,
+      ...this.activeDescriptionLinks ?? []
+    ];
+    if (allLinks.length === 0) return;
+    for (const link of allLinks) {
+      link.dataset.quantity = event.detail.option;
+    }
+  }
+  get titleElement() {
+    return this.querySelector(
+      this.variantLayout?.headingSelector || ".card-heading"
+    );
+  }
+  get title() {
+    return this.titleElement?.textContent?.trim();
+  }
+  /* c8 ignore next 3 */
+  get description() {
+    return this.querySelector('[slot="body-xs"]')?.textContent?.trim();
+  }
+  /**
+   * If the card is the single app, set the order for all filters to 2.
+   * If not, increment the order for all filters after the second card by 1.
+   * @param {*} singleApp
+   */
+  updateFilters(singleApp) {
+    const newFilters = { ...this.filters };
+    Object.keys(newFilters).forEach((key) => {
+      if (singleApp) {
+        newFilters[key].order = Math.min(newFilters[key].order || 2, 2);
+        return;
+      }
+      const value = newFilters[key].order;
+      if (value === 1 || isNaN(value)) return;
+      newFilters[key].order = Number(value) + 1;
+    });
+    this.filters = newFilters;
+  }
+  /* c8 ignore next 3 */
+  includes(text) {
+    return this.textContent.match(new RegExp(text, "i")) !== null;
+  }
+  connectedCallback() {
+    var _a2;
+    super.connectedCallback();
+    if (!__privateGet(this, _internalId)) {
+      __privateSet(this, _internalId, idCounter++);
+    }
+    if (!this.aemFragment) {
+      (_a2 = __privateGet(this, _resolveHydration)) == null ? void 0 : _a2.call(this);
+      __privateSet(this, _resolveHydration, void 0);
+    }
+    this.id ?? (this.id = this.getAttribute("id") ?? this.aemFragment?.getAttribute("fragment"));
+    const logId = this.id ?? __privateGet(this, _internalId);
+    __privateSet(this, _startMarkName, `${MARK_MERCH_CARD_PREFIX}${logId}${MARK_START_SUFFIX}`);
+    __privateSet(this, _durationMarkName, `${MARK_MERCH_CARD_PREFIX}${logId}${MARK_DURATION_SUFFIX}`);
+    performance.mark(__privateGet(this, _startMarkName));
+    __privateSet(this, _service4, getService2());
+    registerPriceOptionsProvider(__privateGet(this, _service4));
+    __privateSet(this, _log2, __privateGet(this, _service4).Log.module(MERCH_CARD));
+    this.addEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.handleQuantitySelection
+    );
+    this.addEventListener(
+      EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+      this.handleAddonAndQuantityUpdate
+    );
+    this.addEventListener(
+      EVENT_MERCH_OFFER_SELECT_READY,
+      this.handleMerchOfferSelectReady
+    );
+    this.addEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
+    this.addEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
+    this.addEventListener("change", this.changeHandler);
+    if (!this.aemFragment) {
+      setTimeout(() => this.checkReady(), 0);
+    }
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.variantLayout?.disconnectedCallbackHook();
+    this.removeEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      this.handleQuantitySelection
+    );
+    this.removeEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
+    this.removeEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
+    this.removeEventListener("change", this.changeHandler);
+    this.removeEventListener(
+      EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+      this.handleAddonAndQuantityUpdate
+    );
+  }
+  // custom methods
+  async handleAemFragmentEvents(e4) {
+    var _a2;
+    if (!this.isConnected) return;
+    if (e4.type === EVENT_AEM_ERROR) {
+      __privateMethod(this, _MerchCard_instances, fail_fn2).call(this, `AEM fragment cannot be loaded`);
+    }
+    if (e4.type === EVENT_AEM_LOAD) {
+      this.failed = false;
+      if (e4.target.nodeName === "AEM-FRAGMENT") {
+        const fragment = e4.detail;
+        try {
+          if (!__privateGet(this, _resolveHydration)) {
+            __privateSet(this, _hydrationPromise, new Promise((resolve) => {
+              __privateSet(this, _resolveHydration, resolve);
+            }));
+          }
+          hydrate(fragment, this);
+        } catch (e5) {
+          __privateMethod(this, _MerchCard_instances, fail_fn2).call(this, `hydration has failed: ${e5.message}`);
+        } finally {
+          (_a2 = __privateGet(this, _resolveHydration)) == null ? void 0 : _a2.call(this);
+          __privateSet(this, _resolveHydration, void 0);
+        }
+        this.checkReady();
+      }
+    }
+  }
+  async checkReady() {
+    if (!this.isConnected) return;
+    if (__privateGet(this, _hydrationPromise)) {
+      await __privateGet(this, _hydrationPromise);
+      __privateSet(this, _hydrationPromise, void 0);
+    }
+    if (this.variantLayoutPromise) {
+      await this.variantLayoutPromise;
+      this.variantLayoutPromise = void 0;
+    }
+    const timeoutPromise = new Promise(
+      (resolve) => setTimeout(() => resolve("timeout"), MERCH_CARD_LOAD_TIMEOUT)
+    );
+    if (this.aemFragment) {
+      const result2 = await Promise.race([
+        this.aemFragment.updateComplete,
+        timeoutPromise
+      ]);
+      if (result2 === false || result2 === "timeout") {
+        const errorMessage = result2 === "timeout" ? `AEM fragment was not resolved within ${MERCH_CARD_LOAD_TIMEOUT} timeout` : "AEM fragment cannot be loaded";
+        __privateMethod(this, _MerchCard_instances, fail_fn2).call(this, errorMessage, {}, false);
+        return;
+      }
+    }
+    const masElements = [...this.querySelectorAll(SELECTOR_MAS_ELEMENT)];
+    const successPromise = Promise.all(
+      masElements.map(
+        (element) => element.onceSettled().catch(() => element)
+      )
+    ).then(
+      (elements) => elements.every(
+        (el) => el.classList.contains("placeholder-resolved")
+      )
+    );
+    const result = await Promise.race([successPromise, timeoutPromise]);
+    if (result === true) {
+      this.measure = performance.measure(
+        __privateGet(this, _durationMarkName),
+        __privateGet(this, _startMarkName)
+      );
+      const detail = {
+        ...this.aemFragment?.fetchInfo,
+        ...__privateGet(this, _service4).duration,
+        measure: printMeasure(this.measure)
+      };
+      this.dispatchEvent(
+        new CustomEvent(EVENT_MAS_READY, {
+          bubbles: true,
+          composed: true,
+          detail
+        })
+      );
+      return this;
+    } else {
+      this.measure = performance.measure(
+        __privateGet(this, _durationMarkName),
+        __privateGet(this, _startMarkName)
+      );
+      const details = {
+        measure: printMeasure(this.measure),
+        ...__privateGet(this, _service4).duration
+      };
+      if (result === "timeout") {
+        __privateMethod(this, _MerchCard_instances, fail_fn2).call(this, `Contains offers that were not resolved within ${MERCH_CARD_LOAD_TIMEOUT} timeout`, details);
+      } else {
+        __privateMethod(this, _MerchCard_instances, fail_fn2).call(this, `Contains unresolved offers`, details);
+      }
+    }
+  }
+  get aemFragment() {
+    return this.querySelector("aem-fragment");
+  }
+  get addon() {
+    return this.querySelector("merch-addon");
+  }
+  /* c8 ignore next 3 */
+  get quantitySelect() {
+    return this.querySelector("merch-quantity-select");
+  }
+  get addonCheckbox() {
+    return this.querySelector("merch-addon");
+  }
+  displayFooterElementsInColumn() {
+    if (!this.classList.contains("product")) return;
+    const secureTransactionLabel = this.shadowRoot.querySelector(
+      ".secure-transaction-label"
+    );
+    const checkoutLinkCtas = this.footerSlot?.querySelectorAll(
+      SELECTOR_MAS_CHECKOUT_LINK
+    );
+    if (checkoutLinkCtas.length === 2 && secureTransactionLabel) {
+      secureTransactionLabel.parentElement.classList.add("footer-column");
+    }
+  }
+  handleMerchOfferSelectReady() {
+    if (this.offerSelect && !this.offerSelect.planType) return;
+    this.displayFooterElementsInColumn();
+  }
+  /* c8 ignore next 3 */
+  get dynamicPrice() {
+    return this.querySelector('[slot="price"]');
+  }
+  handleAddonAndQuantityUpdate({ detail: { id, items } }) {
+    if (!id || !items?.length) return;
+    const parentTab = this.closest('[role="tabpanel"][hidden="true"]');
+    if (parentTab) return;
+    const cta = this.checkoutLinks.find(
+      (link) => link.getAttribute("data-modal-id") === id
+    );
+    if (!cta) return;
+    const url = new URL(cta.getAttribute("href"));
+    const pa = url.searchParams.get("pa");
+    const mainProductQuantity = items.find(
+      (item) => item.productArrangementCode === pa
+    )?.quantity;
+    const isAddonIncluded = !!items.find(
+      (item) => item.productArrangementCode !== pa
+    );
+    if (mainProductQuantity) {
+      this.quantitySelect?.dispatchEvent(
+        new CustomEvent(EVENT_MERCH_CARD_QUANTITY_CHANGE, {
+          detail: { quantity: mainProductQuantity },
+          bubbles: true,
+          composed: true
+        })
+      );
+    }
+    if (this.addonCheckbox && this.addonCheckbox.checked !== isAddonIncluded) {
+      this.toggleStockOffer({ target: this.addonCheckbox });
+      const checkboxEvent = new Event("change", {
+        bubbles: true,
+        cancelable: true
+      });
+      Object.defineProperty(checkboxEvent, "target", {
+        writable: false,
+        value: { checked: isAddonIncluded }
+      });
+      this.addonCheckbox.handleChange(checkboxEvent);
+    }
+  }
+  get prices() {
+    return Array.from(this.querySelectorAll(SELECTOR_MAS_INLINE_PRICE));
+  }
+  get promoPrice() {
+    if (!this.querySelector(`span.price-strikethrough`)) return;
+    let price2 = this.querySelector(`.price.price-alternative`);
+    if (!price2) {
+      price2 = this.querySelector(
+        `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"] > span`
+      );
+    }
+    if (!price2) return;
+    price2 = price2.innerText;
+    return price2;
+  }
+  get regularPrice() {
+    return __privateGet(this, _MerchCard_instances, regularPrice_get)?.innerText;
+  }
+  get promotionCode() {
+    const promotionCodes = [
+      ...this.querySelectorAll(
+        `${SELECTOR_MAS_INLINE_PRICE}[data-promotion-code],${SELECTOR_MAS_CHECKOUT_LINK}[data-promotion-code]`
+      )
+    ].map((el) => el.dataset.promotionCode);
+    const uniqueCodes = [...new Set(promotionCodes)];
+    if (uniqueCodes.length > 1) {
+      __privateGet(this, _log2)?.warn(
+        `Multiple different promotion codes found: ${uniqueCodes.join(", ")}`
+      );
+    }
+    return promotionCodes[0];
+  }
+  get annualPrice() {
+    const price2 = this.querySelector(
+      `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"] > .price.price-annual`
+    );
+    return price2?.innerText;
+  }
+  get promoText() {
+    return void 0;
+  }
+  get taxText() {
+    return (__privateGet(this, _MerchCard_instances, legal_get) ?? __privateGet(this, _MerchCard_instances, regularPrice_get))?.querySelector("span.price-tax-inclusivity")?.textContent?.trim() || void 0;
+  }
+  get recurrenceText() {
+    return __privateGet(this, _MerchCard_instances, regularPrice_get)?.querySelector("span.price-recurrence")?.textContent?.trim();
+  }
+  get planTypeText() {
+    return this.querySelector(
+      '[is="inline-price"][data-template="legal"] span.price-plan-type'
+    )?.textContent?.trim();
+  }
+  get seeTermsInfo() {
+    const seeTerms = this.querySelector('a[is="upt-link"]');
+    if (!seeTerms) return void 0;
+    return __privateMethod(this, _MerchCard_instances, getCta_fn).call(this, seeTerms);
+  }
+  get renewalText() {
+    return this.querySelector("span.renewal-text")?.textContent?.trim();
+  }
+  get promoDurationText() {
+    return this.querySelector(
+      "span.promo-duration-text"
+    )?.textContent?.trim();
+  }
+  get ctas() {
+    const ctas = this.querySelector(
+      '[slot="ctas"], [slot="footer"]'
+    )?.querySelectorAll(`${SELECTOR_MAS_CHECKOUT_LINK}, a`);
+    return Array.from(ctas ?? []);
+  }
+  get primaryCta() {
+    return __privateMethod(this, _MerchCard_instances, getCta_fn).call(this, this.ctas.find(
+      (cta) => cta.variant === "accent" || cta.matches(".spectrum-Button--accent,.con-button.blue")
+    ));
+  }
+  get secondaryCta() {
+    return __privateMethod(this, _MerchCard_instances, getCta_fn).call(this, this.ctas.find(
+      (cta) => cta.variant !== "accent" && !cta.matches(".spectrum-Button--accent,.con-button.blue")
+    ));
+  }
+};
+_durationMarkName = new WeakMap();
+_internalId = new WeakMap();
+_log2 = new WeakMap();
+_service4 = new WeakMap();
+_startMarkName = new WeakMap();
+_resolveHydration = new WeakMap();
+_hydrationPromise = new WeakMap();
+_MerchCard_instances = new WeakSet();
+fail_fn2 = function(error, details = {}, dispatch = true) {
+  if (!this.isConnected) return;
+  const aemFragment = this.aemFragment;
+  let fragmentId = aemFragment?.getAttribute("fragment");
+  fragmentId = `[${fragmentId}]`;
+  const detail = {
+    ...this.aemFragment?.fetchInfo,
+    ...__privateGet(this, _service4).duration,
+    ...details,
+    message: error
+  };
+  __privateGet(this, _log2).error(`merch-card${fragmentId}: ${error}`, detail);
+  this.failed = true;
+  if (!dispatch) return;
+  this.dispatchEvent(
+    new CustomEvent(EVENT_MAS_ERROR, {
+      bubbles: true,
+      composed: true,
+      detail
+    })
+  );
+};
+regularPrice_get = function() {
+  return this.querySelector(`span.price-strikethrough`) ?? this.querySelector(
+    `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"] > span`
+  );
+};
+legal_get = function() {
+  return this.querySelector(
+    `${SELECTOR_MAS_INLINE_PRICE}[data-template="legal"]`
+  );
+};
+getCta_fn = function(element) {
+  if (!element) return void 0;
+  return {
+    text: element.innerText.trim(),
+    analyticsId: element.dataset.analyticsId,
+    href: element.getAttribute("href") ?? element.dataset.href
+  };
+};
+__publicField(MerchCard, "properties", {
+  id: { type: String, attribute: "id", reflect: true },
+  name: { type: String, attribute: "name", reflect: true },
+  variant: { type: String, reflect: true },
+  size: { type: String, attribute: "size", reflect: true },
+  badgeColor: { type: String, attribute: "badge-color", reflect: true },
+  borderColor: { type: String, attribute: "border-color", reflect: true },
+  backgroundColor: {
+    type: String,
+    attribute: "background-color",
+    reflect: true
+  },
+  badgeBackgroundColor: {
+    type: String,
+    attribute: "badge-background-color",
+    reflect: true
+  },
+  backgroundImage: {
+    type: String,
+    attribute: "background-image",
+    reflect: true
+  },
+  badgeText: { type: String, attribute: "badge-text" },
+  actionMenu: { type: Boolean, attribute: "action-menu" },
+  actionMenuLabel: { type: String, attribute: "action-menu-label" },
+  customHr: { type: Boolean, attribute: "custom-hr" },
+  consonant: { type: Boolean, attribute: "consonant" },
+  failed: { type: Boolean, attribute: "failed", reflect: true },
+  spectrum: { type: String, attribute: "spectrum" },
+  detailBg: { type: String, attribute: "detail-bg" },
+  secureLabel: { type: String, attribute: "secure-label" },
+  checkboxLabel: { type: String, attribute: "checkbox-label" },
+  addonTitle: { type: String, attribute: "addon-title" },
+  addonOffers: { type: Object, attribute: "addon-offers" },
+  selected: { type: Boolean, attribute: "aria-selected", reflect: true },
+  storageOption: { type: String, attribute: "storage", reflect: true },
+  planType: { type: String, attribute: "plan-type", reflect: true },
+  settings: {
+    type: Object,
+    attribute: false
+  },
+  stockOfferOsis: {
+    type: Object,
+    attribute: "stock-offer-osis",
+    converter: {
+      fromAttribute: (value) => {
+        if (!value) return;
+        const [PUF2, ABM2, M2M2] = value.split(",");
+        return { PUF: PUF2, ABM: ABM2, M2M: M2M2 };
+      }
+    }
+  },
+  filters: {
+    type: String,
+    reflect: true,
+    converter: {
+      fromAttribute: (value) => {
+        return Object.fromEntries(
+          value.split(",").map((filter) => {
+            const [key, order, size] = filter.split(":");
+            const value2 = Number(order);
+            return [
+              key,
+              {
+                order: isNaN(value2) ? void 0 : value2,
+                size
+              }
+            ];
+          })
+        );
+      },
+      toAttribute: (value) => {
+        return Object.entries(value).map(
+          ([key, { order, size }]) => [key, order, size].filter((v2) => v2 != void 0).join(":")
+        ).join(",");
+      }
+    }
+  },
+  types: {
+    type: String,
+    attribute: "types",
+    reflect: true
+  },
+  merchOffer: { type: Object },
+  analyticsId: {
+    type: String,
+    attribute: ANALYTICS_SECTION_ATTR,
+    reflect: true
+  },
+  loading: { type: String },
+  priceLiterals: { type: Object }
+});
+__publicField(MerchCard, "styles", [styles, ...sizeStyles()]);
+__publicField(MerchCard, "registerVariant", registerVariant);
+__publicField(MerchCard, "getCollectionOptions", getCollectionOptions);
+__publicField(MerchCard, "getFragmentMapping", getFragmentMapping);
+customElements.define(MERCH_CARD, MerchCard);
+
+// src/merch-offer-select.js
+init_lit();
+var _handleOfferSelectionByQuantityFn;
+var MerchOfferSelect = class extends s4 {
+  constructor() {
+    super();
+    __privateAdd(this, _handleOfferSelectionByQuantityFn);
+    this.defaults = {};
+    this.variant = "plans";
+  }
+  /** Returns the default values for the price, cta, and description slots.
+   * These are the values coming from the container itself, not from the merch-offer elements.
+   * E.g. initial merch-card description text. There is no default price or cta in the container.
+   */
+  saveContainerDefaultValues() {
+    const container = this.closest(this.getAttribute("container"));
+    const description = container?.querySelector('[slot="description"]:not(merch-offer > *)')?.cloneNode(true);
+    const badgeText = container?.badgeText;
+    return {
+      description,
+      badgeText
+    };
+  }
+  getSlottedElement(slotName, container) {
+    const containerEl = container || this.closest(this.getAttribute("container"));
+    return containerEl.querySelector(
+      `[slot="${slotName}"]:not(merch-offer > *)`
+    );
+  }
+  updateSlot(slotName, container) {
+    const slot = this.getSlottedElement(slotName, container);
+    if (!slot) return;
+    const node = this.selectedOffer.getOptionValue(slotName) ? this.selectedOffer.getOptionValue(slotName) : this.defaults[slotName];
+    if (node) {
+      slot.replaceWith(node.cloneNode(true));
+    }
+  }
+  handleOfferSelection(e4) {
+    const newOffer = e4.detail;
+    this.selectOffer(newOffer);
+  }
+  handleOfferSelectionByQuantity(event) {
+    const selected = event.detail.option;
+    const selectedValue = Number.parseInt(selected);
+    const newOffer = this.findAppropriateOffer(selectedValue);
+    this.selectOffer(newOffer);
+    const cta = this.getSlottedElement("cta");
+    cta.setAttribute("data-quantity", selectedValue);
+  }
+  selectOffer(newOffer) {
+    if (!newOffer) {
+      return;
+    }
+    const previousOffer = this.selectedOffer;
+    if (previousOffer) {
+      previousOffer.selected = false;
+    }
+    newOffer.selected = true;
+    this.selectedOffer = newOffer;
+    this.planType = newOffer.planType;
+    this.updateContainer();
+    this.updateComplete.then(() => {
+      this.dispatchEvent(
+        new CustomEvent(EVENT_OFFER_SELECTED, {
+          detail: this,
+          bubbles: true
+        })
+      );
+    });
+  }
+  findAppropriateOffer(selectedValue) {
+    let previousOfferWithValue = null;
+    const foundOffer = this.offers.find((offer) => {
+      const offerAttribute = Number.parseInt(offer.getAttribute("value"));
+      if (offerAttribute === selectedValue) {
+        return true;
+      } else if (offerAttribute > selectedValue) {
+        return false;
+      } else {
+        previousOfferWithValue = offer;
+      }
+    });
+    return foundOffer || previousOfferWithValue;
+  }
+  /**
+   * If badge text is empty string - delete the badge.
+   * If badge text is present - set the badge.
+   * If badge text is null or undefined - set default badge. */
+  updateBadgeText(container) {
+    if (this.selectedOffer.badgeText === "") {
+      container.badgeText = null;
+    } else if (this.selectedOffer.badgeText) {
+      container.badgeText = this.selectedOffer.badgeText;
+    } else {
+      container.badgeText = this.defaults.badgeText;
+    }
+  }
+  /** Will update price, cta, and other slots/properties in parent container (e.g. merch-card) */
+  updateContainer() {
+    const container = this.closest(this.getAttribute("container"));
+    if (!container || !this.selectedOffer) return;
+    this.updateSlot("cta", container);
+    this.updateSlot("secondary-cta", container);
+    this.updateSlot("price", container);
+    if (this.manageableMode) return;
+    this.updateSlot("description", container);
+    this.updateBadgeText(container);
+  }
+  render() {
+    return x`<fieldset><slot class="${this.variant}"></slot></fieldset>`;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener("focusin", this.handleFocusin);
+    this.addEventListener("click", this.handleFocusin);
+    this.addEventListener(
+      EVENT_MERCH_OFFER_READY,
+      this.handleOfferSelectReady
+    );
+    const quantitySelect = this.closest("merch-quantity-select");
+    this.manageableMode = quantitySelect;
+    this.offers = [...this.querySelectorAll("merch-offer")];
+    __privateSet(this, _handleOfferSelectionByQuantityFn, this.handleOfferSelectionByQuantity.bind(this));
+    if (this.manageableMode) {
+      quantitySelect.addEventListener(
+        EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+        __privateGet(this, _handleOfferSelectionByQuantityFn)
+      );
+    } else {
+      this.defaults = this.saveContainerDefaultValues();
+    }
+    this.selectedOffer = this.offers[0];
+    if (this.planType) {
+      this.updateContainer();
+    }
+  }
+  get miniCompareMobileCard() {
+    return this.merchCard?.variant === "mini-compare-chart" && this.isMobile;
+  }
+  get merchCard() {
+    return this.closest("merch-card");
+  }
+  get isMobile() {
+    return window.matchMedia("(max-width: 767px)").matches;
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      __privateGet(this, _handleOfferSelectionByQuantityFn)
+    );
+    this.removeEventListener(
+      EVENT_MERCH_OFFER_READY,
+      this.handleOfferSelectReady
+    );
+    this.removeEventListener("focusin", this.handleFocusin);
+    this.removeEventListener("click", this.handleFocusin);
+  }
+  get price() {
+    return this.querySelector(
+      'merch-offer[aria-selected] [is="inline-price"]'
+    );
+  }
+  get customerSegment() {
+    return this.selectedOffer?.customerSegment;
+  }
+  get marketSegment() {
+    return this.selectedOffer?.marketSegment;
+  }
+  handleFocusin(event) {
+    if (event.target?.nodeName === "MERCH-OFFER") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this.selectOffer(event.target);
+    }
+  }
+  async handleOfferSelectReady() {
+    if (this.planType) return;
+    if (this.querySelector("merch-offer:not([plan-type])")) return;
+    this.planType = this.selectedOffer.planType;
+    await this.updateComplete;
+    this.selectOffer(
+      this.selectedOffer ?? this.querySelector("merch-offer[aria-selected]") ?? this.querySelector("merch-offer")
+    );
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_OFFER_SELECT_READY, { bubbles: true })
+    );
+  }
+};
+_handleOfferSelectionByQuantityFn = new WeakMap();
+__publicField(MerchOfferSelect, "styles", i`
         :host {
             display: inline-block;
         }
@@ -4299,7 +15371,23 @@ merch-card [slot='callout-content'] .icon-button::before {
             flex-direction: column;
             gap: var(--consonant-merch-spacing-xs);
         }
-    `),u(Br,"properties",{offers:{type:Array},selectedOffer:{type:Object},defaults:{type:Object},variant:{type:String,attribute:"variant",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},stock:{type:Boolean,reflect:!0}});customElements.define("merch-offer-select",Br);O();O();var Lc=y`
+    `);
+__publicField(MerchOfferSelect, "properties", {
+  offers: { type: Array },
+  selectedOffer: { type: Object },
+  defaults: { type: Object },
+  variant: { type: String, attribute: "variant", reflect: true },
+  planType: { type: String, attribute: "plan-type", reflect: true },
+  stock: { type: Boolean, reflect: true }
+});
+customElements.define("merch-offer-select", MerchOfferSelect);
+
+// src/merch-offer.js
+init_lit();
+
+// src/merch-offer.css.js
+init_lit();
+var styles3 = i`
     :host {
         --merch-radio: rgba(82, 88, 228);
         --merch-radio-hover: rgba(64, 70, 202);
@@ -4510,11 +15598,41 @@ merch-card [slot='callout-content'] .icon-button::before {
         position: relative;
         height: 40px;
     }
-`;var Vh="merch-offer",zr=class extends I{constructor(){super();u(this,"tr");this.type="radio",this.selected=!1}getOptionValue(r){return this.querySelector(`[slot="${r}"]`)}connectedCallback(){super.connectedCallback(),this.initOffer(),this.configuration=this.closest("quantity-selector"),!this.hasAttribute("tabindex")&&!this.configuration&&(this.tabIndex=0),!this.hasAttribute("role")&&!this.configuration&&(this.role="radio")}get asRadioOption(){return f` <div class="merch-Radio">
+`;
+
+// src/merch-offer.js
+var TAG_NAME = "merch-offer";
+var MerchOffer = class extends s4 {
+  constructor() {
+    super();
+    __publicField(this, "tr");
+    this.type = "radio";
+    this.selected = false;
+  }
+  getOptionValue(slotName) {
+    return this.querySelector(`[slot="${slotName}"]`);
+  }
+  // setting attributes can't be done in constructor, so using connectedCallback
+  connectedCallback() {
+    super.connectedCallback();
+    this.initOffer();
+    this.configuration = this.closest("quantity-selector");
+    if (!this.hasAttribute("tabindex") && !this.configuration) {
+      this.tabIndex = 0;
+    }
+    if (!this.hasAttribute("role") && !this.configuration) {
+      this.role = "radio";
+    }
+  }
+  get asRadioOption() {
+    return x` <div class="merch-Radio">
             <input tabindex="-1" type="radio" class="merch-Radio-input" />
             <span class="merch-Radio-button"></span>
             <span class="merch-Radio-label">${this.text}</span>
-        </div>`}get asSubscriptionOption(){return f`<slot name="commitment"></slot>
+        </div>`;
+  }
+  get asSubscriptionOption() {
+    return x`<slot name="commitment"></slot>
             <slot name="price"></slot>
             <slot name="teaser"></slot>
             <div id="condition">
@@ -4527,7 +15645,64 @@ merch-card [slot='callout-content'] .icon-button::before {
                         ><slot name="condition-tooltip"></slot
                     ></sp-tooltip>
                 </sp-overlay>
-            </div>`}render(){return this.configuration||!this.price?"":this.type==="subscription-option"?this.asSubscriptionOption:this.asRadioOption}get price(){return this.querySelector('span[is="inline-price"]:not([data-template="strikethrough"])')}get cta(){return this.querySelector(ge)}get prices(){return this.querySelectorAll('span[is="inline-price"]')}get customerSegment(){return this.price?.value?.[0].customerSegment}get marketSegment(){return this.price?.value?.[0].marketSegments[0]}async initOffer(){if(!this.price)return;this.prices.forEach(i=>i.setAttribute("slot","price")),await this.updateComplete,await Promise.all([...this.prices].map(i=>i.onceSettled()));let{value:[r]}=this.price;this.planType=r.planType,await this.updateComplete,this.dispatchEvent(new CustomEvent(Et,{bubbles:!0}))}};u(zr,"properties",{text:{type:String},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},badgeText:{type:String,attribute:"badge-text"},type:{type:String,attribute:"type",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0}}),u(zr,"styles",[Lc]);customElements.define(Vh,zr);O();O();var Rc=y`
+            </div>`;
+  }
+  render() {
+    if (this.configuration) return "";
+    if (!this.price) return "";
+    if (this.type === "subscription-option")
+      return this.asSubscriptionOption;
+    return this.asRadioOption;
+  }
+  get price() {
+    return this.querySelector(
+      'span[is="inline-price"]:not([data-template="strikethrough"])'
+    );
+  }
+  get cta() {
+    return this.querySelector(SELECTOR_MAS_CHECKOUT_LINK);
+  }
+  get prices() {
+    return this.querySelectorAll('span[is="inline-price"]');
+  }
+  get customerSegment() {
+    return this.price?.value?.[0].customerSegment;
+  }
+  get marketSegment() {
+    return this.price?.value?.[0].marketSegments[0];
+  }
+  async initOffer() {
+    if (!this.price) return;
+    this.prices.forEach((el) => el.setAttribute("slot", "price"));
+    await this.updateComplete;
+    await Promise.all([...this.prices].map((price2) => price2.onceSettled()));
+    const {
+      value: [offer]
+    } = this.price;
+    this.planType = offer.planType;
+    await this.updateComplete;
+    this.dispatchEvent(
+      new CustomEvent(EVENT_MERCH_OFFER_READY, { bubbles: true })
+    );
+  }
+};
+__publicField(MerchOffer, "properties", {
+  text: { type: String },
+  selected: { type: Boolean, attribute: "aria-selected", reflect: true },
+  badgeText: { type: String, attribute: "badge-text" },
+  type: { type: String, attribute: "type", reflect: true },
+  // values: radio, subscription-option
+  planType: { type: String, attribute: "plan-type", reflect: true }
+});
+__publicField(MerchOffer, "styles", [styles3]);
+customElements.define(TAG_NAME, MerchOffer);
+
+// src/merch-quantity-select.js
+init_lit();
+
+// src/merch-quantity-select.css.js
+init_lit();
+var styles4 = i`
     :host {
         box-sizing: border-box;
         --background-color: var(--qs-background-color, #f6f6f6);
@@ -4677,28 +15852,270 @@ merch-card [slot='callout-content'] .icon-button::before {
         background-position: right 7px center;
         background-repeat: no-repeat;
     }
-`;var[Pb,Lb,Co,ko,Oc,Nc]=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter","Tab"];var Po=class extends I{static get properties(){return{closed:{type:Boolean,reflect:!0},selected:{type:Number},min:{type:Number},max:{type:Number},step:{type:Number},maxInput:{type:Number,attribute:"max-input"},options:{type:Array},highlightedIndex:{type:Number},defaultValue:{type:Number,attribute:"default-value",reflect:!0},title:{type:String}}}static get styles(){return Rc}constructor(){super(),this.options=[],this.title="",this.closed=!0,this.min=0,this.max=0,this.step=0,this.maxInput=void 0,this.defaultValue=void 0,this.selectedValue=0,this.highlightedIndex=0,this.toggleMenu=this.toggleMenu.bind(this),this.closeMenu=this.closeMenu.bind(this),this.openMenu=this.openMenu.bind(this),this.handleClickOutside=this.handleClickOutside.bind(this),this.boundKeydownListener=this.handleKeydown.bind(this),this.handleKeyupDebounced=yr(this.handleKeyup.bind(this),500),this.debouncedQuantityUpdate=yr(this.handleQuantityUpdate.bind(this),500)}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this.boundKeydownListener),window.addEventListener("mousedown",this.handleClickOutside),this.addEventListener(wt,this.debouncedQuantityUpdate)}get button(){return this.shadowRoot.querySelector("button")}handleKeyup(t){t.key===ko||t.key===Co||(this.handleInput(),this.sendEvent())}selectValue(){if(!this.closed){let t=this.options[this.highlightedIndex];if(!t){this.closed=!0;return}this.selectedValue=t,this.handleMenuOption(this.selectedValue),this.closed=!0}}handleKeydown(t){switch(t.key){case" ":this.selectValue();break;case"Escape":this.closed=!0;break;case Nc:this.selectValue();break;case ko:this.closed?this.openMenu():this.highlightedIndex=(this.highlightedIndex+1)%this.options.length,t.preventDefault();break;case Co:this.closed||(this.highlightedIndex=(this.highlightedIndex-1+this.options.length)%this.options.length),t.preventDefault();break;case Oc:this.selectValue(),this.button.classList.contains("focused")&&t.preventDefault();break}t.composedPath().includes(this)&&t.stopPropagation()}adjustInput(t,r){this.selectedValue=r,t.value=r,this.highlightedIndex=this.options.indexOf(r)}handleInput(){let t=this.shadowRoot.querySelector(".text-field-input"),r=t.value.replace(/\D/g,"");t.value=r;let i=parseInt(r);if(!isNaN(i))if(i>0&&i!==this.selectedValue){let n=i;this.maxInput&&i>this.maxInput&&(n=this.maxInput),this.min&&n<this.min&&(n=this.min),this.adjustInput(t,n)}else this.adjustInput(t,this.selectedValue||this.min||1)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside),this.removeEventListener("keydown",this.boundKeydownListener),this.removeEventListener(wt,this.debouncedQuantityUpdate)}generateOptionsArray(){let t=[];if(this.step>0)for(let r=this.min;r<=this.max;r+=this.step)t.push(r);return t}update(t){(t.has("min")||t.has("max")||t.has("step")||t.has("defaultValue"))&&(this.options=this.generateOptionsArray(),this.highlightedIndex=this.defaultValue?this.options.indexOf(this.defaultValue):0,this.handleMenuOption(this.defaultValue?this.defaultValue:this.options[0])),super.update(t)}handleClickOutside(t){t.composedPath().includes(this)||this.closeMenu()}toggleMenu(){this.closed=!this.closed,this.adjustPopoverPlacement(),this.closed&&(this.highlightedIndex=this.options.indexOf(this.selectedValue))}closeMenu(){this.closed=!0,this.highlightedIndex=this.options.indexOf(this.selectedValue)}openMenu(){this.closed=!1,this.adjustPopoverPlacement()}adjustPopoverPlacement(){let t=this.shadowRoot.querySelector(".popover");this.closed||t.getBoundingClientRect().bottom<=window.innerHeight?t.setAttribute("placement","bottom"):t.setAttribute("placement","top")}handleMouseEnter(t){this.highlightedIndex=t}handleMenuOption(t,r){t===this.max&&this.shadowRoot.querySelector(".text-field-input")?.focus(),this.selectedValue=t,this.sendEvent(),r&&this.closeMenu()}sendEvent(){let t=new CustomEvent(Pe,{detail:{option:this.selectedValue},bubbles:!0});this.dispatchEvent(t)}get offerSelect(){return this.querySelector("merch-offer-select")}get popover(){return f` <div
+`;
+
+// src/focus.js
+var [ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, ENTER, TAB] = [
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Enter",
+  "Tab"
+];
+
+// src/merch-quantity-select.js
+var MerchQuantitySelect = class extends s4 {
+  static get properties() {
+    return {
+      closed: { type: Boolean, reflect: true },
+      selected: { type: Number },
+      min: { type: Number },
+      max: { type: Number },
+      step: { type: Number },
+      maxInput: { type: Number, attribute: "max-input" },
+      options: { type: Array },
+      highlightedIndex: { type: Number },
+      defaultValue: {
+        type: Number,
+        attribute: "default-value",
+        reflect: true
+      },
+      title: { type: String }
+    };
+  }
+  static get styles() {
+    return styles4;
+  }
+  constructor() {
+    super();
+    this.options = [];
+    this.title = "";
+    this.closed = true;
+    this.min = 0;
+    this.max = 0;
+    this.step = 0;
+    this.maxInput = void 0;
+    this.defaultValue = void 0;
+    this.selectedValue = 0;
+    this.highlightedIndex = 0;
+    this.toggleMenu = this.toggleMenu.bind(this);
+    this.closeMenu = this.closeMenu.bind(this);
+    this.openMenu = this.openMenu.bind(this);
+    this.handleClickOutside = this.handleClickOutside.bind(this);
+    this.boundKeydownListener = this.handleKeydown.bind(this);
+    this.handleKeyupDebounced = debounce(this.handleKeyup.bind(this), 500);
+    this.debouncedQuantityUpdate = debounce(
+      this.handleQuantityUpdate.bind(this),
+      500
+    );
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener("keydown", this.boundKeydownListener);
+    window.addEventListener("mousedown", this.handleClickOutside);
+    this.addEventListener(
+      EVENT_MERCH_CARD_QUANTITY_CHANGE,
+      this.debouncedQuantityUpdate
+    );
+  }
+  get button() {
+    return this.shadowRoot.querySelector("button");
+  }
+  handleKeyup(e4) {
+    if (e4.key === ARROW_DOWN || e4.key === ARROW_UP) return;
+    this.handleInput();
+    this.sendEvent();
+  }
+  selectValue() {
+    if (!this.closed) {
+      const option = this.options[this.highlightedIndex];
+      if (!option) {
+        this.closed = true;
+        return;
+      }
+      this.selectedValue = option;
+      this.handleMenuOption(this.selectedValue);
+      this.closed = true;
+    }
+  }
+  handleKeydown(e4) {
+    switch (e4.key) {
+      case " ":
+        this.selectValue();
+        break;
+      case "Escape":
+        this.closed = true;
+        break;
+      case TAB:
+        this.selectValue();
+        break;
+      case ARROW_DOWN:
+        if (!this.closed) {
+          this.highlightedIndex = (this.highlightedIndex + 1) % this.options.length;
+        } else {
+          this.openMenu();
+        }
+        e4.preventDefault();
+        break;
+      case ARROW_UP:
+        if (!this.closed) {
+          this.highlightedIndex = (this.highlightedIndex - 1 + this.options.length) % this.options.length;
+        }
+        e4.preventDefault();
+        break;
+      case ENTER:
+        this.selectValue();
+        if (this.button.classList.contains("focused"))
+          e4.preventDefault();
+        break;
+    }
+    if (e4.composedPath().includes(this)) e4.stopPropagation();
+  }
+  adjustInput(inputField, value) {
+    this.selectedValue = value;
+    inputField.value = value;
+    this.highlightedIndex = this.options.indexOf(value);
+  }
+  handleInput() {
+    const inputField = this.shadowRoot.querySelector(".text-field-input");
+    const numericValue = inputField.value.replace(/\D/g, "");
+    inputField.value = numericValue;
+    const inputValue = parseInt(numericValue);
+    if (isNaN(inputValue)) {
+      return;
+    }
+    if (inputValue > 0 && inputValue !== this.selectedValue) {
+      let adjustedInputValue = inputValue;
+      if (this.maxInput && inputValue > this.maxInput)
+        adjustedInputValue = this.maxInput;
+      if (this.min && adjustedInputValue < this.min)
+        adjustedInputValue = this.min;
+      this.adjustInput(inputField, adjustedInputValue);
+    } else
+      this.adjustInput(inputField, this.selectedValue || this.min || 1);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("mousedown", this.handleClickOutside);
+    this.removeEventListener("keydown", this.boundKeydownListener);
+    this.removeEventListener(
+      EVENT_MERCH_CARD_QUANTITY_CHANGE,
+      this.debouncedQuantityUpdate
+    );
+  }
+  generateOptionsArray() {
+    const options = [];
+    if (this.step > 0) {
+      for (let value = this.min; value <= this.max; value += this.step) {
+        options.push(value);
+      }
+    }
+    return options;
+  }
+  update(changedProperties) {
+    if (changedProperties.has("min") || changedProperties.has("max") || changedProperties.has("step") || changedProperties.has("defaultValue")) {
+      this.options = this.generateOptionsArray();
+      this.highlightedIndex = this.defaultValue ? this.options.indexOf(this.defaultValue) : 0;
+      this.handleMenuOption(
+        this.defaultValue ? this.defaultValue : this.options[0]
+      );
+    }
+    super.update(changedProperties);
+  }
+  handleClickOutside(event) {
+    const path = event.composedPath();
+    if (!path.includes(this)) {
+      this.closeMenu();
+    }
+  }
+  toggleMenu() {
+    this.closed = !this.closed;
+    this.adjustPopoverPlacement();
+    if (this.closed)
+      this.highlightedIndex = this.options.indexOf(this.selectedValue);
+  }
+  closeMenu() {
+    this.closed = true;
+    this.highlightedIndex = this.options.indexOf(this.selectedValue);
+  }
+  openMenu() {
+    this.closed = false;
+    this.adjustPopoverPlacement();
+  }
+  adjustPopoverPlacement() {
+    const popover = this.shadowRoot.querySelector(".popover");
+    if (this.closed || popover.getBoundingClientRect().bottom <= window.innerHeight)
+      popover.setAttribute("placement", "bottom");
+    else popover.setAttribute("placement", "top");
+  }
+  handleMouseEnter(index) {
+    this.highlightedIndex = index;
+  }
+  handleMenuOption(option, close) {
+    if (option === this.max)
+      this.shadowRoot.querySelector(".text-field-input")?.focus();
+    this.selectedValue = option;
+    this.sendEvent();
+    if (close) this.closeMenu();
+  }
+  sendEvent() {
+    const customEvent = new CustomEvent(
+      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+      {
+        detail: { option: this.selectedValue },
+        bubbles: true
+      }
+    );
+    this.dispatchEvent(customEvent);
+  }
+  get offerSelect() {
+    return this.querySelector("merch-offer-select");
+  }
+  get popover() {
+    return x` <div
             id="qsPopover"
-            class="popover ${this.closed?"closed":"open"}"
+            class="popover ${this.closed ? "closed" : "open"}"
             placement="bottom"
             role="listbox"
             aria-multiselectable="false"
             aria-labelledby="qsLabel"
             tabindex="-1"
         >
-            ${this.options.map((t,r)=>f`
+            ${this.options.map(
+      (option, index) => x`
                     <div
-                        class="item ${r===this.highlightedIndex?"highlighted":""}${this.selectedValue===t?" selected":""}"
+                        class="item ${index === this.highlightedIndex ? "highlighted" : ""}${this.selectedValue === option ? " selected" : ""}"
                         role="option"
-                        id="${`qs-item-${r}`}"
-                        aria-selected=${this.selectedValue===t}
-                        @click="${()=>this.handleMenuOption(t,!0)}"
-                        @mouseenter="${()=>this.handleMouseEnter(r)}"
+                        id="${`qs-item-${index}`}"
+                        aria-selected=${this.selectedValue === option}
+                        @click="${() => this.handleMenuOption(option, true)}"
+                        @mouseenter="${() => this.handleMouseEnter(index)}"
                     >
-                        ${t===this.max?`${t}+`:t}
+                        ${option === this.max ? `${option}+` : option}
                     </div>
-                `)}
-        </div>`}handleQuantityUpdate({detail:{quantity:t}}){if(t&&t!==this.selectedValue){this.selectedValue=t;let r=this.shadowRoot.querySelector(".text-field-input");r&&(r.value=t),this.sendEvent()}}onButtonFocus(t){t.target.classList.add("focused")}onButtonBlur(t){t.target.classList.remove("focused")}render(){return f`
+                `
+    )}
+        </div>`;
+  }
+  handleQuantityUpdate({ detail: { quantity } }) {
+    if (quantity && quantity !== this.selectedValue) {
+      this.selectedValue = quantity;
+      const inputField = this.shadowRoot.querySelector(".text-field-input");
+      if (inputField) {
+        inputField.value = quantity;
+      }
+      this.sendEvent();
+    }
+  }
+  onButtonFocus(e4) {
+    e4.target.classList.add("focused");
+  }
+  onButtonBlur(e4) {
+    e4.target.classList.remove("focused");
+  }
+  render() {
+    return x`
             <div class="label" id="qsLabel">${this.title}</div>
             <div class="text-field">
                 <input
@@ -4708,7 +16125,7 @@ merch-card [slot='callout-content'] .icon-button::before {
                     role="combobox"
                     aria-expanded=${!this.closed}
                     aria-controls="qsPopover"
-                    aria-activedescendant="${this.closed?M:`qs-item-${this.highlightedIndex}`}"
+                    aria-activedescendant="${!this.closed ? `qs-item-${this.highlightedIndex}` : A}"
                     .value="${this.selectedValue}"
                     type="text"
                     autocomplete="off"
@@ -4717,7 +16134,7 @@ merch-card [slot='callout-content'] .icon-button::before {
                 />
                 <button
                     class="picker-button"
-                    aria-activedescendant="${this.closed?M:`qs-item-${this.highlightedIndex}`}"
+                    aria-activedescendant="${!this.closed ? `qs-item-${this.highlightedIndex}` : A}"
                     @focus="${this.onButtonFocus}"
                     @blur="${this.onButtonBlur}"
                     aria-controls="qsPopover"
@@ -4726,12 +16143,24 @@ merch-card [slot='callout-content'] .icon-button::before {
                     @click="${this.toggleMenu}"
                 >
                     <div
-                        class="picker-button-fill ${this.closed?"open":"closed"}"
+                        class="picker-button-fill ${this.closed ? "open" : "closed"}"
                     ></div>
                 </button>
                 ${this.popover}
             </div>
-        `}};customElements.define("merch-quantity-select",Po);Ci();O();var Mc=`
+        `;
+  }
+};
+customElements.define("merch-quantity-select", MerchQuantitySelect);
+
+// src/mas.js
+init_mas_mnemonic();
+
+// src/variants/ccd-suggested.js
+init_lit();
+
+// src/variants/ccd-suggested.css.js
+var CSS11 = `
 
   merch-card[variant="ccd-suggested"] [slot="heading-xs"] {
     font-size: var(--consonant-merch-card-heading-xxs-font-size);
@@ -4761,12 +16190,35 @@ merch-card [slot='callout-content'] .icon-button::before {
 .spectrum--darkest  merch-card[variant="ccd-suggested"]:hover {
   --consonant-merch-card-border-color:rgb(73, 73, 73);
 }
-`;var Ic={backgroundImage:{attribute:"background-image"},badge:!0,ctas:{slot:"cta",size:"M"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"p",slot:"price"},size:[],subtitle:{tag:"h4",slot:"detail-s"},title:{tag:"h3",slot:"heading-xs"}},Qt=class extends L{getGlobalCSS(){return Mc}get stripStyle(){return this.card.backgroundImage?`
+`;
+
+// src/variants/ccd-suggested.js
+var CCD_SUGGESTED_AEM_FRAGMENT_MAPPING = {
+  backgroundImage: { attribute: "background-image" },
+  badge: true,
+  ctas: { slot: "cta", size: "M" },
+  description: { tag: "div", slot: "body-xs" },
+  mnemonics: { size: "l" },
+  prices: { tag: "p", slot: "price" },
+  size: [],
+  subtitle: { tag: "h4", slot: "detail-s" },
+  title: { tag: "h3", slot: "heading-xs" }
+};
+var CCDSuggested = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS11;
+  }
+  get stripStyle() {
+    if (!this.card.backgroundImage) return "";
+    return `
             background: url("${this.card.backgroundImage}");
         background-size: auto 100%;
         background-repeat: no-repeat;
-        background-position: ${this.card.dir==="ltr"?"left":"right"};
-        `:""}renderLayout(){return f` <div style="${this.stripStyle}" class="body">
+        background-position: ${this.card.dir === "ltr" ? "left" : "right"};
+        `;
+  }
+  renderLayout() {
+    return x` <div style="${this.stripStyle}" class="body">
                 <div class="header">
                     <div class="top-section">
                         <slot name="icons"></slot>
@@ -4783,7 +16235,30 @@ merch-card [slot='callout-content'] .icon-button::before {
                     <slot name="cta"></slot>
                 </div>
             </div>
-            <slot></slot>`}postCardUpdateHook(t){t.has("backgroundImage")&&this.styleBackgroundImage()}styleBackgroundImage(){if(this.card.classList.remove("thin-strip"),this.card.classList.remove("wide-strip"),!this.card.backgroundImage)return;let t=new Image;t.src=this.card.backgroundImage,t.onload=()=>{t.width>8?this.card.classList.add("wide-strip"):t.width===8&&this.card.classList.add("thin-strip")}}};u(Qt,"variantStyle",y`
+            <slot></slot>`;
+  }
+  postCardUpdateHook(changedProperties) {
+    if (changedProperties.has("backgroundImage"))
+      this.styleBackgroundImage();
+  }
+  styleBackgroundImage() {
+    this.card.classList.remove("thin-strip");
+    this.card.classList.remove("wide-strip");
+    if (!this.card.backgroundImage) {
+      return;
+    }
+    const img = new Image();
+    img.src = this.card.backgroundImage;
+    img.onload = () => {
+      if (img.width > 8) {
+        this.card.classList.add("wide-strip");
+      } else if (img.width === 8) {
+        this.card.classList.add("thin-strip");
+      }
+    };
+  }
+};
+__publicField(CCDSuggested, "variantStyle", i`
         :host([variant='ccd-suggested']) {
             --consonant-merch-card-background-color: rgb(245, 245, 245);
             --consonant-merch-card-body-xs-color: rgb(75, 75, 75);
@@ -4891,7 +16366,13 @@ merch-card [slot='callout-content'] .icon-button::before {
         :host([variant='ccd-suggested']) .top-section {
             align-items: center;
         }
-    `);O();var $c=`
+    `);
+
+// src/variants/ccd-slice.js
+init_lit();
+
+// src/variants/ccd-slice.css.js
+var CSS12 = `
 
 merch-card[variant="ccd-slice"] [slot='image'] img {
   overflow: hidden;
@@ -4916,7 +16397,23 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
   --consonant-merch-card-border-color:rgb(48, 48, 48);
   --consonant-merch-card-detail-s-color:rgb(235, 235, 235);
 }
-`;var Hc={backgroundImage:{tag:"div",slot:"image"},badge:!0,ctas:{slot:"footer",size:"S"},description:{tag:"div",slot:"body-s"},mnemonics:{size:"m"},size:["wide"]},Zt=class extends L{getGlobalCSS(){return $c}renderLayout(){return f` <div class="content">
+`;
+
+// src/variants/ccd-slice.js
+var CCD_SLICE_AEM_FRAGMENT_MAPPING = {
+  backgroundImage: { tag: "div", slot: "image" },
+  badge: true,
+  ctas: { slot: "footer", size: "S" },
+  description: { tag: "div", slot: "body-s" },
+  mnemonics: { size: "m" },
+  size: ["wide"]
+};
+var CCDSlice = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS12;
+  }
+  renderLayout() {
+    return x` <div class="content">
                 <div class="top-section">
                     <slot name="icons"></slot>
                     ${this.badge}
@@ -4925,7 +16422,10 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
                 <slot name="footer"></slot>
             </div>
             <slot name="image"></slot>
-            <slot></slot>`}};u(Zt,"variantStyle",y`
+            <slot></slot>`;
+  }
+};
+__publicField(CCDSlice, "variantStyle", i`
         :host([variant='ccd-slice']) {
             --consonant-merch-card-background-color: rgb(248, 248, 248);
             --consonant-merch-card-border-color: rgb(230, 230, 230);
@@ -5027,7 +16527,13 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             align-items: center;
             gap: 8px;
         }
-    `);O();var Dc=`
+    `);
+
+// src/variants/ah-try-buy-widget.js
+init_lit();
+
+// src/variants/ah-try-buy-widget.css.js
+var CSS13 = `
     merch-card[variant="ah-try-buy-widget"] [slot="body-xxs"] {
         letter-spacing: normal;
         margin-bottom: 16px;
@@ -5170,7 +16676,38 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"]:hover {
       --consonant-merch-card-border-color:rgb(73, 73, 73);
     }
-`;var Lo={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"fuchsia"},allowedBadgeColors:["fuchsia"],description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{}},allowedColors:{gray:"--spectrum-gray-100"},size:["single","double","triple"]},Jt=class extends L{getGlobalCSS(){return Dc}get aemFragmentMapping(){return Lo}renderLayout(){return f`
+`;
+
+// src/variants/ah-try-buy-widget.js
+var AH_TRY_BUY_WIDGET_AEM_FRAGMENT_MAPPING = {
+  mnemonics: { size: "s" },
+  title: { tag: "h3", slot: "heading-xxxs", maxCount: 40, withSuffix: true },
+  badge: { tag: "div", slot: "badge", default: "fuchsia" },
+  allowedBadgeColors: ["fuchsia"],
+  description: {
+    tag: "div",
+    slot: "body-xxs",
+    maxCount: 200,
+    withSuffix: false
+  },
+  prices: { tag: "p", slot: "price" },
+  ctas: { slot: "cta", size: "S" },
+  backgroundImage: { tag: "div", slot: "image" },
+  backgroundColor: { attribute: "background-color" },
+  borderColor: { attribute: "border-color", specialValues: {} },
+  allowedColors: { gray: "--spectrum-gray-100" },
+  size: ["single", "double", "triple"]
+};
+var AHTryBuyWidget = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS13;
+  }
+  /* c8 ignore next 3 */
+  get aemFragmentMapping() {
+    return AH_TRY_BUY_WIDGET_AEM_FRAGMENT_MAPPING;
+  }
+  renderLayout() {
+    return x`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -5187,7 +16724,10 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             <slot name="image"></slot>
             <slot name="badge"></slot>
             <slot></slot>
-        `}};u(Jt,"variantStyle",y`
+        `;
+  }
+};
+__publicField(AHTryBuyWidget, "variantStyle", i`
         :host([variant='ah-try-buy-widget']) {
             --merch-card-ah-try-buy-widget-min-width: 156px;
             --merch-card-ah-try-buy-widget-content-min-width: 132px;
@@ -5268,7 +16808,13 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             flex-direction: row;
             align-self: flex-end;
         }
-    `);O();var Uc=`
+    `);
+
+// src/variants/ah-promoted-plans.js
+init_lit();
+
+// src/variants/ah-promoted-plans.css.js
+var CSS14 = `
     merch-card[variant="ah-promoted-plans"] [slot="body-xxs"] {
         letter-spacing: normal;
         box-sizing: border-box;
@@ -5355,7 +16901,38 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
       --consonant-merch-card-body-xxs-color:rgb(219, 219, 219);
       --merch-card-ah-promoted-plans-strikethrough-color:rgb(138, 138, 138);
     }
-`;var Ro={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{gradient:"linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)"}}},er=class extends L{getGlobalCSS(){return Uc}get aemFragmentMapping(){return Ro}renderLayout(){return f`
+`;
+
+// src/variants/ah-promoted-plans.js
+var AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING = {
+  mnemonics: { size: "s" },
+  title: { tag: "h3", slot: "heading-xxxs", maxCount: 40, withSuffix: true },
+  description: {
+    tag: "div",
+    slot: "body-xxs",
+    maxCount: 200,
+    withSuffix: false
+  },
+  prices: { tag: "p", slot: "price" },
+  ctas: { slot: "cta", size: "S" },
+  backgroundImage: { tag: "div", slot: "image" },
+  backgroundColor: { attribute: "background-color" },
+  borderColor: {
+    attribute: "border-color",
+    specialValues: {
+      gradient: "linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)"
+    }
+  }
+};
+var AHPromotedPlans = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS14;
+  }
+  get aemFragmentMapping() {
+    return AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING;
+  }
+  renderLayout() {
+    return x`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -5370,7 +16947,10 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
                 </div>
             </div>
             <slot></slot>
-        `}};u(er,"variantStyle",y`
+        `;
+  }
+};
+__publicField(AHPromotedPlans, "variantStyle", i`
         /* Default styles for the component */
         :host([variant='ah-promoted-plans']) {
             --merch-card-ah-promoted-plans-min-width: 211px;
@@ -5459,7 +17039,13 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             justify-content: space-between;
             align-items: center;
         }
-    `);O();var Bc=`
+    `);
+
+// src/variants/fries.js
+init_lit();
+
+// src/variants/fries.css.js
+var CSS15 = `
     merch-card[variant='fries'] {
         background-color: var(
             --merch-card-custom-background-color,
@@ -5604,7 +17190,43 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     .spectrum--darkest merch-card[variant="fries"] [slot="body-s"] {
         color: rgb(142, 142, 147);
     }
-`;var Oo={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300"}}},tr=class extends L{getGlobalCSS(){return Bc}get aemFragmentMapping(){return Oo}renderLayout(){return f`
+`;
+
+// src/variants/fries.js
+var FRIES_AEM_FRAGMENT_MAPPING = {
+  mnemonics: { size: "s" },
+  title: { tag: "h3", slot: "heading-xxs", maxCount: 250, withSuffix: true },
+  description: {
+    tag: "div",
+    slot: "body-s",
+    maxCount: 2e3,
+    withSuffix: false
+  },
+  badge: { tag: "div", slot: "badge", default: "spectrum-yellow-300" },
+  trialBadge: {
+    tag: "div",
+    slot: "trial-badge",
+    default: "spectrum-green-800"
+  },
+  prices: { tag: "p", slot: "price" },
+  ctas: { slot: "cta", size: "M" },
+  addonConfirmation: { tag: "div", slot: "addon-confirmation" },
+  borderColor: {
+    attribute: "border-color",
+    specialValues: {
+      gray: "--spectrum-gray-300"
+    }
+  }
+};
+var FriesCard = class extends VariantLayout {
+  getGlobalCSS() {
+    return CSS15;
+  }
+  get aemFragmentMapping() {
+    return FRIES_AEM_FRAGMENT_MAPPING;
+  }
+  renderLayout() {
+    return x`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -5622,7 +17244,10 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
                 </div>
             </div>
             <slot></slot>
-        `}};u(tr,"variantStyle",y`
+        `;
+  }
+};
+__publicField(FriesCard, "variantStyle", i`
         :host([variant='fries']) {
             --merch-card-fries-max-width: 620px;
             --merch-card-fries-padding: 24px;
@@ -5687,7 +17312,39 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             gap: 8px;
             margin-top: 15px;
         }
-    `);W("ccd-suggested",Qt,Ic,Qt.variantStyle);W("ccd-slice",Zt,Hc,Zt.variantStyle);W("ah-try-buy-widget",Jt,Lo,Jt.variantStyle);W("ah-promoted-plans",er,Ro,er.variantStyle);W("fries",tr,Oo,tr.variantStyle);
+    `);
+
+// src/mas.js
+registerVariant(
+  "ccd-suggested",
+  CCDSuggested,
+  CCD_SUGGESTED_AEM_FRAGMENT_MAPPING,
+  CCDSuggested.variantStyle
+);
+registerVariant(
+  "ccd-slice",
+  CCDSlice,
+  CCD_SLICE_AEM_FRAGMENT_MAPPING,
+  CCDSlice.variantStyle
+);
+registerVariant(
+  "ah-try-buy-widget",
+  AHTryBuyWidget,
+  AH_TRY_BUY_WIDGET_AEM_FRAGMENT_MAPPING,
+  AHTryBuyWidget.variantStyle
+);
+registerVariant(
+  "ah-promoted-plans",
+  AHPromotedPlans,
+  AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
+  AHPromotedPlans.variantStyle
+);
+registerVariant(
+  "fries",
+  FriesCard,
+  FRIES_AEM_FRAGMENT_MAPPING,
+  FriesCard.variantStyle
+);
 /*! Bundled license information:
 
 @lit/reactive-element/css-tag.js:
@@ -5713,3 +17370,4 @@ lit-html/is-server.js:
    * SPDX-License-Identifier: BSD-3-Clause
    *)
 */
+//# sourceMappingURL=mas.js.map

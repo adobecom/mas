@@ -282,7 +282,6 @@ export const SUPPORTED_LANGUAGES = [
     'lt',
     'lv',
     'ms',
-    'MULT',
     'nb',
     'nl',
     'pl',
@@ -304,11 +303,12 @@ export const SUPPORTED_LANGUAGES = [
     'fil',
     'id',
     'vi',
+    'en-gb',
+    'es-419',
 ];
 
 export const SUPPORTED_COUNTRIES = [
     'AE',
-    'AFRICA',
     'AR',
     'AT',
     'AU',
@@ -352,7 +352,6 @@ export const SUPPORTED_COUNTRIES = [
     'LT',
     'LU',
     'LV',
-    'MENA',
     'MT',
     'MU',
     'MX',
@@ -378,10 +377,7 @@ export const SUPPORTED_COUNTRIES = [
     'TR',
     'TW',
     'UA',
-    'UK',
     'US',
     'VN',
     'ZA',
-    'CIS',
-    'hant',
 ];

@@ -1,4 +1,29 @@
 import { logDebug } from './common.js';
+const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
+
+/**
+ * Fixes data-extra-options attributes in all relevant fields for adobe-home surface
+ * @param {object} context - Context object
+ */
+function fixAdobeHomeDataExtraOptions(context) {
+    const ctasField = context.body?.fields?.['ctas'];
+    const ctasValue = typeof ctasField === 'string' ? ctasField : ctasField?.value;
+
+    if (ctasValue) {
+        const fixedCtasValue = ctasValue.replace(DATA_EXTRA_OPTIONS_REGEX, (match, jsonContent) => {
+            // Replace both \" and literal " with &quot; inside the JSON object
+            const fixedJson = jsonContent.replace(/\\"/g, '&quot;').replace(/"/g, '&quot;');
+            return `data-extra-options="${fixedJson}"`;
+        });
+        if (typeof ctasField === 'string') {
+            context.body.fields['ctas'] = fixedCtasValue;
+        } else {
+            context.body.fields['ctas'].value = fixedCtasValue;
+        }
+    }
+    logDebug(() => `Fixed data-extra-options attributes for adobe-home surface`, context);
+}
+
 /**
  * checking and eventually fixing content we know is not correct
  * @param {} context
@@ -11,7 +36,9 @@ async function corrector(context) {
             delete context.body.priceLiterals[key];
         }
     }
-
+    if (context.surface === 'adobe-home' || context.surface === 'sandbox') {
+        fixAdobeHomeDataExtraOptions(context);
+    }
     return context;
 }
 

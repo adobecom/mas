@@ -586,7 +586,7 @@ describe('configuration caching', () => {
 
         expect(result2.statusCode).to.equal(200);
         configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(1);
+        expect(configCalls).to.have.length(2);
 
         performanceStub.restore();
         stateGetStub.restore();

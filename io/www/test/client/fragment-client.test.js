@@ -73,5 +73,5 @@ describe('FragmentClient', () => {
         });
 
         expect(result).to.be.undefined;
-    });    
+    });
 });

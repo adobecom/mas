@@ -37,14 +37,9 @@ export async function executeMCPTool(toolName, params) {
 
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
-
-            const profile = await window.adobeIMS.getProfile();
-            const orgIdWithSuffix = profile?.projectedProductContext?.[0]?.prodCtx?.owningEntity;
-            const orgId = orgIdWithSuffix?.replace('@AdobeOrg', '') || '3B962FB55F5F922E0A495C88';
-
-            headers['x-gw-ims-org-id'] = orgId;
+            headers['x-gw-ims-org-id'] = '9E1005A551ED61CA0A490D45';
             headers['x-api-key'] = window.adobeIMS?.adobeIdData?.client_id || '';
-            console.log('[MCP Client] Added Authorization header with org ID:', orgId);
+            console.log('[MCP Client] Added Authorization header');
         } else {
             console.warn('[MCP Client] No access token available!');
         }

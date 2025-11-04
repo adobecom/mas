@@ -140,11 +140,11 @@ export const PAGE_NAMES = {
     CHAT: 'chat',
 };
 
-// AI Chat endpoint - use workspace for localhost, production for mas.adobe.com
+// AI Chat endpoint - use direct Adobe I/O Runtime URL to avoid CORS issues
 export const AI_CHAT_BASE_URL =
     window.location.hostname === 'localhost'
         ? 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio'
-        : 'https://mas.adobe.com/io';
+        : 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio';
 
 // MCP Server endpoint - localhost for development, Runtime for production
 export const MCP_SERVER_URL =

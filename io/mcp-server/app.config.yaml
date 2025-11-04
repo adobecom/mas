@@ -15,7 +15,7 @@ application:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false
                             final: true
                     unpublish-card:
                         function: src/actions/unpublish-card.js
@@ -25,7 +25,7 @@ application:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false
                             final: true
                     get-card:
                         function: src/actions/get-card.js
@@ -35,7 +35,7 @@ application:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false
                             final: true
                     search-cards:
                         function: src/actions/search-cards.js
@@ -45,7 +45,7 @@ application:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false
                             final: true
                     delete-card:
                         function: src/actions/delete-card.js
@@ -55,7 +55,7 @@ application:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false
                             final: true
                     copy-card:
                         function: src/actions/copy-card.js
@@ -65,7 +65,7 @@ application:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false
                             final: true
                     update-card:
                         function: src/actions/update-card.js
@@ -75,5 +75,5 @@ application:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false
                             final: true

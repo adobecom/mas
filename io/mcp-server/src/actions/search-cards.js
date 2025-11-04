@@ -2,6 +2,7 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { StudioOperations } from '../lib/studio-operations.js';
+import { requireIMSAuth } from '../lib/ims-validator.js';
 
 /**
  * Search for cards with filters
@@ -11,14 +12,12 @@ async function main(params) {
     const { surface, query, tags, limit, __ow_headers } = params;
 
     try {
-        const accessToken = __ow_headers?.authorization?.replace('Bearer ', '');
-
-        if (!accessToken) {
-            return {
-                statusCode: 401,
-                body: { error: 'Authorization required' },
-            };
+        const authError = await requireIMSAuth(__ow_headers);
+        if (authError) {
+            return authError;
         }
+
+        const accessToken = __ow_headers.authorization.replace('Bearer ', '');
 
         const authManager = new AuthManager();
         authManager.setAccessToken(accessToken);

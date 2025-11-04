@@ -43,11 +43,11 @@ const LOCALE_DEFAULTS = [
 ];
 
 function skimFragmentFromReferences(fragment) {
-    const skimedFragment = structuredClone(fragment);
-    delete skimedFragment.references;
-    delete skimedFragment.modelReferences;
-    delete skimedFragment.referencesTree;
-    return skimedFragment;
+    const skimmedFragment = structuredClone(fragment);
+    delete skimmedFragment.references;
+    delete skimmedFragment.modelReferences;
+    delete skimmedFragment.referencesTree;
+    return skimmedFragment;
 }
 
 function getCorrespondingLocale(locale) {

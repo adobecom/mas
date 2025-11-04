@@ -1,5 +1,3 @@
-import { getRequestInfos } from '../utils/common.js';
-
 async function getActivePromotion(context) {
     //for now we have no active promotion system, so we return empty variations
     return {

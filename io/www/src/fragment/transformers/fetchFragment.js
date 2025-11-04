@@ -40,7 +40,7 @@ async function init(initContext) {
 
 async function fetchFragment(context) {
     const response = await context.promises?.[TRANSFORMER_NAME];
-    if (response?.status != 200) {
+    if (response?.status !== 200) {
         return response;
     }
     return {

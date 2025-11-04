@@ -22,7 +22,7 @@ async function main(params) {
         const authManager = new AuthManager();
         authManager.setAccessToken(accessToken);
 
-        const aemBaseUrl = params.AEM_BASE_URL || 'https://author-p133911-e1313554.adobeaemcloud.com';
+        const aemBaseUrl = params._aemBaseUrl || params.AEM_BASE_URL || 'https://author-p133911-e1313554.adobeaemcloud.com';
         const studioBaseUrl = params.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html';
 
         const aemClient = new AEMClient(aemBaseUrl, authManager);

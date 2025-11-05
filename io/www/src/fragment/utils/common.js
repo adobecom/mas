@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { transformBody } from './odinSchemaTransform.js';
 import { log, logDebug, logError, getErrorMessage } from '../utils/log.js';
 

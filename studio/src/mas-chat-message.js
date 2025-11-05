@@ -172,6 +172,41 @@ export class MasChatMessage extends LitElement {
         );
     }
 
+    renderOperationProgress() {
+        const { progress } = this.message;
+
+        if (!progress) {
+            return html`
+                <div class="operation-loading">
+                    <sp-progress-circle indeterminate size="s"></sp-progress-circle>
+                    <span>Processing...</span>
+                </div>
+            `;
+        }
+
+        const { current = 0, total = 0, percentage = 0, successful = 0, failed = 0 } = progress;
+
+        return html`
+            <div class="operation-progress">
+                <div class="progress-header">
+                    <span class="progress-text">Processing ${current}/${total} cards...</span>
+                    <span class="progress-percentage">${percentage}%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                </div>
+                ${successful > 0 || failed > 0
+                    ? html`
+                          <div class="progress-stats">
+                              ${successful > 0 ? html`<span class="success-stat">✓ ${successful} completed</span>` : ''}
+                              ${failed > 0 ? html`<span class="failure-stat">✗ ${failed} failed</span>` : ''}
+                          </div>
+                      `
+                    : ''}
+            </div>
+        `;
+    }
+
     extractTitle(cardConfig) {
         if (!cardConfig.title) return 'Untitled';
         const tempDiv = document.createElement('div');
@@ -410,14 +445,7 @@ export class MasChatMessage extends LitElement {
                     ${operation || (this.message.mcpOperation && this.message.confirmationRequired)
                         ? this.renderOperationRequest()
                         : ''}
-                    ${operationLoading
-                        ? html`
-                              <div class="operation-loading">
-                                  <sp-progress-circle indeterminate size="s"></sp-progress-circle>
-                                  <span>Processing...</span>
-                              </div>
-                          `
-                        : ''}
+                    ${operationLoading ? this.renderOperationProgress() : ''}
                     ${operationResult
                         ? html`<mas-operation-result
                               .result=${operationResult}

@@ -509,6 +509,70 @@
     border: 1px solid var(--spectrum-global-color-gray-200);
 }
 
+/* Operation Progress */
+.operation-progress {
+    padding: var(--spectrum-global-dimension-size-200);
+    margin-top: var(--spectrum-global-dimension-size-150);
+    background: var(--spectrum-global-color-blue-50);
+    border-radius: var(--spectrum-global-dimension-size-100);
+    border: 1px solid var(--spectrum-global-color-blue-400);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spectrum-global-dimension-size-150);
+}
+
+.progress-text {
+    font-size: var(--spectrum-global-dimension-size-150);
+    font-weight: 600;
+    color: var(--spectrum-global-color-gray-900);
+}
+
+.progress-percentage {
+    font-size: var(--spectrum-global-dimension-size-150);
+    font-weight: 700;
+    color: var(--spectrum-global-color-blue-700);
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: var(--spectrum-global-color-gray-200);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: var(--spectrum-global-dimension-size-150);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        var(--spectrum-global-color-blue-500),
+        var(--spectrum-global-color-indigo-500)
+    );
+    border-radius: 4px;
+    transition: width 0.3s ease-out;
+}
+
+.progress-stats {
+    display: flex;
+    gap: var(--spectrum-global-dimension-size-200);
+    font-size: var(--spectrum-global-dimension-size-125);
+}
+
+.success-stat {
+    color: var(--spectrum-global-color-green-700);
+    font-weight: 600;
+}
+
+.failure-stat {
+    color: var(--spectrum-global-color-red-700);
+    font-weight: 600;
+}
+
 /* Message Offer Context */
 .message-offer-context {
     margin-bottom: var(--spectrum-global-dimension-size-150);

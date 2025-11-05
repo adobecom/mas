@@ -79,6 +79,62 @@ export async function executeMCPTool(toolName, params) {
 }
 
 /**
+ * Execute studio operation with progress tracking
+ * Polls for job status updates and calls progress callback
+ * @param {string} mcpTool - MCP tool name (must be a bulk operation)
+ * @param {Object} mcpParams - MCP tool parameters
+ * @param {Function} onProgress - Callback function called with progress updates
+ * @param {number} pollInterval - Poll interval in milliseconds (default: 1500)
+ * @returns {Promise<Object>} - Final operation result
+ */
+export async function executeStudioOperationWithProgress(mcpTool, mcpParams, onProgress, pollInterval = 1500) {
+    const initialResult = await executeMCPTool(mcpTool, mcpParams);
+
+    if (!initialResult.jobId) {
+        console.warn('[MCP Client] No jobId in response, returning result directly');
+        return initialResult;
+    }
+
+    const { jobId } = initialResult;
+    console.log('[MCP Client] Started job:', jobId, 'polling every', pollInterval, 'ms');
+
+    return new Promise((resolve, reject) => {
+        const poll = setInterval(async () => {
+            try {
+                const statusResult = await executeMCPTool('studio_get_job_status', { jobId });
+                console.log('[MCP Client] Job status:', statusResult.status, statusResult.completed, '/', statusResult.total);
+
+                if (onProgress) {
+                    onProgress(statusResult);
+                }
+
+                if (statusResult.status === 'completed') {
+                    clearInterval(poll);
+                    const finalResult = {
+                        success: true,
+                        operation: statusResult.type,
+                        total: statusResult.total,
+                        successCount: statusResult.successCount,
+                        failureCount: statusResult.failureCount,
+                        successful: statusResult.successful,
+                        failed: statusResult.failed,
+                        message: statusResult.message || `✓ Completed ${statusResult.successCount} of ${statusResult.total} operations`,
+                    };
+                    resolve(finalResult);
+                } else if (statusResult.status === 'failed') {
+                    clearInterval(poll);
+                    reject(new Error(statusResult.error || 'Job failed'));
+                }
+            } catch (error) {
+                clearInterval(poll);
+                console.error('[MCP Client] Polling error:', error);
+                reject(error);
+            }
+        }, pollInterval);
+    });
+}
+
+/**
  * Execute studio operation via MCP
  * Maps MCP tool results to the format expected by the Studio UI
  * @param {string} mcpTool - MCP tool name

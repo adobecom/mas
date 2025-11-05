@@ -775,6 +775,86 @@ export class MasChat extends LitElement {
         }
 
         const operationType = operation.type === 'mcp_operation' ? operation.mcpTool : operation.operation;
+        const isBulkOperation = ['studio_bulk_update_cards', 'studio_bulk_publish_cards', 'studio_bulk_delete_cards'].includes(operationType);
+
+        if (isBulkOperation) {
+            await this.executeBulkOperationWithProgress(operation, operationType);
+        } else {
+            await this.executeRegularOperation(operation, repository, operationType);
+        }
+
+        this.isLoading = false;
+    }
+
+    async executeBulkOperationWithProgress(operation, operationType) {
+        const { executeStudioOperationWithProgress } = await import('./services/mcp-client.js');
+
+        const loadingMessage = this.getOperationLoadingMessage(operationType);
+        const loadingMessageObj = {
+            role: 'assistant',
+            content: loadingMessage,
+            operationLoading: true,
+            operationType,
+            progress: { current: 0, total: operation.mcpParams.fragmentIds?.length || 0 },
+            timestamp: Date.now(),
+        };
+
+        this.messages = [...this.messages, loadingMessageObj];
+
+        try {
+            const result = await executeStudioOperationWithProgress(
+                operation.mcpTool,
+                operation.mcpParams,
+                (statusUpdate) => {
+                    this.messages = this.messages.map((msg) =>
+                        msg === loadingMessageObj
+                            ? {
+                                  ...msg,
+                                  content: `Processing ${statusUpdate.completed}/${statusUpdate.total} cards...`,
+                                  progress: {
+                                      current: statusUpdate.completed,
+                                      total: statusUpdate.total,
+                                      percentage: statusUpdate.percentage,
+                                      successful: statusUpdate.successCount,
+                                      failed: statusUpdate.failureCount,
+                                  },
+                              }
+                            : msg,
+                    );
+                },
+            );
+
+            this.messages = this.messages.map((msg) =>
+                msg === loadingMessageObj
+                    ? {
+                          role: 'assistant',
+                          content: result.message,
+                          operationResult: result,
+                          operationType,
+                          operationLoading: false,
+                          timestamp: Date.now(),
+                      }
+                    : msg,
+            );
+
+            showToast(result.message, 'positive');
+        } catch (error) {
+            console.error('Bulk operation error:', error);
+            this.messages = this.messages.map((msg) =>
+                msg === loadingMessageObj
+                    ? {
+                          role: 'error',
+                          content: `Operation failed: ${error.message}`,
+                          operationLoading: false,
+                          timestamp: Date.now(),
+                      }
+                    : msg,
+            );
+            showToast(error.message, 'negative');
+        }
+    }
+
+    async executeRegularOperation(operation, repository, operationType) {
         const loadingMessage = this.getOperationLoadingMessage(operationType);
 
         const loadingMessageObj = {
@@ -817,8 +897,6 @@ export class MasChat extends LitElement {
                 );
             },
         );
-
-        this.isLoading = false;
     }
 
     getOperationLoadingMessage(operationType) {

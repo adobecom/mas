@@ -1,5 +1,6 @@
 import { AEMClient } from './aem-client.js';
 import { StudioURLBuilder } from './studio-url-builder.js';
+import { JobManager } from './job-manager.js';
 
 const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
@@ -343,72 +344,74 @@ export class StudioOperations {
             throw new Error('At least one fragment ID is required for bulk update');
         }
 
-        const results = await Promise.allSettled(
-            fragmentIds.map(async (id) => {
-                try {
-                    const fragment = await this.aemClient.getFragment(id);
+        const jobManager = new JobManager();
+        const jobId = await jobManager.createJob('bulk_update', fragmentIds.length);
 
-                    if (!fragment) {
-                        throw new Error(`Card not found: ${id}`);
-                    }
-
-                    let updatedFields = { ...updates };
-
-                    if (textReplacements.length > 0) {
-                        const currentFields = this.formatCard(fragment).fields;
-
-                        textReplacements.forEach(({ field, find, replace }) => {
-                            if (currentFields[field]) {
-                                const currentValue = currentFields[field];
-                                const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                updatedFields[field] = currentValue.replace(regex, replace);
-                            }
-                        });
-                    }
-
-                    console.log('[StudioOps] About to update fragment:', {
-                        id: fragment.id,
-                        updatedFieldsType: typeof updatedFields,
-                        updatedFieldsKeys: Object.keys(updatedFields),
-                        updatedFieldsSample: JSON.stringify(updatedFields, null, 2),
-                        originalFieldsFormat: JSON.stringify(fragment.fields, null, 2).substring(0, 500),
-                    });
-
-                    const updatedFragment = await this.aemClient.updateFragment(fragment.id, updatedFields, fragment.etag);
-
-                    return {
-                        success: true,
-                        id,
-                        title: updatedFragment.title,
-                    };
-                } catch (error) {
-                    return {
-                        success: false,
-                        id,
-                        error: error.message,
-                    };
-                }
-            }),
-        );
-
-        const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).map((r) => r.value);
-        const failed = results
-            .filter((r) => r.status === 'rejected' || !r.value.success)
-            .map((r) => ({
-                id: r.value?.id || 'unknown',
-                error: r.value?.error || r.reason?.message || 'Unknown error',
-            }));
+        this.processUpdateJob(jobManager, jobId, fragmentIds, updates, textReplacements).catch((error) => {
+            console.error('[BulkUpdate] Job processing failed:', error);
+            jobManager.failJob(jobId, error);
+        });
 
         return {
             success: true,
+            jobId,
+            status: 'processing',
             operation: 'bulk_update',
-            successful,
-            failed,
             total: fragmentIds.length,
-            successCount: successful.length,
-            failureCount: failed.length,
-            message: `✓ Updated ${successful.length} of ${fragmentIds.length} cards${failed.length > 0 ? ` (${failed.length} failed)` : ''}`,
+            message: 'Bulk update started. Processing in background...',
         };
+    }
+
+    async processUpdateJob(jobManager, jobId, fragmentIds, updates, textReplacements) {
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+
+                if (!fragment) {
+                    throw new Error(`Card not found: ${id}`);
+                }
+
+                let updatedFields = { ...updates };
+
+                if (textReplacements.length > 0) {
+                    const currentFields = this.formatCard(fragment).fields;
+
+                    textReplacements.forEach(({ field, find, replace }) => {
+                        if (currentFields[field]) {
+                            const currentValue = currentFields[field];
+                            const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                            updatedFields[field] = currentValue.replace(regex, replace);
+                        }
+                    });
+                }
+
+                console.log('[StudioOps] About to update fragment:', {
+                    id: fragment.id,
+                    updatedFieldsType: typeof updatedFields,
+                    updatedFieldsKeys: Object.keys(updatedFields),
+                    updatedFieldsSample: JSON.stringify(updatedFields, null, 2),
+                    originalFieldsFormat: JSON.stringify(fragment.fields, null, 2).substring(0, 500),
+                });
+
+                const updatedFragment = await this.aemClient.updateFragment(fragment.id, updatedFields, fragment.etag);
+
+                await jobManager.addSuccessfulItem(jobId, {
+                    id,
+                    title: updatedFragment.title,
+                });
+            } catch (error) {
+                console.error(`[BulkUpdate] Failed to update card ${id}:`, error);
+                await jobManager.addFailedItem(jobId, {
+                    id,
+                    error: error.message,
+                });
+            }
+        }
+
+        const job = await jobManager.getJob(jobId);
+        await jobManager.completeJob(jobId, {
+            message: `✓ Updated ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
+        });
     }
 
     /**
@@ -426,56 +429,57 @@ export class StudioOperations {
             throw new Error('Action must be either "publish" or "unpublish"');
         }
 
-        const results = await Promise.allSettled(
-            fragmentIds.map(async (id) => {
-                try {
-                    const fragment = await this.aemClient.getFragment(id);
+        const jobManager = new JobManager();
+        const jobId = await jobManager.createJob(`bulk_${action}`, fragmentIds.length);
 
-                    if (!fragment) {
-                        throw new Error(`Card not found: ${id}`);
-                    }
-
-                    if (action === 'publish') {
-                        await this.aemClient.publishFragment(fragment.id);
-                    } else {
-                        await this.aemClient.unpublishFragment(fragment.id);
-                    }
-
-                    return {
-                        success: true,
-                        id,
-                        title: fragment.title,
-                    };
-                } catch (error) {
-                    return {
-                        success: false,
-                        id,
-                        error: error.message,
-                    };
-                }
-            }),
-        );
-
-        const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).map((r) => r.value);
-        const failed = results
-            .filter((r) => r.status === 'rejected' || !r.value.success)
-            .map((r) => ({
-                id: r.value?.id || 'unknown',
-                error: r.value?.error || r.reason?.message || 'Unknown error',
-            }));
-
-        const actionPastTense = action === 'publish' ? 'published' : 'unpublished';
+        this.processPublishJob(jobManager, jobId, fragmentIds, action).catch((error) => {
+            console.error('[BulkPublish] Job processing failed:', error);
+            jobManager.failJob(jobId, error);
+        });
 
         return {
             success: true,
+            jobId,
+            status: 'processing',
             operation: `bulk_${action}`,
-            successful,
-            failed,
             total: fragmentIds.length,
-            successCount: successful.length,
-            failureCount: failed.length,
-            message: `✓ ${actionPastTense.charAt(0).toUpperCase() + actionPastTense.slice(1)} ${successful.length} of ${fragmentIds.length} cards${failed.length > 0 ? ` (${failed.length} failed)` : ''}`,
+            message: `Bulk ${action} started. Processing in background...`,
         };
+    }
+
+    async processPublishJob(jobManager, jobId, fragmentIds, action) {
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+
+                if (!fragment) {
+                    throw new Error(`Card not found: ${id}`);
+                }
+
+                if (action === 'publish') {
+                    await this.aemClient.publishFragment(fragment.id);
+                } else {
+                    await this.aemClient.unpublishFragment(fragment.id);
+                }
+
+                await jobManager.addSuccessfulItem(jobId, {
+                    id,
+                    title: fragment.title,
+                });
+            } catch (error) {
+                console.error(`[BulkPublish] Failed to ${action} card ${id}:`, error);
+                await jobManager.addFailedItem(jobId, {
+                    id,
+                    error: error.message,
+                });
+            }
+        }
+
+        const job = await jobManager.getJob(jobId);
+        const actionPastTense = action === 'publish' ? 'published' : 'unpublished';
+        await jobManager.completeJob(jobId, {
+            message: `✓ ${actionPastTense.charAt(0).toUpperCase() + actionPastTense.slice(1)} ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
+        });
     }
 
     /**
@@ -489,51 +493,53 @@ export class StudioOperations {
             throw new Error('At least one fragment ID is required for bulk delete');
         }
 
-        const results = await Promise.allSettled(
-            fragmentIds.map(async (id) => {
-                try {
-                    const fragment = await this.aemClient.getFragment(id);
+        const jobManager = new JobManager();
+        const jobId = await jobManager.createJob('bulk_delete', fragmentIds.length);
 
-                    if (!fragment) {
-                        throw new Error(`Card not found: ${id}`);
-                    }
-
-                    const title = fragment.title;
-                    await this.aemClient.deleteFragment(fragment.id);
-
-                    return {
-                        success: true,
-                        id,
-                        title,
-                    };
-                } catch (error) {
-                    return {
-                        success: false,
-                        id,
-                        error: error.message,
-                    };
-                }
-            }),
-        );
-
-        const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).map((r) => r.value);
-        const failed = results
-            .filter((r) => r.status === 'rejected' || !r.value.success)
-            .map((r) => ({
-                id: r.value?.id || 'unknown',
-                error: r.value?.error || r.reason?.message || 'Unknown error',
-            }));
+        this.processDeleteJob(jobManager, jobId, fragmentIds).catch((error) => {
+            console.error('[BulkDelete] Job processing failed:', error);
+            jobManager.failJob(jobId, error);
+        });
 
         return {
             success: true,
+            jobId,
+            status: 'processing',
             operation: 'bulk_delete',
-            successful,
-            failed,
             total: fragmentIds.length,
-            successCount: successful.length,
-            failureCount: failed.length,
-            message: `✓ Deleted ${successful.length} of ${fragmentIds.length} cards${failed.length > 0 ? ` (${failed.length} failed)` : ''}`,
+            message: 'Bulk delete started. Processing in background...',
         };
+    }
+
+    async processDeleteJob(jobManager, jobId, fragmentIds) {
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+
+                if (!fragment) {
+                    throw new Error(`Card not found: ${id}`);
+                }
+
+                const title = fragment.title;
+                await this.aemClient.deleteFragment(fragment.id);
+
+                await jobManager.addSuccessfulItem(jobId, {
+                    id,
+                    title,
+                });
+            } catch (error) {
+                console.error(`[BulkDelete] Failed to delete card ${id}:`, error);
+                await jobManager.addFailedItem(jobId, {
+                    id,
+                    error: error.message,
+                });
+            }
+        }
+
+        const job = await jobManager.getJob(jobId);
+        await jobManager.completeJob(jobId, {
+            message: `✓ Deleted ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
+        });
     }
 
     /**

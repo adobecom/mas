@@ -107,3 +107,10 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    get-job-status:
+                        function: src/actions/get-job-status.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

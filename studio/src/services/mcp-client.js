@@ -25,9 +25,10 @@ function mapToolNameToActionName(toolName) {
 export async function executeMCPTool(toolName, params) {
     console.log('[MCP Client] executeMCPTool called:', toolName, params);
     try {
-        const accessToken = sessionStorage.getItem('masAccessToken')
-            ?? window.adobeIMS?.getAccessToken()?.token
-            ?? window.adobeid?.authorize?.();
+        const accessToken =
+            sessionStorage.getItem('masAccessToken') ??
+            window.adobeIMS?.getAccessToken()?.token ??
+            window.adobeid?.authorize?.();
         const aemBaseUrl = document.querySelector('meta[name="aem-base-url"]')?.getAttribute('content');
 
         console.log('[MCP Client] Access token:', accessToken ? 'EXISTS' : 'MISSING');

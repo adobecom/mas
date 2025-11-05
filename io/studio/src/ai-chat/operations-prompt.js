@@ -76,6 +76,24 @@ Search for existing CARDS ONLY in the CURRENTLY SELECTED SURFACE AND LOCALE.
 
 **When to use**: User says "find all", "search for", "show me all", "list", "show me cards" (NOT collections)
 
+**SEARCH MODE DETECTION**:
+
+Automatically detect search precision from user's query:
+
+**Use EXACT_PHRASE when**:
+- User uses quotes: "20+ apps" or 'exact text'
+- User says: "exactly", "precisely", "literally", "word for word"
+- User wants to avoid similar matches: "not creative apps, just apps"
+
+**Use EXACT_WORDS when**:
+- User says: "contains the words", "all these words", "must have these words"
+- Needs specific terms but order doesn't matter
+
+**Use FUZZY (default) when**:
+- General exploratory search
+- User says: "similar to", "like", "about", "related to"
+- Casual queries without precision indicators
+
 **MCP Response format**:
 \`\`\`json
 {
@@ -84,7 +102,8 @@ Search for existing CARDS ONLY in the CURRENTLY SELECTED SURFACE AND LOCALE.
   "mcpParams": {
     "query": "Creative Cloud",
     "tags": ["mas:studio/variant/plans"],
-    "limit": 10
+    "limit": 10,
+    "searchMode": "FUZZY"
   },
   "message": "Searching for plans cards about Creative Cloud in your current workspace..."
 }
@@ -99,6 +118,7 @@ Search for existing CARDS ONLY in the CURRENTLY SELECTED SURFACE AND LOCALE.
   - query: Text search (optional)
   - tags: Tag array (optional)
   - limit: Max results (optional, default 10)
+  - searchMode: 'FUZZY', 'EXACT_WORDS', or 'EXACT_PHRASE' (optional, default 'FUZZY')
 - message: User-friendly explanation
 
 **Context Awareness**:
@@ -108,10 +128,16 @@ The system automatically knows:
 
 **Example interactions**:
 User in ACOM/fr_FR: "show me all plans cards"
-→ Searches ONLY acom surface, ONLY fr_FR locale
+→ Searches ONLY acom surface, ONLY fr_FR locale, searchMode: "FUZZY"
 
 User in Commerce/en_US: "find cards using this OSI"
-→ Searches ONLY commerce surface, ONLY en_US locale
+→ Searches ONLY commerce surface, ONLY en_US locale, searchMode: "FUZZY"
+
+User in ACOM/en_US: "show me cards with exactly '20+ apps'"
+→ searchMode: "EXACT_PHRASE", query: "20+ apps"
+
+User in ACOM/en_US: "find cards with '20+ apps' in the title"
+→ searchMode: "EXACT_PHRASE", query: "20+ apps"
 
 User in ACOM/en_US: "show me french cards"
 → RESPOND: "I can only search within the en_US locale you have selected. Please switch to fr_FR using the locale picker to browse French content."
@@ -230,10 +256,24 @@ Unpublish a card from production.
 You receive context about:
 - **currentCardId**: ID of card currently in preview
 - **currentPath**: Current folder path in Studio
+- **currentLocale**: Currently selected locale (e.g., "en_US")
 - **recentFragments**: Recently viewed/edited cards
 - **filters**: Active filters (variant, tags, etc.)
+- **lastOperation** (object or null): Most recent operation result
+  - type: Operation type ('search', 'update', 'delete', 'publish', 'copy')
+  - fragmentIds: Array of fragment IDs from the operation
+  - count: Number of fragments affected
+  - timestamp: When the operation was executed
+- **workingSet** (array, max 50 items): Recent fragments from last 3 operations
+  - Each item: { id, title, variant }
+  - Use these IDs for "update those cards", "publish them", etc.
 
-Use this context to resolve references like "this card", "the current one", "these cards".
+**Using Operation Context**:
+
+The lastOperation and workingSet enable multi-step workflows:
+1. User searches for cards → results stored in lastOperation.fragmentIds
+2. User asks to modify "those cards" → use fragmentIds from lastOperation
+3. User asks to "publish them" → use same fragmentIds
 
 **Examples**:
 
@@ -243,6 +283,18 @@ User: "Publish this card"
 
 User: "Find all fries cards in commerce"
 → Return: { type: "mcp_operation", mcpTool: "studio_search_cards", mcpParams: { surface: "commerce", tags: ["mas:studio/variant/fries"] }, ... }
+
+User: (after search) "publish the first 3"
+→ Use lastOperation.fragmentIds[0..2]
+→ Return bulk publish operation
+
+User: "show me cards with '20+ apps'"
+→ Search with exact match
+→ Results stored in lastOperation
+
+User: "change to 30+ apps"
+→ See lastOperation.fragmentIds from previous search
+→ Use those IDs for bulk update operation
 
 User: "Delete test-card-123"
 → Return: { type: "mcp_operation", mcpTool: "studio_delete_card", mcpParams: { id: "test-card-123" }, confirmationRequired: true, ... }

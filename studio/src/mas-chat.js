@@ -189,6 +189,8 @@ export class MasChat extends LitElement {
                 ...context,
                 currentPath: currentPath ? `/content/dam/mas/${currentPath}` : null,
                 currentLocale: Store.filters?.value?.locale || 'en_US',
+                lastOperation: this.getLastOperationResult(),
+                workingSet: this.getRecentFragments(),
             };
 
             const response = await this.callAIChatAction({
@@ -895,6 +897,42 @@ export class MasChat extends LitElement {
                 this.saveCurrentSession();
             }
         }
+    }
+
+    getLastOperationResult() {
+        const lastOp = this.messages
+            .slice()
+            .reverse()
+            .find((m) => m.operationResult);
+
+        if (!lastOp) return null;
+
+        return {
+            type: lastOp.operationResult.operation,
+            fragmentIds: lastOp.operationResult.results?.map((f) => f.id) || [],
+            count: lastOp.operationResult.count || 0,
+            timestamp: lastOp.timestamp,
+        };
+    }
+
+    getRecentFragments(limit = 50) {
+        return this.messages
+            .filter((m) => m.operationResult?.results)
+            .slice(-3)
+            .flatMap((m) =>
+                m.operationResult.results.map((f) => ({
+                    id: f.id,
+                    title: f.title || f.cardTitle,
+                    variant: this.extractVariant(f),
+                })),
+            )
+            .slice(0, limit);
+    }
+
+    extractVariant(fragment) {
+        const path = fragment.path || fragment.id;
+        const match = path.match(/\/([^/]+)$/);
+        return match ? match[1] : 'unknown';
     }
 
     render() {

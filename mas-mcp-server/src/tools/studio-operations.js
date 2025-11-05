@@ -124,10 +124,10 @@ export class StudioOperations {
 
     /**
      * Search for cards with filters
-     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string }
+     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string, searchMode?: string }
      */
     async searchCards(params) {
-        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0 } = params;
+        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0, searchMode = 'FUZZY' } = params;
 
         console.log('[StudioOperations] searchCards received params:', {
             surface,
@@ -136,6 +136,7 @@ export class StudioOperations {
             limit,
             variant,
             offset,
+            searchMode,
         });
 
         if (!surface) {
@@ -154,6 +155,7 @@ export class StudioOperations {
             modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
             limit: requestLimit,
             offset,
+            searchMode,
         };
 
         console.log('[StudioOperations] Search params with modelIds:', {

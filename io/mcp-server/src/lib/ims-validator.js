@@ -13,7 +13,7 @@ export async function validateIMSToken(token) {
         if (!validation || !validation.valid) {
             return {
                 valid: false,
-                error: 'Invalid IMS token'
+                error: 'Invalid IMS token',
             };
         }
 
@@ -22,7 +22,7 @@ export async function validateIMSToken(token) {
         console.error('IMS token validation error:', error);
         return {
             valid: false,
-            error: error.message || 'Token validation failed'
+            error: error.message || 'Token validation failed',
         };
     }
 }
@@ -39,7 +39,7 @@ export async function requireIMSAuth(headers) {
     if (!authHeader?.startsWith('Bearer ')) {
         return {
             statusCode: 401,
-            body: { error: 'Authorization required: Bearer token missing' }
+            body: { error: 'Authorization required: Bearer token missing' },
         };
     }
 
@@ -49,7 +49,7 @@ export async function requireIMSAuth(headers) {
     if (!validation.valid) {
         return {
             statusCode: 401,
-            body: { error: `Unauthorized: ${validation.error}` }
+            body: { error: `Unauthorized: ${validation.error}` },
         };
     }
 

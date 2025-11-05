@@ -425,6 +425,11 @@ export class MASMCPServer {
                         query: { type: 'string', description: 'Search query' },
                         tags: { type: 'array', items: { type: 'string' }, description: 'Tag filters' },
                         limit: { type: 'number', description: 'Max results (default: 10)' },
+                        searchMode: {
+                            type: 'string',
+                            description: 'Search mode: FUZZY (default), EXACT_WORDS, or EXACT_PHRASE',
+                            enum: ['FUZZY', 'EXACT_WORDS', 'EXACT_PHRASE'],
+                        },
                     },
                     required: ['surface'],
                 },

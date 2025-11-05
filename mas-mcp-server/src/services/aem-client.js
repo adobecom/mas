@@ -14,18 +14,24 @@ export class AEMClient {
      * Search for fragments with filters
      */
     async searchFragments(params) {
-        const { path = '/content/dam/mas', query, tags, modelIds, limit = 50, offset = 0 } = params;
+        const { path = '/content/dam/mas', query, tags, modelIds, limit = 50, offset = 0, searchMode = 'FUZZY' } = params;
 
         const authHeader = await this.authManager.getAuthHeader();
         console.log('[AEMClient] Auth header:', authHeader ? `${authHeader.slice(0, 27)}...` : 'MISSING');
         console.log('[AEMClient] Base URL:', this.baseUrl);
+
+        const QUERY_MODES = {
+            FUZZY: 'EDGES',
+            EXACT_WORDS: 'EXACT_WORDS',
+            EXACT_PHRASE: 'EXACT_PHRASE',
+        };
 
         const filter = { path };
 
         if (query && query.trim()) {
             filter.fullText = {
                 text: query.trim(),
-                queryMode: 'EDGES',
+                queryMode: QUERY_MODES[searchMode] || 'EDGES',
             };
         }
 

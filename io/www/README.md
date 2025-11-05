@@ -43,7 +43,6 @@ You are currently in:
 
 - `aio app test && aio app deploy` to test, build and deploy all actions on Runtime and static files to CDN
 - `aio app undeploy` to undeploy the app
-test
 
 If you need to force re-deploy:
 

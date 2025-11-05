@@ -70,7 +70,7 @@ async function main(params) {
             configuration = result.json;
             cachedConfiguration = configuration;
             configurationTimestamp = now;
-            logDebug('Configuration cache empty, fetched from state', context);
+            logDebug(() => 'Configuration cache empty, fetched from state', context);
         } else if (cacheExpired) {
             try {
                 const configTimeout = cachedConfiguration.networkConfig?.configTimeout || 200;
@@ -81,16 +81,16 @@ async function main(params) {
                 configuration = result.json;
                 cachedConfiguration = configuration;
                 configurationTimestamp = now;
-                logDebug('Configuration cache expired, refreshed from state', context);
+                logDebug(() => 'Configuration cache expired, refreshed from state', context);
             } catch (error) {
                 if (error.isTimeout) {
                     configuration = cachedConfiguration;
-                    logDebug('Configuration refresh timed out, using stale cache', context);
+                    logDebug(() => 'Configuration refresh timed out, using stale cache', context);
                 }
             }
         } else {
             configuration = cachedConfiguration;
-            logDebug('Using cached configuration', context);
+            logDebug(() => 'Using cached configuration', context);
         }
         context = configuration ? { ...context, ...configuration } : context;
         const initTime = measureTiming(context, 'init', 'start').duration;

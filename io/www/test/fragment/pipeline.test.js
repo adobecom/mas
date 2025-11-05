@@ -1,10 +1,9 @@
 import { expect } from 'chai';
-import nock from 'nock';
+import sinon from 'sinon';
 import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { mockDictionary } from './replace.test.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import zlib from 'zlib';
-import sinon from 'sinon';
 
 import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
@@ -12,6 +11,9 @@ import DICTIONARY_FOR_COLLECTION_RESPONSE from './mocks/dictionaryForCollection.
 import COLLECTION_RESPONSE from './mocks/collection.json' with { type: 'json' };
 import FRAGMENT_AH_DE_DE_CORRUPTED from './mocks/fragment-ah-de_DE-corrupted.json' with { type: 'json' };
 import { MockState } from './mocks/MockState.js';
+import { createResponse } from './mocks/MockFetch.js';
+
+let fetchStub;
 
 function decompress(response) {
     const body =
@@ -34,39 +36,33 @@ const EXPECTED_HEADERS = {
     'Content-Type': 'application/json',
 };
 
-function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
+function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = false) {
     // setup dictionary mocks
-    mockDictionary(preview);
+    mockDictionary(preview, fetchStub);
 
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
     // english fragment by id
-    nock(odinDomain)
-        .get(`${odinUriRoot}/some-en-us-fragment`)
-        .query({ references: 'all-hydrated' })
-        .reply(200, FRAGMENT_RESPONSE_EN)
-        .persist();
+    fetchStub
+        .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
+        .returns(createResponse(200, FRAGMENT_RESPONSE_EN));
 
     // french fragment by path
-    nock(odinDomain)
-        .get(`${odinUriRoot}`)
-        .query({ path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app' })
-        .reply(200, { items: [{ id: 'some-fr-fr-fragment' }] })
-        .persist();
+    fetchStub
+        .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
+        .returns(createResponse(200, { items: [{ id: 'some-fr-fr-fragment' }] }));
+
     // candadian french fragment by path
-    nock(odinDomain)
-        .get(`${odinUriRoot}`)
-        .query({ path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app' })
-        .reply(200, {
+    fetchStub.withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`).returns(
+        createResponse(200, {
             items: [],
-        })
-        .persist();
+        }),
+    );
+
     // french fragment by id
-    nock(odinDomain)
-        .get(`${odinUriRoot}/some-fr-fr-fragment`)
-        .query({ references: 'all-hydrated' })
-        .reply(200, FRAGMENT_RESPONSE_FR)
-        .persist();
+    fetchStub
+        .withArgs(`${odinDomain}${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
+        .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
 }
 
 const EXPECTED_BODY = {
@@ -78,8 +74,8 @@ const EXPECTED_BODY_HASH = 'e40a8c822bb0e6fd5ef462ee327d1e9240aa74219ec67d8da63c
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
-const runOnFilledState = async (entry, headers) => {
-    setupFragmentMocks({
+const runOnFilledState = async (fetchStub, entry, headers) => {
+    setupFragmentMocks(fetchStub, {
         id: 'some-en-us-fragment',
         path: 'someFragment',
         fields: {
@@ -100,17 +96,17 @@ const runOnFilledState = async (entry, headers) => {
 
 describe('pipeline full use case', () => {
     beforeEach(() => {
-        nock.cleanAll();
-        mockDictionary();
+        fetchStub = sinon.stub(globalThis, 'fetch');
+        mockDictionary(false, fetchStub);
         resetCache();
     });
 
     afterEach(() => {
-        nock.cleanAll();
+        fetchStub.restore();
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment', async () => {
-        setupFragmentMocks({
+        setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });
@@ -140,6 +136,7 @@ describe('pipeline full use case', () => {
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from preview too', async () => {
         setupFragmentMocks(
+            fetchStub,
             {
                 id: 'some-en-us-fragment',
                 path: 'someFragment',
@@ -175,6 +172,7 @@ describe('pipeline full use case', () => {
 
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(
+            fetchStub,
             JSON.stringify({
                 fragmentsIds: {
                     'dictionary-id': 'fr_FR_dictionary',
@@ -195,13 +193,13 @@ describe('pipeline full use case', () => {
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from fr_CA locale request', async () => {
-        setupFragmentMocks({
+        setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_CA/dictionary/index')
-            .reply(404, {});
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_CA/dictionary/index')
+            .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
         const result = await getFragment({
             id: 'some-en-us-fragment',
@@ -226,24 +224,26 @@ describe('pipeline full use case', () => {
         const fragmentId = '8ede258f-a996-43c4-8525-b52543925ab0';
 
         // Mock the fragment fetch
-        nock('https://odin.adobe.com')
-            .get(`/adobe/sites/fragments/${fragmentId}?references=all-hydrated`)
-            .reply(200, FRAGMENT_AH_DE_DE_CORRUPTED);
+        fetchStub
+            .withArgs(`https://odin.adobe.com/adobe/sites/fragments/${fragmentId}?references=all-hydrated`)
+            .returns(createResponse(200, FRAGMENT_AH_DE_DE_CORRUPTED));
 
         // Mock dictionary for adobe-home de_DE (note the path structure matches adobe-home)
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments?path=/content/dam/mas/adobe-home/de_DE/dictionary/index')
-            .reply(200, {
-                items: [
-                    {
-                        id: 'de_DE_dictionary',
-                    },
-                ],
-            });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/adobe-home/de_DE/dictionary/index')
+            .returns(
+                createResponse(200, {
+                    items: [
+                        {
+                            id: 'de_DE_dictionary',
+                        },
+                    ],
+                }),
+            );
 
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/de_DE_dictionary?references=all-hydrated')
-            .reply(200, DICTIONARY_RESPONSE);
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/de_DE_dictionary?references=all-hydrated')
+            .returns(createResponse(200, DICTIONARY_RESPONSE));
 
         const state = new MockState();
         const result = await getFragment({
@@ -265,17 +265,26 @@ describe('pipeline full use case', () => {
 });
 
 describe('collection placeholders', () => {
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
     it('should work', async () => {
-        nock.cleanAll();
         const state = new MockState();
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/07f9729e-dc1f-4634-829d-7aa469bb0d33')
-            .query({ references: 'all-hydrated' })
-            .reply(200, COLLECTION_RESPONSE);
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/412fda08-7b73-4a01-a04f-1953e183bad2')
-            .query({ references: 'all-hydrated' })
-            .reply(200, DICTIONARY_FOR_COLLECTION_RESPONSE);
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/sites/fragments/07f9729e-dc1f-4634-829d-7aa469bb0d33?references=all-hydrated',
+            )
+            .returns(createResponse(200, COLLECTION_RESPONSE));
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/sites/fragments/412fda08-7b73-4a01-a04f-1953e183bad2?references=all-hydrated',
+            )
+            .returns(createResponse(200, DICTIONARY_FOR_COLLECTION_RESPONSE));
         state.put(
             'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
             '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","fragmentsIds":{"dictionary-id":"412fda08-7b73-4a01-a04f-1953e183bad2"}}',
@@ -293,13 +302,13 @@ describe('collection placeholders', () => {
 
 describe('pipeline corner cases', () => {
     beforeEach(() => {
-        nock.cleanAll();
-        mockDictionary();
+        fetchStub = sinon.stub(globalThis, 'fetch');
+        mockDictionary(false, fetchStub);
         resetCache();
     });
 
     afterEach(() => {
-        nock.cleanAll();
+        fetchStub.restore();
     });
 
     it('action should be defined', () => {
@@ -320,9 +329,9 @@ describe('pipeline corner cases', () => {
     });
 
     it('bad path should return 400', async () => {
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated')
-            .reply(200, { path: '/content/bad-path' });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated')
+            .returns(createResponse(200, { path: '/content/bad-path' }));
         const state = new MockState();
         await state.put(
             'req-some-en-us-fragment-fr_FR',
@@ -350,10 +359,9 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle fetch timeouts', async () => {
-        nock('https://odin.adobe.com')
-            .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
-            .delay(50)
-            .reply(200, {});
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, {})), 50)));
 
         const state = new MockState();
         state.put('configuration', '{"networkConfig":{"fetchTimeout":20,"retries":1,"retryDelay":1}}');
@@ -373,7 +381,7 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle fetch exceptions', async () => {
-        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment').replyWithError('Network error');
+        fetchStub.withArgs(sinon.match(/adobe\/sites\/fragments\/test-fragment/)).rejects(new Error('Network error'));
         const state = new MockState();
         state.put('configuration', '{"networkConfig":{"retries": 2, "retryDelay": 1}}');
         const result = await getFragment({
@@ -392,13 +400,38 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle main timeout', async () => {
-        setupFragmentMocks({
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
+        // Mock dictionary with a delay to ensure timeout fires
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+            .returns(
+                new Promise((resolve) =>
+                    setTimeout(() => resolve(createResponse(200, { items: [{ id: 'fr_FR_dictionary' }] })), 50),
+                ),
+            );
+
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
+            .returns(createResponse(200, DICTIONARY_RESPONSE));
+
+        const odinDomain = 'https://odin.adobe.com';
+        const odinUriRoot = '/adobe/sites/fragments';
+        
+        // Setup other fragment mocks
+        fetchStub
+            .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
+            .returns(createResponse(200, FRAGMENT_RESPONSE_EN));
+
+        fetchStub
+            .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
+            .returns(createResponse(200, { items: [{ id: 'some-fr-fr-fragment' }] }));
+
+        fetchStub
+            .withArgs(`${odinDomain}${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
+            .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
+
         const state = new MockState();
-        state.put('configuration', '{"networkConfig":{"mainTimeout":3,"retries": 1}}');
-        const result = await getFragment({
+        state.put('configuration', '{"networkConfig":{"mainTimeout":10,"retries": 1}}');
+        const result = await action({
             id: 'some-en-us-fragment',
             state: state,
             locale: 'fr_FR',
@@ -408,9 +441,9 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle 404 response status', async () => {
-        nock('https://odin.adobe.com').get('/adobe/sites/fragments/test-fragment?references=all-hydrated').reply(404, {
-            message: 'Fragment not found',
-        });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .returns(createResponse(404, null, 'Not Found'));
 
         const result = await getFragment({
             id: 'test-fragment',
@@ -429,6 +462,7 @@ describe('pipeline corner cases', () => {
 
     it('should manage ignore old if-modified', async () => {
         const result = await runOnFilledState(
+            fetchStub,
             JSON.stringify({
                 fragmentsIds: {
                     'dictionary-id': 'fr_FR_dictionary',
@@ -447,6 +481,7 @@ describe('pipeline corner cases', () => {
 
     it('should manage same etag with no lastmodified', async () => {
         const result = await runOnFilledState(
+            fetchStub,
             JSON.stringify({
                 dictionaryId: 'fr_FR_dictionary',
                 translatedId: 'some-fr-fr-fragment',
@@ -461,13 +496,13 @@ describe('pipeline corner cases', () => {
     });
 
     it('should manage bad cache entry', async () => {
-        const result = await runOnFilledState('undefined', {});
+        const result = await runOnFilledState(fetchStub, 'undefined', {});
         expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
     });
 
     it('should manage null cache entry', async () => {
-        const result = await runOnFilledState('null', {});
+        const result = await runOnFilledState(fetchStub, 'null', {});
         expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
     });
@@ -475,16 +510,16 @@ describe('pipeline corner cases', () => {
 
 describe('configuration caching', () => {
     beforeEach(() => {
-        nock.cleanAll();
+        fetchStub = sinon.stub(globalThis, 'fetch');
         resetCache();
     });
 
     afterEach(() => {
-        nock.cleanAll();
+        fetchStub.restore();
     });
 
     it('should cache configuration and reuse it on subsequent requests', async () => {
-        setupFragmentMocks({
+        setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
             fields: {
@@ -520,7 +555,7 @@ describe('configuration caching', () => {
         // Tests typically start around 0-2000ms, so 305000 ensures > 5min difference
         performanceStub.returns(5 * 60 * 1000 + 5000);
 
-        setupFragmentMocks({
+        setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
             fields: {
@@ -544,7 +579,7 @@ describe('configuration caching', () => {
     });
 
     it('should use stale cache when configuration refresh times out', async () => {
-        setupFragmentMocks({
+        setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });
@@ -573,7 +608,7 @@ describe('configuration caching', () => {
         const performanceStub = sinon.stub(performance, 'now');
         performanceStub.returns(5 * 60 * 1000 + 1000);
 
-        setupFragmentMocks({
+        setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });
@@ -595,7 +630,7 @@ describe('configuration caching', () => {
     it('should respect configTimeout from networkConfig', async () => {
         const performanceStub = sinon.stub(performance, 'now');
         performanceStub.returns(0);
-        setupFragmentMocks({
+        setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });
@@ -623,7 +658,7 @@ describe('configuration caching', () => {
 
         performanceStub.returns(5 * 60 * 1000 + 1000);
 
-        setupFragmentMocks({
+        setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });

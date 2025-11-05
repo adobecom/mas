@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 const SUCCESS = 'success';
 const ERROR = 'error';
 const OK = 'ok';

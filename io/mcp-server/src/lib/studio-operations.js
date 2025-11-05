@@ -366,6 +366,14 @@ export class StudioOperations {
                         });
                     }
 
+                    console.log('[StudioOps] About to update fragment:', {
+                        id: fragment.id,
+                        updatedFieldsType: typeof updatedFields,
+                        updatedFieldsKeys: Object.keys(updatedFields),
+                        updatedFieldsSample: JSON.stringify(updatedFields, null, 2),
+                        originalFieldsFormat: JSON.stringify(fragment.fields, null, 2).substring(0, 500),
+                    });
+
                     const updatedFragment = await this.aemClient.updateFragment(fragment.id, updatedFields, fragment.etag);
 
                     return {

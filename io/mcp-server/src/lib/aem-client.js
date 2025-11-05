@@ -167,6 +167,16 @@ export class AEMClient {
 
         const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}`;
 
+        console.log('[AEMClient] updateFragment called with:', {
+            id,
+            fieldsType: typeof fields,
+            fieldsKeys: Object.keys(fields || {}),
+            fieldsSample: JSON.stringify(fields, null, 2),
+            etag: etag ? 'present' : 'missing',
+            title: title !== undefined ? title : 'not provided',
+            tags: tags !== undefined ? `${tags.length} tags` : 'not provided',
+        });
+
         const headers = {
             Authorization: authHeader,
             'Content-Type': 'application/json',
@@ -185,6 +195,8 @@ export class AEMClient {
             body.tags = tags;
         }
 
+        console.log('[AEMClient] Request body to be sent:', JSON.stringify(body, null, 2));
+
         const response = await fetch(url, {
             method: 'PATCH',
             headers,
@@ -193,6 +205,13 @@ export class AEMClient {
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({ message: response.statusText }));
+            console.error('[AEMClient] Update failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorMessage: error.message,
+                requestBody: JSON.stringify(body, null, 2),
+                responseHeaders: Object.fromEntries(response.headers.entries()),
+            });
             throw new Error(`Failed to update fragment: ${error.message || response.statusText}`);
         }
 

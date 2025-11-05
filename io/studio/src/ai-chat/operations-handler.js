@@ -105,6 +105,9 @@ function validateMCPOperation(operation) {
         'studio_delete_card',
         'studio_copy_card',
         'studio_update_card',
+        'studio_bulk_update_cards',
+        'studio_bulk_publish_cards',
+        'studio_bulk_delete_cards',
     ];
 
     if (!validMCPTools.includes(operation.mcpTool)) {
@@ -128,6 +131,17 @@ function validateMCPOperation(operation) {
             break;
 
         case 'studio_search_cards':
+            break;
+
+        case 'studio_bulk_update_cards':
+        case 'studio_bulk_publish_cards':
+        case 'studio_bulk_delete_cards':
+            if (!operation.mcpParams.fragmentIds || !Array.isArray(operation.mcpParams.fragmentIds)) {
+                return { valid: false, error: `${operation.mcpTool} requires mcpParams.fragmentIds array` };
+            }
+            if (operation.mcpParams.fragmentIds.length === 0) {
+                return { valid: false, error: `${operation.mcpTool} requires at least one fragment ID` };
+            }
             break;
     }
 

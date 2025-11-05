@@ -161,6 +161,42 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 deepLink: result.deepLink,
             };
 
+        case 'studio_bulk_update_cards':
+            return {
+                success: true,
+                operation: 'bulk_update',
+                total: result.total,
+                successCount: result.successCount,
+                failureCount: result.failureCount,
+                successful: result.successful,
+                failed: result.failed,
+                message: result.message || `✓ Updated ${result.successCount} of ${result.total} cards`,
+            };
+
+        case 'studio_bulk_publish_cards':
+            return {
+                success: true,
+                operation: 'bulk_publish',
+                total: result.total,
+                successCount: result.successCount,
+                failureCount: result.failureCount,
+                successful: result.successful,
+                failed: result.failed,
+                message: result.message || `✓ Published ${result.successCount} of ${result.total} cards`,
+            };
+
+        case 'studio_bulk_delete_cards':
+            return {
+                success: true,
+                operation: 'bulk_delete',
+                total: result.total,
+                successCount: result.successCount,
+                failureCount: result.failureCount,
+                successful: result.successful,
+                failed: result.failed,
+                message: result.message || `✓ Deleted ${result.successCount} of ${result.total} cards`,
+            };
+
         default:
             return {
                 success: true,

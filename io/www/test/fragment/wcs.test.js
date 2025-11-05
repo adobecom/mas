@@ -49,13 +49,49 @@ describe('wcs typical cases', function () {
 
     it('should parse fragment and call related items  with en_US, putting them in a map with right env', async function () {
         fetchStub
-            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') && url.includes('country=US') && url.includes('locale=en_US') && url.includes('landscape=PUBLISHED') && url.includes('api_key=testing_wcs') && url.includes('language=MULT') && !url.includes('promotion_code')))
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT') &&
+                        !url.includes('promotion_code'),
+                ),
+            )
             .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
         fetchStub
-            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') && url.includes('country=US') && url.includes('locale=en_US') && url.includes('landscape=PUBLISHED') && url.includes('promotion_code=NICOPROMO') && url.includes('api_key=testing_wcs') && url.includes('language=MULT')))
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('promotion_code=NICOPROMO') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT'),
+                ),
+            )
             .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
         fetchStub
-            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('offer_selector_ids=anotherOsiForUpt') && url.includes('country=US') && url.includes('locale=en_US') && url.includes('landscape=PUBLISHED') && url.includes('promotion_code=UPT_PROMO-1') && url.includes('api_key=testing_wcs') && url.includes('language=MULT')))
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=anotherOsiForUpt') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('promotion_code=UPT_PROMO-1') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT'),
+                ),
+            )
             .returns(createResponse(200, { resolvedOffers: [{ upt: 'foo' }] }));
         context.wcsConfiguration = CONFIGURATION();
         context.body.fields.osi = 'anotherOsiForUpt';
@@ -84,10 +120,32 @@ describe('wcs typical cases', function () {
 
     it('should parse fragment and call related items  with en_GB, putting them in a map with right env', async function () {
         fetchStub
-            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') && url.includes('country=GB') && url.includes('locale=en_GB') && url.includes('landscape=PUBLISHED') && url.includes('api_key=testing_wcs') && !url.includes('promotion_code')))
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('country=GB') &&
+                        url.includes('locale=en_GB') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('api_key=testing_wcs') &&
+                        !url.includes('promotion_code'),
+                ),
+            )
             .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
         fetchStub
-            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') && url.includes('country=GB') && url.includes('locale=en_GB') && url.includes('landscape=PUBLISHED') && url.includes('promotion_code=NICOPROMO') && url.includes('api_key=testing_wcs')))
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('country=GB') &&
+                        url.includes('locale=en_GB') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('promotion_code=NICOPROMO') &&
+                        url.includes('api_key=testing_wcs'),
+                ),
+            )
             .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
         context.wcsConfiguration = CONFIGURATION();
         delete context.body.fields.osi;
@@ -154,10 +212,34 @@ describe('wcs corner cases', function () {
 
     it('should parse fragment and call related items, putting working ones in a map with right env', async function () {
         fetchStub
-            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') && url.includes('country=US') && url.includes('locale=en_US') && url.includes('landscape=PUBLISHED') && url.includes('api_key=testing_wcs') && url.includes('language=MULT') && !url.includes('promotion_code')))
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT') &&
+                        !url.includes('promotion_code'),
+                ),
+            )
             .returns(createResponse(429, {}, 'Too Many Requests'));
         fetchStub
-            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') && url.includes('country=US') && url.includes('locale=en_US') && url.includes('landscape=PUBLISHED') && url.includes('promotion_code=NICOPROMO') && url.includes('api_key=testing_wcs') && url.includes('language=MULT')))
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('promotion_code=NICOPROMO') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT'),
+                ),
+            )
             .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
         context.wcsConfiguration = CONFIGURATION();
         context = await wcs.process(context);

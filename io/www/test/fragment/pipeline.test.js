@@ -415,7 +415,7 @@ describe('pipeline corner cases', () => {
 
         const odinDomain = 'https://odin.adobe.com';
         const odinUriRoot = '/adobe/sites/fragments';
-        
+
         // Setup other fragment mocks
         fetchStub
             .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)

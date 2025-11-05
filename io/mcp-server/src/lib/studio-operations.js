@@ -362,6 +362,14 @@ export class StudioOperations {
         };
     }
 
+    transformFieldsToAEMFormat(fields) {
+        const aemFields = {};
+        Object.entries(fields).forEach(([key, value]) => {
+            aemFields[key] = { value };
+        });
+        return aemFields;
+    }
+
     async processUpdateJob(jobManager, jobId, fragmentIds, updates, textReplacements) {
         for (const id of fragmentIds) {
             try {
@@ -385,15 +393,18 @@ export class StudioOperations {
                     });
                 }
 
+                const aemFormattedFields = this.transformFieldsToAEMFormat(updatedFields);
+
                 console.log('[StudioOps] About to update fragment:', {
                     id: fragment.id,
                     updatedFieldsType: typeof updatedFields,
                     updatedFieldsKeys: Object.keys(updatedFields),
                     updatedFieldsSample: JSON.stringify(updatedFields, null, 2),
+                    aemFormattedFields: JSON.stringify(aemFormattedFields, null, 2),
                     originalFieldsFormat: JSON.stringify(fragment.fields, null, 2).substring(0, 500),
                 });
 
-                const updatedFragment = await this.aemClient.updateFragment(fragment.id, updatedFields, fragment.etag);
+                const updatedFragment = await this.aemClient.updateFragment(fragment.id, aemFormattedFields, fragment.etag);
 
                 await jobManager.addSuccessfulItem(jobId, {
                     id,

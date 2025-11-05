@@ -790,6 +790,7 @@ export class MasChat extends LitElement {
         const { executeStudioOperationWithProgress } = await import('./services/mcp-client.js');
 
         const loadingMessage = this.getOperationLoadingMessage(operationType);
+        const messageId = Date.now();
         const loadingMessageObj = {
             role: 'assistant',
             content: loadingMessage,
@@ -797,6 +798,7 @@ export class MasChat extends LitElement {
             operationType,
             progress: { current: 0, total: operation.mcpParams.fragmentIds?.length || 0 },
             timestamp: Date.now(),
+            messageId,
         };
 
         this.messages = [...this.messages, loadingMessageObj];
@@ -807,7 +809,7 @@ export class MasChat extends LitElement {
                 operation.mcpParams,
                 (statusUpdate) => {
                     this.messages = this.messages.map((msg) =>
-                        msg === loadingMessageObj
+                        msg.messageId === messageId
                             ? {
                                   ...msg,
                                   content: `Processing ${statusUpdate.completed}/${statusUpdate.total} cards...`,
@@ -825,7 +827,7 @@ export class MasChat extends LitElement {
             );
 
             this.messages = this.messages.map((msg) =>
-                msg === loadingMessageObj
+                msg.messageId === messageId
                     ? {
                           role: 'assistant',
                           content: result.message,
@@ -841,7 +843,7 @@ export class MasChat extends LitElement {
         } catch (error) {
             console.error('Bulk operation error:', error);
             this.messages = this.messages.map((msg) =>
-                msg === loadingMessageObj
+                msg.messageId === messageId
                     ? {
                           role: 'error',
                           content: `Operation failed: ${error.message}`,

@@ -46,6 +46,7 @@ async function main(params) {
     };
     mark(context, 'start');
     let returnValue;
+    let cacheControl;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
     /* c8 ignore next 3*/
     if (!context.state) {
@@ -55,17 +56,38 @@ async function main(params) {
         const now = mark(context, 'config-check');
         const cacheExpired = !configurationTimestamp || now - configurationTimestamp > CONFIG_CACHE_TTL;
         let configuration;
-        if (!cachedConfiguration || cacheExpired) {
+        if (!cachedConfiguration) {
             const result = await getJsonFromState('configuration', context);
             configuration = result.json;
             cachedConfiguration = configuration;
             configurationTimestamp = now;
-            logDebug(`Configuration cache ${cacheExpired ? 'expired' : 'empty'}, refreshed from state`, context);
+            logDebug('Configuration cache empty, fetched from state', context);
+        } else if (cacheExpired) {
+            try {
+                const configTimeout = cachedConfiguration.networkConfig?.configTimeout || 200;
+                const result = await Promise.race([
+                    getJsonFromState('configuration', context),
+                    createTimeoutPromise(configTimeout, () => {}),
+                ]);
+                configuration = result.json;
+                cachedConfiguration = configuration;
+                configurationTimestamp = now;
+                logDebug('Configuration cache expired, refreshed from state', context);
+            } catch (error) {
+                if (error.isTimeout) {
+                    configuration = cachedConfiguration;
+                    logDebug('Configuration refresh timed out, using stale cache', context);
+                }
+            }
         } else {
             configuration = cachedConfiguration;
             logDebug('Using cached configuration', context);
         }
         context = configuration ? { ...context, ...configuration } : context;
+        const maxAge = context.networkConfig?.cacheMaxAge || 300;
+        const staleWhileRevalidate = context.networkConfig?.cacheStaleWhileRevalidate || 86400;
+        cacheControl = `public, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
+
         const initTime = measureTiming(context, 'init', 'start').duration;
         let timeout = context.networkConfig?.mainTimeout || 5000;
         timeout = Math.max(timeout - initTime, 0);
@@ -98,6 +120,7 @@ async function main(params) {
     returnValue.headers = {
         ...returnValue.headers,
         ...RESPONSE_HEADERS,
+        'Cache-Control': cacheControl,
     };
     returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
     logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);

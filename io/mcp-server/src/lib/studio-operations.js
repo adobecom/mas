@@ -308,14 +308,7 @@ export class StudioOperations {
             throw new Error(`Card not found: ${id}`);
         }
 
-        const updateParams = {
-            id: fragment.id,
-            fields: fields || {},
-            title,
-            tags,
-        };
-
-        const updatedFragment = await this.aemClient.updateFragment(updateParams);
+        const updatedFragment = await this.aemClient.updateFragment(fragment.id, fields || {}, fragment.etag, title, tags);
 
         const card = this.formatCard(updatedFragment);
         const studioLinks = this.urlBuilder.createCardLinks(card);
@@ -373,10 +366,7 @@ export class StudioOperations {
                         });
                     }
 
-                    const updatedFragment = await this.aemClient.updateFragment({
-                        id: fragment.id,
-                        fields: updatedFields,
-                    });
+                    const updatedFragment = await this.aemClient.updateFragment(fragment.id, updatedFields, fragment.etag);
 
                     return {
                         success: true,

@@ -161,7 +161,7 @@ export class AEMClient {
     /**
      * Update a fragment
      */
-    async updateFragment(id, fields, etag) {
+    async updateFragment(id, fields, etag, title, tags) {
         const authHeader = await this.authManager.getAuthHeader();
         const csrfToken = await this.getCsrfToken();
 
@@ -177,10 +177,18 @@ export class AEMClient {
             headers['If-Match'] = etag;
         }
 
+        const body = { fields };
+        if (title !== undefined) {
+            body.title = title;
+        }
+        if (tags !== undefined) {
+            body.tags = tags;
+        }
+
         const response = await fetch(url, {
             method: 'PATCH',
             headers,
-            body: JSON.stringify({ fields }),
+            body: JSON.stringify(body),
         });
 
         if (!response.ok) {

@@ -7,6 +7,8 @@ const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
 };
 
+const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
+const COLLECTION_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
 const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 
 /**
@@ -152,14 +154,14 @@ export class StudioOperations {
             path: surfacePath,
             query,
             tags,
-            modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
+            modelIds: [CARD_MODEL_ID],
             limit: requestLimit,
             offset,
         };
 
         console.log('[StudioOperations] Search params with modelIds:', {
             path: surfacePath,
-            modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
+            modelIds: [CARD_MODEL_ID],
             limit: requestLimit,
         });
 
@@ -347,7 +349,7 @@ export class StudioOperations {
         const jobManager = new JobManager();
         const jobId = await jobManager.createJob('bulk_update', fragmentIds.length);
 
-        this.processUpdateJob(jobManager, jobId, fragmentIds, updates, textReplacements).catch((error) => {
+        this.processConcurrentUpdates(jobManager, jobId, fragmentIds, updates, textReplacements).catch((error) => {
             console.error('[BulkUpdate] Job processing failed:', error);
             jobManager.failJob(jobId, error);
         });
@@ -362,51 +364,42 @@ export class StudioOperations {
         };
     }
 
-    async processUpdateJob(jobManager, jobId, fragmentIds, updates, textReplacements) {
-        for (const id of fragmentIds) {
-            try {
-                const fragment = await this.aemClient.getFragment(id);
+    async processConcurrentUpdates(jobManager, jobId, fragmentIds, updates, textReplacements) {
+        const results = await Promise.allSettled(
+            fragmentIds.map(async (id) => {
+                try {
+                    let fieldsToUpdate = { ...updates };
 
-                if (!fragment) {
-                    throw new Error(`Card not found: ${id}`);
-                }
+                    if (textReplacements.length > 0) {
+                        const fragment = await this.aemClient.getFragment(id);
+                        const currentFields = this.formatCard(fragment).fields;
 
-                let updatedFields = { ...updates };
+                        textReplacements.forEach(({ field, find, replace }) => {
+                            if (currentFields[field]) {
+                                const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                fieldsToUpdate[field] = currentFields[field].replace(regex, replace);
+                            }
+                        });
+                    }
 
-                if (textReplacements.length > 0) {
-                    const currentFields = this.formatCard(fragment).fields;
+                    const result = await this.updateCard({ id, fields: fieldsToUpdate });
 
-                    textReplacements.forEach(({ field, find, replace }) => {
-                        if (currentFields[field]) {
-                            const currentValue = currentFields[field];
-                            const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                            updatedFields[field] = currentValue.replace(regex, replace);
-                        }
+                    await jobManager.addSuccessfulItem(jobId, {
+                        id,
+                        title: result.card.title,
                     });
+
+                    return { success: true, id };
+                } catch (error) {
+                    console.error(`[BulkUpdate] Failed to update card ${id}:`, error);
+                    await jobManager.addFailedItem(jobId, {
+                        id,
+                        error: error.message,
+                    });
+                    return { success: false, id, error };
                 }
-
-                console.log('[StudioOps] About to update fragment:', {
-                    id: fragment.id,
-                    updatedFieldsType: typeof updatedFields,
-                    updatedFieldsKeys: Object.keys(updatedFields),
-                    updatedFieldsSample: JSON.stringify(updatedFields, null, 2),
-                    originalFieldsFormat: JSON.stringify(fragment.fields, null, 2).substring(0, 500),
-                });
-
-                const updatedFragment = await this.aemClient.updateFragment(fragment.id, updatedFields, fragment.etag);
-
-                await jobManager.addSuccessfulItem(jobId, {
-                    id,
-                    title: updatedFragment.title,
-                });
-            } catch (error) {
-                console.error(`[BulkUpdate] Failed to update card ${id}:`, error);
-                await jobManager.addFailedItem(jobId, {
-                    id,
-                    error: error.message,
-                });
-            }
-        }
+            }),
+        );
 
         const job = await jobManager.getJob(jobId);
         await jobManager.completeJob(jobId, {

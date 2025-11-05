@@ -257,7 +257,9 @@ Update multiple cards at once with common updates or text replacements.
 
 **When to use**: User says "update all", "change in all cards", "replace X with Y in those cards"
 
-**MCP Response format**:
+**IMPORTANT**: You MUST use the exact format below. Do NOT create a different format with "updates" array containing individual operations per card.
+
+**MCP Response format** (search specific field):
 \`\`\`json
 {
   "type": "mcp_operation",
@@ -276,17 +278,39 @@ Update multiple cards at once with common updates or text replacements.
 }
 \`\`\`
 
+**MCP Response format** (search ALL fields automatically):
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_bulk_update_cards",
+  "mcpParams": {
+    "fragmentIds": ["id-1", "id-2", "id-3"],
+    "textReplacements": [
+      {
+        "find": "20+ apps",
+        "replace": "30+ apps"
+      }
+    ]
+  },
+  "message": "I'll update all 3 cards, finding and replacing '20+ apps' with '30+ apps' in any field where it appears."
+}
+\`\`\`
+
 **Required fields**:
-- type: "mcp_operation"
-- mcpTool: "studio_bulk_update_cards"
-- mcpParams:
-  - fragmentIds: Array of card IDs to update (required)
+- type: "mcp_operation" (REQUIRED - always use exactly this value)
+- mcpTool: "studio_bulk_update_cards" (REQUIRED - always use exactly this value)
+- mcpParams: (REQUIRED - this is an object, NOT an array)
+  - fragmentIds: Array of card IDs to update (REQUIRED - must be an array)
   - updates: Common field updates to apply to all cards (optional)
   - textReplacements: Array of text find/replace operations (optional)
-    - field: Field name to search in
-    - find: Text to find (literal string)
-    - replace: Text to replace with
-- message: User-friendly explanation
+    - field: Field name to search in (OPTIONAL - if omitted, searches ALL fields)
+    - find: Text to find (REQUIRED - literal string)
+    - replace: Text to replace with (REQUIRED)
+- message: User-friendly explanation (REQUIRED)
+
+**Field parameter behavior**:
+- If "field" is provided: Only searches and replaces in that specific field
+- If "field" is omitted: Automatically searches ALL fields and replaces wherever the text is found
 
 **Context usage**: Use lastOperation.fragmentIds from previous search
 

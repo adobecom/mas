@@ -379,12 +379,35 @@ export class StudioOperations {
 
                     if (textReplacements.length > 0) {
                         const fragment = await this.aemClient.getFragment(id);
-                        const currentFields = this.formatCard(fragment).fields;
 
                         textReplacements.forEach(({ field, find, replace }) => {
-                            if (currentFields[field]) {
-                                const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                fieldsToUpdate[field] = currentFields[field].replace(regex, replace);
+                            if (field) {
+                                const fieldData = fragment.fields[field];
+                                const currentValue = fieldData?.value || fieldData;
+                                if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
+                                    const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                    fieldsToUpdate[field] = { value: currentValue.replace(regex, replace) };
+                                    console.log(`[BulkUpdate] Replaced in field "${field}":`, {
+                                        id,
+                                        field,
+                                        oldValue: currentValue,
+                                        newValue: currentValue.replace(regex, replace),
+                                    });
+                                }
+                            } else {
+                                Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
+                                    const currentValue = fieldData?.value || fieldData;
+                                    if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
+                                        const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                        fieldsToUpdate[fieldName] = { value: currentValue.replace(regex, replace) };
+                                        console.log(`[BulkUpdate] Replaced in field "${fieldName}":`, {
+                                            id,
+                                            field: fieldName,
+                                            oldValue: currentValue,
+                                            newValue: currentValue.replace(regex, replace),
+                                        });
+                                    }
+                                });
                             }
                         });
 

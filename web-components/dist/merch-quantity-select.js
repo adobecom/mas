@@ -1,9 +1,4 @@
-// src/merch-quantity-select.js
-import { html, LitElement, nothing } from "/deps/lit-all.min.js";
-
-// src/merch-quantity-select.css.js
-import { css } from "/deps/lit-all.min.js";
-var styles = css`
+import{html as c,LitElement as b,nothing as _}from"/deps/lit-all.min.js";import{css as m}from"/deps/lit-all.min.js";var h=m`
     :host {
         box-sizing: border-box;
         --background-color: var(--qs-background-color, #f6f6f6);
@@ -153,331 +148,28 @@ var styles = css`
         background-position: right 7px center;
         background-repeat: no-repeat;
     }
-`;
-
-// src/constants.js
-var Commitment = Object.freeze({
-  MONTH: "MONTH",
-  YEAR: "YEAR",
-  TWO_YEARS: "TWO_YEARS",
-  THREE_YEARS: "THREE_YEARS",
-  PERPETUAL: "PERPETUAL",
-  TERM_LICENSE: "TERM_LICENSE",
-  ACCESS_PASS: "ACCESS_PASS",
-  THREE_MONTHS: "THREE_MONTHS",
-  SIX_MONTHS: "SIX_MONTHS"
-});
-var Term = Object.freeze({
-  ANNUAL: "ANNUAL",
-  MONTHLY: "MONTHLY",
-  TWO_YEARS: "TWO_YEARS",
-  THREE_YEARS: "THREE_YEARS",
-  P1D: "P1D",
-  P1Y: "P1Y",
-  P3Y: "P3Y",
-  P10Y: "P10Y",
-  P15Y: "P15Y",
-  P3D: "P3D",
-  P7D: "P7D",
-  P30D: "P30D",
-  HALF_YEARLY: "HALF_YEARLY",
-  QUARTERLY: "QUARTERLY"
-});
-var SELECTOR_MAS_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
-var SELECTOR_MAS_CHECKOUT_LINK = 'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';
-var SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
-var SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
-var EVENT_MERCH_QUANTITY_SELECTOR_CHANGE = "merch-quantity-selector:change";
-var EVENT_MERCH_CARD_QUANTITY_CHANGE = "merch-card-quantity:change";
-var CheckoutWorkflowStep = Object.freeze({
-  SEGMENTATION: "segmentation",
-  BUNDLE: "bundle",
-  COMMITMENT: "commitment",
-  RECOMMENDATION: "recommendation",
-  EMAIL: "email",
-  PAYMENT: "payment",
-  CHANGE_PLAN_TEAM_PLANS: "change-plan/team-upgrade/plans",
-  CHANGE_PLAN_TEAM_PAYMENT: "change-plan/team-upgrade/payment"
-});
-var Env = Object.freeze({
-  STAGE: "STAGE",
-  PRODUCTION: "PRODUCTION",
-  LOCAL: "LOCAL"
-});
-
-// src/utils.js
-function debounce(func, delay) {
-  let debounceTimer;
-  return function() {
-    const context = this;
-    const args = arguments;
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => func.apply(context, args), delay);
-  };
-}
-
-// src/focus.js
-var [ARROW_LEFT, ARROW_RIGHT, ARROW_UP, ARROW_DOWN, ENTER, TAB] = [
-  "ArrowLeft",
-  "ArrowRight",
-  "ArrowUp",
-  "ArrowDown",
-  "Enter",
-  "Tab"
-];
-
-// src/merch-quantity-select.js
-var MerchQuantitySelect = class extends LitElement {
-  static get properties() {
-    return {
-      closed: { type: Boolean, reflect: true },
-      selected: { type: Number },
-      min: { type: Number },
-      max: { type: Number },
-      step: { type: Number },
-      maxInput: { type: Number, attribute: "max-input" },
-      options: { type: Array },
-      highlightedIndex: { type: Number },
-      defaultValue: {
-        type: Number,
-        attribute: "default-value",
-        reflect: true
-      },
-      title: { type: String }
-    };
-  }
-  static get styles() {
-    return styles;
-  }
-  constructor() {
-    super();
-    this.options = [];
-    this.title = "";
-    this.closed = true;
-    this.min = 0;
-    this.max = 0;
-    this.step = 0;
-    this.maxInput = void 0;
-    this.defaultValue = void 0;
-    this.selectedValue = 0;
-    this.highlightedIndex = 0;
-    this.toggleMenu = this.toggleMenu.bind(this);
-    this.closeMenu = this.closeMenu.bind(this);
-    this.openMenu = this.openMenu.bind(this);
-    this.handleClickOutside = this.handleClickOutside.bind(this);
-    this.boundKeydownListener = this.handleKeydown.bind(this);
-    this.handleKeyupDebounced = debounce(this.handleKeyup.bind(this), 500);
-    this.debouncedQuantityUpdate = debounce(
-      this.handleQuantityUpdate.bind(this),
-      500
-    );
-  }
-  connectedCallback() {
-    super.connectedCallback();
-    this.addEventListener("keydown", this.boundKeydownListener);
-    window.addEventListener("mousedown", this.handleClickOutside);
-    this.addEventListener(
-      EVENT_MERCH_CARD_QUANTITY_CHANGE,
-      this.debouncedQuantityUpdate
-    );
-  }
-  get button() {
-    return this.shadowRoot.querySelector("button");
-  }
-  handleKeyup(e) {
-    if (e.key === ARROW_DOWN || e.key === ARROW_UP) return;
-    this.handleInput();
-    this.sendEvent();
-  }
-  selectValue() {
-    if (!this.closed) {
-      const option = this.options[this.highlightedIndex];
-      if (!option) {
-        this.closed = true;
-        return;
-      }
-      this.selectedValue = option;
-      this.handleMenuOption(this.selectedValue);
-      this.closed = true;
-    }
-  }
-  handleKeydown(e) {
-    switch (e.key) {
-      case " ":
-        this.selectValue();
-        break;
-      case "Escape":
-        this.closed = true;
-        break;
-      case TAB:
-        this.selectValue();
-        break;
-      case ARROW_DOWN:
-        if (!this.closed) {
-          this.highlightedIndex = (this.highlightedIndex + 1) % this.options.length;
-        } else {
-          this.openMenu();
-        }
-        e.preventDefault();
-        break;
-      case ARROW_UP:
-        if (!this.closed) {
-          this.highlightedIndex = (this.highlightedIndex - 1 + this.options.length) % this.options.length;
-        }
-        e.preventDefault();
-        break;
-      case ENTER:
-        this.selectValue();
-        if (this.button.classList.contains("focused"))
-          e.preventDefault();
-        break;
-    }
-    if (e.composedPath().includes(this)) e.stopPropagation();
-  }
-  adjustInput(inputField, value) {
-    this.selectedValue = value;
-    inputField.value = value;
-    this.highlightedIndex = this.options.indexOf(value);
-  }
-  handleInput() {
-    const inputField = this.shadowRoot.querySelector(".text-field-input");
-    const numericValue = inputField.value.replace(/\D/g, "");
-    inputField.value = numericValue;
-    const inputValue = parseInt(numericValue);
-    if (isNaN(inputValue)) {
-      return;
-    }
-    if (inputValue > 0 && inputValue !== this.selectedValue) {
-      let adjustedInputValue = inputValue;
-      if (this.maxInput && inputValue > this.maxInput)
-        adjustedInputValue = this.maxInput;
-      if (this.min && adjustedInputValue < this.min)
-        adjustedInputValue = this.min;
-      this.adjustInput(inputField, adjustedInputValue);
-    } else
-      this.adjustInput(inputField, this.selectedValue || this.min || 1);
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    window.removeEventListener("mousedown", this.handleClickOutside);
-    this.removeEventListener("keydown", this.boundKeydownListener);
-    this.removeEventListener(
-      EVENT_MERCH_CARD_QUANTITY_CHANGE,
-      this.debouncedQuantityUpdate
-    );
-  }
-  generateOptionsArray() {
-    const options = [];
-    if (this.step > 0) {
-      for (let value = this.min; value <= this.max; value += this.step) {
-        options.push(value);
-      }
-    }
-    return options;
-  }
-  update(changedProperties) {
-    if (changedProperties.has("min") || changedProperties.has("max") || changedProperties.has("step") || changedProperties.has("defaultValue")) {
-      this.options = this.generateOptionsArray();
-      this.highlightedIndex = this.defaultValue ? this.options.indexOf(this.defaultValue) : 0;
-      this.handleMenuOption(
-        this.defaultValue ? this.defaultValue : this.options[0]
-      );
-    }
-    super.update(changedProperties);
-  }
-  handleClickOutside(event) {
-    const path = event.composedPath();
-    if (!path.includes(this)) {
-      this.closeMenu();
-    }
-  }
-  toggleMenu() {
-    this.closed = !this.closed;
-    this.adjustPopoverPlacement();
-    if (this.closed)
-      this.highlightedIndex = this.options.indexOf(this.selectedValue);
-  }
-  closeMenu() {
-    this.closed = true;
-    this.highlightedIndex = this.options.indexOf(this.selectedValue);
-  }
-  openMenu() {
-    this.closed = false;
-    this.adjustPopoverPlacement();
-  }
-  adjustPopoverPlacement() {
-    const popover = this.shadowRoot.querySelector(".popover");
-    if (this.closed || popover.getBoundingClientRect().bottom <= window.innerHeight)
-      popover.setAttribute("placement", "bottom");
-    else popover.setAttribute("placement", "top");
-  }
-  handleMouseEnter(index) {
-    this.highlightedIndex = index;
-  }
-  handleMenuOption(option, close) {
-    if (option === this.max)
-      this.shadowRoot.querySelector(".text-field-input")?.focus();
-    this.selectedValue = option;
-    this.sendEvent();
-    if (close) this.closeMenu();
-  }
-  sendEvent() {
-    const customEvent = new CustomEvent(
-      EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-      {
-        detail: { option: this.selectedValue },
-        bubbles: true
-      }
-    );
-    this.dispatchEvent(customEvent);
-  }
-  get offerSelect() {
-    return this.querySelector("merch-offer-select");
-  }
-  get popover() {
-    return html` <div
+`;var g=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),v=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var A='span[is="inline-price"][data-wcs-osi]',T='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var R='a[is="upt-link"]',N=`${A},${T},${R}`;var p="merch-quantity-selector:change",n="merch-card-quantity:change";var S=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var C=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});function s(d,e){let t;return function(){let o=this,i=arguments;clearTimeout(t),t=setTimeout(()=>d.apply(o,i),e)}}var[I,P,r,a,u,E]=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter","Tab"];var l=class extends b{static get properties(){return{closed:{type:Boolean,reflect:!0},selected:{type:Number},min:{type:Number},max:{type:Number},step:{type:Number},maxInput:{type:Number,attribute:"max-input"},options:{type:Array},highlightedIndex:{type:Number},defaultValue:{type:Number,attribute:"default-value",reflect:!0},title:{type:String}}}static get styles(){return h}constructor(){super(),this.options=[],this.title="",this.closed=!0,this.min=0,this.max=0,this.step=0,this.maxInput=void 0,this.defaultValue=void 0,this.selectedValue=0,this.highlightedIndex=0,this.toggleMenu=this.toggleMenu.bind(this),this.closeMenu=this.closeMenu.bind(this),this.openMenu=this.openMenu.bind(this),this.handleClickOutside=this.handleClickOutside.bind(this),this.boundKeydownListener=this.handleKeydown.bind(this),this.handleKeyupDebounced=s(this.handleKeyup.bind(this),500),this.debouncedQuantityUpdate=s(this.handleQuantityUpdate.bind(this),500)}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this.boundKeydownListener),window.addEventListener("mousedown",this.handleClickOutside),this.addEventListener(n,this.debouncedQuantityUpdate)}get button(){return this.shadowRoot.querySelector("button")}handleKeyup(e){e.key===a||e.key===r||(this.handleInput(),this.sendEvent())}selectValue(){if(!this.closed){let e=this.options[this.highlightedIndex];if(!e){this.closed=!0;return}this.selectedValue=e,this.handleMenuOption(this.selectedValue),this.closed=!0}}handleKeydown(e){switch(e.key){case" ":this.selectValue();break;case"Escape":this.closed=!0;break;case E:this.selectValue();break;case a:this.closed?this.openMenu():this.highlightedIndex=(this.highlightedIndex+1)%this.options.length,e.preventDefault();break;case r:this.closed||(this.highlightedIndex=(this.highlightedIndex-1+this.options.length)%this.options.length),e.preventDefault();break;case u:this.selectValue(),this.button.classList.contains("focused")&&e.preventDefault();break}e.composedPath().includes(this)&&e.stopPropagation()}adjustInput(e,t){this.selectedValue=t,e.value=t,this.highlightedIndex=this.options.indexOf(t)}handleInput(){let e=this.shadowRoot.querySelector(".text-field-input"),t=e.value.replace(/\D/g,"");e.value=t;let o=parseInt(t);if(!isNaN(o))if(o>0&&o!==this.selectedValue){let i=o;this.maxInput&&o>this.maxInput&&(i=this.maxInput),this.min&&i<this.min&&(i=this.min),this.adjustInput(e,i)}else this.adjustInput(e,this.selectedValue||this.min||1)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside),this.removeEventListener("keydown",this.boundKeydownListener),this.removeEventListener(n,this.debouncedQuantityUpdate)}generateOptionsArray(){let e=[];if(this.step>0)for(let t=this.min;t<=this.max;t+=this.step)e.push(t);return e}update(e){(e.has("min")||e.has("max")||e.has("step")||e.has("defaultValue"))&&(this.options=this.generateOptionsArray(),this.highlightedIndex=this.defaultValue?this.options.indexOf(this.defaultValue):0,this.handleMenuOption(this.defaultValue?this.defaultValue:this.options[0])),super.update(e)}handleClickOutside(e){e.composedPath().includes(this)||this.closeMenu()}toggleMenu(){this.closed=!this.closed,this.adjustPopoverPlacement(),this.closed&&(this.highlightedIndex=this.options.indexOf(this.selectedValue))}closeMenu(){this.closed=!0,this.highlightedIndex=this.options.indexOf(this.selectedValue)}openMenu(){this.closed=!1,this.adjustPopoverPlacement()}adjustPopoverPlacement(){let e=this.shadowRoot.querySelector(".popover");this.closed||e.getBoundingClientRect().bottom<=window.innerHeight?e.setAttribute("placement","bottom"):e.setAttribute("placement","top")}handleMouseEnter(e){this.highlightedIndex=e}handleMenuOption(e,t){e===this.max&&this.shadowRoot.querySelector(".text-field-input")?.focus(),this.selectedValue=e,this.sendEvent(),t&&this.closeMenu()}sendEvent(){let e=new CustomEvent(p,{detail:{option:this.selectedValue},bubbles:!0});this.dispatchEvent(e)}get offerSelect(){return this.querySelector("merch-offer-select")}get popover(){return c` <div
             id="qsPopover"
-            class="popover ${this.closed ? "closed" : "open"}"
+            class="popover ${this.closed?"closed":"open"}"
             placement="bottom"
             role="listbox"
             aria-multiselectable="false"
             aria-labelledby="qsLabel"
             tabindex="-1"
         >
-            ${this.options.map(
-      (option, index) => html`
+            ${this.options.map((e,t)=>c`
                     <div
-                        class="item ${index === this.highlightedIndex ? "highlighted" : ""}${this.selectedValue === option ? " selected" : ""}"
+                        class="item ${t===this.highlightedIndex?"highlighted":""}${this.selectedValue===e?" selected":""}"
                         role="option"
-                        id="${`qs-item-${index}`}"
-                        aria-selected=${this.selectedValue === option}
-                        @click="${() => this.handleMenuOption(option, true)}"
-                        @mouseenter="${() => this.handleMouseEnter(index)}"
+                        id="${`qs-item-${t}`}"
+                        aria-selected=${this.selectedValue===e}
+                        @click="${()=>this.handleMenuOption(e,!0)}"
+                        @mouseenter="${()=>this.handleMouseEnter(t)}"
                     >
-                        ${option === this.max ? `${option}+` : option}
+                        ${e===this.max?`${e}+`:e}
                     </div>
-                `
-    )}
-        </div>`;
-  }
-  handleQuantityUpdate({ detail: { quantity } }) {
-    if (quantity && quantity !== this.selectedValue) {
-      this.selectedValue = quantity;
-      const inputField = this.shadowRoot.querySelector(".text-field-input");
-      if (inputField) {
-        inputField.value = quantity;
-      }
-      this.sendEvent();
-    }
-  }
-  onButtonFocus(e) {
-    e.target.classList.add("focused");
-  }
-  onButtonBlur(e) {
-    e.target.classList.remove("focused");
-  }
-  render() {
-    return html`
+                `)}
+        </div>`}handleQuantityUpdate({detail:{quantity:e}}){if(e&&e!==this.selectedValue){this.selectedValue=e;let t=this.shadowRoot.querySelector(".text-field-input");t&&(t.value=e),this.sendEvent()}}onButtonFocus(e){e.target.classList.add("focused")}onButtonBlur(e){e.target.classList.remove("focused")}render(){return c`
             <div class="label" id="qsLabel">${this.title}</div>
             <div class="text-field">
                 <input
@@ -487,7 +179,7 @@ var MerchQuantitySelect = class extends LitElement {
                     role="combobox"
                     aria-expanded=${!this.closed}
                     aria-controls="qsPopover"
-                    aria-activedescendant="${!this.closed ? `qs-item-${this.highlightedIndex}` : nothing}"
+                    aria-activedescendant="${this.closed?_:`qs-item-${this.highlightedIndex}`}"
                     .value="${this.selectedValue}"
                     type="text"
                     autocomplete="off"
@@ -496,7 +188,7 @@ var MerchQuantitySelect = class extends LitElement {
                 />
                 <button
                     class="picker-button"
-                    aria-activedescendant="${!this.closed ? `qs-item-${this.highlightedIndex}` : nothing}"
+                    aria-activedescendant="${this.closed?_:`qs-item-${this.highlightedIndex}`}"
                     @focus="${this.onButtonFocus}"
                     @blur="${this.onButtonBlur}"
                     aria-controls="qsPopover"
@@ -505,16 +197,9 @@ var MerchQuantitySelect = class extends LitElement {
                     @click="${this.toggleMenu}"
                 >
                     <div
-                        class="picker-button-fill ${this.closed ? "open" : "closed"}"
+                        class="picker-button-fill ${this.closed?"open":"closed"}"
                     ></div>
                 </button>
                 ${this.popover}
             </div>
-        `;
-  }
-};
-customElements.define("merch-quantity-select", MerchQuantitySelect);
-export {
-  MerchQuantitySelect
-};
-//# sourceMappingURL=merch-quantity-select.js.map
+        `}};customElements.define("merch-quantity-select",l);export{l as MerchQuantitySelect};

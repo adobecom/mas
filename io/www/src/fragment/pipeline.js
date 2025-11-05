@@ -56,6 +56,7 @@ async function main(params) {
     };
     mark(context, 'start');
     let returnValue;
+    let cacheControl;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
     /* c8 ignore next 3*/
     if (!context.state) {
@@ -93,6 +94,10 @@ async function main(params) {
             logDebug(() => 'Using cached configuration', context);
         }
         context = configuration ? { ...context, ...configuration } : context;
+        const maxAge = context.networkConfig?.cacheMaxAge || 300;
+        const staleWhileRevalidate = context.networkConfig?.cacheStaleWhileRevalidate || 86400;
+        cacheControl = `public, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
+
         const initTime = measureTiming(context, 'init', 'start').duration;
         let timeout = context.networkConfig?.mainTimeout || 5000;
         timeout = Math.max(timeout - initTime, 0);
@@ -125,6 +130,7 @@ async function main(params) {
     returnValue.headers = {
         ...returnValue.headers,
         ...RESPONSE_HEADERS,
+        'Cache-Control': cacheControl,
     };
     returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
     logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);

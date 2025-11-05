@@ -127,8 +127,8 @@ export class JobManager {
         if (typeof process !== 'undefined' && process.env.__OW_ACTION_NAME) {
             const stateLib = await import('@adobe/aio-lib-state');
             const state = await stateLib.init();
-            const result = await state.get(`job:${jobId}`);
-            return result?.value;
+            const result = await state.get(`job-${jobId}`);
+            return result?.value ? JSON.parse(result.value) : null;
         }
 
         return this.memoryStore.get(jobId);
@@ -143,7 +143,7 @@ export class JobManager {
         if (typeof process !== 'undefined' && process.env.__OW_ACTION_NAME) {
             const stateLib = await import('@adobe/aio-lib-state');
             const state = await stateLib.init();
-            await state.put(`job:${jobId}`, job, { ttl: 3600 });
+            await state.put(`job-${jobId}`, JSON.stringify(job), { ttl: 3600 });
             return;
         }
 
@@ -159,7 +159,7 @@ export class JobManager {
         if (typeof process !== 'undefined' && process.env.__OW_ACTION_NAME) {
             const stateLib = await import('@adobe/aio-lib-state');
             const state = await stateLib.init();
-            await state.delete(`job:${jobId}`);
+            await state.delete(`job-${jobId}`);
             return;
         }
 

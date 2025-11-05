@@ -118,7 +118,9 @@ export async function executeStudioOperationWithProgress(mcpTool, mcpParams, onP
                         failureCount: statusResult.failureCount,
                         successful: statusResult.successful,
                         failed: statusResult.failed,
-                        message: statusResult.message || `✓ Completed ${statusResult.successCount} of ${statusResult.total} operations`,
+                        message:
+                            statusResult.message ||
+                            `✓ Completed ${statusResult.successCount} of ${statusResult.total} operations`,
                     };
                     resolve(finalResult);
                 } else if (statusResult.status === 'failed') {

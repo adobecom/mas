@@ -1087,6 +1087,170 @@
     text-decoration: underline;
 }
 
+/* Bulk Update Result Counts */
+.result-summary p {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spectrum-global-dimension-size-150);
+    align-items: center;
+}
+
+.success-count,
+.skipped-count,
+.failure-count {
+    font-size: var(--spectrum-global-dimension-size-150);
+    font-weight: 600;
+    padding: var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-125);
+    border-radius: var(--spectrum-global-dimension-size-50);
+}
+
+.success-count {
+    color: var(--spectrum-global-color-green-800);
+    background: var(--spectrum-global-color-green-100);
+}
+
+.skipped-count {
+    color: var(--spectrum-global-color-gray-800);
+    background: var(--spectrum-global-color-gray-200);
+}
+
+.failure-count {
+    color: var(--spectrum-global-color-red-800);
+    background: var(--spectrum-global-color-red-100);
+}
+
+/* Bulk Update Details Sections */
+.success-details,
+.skip-details,
+.error-details {
+    margin-top: var(--spectrum-global-dimension-size-250);
+    border: 1px solid var(--spectrum-global-color-gray-300);
+    border-radius: var(--spectrum-global-dimension-size-100);
+    overflow: hidden;
+}
+
+.success-details {
+    border-color: var(--spectrum-global-color-green-400);
+}
+
+.skip-details {
+    border-color: var(--spectrum-global-color-gray-400);
+}
+
+.error-details {
+    border-color: var(--spectrum-global-color-red-400);
+}
+
+.success-details summary,
+.skip-details summary,
+.error-details summary {
+    padding: var(--spectrum-global-dimension-size-175);
+    background: var(--spectrum-global-color-gray-50);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--spectrum-global-dimension-size-150);
+    color: var(--spectrum-global-color-gray-900);
+    user-select: none;
+}
+
+.success-details summary:hover {
+    background: var(--spectrum-global-color-green-50);
+}
+
+.skip-details summary:hover {
+    background: var(--spectrum-global-color-gray-100);
+}
+
+.error-details summary:hover {
+    background: var(--spectrum-global-color-red-50);
+}
+
+.updated-cards-list,
+.skipped-cards-list,
+.failed-cards-list {
+    padding: var(--spectrum-global-dimension-size-200);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spectrum-global-dimension-size-150);
+    background: white;
+}
+
+.updated-card-item,
+.skipped-card-item,
+.failed-card-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spectrum-global-dimension-size-150);
+    padding: var(--spectrum-global-dimension-size-150);
+    border-radius: var(--spectrum-global-dimension-size-75);
+    border: 1px solid var(--spectrum-global-color-gray-200);
+}
+
+.updated-card-item {
+    background: var(--spectrum-global-color-green-50);
+    border-color: var(--spectrum-global-color-green-300);
+}
+
+.skipped-card-item {
+    background: var(--spectrum-global-color-gray-50);
+    border-color: var(--spectrum-global-color-gray-300);
+}
+
+.failed-card-item {
+    background: var(--spectrum-global-color-red-50);
+    border-color: var(--spectrum-global-color-red-300);
+}
+
+.updated-card-item sp-icon-check-circle {
+    color: var(--spectrum-global-color-green-700);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.skipped-card-item sp-icon-info {
+    color: var(--spectrum-global-color-gray-700);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.failed-card-item sp-icon-close-circle {
+    color: var(--spectrum-global-color-red-700);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.updated-card-info,
+.skipped-card-info,
+.failed-card-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spectrum-global-dimension-size-75);
+}
+
+.updated-card-info strong,
+.skipped-card-info strong,
+.failed-card-info strong {
+    font-size: var(--spectrum-global-dimension-size-150);
+    font-weight: 600;
+    color: var(--spectrum-global-color-gray-900);
+}
+
+.fields-changed,
+.skip-reason,
+.error-message {
+    font-size: var(--spectrum-global-dimension-size-125);
+    color: var(--spectrum-global-color-gray-700);
+}
+
+.fields-changed {
+    font-style: italic;
+}
+
+.error-details sp-button {
+    margin: var(--spectrum-global-dimension-size-150) var(--spectrum-global-dimension-size-200) var(--spectrum-global-dimension-size-200);
+}
+
 /* Search Results Grid */
 .result-header {
     display: flex;

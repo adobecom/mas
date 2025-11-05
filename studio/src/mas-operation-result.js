@@ -229,14 +229,25 @@ export class MasOperationResult extends LitElement {
     }
 
     renderBulkUpdateResult() {
-        const { successCount = 0, failureCount = 0, total = 0, failed = [], message } = this.result;
+        const {
+            successCount = 0,
+            failureCount = 0,
+            total = 0,
+            failed = [],
+            successful = [],
+            skipped = [],
+            message,
+        } = this.result;
+        const skippedCount = skipped.length;
         const hasFailures = failureCount > 0;
+        const hasSkipped = skippedCount > 0;
 
         if (hasFailures) {
             console.error('[Bulk Update] Operation completed with errors:', {
                 total,
                 successCount,
                 failureCount,
+                skippedCount,
                 failed,
                 timestamp: new Date().toISOString(),
             });
@@ -254,22 +265,67 @@ export class MasOperationResult extends LitElement {
                         <h4>${message}</h4>
                         <p>
                             ${successCount > 0 ? html`<span class="success-count">✓ ${successCount} updated</span>` : ''}
+                            ${hasSkipped ? html`<span class="skipped-count">⊘ ${skippedCount} skipped</span>` : ''}
                             ${hasFailures ? html`<span class="failure-count">✗ ${failureCount} failed</span>` : ''}
                         </p>
                     </div>
                 </div>
 
+                ${successCount > 0
+                    ? html`
+                          <details class="success-details" open>
+                              <summary>${successCount} Updated Card${successCount !== 1 ? 's' : ''}</summary>
+                              <div class="updated-cards-list">
+                                  ${successful.map(
+                                      ({ id, title, fieldsChanged = [] }) => html`
+                                          <div class="updated-card-item">
+                                              <sp-icon-check-circle size="s"></sp-icon-check-circle>
+                                              <div class="updated-card-info">
+                                                  <strong>${title || id}</strong>
+                                                  ${fieldsChanged.length > 0
+                                                      ? html`<span class="fields-changed"
+                                                            >Fields updated: ${fieldsChanged.join(', ')}</span
+                                                        >`
+                                                      : ''}
+                                              </div>
+                                          </div>
+                                      `,
+                                  )}
+                              </div>
+                          </details>
+                      `
+                    : ''}
+                ${hasSkipped
+                    ? html`
+                          <details class="skip-details">
+                              <summary>${skippedCount} Skipped Card${skippedCount !== 1 ? 's' : ''}</summary>
+                              <div class="skipped-cards-list">
+                                  ${skipped.map(
+                                      ({ id, title, reason }) => html`
+                                          <div class="skipped-card-item">
+                                              <sp-icon-info size="s"></sp-icon-info>
+                                              <div class="skipped-card-info">
+                                                  <strong>${title || id}</strong>
+                                                  <span class="skip-reason">${reason || 'No changes needed'}</span>
+                                              </div>
+                                          </div>
+                                      `,
+                                  )}
+                              </div>
+                          </details>
+                      `
+                    : ''}
                 ${hasFailures
                     ? html`
                           <details class="error-details">
                               <summary>${failureCount} Failed Card${failureCount !== 1 ? 's' : ''}</summary>
                               <div class="failed-cards-list">
                                   ${failed.map(
-                                      ({ id, error }) => html`
+                                      ({ id, title, error }) => html`
                                           <div class="failed-card-item">
                                               <sp-icon-close-circle size="s"></sp-icon-close-circle>
                                               <div class="failed-card-info">
-                                                  <strong>${id}</strong>
+                                                  <strong>${title || id}</strong>
                                                   <span class="error-message">${error}</span>
                                               </div>
                                           </div>

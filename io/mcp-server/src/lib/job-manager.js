@@ -24,6 +24,7 @@ export class JobManager {
             completed: 0,
             successful: [],
             failed: [],
+            skipped: [],
             startedAt: new Date().toISOString(),
             ...metadata,
         };
@@ -83,6 +84,23 @@ export class JobManager {
         return updatedJob;
     }
 
+    async addSkippedItem(jobId, item) {
+        const job = await this.getJob(jobId);
+        if (!job) {
+            throw new Error(`Job ${jobId} not found`);
+        }
+
+        const updatedJob = {
+            ...job,
+            completed: job.completed + 1,
+            skipped: [...job.skipped, item],
+            updatedAt: new Date().toISOString(),
+        };
+
+        await this.saveJob(jobId, updatedJob);
+        return updatedJob;
+    }
+
     async completeJob(jobId, finalData = {}) {
         const job = await this.getJob(jobId);
         if (!job) {
@@ -97,7 +115,13 @@ export class JobManager {
         };
 
         await this.saveJob(jobId, completedJob);
-        console.log('[JobManager] Completed job:', { jobId, total: job.total, successful: job.successful.length, failed: job.failed.length });
+        console.log('[JobManager] Completed job:', {
+            jobId,
+            total: job.total,
+            successful: job.successful.length,
+            skipped: job.skipped.length,
+            failed: job.failed.length,
+        });
         return completedJob;
     }
 

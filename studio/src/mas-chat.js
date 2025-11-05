@@ -775,7 +775,9 @@ export class MasChat extends LitElement {
         }
 
         const operationType = operation.type === 'mcp_operation' ? operation.mcpTool : operation.operation;
-        const isBulkOperation = ['studio_bulk_update_cards', 'studio_bulk_publish_cards', 'studio_bulk_delete_cards'].includes(operationType);
+        const isBulkOperation = ['studio_bulk_update_cards', 'studio_bulk_publish_cards', 'studio_bulk_delete_cards'].includes(
+            operationType,
+        );
 
         if (isBulkOperation) {
             await this.executeBulkOperationWithProgress(operation, operationType);
@@ -804,27 +806,23 @@ export class MasChat extends LitElement {
         this.messages = [...this.messages, loadingMessageObj];
 
         try {
-            const result = await executeStudioOperationWithProgress(
-                operation.mcpTool,
-                operation.mcpParams,
-                (statusUpdate) => {
-                    this.messages = this.messages.map((msg) =>
-                        msg.messageId === messageId
-                            ? {
-                                  ...msg,
-                                  content: `Processing ${statusUpdate.completed}/${statusUpdate.total} cards...`,
-                                  progress: {
-                                      current: statusUpdate.completed,
-                                      total: statusUpdate.total,
-                                      percentage: statusUpdate.percentage,
-                                      successful: statusUpdate.successCount,
-                                      failed: statusUpdate.failureCount,
-                                  },
-                              }
-                            : msg,
-                    );
-                },
-            );
+            const result = await executeStudioOperationWithProgress(operation.mcpTool, operation.mcpParams, (statusUpdate) => {
+                this.messages = this.messages.map((msg) =>
+                    msg.messageId === messageId
+                        ? {
+                              ...msg,
+                              content: `Processing ${statusUpdate.completed}/${statusUpdate.total} cards...`,
+                              progress: {
+                                  current: statusUpdate.completed,
+                                  total: statusUpdate.total,
+                                  percentage: statusUpdate.percentage,
+                                  successful: statusUpdate.successCount,
+                                  failed: statusUpdate.failureCount,
+                              },
+                          }
+                        : msg,
+                );
+            });
 
             this.messages = this.messages.map((msg) =>
                 msg.messageId === messageId

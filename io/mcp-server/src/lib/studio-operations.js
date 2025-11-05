@@ -369,6 +369,7 @@ export class StudioOperations {
             fragmentIds.map(async (id) => {
                 try {
                     let fieldsToUpdate = { ...updates };
+                    let fragment = null;
 
                     console.log('[BulkUpdate] Processing card:', {
                         id,
@@ -378,7 +379,7 @@ export class StudioOperations {
                     });
 
                     if (textReplacements.length > 0) {
-                        const fragment = await this.aemClient.getFragment(id);
+                        fragment = await this.aemClient.getFragment(id);
 
                         textReplacements.forEach(({ field, find, replace }) => {
                             if (field) {
@@ -419,10 +420,10 @@ export class StudioOperations {
 
                     if (Object.keys(fieldsToUpdate).length === 0) {
                         console.log(`[BulkUpdate] Skipping card ${id} - no changes to apply`);
-                        await jobManager.addSuccessfulItem(jobId, {
+                        await jobManager.addSkippedItem(jobId, {
                             id,
-                            title: 'No changes needed',
-                            skipped: true,
+                            title: fragment?.title || id,
+                            reason: 'No matching text found',
                         });
                         return { id, skipped: true };
                     }
@@ -432,6 +433,7 @@ export class StudioOperations {
                     await jobManager.addSuccessfulItem(jobId, {
                         id,
                         title: result.card.title,
+                        fieldsChanged: Object.keys(fieldsToUpdate),
                     });
 
                     return { success: true, id };

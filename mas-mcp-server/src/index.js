@@ -492,7 +492,10 @@ export class MASMCPServer {
                             items: {
                                 type: 'object',
                                 properties: {
-                                    field: { type: 'string', description: 'Field name to update (optional - if omitted, searches ALL fields)' },
+                                    field: {
+                                        type: 'string',
+                                        description: 'Field name to update (optional - if omitted, searches ALL fields)',
+                                    },
                                     find: { type: 'string', description: 'Text to find' },
                                     replace: { type: 'string', description: 'Text to replace with' },
                                 },

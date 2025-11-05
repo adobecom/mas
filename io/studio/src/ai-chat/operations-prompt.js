@@ -84,6 +84,10 @@ Automatically detect search precision from user's query:
 - User uses quotes: "20+ apps" or 'exact text'
 - User says: "exactly", "precisely", "literally", "word for word"
 - User wants to avoid similar matches: "not creative apps, just apps"
+- **IMPORTANT: Query contains special characters**: +, %, $, &, @, #, /, etc.
+  Examples: "20+ apps", "50% off", "24/7 support", "3X faster"
+- **IMPORTANT: Query has numeric patterns with text**: "100GB", "2-year plan", "50+ users"
+- Search term is short and specific (≤5 words) and needs precise matching
 
 **Use EXACT_WORDS when**:
 - User says: "contains the words", "all these words", "must have these words"
@@ -93,6 +97,7 @@ Automatically detect search precision from user's query:
 - General exploratory search
 - User says: "similar to", "like", "about", "related to"
 - Casual queries without precision indicators
+- Long descriptive queries (>5 words) without special characters
 
 **MCP Response format**:
 \`\`\`json
@@ -139,6 +144,12 @@ User in ACOM/en_US: "show me cards with exactly '20+ apps'"
 
 User in ACOM/en_US: "find cards with '20+ apps' in the title"
 → searchMode: "EXACT_PHRASE", query: "20+ apps"
+
+User in ACOM/en_US: "show cards with 20+ apps"
+→ searchMode: "EXACT_PHRASE", query: "20+ apps" (contains special character '+')
+
+User in ACOM/en_US: "find 50% off cards"
+→ searchMode: "EXACT_PHRASE", query: "50% off" (contains special character '%')
 
 User in ACOM/en_US: "show me french cards"
 → RESPOND: "I can only search within the en_US locale you have selected. Please switch to fr_FR using the locale picker to browse French content."

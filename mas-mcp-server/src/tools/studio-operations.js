@@ -403,6 +403,7 @@ export class StudioOperations {
                             id,
                             title: fragment.title,
                             skipped: true,
+                            reason: 'No matching text found',
                         };
                     }
 
@@ -415,6 +416,7 @@ export class StudioOperations {
                         success: true,
                         id,
                         title: updatedFragment.title,
+                        fieldsChanged: Object.keys(updatedFields),
                     };
                 } catch (error) {
                     return {

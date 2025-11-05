@@ -340,6 +340,205 @@ export class StudioOperations {
     }
 
     /**
+     * Bulk update multiple cards
+     * @param {Object} params - { fragmentIds: string[], updates?: Object, textReplacements?: Array }
+     */
+    async bulkUpdateCards(params) {
+        const { fragmentIds, updates = {}, textReplacements = [] } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for bulk update');
+        }
+
+        const results = await Promise.allSettled(
+            fragmentIds.map(async (id) => {
+                try {
+                    const fragment = await this.aemClient.getFragment(id);
+
+                    if (!fragment) {
+                        throw new Error(`Card not found: ${id}`);
+                    }
+
+                    let updatedFields = { ...updates };
+
+                    if (textReplacements.length > 0) {
+                        const currentFields = this.formatCard(fragment).fields;
+
+                        textReplacements.forEach(({ field, find, replace }) => {
+                            if (currentFields[field]) {
+                                const currentValue = currentFields[field];
+                                const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                updatedFields[field] = currentValue.replace(regex, replace);
+                            }
+                        });
+                    }
+
+                    const updatedFragment = await this.aemClient.updateFragment({
+                        id: fragment.id,
+                        fields: updatedFields,
+                    });
+
+                    return {
+                        success: true,
+                        id,
+                        title: updatedFragment.title,
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        id,
+                        error: error.message,
+                    };
+                }
+            }),
+        );
+
+        const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).map((r) => r.value);
+        const failed = results
+            .filter((r) => r.status === 'rejected' || !r.value.success)
+            .map((r) => ({
+                id: r.value?.id || 'unknown',
+                error: r.value?.error || r.reason?.message || 'Unknown error',
+            }));
+
+        return {
+            success: true,
+            operation: 'bulk_update',
+            successful,
+            failed,
+            total: fragmentIds.length,
+            successCount: successful.length,
+            failureCount: failed.length,
+            message: `✓ Updated ${successful.length} of ${fragmentIds.length} cards${failed.length > 0 ? ` (${failed.length} failed)` : ''}`,
+        };
+    }
+
+    /**
+     * Bulk publish/unpublish cards
+     * @param {Object} params - { fragmentIds: string[], action: 'publish' | 'unpublish' }
+     */
+    async bulkPublishCards(params) {
+        const { fragmentIds, action = 'publish' } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for bulk publish');
+        }
+
+        if (!['publish', 'unpublish'].includes(action)) {
+            throw new Error('Action must be either "publish" or "unpublish"');
+        }
+
+        const results = await Promise.allSettled(
+            fragmentIds.map(async (id) => {
+                try {
+                    const fragment = await this.aemClient.getFragment(id);
+
+                    if (!fragment) {
+                        throw new Error(`Card not found: ${id}`);
+                    }
+
+                    if (action === 'publish') {
+                        await this.aemClient.publishFragment(fragment.id);
+                    } else {
+                        await this.aemClient.unpublishFragment(fragment.id);
+                    }
+
+                    return {
+                        success: true,
+                        id,
+                        title: fragment.title,
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        id,
+                        error: error.message,
+                    };
+                }
+            }),
+        );
+
+        const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).map((r) => r.value);
+        const failed = results
+            .filter((r) => r.status === 'rejected' || !r.value.success)
+            .map((r) => ({
+                id: r.value?.id || 'unknown',
+                error: r.value?.error || r.reason?.message || 'Unknown error',
+            }));
+
+        const actionPastTense = action === 'publish' ? 'published' : 'unpublished';
+
+        return {
+            success: true,
+            operation: `bulk_${action}`,
+            successful,
+            failed,
+            total: fragmentIds.length,
+            successCount: successful.length,
+            failureCount: failed.length,
+            message: `✓ ${actionPastTense.charAt(0).toUpperCase() + actionPastTense.slice(1)} ${successful.length} of ${fragmentIds.length} cards${failed.length > 0 ? ` (${failed.length} failed)` : ''}`,
+        };
+    }
+
+    /**
+     * Bulk delete cards
+     * @param {Object} params - { fragmentIds: string[] }
+     */
+    async bulkDeleteCards(params) {
+        const { fragmentIds } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for bulk delete');
+        }
+
+        const results = await Promise.allSettled(
+            fragmentIds.map(async (id) => {
+                try {
+                    const fragment = await this.aemClient.getFragment(id);
+
+                    if (!fragment) {
+                        throw new Error(`Card not found: ${id}`);
+                    }
+
+                    const title = fragment.title;
+                    await this.aemClient.deleteFragment(fragment.id);
+
+                    return {
+                        success: true,
+                        id,
+                        title,
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        id,
+                        error: error.message,
+                    };
+                }
+            }),
+        );
+
+        const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).map((r) => r.value);
+        const failed = results
+            .filter((r) => r.status === 'rejected' || !r.value.success)
+            .map((r) => ({
+                id: r.value?.id || 'unknown',
+                error: r.value?.error || r.reason?.message || 'Unknown error',
+            }));
+
+        return {
+            success: true,
+            operation: 'bulk_delete',
+            successful,
+            failed,
+            total: fragmentIds.length,
+            successCount: successful.length,
+            failureCount: failed.length,
+            message: `✓ Deleted ${successful.length} of ${fragmentIds.length} cards${failed.length > 0 ? ` (${failed.length} failed)` : ''}`,
+        };
+    }
+
+    /**
      * Format fragment to card object
      * @private
      */

@@ -77,3 +77,33 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    bulk-update-cards:
+                        function: src/actions/bulk-update-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-publish-cards:
+                        function: src/actions/bulk-publish-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-delete-cards:
+                        function: src/actions/bulk-delete-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

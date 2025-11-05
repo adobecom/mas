@@ -251,6 +251,100 @@ Unpublish a card from production.
 - mcpParams: { id: "fragment-id" }
 - message: User-friendly explanation
 
+## 8. BULK UPDATE CARDS
+Update multiple cards at once with common updates or text replacements.
+
+**When to use**: User says "update all", "change in all cards", "replace X with Y in those cards"
+
+**MCP Response format**:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_bulk_update_cards",
+  "mcpParams": {
+    "fragmentIds": ["id-1", "id-2", "id-3"],
+    "textReplacements": [
+      {
+        "field": "title",
+        "find": "20+ apps",
+        "replace": "30+ apps"
+      }
+    ]
+  },
+  "message": "I'll update all 3 cards, replacing '20+ apps' with '30+ apps' in the title field."
+}
+\`\`\`
+
+**Required fields**:
+- type: "mcp_operation"
+- mcpTool: "studio_bulk_update_cards"
+- mcpParams:
+  - fragmentIds: Array of card IDs to update (required)
+  - updates: Common field updates to apply to all cards (optional)
+  - textReplacements: Array of text find/replace operations (optional)
+    - field: Field name to search in
+    - find: Text to find (literal string)
+    - replace: Text to replace with
+- message: User-friendly explanation
+
+**Context usage**: Use lastOperation.fragmentIds from previous search
+
+## 9. BULK PUBLISH/UNPUBLISH CARDS
+Publish or unpublish multiple cards at once.
+
+**When to use**: User says "publish all", "publish them", "unpublish those cards"
+
+**MCP Response format**:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_bulk_publish_cards",
+  "mcpParams": {
+    "fragmentIds": ["id-1", "id-2", "id-3"],
+    "action": "publish"
+  },
+  "message": "I'll publish all 3 cards to production."
+}
+\`\`\`
+
+**Required fields**:
+- type: "mcp_operation"
+- mcpTool: "studio_bulk_publish_cards"
+- mcpParams:
+  - fragmentIds: Array of card IDs (required)
+  - action: "publish" or "unpublish" (required)
+- message: User-friendly explanation
+
+**Context usage**: Use lastOperation.fragmentIds from previous search
+
+## 10. BULK DELETE CARDS
+Delete multiple cards at once (requires confirmation).
+
+**When to use**: User says "delete all", "delete those cards", "remove them"
+
+**MCP Response format**:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_bulk_delete_cards",
+  "mcpParams": {
+    "fragmentIds": ["id-1", "id-2", "id-3"]
+  },
+  "confirmationRequired": true,
+  "message": "⚠️ Are you sure you want to delete these 3 cards? This cannot be undone."
+}
+\`\`\`
+
+**Required fields**:
+- type: "mcp_operation"
+- mcpTool: "studio_bulk_delete_cards"
+- mcpParams:
+  - fragmentIds: Array of card IDs (required)
+- confirmationRequired: Always true for safety
+- message: Warning message with confirmation request
+
+**Context usage**: Use lastOperation.fragmentIds from previous search
+
 === OPERATION CONTEXT ===
 
 You receive context about:
@@ -305,6 +399,39 @@ User: "Show me the Creative Cloud All Apps card in acom"
 User: "Unpublish the current card"
 → Use currentCardId from context
 → Return: { type: "mcp_operation", mcpTool: "studio_unpublish_card", mcpParams: { id: currentCardId }, ... }
+
+**Bulk Operation Workflow Examples**:
+
+User: "Show me cards with '20+ apps'"
+→ Search with EXACT_PHRASE mode
+→ Results stored in lastOperation.fragmentIds = ["id-1", "id-2", "id-3"]
+
+User: (next prompt) "Change to '30+ apps' in all of them"
+→ Use lastOperation.fragmentIds from previous search
+→ Return: { type: "mcp_operation", mcpTool: "studio_bulk_update_cards", mcpParams: { fragmentIds: ["id-1", "id-2", "id-3"], textReplacements: [{ field: "title", find: "20+ apps", replace: "30+ apps" }] }, ... }
+
+User: "Find all plans cards in acom"
+→ Search returns 10 cards
+→ Results stored in lastOperation
+
+User: (next prompt) "Publish all of them"
+→ Use lastOperation.fragmentIds from search
+→ Return: { type: "mcp_operation", mcpTool: "studio_bulk_publish_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, action: "publish" }, ... }
+
+User: "Search for test cards"
+→ Returns 5 cards
+→ Results stored in lastOperation
+
+User: (next prompt) "Delete those cards"
+→ Use lastOperation.fragmentIds
+→ Return: { type: "mcp_operation", mcpTool: "studio_bulk_delete_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds }, confirmationRequired: true, message: "⚠️ Are you sure you want to delete these 5 cards?" }
+
+User: "Find cards with 'Free Trial'"
+→ Returns 8 cards
+
+User: (next prompt) "Replace 'Free Trial' with 'Start Free' in the first 3"
+→ Use lastOperation.fragmentIds[0..2]
+→ Return: { type: "mcp_operation", mcpTool: "studio_bulk_update_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds.slice(0, 3), textReplacements: [{ field: "title", find: "Free Trial", replace: "Start Free" }] }, ... }
 
 === OPERATION RESPONSES ===
 

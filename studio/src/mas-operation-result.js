@@ -228,6 +228,193 @@ export class MasOperationResult extends LitElement {
         );
     }
 
+    renderBulkUpdateResult() {
+        const { successCount = 0, failureCount = 0, total = 0, failed = [], message } = this.result;
+        const hasFailures = failureCount > 0;
+
+        if (hasFailures) {
+            console.error('[Bulk Update] Operation completed with errors:', {
+                total,
+                successCount,
+                failureCount,
+                failed,
+                timestamp: new Date().toISOString(),
+            });
+        }
+
+        return html`
+            <div class="operation-result bulk-update-result ${hasFailures ? 'has-errors' : 'success'}">
+                <div class="result-header">
+                    <div class="result-icon">
+                        ${hasFailures
+                            ? html`<sp-icon-alert size="l"></sp-icon-alert>`
+                            : html`<sp-icon-check-circle size="l"></sp-icon-check-circle>`}
+                    </div>
+                    <div class="result-summary">
+                        <h4>${message}</h4>
+                        <p>
+                            ${successCount > 0 ? html`<span class="success-count">✓ ${successCount} updated</span>` : ''}
+                            ${hasFailures ? html`<span class="failure-count">✗ ${failureCount} failed</span>` : ''}
+                        </p>
+                    </div>
+                </div>
+
+                ${hasFailures
+                    ? html`
+                          <details class="error-details">
+                              <summary>${failureCount} Failed Card${failureCount !== 1 ? 's' : ''}</summary>
+                              <div class="failed-cards-list">
+                                  ${failed.map(
+                                      ({ id, error }) => html`
+                                          <div class="failed-card-item">
+                                              <sp-icon-close-circle size="s"></sp-icon-close-circle>
+                                              <div class="failed-card-info">
+                                                  <strong>${id}</strong>
+                                                  <span class="error-message">${error}</span>
+                                              </div>
+                                          </div>
+                                      `,
+                                  )}
+                              </div>
+                              <sp-button size="s" variant="secondary" @click=${() => this.copyErrorsToClipboard(failed)}>
+                                  Copy Error Log
+                              </sp-button>
+                          </details>
+                      `
+                    : ''}
+            </div>
+        `;
+    }
+
+    renderBulkPublishResult() {
+        const { successCount = 0, failureCount = 0, total = 0, failed = [], message } = this.result;
+        const hasFailures = failureCount > 0;
+
+        if (hasFailures) {
+            console.error('[Bulk Publish] Operation completed with errors:', {
+                total,
+                successCount,
+                failureCount,
+                failed,
+                timestamp: new Date().toISOString(),
+            });
+        }
+
+        return html`
+            <div class="operation-result bulk-publish-result ${hasFailures ? 'has-errors' : 'success'}">
+                <div class="result-header">
+                    <div class="result-icon">
+                        ${hasFailures
+                            ? html`<sp-icon-alert size="l"></sp-icon-alert>`
+                            : html`<sp-icon-check-circle size="l"></sp-icon-check-circle>`}
+                    </div>
+                    <div class="result-summary">
+                        <h4>${message}</h4>
+                        <p>
+                            ${successCount > 0 ? html`<span class="success-count">✓ ${successCount} published</span>` : ''}
+                            ${hasFailures ? html`<span class="failure-count">✗ ${failureCount} failed</span>` : ''}
+                        </p>
+                    </div>
+                </div>
+
+                ${hasFailures
+                    ? html`
+                          <details class="error-details">
+                              <summary>${failureCount} Failed Card${failureCount !== 1 ? 's' : ''}</summary>
+                              <div class="failed-cards-list">
+                                  ${failed.map(
+                                      ({ id, error }) => html`
+                                          <div class="failed-card-item">
+                                              <sp-icon-close-circle size="s"></sp-icon-close-circle>
+                                              <div class="failed-card-info">
+                                                  <strong>${id}</strong>
+                                                  <span class="error-message">${error}</span>
+                                              </div>
+                                          </div>
+                                      `,
+                                  )}
+                              </div>
+                              <sp-button size="s" variant="secondary" @click=${() => this.copyErrorsToClipboard(failed)}>
+                                  Copy Error Log
+                              </sp-button>
+                          </details>
+                      `
+                    : ''}
+            </div>
+        `;
+    }
+
+    renderBulkDeleteResult() {
+        const { successCount = 0, failureCount = 0, total = 0, failed = [], message } = this.result;
+        const hasFailures = failureCount > 0;
+
+        if (hasFailures) {
+            console.error('[Bulk Delete] Operation completed with errors:', {
+                total,
+                successCount,
+                failureCount,
+                failed,
+                timestamp: new Date().toISOString(),
+            });
+        }
+
+        return html`
+            <div class="operation-result bulk-delete-result ${hasFailures ? 'has-errors' : 'success'}">
+                <div class="result-header">
+                    <div class="result-icon">
+                        ${hasFailures
+                            ? html`<sp-icon-alert size="l"></sp-icon-alert>`
+                            : html`<sp-icon-check-circle size="l"></sp-icon-check-circle>`}
+                    </div>
+                    <div class="result-summary">
+                        <h4>${message}</h4>
+                        <p>
+                            ${successCount > 0 ? html`<span class="success-count">✓ ${successCount} deleted</span>` : ''}
+                            ${hasFailures ? html`<span class="failure-count">✗ ${failureCount} failed</span>` : ''}
+                        </p>
+                    </div>
+                </div>
+
+                ${hasFailures
+                    ? html`
+                          <details class="error-details">
+                              <summary>${failureCount} Failed Card${failureCount !== 1 ? 's' : ''}</summary>
+                              <div class="failed-cards-list">
+                                  ${failed.map(
+                                      ({ id, error }) => html`
+                                          <div class="failed-card-item">
+                                              <sp-icon-close-circle size="s"></sp-icon-close-circle>
+                                              <div class="failed-card-info">
+                                                  <strong>${id}</strong>
+                                                  <span class="error-message">${error}</span>
+                                              </div>
+                                          </div>
+                                      `,
+                                  )}
+                              </div>
+                              <sp-button size="s" variant="secondary" @click=${() => this.copyErrorsToClipboard(failed)}>
+                                  Copy Error Log
+                              </sp-button>
+                          </details>
+                      `
+                    : ''}
+            </div>
+        `;
+    }
+
+    copyErrorsToClipboard(failed) {
+        const errorLog = failed.map(({ id, error }) => `${id}: ${error}`).join('\n');
+
+        navigator.clipboard.writeText(errorLog).then(
+            () => {
+                console.log('[Error Log] Copied to clipboard:', errorLog);
+            },
+            (err) => {
+                console.error('[Error Log] Failed to copy:', err);
+            },
+        );
+    }
+
     render() {
         if (!this.result) {
             return html`<p>No result data.</p>`;
@@ -255,6 +442,15 @@ export class MasOperationResult extends LitElement {
             case 'get':
             case 'studio_get_card':
                 return this.renderGetResult();
+            case 'bulk_update':
+            case 'studio_bulk_update_cards':
+                return this.renderBulkUpdateResult();
+            case 'bulk_publish':
+            case 'studio_bulk_publish_cards':
+                return this.renderBulkPublishResult();
+            case 'bulk_delete':
+            case 'studio_bulk_delete_cards':
+                return this.renderBulkDeleteResult();
             default:
                 return html`
                     <div class="operation-result">

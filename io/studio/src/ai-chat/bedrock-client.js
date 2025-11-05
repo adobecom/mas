@@ -98,13 +98,45 @@ export class BedrockClient {
      * @returns {Promise<Object>} - Claude response
      */
     async sendWithContext(conversationHistory, userMessage, system, context = null) {
-        // Add context to system prompt if provided
         let enhancedSystem = system;
+
         if (context) {
-            enhancedSystem += `\n\nCurrent context:\n${JSON.stringify(context, null, 2)}`;
+            enhancedSystem += '\n\n=== CURRENT CONTEXT ===\n';
+
+            if (context.surface) {
+                enhancedSystem += `Current surface: ${context.surface}\n`;
+            }
+            if (context.currentLocale) {
+                enhancedSystem += `Current locale: ${context.currentLocale}\n`;
+            }
+            if (context.currentPath) {
+                enhancedSystem += `Current path: ${context.currentPath}\n`;
+            }
+
+            if (context.lastOperation) {
+                enhancedSystem += '\nLast operation:\n';
+                enhancedSystem += `  Type: ${context.lastOperation.type}\n`;
+                enhancedSystem += `  Fragment IDs: ${JSON.stringify(context.lastOperation.fragmentIds)}\n`;
+                enhancedSystem += `  Count: ${context.lastOperation.count}\n`;
+                enhancedSystem += `  Timestamp: ${context.lastOperation.timestamp}\n`;
+            }
+
+            if (context.workingSet && context.workingSet.length > 0) {
+                enhancedSystem += `\nWorking set (${context.workingSet.length} items):\n`;
+                context.workingSet.forEach((item, i) => {
+                    enhancedSystem += `  ${i + 1}. ${item.title} (${item.variant}) [${item.id}]\n`;
+                });
+            }
+
+            console.log('[Bedrock] Context sent to AI:', {
+                hasLastOperation: !!context.lastOperation,
+                fragmentCount: context.lastOperation?.fragmentIds?.length || 0,
+                workingSetSize: context.workingSet?.length || 0,
+                surface: context.surface,
+                locale: context.currentLocale,
+            });
         }
 
-        // Build messages array
         const messages = [
             ...conversationHistory,
             {

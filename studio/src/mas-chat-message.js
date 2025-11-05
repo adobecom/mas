@@ -349,7 +349,7 @@ export class MasChatMessage extends LitElement {
 
                 <div class="message-card">
                     <div class="message-header">
-                        <span class="message-role">${isUser ? 'You' : 'AI Assistant'}</span>
+                        <span class="message-role">${isUser ? 'You' : 'Cosmocat'}</span>
                         <span class="message-timestamp">${this.formatTimestamp(this.message.timestamp)}</span>
                     </div>
 

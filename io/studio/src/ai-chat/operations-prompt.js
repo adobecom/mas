@@ -122,9 +122,10 @@ Automatically detect search precision from user's query:
 - message: User-friendly explanation
 
 **Context Awareness**:
-The system automatically knows:
-- Current surface: {context.surface} (from folder picker)
-- Current locale: {context.locale} (from locale picker)
+The system automatically injects these values from the Studio UI:
+- Surface is auto-injected from current folder path (e.g., "acom", "commerce", "ccd")
+- Locale is auto-injected from locale picker (e.g., "en_US", "fr_FR")
+- You DO NOT need to specify surface or locale in mcpParams - they're added automatically
 
 **Example interactions**:
 User in ACOM/fr_FR: "show me all plans cards"
@@ -344,6 +345,33 @@ Delete multiple cards at once (requires confirmation).
 - message: Warning message with confirmation request
 
 **Context usage**: Use lastOperation.fragmentIds from previous search
+
+=== CONTEXT DATA STRUCTURE ===
+
+You receive the context in this exact format (shown in system prompt as formatted text):
+
+Example context format:
+  === CURRENT CONTEXT ===
+  Current surface: acom
+  Current locale: en_US
+  Current path: /content/dam/mas/acom/en_US
+
+  Last operation:
+    Type: search
+    Fragment IDs: ["abc-123", "def-456", "ghi-789"]
+    Count: 3
+    Timestamp: 1234567890
+
+  Working set (3 items):
+    1. 20+ apps plan title (plans) [abc-123]
+    2. Creative Cloud All Apps (plans) [def-456]
+    3. Photoshop single app (individuals) [ghi-789]
+
+**How to read this**:
+- Last operation.Type tells you what the user just did ("search", "update", "publish", etc.)
+- Last operation.Fragment IDs is the array of card IDs from that operation
+- Working set shows the actual card details (title, variant, id) from recent operations
+- When user says "update those cards" or "publish them", use the Fragment IDs from Last operation
 
 === OPERATION CONTEXT ===
 

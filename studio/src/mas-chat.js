@@ -193,6 +193,16 @@ export class MasChat extends LitElement {
                 workingSet: this.getRecentFragments(),
             };
 
+            console.log('[AI Chat] Sending enriched context to backend:', {
+                hasLastOperation: !!enrichedContext.lastOperation,
+                lastOperationType: enrichedContext.lastOperation?.type,
+                fragmentCount: enrichedContext.lastOperation?.fragmentIds?.length || 0,
+                workingSetSize: enrichedContext.workingSet?.length || 0,
+                surface: enrichedContext.surface,
+                locale: enrichedContext.currentLocale,
+                path: enrichedContext.currentPath,
+            });
+
             const response = await this.callAIChatAction({
                 message,
                 conversationHistory: this.conversationHistory,
@@ -942,7 +952,7 @@ export class MasChat extends LitElement {
                     <div class="chat-header-content">
                         <sp-icon-magic-wand size="l" class="chat-header-icon"></sp-icon-magic-wand>
                         <div class="chat-header-text">
-                            <h2>Merch at Scale AI Assistant (Beta)</h2>
+                            <h2>Cosmocat</h2>
                             <p>What can I help you with today?</p>
                         </div>
                     </div>

@@ -34,7 +34,7 @@ test.describe('MAS Chat - AI Search Operations', () => {
             await page.goto(`${baseURL}/studio.html`);
             await page.waitForLoadState('networkidle');
 
-            const chatButton = page.locator('sp-sidenav-item[label="AI Assistant"]');
+            const chatButton = page.locator('sp-sidenav-item[label="Cosmocat"]');
             await chatButton.click({ timeout: 10000 });
             await expect(masChat.chatContainer).toBeVisible({ timeout: 10000 });
         });
@@ -79,7 +79,7 @@ test.describe('MAS Chat - AI Search Operations', () => {
             await page.goto(`${baseURL}/studio.html`);
             await page.waitForLoadState('networkidle');
 
-            const chatButton = page.locator('sp-sidenav-item[label="AI Assistant"]');
+            const chatButton = page.locator('sp-sidenav-item[label="Cosmocat"]');
             await chatButton.click({ timeout: 10000 });
             await expect(masChat.chatContainer).toBeVisible({ timeout: 10000 });
         });
@@ -124,7 +124,7 @@ test.describe('MAS Chat - AI Search Operations', () => {
             await page.goto(`${baseURL}/studio.html`);
             await page.waitForLoadState('networkidle');
 
-            const chatButton = page.locator('sp-sidenav-item[label="AI Assistant"]');
+            const chatButton = page.locator('sp-sidenav-item[label="Cosmocat"]');
             await chatButton.click({ timeout: 10000 });
             await expect(masChat.chatContainer).toBeVisible({ timeout: 10000 });
         });
@@ -164,7 +164,7 @@ test.describe('MAS Chat - AI Search Operations', () => {
             await page.goto(`${baseURL}/studio.html`);
             await page.waitForLoadState('networkidle');
 
-            const chatButton = page.locator('sp-sidenav-item[label="AI Assistant"]');
+            const chatButton = page.locator('sp-sidenav-item[label="Cosmocat"]');
             await chatButton.click({ timeout: 10000 });
             await expect(masChat.chatContainer).toBeVisible({ timeout: 10000 });
         });

@@ -56,12 +56,29 @@ async function main(params) {
         const now = mark(context, 'config-check');
         const cacheExpired = !configurationTimestamp || now - configurationTimestamp > CONFIG_CACHE_TTL;
         let configuration;
-        if (!cachedConfiguration || cacheExpired) {
+        if (!cachedConfiguration) {
             const result = await getJsonFromState('configuration', context);
             configuration = result.json;
             cachedConfiguration = configuration;
             configurationTimestamp = now;
-            logDebug(`Configuration cache ${cacheExpired ? 'expired' : 'empty'}, refreshed from state`, context);
+            logDebug('Configuration cache empty, fetched from state', context);
+        } else if (cacheExpired) {
+            try {
+                const configTimeout = cachedConfiguration.networkConfig?.configTimeout || 200;
+                const result = await Promise.race([
+                    getJsonFromState('configuration', context),
+                    createTimeoutPromise(configTimeout, () => {}),
+                ]);
+                configuration = result.json;
+                cachedConfiguration = configuration;
+                configurationTimestamp = now;
+                logDebug('Configuration cache expired, refreshed from state', context);
+            } catch (error) {
+                if (error.isTimeout) {
+                    configuration = cachedConfiguration;
+                    logDebug('Configuration refresh timed out, using stale cache', context);
+                }
+            }
         } else {
             configuration = cachedConfiguration;
             logDebug('Using cached configuration', context);

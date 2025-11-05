@@ -1,7 +1,6 @@
 import { LitElement, html } from 'lit';
 import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
 import { EVENT_OST_OFFER_SELECT, EVENT_OST_SELECT } from './constants.js';
-import { DOMParser } from 'prosemirror-model';
 import './rte/rte-field.js';
 import './mas-card-selection-dialog.js';
 
@@ -25,7 +24,6 @@ export class MasChatInput extends LitElement {
         this.selectedOffer = null;
         this.message = '';
         this.selectedCards = [];
-        this.isPlaceholderActive = true;
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
         this.boundHandleOfferSelect = this.handleOfferSelect.bind(this);
         this.boundHandleEscKey = this.handleEscKey.bind(this);
@@ -81,21 +79,6 @@ export class MasChatInput extends LitElement {
         this.message = rteField.value || '';
     }
 
-    handleRteFocus() {
-        const rteField = this.querySelector('rte-field');
-        if (rteField && rteField.editorView) {
-            const currentText = rteField.editorView.state.doc.textContent;
-            const placeholderText = "Type your message... (e.g., 'Create a fries card for Photoshop')";
-
-            if (currentText === placeholderText || this.isPlaceholderActive) {
-                rteField.editorView.dispatch(
-                    rteField.editorView.state.tr.delete(0, rteField.editorView.state.doc.content.size),
-                );
-                this.isPlaceholderActive = false;
-            }
-        }
-    }
-
     handleRteKeyDown(event) {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
@@ -132,16 +115,8 @@ export class MasChatInput extends LitElement {
         this.selectedOsi = null;
         this.selectedOffer = null;
         this.selectedCards = [];
-        this.isPlaceholderActive = true;
 
-        const placeholderText = "Type your message... (e.g., 'Create a fries card for Photoshop')";
-        const parser = DOMParser.fromSchema(rteField.editorView.state.schema);
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = `<p>${placeholderText}</p>`;
-        const doc = parser.parse(tempDiv);
-        rteField.editorView.dispatch(
-            rteField.editorView.state.tr.replaceWith(0, rteField.editorView.state.doc.content.size, doc.content),
-        );
+        rteField.editorView.dispatch(rteField.editorView.state.tr.delete(0, rteField.editorView.state.doc.content.size));
     }
 
     handleOsiSelect() {
@@ -204,12 +179,11 @@ export class MasChatInput extends LitElement {
                         hideOfferSelector="true"
                         hideCounter="true"
                         maxLength="500"
+                        placeholder="Type your message... (e.g., 'Create a fries card for Photoshop')"
                         @change=${this.handleRteChange}
-                        @focus=${this.handleRteFocus}
                         @keydown=${this.handleRteKeyDown}
                         ?disabled=${this.disabled}
                     >
-                        <p>Type your message... (e.g., 'Create a fries card for Photoshop')</p>
                     </rte-field>
                 </div>
 

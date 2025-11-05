@@ -7,6 +7,7 @@ import { schema } from 'prosemirror-schema-basic';
 import { addListNodes, wrapInList, splitListItem, liftListItem } from 'prosemirror-schema-list';
 import { baseKeymap, toggleMark, deleteSelection } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
+import { placeholder } from 'prosemirror-placeholder';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
@@ -195,6 +196,7 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         osi: { type: String },
+        placeholder: { type: String, attribute: 'placeholder' },
     };
 
     static get styles() {
@@ -949,6 +951,10 @@ class RteField extends LitElement {
             }),
             keymap(baseKeymap),
         ];
+
+        if (this.placeholder) {
+            plugins.push(placeholder(this.placeholder));
+        }
 
         return EditorState.create({
             schema: this.#editorSchema,

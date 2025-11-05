@@ -370,6 +370,13 @@ export class StudioOperations {
                 try {
                     let fieldsToUpdate = { ...updates };
 
+                    console.log('[BulkUpdate] Processing card:', {
+                        id,
+                        updatesFromMCP: JSON.stringify(updates, null, 2),
+                        fieldsToUpdateInitial: JSON.stringify(fieldsToUpdate, null, 2),
+                        hasTextReplacements: textReplacements.length > 0,
+                    });
+
                     if (textReplacements.length > 0) {
                         const fragment = await this.aemClient.getFragment(id);
                         const currentFields = this.formatCard(fragment).fields;
@@ -379,6 +386,11 @@ export class StudioOperations {
                                 const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                 fieldsToUpdate[field] = currentFields[field].replace(regex, replace);
                             }
+                        });
+
+                        console.log('[BulkUpdate] After text replacements:', {
+                            id,
+                            fieldsToUpdateFinal: JSON.stringify(fieldsToUpdate, null, 2),
                         });
                     }
 

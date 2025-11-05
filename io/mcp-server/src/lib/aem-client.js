@@ -204,15 +204,25 @@ export class AEMClient {
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({ message: response.statusText }));
+            const responseText = await response.text();
+            let error;
+            try {
+                error = JSON.parse(responseText);
+            } catch {
+                error = { message: response.statusText, body: responseText };
+            }
+
             console.error('[AEMClient] Update failed:', {
                 status: response.status,
                 statusText: response.statusText,
                 errorMessage: error.message,
+                responseBody: responseText.substring(0, 500),
                 requestBody: JSON.stringify(body, null, 2),
+                requestBodySize: JSON.stringify(body).length,
+                requestHeaders: headers,
                 responseHeaders: Object.fromEntries(response.headers.entries()),
             });
-            throw new Error(`Failed to update fragment: ${error.message || response.statusText}`);
+            throw new Error(`Failed to update fragment (${response.status}): ${error.message || response.statusText}`);
         }
 
         return await response.json();

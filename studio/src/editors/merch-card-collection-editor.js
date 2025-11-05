@@ -105,6 +105,10 @@ class MerchCardCollectionEditor extends LitElement {
         return this.fragment?.fields?.find((f) => f.name === fieldName)?.values?.[0] || '';
     }
 
+    #getFieldValues(fieldName) {
+        return this.fragment?.fields?.find((f) => f.name === fieldName)?.values || [];
+    }
+
     get queryLabel() {
         return this.#getFieldValue('queryLabel');
     }
@@ -127,6 +131,36 @@ class MerchCardCollectionEditor extends LitElement {
 
     get fragment() {
         return this.fragmentStore?.get();
+    }
+
+    get searchText() {
+        return this.#getFieldValue('searchText');
+    }
+
+    get tagFiltersTitle() {
+        return this.#getFieldValue('tagFiltersTitle');
+    }
+
+    get tagFilters() {
+        return this.#getFieldValues('tagFilters')
+            .map((tag) => tag)
+            .join(',');
+    }
+
+    get linksTitle() {
+        return this.#getFieldValue('linksTitle');
+    }
+
+    get link() {
+        return this.#getFieldValue('link');
+    }
+
+    get linkIcon() {
+        return this.#getFieldValue('linkIcon');
+    }
+
+    get linkText() {
+        return this.#getFieldValue('linkText');
     }
 
     #getField(fieldName) {
@@ -774,6 +808,13 @@ class MerchCardCollectionEditor extends LitElement {
         }
     }
 
+    #handleTagFilterChange(e) {
+        if (Store.showCloneDialog.get()) return;
+        const value = e.target.getAttribute('value');
+        const newTags = value ? value.split(',') : []; // do not overwrite the tags array
+        this.fragmentStore.updateField('tagFilters', newTags);
+    }
+
     handleDefaultCardDrop(event) {
         event.preventDefault();
         event.stopPropagation();
@@ -931,6 +972,74 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    get #sidenav() {
+        return html`
+            <h2>Side Navigation</h2>
+            <div class="form-container">
+                <div class="form-row">
+                    <sp-field-label for="searchText">Search Text</sp-field-label>
+                    <sp-textfield
+                        id="searchText"
+                        data-field="searchText"
+                        .value=${this.searchText}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="tagFiltersTitle">Tag Filters Title</sp-field-label>
+                    <sp-textfield
+                        id="tagFiltersTitle"
+                        data-field="tagFiltersTitle"
+                        .value=${this.tagFiltersTitle}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="tagFilters">Tag Filters</sp-field-label>
+                    <aem-tag-picker-field
+                        label="Tag Filters"
+                        id="tagFilters"
+                        namespace="/content/cq:tags/mas"
+                        multiple
+                        value="${this.tagFilters}"
+                        @change=${this.#handleTagFilterChange}
+                    ></aem-tag-picker-field>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="linksTitle">Links Title</sp-field-label>
+                    <sp-textfield
+                        id="linksTitle"
+                        data-field="linksTitle"
+                        .value=${this.linksTitle}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="link">Link</sp-field-label>
+                    <sp-textfield id="link" data-field="link" .value=${this.link} @input=${this.updateFragment}></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="linkIcon">Link Icon</sp-field-label>
+                    <sp-textfield
+                        id="linkIcon"
+                        data-field="linkIcon"
+                        .value=${this.linkIcon}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="linkText">Link Text</sp-field-label>
+                    <sp-textfield
+                        id="linkText"
+                        data-field="linkText"
+                        .value=${this.linkText}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+            </div>
+        `;
+    }
+
     render() {
         const cardsField = this.#getField('cards');
         const hasCards = cardsField?.values?.length > 0;
@@ -939,7 +1048,7 @@ class MerchCardCollectionEditor extends LitElement {
         return html`<div class="editor-container">
             ${this.#form} ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}
             <div data-field-name="${CARDS_SECTION}">${this.#cards}</div>
-            ${this.#collections} ${this.#tip}
+            ${this.#collections} ${this.#tip} ${this.#sidenav}
         </div>`;
     }
 }

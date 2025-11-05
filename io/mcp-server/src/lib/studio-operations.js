@@ -417,6 +417,16 @@ export class StudioOperations {
                         });
                     }
 
+                    if (Object.keys(fieldsToUpdate).length === 0) {
+                        console.log(`[BulkUpdate] Skipping card ${id} - no changes to apply`);
+                        await jobManager.addSuccessfulItem(jobId, {
+                            id,
+                            title: 'No changes needed',
+                            skipped: true,
+                        });
+                        return { id, skipped: true };
+                    }
+
                     const result = await this.updateCard({ id, fields: fieldsToUpdate });
 
                     await jobManager.addSuccessfulItem(jobId, {

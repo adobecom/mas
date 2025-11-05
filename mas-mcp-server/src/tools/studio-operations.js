@@ -396,6 +396,16 @@ export class StudioOperations {
                         });
                     }
 
+                    if (Object.keys(updatedFields).length === 0) {
+                        console.log(`[BulkUpdate] Skipping card ${id} - no changes to apply`);
+                        return {
+                            success: true,
+                            id,
+                            title: fragment.title,
+                            skipped: true,
+                        };
+                    }
+
                     const updatedFragment = await this.aemClient.updateFragment({
                         id: fragment.id,
                         fields: updatedFields,

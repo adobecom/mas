@@ -472,6 +472,73 @@ export class MASMCPServer {
                     required: ['id'],
                 },
             },
+            {
+                name: 'studio_bulk_update_cards',
+                description: 'Update multiple cards at once (Studio bulk operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to update',
+                        },
+                        updates: {
+                            type: 'object',
+                            description: 'Common updates to apply to all cards (e.g., {cardTitle: "new title"})',
+                        },
+                        textReplacements: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    field: { type: 'string', description: 'Field name to update' },
+                                    find: { type: 'string', description: 'Text to find' },
+                                    replace: { type: 'string', description: 'Text to replace with' },
+                                },
+                                required: ['field', 'find', 'replace'],
+                            },
+                            description: 'Text find/replace operations to apply',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'studio_bulk_publish_cards',
+                description: 'Publish or unpublish multiple cards (Studio bulk operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to publish/unpublish',
+                        },
+                        action: {
+                            type: 'string',
+                            enum: ['publish', 'unpublish'],
+                            description: 'Action to perform: publish or unpublish',
+                        },
+                    },
+                    required: ['fragmentIds', 'action'],
+                },
+            },
+            {
+                name: 'studio_bulk_delete_cards',
+                description: 'Delete multiple cards (Studio bulk operation, requires confirmation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to delete',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
         ];
     }
 
@@ -534,6 +601,12 @@ export class MASMCPServer {
                 return this.studioOperations.copyCard(args);
             case 'studio_update_card':
                 return this.studioOperations.updateCard(args);
+            case 'studio_bulk_update_cards':
+                return this.studioOperations.bulkUpdateCards(args);
+            case 'studio_bulk_publish_cards':
+                return this.studioOperations.bulkPublishCards(args);
+            case 'studio_bulk_delete_cards':
+                return this.studioOperations.bulkDeleteCards(args);
 
             default:
                 throw new Error(`Unknown tool: ${name}`);

@@ -44,13 +44,13 @@ const mockDictionaryBySurfaceLocale = (
     const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
     const dictionaryId = dictionaryIdFor(surface, locale);
 
-    stub
-        .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/${surface}/${locale}/dictionary/index`)
-        .returns(createResponse(200, dictionaryCfResponse(surface, locale)));
+    stub.withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/${surface}/${locale}/dictionary/index`).returns(
+        createResponse(200, dictionaryCfResponse(surface, locale)),
+    );
 
-    stub
-        .withArgs(`${odinDomain}${odinUriRoot}/${dictionaryId}?references=all-hydrated`)
-        .returns(createResponse(200, dictionaryResponse));
+    stub.withArgs(`${odinDomain}${odinUriRoot}/${dictionaryId}?references=all-hydrated`).returns(
+        createResponse(200, dictionaryResponse),
+    );
 };
 
 const mockDictionary = (preview = false, stub = fetchStub) => {

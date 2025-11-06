@@ -660,8 +660,25 @@ export class StudioOperations {
 
                         textReplacements.forEach(({ field, find, replace }) => {
                             if (field) {
-                                const fieldObj = fragment.fields.find((f) => f.name === field);
-                                const currentValue = fieldObj?.values?.[0];
+                                // Specific field lookup - handle both array and object formats
+                                let currentValue = null;
+
+                                if (Array.isArray(fragment.fields)) {
+                                    const fieldData = fragment.fields.find((f) => f.name === field);
+                                    if (fieldData) {
+                                        if (Array.isArray(fieldData.values)) {
+                                            currentValue = fieldData.values[0];
+                                        } else if (fieldData.value !== undefined) {
+                                            currentValue = fieldData.value;
+                                        }
+                                    }
+                                } else {
+                                    const fieldData = fragment.fields[field];
+                                    if (fieldData) {
+                                        currentValue = fieldData?.value || (typeof fieldData === 'string' ? fieldData : null);
+                                    }
+                                }
+
                                 if (textExistsInField(currentValue, find)) {
                                     const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                     const newValue = currentValue.replace(regex, replace);
@@ -674,20 +691,51 @@ export class StudioOperations {
                                     });
                                 }
                             } else {
-                                fragment.fields.forEach((fieldObj) => {
-                                    const currentValue = fieldObj?.values?.[0];
-                                    if (textExistsInField(currentValue, find)) {
-                                        const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                        const newValue = currentValue.replace(regex, replace);
-                                        fieldsToUpdate[fieldObj.name] = { value: newValue };
-                                        console.log(`[BulkUpdate] Replaced in field "${fieldObj.name}":`, {
-                                            id,
-                                            field: fieldObj.name,
-                                            oldValue: currentValue,
-                                            newValue,
-                                        });
-                                    }
-                                });
+                                // All fields search - handle both array and object formats
+                                if (Array.isArray(fragment.fields)) {
+                                    fragment.fields.forEach((field) => {
+                                        if (field.name) {
+                                            let currentValue = null;
+                                            if (Array.isArray(field.values)) {
+                                                currentValue = field.values[0];
+                                            } else if (field.value !== undefined) {
+                                                currentValue = field.value;
+                                            }
+
+                                            if (textExistsInField(currentValue, find)) {
+                                                const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                                const newValue = currentValue.replace(regex, replace);
+                                                fieldsToUpdate[field.name] = { value: newValue };
+                                                console.log(`[BulkUpdate] Replaced in field "${field.name}":`, {
+                                                    id,
+                                                    field: field.name,
+                                                    oldValue: currentValue,
+                                                    newValue,
+                                                });
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
+                                        let currentValue = null;
+                                        if (fieldData) {
+                                            currentValue =
+                                                fieldData?.value || (typeof fieldData === 'string' ? fieldData : null);
+                                        }
+
+                                        if (textExistsInField(currentValue, find)) {
+                                            const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                            const newValue = currentValue.replace(regex, replace);
+                                            fieldsToUpdate[fieldName] = { value: newValue };
+                                            console.log(`[BulkUpdate] Replaced in field "${fieldName}":`, {
+                                                id,
+                                                field: fieldName,
+                                                oldValue: currentValue,
+                                                newValue,
+                                            });
+                                        }
+                                    });
+                                }
                             }
                         });
 
@@ -921,8 +969,25 @@ export class StudioOperations {
                         );
 
                         if (field) {
-                            const fieldObj = fragment.fields.find((f) => f.name === field);
-                            const currentValue = fieldObj?.values?.[0];
+                            // Specific field lookup - handle both array and object formats
+                            let currentValue = null;
+
+                            if (Array.isArray(fragment.fields)) {
+                                const fieldData = fragment.fields.find((f) => f.name === field);
+                                if (fieldData) {
+                                    if (Array.isArray(fieldData.values)) {
+                                        currentValue = fieldData.values[0];
+                                    } else if (fieldData.value !== undefined) {
+                                        currentValue = fieldData.value;
+                                    }
+                                }
+                            } else {
+                                const fieldData = fragment.fields[field];
+                                if (fieldData) {
+                                    currentValue = fieldData?.value || (typeof fieldData === 'string' ? fieldData : null);
+                                }
+                            }
+
                             const found = textExistsInField(currentValue, find);
                             console.log(`[Studio Ops] Field-specific search in "${field}":`, {
                                 type: typeof currentValue,
@@ -941,26 +1006,61 @@ export class StudioOperations {
                                 newValues[field] = newValue;
                             }
                         } else {
-                            console.log(`[Studio Ops] All-fields search for "${find}" across ${fragment.fields.length} fields`);
-                            fragment.fields.forEach((fieldObj) => {
-                                const currentValue = fieldObj?.values?.[0];
-                                const hasMatch = textExistsInField(currentValue, find);
+                            // All fields search - handle both array and object formats
+                            console.log(`[Studio Ops] All-fields search for "${find}"`);
+                            if (Array.isArray(fragment.fields)) {
+                                fragment.fields.forEach((field) => {
+                                    if (field.name) {
+                                        let currentValue = null;
+                                        if (Array.isArray(field.values)) {
+                                            currentValue = field.values[0];
+                                        } else if (field.value !== undefined) {
+                                            currentValue = field.value;
+                                        }
 
-                                if (hasMatch) {
-                                    console.log(`[Studio Ops] ✓ Match found in "${fieldObj.name}":`, {
-                                        valueSnippet: currentValue.substring(0, 100),
-                                        rawMatch: currentValue.includes(find),
-                                        stripHtmlMatch: stripHtml(currentValue).includes(find),
-                                        find,
-                                    });
-                                    const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                    const newValue = currentValue.replace(regex, replace);
-                                    fieldsToUpdate[fieldObj.name] = { value: newValue };
-                                    changes.push(`${fieldObj.name}: "${find}" → "${replace}"`);
-                                    currentValues[fieldObj.name] = currentValue;
-                                    newValues[fieldObj.name] = newValue;
-                                }
-                            });
+                                        const hasMatch = textExistsInField(currentValue, find);
+
+                                        if (hasMatch) {
+                                            console.log(`[Studio Ops] ✓ Match found in "${field.name}":`, {
+                                                valueSnippet: currentValue.substring(0, 100),
+                                                rawMatch: currentValue.includes(find),
+                                                stripHtmlMatch: stripHtml(currentValue).includes(find),
+                                                find,
+                                            });
+                                            const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                            const newValue = currentValue.replace(regex, replace);
+                                            fieldsToUpdate[field.name] = { value: newValue };
+                                            changes.push(`${field.name}: "${find}" → "${replace}"`);
+                                            currentValues[field.name] = currentValue;
+                                            newValues[field.name] = newValue;
+                                        }
+                                    }
+                                });
+                            } else {
+                                Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
+                                    let currentValue = null;
+                                    if (fieldData) {
+                                        currentValue = fieldData?.value || (typeof fieldData === 'string' ? fieldData : null);
+                                    }
+
+                                    const hasMatch = textExistsInField(currentValue, find);
+
+                                    if (hasMatch) {
+                                        console.log(`[Studio Ops] ✓ Match found in "${fieldName}":`, {
+                                            valueSnippet: currentValue.substring(0, 100),
+                                            rawMatch: currentValue.includes(find),
+                                            stripHtmlMatch: stripHtml(currentValue).includes(find),
+                                            find,
+                                        });
+                                        const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                        const newValue = currentValue.replace(regex, replace);
+                                        fieldsToUpdate[fieldName] = { value: newValue };
+                                        changes.push(`${fieldName}: "${find}" → "${replace}"`);
+                                        currentValues[fieldName] = currentValue;
+                                        newValues[fieldName] = newValue;
+                                    }
+                                });
+                            }
                         }
                     });
                 }

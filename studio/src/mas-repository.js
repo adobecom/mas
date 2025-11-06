@@ -486,7 +486,9 @@ export class MasRepository extends LitElement {
     async saveFragment(fragmentStore) {
         showToast('Saving fragment...');
         const fragmentToSave = fragmentStore.get();
-        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi')) {
+        const tags = fragmentToSave.getField('tags')?.values || [];
+        const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi') && !hasOfferlessTag) {
             showToast('Please select offer', 'negative');
             return false;
         }

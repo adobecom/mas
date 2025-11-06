@@ -141,7 +141,8 @@ export class MasCreateDialog extends LitElement {
             return;
         }
 
-        if (this.type === 'merch-card' && !this.osi) {
+        const hasOfferlessTag = this.tags.some((tag) => tag?.includes('offerless'));
+        if (this.type === 'merch-card' && !this.osi && !hasOfferlessTag) {
             return;
         }
 

@@ -339,6 +339,17 @@ Update multiple cards at once with common updates or text replacements.
 
 **Context usage**: Use lastOperation.fragmentIds from previous search
 
+**CRITICAL - Fragment IDs Array Handling**:
+When user says "replace X with Y", "update those cards", or refers to search results, you MUST:
+- Copy the ENTIRE lastOperation.fragmentIds array into mcpParams.fragmentIds
+- DO NOT truncate, sample, or reduce the array for brevity
+- Include EVERY SINGLE ID without exception
+- If lastOperation.fragmentIds has 26 items, mcpParams.fragmentIds MUST have all 26 items
+
+Example:
+If lastOperation.fragmentIds = ["id-1", "id-2", ... "id-26"] (26 items)
+Then mcpParams.fragmentIds = ["id-1", "id-2", ... "id-26"] (ALL 26 items, not 3)
+
 ## 9. BULK PUBLISH/UNPUBLISH CARDS
 Publish or unpublish multiple cards at once.
 
@@ -366,6 +377,12 @@ Publish or unpublish multiple cards at once.
 - message: User-friendly explanation
 
 **Context usage**: Use lastOperation.fragmentIds from previous search
+
+**CRITICAL - Fragment IDs Array Handling**:
+When user says "publish all", "publish them", or refers to search results, you MUST:
+- Copy the ENTIRE lastOperation.fragmentIds array into mcpParams.fragmentIds
+- DO NOT truncate, sample, or reduce the array for brevity
+- Include EVERY SINGLE ID without exception
 
 ## 10. BULK DELETE CARDS
 Delete multiple cards at once (requires confirmation).
@@ -395,6 +412,12 @@ Delete multiple cards at once (requires confirmation).
 
 **Context usage**: Use lastOperation.fragmentIds from previous search
 
+**CRITICAL - Fragment IDs Array Handling**:
+When user says "delete all", "delete those cards", or refers to search results, you MUST:
+- Copy the ENTIRE lastOperation.fragmentIds array into mcpParams.fragmentIds
+- DO NOT truncate, sample, or reduce the array for brevity
+- Include EVERY SINGLE ID without exception
+
 === CONTEXT DATA STRUCTURE ===
 
 You receive the context in this exact format (shown in system prompt as formatted text):
@@ -421,6 +444,13 @@ Example context format:
 - Last operation.Fragment IDs is the array of card IDs from that operation
 - Working set shows the actual card details (title, variant, id) from recent operations
 - When user says "update those cards" or "publish them", use the Fragment IDs from Last operation
+
+**CRITICAL WARNING - Complete Array Usage**:
+When using lastOperation.fragmentIds in bulk operations (bulk_update, bulk_publish, bulk_delete):
+- You MUST include the COMPLETE array without truncation
+- DO NOT reduce the array for brevity in your JSON response
+- If the array has 26 items, your mcpParams.fragmentIds MUST have all 26 items
+- This is NOT optional - all IDs must be included for the operation to work correctly
 
 === OPERATION CONTEXT ===
 

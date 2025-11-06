@@ -5,12 +5,12 @@
 
 // Import the modules
 import { logError } from './tmp/utils/log.js';
-import { transformer as corrector } from './tmp/fragment/transformers/corrector.js';
-import { transformer as fetchFragment } from './tmp/fragment/transformers/fetchFragment.js';
-import { getDictionary, transformer as replace } from './tmp/fragment/transformers/replace.js';
-import { transformer as settings } from './tmp/fragment/transformers/settings.js';
-import { transformer as customize } from './tmp/fragment/transformers/customize.js';
-import { transformer as promotions } from './tmp/fragment/transformers/promotions.js';
+import { transformer as corrector } from './tmp/transformers/corrector.js';
+import { transformer as fetchFragment } from './tmp/transformers/fetchFragment.js';
+import { getDictionary, transformer as replace } from './tmp/transformers/replace.js';
+import { transformer as settings } from './tmp/transformers/settings.js';
+import { transformer as customize } from './tmp/transformers/customize.js';
+import { transformer as promotions } from './tmp/transformers/promotions.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
 

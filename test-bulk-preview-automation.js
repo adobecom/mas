@@ -12,7 +12,7 @@ import {
     listNetworkRequests,
     getNetworkRequest,
     takeScreenshot,
-    listConsoleMessages
+    listConsoleMessages,
 } from '@mcp/chrome-devtools';
 
 /**
@@ -90,9 +90,8 @@ describe('Bulk Preview Automation Tests', () => {
         console.log('Step 5: Validating API response...');
 
         const networkRequests = await listNetworkRequests();
-        const previewRequest = networkRequests.find(req =>
-            req.url.includes('studio_preview_bulk_update') ||
-            req.url.includes('preview-bulk-update')
+        const previewRequest = networkRequests.find(
+            (req) => req.url.includes('studio_preview_bulk_update') || req.url.includes('preview-bulk-update'),
         );
 
         if (!previewRequest) {
@@ -119,11 +118,11 @@ describe('Bulk Preview Automation Tests', () => {
 
         // Step 10: Check for console errors
         const consoleMessages = await listConsoleMessages();
-        const errors = consoleMessages.filter(msg => msg.type === 'error');
+        const errors = consoleMessages.filter((msg) => msg.type === 'error');
 
         if (errors.length > 0) {
             console.warn('Console errors detected:');
-            errors.forEach(err => console.warn(`  - ${err.text}`));
+            errors.forEach((err) => console.warn(`  - ${err.text}`));
         } else {
             console.log('✓ No console errors');
         }
@@ -143,10 +142,8 @@ describe('Bulk Preview Automation Tests', () => {
  */
 function findChatInput(snapshot) {
     // Look for textarea or input with placeholder text
-    const inputs = snapshot.elements.filter(el =>
-        el.role === 'textbox' ||
-        el.type === 'textarea' ||
-        el.placeholder?.includes('Type')
+    const inputs = snapshot.elements.filter(
+        (el) => el.role === 'textbox' || el.type === 'textarea' || el.placeholder?.includes('Type'),
     );
 
     return inputs.length > 0 ? inputs[0].uid : null;
@@ -165,8 +162,7 @@ function validatePreviewUI(snapshot) {
     }
 
     // Check for update badge (should show X cards will be updated)
-    const hasUpdateBadge = snapshot.text.includes('cards will be updated') ||
-                           snapshot.text.includes('cards will update');
+    const hasUpdateBadge = snapshot.text.includes('cards will be updated') || snapshot.text.includes('cards will update');
     if (!hasUpdateBadge) {
         errors.push('Missing "cards will be updated" badge');
     }

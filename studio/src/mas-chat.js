@@ -932,6 +932,7 @@ export class MasChat extends LitElement {
                           }
                         : msg,
                 );
+                this.requestUpdate();
             });
 
             this.messages = this.messages.map((msg) =>

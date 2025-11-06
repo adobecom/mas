@@ -157,6 +157,7 @@ export class StudioOperations {
 
     /**
      * Filter search results to exclude merch-addon elements from CTA matches
+     * Uses word-based matching to align with AEM's full-text search behavior
      * @param {Array} fragments - Array of fragment objects with fields
      * @param {string} query - Original search query
      * @returns {Array} Filtered fragments where query matches actual CTAs, not addon checkboxes
@@ -166,7 +167,10 @@ export class StudioOperations {
             return fragments;
         }
 
-        const lowerQuery = query.toLowerCase();
+        const queryWords = query
+            .toLowerCase()
+            .split(/\s+/)
+            .filter((word) => word.length > 0);
 
         return fragments.filter((fragment) => {
             const fields = fragment.fields;
@@ -175,7 +179,8 @@ export class StudioOperations {
             }
 
             let hasCTAMatch = false;
-            let hasOnlyAddonMatch = true;
+            let hasNonAddonMatch = false;
+            let hasAnyMatch = false;
 
             Object.keys(fields).forEach((fieldName) => {
                 const field = fields[fieldName];
@@ -186,23 +191,30 @@ export class StudioOperations {
                 }
 
                 const lowerValue = fieldValue.toLowerCase();
-                if (lowerValue.includes(lowerQuery)) {
+
+                const wordMatches = queryWords.some((word) => lowerValue.includes(word));
+
+                if (wordMatches) {
+                    hasAnyMatch = true;
+
                     if (
                         fieldValue.includes('checkout-link') ||
                         (fieldValue.includes('<a ') && fieldValue.includes('button')) ||
                         fieldValue.includes('is="checkout-link"')
                     ) {
                         hasCTAMatch = true;
-                        hasOnlyAddonMatch = false;
-                    }
-
-                    if (!fieldValue.includes('merch-addon') && !fieldValue.includes('addon-')) {
-                        hasOnlyAddonMatch = false;
+                        hasNonAddonMatch = true;
+                    } else if (!fieldValue.includes('merch-addon') && !fieldValue.includes('addon-')) {
+                        hasNonAddonMatch = true;
                     }
                 }
             });
 
-            return hasCTAMatch || !hasOnlyAddonMatch;
+            if (!hasAnyMatch) {
+                return true;
+            }
+
+            return hasCTAMatch || hasNonAddonMatch;
         });
     }
 

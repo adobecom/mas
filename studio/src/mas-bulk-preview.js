@@ -197,15 +197,15 @@ export class MasBulkPreview extends LitElement {
             return html`<div class="bulk-preview-error">No preview data available</div>`;
         }
 
-        if (this.operation === 'preview_bulk_update') {
+        if (this.operation === 'studio_preview_bulk_update') {
             return this.renderUpdatePreview();
         }
 
-        if (this.operation === 'preview_bulk_publish') {
+        if (this.operation === 'studio_preview_bulk_publish') {
             return this.renderPublishPreview();
         }
 
-        if (this.operation === 'preview_bulk_delete') {
+        if (this.operation === 'studio_preview_bulk_delete') {
             return this.renderDeletePreview();
         }
 

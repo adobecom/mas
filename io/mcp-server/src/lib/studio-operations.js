@@ -342,6 +342,11 @@ export class StudioOperations {
     async bulkUpdateCards(params) {
         const { fragmentIds, updates = {}, textReplacements = [] } = params;
 
+        console.log('[BulkUpdate] ===== BULK UPDATE STARTED =====');
+        console.log('[BulkUpdate] Received fragmentIds:', fragmentIds.length, 'cards');
+        console.log('[BulkUpdate] Fragment IDs:', fragmentIds);
+        console.log('[BulkUpdate] Text replacements:', textReplacements);
+
         if (!fragmentIds || fragmentIds.length === 0) {
             throw new Error('At least one fragment ID is required for bulk update');
         }
@@ -365,8 +370,12 @@ export class StudioOperations {
     }
 
     async processConcurrentUpdates(jobManager, jobId, fragmentIds, updates, textReplacements) {
+        console.log('[BulkUpdate] ===== CONCURRENT PROCESSING STARTED =====');
+        console.log('[BulkUpdate] Creating promises for', fragmentIds.length, 'cards');
+
         const results = await Promise.allSettled(
-            fragmentIds.map(async (id) => {
+            fragmentIds.map(async (id, index) => {
+                console.log(`[BulkUpdate] ===== Processing card ${index + 1}/${fragmentIds.length}: ${id} =====`);
                 try {
                     let fieldsToUpdate = { ...updates };
                     let fragment = null;
@@ -448,7 +457,22 @@ export class StudioOperations {
             }),
         );
 
+        console.log('[BulkUpdate] ===== PROMISE.ALLSETTLED COMPLETED =====');
+        console.log('[BulkUpdate] Total promises:', results.length);
+        console.log('[BulkUpdate] Results breakdown:');
+        results.forEach((result, index) => {
+            console.log(`  [${index + 1}] Status: ${result.status}`, result.status === 'fulfilled' ? result.value : result.reason);
+        });
+
         const job = await jobManager.getJob(jobId);
+        console.log('[BulkUpdate] Final job state:', {
+            total: job.total,
+            completed: job.completed,
+            successful: job.successful.length,
+            failed: job.failed.length,
+            skipped: job.skipped.length,
+        });
+
         await jobManager.completeJob(jobId, {
             message: `✓ Updated ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
         });

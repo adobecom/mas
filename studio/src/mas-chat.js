@@ -1009,9 +1009,15 @@ export class MasChat extends LitElement {
 
         if (!lastOp) return null;
 
+        const fragmentIds = lastOp.operationResult.results?.map((f) => f.id) || [];
+        console.log('[Frontend] ===== EXTRACTED FRAGMENT IDS FROM LAST OPERATION =====');
+        console.log('[Frontend] Operation type:', lastOp.operationResult.operation);
+        console.log('[Frontend] Total fragment IDs:', fragmentIds.length);
+        console.log('[Frontend] Fragment IDs:', fragmentIds);
+
         return {
             type: lastOp.operationResult.operation,
-            fragmentIds: lastOp.operationResult.results?.map((f) => f.id) || [],
+            fragmentIds,
             count: lastOp.operationResult.count || 0,
             timestamp: lastOp.timestamp,
         };

@@ -64,17 +64,21 @@ export class MasOperationResult extends LitElement {
                         (fragment) => {
                             const isCollection = fragment.tags?.some((t) => t.id.includes('card-type/collection'));
 
-                            return isCollection
-                                ? html`
-                                      <merch-card-collection>
-                                          <aem-fragment fragment="${fragment.id}"></aem-fragment>
-                                      </merch-card-collection>
-                                  `
-                                : html`
-                                      <merch-card>
-                                          <aem-fragment fragment="${fragment.id}"></aem-fragment>
-                                      </merch-card>
-                                  `;
+                            return html`
+                                <div class="card-wrapper ${isCollection ? 'collection-item' : ''}">
+                                    ${isCollection
+                                        ? html`
+                                              <merch-card-collection>
+                                                  <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                              </merch-card-collection>
+                                          `
+                                        : html`
+                                              <merch-card>
+                                                  <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                              </merch-card>
+                                          `}
+                                </div>
+                            `;
                         },
                     )}
                 </div>

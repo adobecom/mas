@@ -1369,10 +1369,24 @@
     align-items: start;
 }
 
-.search-results-cards-grid merch-card,
-.search-results-cards-grid merch-card-collection {
+.search-results-cards-grid .card-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    contain: layout;
+    position: relative;
+}
+
+.search-results-cards-grid .card-wrapper merch-card,
+.search-results-cards-grid .card-wrapper merch-card-collection {
+    flex: 1;
     width: 100%;
     min-width: 0;
+}
+
+.search-results-cards-grid .card-wrapper.collection-item merch-card-collection {
+    display: block;
+    width: 100%;
 }
 
 .search-results-actions {

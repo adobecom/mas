@@ -1,4 +1,5 @@
 import { log, logError, fetch } from './common.js';
+import { SUPPORTED_COUNTRIES, SUPPORTED_LANGUAGES, SUPPORTED_LANGUAGE_COUNTRY } from '../../web-components/src/constants.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
@@ -66,6 +67,25 @@ async function getWcsConfigurations(context) {
     return null;
 }
 
+function validateCountryAndLanguage({ country, language, locale }) {
+    let validLanguage = language;
+    if (country !== 'GB') {
+        validLanguage = 'MULT';
+    } else if (!SUPPORTED_LANGUAGES.includes(language)) {
+        validLanguage = DEFAULT_LANGUAGE;
+    }
+
+    const validCountry = SUPPORTED_COUNTRIES.includes(country) ? country : 'US';
+
+    let validLocale = locale;
+    if (!SUPPORTED_LANGUAGE_COUNTRY.includes(locale)) {
+        validLocale = SUPPORTED_LANGUAGE_COUNTRY.includes(`${validLanguage}_${validCountry}`)
+            ? `${validLanguage}_${validCountry}`
+            : 'en_US';
+    }
+    return { validCountry, validLanguage, validLocale };
+}
+
 async function wcs(context) {
     const wcsConfigs = await getWcsConfigurations(context);
     if (!wcsConfigs || wcsConfigs.length === 0) {
@@ -100,16 +120,17 @@ async function wcs(context) {
         // Convert Map values back to array
         const tokens = Array.from(tokenMap.values());
         const country = context.country || locale.split('_')[1];
+        const { validCountry, validLanguage, validLocale } = validateCountryAndLanguage({ country, language, locale });
         const wcsContext = {
-            locale,
-            country,
+            locale: validLocale,
+            country: validCountry,
+            language: validLanguage,
             context,
         };
         context.body.wcs ??= {};
         for (const config of wcsConfigs) {
             wcsContext.wcsURL = config.wcsURL;
             wcsContext.landscape = config.landscape || 'PUBLISHED';
-            if (country !== 'GB') wcsContext.language = 'MULT';
             context.body.wcs ??= {};
             try {
                 context.body.wcs[config.env] = await computeCache(tokens, wcsContext);

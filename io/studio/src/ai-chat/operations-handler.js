@@ -108,6 +108,9 @@ function validateMCPOperation(operation) {
         'studio_bulk_update_cards',
         'studio_bulk_publish_cards',
         'studio_bulk_delete_cards',
+        'studio_preview_bulk_update',
+        'studio_preview_bulk_publish',
+        'studio_preview_bulk_delete',
     ];
 
     if (!validMCPTools.includes(operation.mcpTool)) {
@@ -136,6 +139,9 @@ function validateMCPOperation(operation) {
         case 'studio_bulk_update_cards':
         case 'studio_bulk_publish_cards':
         case 'studio_bulk_delete_cards':
+        case 'studio_preview_bulk_update':
+        case 'studio_preview_bulk_publish':
+        case 'studio_preview_bulk_delete':
             if (!operation.mcpParams.fragmentIds || !Array.isArray(operation.mcpParams.fragmentIds)) {
                 return { valid: false, error: `${operation.mcpTool} requires mcpParams.fragmentIds array` };
             }

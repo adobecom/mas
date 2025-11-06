@@ -1,4 +1,5 @@
-import { logDebug } from './common.js';
+import { getRequestInfos } from '../utils/common.js';
+import { logDebug } from '../utils/log.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
 
 /**
@@ -30,13 +31,14 @@ function fixAdobeHomeDataExtraOptions(context) {
  */
 async function corrector(context) {
     const { priceLiterals } = context.body;
+    const { surface } = await getRequestInfos(context);
     for (const [key, value] of Object.entries(priceLiterals)) {
         if (typeof value === 'string' && /^(\{\{)?price-literal-/.test(value)) {
             logDebug(() => `no placeholder has been authored for ${key}`, context);
             delete context.body.priceLiterals[key];
         }
     }
-    if (context.surface === 'adobe-home' || context.surface === 'sandbox') {
+    if (surface === 'adobe-home' || surface === 'sandbox') {
         fixAdobeHomeDataExtraOptions(context);
     }
     return context;

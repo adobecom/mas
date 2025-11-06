@@ -1,23 +1,27 @@
 import { expect } from 'chai';
-import nock from 'nock';
-import { transformer as replace } from '../../src/fragment/replace.js';
+import sinon from 'sinon';
+import { transformer as replace } from '../../src/fragment/transformers/replace.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_ACOM_FR_FR from './mocks/dictionary-acom-fr-fr.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_CCD_FR_FR from './mocks/dictionary-ccd-fr-fr.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_CCD_FR_LU from './mocks/dictionary-ccd-fr-lu.json' with { type: 'json' };
+import { createResponse } from './mocks/MockFetch.js';
 
-const dictionaryCfResponse = (surface = 'sandbox', locale = 'fr_FR') => {
-    return {
-        items: [
-            {
-                path: `/content/dam/mas/${surface}/${locale}/dictionary/index`,
-                id: `${surface}_${locale}_dictionary`,
-            },
-        ],
-    };
-};
+const DEFAULT_SURFACE = 'sandbox';
+const DEFAULT_LOCALE = 'fr_FR';
 
-const odinResponse = (description, cta = '{{buy-now}}', surface = 'sandbox', locale = 'fr_FR') => ({
+const dictionaryIdFor = (surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => `${surface}_${locale}_dictionary`;
+
+const dictionaryCfResponse = (surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => ({
+    items: [
+        {
+            path: `/content/dam/mas/${surface}/${locale}/dictionary/index`,
+            id: dictionaryIdFor(surface, locale),
+        },
+    ],
+});
+
+const odinResponse = (description, cta = '{{buy-now}}', surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => ({
     path: `/content/dam/mas/${surface}/${locale}/ccd-slice-wide-cc-all-app`,
     id: 'test',
     fields: {
@@ -27,44 +31,46 @@ const odinResponse = (description, cta = '{{buy-now}}', surface = 'sandbox', loc
     },
 });
 
+let fetchStub;
+
 const mockDictionaryBySurfaceLocale = (
     preview = false,
-    surface = 'sandbox',
-    locale = 'fr_FR',
+    surface = DEFAULT_SURFACE,
+    locale = DEFAULT_LOCALE,
     dictionaryResponse = DICTIONARY_RESPONSE,
+    stub = fetchStub,
 ) => {
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
-    nock(odinDomain)
-        .get(odinUriRoot)
-        .query({ path: `/content/dam/mas/${surface}/${locale}/dictionary/index` })
-        .reply(200, dictionaryCfResponse(surface, locale));
-    // Use the new URL format with ?references=all-hydrated
-    nock(odinDomain)
-        .get(`${odinUriRoot}/${surface}_${locale}_dictionary?references=all-hydrated`)
-        .reply(200, dictionaryResponse);
+    const dictionaryId = dictionaryIdFor(surface, locale);
+
+    stub
+        .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/${surface}/${locale}/dictionary/index`)
+        .returns(createResponse(200, dictionaryCfResponse(surface, locale)));
+
+    stub
+        .withArgs(`${odinDomain}${odinUriRoot}/${dictionaryId}?references=all-hydrated`)
+        .returns(createResponse(200, dictionaryResponse));
 };
 
-const mockDictionary = (preview = false) => {
-    mockDictionaryBySurfaceLocale(preview);
+const mockDictionary = (preview = false, stub = fetchStub) => {
+    mockDictionaryBySurfaceLocale(preview, DEFAULT_SURFACE, DEFAULT_LOCALE, DICTIONARY_RESPONSE, stub);
 };
 
-const getResponse = async (description, cta, surface = 'sandbox', locale = 'fr_FR') => {
-    mockDictionary();
-    return await replace.process({
-        status: 200,
-        loggedTransformer: 'replace',
-        requestId: 'mas-replace-ut',
-        surface,
-        locale,
-        body: odinResponse(description, cta, surface, locale),
-    });
+const getResponse = async (description, cta, surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => {
+    mockDictionary(false, fetchStub);
+    const context = { surface, locale, loggedTransformer: 'replace', requestId: 'mas-replace-ut' };
+    context.promises = {};
+    context.promises.replace = replace.init(context);
+    await context.promises.replace;
+    context.body = odinResponse(description, cta, surface, locale);
+    return await replace.process(context);
 };
 
 const expectedResponse = (description) => ({
     status: 200,
     body: {
-        path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+        path: `/content/dam/mas/${DEFAULT_SURFACE}/${DEFAULT_LOCALE}/ccd-slice-wide-cc-all-app`,
         id: 'test',
         fields: {
             variant: 'ccd-slice',
@@ -74,16 +80,25 @@ const expectedResponse = (description) => ({
     },
     loggedTransformer: 'replace',
     requestId: 'mas-replace-ut',
-    dictionaryId: 'sandbox_fr_FR_dictionary',
-    locale: 'fr_FR',
-    surface: 'sandbox',
+    fragmentsIds: {
+        'dictionary-id': dictionaryIdFor(),
+    },
+    locale: DEFAULT_LOCALE,
+    surface: DEFAULT_SURFACE,
 });
 
 describe('replace', () => {
+    beforeEach(() => {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(() => {
+        fetchStub.restore();
+    });
+
     it('returns 200 & no placeholders', async () => {
         const response = await getResponse('foo', 'Buy now');
         const expected = expectedResponse('foo');
-        delete expected.dictionaryId;
         expect(response).to.deep.include(expected);
     });
     it('returns 200 & replaced entries keys with text', async () => {
@@ -117,18 +132,10 @@ describe('replace', () => {
         expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
     });
     describe('corner cases', () => {
-        beforeEach(() => {
-            nock.cleanAll();
-        });
-
-        afterEach(() => {
-            nock.cleanAll();
-        });
-
         const FAKE_CONTEXT = {
             status: 200,
-            surface: 'sandbox',
-            locale: 'fr_FR',
+            surface: DEFAULT_SURFACE,
+            locale: DEFAULT_LOCALE,
             networkConfig: {
                 retries: 2,
                 retryDelay: 1,
@@ -144,81 +151,72 @@ describe('replace', () => {
                     variant: 'ccd-slice',
                 },
                 id: 'test',
-                path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+                path: `/content/dam/mas/${DEFAULT_SURFACE}/${DEFAULT_LOCALE}/ccd-slice-wide-cc-all-app`,
             },
         };
 
         it('manages gracefully fetch failure to find dictionary', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
-                .replyWithError('fetch error');
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .rejects(new Error('fetch error'));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully non 2xx to find dictionary', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments')
-                .query({
-                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
-                })
-                .reply(404, 'not found');
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .returns(createResponse(404, 'not found', 'Not Found'));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully fetch no dictionary index', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
-                .reply(200, { items: [] });
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .returns(createResponse(200, { items: [] }));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully failure to find entries', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments')
-                .query({
-                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
-                })
-                .reply(200, dictionaryCfResponse('sandbox', 'fr_FR'));
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
-                .replyWithError('fetch error');
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .returns(createResponse(200, dictionaryCfResponse()));
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
+                .rejects(new Error('fetch error'));
             const context = await replace.process(FAKE_CONTEXT);
-            const dictionaryId = 'sandbox_fr_FR_dictionary';
-            expect(context).to.deep.include({ ...EXPECTED, dictionaryId });
+            const dictionaryId = dictionaryIdFor();
+            expect(context).to.deep.include({ ...EXPECTED, fragmentsIds: { 'dictionary-id': dictionaryId } });
         });
         it('manages gracefully non 2xx to find entries', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments')
-                .query({
-                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
-                })
-                .reply(200, dictionaryCfResponse('sandbox', 'fr_FR'));
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
-                .reply(500, 'server error');
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .returns(createResponse(200, dictionaryCfResponse()));
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
+                .returns(createResponse(500, 'server error', 'Internal Server Error'));
             const context = await replace.process(FAKE_CONTEXT);
-            const dictionaryId = 'sandbox_fr_FR_dictionary';
-            expect(context).to.deep.include({ ...EXPECTED, dictionaryId });
+            const dictionaryId = dictionaryIdFor();
+            expect(context).to.deep.include({ ...EXPECTED, fragmentsIds: { 'dictionary-id': dictionaryId } });
         });
     });
 
     describe('handles surface and locale fallbacks', () => {
         it('consumer falls back to acom surface default locale', async () => {
-            mockDictionaryBySurfaceLocale(false, 'ccd', 'fr_LU', DICTIONARY_RESPONSE_ACOM_FR_FR);
-            let response = await getResponse('foo: {{foo}} bar', null, 'ccd', 'fr_LU');
+            mockDictionaryBySurfaceLocale(false, 'ccd', 'fr_LU', DICTIONARY_RESPONSE_ACOM_FR_FR, fetchStub);
+            const response = await getResponse('foo: {{foo}} bar', null, 'ccd', 'fr_LU');
             expect(response.body.fields.description).to.equal('foo: afr bar');
         });
         it('consumer falls back to the default locale in the same surface', async () => {
-            mockDictionaryBySurfaceLocale(false, 'ccd', 'fr_LU', DICTIONARY_RESPONSE_CCD_FR_FR);
-            let response = await getResponse('foo: {{foo}} bar', null, 'ccd', 'fr_LU');
+            mockDictionaryBySurfaceLocale(false, 'ccd', 'fr_LU', DICTIONARY_RESPONSE_CCD_FR_FR, fetchStub);
+            const response = await getResponse('foo: {{foo}} bar', null, 'ccd', 'fr_LU');
             expect(response.body.fields.description).to.equal('foo: cfr bar');
         });
         it('consumer uses locale override and ignores fallbacks', async () => {
-            mockDictionaryBySurfaceLocale(false, 'ccd', 'fr_LU', DICTIONARY_RESPONSE_CCD_FR_LU);
-            let response = await getResponse('foo: {{foo}} bar', null, 'ccd', 'fr_LU');
+            mockDictionaryBySurfaceLocale(false, 'ccd', 'fr_LU', DICTIONARY_RESPONSE_CCD_FR_LU, fetchStub);
+            const response = await getResponse('foo: {{foo}} bar', null, 'ccd', 'fr_LU');
             expect(response.body.fields.description).to.equal('foo: lfr bar');
         });
     });

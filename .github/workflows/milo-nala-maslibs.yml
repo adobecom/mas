@@ -25,14 +25,8 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 18
         env:
-            # Override GitHub context to Milo's main branch for all steps
-            # This ensures pr.run.sh and global.setup.js use Milo's branch, not mas repo's
-            GITHUB_REPOSITORY: adobecom/milo
-            GITHUB_REF: refs/heads/main
-            GITHUB_HEAD_REF: main
-            prOrg: adobecom
-            prRepo: milo
-            prBranch: main
+            # Directly set base URL to Milo's main branch
+            PR_BRANCH_LIVE_URL: https://milo.adobe.com
         strategy:
             fail-fast: false
             matrix:
@@ -74,6 +68,13 @@ jobs:
 
             - name: Set execute permission for pr.run.sh
               run: chmod +x ./nala/utils/pr.run.sh
+
+            - name: Patch global.setup.js to preserve PR_BRANCH_LIVE_URL if already set
+              run: |
+                  # Add early return at start of getGitHubPRBranchLiveUrl if PR_BRANCH_LIVE_URL is already set
+                  sed -i.bak '/async function getGitHubPRBranchLiveUrl() {/a\
+  if (process.env.PR_BRANCH_LIVE_URL) { return; }' nala/utils/global.setup.js
+                  echo "Patched global.setup.js to preserve existing PR_BRANCH_LIVE_URL"
 
             - name: Set up Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4

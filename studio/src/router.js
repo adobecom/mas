@@ -31,6 +31,7 @@ export class Router extends EventTarget {
      */
     navigateToPage(value) {
         return async () => {
+            if (Store.page.value === value) return;
             const editorPanel = document.querySelector('editor-panel');
             const confirmed = !Store.editor.hasChanges || (await editorPanel.promptDiscardChanges());
             if (confirmed) {

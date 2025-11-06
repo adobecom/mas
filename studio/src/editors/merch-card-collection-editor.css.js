@@ -6,7 +6,6 @@ export const styles = css`
         min-height: 500px;
         flex-direction: column;
         gap: 16px;
-        padding: 16px;
         border-radius: 4px;
         transition: all 0.2s ease;
     }

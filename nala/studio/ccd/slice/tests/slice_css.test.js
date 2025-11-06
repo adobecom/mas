@@ -1,325 +1,209 @@
-import { expect, test } from '@playwright/test';
-import StudioPage from '../../../studio.page.js';
+import { test, expect, studio, slice, webUtil, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
+
 import CCDSliceSpec from '../specs/slice_css.spec.js';
-import CCDSlicePage from '../slice.page.js';
-import WebUtil from '../../../../libs/webutil.js';
 
 const { features } = CCDSliceSpec;
-const miloLibs = process.env.MILO_LIBS || '';
 
-let studio;
-let slice;
-let webUtil;
-
-test.beforeEach(async ({ page, browserName }) => {
-    test.slow();
-    if (browserName === 'chromium') {
-        await page.setExtraHTTPHeaders({
-            'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
-        });
-    }
-    studio = new StudioPage(page);
-    slice = new CCDSlicePage(page);
-    webUtil = new WebUtil(page);
-});
-
-test.describe('M@S Studio CCD Slice card test suite', () => {
-    // @studio-slice-css-card-color - Validate CSS for slice card background and border color
+test.describe('M@S Studio CCD Slice card CSS test suite', () => {
+    // @studio-slice-css-single - Validate all CSS properties for single slice card
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
-        const singleCardPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
+        const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
+        const sliceCard = await studio.getCard(data.cardid);
+        setTestPage(testPage);
 
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
+        const validationLabels = [
+            'card container',
+            'badge',
+            'description',
+            'mnemonic',
+            'size',
+            'price',
+            'strikethrough price',
+            'CTA',
+            'legal link',
+        ];
+
+        await test.step('step-1: Go to test page', async () => {
+            await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(singleSliceCard, slice.cssProp.card)).toBeTruthy();
+        await test.step('step-2: Validate slice card is visible and has correct variant', async () => {
+            await expect(sliceCard).toBeVisible();
+            await expect(sliceCard).toHaveAttribute('variant', 'ccd-slice');
         });
 
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+        await test.step('step-3: Validate all slice card CSS properties in parallel', async () => {
+            const results = await Promise.allSettled([
+                // Card container CSS
+                test.step('Validation-1: Validate slice card container CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard, slice.cssProp.card)).toBeTruthy();
+                }),
 
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(doubleSliceCard, slice.cssProp.card)).toBeTruthy();
+                // Card badge CSS
+                test.step('Validation-2: Validate slice card badge CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard.locator(slice.cardBadge), slice.cssProp.badge)).toBeTruthy();
+                }),
+
+                // Card description CSS
+                test.step('Validation-3: Validate slice card description CSS', async () => {
+                    expect(
+                        await webUtil.verifyCSS(
+                            sliceCard.locator(slice.cardDescription).locator('p > strong').first(),
+                            slice.cssProp.description,
+                        ),
+                    ).toBeTruthy();
+                }),
+
+                // Card mnemonic CSS
+                test.step('Validation-4: Validate slice card mnemonic CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard.locator(slice.cardIcon), slice.cssProp.mnemonic)).toBeTruthy();
+                }),
+
+                // Card size CSS
+                test.step('Validation-5: Validate slice card size CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard, slice.cssProp.singleSize)).toBeTruthy();
+                }),
+
+                // Card price CSS
+                test.step('Validation-6: Validate slice card price CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard.locator(slice.cardPrice), slice.cssProp.price)).toBeTruthy();
+                }),
+
+                // Card strikethrough price CSS
+                test.step('Validation-7: Validate slice card strikethrough price CSS', async () => {
+                    expect(
+                        await webUtil.verifyCSS(
+                            sliceCard.locator(slice.cardPromoPriceStrikethrough),
+                            slice.cssProp.strikethroughPrice,
+                        ),
+                    ).toBeTruthy();
+                }),
+
+                // Card CTA CSS
+                test.step('Validation-8: Validate slice card CTA CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard.locator(slice.cardCTA), slice.cssProp.cta)).toBeTruthy();
+                }),
+
+                // Card legal link CSS
+                test.step('Validation-9: Validate slice card legal link CSS', async () => {
+                    expect(
+                        await webUtil.verifyCSS(sliceCard.locator(slice.cardLegalLink), slice.cssProp.legalLink),
+                    ).toBeTruthy();
+                }),
+            ]);
+
+            // Check results and report any failures
+            const failures = results
+                .map((result, index) => ({ result, index }))
+                .filter(({ result }) => result.status === 'rejected')
+                .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
+
+            if (failures.length > 0) {
+                throw new Error(`\x1b[31m✘\x1b[0m Slice card CSS validation failures:\n${failures.join('\n')}`);
+            }
         });
     });
 
-    // @studio-slice-css-badge - Validate badge CSS for slice cards
+    // @studio-slice-css-double - Validate all CSS properties for double slice card
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
-        const singleCardPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
+        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
+        const sliceCard = await studio.getCard(data.cardid);
+        setTestPage(testPage);
 
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
+        const validationLabels = [
+            'card container',
+            'badge',
+            'description',
+            'mnemonic',
+            'size',
+            'price',
+            'strikethrough price',
+            'CTA',
+            'legal link',
+        ];
+
+        await test.step('step-1: Go to test page', async () => {
+            await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(singleSliceCard.locator(slice.cardBadge), slice.cssProp.badge)).toBeTruthy();
+        await test.step('step-2: Validate slice card is visible and has correct variant', async () => {
+            await expect(sliceCard).toBeVisible();
+            await expect(sliceCard).toHaveAttribute('variant', 'ccd-slice');
         });
 
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+        await test.step('step-3: Validate all slice card CSS properties in parallel', async () => {
+            const results = await Promise.allSettled([
+                // Card container CSS
+                test.step('Validation-1: Validate slice card container CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard, slice.cssProp.card)).toBeTruthy();
+                }),
 
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(doubleSliceCard.locator(slice.cardBadge), slice.cssProp.badge)).toBeTruthy();
-        });
-    });
+                // Card badge CSS
+                test.step('Validation-2: Validate slice card badge CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard.locator(slice.cardBadge), slice.cssProp.badge)).toBeTruthy();
+                }),
 
-    // @studio-slice-css-description - Validate description CSS for slice cards
-    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[2];
-        const singleCardPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
+                // Card description CSS
+                test.step('Validation-3: Validate slice card description CSS', async () => {
+                    expect(
+                        await webUtil.verifyCSS(
+                            sliceCard.locator(slice.cardDescription).locator('p > strong').first(),
+                            slice.cssProp.description,
+                        ),
+                    ).toBeTruthy();
+                }),
 
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+                // Card mnemonic CSS
+                test.step('Validation-4: Validate slice card mnemonic CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard.locator(slice.cardIcon), slice.cssProp.mnemonic)).toBeTruthy();
+                }),
 
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(
-                await webUtil.verifyCSS(
-                    singleSliceCard.locator(slice.cardDescription).locator('p > strong').first(),
-                    slice.cssProp.description,
-                ),
-            ).toBeTruthy();
-        });
+                // Card size CSS
+                test.step('Validation-5: Validate slice card size CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard, slice.cssProp.doubleSize)).toBeTruthy();
+                }),
 
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+                // Card price CSS
+                test.step('Validation-6: Validate slice card price CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard.locator(slice.cardPrice), slice.cssProp.price)).toBeTruthy();
+                }),
 
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(
-                await webUtil.verifyCSS(
-                    doubleSliceCard.locator(slice.cardDescription).locator('p > strong').first(),
-                    slice.cssProp.description,
-                ),
-            ).toBeTruthy();
-        });
-    });
+                // Card strikethrough price CSS
+                test.step('Validation-7: Validate slice card strikethrough price CSS', async () => {
+                    expect(
+                        await webUtil.verifyCSS(
+                            sliceCard.locator(slice.cardPromoPriceStrikethrough),
+                            slice.cssProp.strikethroughPrice,
+                        ),
+                    ).toBeTruthy();
+                }),
 
-    // @studio-slice-css-mnemonic - Validate mnemonic CSS for slice cards
-    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[3];
-        const singleCardPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
+                // Card CTA CSS
+                test.step('Validation-8: Validate slice card CTA CSS', async () => {
+                    expect(await webUtil.verifyCSS(sliceCard.locator(slice.cardCTA), slice.cssProp.cta)).toBeTruthy();
+                }),
 
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
+                // Card legal link CSS
+                test.step('Validation-9: Validate slice card legal link CSS', async () => {
+                    expect(
+                        await webUtil.verifyCSS(sliceCard.locator(slice.cardLegalLink), slice.cssProp.legalLink),
+                    ).toBeTruthy();
+                }),
+            ]);
 
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(singleSliceCard.locator(slice.cardIcon), slice.cssProp.icon)).toBeTruthy();
-        });
+            // Check results and report any failures
+            const failures = results
+                .map((result, index) => ({ result, index }))
+                .filter(({ result }) => result.status === 'rejected')
+                .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(doubleSliceCard.locator(slice.cardIcon), slice.cssProp.icon)).toBeTruthy();
-        });
-    });
-
-    // @studio-slice-css-size - Validate size CSS for slice cards
-    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[4];
-        const singleCardPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
-
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(singleSliceCard, slice.cssProp.singleSize)).toBeTruthy();
-        });
-
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(doubleSliceCard, slice.cssProp.doubleSize)).toBeTruthy();
-        });
-    });
-
-    // @studio-slice-css-price - Validate price CSS for slice cards
-    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[5];
-        const singleCardPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
-
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(singleSliceCard.locator(slice.cardPrice), slice.cssProp.price)).toBeTruthy();
-        });
-
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(doubleSliceCard.locator(slice.cardPrice), slice.cssProp.price)).toBeTruthy();
-        });
-    });
-
-    // @studio-slice-css-strikethrough - Validate strikethrough price CSS for slice cards
-    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[6];
-        const singleCardPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
-
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(
-                await webUtil.verifyCSS(
-                    singleSliceCard.locator(slice.cardPromoPriceStrikethrough),
-                    slice.cssProp.strikethroughPrice,
-                ),
-            ).toBeTruthy();
-        });
-
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(
-                await webUtil.verifyCSS(
-                    doubleSliceCard.locator(slice.cardPromoPriceStrikethrough),
-                    slice.cssProp.strikethroughPrice,
-                ),
-            ).toBeTruthy();
-        });
-    });
-
-    // @studio-slice-css-cta - Validate CTA CSS for slice cards
-    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[7];
-        const singleCardPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
-
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(singleSliceCard.locator(slice.cardCTA), slice.cssProp.cta)).toBeTruthy();
-        });
-
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(doubleSliceCard.locator(slice.cardCTA), slice.cssProp.cta)).toBeTruthy();
-        });
-    });
-
-    // @studio-slice-css-seeterms - Validate legal link CSS for slice cards
-    test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[8];
-        const singleCardPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.singleCardID}`;
-        const doubleCardPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.doubleCardID}`;
-        const singleSliceCard = await studio.getCard(data.singleCardID);
-        const doubleSliceCard = await studio.getCard(data.doubleCardID);
-
-        await test.step('step-1: Go to single card test page', async () => {
-            console.info('[Test Page]: ', singleCardPage);
-            await page.goto(singleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Validate single slice card CSS', async () => {
-            await expect(singleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(singleSliceCard.locator(slice.cardLegalLink), slice.cssProp.legalLink)).toBeTruthy();
-        });
-
-        await test.step('step-3: Go to double card test page', async () => {
-            console.info('[Test Page]: ', doubleCardPage);
-            await page.goto(doubleCardPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-4: Validate double slice card CSS', async () => {
-            await expect(doubleSliceCard).toBeVisible();
-            expect(await webUtil.verifyCSS(doubleSliceCard.locator(slice.cardLegalLink), slice.cssProp.legalLink)).toBeTruthy();
+            if (failures.length > 0) {
+                throw new Error(`\x1b[31m✘\x1b[0m Slice card CSS validation failures:\n${failures.join('\n')}`);
+            }
         });
     });
 });

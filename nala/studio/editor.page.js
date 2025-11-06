@@ -9,13 +9,20 @@ export default class EditorPage {
         this.authorPath = page.locator('#author-path');
         this.variant = this.panel.locator('#card-variant');
         this.size = this.panel.locator('#card-size');
-        this.title = this.panel.locator('#card-title input');
+        this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
         this.subtitle = this.panel.locator('#card-subtitle input');
         this.badge = this.panel.locator('#card-badge input');
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
-        this.iconURL = this.panel.locator('#icon input');
+        this.mnemonicEditButton = this.panel.locator('mas-mnemonic-field sp-action-button');
+        this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
+        this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');
+        this.mnemonicUrlIconInput = page.locator('mas-mnemonic-modal[open] #url-icon >> input');
+        this.mnemonicUrlAltInput = page.locator('mas-mnemonic-modal[open] #url-alt >> input');
+        this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal[open] #url-link >> input');
+        this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="accent"]');
+        this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="secondary"]');
         this.promoText = this.panel.locator('#promo-text input');
         this.backgroundImage = this.panel.locator('#background-image input');
         this.prices = this.panel.locator('sp-field-group#prices');
@@ -23,6 +30,7 @@ export default class EditorPage {
         this.CTA = this.panel.locator('sp-field-group#ctas a');
         this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
         this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
+        this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
         this.borderColor = this.panel.locator('sp-picker#border-color');
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.OSI = this.panel.locator('osi-field#osi');
@@ -43,6 +51,10 @@ export default class EditorPage {
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
         this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
+        this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
+        this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
+        this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
+        this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
 
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
@@ -91,5 +103,57 @@ export default class EditorPage {
         }
 
         return this.linkVariant.locator(link);
+    }
+
+    async openMnemonicModal(index = 0) {
+        const editButton = this.mnemonicEditButton.nth(index);
+        await editButton.waitFor({ state: 'visible' });
+        await editButton.click();
+        await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'attached' });
+    }
+
+    async selectProductIcon(productName) {
+        await this.mnemonicProductTab.click();
+        const iconItem = this.page.locator(`mas-mnemonic-modal[open] .icon-item:has-text("${productName}")`);
+        await iconItem.waitFor({ state: 'visible' });
+        await iconItem.click();
+    }
+
+    async setMnemonicURL(url, alt = '', link = '') {
+        await this.mnemonicUrlTab.click();
+        const iconField = this.page.locator('mas-mnemonic-modal[open] #url-icon');
+        await iconField.waitFor({ state: 'visible' });
+        await iconField.evaluate((el, value) => {
+            el.value = value;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        }, url);
+        if (alt) {
+            const altField = this.page.locator('mas-mnemonic-modal[open] #url-alt');
+            await altField.evaluate((el, value) => {
+                el.value = value;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            }, alt);
+        }
+        if (link) {
+            const linkField = this.page.locator('mas-mnemonic-modal[open] #url-link');
+            await linkField.evaluate((el, value) => {
+                el.value = value;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            }, link);
+        }
+    }
+
+    async saveMnemonicModal() {
+        await this.mnemonicModalSaveButton.click();
+        await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'detached' });
+    }
+
+    async cancelMnemonicModal() {
+        await this.mnemonicModalCancelButton.click();
+        await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'detached' });
+    }
+
+    get iconURL() {
+        return this.mnemonicUrlIconInput;
     }
 }

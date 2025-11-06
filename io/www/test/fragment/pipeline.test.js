@@ -31,6 +31,7 @@ const EXPECTED_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
     'Content-Encoding': 'br',
     'Content-Type': 'application/json',
+    'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
 };
 
 function setupFragmentMocks({ id, path, fields = {} }, preview = false) {
@@ -551,7 +552,7 @@ describe('configuration caching', () => {
 
         expect(result2.statusCode).to.equal(200);
         configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(2);
+        expect(configCalls).to.have.length(1);
 
         performanceStub.restore();
         stateGetStub.restore();
@@ -605,5 +606,88 @@ describe('configuration caching', () => {
 
         performanceStub.restore();
         stateGetStub.restore();
+    });
+});
+
+describe('caching headers', () => {
+    beforeEach(() => {
+        nock.cleanAll();
+        mockDictionary();
+    });
+
+    afterEach(() => {
+        nock.cleanAll();
+    });
+
+    it('should include Cache-Control header in successful responses', async () => {
+        setupFragmentMocks({
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+        });
+
+        expect(result.statusCode).to.equal(200);
+        expect(result.headers).to.have.property('Cache-Control');
+        expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
+    });
+
+    it('should include Cache-Control header in 304 responses', async () => {
+        const result = await runOnFilledState(
+            JSON.stringify({
+                dictionaryId: 'fr_FR_dictionary',
+                translatedId: 'some-fr-fr-fragment',
+                lastModified: RANDOM_OLD_DATE,
+                hash: EXPECTED_BODY_HASH,
+            }),
+            {
+                'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT',
+            },
+        );
+
+        expect(result.statusCode).to.equal(304);
+        expect(result.headers).to.have.property('Cache-Control');
+        expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
+    });
+
+    it('should include Cache-Control header in error responses', async () => {
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .reply(404, { message: 'Fragment not found' });
+
+        const result = await getFragment({
+            id: 'test-fragment',
+            state: new MockState(),
+            locale: 'fr_FR',
+        });
+
+        expect(result.statusCode).to.equal(404);
+        expect(result.headers).to.have.property('Cache-Control');
+        expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
+    });
+
+    it('should include Cache-Control header in timeout responses', async () => {
+        resetCache();
+        nock('https://odin.adobe.com')
+            .get('/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .delay(50)
+            .reply(200, {});
+
+        const state = new MockState();
+        state.put('configuration', '{"networkConfig":{"fetchTimeout":20,"retries":1,"retryDelay":1}}');
+
+        const result = await getFragment({
+            id: 'test-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+
+        expect(result.statusCode).to.equal(504);
+        expect(result.headers).to.have.property('Cache-Control');
+        expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
     });
 });

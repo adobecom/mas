@@ -271,15 +271,20 @@ export class StudioOperations {
         console.log('[StudioOperations] CTA search: filtering by actual CTA text/href content');
         const beforeCount = fragments.length;
 
-        const queryKeywords = lowerQuery.split(/\s+/).filter((word) => word.length > 2);
+        // Skip generic CTA words from keyword matching - they're search intent, not button text
+        const skipWords = ['cta', 'button', 'link', 'call', 'action'];
+        const queryKeywords = lowerQuery.split(/\s+/).filter((word) => word.length > 2 && !skipWords.includes(word));
+
+        console.log(`[StudioOperations] Searching for keywords: ${queryKeywords.join(', ') || '(any CTA)'}`);
 
         const filtered = fragments.filter((fragment) => {
             const fields = fragment.fields;
             if (!fields) {
-                return false;
+                return true; // Include fragments without fields rather than exclude them
             }
 
             let hasMatchingCTA = false;
+            let hasCTAs = false;
 
             for (const fieldName of Object.keys(fields)) {
                 if (fieldName.toLowerCase().includes('addon')) {
@@ -293,22 +298,36 @@ export class StudioOperations {
                     continue;
                 }
 
-                if (fieldValue.includes('<merch-addon') && !fieldValue.includes('<a')) {
+                // Skip fields that ONLY have addon elements (no actual buttons or links)
+                if (fieldValue.includes('<merch-addon') && !fieldValue.includes('<button') && !fieldValue.includes('<a')) {
                     continue;
                 }
 
                 const ctas = StudioOperations.extractCTAElements(fieldValue);
 
-                for (const cta of ctas) {
-                    const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
+                if (ctas.length > 0) {
+                    hasCTAs = true;
 
-                    const hasMatch = queryKeywords.some((keyword) => ctaContent.includes(keyword));
-
-                    if (hasMatch) {
+                    // If no specific keywords to match, include any card with CTAs
+                    if (queryKeywords.length === 0) {
                         hasMatchingCTA = true;
                         const fragmentId = fragment.id || fragment.title || 'unknown';
-                        console.log(`[StudioOperations] Found matching CTA in ${fragmentId}: "${cta.text}" (${cta.type})`);
+                        console.log(`[StudioOperations] Found CTAs in ${fragmentId} (generic CTA search)`);
                         break;
+                    }
+
+                    // Check if any CTA matches the query keywords
+                    for (const cta of ctas) {
+                        const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
+
+                        const hasMatch = queryKeywords.some((keyword) => ctaContent.includes(keyword));
+
+                        if (hasMatch) {
+                            hasMatchingCTA = true;
+                            const fragmentId = fragment.id || fragment.title || 'unknown';
+                            console.log(`[StudioOperations] Found matching CTA in ${fragmentId}: "${cta.text}" (${cta.type})`);
+                            break;
+                        }
                     }
                 }
 
@@ -317,7 +336,8 @@ export class StudioOperations {
                 }
             }
 
-            return hasMatchingCTA;
+            // Include if: has matching CTAs OR (has CTAs and no specific keywords to match)
+            return hasMatchingCTA || (hasCTAs && queryKeywords.length === 0);
         });
 
         const includedCount = filtered.length;

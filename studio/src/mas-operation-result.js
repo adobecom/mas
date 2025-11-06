@@ -248,11 +248,6 @@ export class MasOperationResult extends LitElement {
         const hasFailures = failureCount > 0;
         const hasSkipped = skippedCount > 0;
 
-        // Cache updated fragments for rendering
-        if (updatedCards.length > 0) {
-            this.cacheFragments(updatedCards);
-        }
-
         if (hasFailures) {
             console.error('[Bulk Update] Operation completed with errors:', {
                 total,
@@ -365,10 +360,16 @@ export class MasOperationResult extends LitElement {
                                           <div class="card-wrapper ${isCollection ? 'collection-item' : ''}">
                                               ${isCollection
                                                   ? html`<merch-card-collection>
-                                                        <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                                        <aem-fragment
+                                                            fragment="${fragment.id}"
+                                                            .fragmentData="${fragment.fragmentData}"
+                                                        ></aem-fragment>
                                                     </merch-card-collection>`
                                                   : html`<merch-card>
-                                                        <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                                        <aem-fragment
+                                                            fragment="${fragment.id}"
+                                                            .fragmentData="${fragment.fragmentData}"
+                                                        ></aem-fragment>
                                                     </merch-card>`}
                                           </div>
                                       `;

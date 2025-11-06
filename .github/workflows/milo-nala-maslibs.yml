@@ -63,16 +63,8 @@ jobs:
                   echo "maslibs_param=${MASLIBS_PARAM}" >> $GITHUB_OUTPUT
                   echo "MasLibs parameter: ${MASLIBS_PARAM}"
 
-            - name: Override GitHub context for Milo repository
-              run: |
-                  # Override GitHub context variables so Milo's getGitHubPRBranchLiveUrl() 
-                  # constructs the correct URL for Milo's main branch (not mas repo's branch)
-                  echo "GITHUB_REPOSITORY=adobecom/milo" >> $GITHUB_ENV
-                  echo "GITHUB_REF=refs/heads/main" >> $GITHUB_ENV
-                  echo "GITHUB_HEAD_REF=main" >> $GITHUB_ENV
-                  echo "prOrg=adobecom" >> $GITHUB_ENV
-                  echo "prRepo=milo" >> $GITHUB_ENV
-                  echo "GitHub context overridden for Milo repository (main branch)"
+            - name: Set execute permission for pr.run.sh
+              run: chmod +x ./nala/utils/pr.run.sh
 
             - name: Set up Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4
@@ -105,7 +97,7 @@ jobs:
               run: npx playwright install-deps
 
             - name: Run Milo Commerce Tests
-              run: bash nala/utils/pr.run.sh
+              run: ./nala/utils/pr.run.sh
               env:
                   MAS_LIBS: ${{ steps.maslibs.outputs.maslibs_param }}
                   PROJECT: ${{ matrix.project }}
@@ -114,10 +106,14 @@ jobs:
                   labels: '@commerce'
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   GITHUB_WORKSPACE: ${{ github.workspace }}
-                  # Explicitly override GitHub context to Milo's main branch
-                  # This ensures Milo's getGitHubPRBranchLiveUrl() constructs the correct base URL
+                  # Set prOrg and prRepo to Milo's values so getGitHubPRBranchLiveUrl()
+                  # constructs the URL for Milo repo, not mas repo
+                  prOrg: adobecom
+                  prRepo: milo
+                  # Set branch to main so it uses MAIN_BRANCH_LIVE_URL (https://milo.adobe.com)
+                  # instead of constructing a branch URL
+                  prBranch: main
+                  # Override GitHub context to Milo's main branch
                   GITHUB_REPOSITORY: adobecom/milo
                   GITHUB_REF: refs/heads/main
                   GITHUB_HEAD_REF: main
-                  prOrg: adobecom
-                  prRepo: milo

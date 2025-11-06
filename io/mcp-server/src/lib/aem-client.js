@@ -64,6 +64,9 @@ export class AEMClient {
             headers: {
                 Authorization: authHeader,
                 'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
         });
 
@@ -93,7 +96,11 @@ export class AEMClient {
             method: 'GET',
             headers: {
                 Authorization: authHeader,
+                Accept: 'application/json',
                 'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
         });
 
@@ -101,7 +108,12 @@ export class AEMClient {
             throw new Error(`Failed to get fragment: ${response.statusText}`);
         }
 
-        return await response.json();
+        // Extract ETag from response headers (required for updates)
+        const etag = response.headers.get('Etag');
+        const fragment = await response.json();
+        fragment.etag = etag;
+
+        return fragment;
     }
 
     /**
@@ -117,6 +129,9 @@ export class AEMClient {
             headers: {
                 Authorization: authHeader,
                 'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
         });
 
@@ -142,6 +157,9 @@ export class AEMClient {
                 Authorization: authHeader,
                 'Content-Type': 'application/json',
                 'CSRF-Token': csrfToken,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
             body: JSON.stringify(data),
         });
@@ -172,6 +190,9 @@ export class AEMClient {
             Authorization: authHeader,
             'Content-Type': 'application/json',
             'CSRF-Token': csrfToken,
+            pragma: 'no-cache',
+            'cache-control': 'no-cache',
+            'x-aem-affinity-type': 'api',
         };
 
         if (etag) {
@@ -246,6 +267,9 @@ export class AEMClient {
             Authorization: authHeader,
             'Content-Type': 'application/json',
             'CSRF-Token': csrfToken,
+            pragma: 'no-cache',
+            'cache-control': 'no-cache',
+            'x-aem-affinity-type': 'api',
         };
 
         if (etag) {
@@ -307,6 +331,9 @@ export class AEMClient {
             headers: {
                 Authorization: authHeader,
                 'CSRF-Token': csrfToken,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
         });
 
@@ -330,6 +357,9 @@ export class AEMClient {
                 Authorization: authHeader,
                 'Content-Type': 'application/json',
                 'CSRF-Token': csrfToken,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
             body: JSON.stringify({}),
         });
@@ -354,6 +384,9 @@ export class AEMClient {
                 Authorization: authHeader,
                 'Content-Type': 'application/json',
                 'CSRF-Token': csrfToken,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
             body: JSON.stringify({}),
         });
@@ -399,6 +432,9 @@ export class AEMClient {
             method: 'GET',
             headers: {
                 Authorization: authHeader,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
         });
 
@@ -442,6 +478,9 @@ export class AEMClient {
             method: 'GET',
             headers: {
                 Authorization: authHeader,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
             },
         });
 

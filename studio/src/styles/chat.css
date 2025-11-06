@@ -1365,6 +1365,8 @@
     gap: var(--spectrum-global-dimension-size-200);
     margin-top: var(--spectrum-global-dimension-size-250);
     width: 100%;
+    grid-auto-rows: min-content;
+    align-items: start;
 }
 
 .search-results-cards-grid merch-card,

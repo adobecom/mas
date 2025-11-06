@@ -266,6 +266,20 @@ export class MasChat extends LitElement {
                     response.mcpParams.surface = surface;
                     response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
 
+                    if (response.mcpParams.query) {
+                        const query = response.mcpParams.query.toLowerCase();
+                        const imagePatterns = [
+                            /\b(with|has|have|containing|that have)\s+(background\s*)?(image|images|backgroundimage)\b/i,
+                            /\bbackground\s*image\b/i,
+                            /\bhas\s+image\b/i,
+                        ];
+                        const isImageQuery = imagePatterns.some((pattern) => pattern.test(query));
+                        if (isImageQuery && !query.includes('backgroundimage:')) {
+                            response.mcpParams.query = 'backgroundImage:*';
+                            console.log('[AI Chat] Converted image query to field search: backgroundImage:*');
+                        }
+                    }
+
                     console.log('[AI Chat] MCP Params:', {
                         surface: response.mcpParams.surface,
                         locale: response.mcpParams.locale,

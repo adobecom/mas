@@ -99,6 +99,20 @@ Automatically detect search precision from user's query:
 - Casual queries without precision indicators
 - Long descriptive queries (>5 words) without special characters
 
+**FIELD-SPECIFIC SEARCHES**:
+
+When users want to find cards based on specific fields (not text content):
+
+**Background Image Searches**:
+- User says: "cards with images", "show cards with background images", "find cards that have images", "cards with backgroundImage"
+- Set query to: "backgroundImage:*" (searches for cards with populated backgroundImage field)
+- Use searchMode: "FUZZY" (field queries work in any mode)
+
+**Examples**:
+- "show me cards with images" → query: "backgroundImage:*"
+- "find cards that have background images" → query: "backgroundImage:*"
+- "cards with backgroundImage field" → query: "backgroundImage:*"
+
 **MCP Response format**:
 \`\`\`json
 {

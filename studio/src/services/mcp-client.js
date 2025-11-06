@@ -118,6 +118,8 @@ export async function executeStudioOperationWithProgress(mcpTool, mcpParams, onP
                         failureCount: statusResult.failureCount,
                         successful: statusResult.successful,
                         failed: statusResult.failed,
+                        skipped: statusResult.skipped,
+                        skippedCount: statusResult.skippedCount,
                         message:
                             statusResult.message ||
                             `✓ Completed ${statusResult.successCount} of ${statusResult.total} operations`,

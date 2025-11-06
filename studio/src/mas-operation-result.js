@@ -83,7 +83,7 @@ export class MasOperationResult extends LitElement {
                     ? html`
                           <div class="search-results-actions">
                               <sp-button size="m" variant="secondary" @click=${() => this.handleShowMore(results.length)}>
-                                  Show ${remainingCount} More Card${remainingCount !== 1 ? 's' : ''}
+                                  Show ${Math.min(5, remainingCount)} More (${remainingCount} remaining)
                               </sp-button>
                           </div>
                       `

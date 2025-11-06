@@ -684,7 +684,7 @@ export class StudioOperations {
                                 if (textExistsInField(currentValue, find)) {
                                     const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                     const newValue = currentValue.replace(regex, replace);
-                                    fieldsToUpdate[field] = newValue;
+                                    fieldsToUpdate[field] = { value: newValue };
                                     console.log(`[BulkUpdate] Replaced in field "${field}":`, {
                                         id,
                                         field,
@@ -707,7 +707,7 @@ export class StudioOperations {
                                             if (textExistsInField(currentValue, find)) {
                                                 const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                                 const newValue = currentValue.replace(regex, replace);
-                                                fieldsToUpdate[field.name] = newValue;
+                                                fieldsToUpdate[field.name] = { value: newValue };
                                                 console.log(`[BulkUpdate] Replaced in field "${field.name}":`, {
                                                     id,
                                                     field: field.name,
@@ -728,7 +728,7 @@ export class StudioOperations {
                                         if (textExistsInField(currentValue, find)) {
                                             const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                             const newValue = currentValue.replace(regex, replace);
-                                            fieldsToUpdate[fieldName] = newValue;
+                                            fieldsToUpdate[fieldName] = { value: newValue };
                                             console.log(`[BulkUpdate] Replaced in field "${fieldName}":`, {
                                                 id,
                                                 field: fieldName,
@@ -1000,7 +1000,7 @@ export class StudioOperations {
                             if (found) {
                                 const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                 const newValue = currentValue.replace(regex, replace);
-                                fieldsToUpdate[field] = newValue;
+                                fieldsToUpdate[field] = { value: newValue };
                                 changes.push(`${field}: "${find}" → "${replace}"`);
                                 currentValues[field] = currentValue;
                                 newValues[field] = newValue;
@@ -1029,7 +1029,7 @@ export class StudioOperations {
                                             });
                                             const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                             const newValue = currentValue.replace(regex, replace);
-                                            fieldsToUpdate[field.name] = newValue;
+                                            fieldsToUpdate[field.name] = { value: newValue };
                                             changes.push(`${field.name}: "${find}" → "${replace}"`);
                                             currentValues[field.name] = currentValue;
                                             newValues[field.name] = newValue;
@@ -1054,7 +1054,7 @@ export class StudioOperations {
                                         });
                                         const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                         const newValue = currentValue.replace(regex, replace);
-                                        fieldsToUpdate[fieldName] = newValue;
+                                        fieldsToUpdate[fieldName] = { value: newValue };
                                         changes.push(`${fieldName}: "${find}" → "${replace}"`);
                                         currentValues[fieldName] = currentValue;
                                         newValues[fieldName] = newValue;

@@ -784,13 +784,15 @@ export class StudioOperations {
                         fragment.etag,
                     );
 
+                    console.log(`[BulkUpdate] Successfully saved fragment ${id}, triggering cache refresh`);
+
                     await jobManager.addSuccessfulItem(jobId, {
                         id,
                         title: savedFragment.title,
                         fieldsChanged: Object.keys(fieldsToUpdate),
                     });
 
-                    return { success: true, id };
+                    return { success: true, id, cacheInvalidated: true };
                 } catch (error) {
                     console.error(`[BulkUpdate] Failed to update card ${id}:`, error);
                     await jobManager.addFailedItem(jobId, {
@@ -823,6 +825,8 @@ export class StudioOperations {
 
         await jobManager.completeJob(jobId, {
             message: `✓ Updated ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
+            cacheInvalidated: true,
+            invalidatedFragmentIds: job.successful.map((item) => item.id),
         });
     }
 
@@ -1120,6 +1124,7 @@ export class StudioOperations {
             operation: 'preview_bulk_update',
             previews,
             summary: { willUpdate, noChanges, errors },
+            cacheRefreshRequired: true,
         };
     }
 

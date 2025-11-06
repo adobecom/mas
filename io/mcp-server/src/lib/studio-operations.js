@@ -461,7 +461,10 @@ export class StudioOperations {
         console.log('[BulkUpdate] Total promises:', results.length);
         console.log('[BulkUpdate] Results breakdown:');
         results.forEach((result, index) => {
-            console.log(`  [${index + 1}] Status: ${result.status}`, result.status === 'fulfilled' ? result.value : result.reason);
+            console.log(
+                `  [${index + 1}] Status: ${result.status}`,
+                result.status === 'fulfilled' ? result.value : result.reason,
+            );
         });
 
         const job = await jobManager.getJob(jobId);

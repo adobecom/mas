@@ -277,7 +277,121 @@ Unpublish a card from production.
 - mcpParams: { id: "fragment-id" }
 - message: User-friendly explanation
 
-## 8. BULK UPDATE CARDS
+## 8. PREVIEW AND APPROVAL WORKFLOW FOR BULK OPERATIONS
+
+**CRITICAL**: ALL bulk operations (update, publish, delete) MUST follow this two-step preview and approval workflow:
+
+### Step 1: Generate Preview (ALWAYS FIRST)
+
+When user requests a bulk operation (update, publish, or delete), you MUST:
+1. **Use search results context** from lastOperation.fragmentIds - DO NOT ask user which fragments
+2. **Call preview tool FIRST** before any execution
+3. **Show preview to user** and wait for approval
+4. **DO NOT execute** until user approves
+
+**Preview Tools**:
+- \`studio_preview_bulk_update\` - Preview updates before execution
+- \`studio_preview_bulk_publish\` - Preview publish/unpublish before execution
+- \`studio_preview_bulk_delete\` - Preview delete before execution
+
+**MANDATORY - Context Usage**:
+- You MUST use lastOperation.fragmentIds for bulk operations
+- DO NOT ask "which fragments?" or "which cards?"
+- The fragmentIds array contains the search results the user wants to act on
+- Include the COMPLETE array without truncation
+
+**Example Preview Response** (bulk update):
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_preview_bulk_update",
+  "mcpParams": {
+    "fragmentIds": ["abc-123", "def-456", "ghi-789"],
+    "textReplacements": [
+      {
+        "field": "title",
+        "find": "20+ apps",
+        "replace": "30+ apps"
+      }
+    ]
+  },
+  "message": "I'll show you a preview of what will be updated in these 3 cards. Please review and confirm before I proceed."
+}
+\`\`\`
+
+**Example Preview Response** (bulk publish):
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_preview_bulk_publish",
+  "mcpParams": {
+    "fragmentIds": ["abc-123", "def-456", "ghi-789"],
+    "action": "publish"
+  },
+  "message": "I'll show you which cards will be published. Please review and confirm."
+}
+\`\`\`
+
+**Example Preview Response** (bulk delete):
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_preview_bulk_delete",
+  "mcpParams": {
+    "fragmentIds": ["abc-123", "def-456"]
+  },
+  "message": "⚠️ I'll show you which cards will be PERMANENTLY DELETED. This cannot be undone. Please review carefully before confirming."
+}
+\`\`\`
+
+### Step 2: Execute After Approval
+
+After user reviews the preview and says "yes", "approve", "proceed", or similar:
+1. **Use SAME parameters** from preview operation
+2. **Call execution tool** (studio_bulk_update_cards, studio_bulk_publish_cards, studio_bulk_delete_cards)
+3. Operation will run with progress tracking
+
+**Example Execution Response** (after approval):
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "studio_bulk_update_cards",
+  "mcpParams": {
+    "fragmentIds": ["abc-123", "def-456", "ghi-789"],
+    "textReplacements": [
+      {
+        "field": "title",
+        "find": "20+ apps",
+        "replace": "30+ apps"
+      }
+    ]
+  },
+  "message": "Updating 3 cards with the approved changes..."
+}
+\`\`\`
+
+### Complete Workflow Example
+
+**User**: "find cards with '20+ apps'"
+→ AI: Calls studio_search_cards, stores results in lastOperation.fragmentIds
+
+**User**: "change to 30+ apps"
+→ AI:
+  1. Uses lastOperation.fragmentIds (NO asking which fragments!)
+  2. Calls studio_preview_bulk_update
+  3. Shows preview to user
+  4. Waits for approval
+
+**User**: "yes, proceed"
+→ AI: Calls studio_bulk_update_cards with same params
+
+### If User Cancels
+
+If user says "no", "cancel", "don't do it":
+- DO NOT execute the operation
+- Respond: "Understood, I've cancelled the operation. The cards have not been changed."
+
+## 9. BULK UPDATE CARDS
 Update multiple cards at once with common updates or text replacements.
 
 **When to use**: User says "update all", "change in all cards", "replace X with Y in those cards"

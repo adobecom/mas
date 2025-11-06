@@ -155,6 +155,18 @@ async function main(params) {
 
         const enrichedContext = enrichContextWithSurface(context);
 
+        console.log('[Backend] ===== ENRICHED CONTEXT SENT TO AI =====');
+        console.log('[Backend] Has lastOperation:', !!enrichedContext?.lastOperation);
+        if (enrichedContext?.lastOperation) {
+            console.log('[Backend] Last operation type:', enrichedContext.lastOperation.type);
+            console.log('[Backend] Fragment IDs count:', enrichedContext.lastOperation.fragmentIds?.length || 0);
+            console.log('[Backend] Fragment IDs:', enrichedContext.lastOperation.fragmentIds);
+        }
+        console.log('[Backend] Surface:', enrichedContext?.surface);
+        console.log('[Backend] Locale:', enrichedContext?.locale);
+        console.log('[Backend] Current path:', enrichedContext?.currentPath);
+        console.log('[Backend] Working set size:', enrichedContext?.workingSet?.length || 0);
+
         const response = await bedrockClient.sendWithContext(conversationHistory, message, systemPrompt, enrichedContext);
 
         if (!response.success) {

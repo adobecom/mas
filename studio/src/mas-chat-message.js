@@ -4,6 +4,7 @@ import './mas-card-selection-dialog.js';
 import './mas-collection-preview.js';
 import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
+import './mas-bulk-preview.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
 
 /**
@@ -184,7 +185,9 @@ export class MasChatMessage extends LitElement {
             `;
         }
 
-        const { current = 0, total = 0, percentage = 0, successful = 0, failed = 0 } = progress;
+        const { current = 0, total = 0, percentage = 0, successful = 0, failed = 0, skipped = 0, items = [] } = progress;
+
+        const recentItems = items.slice(-5).reverse();
 
         return html`
             <div class="operation-progress">
@@ -195,14 +198,41 @@ export class MasChatMessage extends LitElement {
                 <div class="progress-bar-container">
                     <div class="progress-bar-fill" style="width: ${percentage}%"></div>
                 </div>
-                ${successful > 0 || failed > 0
+
+                ${recentItems.length > 0
                     ? html`
-                          <div class="progress-stats">
-                              ${successful > 0 ? html`<span class="success-stat">✓ ${successful} completed</span>` : ''}
-                              ${failed > 0 ? html`<span class="failure-stat">✗ ${failed} failed</span>` : ''}
+                          <div class="progress-activity">
+                              <div class="activity-header">Recent Activity:</div>
+                              ${recentItems.map(
+                                  (item) => html`
+                                      <div class="activity-item activity-item-${item.status}">
+                                          ${item.status === 'completed'
+                                              ? html`<sp-icon-checkmark-circle size="s"></sp-icon-checkmark-circle>`
+                                              : item.status === 'failed'
+                                                ? html`<sp-icon-alert size="s"></sp-icon-alert>`
+                                                : html`<sp-icon-skip size="s"></sp-icon-skip>`}
+                                          <div class="activity-item-details">
+                                              <strong>${item.fragmentName}</strong>
+                                              ${item.changes && item.changes.length > 0
+                                                  ? item.changes.map(
+                                                        (change) => html`<div class="activity-change">• ${change}</div>`,
+                                                    )
+                                                  : ''}
+                                              ${item.error ? html`<div class="activity-error">Error: ${item.error}</div>` : ''}
+                                          </div>
+                                      </div>
+                                  `,
+                              )}
                           </div>
                       `
                     : ''}
+
+                <div class="progress-stats">
+                    ${successful > 0 ? html`<span class="success-stat">✓ ${successful} completed</span>` : ''}
+                    ${failed > 0 ? html`<span class="failure-stat">✗ ${failed} failed</span>` : ''}
+                    ${skipped > 0 ? html`<span class="skipped-stat">⊘ ${skipped} skipped</span>` : ''}
+                    ${current < total ? html`<span class="remaining-stat">⋯ ${total - current} remaining</span>` : ''}
+                </div>
             </div>
         `;
     }
@@ -444,6 +474,12 @@ export class MasChatMessage extends LitElement {
                     ${collectionConfig ? this.renderCollectionPreview() : ''}
                     ${operation || (this.message.mcpOperation && this.message.confirmationRequired)
                         ? this.renderOperationRequest()
+                        : ''}
+                    ${this.message.previewData
+                        ? html`<mas-bulk-preview
+                              .previewData=${this.message.previewData}
+                              .operation=${this.message.previewOperation}
+                          ></mas-bulk-preview>`
                         : ''}
                     ${operationLoading ? this.renderOperationProgress() : ''}
                     ${operationResult

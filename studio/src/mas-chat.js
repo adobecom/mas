@@ -53,6 +53,8 @@ export class MasChat extends LitElement {
         this.addEventListener('open-card', this.handleOpenCardFromOperation);
         this.addEventListener('session-changed', this.handleSessionChanged);
         this.addEventListener('session-cleared', this.handleSessionCleared);
+        this.addEventListener('approve-preview', this.handleApprovePreview);
+        this.addEventListener('cancel-preview', this.handleCancelPreview);
     }
 
     disconnectedCallback() {
@@ -65,6 +67,8 @@ export class MasChat extends LitElement {
         this.removeEventListener('open-card', this.handleOpenCardFromOperation);
         this.removeEventListener('session-changed', this.handleSessionChanged);
         this.removeEventListener('session-cleared', this.handleSessionCleared);
+        this.removeEventListener('approve-preview', this.handleApprovePreview);
+        this.removeEventListener('cancel-preview', this.handleCancelPreview);
     }
 
     loadActiveSession() {
@@ -789,17 +793,109 @@ export class MasChat extends LitElement {
         }
 
         const operationType = operation.type === 'mcp_operation' ? operation.mcpTool : operation.operation;
+        const isPreviewOperation = [
+            'studio_preview_bulk_update',
+            'studio_preview_bulk_publish',
+            'studio_preview_bulk_delete',
+        ].includes(operationType);
         const isBulkOperation = ['studio_bulk_update_cards', 'studio_bulk_publish_cards', 'studio_bulk_delete_cards'].includes(
             operationType,
         );
 
-        if (isBulkOperation) {
+        if (isPreviewOperation) {
+            await this.executePreviewOperation(operation, operationType);
+        } else if (isBulkOperation) {
             await this.executeBulkOperationWithProgress(operation, operationType);
         } else {
             await this.executeRegularOperation(operation, repository, operationType);
         }
 
         this.isLoading = false;
+    }
+
+    async executePreviewOperation(operation, operationType) {
+        const { executeStudioOperation } = await import('./services/mcp-client.js');
+
+        try {
+            const previewData = await executeStudioOperation(operation.mcpTool, operation.mcpParams);
+
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: 'Preview generated. Please review the changes and approve or cancel.',
+                    previewData,
+                    previewOperation: operationType,
+                    previewParams: operation.mcpParams,
+                    timestamp: Date.now(),
+                },
+            ];
+        } catch (error) {
+            console.error('Preview operation error:', error);
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'error',
+                    content: `Failed to generate preview: ${error.message}`,
+                    timestamp: Date.now(),
+                },
+            ];
+            showToast(`Failed to generate preview: ${error.message}`, 'negative');
+        }
+    }
+
+    handleApprovePreview(event) {
+        const { previewData, operation } = event.detail;
+
+        const lastMessage = this.messages[this.messages.length - 1];
+        if (!lastMessage.previewParams) {
+            console.error('No preview params found in last message');
+            return;
+        }
+
+        const executionToolMap = {
+            studio_preview_bulk_update: 'studio_bulk_update_cards',
+            studio_preview_bulk_publish: 'studio_bulk_publish_cards',
+            studio_preview_bulk_delete: 'studio_bulk_delete_cards',
+        };
+
+        const executionTool = executionToolMap[operation];
+        if (!executionTool) {
+            console.error('Unknown preview operation:', operation);
+            return;
+        }
+
+        const executionOperation = {
+            type: 'mcp_operation',
+            mcpTool: executionTool,
+            mcpParams: lastMessage.previewParams,
+        };
+
+        this.messages = [
+            ...this.messages,
+            {
+                role: 'assistant',
+                content: 'Starting bulk operation...',
+                timestamp: Date.now(),
+            },
+        ];
+
+        this.executeOperation(executionOperation);
+    }
+
+    handleCancelPreview(event) {
+        const { operation } = event.detail;
+
+        this.messages = [
+            ...this.messages,
+            {
+                role: 'assistant',
+                content: 'Preview cancelled. No changes were made.',
+                timestamp: Date.now(),
+            },
+        ];
+
+        showToast('Operation cancelled', 'info');
     }
 
     async executeBulkOperationWithProgress(operation, operationType) {

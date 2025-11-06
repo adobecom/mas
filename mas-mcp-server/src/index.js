@@ -542,6 +542,86 @@ export class MASMCPServer {
                     required: ['fragmentIds'],
                 },
             },
+            {
+                name: 'studio_preview_bulk_update',
+                description: 'Preview bulk update for multiple cards without executing (Studio preview operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to preview updates for',
+                        },
+                        updates: {
+                            type: 'object',
+                            description: 'Field updates to apply',
+                        },
+                        textReplacements: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    field: { type: 'string' },
+                                    find: { type: 'string' },
+                                    replace: { type: 'string' },
+                                },
+                            },
+                            description: 'Text replacements to apply',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'studio_preview_bulk_publish',
+                description: 'Preview bulk publish/unpublish for multiple cards without executing (Studio preview operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to preview publish for',
+                        },
+                        action: {
+                            type: 'string',
+                            enum: ['publish', 'unpublish'],
+                            description: 'Action to preview: publish or unpublish',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'studio_preview_bulk_delete',
+                description: 'Preview bulk delete for multiple cards without executing (Studio preview operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to preview delete for',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'studio_get_job_status',
+                description: 'Get status of a background job for progress tracking (Studio job operation)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        jobId: {
+                            type: 'string',
+                            description: 'Job ID to get status for',
+                        },
+                    },
+                    required: ['jobId'],
+                },
+            },
         ];
     }
 
@@ -610,6 +690,14 @@ export class MASMCPServer {
                 return this.studioOperations.bulkPublishCards(args);
             case 'studio_bulk_delete_cards':
                 return this.studioOperations.bulkDeleteCards(args);
+            case 'studio_preview_bulk_update':
+                return this.studioOperations.previewBulkUpdate(args);
+            case 'studio_preview_bulk_publish':
+                return this.studioOperations.previewBulkPublish(args);
+            case 'studio_preview_bulk_delete':
+                return this.studioOperations.previewBulkDelete(args);
+            case 'studio_get_job_status':
+                return this.studioOperations.getJobStatus(args);
 
             default:
                 throw new Error(`Unknown tool: ${name}`);

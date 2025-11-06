@@ -819,6 +819,21 @@ export class MasChat extends LitElement {
         try {
             const previewData = await executeStudioOperation(operation.mcpTool, operation.mcpParams);
 
+            // Patch fragmentIds from previous operation if AI truncated the array
+            let finalParams = { ...operation.mcpParams };
+            const lastSearchResult = this.getLastSearchResult();
+            if (
+                lastSearchResult &&
+                lastSearchResult.fragmentIds &&
+                finalParams.fragmentIds &&
+                lastSearchResult.fragmentIds.length > finalParams.fragmentIds.length
+            ) {
+                console.log(
+                    `[MasChat] Patching fragmentIds: AI sent ${finalParams.fragmentIds.length}, using complete list of ${lastSearchResult.fragmentIds.length}`,
+                );
+                finalParams.fragmentIds = lastSearchResult.fragmentIds;
+            }
+
             this.messages = [
                 ...this.messages,
                 {
@@ -826,7 +841,7 @@ export class MasChat extends LitElement {
                     content: 'Preview generated. Please review the changes and approve or cancel.',
                     previewData,
                     previewOperation: operationType,
-                    previewParams: operation.mcpParams,
+                    previewParams: finalParams,
                     timestamp: Date.now(),
                 },
             ];
@@ -901,6 +916,21 @@ export class MasChat extends LitElement {
     async executeBulkOperationWithProgress(operation, operationType) {
         const { executeStudioOperationWithProgress } = await import('./services/mcp-client.js');
 
+        // Patch fragmentIds from previous operation if AI truncated the array
+        let finalParams = { ...operation.mcpParams };
+        const lastSearchResult = this.getLastSearchResult();
+        if (
+            lastSearchResult &&
+            lastSearchResult.fragmentIds &&
+            finalParams.fragmentIds &&
+            lastSearchResult.fragmentIds.length > finalParams.fragmentIds.length
+        ) {
+            console.log(
+                `[MasChat] Patching fragmentIds: AI sent ${finalParams.fragmentIds.length}, using complete list of ${lastSearchResult.fragmentIds.length}`,
+            );
+            finalParams.fragmentIds = lastSearchResult.fragmentIds;
+        }
+
         const loadingMessage = this.getOperationLoadingMessage(operationType);
         const messageId = Date.now();
         const loadingMessageObj = {
@@ -908,7 +938,7 @@ export class MasChat extends LitElement {
             content: loadingMessage,
             operationLoading: true,
             operationType,
-            progress: { current: 0, total: operation.mcpParams.fragmentIds?.length || 0 },
+            progress: { current: 0, total: finalParams.fragmentIds?.length || 0 },
             timestamp: Date.now(),
             messageId,
         };
@@ -916,7 +946,7 @@ export class MasChat extends LitElement {
         this.messages = [...this.messages, loadingMessageObj];
 
         try {
-            const result = await executeStudioOperationWithProgress(operation.mcpTool, operation.mcpParams, (statusUpdate) => {
+            const result = await executeStudioOperationWithProgress(operation.mcpTool, finalParams, (statusUpdate) => {
                 this.messages = this.messages.map((msg) =>
                     msg.messageId === messageId
                         ? {
@@ -1029,6 +1059,19 @@ export class MasChat extends LitElement {
         };
 
         return messages[operationType] || 'Executing operation...';
+    }
+
+    getLastSearchResult() {
+        for (let i = this.messages.length - 1; i >= 0; i--) {
+            const message = this.messages[i];
+            if (message.operationResult && message.operationResult.results && Array.isArray(message.operationResult.results)) {
+                const fragmentIds = message.operationResult.results.map((result) => result.id);
+                if (fragmentIds.length > 0) {
+                    return { fragmentIds };
+                }
+            }
+        }
+        return null;
     }
 
     handleOpenCardFromOperation(event) {

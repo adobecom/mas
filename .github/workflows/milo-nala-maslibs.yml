@@ -65,13 +65,8 @@ jobs:
 
             - name: Override GitHub context for Milo repository
               run: |
-                  # Preserve original mas repo values (maslibs param already constructed above)
-                  echo "MAS_REPO_GITHUB_REPOSITORY=${{ github.repository }}" >> $GITHUB_ENV
-                  echo "MAS_REPO_GITHUB_REF=${{ github.ref }}" >> $GITHUB_ENV
-                  echo "MAS_REPO_GITHUB_HEAD_REF=${{ github.head_ref }}" >> $GITHUB_ENV
-
                   # Override GitHub context variables so Milo's getGitHubPRBranchLiveUrl() 
-                  # constructs the correct URL for Milo's main branch
+                  # constructs the correct URL for Milo's main branch (not mas repo's branch)
                   echo "GITHUB_REPOSITORY=adobecom/milo" >> $GITHUB_ENV
                   echo "GITHUB_REF=refs/heads/main" >> $GITHUB_ENV
                   echo "GITHUB_HEAD_REF=main" >> $GITHUB_ENV
@@ -119,7 +114,10 @@ jobs:
                   labels: '@commerce'
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   GITHUB_WORKSPACE: ${{ github.workspace }}
-                  # Note: GITHUB_REPOSITORY, GITHUB_REF, and GITHUB_HEAD_REF are overridden
-                  # in the previous step to point to Milo's main branch, so Milo's
-                  # getGitHubPRBranchLiveUrl() will construct the correct base URL.
-                  # Original mas repo values are preserved in MAS_REPO_* env vars if needed.
+                  # Explicitly override GitHub context to Milo's main branch
+                  # This ensures Milo's getGitHubPRBranchLiveUrl() constructs the correct base URL
+                  GITHUB_REPOSITORY: adobecom/milo
+                  GITHUB_REF: refs/heads/main
+                  GITHUB_HEAD_REF: main
+                  prOrg: adobecom
+                  prRepo: milo

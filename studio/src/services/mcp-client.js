@@ -123,6 +123,8 @@ export async function executeStudioOperationWithProgress(mcpTool, mcpParams, onP
                         message:
                             statusResult.message ||
                             `✓ Completed ${statusResult.successCount} of ${statusResult.total} operations`,
+                        updatedCards: statusResult.updatedCards || [],
+                        previewLimit: statusResult.previewLimit || 0,
                     };
                     resolve(finalResult);
                 } else if (statusResult.status === 'failed') {

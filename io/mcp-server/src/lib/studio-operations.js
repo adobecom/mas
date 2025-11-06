@@ -823,10 +823,31 @@ export class StudioOperations {
             skipped: job.skipped.length,
         });
 
+        // Fetch updated fragments for preview (limit to 10 for performance)
+        console.log('[BulkUpdate] Fetching updated fragments for preview...');
+        const updatedCards = await Promise.all(
+            job.successful.slice(0, 10).map(async (item) => {
+                try {
+                    const fragment = await this.aemClient.getFragment(item.id);
+                    const card = this.formatCard(fragment);
+                    card.fragmentData = this.formatFragmentForCache(fragment, card);
+                    return card;
+                } catch (error) {
+                    console.error(`[BulkUpdate] Failed to fetch fragment ${item.id} for preview:`, error);
+                    return null;
+                }
+            }),
+        );
+
+        const filteredCards = updatedCards.filter((card) => card !== null);
+        console.log(`[BulkUpdate] Successfully fetched ${filteredCards.length} fragments for preview`);
+
         await jobManager.completeJob(jobId, {
             message: `✓ Updated ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
             cacheInvalidated: true,
             invalidatedFragmentIds: job.successful.map((item) => item.id),
+            updatedCards: filteredCards,
+            previewLimit: 10,
         });
     }
 

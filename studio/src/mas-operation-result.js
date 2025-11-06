@@ -241,10 +241,17 @@ export class MasOperationResult extends LitElement {
             successful = [],
             skipped = [],
             message,
+            updatedCards = [],
+            previewLimit = 0,
         } = this.result;
         const skippedCount = skipped.length;
         const hasFailures = failureCount > 0;
         const hasSkipped = skippedCount > 0;
+
+        // Cache updated fragments for rendering
+        if (updatedCards.length > 0) {
+            this.cacheFragments(updatedCards);
+        }
 
         if (hasFailures) {
             console.error('[Bulk Update] Operation completed with errors:', {
@@ -340,6 +347,37 @@ export class MasOperationResult extends LitElement {
                                   Copy Error Log
                               </sp-button>
                           </details>
+                      `
+                    : ''}
+                ${successCount > 0 && updatedCards.length > 0
+                    ? html`
+                          <div class="updated-cards-preview">
+                              <h5>
+                                  Updated Cards Preview
+                                  ${previewLimit && successCount > previewLimit
+                                      ? html`(showing ${updatedCards.length} of ${successCount})`
+                                      : html`(${updatedCards.length} card${updatedCards.length !== 1 ? 's' : ''})`}
+                              </h5>
+                              <div class="search-results-cards-grid">
+                                  ${updatedCards.map((fragment) => {
+                                      const isCollection = fragment.tags?.some((t) => t.id.includes('card-type/collection'));
+                                      return html`
+                                          <div class="card-wrapper ${isCollection ? 'collection-item' : ''}">
+                                              ${isCollection
+                                                  ? html`<merch-card-collection>
+                                                        <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                                    </merch-card-collection>`
+                                                  : html`<merch-card>
+                                                        <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                                    </merch-card>`}
+                                          </div>
+                                      `;
+                                  })}
+                              </div>
+                              ${previewLimit && successCount > previewLimit
+                                  ? html`<p class="preview-note">+ ${successCount - previewLimit} more cards updated</p>`
+                                  : ''}
+                          </div>
                       `
                     : ''}
             </div>

@@ -158,7 +158,7 @@ export class StudioOperations {
     }
 
     /**
-     * Extract CTA elements from HTML content
+     * Extract CTA elements from HTML content - simplified approach
      * @param {string} htmlContent - HTML string to parse
      * @returns {Array} Array of CTA objects with text and href properties
      */
@@ -170,80 +170,43 @@ export class StudioOperations {
         const ctas = [];
         let match;
 
-        // Pattern 1: <button is="checkout-button"> elements
-        const checkoutButtonRegex = /<button[^>]*is=["']checkout-button["'][^>]*>(.*?)<\/button>/gis;
+        // Pattern 1: ANY <a> tag (all links are potential CTAs)
+        const linkRegex = /<a\s[^>]*>(.*?)<\/a>/gis;
 
-        while ((match = checkoutButtonRegex.exec(htmlContent)) !== null) {
+        while ((match = linkRegex.exec(htmlContent)) !== null) {
             const fullElement = match[0];
             const innerText = match[1];
 
-            // Extract data-href or href attribute
+            // Extract href attribute
             const hrefMatch = fullElement.match(/(?:data-)?href=["']([^"']+)["']/i);
             const href = hrefMatch ? hrefMatch[1] : '';
 
-            // Strip HTML tags from inner text
+            // Strip HTML tags from inner text to get clean text
             const text = innerText.replace(/<[^>]+>/g, '').trim();
 
-            ctas.push({ text, href, type: 'checkout-button' });
-        }
-
-        // Pattern 2: <a> tags with Spectrum Button or design system classes
-        // Matches: spectrum-Button, primary, primary-outline, accent, secondary, secondary-outline
-        const spectrumButtonRegex = /<a[^>]*class=["'][^"']*(spectrum-Button|primary|accent|secondary)[^"']*["'][^>]*>(.*?)<\/a>/gis;
-
-        while ((match = spectrumButtonRegex.exec(htmlContent)) !== null) {
-            const fullElement = match[0];
-            const innerText = match[2]; // Note: capture group 2 because group 1 is the class match
-
-            // Skip if already processed as checkout-link
-            if (fullElement.includes('is="checkout-link"') || fullElement.includes("is='checkout-link'")) {
-                continue;
-            }
-
-            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
-            const href = hrefMatch ? hrefMatch[1] : '';
-
-            // Strip HTML tags from inner text
-            const text = innerText.replace(/<[^>]+>/g, '').trim();
-
-            ctas.push({ text, href, type: 'spectrum-button' });
-        }
-
-        // Pattern 3: Legacy checkout-link pattern (for backward compatibility)
-        const checkoutLinkRegex = /<a[^>]*is=["']checkout-link["'][^>]*>(.*?)<\/a>/gis;
-
-        while ((match = checkoutLinkRegex.exec(htmlContent)) !== null) {
-            const fullElement = match[0];
-            const innerText = match[1];
-
-            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
-            const href = hrefMatch ? hrefMatch[1] : '';
-
-            const text = innerText.replace(/<[^>]+>/g, '').trim();
-
-            // Check if not already added (to avoid duplicates)
-            const isDuplicate = ctas.some(cta => cta.text === text && cta.href === href);
-            if (!isDuplicate) {
-                ctas.push({ text, href, type: 'checkout-link' });
+            // Include if there's text or href
+            if (text || href) {
+                ctas.push({ text, href, type: 'link' });
             }
         }
 
-        // Pattern 4: <a> tags with data-wcs-osi attribute (strong indicator of CTAs)
-        const wcsOsiRegex = /<a[^>]*data-wcs-osi=["'][^"']+["'][^>]*>(.*?)<\/a>/gis;
+        // Pattern 2: ANY <button> tag (all buttons are potential CTAs)
+        const buttonRegex = /<button\s[^>]*>(.*?)<\/button>/gis;
 
-        while ((match = wcsOsiRegex.exec(htmlContent)) !== null) {
+        while ((match = buttonRegex.exec(htmlContent)) !== null) {
             const fullElement = match[0];
             const innerText = match[1];
 
-            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
+            // Extract data-href if it exists (some buttons have this)
+            const hrefMatch = fullElement.match(/(?:data-)?href=["']([^"']+)["']/i);
             const href = hrefMatch ? hrefMatch[1] : '';
 
+            // Strip HTML tags from inner text to get clean text
             const text = innerText.replace(/<[^>]+>/g, '').trim();
 
-            // Check if not already added (to avoid duplicates)
-            const isDuplicate = ctas.some(cta => cta.text === text && cta.href === href);
-            if (!isDuplicate) {
-                ctas.push({ text, href, type: 'wcs-osi' });
+            // Include if there's text
+            if (text) {
+                ctas.push({ text, href, type: 'button' });
             }
         }
 
@@ -251,8 +214,7 @@ export class StudioOperations {
     }
 
     /**
-     * Filter search results to only include cards with CTAs matching the query
-     * Checks actual CTA element text/href content, ignoring merch-addon elements
+     * Filter search results to only include cards with CTAs matching the query - simplified approach
      * @param {Array} fragments - Array of fragment objects with fields
      * @param {string} query - Original search query
      * @returns {Array} Filtered fragments with matching CTA content
@@ -263,90 +225,57 @@ export class StudioOperations {
         }
 
         const lowerQuery = query.toLowerCase();
-
-        if (lowerQuery.includes('addon') || lowerQuery.includes('merch-addon')) {
-            console.log('[StudioOperations] User mentioned addon in query, skipping CTA filter');
-            return fragments;
-        }
-
-        console.log('[StudioOperations] CTA search: filtering by actual CTA text/href content');
+        console.log('[StudioOperations] CTA search: simple filtering for links and buttons');
         const beforeCount = fragments.length;
 
-        // Skip generic CTA words from keyword matching - they're search intent, not button text
+        // Extract meaningful keywords (skip CTA-intent words)
         const skipWords = ['cta', 'button', 'link', 'call', 'action'];
         const queryKeywords = lowerQuery
             .split(/\s+/)
-            .filter((word) => word.length > 2 && !skipWords.includes(word));
+            .filter(word => word.length > 2 && !skipWords.includes(word));
 
         console.log(`[StudioOperations] Searching for keywords: ${queryKeywords.join(', ') || '(any CTA)'}`);
 
-        const filtered = fragments.filter((fragment) => {
+        const filtered = fragments.filter(fragment => {
             const fields = fragment.fields;
-            if (!fields) {
-                return true; // Include fragments without fields rather than exclude them
-            }
+            if (!fields) return true; // Include if no fields to check
 
-            let hasMatchingCTA = false;
-            let hasCTAs = false;
-
+            // Check ALL fields - no exclusions or restrictions
             for (const fieldName of Object.keys(fields)) {
-                if (fieldName.toLowerCase().includes('addon')) {
-                    continue;
-                }
-
                 const field = fields[fieldName];
                 const fieldValue = field?.value || field;
 
-                if (!fieldValue || typeof fieldValue !== 'string') {
-                    continue;
-                }
+                if (!fieldValue || typeof fieldValue !== 'string') continue;
 
-                // Skip fields that ONLY have addon elements (no actual buttons or links)
-                if (fieldValue.includes('<merch-addon') && !fieldValue.includes('<button') && !fieldValue.includes('<a')) {
-                    continue;
-                }
-
+                // Extract CTAs from this field
                 const ctas = StudioOperations.extractCTAElements(fieldValue);
 
-                if (ctas.length > 0) {
-                    hasCTAs = true;
+                if (ctas.length === 0) continue;
 
-                    // If no specific keywords to match, include any card with CTAs
-                    if (queryKeywords.length === 0) {
-                        hasMatchingCTA = true;
-                        const fragmentId = fragment.id || fragment.title || 'unknown';
-                        console.log(`[StudioOperations] Found CTAs in ${fragmentId} (generic CTA search)`);
-                        break;
-                    }
-
-                    // Check if any CTA matches the query keywords
-                    for (const cta of ctas) {
-                        const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
-
-                        const hasMatch = queryKeywords.some((keyword) => ctaContent.includes(keyword));
-
-                        if (hasMatch) {
-                            hasMatchingCTA = true;
-                            const fragmentId = fragment.id || fragment.title || 'unknown';
-                            console.log(`[StudioOperations] Found matching CTA in ${fragmentId}: "${cta.text}" (${cta.type})`);
-                            break;
-                        }
-                    }
+                // If no specific keywords, include any card with CTAs
+                if (queryKeywords.length === 0) {
+                    console.log(`[StudioOperations] Found CTAs in ${fragment.id || fragment.title || 'fragment'}`);
+                    return true;
                 }
 
-                if (hasMatchingCTA) {
-                    break;
+                // Check if any CTA matches keywords
+                for (const cta of ctas) {
+                    const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
+
+                    // Check if ALL keywords are found (more lenient)
+                    const hasMatch = queryKeywords.some(keyword => ctaContent.includes(keyword));
+
+                    if (hasMatch) {
+                        console.log(`[StudioOperations] Match found: "${cta.text}" in ${fragment.id || fragment.title || 'fragment'}`);
+                        return true;
+                    }
                 }
             }
 
-            // Include if: has matching CTAs OR (has CTAs and no specific keywords to match)
-            return hasMatchingCTA || (hasCTAs && queryKeywords.length === 0);
+            return false; // No matching CTAs found
         });
 
-        const includedCount = filtered.length;
-        const excludedCount = beforeCount - includedCount;
-        console.log(`[StudioOperations] CTA filter: included ${includedCount}, excluded ${excludedCount} card(s)`);
-
+        console.log(`[StudioOperations] CTA filter: ${fragments.length} → ${filtered.length} results`);
         return filtered;
     }
 

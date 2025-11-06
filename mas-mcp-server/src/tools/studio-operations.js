@@ -156,7 +156,7 @@ export class StudioOperations {
     }
 
     /**
-     * Extract CTA elements from HTML content
+     * Extract CTA elements from HTML content - simplified approach
      * @param {string} htmlContent - HTML string to parse
      * @returns {Array} Array of CTA objects with text and href properties
      */
@@ -168,81 +168,43 @@ export class StudioOperations {
         const ctas = [];
         let match;
 
-        // Pattern 1: <button is="checkout-button"> elements
-        const checkoutButtonRegex = /<button[^>]*is=["']checkout-button["'][^>]*>(.*?)<\/button>/gis;
+        // Pattern 1: ANY <a> tag (all links are potential CTAs)
+        const linkRegex = /<a\s[^>]*>(.*?)<\/a>/gis;
 
-        while ((match = checkoutButtonRegex.exec(htmlContent)) !== null) {
+        while ((match = linkRegex.exec(htmlContent)) !== null) {
             const fullElement = match[0];
             const innerText = match[1];
 
-            // Extract data-href or href attribute
+            // Extract href attribute
             const hrefMatch = fullElement.match(/(?:data-)?href=["']([^"']+)["']/i);
             const href = hrefMatch ? hrefMatch[1] : '';
 
-            // Strip HTML tags from inner text
+            // Strip HTML tags from inner text to get clean text
             const text = innerText.replace(/<[^>]+>/g, '').trim();
 
-            ctas.push({ text, href, type: 'checkout-button' });
-        }
-
-        // Pattern 2: <a> tags with Spectrum Button or design system classes
-        // Matches: spectrum-Button, primary, primary-outline, accent, secondary, secondary-outline
-        const spectrumButtonRegex =
-            /<a[^>]*class=["'][^"']*(spectrum-Button|primary|accent|secondary)[^"']*["'][^>]*>(.*?)<\/a>/gis;
-
-        while ((match = spectrumButtonRegex.exec(htmlContent)) !== null) {
-            const fullElement = match[0];
-            const innerText = match[2]; // Note: capture group 2 because group 1 is the class match
-
-            // Skip if already processed as checkout-link
-            if (fullElement.includes('is="checkout-link"') || fullElement.includes("is='checkout-link'")) {
-                continue;
-            }
-
-            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
-            const href = hrefMatch ? hrefMatch[1] : '';
-
-            // Strip HTML tags from inner text
-            const text = innerText.replace(/<[^>]+>/g, '').trim();
-
-            ctas.push({ text, href, type: 'spectrum-button' });
-        }
-
-        // Pattern 3: Legacy checkout-link pattern (for backward compatibility)
-        const checkoutLinkRegex = /<a[^>]*is=["']checkout-link["'][^>]*>(.*?)<\/a>/gis;
-
-        while ((match = checkoutLinkRegex.exec(htmlContent)) !== null) {
-            const fullElement = match[0];
-            const innerText = match[1];
-
-            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
-            const href = hrefMatch ? hrefMatch[1] : '';
-
-            const text = innerText.replace(/<[^>]+>/g, '').trim();
-
-            // Check if not already added (to avoid duplicates)
-            const isDuplicate = ctas.some((cta) => cta.text === text && cta.href === href);
-            if (!isDuplicate) {
-                ctas.push({ text, href, type: 'checkout-link' });
+            // Include if there's text or href
+            if (text || href) {
+                ctas.push({ text, href, type: 'link' });
             }
         }
 
-        // Pattern 4: <a> tags with data-wcs-osi attribute (strong indicator of CTAs)
-        const wcsOsiRegex = /<a[^>]*data-wcs-osi=["'][^"']+["'][^>]*>(.*?)<\/a>/gis;
+        // Pattern 2: ANY <button> tag (all buttons are potential CTAs)
+        const buttonRegex = /<button\s[^>]*>(.*?)<\/button>/gis;
 
-        while ((match = wcsOsiRegex.exec(htmlContent)) !== null) {
+        while ((match = buttonRegex.exec(htmlContent)) !== null) {
             const fullElement = match[0];
             const innerText = match[1];
 
-            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
+            // Extract data-href if it exists (some buttons have this)
+            const hrefMatch = fullElement.match(/(?:data-)?href=["']([^"']+)["']/i);
             const href = hrefMatch ? hrefMatch[1] : '';
 
+            // Strip HTML tags from inner text to get clean text
             const text = innerText.replace(/<[^>]+>/g, '').trim();
 
-            // Check if not already added (to avoid duplicates)
-            const isDuplicate = ctas.some((cta) => cta.text === text && cta.href === href);
-            if (!isDuplicate) {
-                ctas.push({ text, href, type: 'wcs-osi' });
+            // Include if there's text
+            if (text) {
+                ctas.push({ text, href, type: 'button' });
             }
         }
 

@@ -43,7 +43,9 @@ async function main(params) {
     const region = process.env.__OW_REGION || 'unknown';
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
-        Accept: 'application/json',
+        Accept: 'application/json, */*',
+        'Accept-Encoding': 'gzip, deflate',
+        'User-Agent': 'Mozilla/5.0 (compatible; mas-io-Pipeline/1.0)',
         'X-Request-ID': requestId,
     };
     let context = {

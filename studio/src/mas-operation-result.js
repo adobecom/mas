@@ -44,8 +44,6 @@ export class MasOperationResult extends LitElement {
             `;
         }
 
-        this.cacheFragments(results);
-
         const displayResults = results.slice(0, this.displayCount);
         const hasMore = results.length > displayResults.length;
         const remainingCount = results.length - displayResults.length;
@@ -69,12 +67,18 @@ export class MasOperationResult extends LitElement {
                                     ${isCollection
                                         ? html`
                                               <merch-card-collection>
-                                                  <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                                  <aem-fragment
+                                                      fragment="${fragment.id}"
+                                                      .fragmentData="${fragment.fragmentData}"
+                                                  ></aem-fragment>
                                               </merch-card-collection>
                                           `
                                         : html`
                                               <merch-card>
-                                                  <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                                  <aem-fragment
+                                                      fragment="${fragment.id}"
+                                                      .fragmentData="${fragment.fragmentData}"
+                                                  ></aem-fragment>
                                               </merch-card>
                                           `}
                                 </div>

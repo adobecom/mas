@@ -1,4 +1,4 @@
-import { JobManager } from '../lib/job-manager.js';
+import { sharedJobManager } from '../lib/shared-job-manager.js';
 import { requireIMSAuth } from '../lib/ims-validator.js';
 
 /**
@@ -21,8 +21,7 @@ async function main(params) {
             };
         }
 
-        const jobManager = new JobManager();
-        const job = await jobManager.getJob(jobId);
+        const job = await sharedJobManager.getJob(jobId);
 
         if (!job) {
             return {

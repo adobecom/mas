@@ -1,6 +1,6 @@
 import { AEMClient } from './aem-client.js';
 import { StudioURLBuilder } from './studio-url-builder.js';
-import { JobManager } from './job-manager.js';
+import { sharedJobManager } from './shared-job-manager.js';
 
 const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
@@ -37,9 +37,6 @@ function textExistsInField(value, find) {
     }
     return value.includes(find) || stripHtml(value).includes(find);
 }
-
-// Create shared JobManager instance for all operations to avoid isolation issues
-const sharedJobManager = new JobManager();
 
 /**
  * Studio Operations Tools

@@ -35,12 +35,19 @@ export class AEMClient {
                 console.log(`[AEMClient] Auto-detected special characters/quoted phrase, switching to EXACT_PHRASE mode`);
             }
 
+            // Strip quotes for EXACT_PHRASE mode (the mode itself indicates phrase matching)
+            let queryText = trimmedQuery;
+            if (resolvedMode === 'EXACT_PHRASE' && isQuoted) {
+                queryText = trimmedQuery.slice(1, -1);
+                console.log(`[AEMClient] Stripped quotes for EXACT_PHRASE: "${trimmedQuery}" → "${queryText}"`);
+            }
+
             filter.fullText = {
-                text: encodeURIComponent(trimmedQuery),
+                text: queryText,
                 queryMode: resolvedMode,
             };
 
-            console.log(`[AEMClient] Full text search: query="${trimmedQuery}" mode="${resolvedMode}"`);
+            console.log(`[AEMClient] Full text search: query="${queryText}" mode="${resolvedMode}"`);
         }
 
         if (tags && tags.length > 0) {

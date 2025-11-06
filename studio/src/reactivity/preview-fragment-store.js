@@ -55,9 +55,23 @@ export class PreviewFragmentStore extends FragmentStore {
     async getResolvedFragment() {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
-        const originalFields = body.fields;
+        let originalFields = body.fields;
+
+        /* Handle both array and object formats for fields */
+        let fieldsArray;
+        if (!Array.isArray(originalFields)) {
+            fieldsArray = Object.entries(originalFields).map(([name, value]) => ({
+                name,
+                multiple: Array.isArray(value),
+                values: Array.isArray(value) ? value : [value],
+            }));
+            originalFields = fieldsArray;
+        } else {
+            fieldsArray = originalFields;
+        }
+
         body.fields = {};
-        for (const field of originalFields) {
+        for (const field of fieldsArray) {
             body.fields[field.name] = field.multiple ? field.values : field.values[0];
         }
 
@@ -69,7 +83,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const result = await previewStudioFragment(body, context);
 
         /* Transform fields back to author */
-        for (const field of originalFields) {
+        for (const field of fieldsArray) {
             const resolvedField = result.fields[field.name];
             field.values = field.multiple ? resolvedField : [resolvedField];
         }

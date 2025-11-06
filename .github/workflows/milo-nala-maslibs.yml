@@ -24,6 +24,15 @@ jobs:
         name: ${{ matrix.project == 'mas' && 'Running MAS (all browsers)' || format('Running on • {0} browser', matrix.browser) }}
         runs-on: ubuntu-latest
         timeout-minutes: 18
+        env:
+            # Override GitHub context to Milo's main branch for all steps
+            # This ensures pr.run.sh and global.setup.js use Milo's branch, not mas repo's
+            GITHUB_REPOSITORY: adobecom/milo
+            GITHUB_REF: refs/heads/main
+            GITHUB_HEAD_REF: main
+            prOrg: adobecom
+            prRepo: milo
+            prBranch: main
         strategy:
             fail-fast: false
             matrix:
@@ -106,14 +115,3 @@ jobs:
                   labels: '@commerce'
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   GITHUB_WORKSPACE: ${{ github.workspace }}
-                  # Set prOrg and prRepo to Milo's values so getGitHubPRBranchLiveUrl()
-                  # constructs the URL for Milo repo, not mas repo
-                  prOrg: adobecom
-                  prRepo: milo
-                  # Set branch to main so it uses MAIN_BRANCH_LIVE_URL (https://milo.adobe.com)
-                  # instead of constructing a branch URL
-                  prBranch: main
-                  # Override GitHub context to Milo's main branch
-                  GITHUB_REPOSITORY: adobecom/milo
-                  GITHUB_REF: refs/heads/main
-                  GITHUB_HEAD_REF: main

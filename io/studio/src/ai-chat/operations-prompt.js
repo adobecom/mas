@@ -170,6 +170,19 @@ The system automatically injects these values from the Studio UI:
 - Locale is auto-injected from locale picker (e.g., "en_US", "fr_FR")
 - You DO NOT need to specify surface or locale in mcpParams - they're added automatically
 
+**IMPORTANT: Message Format for Search Results**:
+When search results are returned, you MUST communicate them clearly in your message:
+- **NEVER truncate or summarize** the list of found cards (no "..." or "and X more")
+- **List ALL card titles and IDs** found in your response message
+- Use format: "Found X cards: 1. [Title] (ID: xxx), 2. [Title] (ID: yyy), ..."
+- **CRITICAL**: Include the complete list EVEN if 20+ cards - avoid brevity for clarity
+- This ensures users can reference which cards were found and supports subsequent bulk operations
+- The visual results will also display in the UI, but your message should contain the complete list for chat context
+
+**Example**:
+If search finds 15 cards, your message should say:
+"Found 15 cards: 1. Creative Cloud Pro (ID: abc), 2. Creative Cloud Student (ID: def), ... [complete list] ... 15. Design Bundle (ID: xyz)"
+
 **Example interactions**:
 User in ACOM/fr_FR: "show me all plans cards"
 → Searches ONLY acom surface, ONLY fr_FR locale, searchMode: "FUZZY"

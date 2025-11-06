@@ -14,6 +14,16 @@ export class MasBulkPreview extends LitElement {
         return this;
     }
 
+    updated(changedProperties) {
+        if (changedProperties.has('previewData')) {
+            console.log('[MasBulkPreview] previewData updated:', {
+                previewData: this.previewData,
+                previews: this.previewData?.previews?.length || 0,
+                summary: this.previewData?.summary,
+            });
+        }
+    }
+
     handleApprove() {
         this.dispatchEvent(
             new CustomEvent('approve-preview', {

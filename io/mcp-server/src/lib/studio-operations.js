@@ -412,6 +412,17 @@ export class StudioOperations {
         const surfacePath = this.getSurfacePath(surface, locale);
         console.log(`[StudioOperations] getSurfacePath(${surface}, ${locale}) = ${surfacePath}`);
 
+        // Detect if query has special characters that need exact phrase matching
+        let searchMode = 'EDGES';
+        if (query) {
+            const hasSpecialChars = /[+\-()]/.test(query);
+            const isQuoted = query.trim().startsWith('"') && query.trim().endsWith('"');
+            if (hasSpecialChars || isQuoted) {
+                searchMode = 'EXACT_PHRASE';
+                console.log(`[StudioOperations] Query "${query}" has special chars or is quoted, using EXACT_PHRASE mode`);
+            }
+        }
+
         const searchParams = {
             path: surfacePath,
             query,
@@ -419,6 +430,7 @@ export class StudioOperations {
             modelIds: [CARD_MODEL_ID],
             limit: requestLimit,
             offset,
+            searchMode,
         };
 
         console.log('[StudioOperations] Search params with modelIds:', {

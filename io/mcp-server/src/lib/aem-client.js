@@ -14,7 +14,7 @@ export class AEMClient {
      * Search for fragments with filters
      */
     async searchFragments(params) {
-        const { path = '/content/dam/mas', query, tags, modelIds, limit = 50, offset = 0 } = params;
+        const { path = '/content/dam/mas', query, tags, modelIds, limit = 50, offset = 0, searchMode = 'EDGES' } = params;
 
         const authHeader = await this.authManager.getAuthHeader();
         console.log('[AEMClient] Auth header:', authHeader ? `${authHeader.slice(0, 27)}...` : 'MISSING');
@@ -23,10 +23,24 @@ export class AEMClient {
         const filter = { path };
 
         if (query && query.trim()) {
+            const trimmedQuery = query.trim();
+
+            // Auto-detect if we should use EXACT_PHRASE mode for special characters
+            let resolvedMode = searchMode;
+            const hasSpecialChars = /[+\-()]/.test(trimmedQuery);
+            const isQuoted = trimmedQuery.startsWith('"') && trimmedQuery.endsWith('"');
+
+            if ((hasSpecialChars || isQuoted) && searchMode === 'EDGES') {
+                resolvedMode = 'EXACT_PHRASE';
+                console.log(`[AEMClient] Auto-detected special characters/quoted phrase, switching to EXACT_PHRASE mode`);
+            }
+
             filter.fullText = {
-                text: query.trim(),
-                queryMode: 'EDGES',
+                text: encodeURIComponent(trimmedQuery),
+                queryMode: resolvedMode,
             };
+
+            console.log(`[AEMClient] Full text search: query="${trimmedQuery}" mode="${resolvedMode}"`);
         }
 
         if (tags && tags.length > 0) {

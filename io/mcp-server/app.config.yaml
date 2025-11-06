@@ -84,6 +84,8 @@ application:
                         inputs:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        limits:
+                            timeout: 300000
                         annotations:
                             require-adobe-auth: false
                             final: true
@@ -94,6 +96,8 @@ application:
                         inputs:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        limits:
+                            timeout: 300000
                         annotations:
                             require-adobe-auth: false
                             final: true
@@ -104,6 +108,8 @@ application:
                         inputs:
                             AEM_BASE_URL: $AEM_BASE_URL
                             STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        limits:
+                            timeout: 300000
                         annotations:
                             require-adobe-auth: false
                             final: true

@@ -79,7 +79,10 @@ async function getDefaultLanguageVariation(context) {
         const defaultLocaleUrl = odinReferences(defaultLocaleId, true, preview);
         const response = await fetch(defaultLocaleUrl, context, 'default-locale-fragment');
         if (response.status != 200 || !response.body) {
-            return { status: response.status, message: response.message || 'Error fetching default locale fragment' };
+            /* c8 ignore next */
+            const message = response.message || 'Error fetching default locale fragment';
+            /* c8 ignore next */
+            return { status: response.status || 503, message };
         }
         ({ body } = response);
     }

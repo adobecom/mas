@@ -44,6 +44,15 @@ export class MasOperationResult extends LitElement {
             `;
         }
 
+        // Clear cache for these results and re-cache with fresh data
+        const AemFragmentElement = customElements.get('aem-fragment');
+        if (AemFragmentElement?.cache) {
+            results.forEach((fragment) => {
+                AemFragmentElement.cache.remove(fragment.id);
+            });
+        }
+        this.cacheFragments(results);
+
         const displayResults = results.slice(0, this.displayCount);
         const hasMore = results.length > displayResults.length;
         const remainingCount = results.length - displayResults.length;
@@ -67,18 +76,12 @@ export class MasOperationResult extends LitElement {
                                     ${isCollection
                                         ? html`
                                               <merch-card-collection>
-                                                  <aem-fragment
-                                                      fragment="${fragment.id}"
-                                                      .fragmentData="${fragment.fragmentData}"
-                                                  ></aem-fragment>
+                                                  <aem-fragment fragment="${fragment.id}"></aem-fragment>
                                               </merch-card-collection>
                                           `
                                         : html`
                                               <merch-card>
-                                                  <aem-fragment
-                                                      fragment="${fragment.id}"
-                                                      .fragmentData="${fragment.fragmentData}"
-                                                  ></aem-fragment>
+                                                  <aem-fragment fragment="${fragment.id}"></aem-fragment>
                                               </merch-card>
                                           `}
                                 </div>
@@ -252,6 +255,17 @@ export class MasOperationResult extends LitElement {
         const hasFailures = failureCount > 0;
         const hasSkipped = skippedCount > 0;
 
+        // Clear cache for updated cards and re-cache with fresh data
+        if (updatedCards.length > 0) {
+            const AemFragmentElement = customElements.get('aem-fragment');
+            if (AemFragmentElement?.cache) {
+                updatedCards.forEach((card) => {
+                    AemFragmentElement.cache.remove(card.id);
+                });
+            }
+            this.cacheFragments(updatedCards);
+        }
+
         if (hasFailures) {
             console.error('[Bulk Update] Operation completed with errors:', {
                 total,
@@ -364,16 +378,10 @@ export class MasOperationResult extends LitElement {
                                           <div class="card-wrapper ${isCollection ? 'collection-item' : ''}">
                                               ${isCollection
                                                   ? html`<merch-card-collection>
-                                                        <aem-fragment
-                                                            fragment="${fragment.id}"
-                                                            .fragmentData="${fragment.fragmentData}"
-                                                        ></aem-fragment>
+                                                        <aem-fragment fragment="${fragment.id}"></aem-fragment>
                                                     </merch-card-collection>`
                                                   : html`<merch-card>
-                                                        <aem-fragment
-                                                            fragment="${fragment.id}"
-                                                            .fragmentData="${fragment.fragmentData}"
-                                                        ></aem-fragment>
+                                                        <aem-fragment fragment="${fragment.id}"></aem-fragment>
                                                     </merch-card>`}
                                           </div>
                                       `;

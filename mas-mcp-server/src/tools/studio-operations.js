@@ -124,6 +124,89 @@ export class StudioOperations {
     }
 
     /**
+     * Check if a search query is CTA-related
+     * @param {string} query - Search query string
+     * @returns {boolean} True if query is searching for CTAs
+     */
+    static isCTASearch(query) {
+        if (!query || typeof query !== 'string') {
+            return false;
+        }
+
+        const ctaKeywords = [
+            'cta',
+            'button',
+            'link',
+            'trial',
+            'buy',
+            'purchase',
+            'checkout',
+            'select',
+            'start',
+            'get started',
+            'learn more',
+            'free trial',
+            'buy now',
+            'shop now',
+            'subscribe',
+        ];
+
+        const lowerQuery = query.toLowerCase();
+        return ctaKeywords.some((keyword) => lowerQuery.includes(keyword));
+    }
+
+    /**
+     * Filter search results to exclude merch-addon elements from CTA matches
+     * @param {Array} fragments - Array of fragment objects with fields
+     * @param {string} query - Original search query
+     * @returns {Array} Filtered fragments where query matches actual CTAs, not addon checkboxes
+     */
+    static filterCTAResults(fragments, query) {
+        if (!query || !fragments || fragments.length === 0) {
+            return fragments;
+        }
+
+        const lowerQuery = query.toLowerCase();
+
+        return fragments.filter((fragment) => {
+            const fields = fragment.fields;
+            if (!fields) {
+                return true;
+            }
+
+            let hasCTAMatch = false;
+            let hasOnlyAddonMatch = true;
+
+            Object.keys(fields).forEach((fieldName) => {
+                const field = fields[fieldName];
+                const fieldValue = field?.value || field;
+
+                if (!fieldValue || typeof fieldValue !== 'string') {
+                    return;
+                }
+
+                const lowerValue = fieldValue.toLowerCase();
+                if (lowerValue.includes(lowerQuery)) {
+                    if (
+                        fieldValue.includes('checkout-link') ||
+                        (fieldValue.includes('<a ') && fieldValue.includes('button')) ||
+                        fieldValue.includes('is="checkout-link"')
+                    ) {
+                        hasCTAMatch = true;
+                        hasOnlyAddonMatch = false;
+                    }
+
+                    if (!fieldValue.includes('merch-addon') && !fieldValue.includes('addon-')) {
+                        hasOnlyAddonMatch = false;
+                    }
+                }
+            });
+
+            return hasCTAMatch || !hasOnlyAddonMatch;
+        });
+    }
+
+    /**
      * Search for cards with filters
      * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string, searchMode?: string }
      */
@@ -196,6 +279,15 @@ export class StudioOperations {
                     : fragment.fields?.variant?.value || fragment.fields?.variant;
                 return fragmentVariant === variant;
             });
+        }
+
+        if (StudioOperations.isCTASearch(query)) {
+            console.log('[StudioOperations] CTA search detected, applying CTA filter to exclude addon checkboxes');
+            const beforeCTAFilter = filteredFragments.length;
+            filteredFragments = StudioOperations.filterCTAResults(filteredFragments, query);
+            console.log(
+                `[StudioOperations] CTA filter: ${beforeCTAFilter} fragments → ${filteredFragments.length} fragments (excluded ${beforeCTAFilter - filteredFragments.length} with only addon matches)`,
+            );
         }
 
         console.log(

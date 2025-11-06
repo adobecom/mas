@@ -113,6 +113,30 @@ When users want to find cards based on specific fields (not text content):
 - "find cards that have background images" → query: "backgroundImage:*"
 - "cards with backgroundImage field" → query: "backgroundImage:*"
 
+**CTA (Call-to-Action) Searches**:
+
+IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
+
+**What IS a CTA**:
+- checkout-link elements (e.g., <a is="checkout-link">)
+- Anchor tags with button classes (e.g., <a class="button con-button">)
+- Interactive elements that users click to take action (buy, trial, learn more, etc.)
+
+**What is NOT a CTA**:
+- merch-addon checkboxes (configuration UI elements, not user-facing CTAs)
+- Text content that contains action words but is not in a clickable element
+- Slot names, class names, or element IDs (e.g., "addon-stock-trial" is a checkbox label, NOT a CTA)
+
+**Search Guidelines for CTAs**:
+- When user asks for "trial CTA", "buy CTA", "free trial button", etc., they want actual clickable elements
+- EXCLUDE merch-addon elements - these are configuration checkboxes, not CTAs
+- Focus on text within checkout-link or anchor elements with button styling
+
+**Examples**:
+- "find cards with free trial CTA" → query: "free trial" AND specify in message: "searching for checkout links with trial text (excluding addon checkboxes)"
+- "cards with buy now button" → query: "buy now" AND specify: "searching for CTA buttons (excluding addon elements)"
+- "show trial CTAs" → query: "trial" AND note: "filtering for actual call-to-action links, not configuration elements"
+
 **MCP Response format**:
 \`\`\`json
 {

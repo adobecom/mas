@@ -114,3 +114,33 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    preview-bulk-update:
+                        function: src/actions/preview-bulk-update.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    preview-bulk-publish:
+                        function: src/actions/preview-bulk-publish.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    preview-bulk-delete:
+                        function: src/actions/preview-bulk-delete.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

@@ -610,6 +610,198 @@ export class StudioOperations {
     }
 
     /**
+     * Preview bulk update (shows changes without executing)
+     * @param {Object} params - { fragmentIds: string[], updates?: Object, textReplacements?: Array }
+     */
+    async previewBulkUpdate(params) {
+        const { fragmentIds, updates = {}, textReplacements = [] } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for preview');
+        }
+
+        const previews = [];
+        let willUpdate = 0;
+        let noChanges = 0;
+        let errors = 0;
+
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+                let fieldsToUpdate = { ...updates };
+                const changes = [];
+                const currentValues = {};
+                const newValues = {};
+
+                if (textReplacements.length > 0) {
+                    textReplacements.forEach(({ field, find, replace }) => {
+                        if (field) {
+                            const fieldData = fragment.fields[field];
+                            const currentValue = fieldData?.value || fieldData;
+                            if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
+                                const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                const newValue = currentValue.replace(regex, replace);
+                                fieldsToUpdate[field] = { value: newValue };
+                                changes.push(`${field}: "${find}" → "${replace}"`);
+                                currentValues[field] = currentValue;
+                                newValues[field] = newValue;
+                            }
+                        } else {
+                            Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
+                                const currentValue = fieldData?.value || fieldData;
+                                if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
+                                    const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                    const newValue = currentValue.replace(regex, replace);
+                                    fieldsToUpdate[fieldName] = { value: newValue };
+                                    changes.push(`${fieldName}: "${find}" → "${replace}"`);
+                                    currentValues[fieldName] = currentValue;
+                                    newValues[fieldName] = newValue;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                const hasChanges = Object.keys(fieldsToUpdate).length > 0;
+                if (hasChanges) {
+                    willUpdate++;
+                } else {
+                    noChanges++;
+                }
+
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: fragment.title,
+                    willUpdate: hasChanges,
+                    changes,
+                    currentValues,
+                    newValues,
+                });
+            } catch (error) {
+                errors++;
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: id,
+                    willUpdate: false,
+                    error: error.message,
+                });
+            }
+        }
+
+        return {
+            operation: 'preview_bulk_update',
+            previews,
+            summary: { willUpdate, noChanges, errors },
+        };
+    }
+
+    /**
+     * Preview bulk publish/unpublish (shows what will change)
+     * @param {Object} params - { fragmentIds: string[], action: 'publish' | 'unpublish' }
+     */
+    async previewBulkPublish(params) {
+        const { fragmentIds, action = 'publish' } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for preview');
+        }
+
+        if (!['publish', 'unpublish'].includes(action)) {
+            throw new Error('Action must be either "publish" or "unpublish"');
+        }
+
+        const previews = [];
+        let willChange = 0;
+        let alreadyInState = 0;
+        let errors = 0;
+
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+                const isPublished = fragment.status === 'PUBLISHED' || fragment.status === 'Published';
+                const needsChange =
+                    (action === 'publish' && !isPublished) || (action === 'unpublish' && isPublished);
+
+                if (needsChange) {
+                    willChange++;
+                } else {
+                    alreadyInState++;
+                }
+
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: fragment.title,
+                    currentStatus: fragment.status,
+                    willChange: needsChange,
+                });
+            } catch (error) {
+                errors++;
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: id,
+                    willChange: false,
+                    error: error.message,
+                });
+            }
+        }
+
+        return {
+            operation: 'preview_bulk_publish',
+            action,
+            previews,
+            summary: { willChange, alreadyInState, errors },
+        };
+    }
+
+    /**
+     * Preview bulk delete (shows what will be deleted)
+     * @param {Object} params - { fragmentIds: string[] }
+     */
+    async previewBulkDelete(params) {
+        const { fragmentIds } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for preview');
+        }
+
+        const previews = [];
+        let willDelete = 0;
+        let notFound = 0;
+        let errors = 0;
+
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+
+                willDelete++;
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: fragment.title,
+                    willDelete: true,
+                });
+            } catch (error) {
+                if (error.message.includes('not found')) {
+                    notFound++;
+                } else {
+                    errors++;
+                }
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: id,
+                    willDelete: false,
+                    error: error.message,
+                });
+            }
+        }
+
+        return {
+            operation: 'preview_bulk_delete',
+            previews,
+            summary: { willDelete, notFound, errors },
+        };
+    }
+
+    /**
      * Format fragment to card object
      * @private
      */

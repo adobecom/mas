@@ -126,6 +126,92 @@ export class StudioOperations {
     }
 
     /**
+     * Check if a search query is CTA-related
+     * @param {string} query - Search query string
+     * @returns {boolean} True if query is searching for CTAs
+     */
+    static isCTASearch(query) {
+        if (!query || typeof query !== 'string') {
+            return false;
+        }
+
+        const ctaKeywords = [
+            'cta',
+            'button',
+            'link',
+            'trial',
+            'buy',
+            'purchase',
+            'checkout',
+            'select',
+            'start',
+            'get started',
+            'learn more',
+            'free trial',
+            'buy now',
+            'shop now',
+            'subscribe',
+        ];
+
+        const lowerQuery = query.toLowerCase();
+        return ctaKeywords.some((keyword) => lowerQuery.includes(keyword));
+    }
+
+    /**
+     * Filter search results to exclude cards with merch-addon elements from CTA searches
+     * Simple aggressive filtering: if card has ANY merch-addon element, exclude it
+     * Unless user explicitly mentions "addon" or "merch-addon" in their query
+     * @param {Array} fragments - Array of fragment objects with fields
+     * @param {string} query - Original search query
+     * @returns {Array} Filtered fragments excluding cards with merch-addon elements
+     */
+    static filterCTAResults(fragments, query) {
+        if (!query || !fragments || fragments.length === 0) {
+            return fragments;
+        }
+
+        const lowerQuery = query.toLowerCase();
+        if (lowerQuery.includes('addon') || lowerQuery.includes('merch-addon')) {
+            console.log('[StudioOperations] User mentioned addon in query, skipping merch-addon filter');
+            return fragments;
+        }
+
+        console.log('[StudioOperations] CTA search: filtering out cards with merch-addon elements');
+        const beforeCount = fragments.length;
+
+        const filtered = fragments.filter((fragment) => {
+            const fields = fragment.fields;
+            if (!fields) {
+                return true;
+            }
+
+            for (const fieldName of Object.keys(fields)) {
+                const field = fields[fieldName];
+                const fieldValue = field?.value || field;
+
+                if (fieldValue && typeof fieldValue === 'string') {
+                    if (fieldValue.includes('<merch-addon') || fieldValue.includes('merch-addon')) {
+                        const fragmentId = fragment.id || fragment.title || 'unknown';
+                        console.log(
+                            `[StudioOperations] Excluded card ${fragmentId}: found merch-addon in field "${fieldName}"`,
+                        );
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        });
+
+        const excludedCount = beforeCount - filtered.length;
+        if (excludedCount > 0) {
+            console.log(`[StudioOperations] Excluded ${excludedCount} card(s) with merch-addon elements`);
+        }
+
+        return filtered;
+    }
+
+    /**
      * Search for cards with filters
      * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string }
      */
@@ -196,6 +282,15 @@ export class StudioOperations {
                     : fragment.fields?.variant?.value || fragment.fields?.variant;
                 return fragmentVariant === variant;
             });
+        }
+
+        if (StudioOperations.isCTASearch(query)) {
+            console.log('[StudioOperations] CTA search detected, applying CTA filter to exclude addon checkboxes');
+            const beforeCTAFilter = filteredFragments.length;
+            filteredFragments = StudioOperations.filterCTAResults(filteredFragments, query);
+            console.log(
+                `[StudioOperations] CTA filter: ${beforeCTAFilter} fragments → ${filteredFragments.length} fragments (excluded ${beforeCTAFilter - filteredFragments.length} with only addon matches)`,
+            );
         }
 
         console.log(
@@ -719,8 +814,7 @@ export class StudioOperations {
             try {
                 const fragment = await this.aemClient.getFragment(id);
                 const isPublished = fragment.status === 'PUBLISHED' || fragment.status === 'Published';
-                const needsChange =
-                    (action === 'publish' && !isPublished) || (action === 'unpublish' && isPublished);
+                const needsChange = (action === 'publish' && !isPublished) || (action === 'unpublish' && isPublished);
 
                 if (needsChange) {
                     willChange++;

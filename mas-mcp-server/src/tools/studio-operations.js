@@ -156,66 +156,57 @@ export class StudioOperations {
     }
 
     /**
-     * Filter search results to exclude merch-addon elements from CTA matches
-     * Uses word-based matching to align with AEM's full-text search behavior
+     * Filter search results to exclude cards with merch-addon elements from CTA searches
+     * Simple aggressive filtering: if card has ANY merch-addon element, exclude it
+     * Unless user explicitly mentions "addon" or "merch-addon" in their query
      * @param {Array} fragments - Array of fragment objects with fields
      * @param {string} query - Original search query
-     * @returns {Array} Filtered fragments where query matches actual CTAs, not addon checkboxes
+     * @returns {Array} Filtered fragments excluding cards with merch-addon elements
      */
     static filterCTAResults(fragments, query) {
         if (!query || !fragments || fragments.length === 0) {
             return fragments;
         }
 
-        const queryWords = query
-            .toLowerCase()
-            .split(/\s+/)
-            .filter((word) => word.length > 0);
+        const lowerQuery = query.toLowerCase();
+        if (lowerQuery.includes('addon') || lowerQuery.includes('merch-addon')) {
+            console.log('[StudioOperations] User mentioned addon in query, skipping merch-addon filter');
+            return fragments;
+        }
 
-        return fragments.filter((fragment) => {
+        console.log('[StudioOperations] CTA search: filtering out cards with merch-addon elements');
+        const beforeCount = fragments.length;
+
+        const filtered = fragments.filter((fragment) => {
             const fields = fragment.fields;
             if (!fields) {
                 return true;
             }
 
-            let hasCTAMatch = false;
-            let hasNonAddonMatch = false;
-            let hasAnyMatch = false;
-
-            Object.keys(fields).forEach((fieldName) => {
+            for (const fieldName of Object.keys(fields)) {
                 const field = fields[fieldName];
                 const fieldValue = field?.value || field;
 
-                if (!fieldValue || typeof fieldValue !== 'string') {
-                    return;
-                }
-
-                const lowerValue = fieldValue.toLowerCase();
-
-                const wordMatches = queryWords.some((word) => lowerValue.includes(word));
-
-                if (wordMatches) {
-                    hasAnyMatch = true;
-
-                    if (
-                        fieldValue.includes('checkout-link') ||
-                        (fieldValue.includes('<a ') && fieldValue.includes('button')) ||
-                        fieldValue.includes('is="checkout-link"')
-                    ) {
-                        hasCTAMatch = true;
-                        hasNonAddonMatch = true;
-                    } else if (!fieldValue.includes('merch-addon') && !fieldValue.includes('addon-')) {
-                        hasNonAddonMatch = true;
+                if (fieldValue && typeof fieldValue === 'string') {
+                    if (fieldValue.includes('<merch-addon') || fieldValue.includes('merch-addon')) {
+                        const fragmentId = fragment.id || fragment.title || 'unknown';
+                        console.log(
+                            `[StudioOperations] Excluded card ${fragmentId}: found merch-addon in field "${fieldName}"`,
+                        );
+                        return false;
                     }
                 }
-            });
-
-            if (!hasAnyMatch) {
-                return true;
             }
 
-            return hasCTAMatch || hasNonAddonMatch;
+            return true;
         });
+
+        const excludedCount = beforeCount - filtered.length;
+        if (excludedCount > 0) {
+            console.log(`[StudioOperations] Excluded ${excludedCount} card(s) with merch-addon elements`);
+        }
+
+        return filtered;
     }
 
     /**

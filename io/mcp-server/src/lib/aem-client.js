@@ -159,6 +159,71 @@ export class AEMClient {
     }
 
     /**
+     * Save a fragment with complete fields array (PUT method)
+     * Mirrors frontend approach for consistency
+     */
+    async saveFragment(id, title, description, fields, etag) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}`;
+
+        const headers = {
+            Authorization: authHeader,
+            'Content-Type': 'application/json',
+            'CSRF-Token': csrfToken,
+        };
+
+        if (etag) {
+            headers['If-Match'] = etag;
+        }
+
+        const body = {
+            title,
+            description,
+            fields,
+        };
+
+        console.log('[AEMClient] saveFragment called with:', {
+            id,
+            title,
+            description,
+            fieldsCount: Array.isArray(fields) ? fields.length : 0,
+            etag: etag ? 'present' : 'missing',
+        });
+
+        console.log('[AEMClient] PUT request body to be sent:', JSON.stringify(body, null, 2));
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            const responseText = await response.text();
+            let error;
+            try {
+                error = JSON.parse(responseText);
+            } catch {
+                error = { message: response.statusText, body: responseText };
+            }
+
+            console.error('[AEMClient] Save failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorMessage: error.message,
+                responseBody: responseText.substring(0, 500),
+                requestBody: JSON.stringify(body, null, 2),
+                requestHeaders: headers,
+            });
+            throw new Error(`Failed to save fragment (${response.status}): ${error.message || response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
      * Update a fragment
      */
     async updateFragment(id, fields, etag, title, tags) {

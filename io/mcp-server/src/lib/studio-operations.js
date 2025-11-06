@@ -647,19 +647,18 @@ export class StudioOperations {
             fragmentIds.map(async (id, index) => {
                 console.log(`[BulkUpdate] ===== Processing card ${index + 1}/${fragmentIds.length}: ${id} =====`);
                 try {
+                    // Always fetch the fragment to get the complete fields array
+                    const fragment = await this.aemClient.getFragment(id);
                     let fieldsToUpdate = { ...updates };
-                    let fragment = null;
 
                     console.log('[BulkUpdate] Processing card:', {
                         id,
                         updatesFromMCP: JSON.stringify(updates, null, 2),
-                        fieldsToUpdateInitial: JSON.stringify(fieldsToUpdate, null, 2),
                         hasTextReplacements: textReplacements.length > 0,
+                        fragmentTitle: fragment.title,
                     });
 
                     if (textReplacements.length > 0) {
-                        fragment = await this.aemClient.getFragment(id);
-
                         textReplacements.forEach(({ field, find, replace }) => {
                             if (field) {
                                 // Specific field lookup - handle both array and object formats
@@ -684,7 +683,7 @@ export class StudioOperations {
                                 if (textExistsInField(currentValue, find)) {
                                     const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                     const newValue = currentValue.replace(regex, replace);
-                                    fieldsToUpdate[field] = { value: newValue };
+                                    fieldsToUpdate[field] = newValue;
                                     console.log(`[BulkUpdate] Replaced in field "${field}":`, {
                                         id,
                                         field,
@@ -707,7 +706,7 @@ export class StudioOperations {
                                             if (textExistsInField(currentValue, find)) {
                                                 const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                                 const newValue = currentValue.replace(regex, replace);
-                                                fieldsToUpdate[field.name] = { value: newValue };
+                                                fieldsToUpdate[field.name] = newValue;
                                                 console.log(`[BulkUpdate] Replaced in field "${field.name}":`, {
                                                     id,
                                                     field: field.name,
@@ -728,7 +727,7 @@ export class StudioOperations {
                                         if (textExistsInField(currentValue, find)) {
                                             const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                             const newValue = currentValue.replace(regex, replace);
-                                            fieldsToUpdate[fieldName] = { value: newValue };
+                                            fieldsToUpdate[fieldName] = newValue;
                                             console.log(`[BulkUpdate] Replaced in field "${fieldName}":`, {
                                                 id,
                                                 field: fieldName,
@@ -757,11 +756,37 @@ export class StudioOperations {
                         return { id, skipped: true };
                     }
 
-                    const result = await this.updateCard({ id, fields: fieldsToUpdate });
+                    // Build complete fields array with updates merged in
+                    const updatedFields = fragment.fields.map((field) => {
+                        if (fieldsToUpdate[field.name]) {
+                            // Update this field's values
+                            return {
+                                ...field,
+                                values: [fieldsToUpdate[field.name]],
+                            };
+                        }
+                        // Keep field unchanged
+                        return field;
+                    });
+
+                    console.log('[BulkUpdate] Merged fields for save:', {
+                        id,
+                        totalFields: updatedFields.length,
+                        updatedFieldNames: Object.keys(fieldsToUpdate),
+                    });
+
+                    // Save using PUT method with complete fields array
+                    const savedFragment = await this.aemClient.saveFragment(
+                        id,
+                        fragment.title,
+                        fragment.description,
+                        updatedFields,
+                        fragment.etag,
+                    );
 
                     await jobManager.addSuccessfulItem(jobId, {
                         id,
-                        title: result.card.title,
+                        title: savedFragment.title,
                         fieldsChanged: Object.keys(fieldsToUpdate),
                     });
 
@@ -1000,7 +1025,7 @@ export class StudioOperations {
                             if (found) {
                                 const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                 const newValue = currentValue.replace(regex, replace);
-                                fieldsToUpdate[field] = { value: newValue };
+                                fieldsToUpdate[field] = newValue;
                                 changes.push(`${field}: "${find}" → "${replace}"`);
                                 currentValues[field] = currentValue;
                                 newValues[field] = newValue;
@@ -1029,7 +1054,7 @@ export class StudioOperations {
                                             });
                                             const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                             const newValue = currentValue.replace(regex, replace);
-                                            fieldsToUpdate[field.name] = { value: newValue };
+                                            fieldsToUpdate[field.name] = newValue;
                                             changes.push(`${field.name}: "${find}" → "${replace}"`);
                                             currentValues[field.name] = currentValue;
                                             newValues[field.name] = newValue;
@@ -1054,7 +1079,7 @@ export class StudioOperations {
                                         });
                                         const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                         const newValue = currentValue.replace(regex, replace);
-                                        fieldsToUpdate[fieldName] = { value: newValue };
+                                        fieldsToUpdate[fieldName] = newValue;
                                         changes.push(`${fieldName}: "${find}" → "${replace}"`);
                                         currentValues[fieldName] = currentValue;
                                         newValues[fieldName] = newValue;

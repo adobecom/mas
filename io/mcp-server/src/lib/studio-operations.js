@@ -168,9 +168,49 @@ export class StudioOperations {
         }
 
         const ctas = [];
-
-        const checkoutLinkRegex = /<a[^>]*is=["']checkout-link["'][^>]*>(.*?)<\/a>/gis;
         let match;
+
+        // Pattern 1: <button is="checkout-button"> elements
+        const checkoutButtonRegex = /<button[^>]*is=["']checkout-button["'][^>]*>(.*?)<\/button>/gis;
+
+        while ((match = checkoutButtonRegex.exec(htmlContent)) !== null) {
+            const fullElement = match[0];
+            const innerText = match[1];
+
+            // Extract data-href or href attribute
+            const hrefMatch = fullElement.match(/(?:data-)?href=["']([^"']+)["']/i);
+            const href = hrefMatch ? hrefMatch[1] : '';
+
+            // Strip HTML tags from inner text
+            const text = innerText.replace(/<[^>]+>/g, '').trim();
+
+            ctas.push({ text, href, type: 'checkout-button' });
+        }
+
+        // Pattern 2: <a> tags with Spectrum Button or design system classes
+        // Matches: spectrum-Button, primary, primary-outline, accent, secondary, secondary-outline
+        const spectrumButtonRegex = /<a[^>]*class=["'][^"']*(spectrum-Button|primary|accent|secondary)[^"']*["'][^>]*>(.*?)<\/a>/gis;
+
+        while ((match = spectrumButtonRegex.exec(htmlContent)) !== null) {
+            const fullElement = match[0];
+            const innerText = match[2]; // Note: capture group 2 because group 1 is the class match
+
+            // Skip if already processed as checkout-link
+            if (fullElement.includes('is="checkout-link"') || fullElement.includes("is='checkout-link'")) {
+                continue;
+            }
+
+            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
+            const href = hrefMatch ? hrefMatch[1] : '';
+
+            // Strip HTML tags from inner text
+            const text = innerText.replace(/<[^>]+>/g, '').trim();
+
+            ctas.push({ text, href, type: 'spectrum-button' });
+        }
+
+        // Pattern 3: Legacy checkout-link pattern (for backward compatibility)
+        const checkoutLinkRegex = /<a[^>]*is=["']checkout-link["'][^>]*>(.*?)<\/a>/gis;
 
         while ((match = checkoutLinkRegex.exec(htmlContent)) !== null) {
             const fullElement = match[0];
@@ -181,25 +221,30 @@ export class StudioOperations {
 
             const text = innerText.replace(/<[^>]+>/g, '').trim();
 
-            ctas.push({ text, href, type: 'checkout-link' });
+            // Check if not already added (to avoid duplicates)
+            const isDuplicate = ctas.some(cta => cta.text === text && cta.href === href);
+            if (!isDuplicate) {
+                ctas.push({ text, href, type: 'checkout-link' });
+            }
         }
 
-        const buttonRegex = /<a[^>]*class=["'][^"']*button[^"']*["'][^>]*>(.*?)<\/a>/gis;
+        // Pattern 4: <a> tags with data-wcs-osi attribute (strong indicator of CTAs)
+        const wcsOsiRegex = /<a[^>]*data-wcs-osi=["'][^"']+["'][^>]*>(.*?)<\/a>/gis;
 
-        while ((match = buttonRegex.exec(htmlContent)) !== null) {
+        while ((match = wcsOsiRegex.exec(htmlContent)) !== null) {
             const fullElement = match[0];
             const innerText = match[1];
-
-            if (fullElement.includes('is="checkout-link"') || fullElement.includes("is='checkout-link'")) {
-                continue;
-            }
 
             const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
             const href = hrefMatch ? hrefMatch[1] : '';
 
             const text = innerText.replace(/<[^>]+>/g, '').trim();
 
-            ctas.push({ text, href, type: 'button' });
+            // Check if not already added (to avoid duplicates)
+            const isDuplicate = ctas.some(cta => cta.text === text && cta.href === href);
+            if (!isDuplicate) {
+                ctas.push({ text, href, type: 'wcs-osi' });
+            }
         }
 
         return ctas;

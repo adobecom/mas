@@ -156,12 +156,59 @@ export class StudioOperations {
     }
 
     /**
-     * Filter search results to exclude cards with merch-addon elements from CTA searches
-     * Simple aggressive filtering: if card has ANY merch-addon element, exclude it
-     * Unless user explicitly mentions "addon" or "merch-addon" in their query
+     * Extract CTA elements from HTML content
+     * @param {string} htmlContent - HTML string to parse
+     * @returns {Array} Array of CTA objects with text and href properties
+     */
+    static extractCTAElements(htmlContent) {
+        if (!htmlContent || typeof htmlContent !== 'string') {
+            return [];
+        }
+
+        const ctas = [];
+
+        const checkoutLinkRegex = /<a[^>]*is=["']checkout-link["'][^>]*>(.*?)<\/a>/gis;
+        let match;
+
+        while ((match = checkoutLinkRegex.exec(htmlContent)) !== null) {
+            const fullElement = match[0];
+            const innerText = match[1];
+
+            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
+            const href = hrefMatch ? hrefMatch[1] : '';
+
+            const text = innerText.replace(/<[^>]+>/g, '').trim();
+
+            ctas.push({ text, href, type: 'checkout-link' });
+        }
+
+        const buttonRegex = /<a[^>]*class=["'][^"']*button[^"']*["'][^>]*>(.*?)<\/a>/gis;
+
+        while ((match = buttonRegex.exec(htmlContent)) !== null) {
+            const fullElement = match[0];
+            const innerText = match[1];
+
+            if (fullElement.includes('is="checkout-link"') || fullElement.includes("is='checkout-link'")) {
+                continue;
+            }
+
+            const hrefMatch = fullElement.match(/href=["']([^"']+)["']/i);
+            const href = hrefMatch ? hrefMatch[1] : '';
+
+            const text = innerText.replace(/<[^>]+>/g, '').trim();
+
+            ctas.push({ text, href, type: 'button' });
+        }
+
+        return ctas;
+    }
+
+    /**
+     * Filter search results to only include cards with CTAs matching the query
+     * Checks actual CTA element text/href content, ignoring merch-addon elements
      * @param {Array} fragments - Array of fragment objects with fields
      * @param {string} query - Original search query
-     * @returns {Array} Filtered fragments excluding cards with merch-addon elements
+     * @returns {Array} Filtered fragments with matching CTA content
      */
     static filterCTAResults(fragments, query) {
         if (!query || !fragments || fragments.length === 0) {
@@ -169,42 +216,67 @@ export class StudioOperations {
         }
 
         const lowerQuery = query.toLowerCase();
+
         if (lowerQuery.includes('addon') || lowerQuery.includes('merch-addon')) {
-            console.log('[StudioOperations] User mentioned addon in query, skipping merch-addon filter');
+            console.log('[StudioOperations] User mentioned addon in query, skipping CTA filter');
             return fragments;
         }
 
-        console.log('[StudioOperations] CTA search: filtering out cards with merch-addon elements');
+        console.log('[StudioOperations] CTA search: filtering by actual CTA text/href content');
         const beforeCount = fragments.length;
+
+        const queryKeywords = lowerQuery.split(/\s+/).filter((word) => word.length > 2);
 
         const filtered = fragments.filter((fragment) => {
             const fields = fragment.fields;
             if (!fields) {
-                return true;
+                return false;
             }
 
+            let hasMatchingCTA = false;
+
             for (const fieldName of Object.keys(fields)) {
+                if (fieldName.toLowerCase().includes('addon')) {
+                    continue;
+                }
+
                 const field = fields[fieldName];
                 const fieldValue = field?.value || field;
 
-                if (fieldValue && typeof fieldValue === 'string') {
-                    if (fieldValue.includes('<merch-addon') || fieldValue.includes('merch-addon')) {
+                if (!fieldValue || typeof fieldValue !== 'string') {
+                    continue;
+                }
+
+                if (fieldValue.includes('<merch-addon') && !fieldValue.includes('<a')) {
+                    continue;
+                }
+
+                const ctas = StudioOperations.extractCTAElements(fieldValue);
+
+                for (const cta of ctas) {
+                    const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
+
+                    const hasMatch = queryKeywords.some((keyword) => ctaContent.includes(keyword));
+
+                    if (hasMatch) {
+                        hasMatchingCTA = true;
                         const fragmentId = fragment.id || fragment.title || 'unknown';
-                        console.log(
-                            `[StudioOperations] Excluded card ${fragmentId}: found merch-addon in field "${fieldName}"`,
-                        );
-                        return false;
+                        console.log(`[StudioOperations] Found matching CTA in ${fragmentId}: "${cta.text}" (${cta.type})`);
+                        break;
                     }
+                }
+
+                if (hasMatchingCTA) {
+                    break;
                 }
             }
 
-            return true;
+            return hasMatchingCTA;
         });
 
-        const excludedCount = beforeCount - filtered.length;
-        if (excludedCount > 0) {
-            console.log(`[StudioOperations] Excluded ${excludedCount} card(s) with merch-addon elements`);
-        }
+        const includedCount = filtered.length;
+        const excludedCount = beforeCount - includedCount;
+        console.log(`[StudioOperations] CTA filter: included ${includedCount}, excluded ${excludedCount} card(s)`);
 
         return filtered;
     }

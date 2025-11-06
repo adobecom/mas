@@ -257,6 +257,34 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: result.message || `✓ Deleted ${result.successCount} of ${result.total} cards`,
             };
 
+        case 'studio_preview_bulk_update':
+            return {
+                success: true,
+                operation: 'preview_bulk_update',
+                previews: result.previews || [],
+                summary: result.summary || { willUpdate: 0, noChanges: 0, errors: 0 },
+                message: result.message || `Preview: ${result.summary?.willUpdate || 0} cards will be updated`,
+            };
+
+        case 'studio_preview_bulk_publish':
+            return {
+                success: true,
+                operation: 'preview_bulk_publish',
+                action: result.action,
+                previews: result.previews || [],
+                summary: result.summary || { willChange: 0, alreadyInState: 0, errors: 0 },
+                message: result.message || `Preview: ${result.summary?.willChange || 0} cards will be ${result.action}ed`,
+            };
+
+        case 'studio_preview_bulk_delete':
+            return {
+                success: true,
+                operation: 'preview_bulk_delete',
+                previews: result.previews || [],
+                summary: result.summary || { willDelete: 0, notFound: 0, errors: 0 },
+                message: result.message || `Preview: ${result.summary?.willDelete || 0} cards will be deleted`,
+            };
+
         default:
             return {
                 success: true,

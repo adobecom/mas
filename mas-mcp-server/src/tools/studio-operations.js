@@ -1,13 +1,42 @@
-import { AEMClient } from '../services/aem-client.js';
-import { StudioURLBuilder } from '../utils/studio-url-builder.js';
-import { jobManager } from '../utils/job-manager.js';
+import { AEMClient } from './aem-client.js';
+import { StudioURLBuilder } from './studio-url-builder.js';
+import { JobManager } from './job-manager.js';
 
 const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
     'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
 };
 
+const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
+const COLLECTION_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
 const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
+
+/**
+ * Strip HTML tags from text while preserving the content
+ * Used for searching text in HTML-formatted fields
+ * @param {string} html - HTML text to strip
+ * @returns {string} - Plain text without HTML tags
+ */
+function stripHtml(html) {
+    if (typeof html !== 'string') {
+        return '';
+    }
+    return html.replace(/<[^>]*>/g, '');
+}
+
+/**
+ * Check if text exists in either raw HTML or stripped plain text
+ * Handles both HTML-formatted fields and plain text fields
+ * @param {string} value - The field value to search in
+ * @param {string} find - The text to find
+ * @returns {boolean} - True if found in either raw or stripped version
+ */
+function textExistsInField(value, find) {
+    if (typeof value !== 'string' || typeof find !== 'string') {
+        return false;
+    }
+    return value.includes(find) || stripHtml(value).includes(find);
+}
 
 /**
  * Studio Operations Tools
@@ -156,7 +185,59 @@ export class StudioOperations {
     }
 
     /**
-     * Extract CTA elements from HTML content - simplified approach
+     * Extract content from slot="footer" attribute
+     * @private
+     * @param {string} htmlContent - HTML string to parse
+     * @returns {Array} Array of footer slot content strings
+     */
+    static extractFooterSlotContent(htmlContent) {
+        const footerSlots = [];
+
+        // Match div or other elements with slot="footer"
+        const slotRegex = /<(div|[a-z]+)\s[^>]*slot="footer"[^>]*>(.*?)<\/\1>/gis;
+        let match;
+
+        while ((match = slotRegex.exec(htmlContent)) !== null) {
+            footerSlots.push(match[2]);
+        }
+
+        // Also match slot element itself
+        const namedSlotRegex = /<slot\s+name="footer"[^>]*><\/slot>/gis;
+        if (namedSlotRegex.test(htmlContent)) {
+            // For named slots, we need to extract content from corresponding slot="footer"
+            footerSlots.push(htmlContent);
+        }
+
+        return footerSlots;
+    }
+
+    /**
+     * Check if content is inside a merch-addon element
+     * @private
+     * @param {string} htmlContent - Full HTML content
+     * @param {number} matchIndex - Index position to check
+     * @returns {boolean} True if position is inside merch-addon
+     */
+    static isInsideMerchAddon(htmlContent, matchIndex) {
+        // Find all merch-addon boundaries
+        const addonRegex = /<merch-addon[^>]*>(.*?)<\/merch-addon>/gis;
+        let addonMatch;
+
+        while ((addonMatch = addonRegex.exec(htmlContent)) !== null) {
+            const addonStart = addonMatch.index;
+            const addonEnd = addonMatch.index + addonMatch[0].length;
+
+            if (matchIndex >= addonStart && matchIndex < addonEnd) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extract CTA elements from HTML content
+     * Extracts ALL <a> and <button> tags from the content
      * @param {string} htmlContent - HTML string to parse
      * @returns {Array} Array of CTA objects with text and href properties
      */
@@ -168,7 +249,7 @@ export class StudioOperations {
         const ctas = [];
         let match;
 
-        // Pattern 1: ANY <a> tag (all links are potential CTAs)
+        // Pattern 1: Extract ALL <a> tags (not limited to footer slots)
         const linkRegex = /<a\s[^>]*>(.*?)<\/a>/gis;
 
         while ((match = linkRegex.exec(htmlContent)) !== null) {
@@ -188,7 +269,7 @@ export class StudioOperations {
             }
         }
 
-        // Pattern 2: ANY <button> tag (all buttons are potential CTAs)
+        // Pattern 2: Extract ALL <button> tags
         const buttonRegex = /<button\s[^>]*>(.*?)<\/button>/gis;
 
         while ((match = buttonRegex.exec(htmlContent)) !== null) {
@@ -212,8 +293,7 @@ export class StudioOperations {
     }
 
     /**
-     * Filter search results to only include cards with CTAs matching the query
-     * Checks actual CTA element text/href content, ignoring merch-addon elements
+     * Filter search results to only include cards with CTAs matching the query - simplified approach
      * @param {Array} fragments - Array of fragment objects with fields
      * @param {string} query - Original search query
      * @returns {Array} Filtered fragments with matching CTA content
@@ -224,97 +304,143 @@ export class StudioOperations {
         }
 
         const lowerQuery = query.toLowerCase();
-
-        if (lowerQuery.includes('addon') || lowerQuery.includes('merch-addon')) {
-            console.log('[StudioOperations] User mentioned addon in query, skipping CTA filter');
-            return fragments;
-        }
-
-        console.log('[StudioOperations] CTA search: filtering by actual CTA text/href content');
+        console.log('[StudioOperations] CTA search: simple filtering for links and buttons');
         const beforeCount = fragments.length;
 
-        // Skip generic CTA words from keyword matching - they're search intent, not button text
+        // Extract meaningful keywords (skip CTA-intent words)
         const skipWords = ['cta', 'button', 'link', 'call', 'action'];
         const queryKeywords = lowerQuery.split(/\s+/).filter((word) => word.length > 2 && !skipWords.includes(word));
 
         console.log(`[StudioOperations] Searching for keywords: ${queryKeywords.join(', ') || '(any CTA)'}`);
 
-        const filtered = fragments.filter((fragment) => {
+        const filtered = fragments.filter((fragment, index) => {
             const fields = fragment.fields;
-            if (!fields) {
-                return true; // Include fragments without fields rather than exclude them
+            if (!fields) return true; // Include if no fields to check
+
+            // Debug: Log first fragment to understand structure
+            if (index === 0) {
+                console.log(`[StudioOperations] First fragment structure:`, {
+                    id: fragment.id,
+                    title: fragment.title,
+                    fieldNames: Object.keys(fields),
+                    totalFields: Object.keys(fields).length,
+                });
+                // Log the first few fields to see what they contain
+                const firstFiveFields = Object.keys(fields).slice(0, 5);
+                firstFiveFields.forEach((fieldName) => {
+                    const field = fields[fieldName];
+                    console.log(`[StudioOperations] Field ${fieldName} type: ${typeof field}`);
+
+                    // Fields have structure: { name, type, multiple, locked, values: [...] }
+                    // Access the actual content from field.values array
+                    let fieldValue = null;
+                    if (field && field.values && Array.isArray(field.values)) {
+                        fieldValue = field.values.join(' '); // Join all values if multiple
+                    } else if (field && typeof field === 'string') {
+                        fieldValue = field; // Direct string field
+                    }
+
+                    if (field && typeof field === 'object') {
+                        console.log(`[StudioOperations] Field ${fieldName} keys: ${Object.keys(field).join(', ')}`);
+                    }
+
+                    if (typeof fieldValue === 'string' && fieldValue.length > 0) {
+                        console.log(
+                            `[StudioOperations] Field ${fieldName} content (first 300 chars): ${fieldValue.substring(0, 300)}`,
+                        );
+                        // Also check if it contains HTML elements
+                        if (fieldValue.includes('<') && fieldValue.includes('>')) {
+                            const hasLink = fieldValue.includes('<a ') || fieldValue.includes('<a>');
+                            const hasButton = fieldValue.includes('<button');
+                            console.log(
+                                `[StudioOperations] Field ${fieldName} has HTML - Links: ${hasLink}, Buttons: ${hasButton}`,
+                            );
+                        }
+                    } else if (field && field.values) {
+                        console.log(`[StudioOperations] Field ${fieldName} has values array: ${field.values.length} items`);
+                    } else {
+                        console.log(`[StudioOperations] Field ${fieldName} is empty or null`);
+                    }
+                });
             }
 
-            let hasMatchingCTA = false;
-            let hasCTAs = false;
+            // Check ALL fields for actual CTAs (links and buttons)
+            // Note: We're NOT excluding cards with addon elements anymore
+            // because cards can have both addon checkboxes AND free trial CTAs
+            let foundMatchingCTA = false;
 
             for (const fieldName of Object.keys(fields)) {
-                if (fieldName.toLowerCase().includes('addon')) {
-                    continue;
-                }
-
                 const field = fields[fieldName];
-                const fieldValue = field?.value || field;
 
-                if (!fieldValue || typeof fieldValue !== 'string') {
+                // Fields have structure: { name, type, multiple, locked, values: [...] }
+                // Access the actual content from field.values array
+                let fieldValue = null;
+                if (field && field.values && Array.isArray(field.values)) {
+                    fieldValue = field.values.join(' '); // Join all values if multiple
+                } else if (field && typeof field === 'string') {
+                    fieldValue = field; // Direct string field
+                }
+
+                if (!fieldValue || typeof fieldValue !== 'string') continue;
+
+                // Skip fields that are just addon checkbox configurations
+                // (these are configuration fields, not actual CTAs)
+                if (fieldValue.includes('merch-addon') && fieldValue.includes('checkbox')) {
                     continue;
                 }
 
-                // Skip fields that ONLY have addon elements (no actual buttons or links)
-                if (fieldValue.includes('<merch-addon') && !fieldValue.includes('<button') && !fieldValue.includes('<a')) {
-                    continue;
-                }
-
+                // Extract CTAs from this field (links and buttons)
                 const ctas = StudioOperations.extractCTAElements(fieldValue);
 
-                if (ctas.length > 0) {
-                    hasCTAs = true;
+                if (ctas.length === 0) continue;
 
-                    // If no specific keywords to match, include any card with CTAs
-                    if (queryKeywords.length === 0) {
-                        hasMatchingCTA = true;
-                        const fragmentId = fragment.id || fragment.title || 'unknown';
-                        console.log(`[StudioOperations] Found CTAs in ${fragmentId} (generic CTA search)`);
-                        break;
-                    }
-
-                    // Check if any CTA matches the query keywords
-                    for (const cta of ctas) {
-                        const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
-
-                        const hasMatch = queryKeywords.some((keyword) => ctaContent.includes(keyword));
-
-                        if (hasMatch) {
-                            hasMatchingCTA = true;
-                            const fragmentId = fragment.id || fragment.title || 'unknown';
-                            console.log(`[StudioOperations] Found matching CTA in ${fragmentId}: "${cta.text}" (${cta.type})`);
-                            break;
-                        }
-                    }
+                // Debug: Log extracted CTAs for first fragment to see what we're working with
+                if (fragments.indexOf(fragment) < 3) {
+                    // Log first 3 fragments for debugging
+                    console.log(
+                        `[StudioOperations] CTAs found in ${fragment.id || fragment.title}: ${JSON.stringify(ctas.map((c) => c.text))}`,
+                    );
                 }
 
-                if (hasMatchingCTA) {
+                // If no specific keywords, include any card with CTAs
+                if (queryKeywords.length === 0) {
+                    console.log(`[StudioOperations] Found CTAs in ${fragment.id || fragment.title || 'fragment'}`);
+                    foundMatchingCTA = true;
                     break;
                 }
+
+                // Check if any CTA matches keywords
+                for (const cta of ctas) {
+                    const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
+
+                    // Check if ALL keywords are found (more lenient)
+                    const hasMatch = queryKeywords.some((keyword) => ctaContent.includes(keyword));
+
+                    if (hasMatch) {
+                        console.log(
+                            `[StudioOperations] Match found: "${cta.text}" in ${fragment.id || fragment.title || 'fragment'}`,
+                        );
+                        foundMatchingCTA = true;
+                        break;
+                    }
+                }
+
+                if (foundMatchingCTA) break;
             }
 
-            // Include if: has matching CTAs OR (has CTAs and no specific keywords to match)
-            return hasMatchingCTA || (hasCTAs && queryKeywords.length === 0);
+            return foundMatchingCTA;
         });
 
-        const includedCount = filtered.length;
-        const excludedCount = beforeCount - includedCount;
-        console.log(`[StudioOperations] CTA filter: included ${includedCount}, excluded ${excludedCount} card(s)`);
-
+        console.log(`[StudioOperations] CTA filter: ${fragments.length} → ${filtered.length} results`);
         return filtered;
     }
 
     /**
      * Search for cards with filters
-     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string, searchMode?: string }
+     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string }
      */
     async searchCards(params) {
-        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0, searchMode = 'FUZZY' } = params;
+        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0 } = params;
 
         console.log('[StudioOperations] searchCards received params:', {
             surface,
@@ -323,7 +449,6 @@ export class StudioOperations {
             limit,
             variant,
             offset,
-            searchMode,
         });
 
         if (!surface) {
@@ -339,15 +464,14 @@ export class StudioOperations {
             path: surfacePath,
             query,
             tags,
-            modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
+            modelIds: [CARD_MODEL_ID],
             limit: requestLimit,
             offset,
-            searchMode,
         };
 
         console.log('[StudioOperations] Search params with modelIds:', {
             path: surfacePath,
-            modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
+            modelIds: [CARD_MODEL_ID],
             limit: requestLimit,
         });
 
@@ -506,14 +630,7 @@ export class StudioOperations {
             throw new Error(`Card not found: ${id}`);
         }
 
-        const updateParams = {
-            id: fragment.id,
-            fields: fields || {},
-            title,
-            tags,
-        };
-
-        const updatedFragment = await this.aemClient.updateFragment(updateParams);
+        const updatedFragment = await this.aemClient.updateFragment(fragment.id, fields || {}, fragment.etag, title, tags);
 
         const card = this.formatCard(updatedFragment);
         const studioLinks = this.urlBuilder.createCardLinks(card);
@@ -538,374 +655,149 @@ export class StudioOperations {
     }
 
     /**
-     * Preview bulk update for multiple cards (NO execution)
-     * @param {Object} params - { fragmentIds: string[], updates?: Object, textReplacements?: Array }
-     */
-    async previewBulkUpdate(params) {
-        const { fragmentIds, updates = {}, textReplacements = [] } = params;
-
-        if (!fragmentIds || fragmentIds.length === 0) {
-            throw new Error('At least one fragment ID is required for preview');
-        }
-
-        const previews = await Promise.allSettled(
-            fragmentIds.map(async (id) => {
-                try {
-                    const fragment = await this.aemClient.getFragment(id);
-
-                    if (!fragment) {
-                        throw new Error(`Card not found: ${id}`);
-                    }
-
-                    const changes = [];
-                    const currentValues = {};
-                    const newValues = {};
-
-                    if (Object.keys(updates).length > 0) {
-                        Object.entries(updates).forEach(([field, value]) => {
-                            const fieldData = fragment.fields[field];
-                            const currentValue = fieldData?.value || fieldData;
-                            const newValue = value?.value || value;
-
-                            currentValues[field] = currentValue;
-                            newValues[field] = newValue;
-
-                            if (currentValue !== newValue) {
-                                changes.push(`${field}: "${currentValue}" → "${newValue}"`);
-                            }
-                        });
-                    }
-
-                    if (textReplacements.length > 0) {
-                        textReplacements.forEach(({ field, find, replace }) => {
-                            if (field) {
-                                const fieldData = fragment.fields[field];
-                                const currentValue = fieldData?.value || fieldData;
-                                if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
-                                    const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                    const newValue = currentValue.replace(regex, replace);
-
-                                    currentValues[field] = currentValue;
-                                    newValues[field] = newValue;
-                                    changes.push(`${field}: "${currentValue}" → "${newValue}"`);
-                                }
-                            } else {
-                                Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
-                                    const currentValue = fieldData?.value || fieldData;
-                                    if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
-                                        const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                        const newValue = currentValue.replace(regex, replace);
-
-                                        currentValues[fieldName] = currentValue;
-                                        newValues[fieldName] = newValue;
-                                        changes.push(`${fieldName}: "${currentValue}" → "${newValue}"`);
-                                    }
-                                });
-                            }
-                        });
-                    }
-
-                    return {
-                        fragmentId: id,
-                        fragmentName: fragment.title,
-                        path: fragment.path,
-                        currentValues,
-                        newValues,
-                        changes,
-                        willUpdate: changes.length > 0,
-                    };
-                } catch (error) {
-                    return {
-                        fragmentId: id,
-                        fragmentName: id,
-                        error: error.message,
-                        willUpdate: false,
-                    };
-                }
-            }),
-        );
-
-        const successful = previews.filter((r) => r.status === 'fulfilled').map((r) => r.value);
-        const itemsWithChanges = successful.filter((item) => item.willUpdate);
-        const itemsWithoutChanges = successful.filter((item) => !item.willUpdate && !item.error);
-
-        return {
-            success: true,
-            operation: 'preview_bulk_update',
-            previews: successful,
-            summary: {
-                total: fragmentIds.length,
-                willUpdate: itemsWithChanges.length,
-                noChanges: itemsWithoutChanges.length,
-                errors: successful.filter((item) => item.error).length,
-            },
-            message: `Preview: ${itemsWithChanges.length} of ${fragmentIds.length} cards will be updated`,
-        };
-    }
-
-    /**
-     * Preview bulk publish for multiple cards (NO execution)
-     * @param {Object} params - { fragmentIds: string[], action?: 'publish' | 'unpublish' }
-     */
-    async previewBulkPublish(params) {
-        const { fragmentIds, action = 'publish' } = params;
-
-        if (!fragmentIds || fragmentIds.length === 0) {
-            throw new Error('At least one fragment ID is required for preview');
-        }
-
-        const previews = await Promise.allSettled(
-            fragmentIds.map(async (id) => {
-                try {
-                    const fragment = await this.aemClient.getFragment(id);
-
-                    if (!fragment) {
-                        throw new Error(`Card not found: ${id}`);
-                    }
-
-                    const isPublished = fragment.status === 'PUBLISHED' || fragment.published;
-                    const willChange = action === 'publish' ? !isPublished : isPublished;
-
-                    return {
-                        fragmentId: id,
-                        fragmentName: fragment.title,
-                        path: fragment.path,
-                        currentStatus: isPublished ? 'published' : 'unpublished',
-                        action,
-                        willChange,
-                        message: willChange
-                            ? `Will ${action} "${fragment.title}"`
-                            : `Already ${isPublished ? 'published' : 'unpublished'}`,
-                    };
-                } catch (error) {
-                    return {
-                        fragmentId: id,
-                        fragmentName: id,
-                        error: error.message,
-                        willChange: false,
-                    };
-                }
-            }),
-        );
-
-        const successful = previews.filter((r) => r.status === 'fulfilled').map((r) => r.value);
-        const itemsWithChanges = successful.filter((item) => item.willChange);
-
-        return {
-            success: true,
-            operation: 'preview_bulk_publish',
-            action,
-            previews: successful,
-            summary: {
-                total: fragmentIds.length,
-                willChange: itemsWithChanges.length,
-                alreadyInState: successful.filter((item) => !item.willChange && !item.error).length,
-                errors: successful.filter((item) => item.error).length,
-            },
-            message: `Preview: ${itemsWithChanges.length} of ${fragmentIds.length} cards will be ${action}ed`,
-        };
-    }
-
-    /**
-     * Preview bulk delete for multiple cards (NO execution)
-     * @param {Object} params - { fragmentIds: string[] }
-     */
-    async previewBulkDelete(params) {
-        const { fragmentIds } = params;
-
-        if (!fragmentIds || fragmentIds.length === 0) {
-            throw new Error('At least one fragment ID is required for preview');
-        }
-
-        const previews = await Promise.allSettled(
-            fragmentIds.map(async (id) => {
-                try {
-                    const fragment = await this.aemClient.getFragment(id);
-
-                    if (!fragment) {
-                        throw new Error(`Card not found: ${id}`);
-                    }
-
-                    return {
-                        fragmentId: id,
-                        fragmentName: fragment.title,
-                        path: fragment.path,
-                        willDelete: true,
-                        warning: 'This action cannot be undone',
-                    };
-                } catch (error) {
-                    return {
-                        fragmentId: id,
-                        fragmentName: id,
-                        error: error.message,
-                        willDelete: false,
-                    };
-                }
-            }),
-        );
-
-        const successful = previews.filter((r) => r.status === 'fulfilled').map((r) => r.value);
-        const itemsToDelete = successful.filter((item) => item.willDelete);
-
-        return {
-            success: true,
-            operation: 'preview_bulk_delete',
-            previews: successful,
-            summary: {
-                total: fragmentIds.length,
-                willDelete: itemsToDelete.length,
-                errors: successful.filter((item) => item.error).length,
-            },
-            warning: '⚠️ DELETE OPERATION CANNOT BE UNDONE',
-            message: `Preview: ${itemsToDelete.length} of ${fragmentIds.length} cards will be permanently deleted`,
-        };
-    }
-
-    /**
-     * Get job status for background operations
-     * @param {Object} params - { jobId: string }
-     */
-    async getJobStatus(params) {
-        const { jobId } = params;
-
-        if (!jobId) {
-            throw new Error('Job ID is required');
-        }
-
-        const status = jobManager.getJobStatus(jobId);
-
-        if (!status.found) {
-            return {
-                success: false,
-                error: status.error,
-            };
-        }
-
-        return {
-            success: true,
-            job: status,
-        };
-    }
-
-    /**
      * Bulk update multiple cards
      * @param {Object} params - { fragmentIds: string[], updates?: Object, textReplacements?: Array }
      */
     async bulkUpdateCards(params) {
         const { fragmentIds, updates = {}, textReplacements = [] } = params;
 
+        console.log('[BulkUpdate] ===== BULK UPDATE STARTED =====');
+        console.log('[BulkUpdate] Received fragmentIds:', fragmentIds.length, 'cards');
+        console.log('[BulkUpdate] Fragment IDs:', fragmentIds);
+        console.log('[BulkUpdate] Text replacements:', textReplacements);
+
         if (!fragmentIds || fragmentIds.length === 0) {
             throw new Error('At least one fragment ID is required for bulk update');
         }
 
-        const jobId = jobManager.createJob('bulk_update', fragmentIds.length, {
-            updates,
-            textReplacements,
+        const jobManager = new JobManager();
+        const jobId = await jobManager.createJob('bulk_update', fragmentIds.length);
+
+        this.processConcurrentUpdates(jobManager, jobId, fragmentIds, updates, textReplacements).catch((error) => {
+            console.error('[BulkUpdate] Job processing failed:', error);
+            jobManager.failJob(jobId, error);
         });
 
-        setTimeout(() => this.processBulkUpdate(jobId, params), 0);
-
-        return { jobId };
+        return {
+            success: true,
+            jobId,
+            status: 'processing',
+            operation: 'bulk_update',
+            total: fragmentIds.length,
+            message: 'Bulk update started. Processing in background...',
+        };
     }
 
-    /**
-     * Process bulk update in background with batching
-     * @private
-     */
-    async processBulkUpdate(jobId, params) {
-        const { fragmentIds, updates = {}, textReplacements = [] } = params;
-        const batchSize = 5;
+    async processConcurrentUpdates(jobManager, jobId, fragmentIds, updates, textReplacements) {
+        console.log('[BulkUpdate] ===== CONCURRENT PROCESSING STARTED =====');
+        console.log('[BulkUpdate] Creating promises for', fragmentIds.length, 'cards');
 
-        try {
-            for (let i = 0; i < fragmentIds.length; i += batchSize) {
-                const batch = fragmentIds.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+            fragmentIds.map(async (id, index) => {
+                console.log(`[BulkUpdate] ===== Processing card ${index + 1}/${fragmentIds.length}: ${id} =====`);
+                try {
+                    let fieldsToUpdate = { ...updates };
+                    let fragment = null;
 
-                await Promise.allSettled(
-                    batch.map(async (id) => {
-                        try {
-                            const fragment = await this.aemClient.getFragment(id);
+                    console.log('[BulkUpdate] Processing card:', {
+                        id,
+                        updatesFromMCP: JSON.stringify(updates, null, 2),
+                        fieldsToUpdateInitial: JSON.stringify(fieldsToUpdate, null, 2),
+                        hasTextReplacements: textReplacements.length > 0,
+                    });
 
-                            if (!fragment) {
-                                throw new Error(`Card not found: ${id}`);
-                            }
+                    if (textReplacements.length > 0) {
+                        fragment = await this.aemClient.getFragment(id);
 
-                            let updatedFields = { ...updates };
-                            const changes = [];
-
-                            if (textReplacements.length > 0) {
-                                textReplacements.forEach(({ field, find, replace }) => {
-                                    if (field) {
-                                        const fieldData = fragment.fields[field];
-                                        const currentValue = fieldData?.value || fieldData;
-                                        if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
-                                            const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                            const newValue = currentValue.replace(regex, replace);
-                                            updatedFields[field] = { value: newValue };
-                                            changes.push(`${field}: "${currentValue}" → "${newValue}"`);
-                                        }
-                                    } else {
-                                        Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
-                                            const currentValue = fieldData?.value || fieldData;
-                                            if (
-                                                currentValue &&
-                                                typeof currentValue === 'string' &&
-                                                currentValue.includes(find)
-                                            ) {
-                                                const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                                const newValue = currentValue.replace(regex, replace);
-                                                updatedFields[fieldName] = { value: newValue };
-                                                changes.push(`${fieldName}: "${currentValue}" → "${newValue}"`);
-                                            }
+                        textReplacements.forEach(({ field, find, replace }) => {
+                            if (field) {
+                                const fieldData = fragment.fields[field];
+                                const currentValue = fieldData?.value || fieldData;
+                                if (textExistsInField(currentValue, find)) {
+                                    const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                    fieldsToUpdate[field] = { value: currentValue.replace(regex, replace) };
+                                    console.log(`[BulkUpdate] Replaced in field "${field}":`, {
+                                        id,
+                                        field,
+                                        oldValue: currentValue,
+                                        newValue: currentValue.replace(regex, replace),
+                                    });
+                                }
+                            } else {
+                                Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
+                                    const currentValue = fieldData?.value || fieldData;
+                                    if (textExistsInField(currentValue, find)) {
+                                        const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                        fieldsToUpdate[fieldName] = { value: currentValue.replace(regex, replace) };
+                                        console.log(`[BulkUpdate] Replaced in field "${fieldName}":`, {
+                                            id,
+                                            field: fieldName,
+                                            oldValue: currentValue,
+                                            newValue: currentValue.replace(regex, replace),
                                         });
                                     }
                                 });
                             }
+                        });
 
-                            if (Object.keys(updatedFields).length === 0 || changes.length === 0) {
-                                jobManager.updateItemStatus(jobId, {
-                                    fragmentId: id,
-                                    fragmentName: fragment.title,
-                                    status: 'skipped',
-                                    changes: [],
-                                });
-                                return;
-                            }
+                        console.log('[BulkUpdate] After text replacements:', {
+                            id,
+                            fieldsToUpdateFinal: JSON.stringify(fieldsToUpdate, null, 2),
+                        });
+                    }
 
-                            await this.aemClient.updateFragment({
-                                id: fragment.id,
-                                fields: updatedFields,
-                            });
+                    if (Object.keys(fieldsToUpdate).length === 0) {
+                        console.log(`[BulkUpdate] Skipping card ${id} - no changes to apply`);
+                        await jobManager.addSkippedItem(jobId, {
+                            id,
+                            title: fragment?.title || id,
+                            reason: 'No matching text found',
+                        });
+                        return { id, skipped: true };
+                    }
 
-                            jobManager.updateItemStatus(jobId, {
-                                fragmentId: id,
-                                fragmentName: fragment.title,
-                                status: 'completed',
-                                changes,
-                            });
-                        } catch (error) {
-                            jobManager.updateItemStatus(jobId, {
-                                fragmentId: id,
-                                fragmentName: id,
-                                status: 'failed',
-                                error: error.message,
-                            });
-                        }
-                    }),
-                );
-            }
+                    const result = await this.updateCard({ id, fields: fieldsToUpdate });
 
-            const jobStatus = jobManager.getJobStatus(jobId);
-            jobManager.completeJob(jobId, {
-                operation: 'bulk_update',
-                total: fragmentIds.length,
-                successful: jobStatus.successful,
-                failed: jobStatus.failed,
-                skipped: jobStatus.skipped,
-                message: `✓ Updated ${jobStatus.successful} of ${fragmentIds.length} cards`,
-            });
-        } catch (error) {
-            jobManager.failJob(jobId, error);
-        }
+                    await jobManager.addSuccessfulItem(jobId, {
+                        id,
+                        title: result.card.title,
+                        fieldsChanged: Object.keys(fieldsToUpdate),
+                    });
+
+                    return { success: true, id };
+                } catch (error) {
+                    console.error(`[BulkUpdate] Failed to update card ${id}:`, error);
+                    await jobManager.addFailedItem(jobId, {
+                        id,
+                        error: error.message,
+                    });
+                    return { success: false, id, error };
+                }
+            }),
+        );
+
+        console.log('[BulkUpdate] ===== PROMISE.ALLSETTLED COMPLETED =====');
+        console.log('[BulkUpdate] Total promises:', results.length);
+        console.log('[BulkUpdate] Results breakdown:');
+        results.forEach((result, index) => {
+            console.log(
+                `  [${index + 1}] Status: ${result.status}`,
+                result.status === 'fulfilled' ? result.value : result.reason,
+            );
+        });
+
+        const job = await jobManager.getJob(jobId);
+        console.log('[BulkUpdate] Final job state:', {
+            total: job.total,
+            completed: job.completed,
+            successful: job.successful.length,
+            failed: job.failed.length,
+            skipped: job.skipped.length,
+        });
+
+        await jobManager.completeJob(jobId, {
+            message: `✓ Updated ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
+        });
     }
 
     /**
@@ -923,71 +815,57 @@ export class StudioOperations {
             throw new Error('Action must be either "publish" or "unpublish"');
         }
 
-        const jobId = jobManager.createJob(`bulk_${action}`, fragmentIds.length, { action });
+        const jobManager = new JobManager();
+        const jobId = await jobManager.createJob(`bulk_${action}`, fragmentIds.length);
 
-        setTimeout(() => this.processBulkPublish(jobId, params), 0);
+        this.processPublishJob(jobManager, jobId, fragmentIds, action).catch((error) => {
+            console.error('[BulkPublish] Job processing failed:', error);
+            jobManager.failJob(jobId, error);
+        });
 
-        return { jobId };
+        return {
+            success: true,
+            jobId,
+            status: 'processing',
+            operation: `bulk_${action}`,
+            total: fragmentIds.length,
+            message: `Bulk ${action} started. Processing in background...`,
+        };
     }
 
-    /**
-     * Process bulk publish in background with batching
-     * @private
-     */
-    async processBulkPublish(jobId, params) {
-        const { fragmentIds, action = 'publish' } = params;
-        const batchSize = 5;
+    async processPublishJob(jobManager, jobId, fragmentIds, action) {
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
 
-        try {
-            for (let i = 0; i < fragmentIds.length; i += batchSize) {
-                const batch = fragmentIds.slice(i, i + batchSize);
+                if (!fragment) {
+                    throw new Error(`Card not found: ${id}`);
+                }
 
-                await Promise.allSettled(
-                    batch.map(async (id) => {
-                        try {
-                            const fragment = await this.aemClient.getFragment(id);
+                if (action === 'publish') {
+                    await this.aemClient.publishFragment(fragment.id);
+                } else {
+                    await this.aemClient.unpublishFragment(fragment.id);
+                }
 
-                            if (!fragment) {
-                                throw new Error(`Card not found: ${id}`);
-                            }
-
-                            if (action === 'publish') {
-                                await this.aemClient.publishFragment(fragment.id);
-                            } else {
-                                await this.aemClient.unpublishFragment(fragment.id);
-                            }
-
-                            jobManager.updateItemStatus(jobId, {
-                                fragmentId: id,
-                                fragmentName: fragment.title,
-                                status: 'completed',
-                                changes: [`${action}ed "${fragment.title}"`],
-                            });
-                        } catch (error) {
-                            jobManager.updateItemStatus(jobId, {
-                                fragmentId: id,
-                                fragmentName: id,
-                                status: 'failed',
-                                error: error.message,
-                            });
-                        }
-                    }),
-                );
+                await jobManager.addSuccessfulItem(jobId, {
+                    id,
+                    title: fragment.title,
+                });
+            } catch (error) {
+                console.error(`[BulkPublish] Failed to ${action} card ${id}:`, error);
+                await jobManager.addFailedItem(jobId, {
+                    id,
+                    error: error.message,
+                });
             }
-
-            const jobStatus = jobManager.getJobStatus(jobId);
-            const actionPastTense = action === 'publish' ? 'published' : 'unpublished';
-
-            jobManager.completeJob(jobId, {
-                operation: `bulk_${action}`,
-                total: fragmentIds.length,
-                successful: jobStatus.successful,
-                failed: jobStatus.failed,
-                message: `✓ ${actionPastTense.charAt(0).toUpperCase() + actionPastTense.slice(1)} ${jobStatus.successful} of ${fragmentIds.length} cards`,
-            });
-        } catch (error) {
-            jobManager.failJob(jobId, error);
         }
+
+        const job = await jobManager.getJob(jobId);
+        const actionPastTense = action === 'publish' ? 'published' : 'unpublished';
+        await jobManager.completeJob(jobId, {
+            message: `✓ ${actionPastTense.charAt(0).toUpperCase() + actionPastTense.slice(1)} ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
+        });
     }
 
     /**
@@ -1001,67 +879,244 @@ export class StudioOperations {
             throw new Error('At least one fragment ID is required for bulk delete');
         }
 
-        const jobId = jobManager.createJob('bulk_delete', fragmentIds.length);
+        const jobManager = new JobManager();
+        const jobId = await jobManager.createJob('bulk_delete', fragmentIds.length);
 
-        setTimeout(() => this.processBulkDelete(jobId, params), 0);
+        this.processDeleteJob(jobManager, jobId, fragmentIds).catch((error) => {
+            console.error('[BulkDelete] Job processing failed:', error);
+            jobManager.failJob(jobId, error);
+        });
 
-        return { jobId };
+        return {
+            success: true,
+            jobId,
+            status: 'processing',
+            operation: 'bulk_delete',
+            total: fragmentIds.length,
+            message: 'Bulk delete started. Processing in background...',
+        };
+    }
+
+    async processDeleteJob(jobManager, jobId, fragmentIds) {
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+
+                if (!fragment) {
+                    throw new Error(`Card not found: ${id}`);
+                }
+
+                const title = fragment.title;
+                await this.aemClient.deleteFragment(fragment.id);
+
+                await jobManager.addSuccessfulItem(jobId, {
+                    id,
+                    title,
+                });
+            } catch (error) {
+                console.error(`[BulkDelete] Failed to delete card ${id}:`, error);
+                await jobManager.addFailedItem(jobId, {
+                    id,
+                    error: error.message,
+                });
+            }
+        }
+
+        const job = await jobManager.getJob(jobId);
+        await jobManager.completeJob(jobId, {
+            message: `✓ Deleted ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
+        });
     }
 
     /**
-     * Process bulk delete in background with batching
-     * @private
+     * Preview bulk update (shows changes without executing)
+     * @param {Object} params - { fragmentIds: string[], updates?: Object, textReplacements?: Array }
      */
-    async processBulkDelete(jobId, params) {
-        const { fragmentIds } = params;
-        const batchSize = 5;
+    async previewBulkUpdate(params) {
+        const { fragmentIds, updates = {}, textReplacements = [] } = params;
 
-        try {
-            for (let i = 0; i < fragmentIds.length; i += batchSize) {
-                const batch = fragmentIds.slice(i, i + batchSize);
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for preview');
+        }
 
-                await Promise.allSettled(
-                    batch.map(async (id) => {
-                        try {
-                            const fragment = await this.aemClient.getFragment(id);
+        const previews = [];
+        let willUpdate = 0;
+        let noChanges = 0;
+        let errors = 0;
 
-                            if (!fragment) {
-                                throw new Error(`Card not found: ${id}`);
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+                let fieldsToUpdate = { ...updates };
+                const changes = [];
+                const currentValues = {};
+                const newValues = {};
+
+                if (textReplacements.length > 0) {
+                    textReplacements.forEach(({ field, find, replace }) => {
+                        if (field) {
+                            const fieldData = fragment.fields[field];
+                            const currentValue = fieldData?.value || fieldData;
+                            if (textExistsInField(currentValue, find)) {
+                                const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                const newValue = currentValue.replace(regex, replace);
+                                fieldsToUpdate[field] = { value: newValue };
+                                changes.push(`${field}: "${find}" → "${replace}"`);
+                                currentValues[field] = currentValue;
+                                newValues[field] = newValue;
                             }
-
-                            const title = fragment.title;
-                            await this.aemClient.deleteFragment(fragment.id);
-
-                            jobManager.updateItemStatus(jobId, {
-                                fragmentId: id,
-                                fragmentName: title,
-                                status: 'completed',
-                                changes: [`Deleted "${title}"`],
-                            });
-                        } catch (error) {
-                            jobManager.updateItemStatus(jobId, {
-                                fragmentId: id,
-                                fragmentName: id,
-                                status: 'failed',
-                                error: error.message,
+                        } else {
+                            Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
+                                const currentValue = fieldData?.value || fieldData;
+                                if (textExistsInField(currentValue, find)) {
+                                    const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                                    const newValue = currentValue.replace(regex, replace);
+                                    fieldsToUpdate[fieldName] = { value: newValue };
+                                    changes.push(`${fieldName}: "${find}" → "${replace}"`);
+                                    currentValues[fieldName] = currentValue;
+                                    newValues[fieldName] = newValue;
+                                }
                             });
                         }
-                    }),
-                );
+                    });
+                }
+
+                const hasChanges = Object.keys(fieldsToUpdate).length > 0;
+                if (hasChanges) {
+                    willUpdate++;
+                } else {
+                    noChanges++;
+                }
+
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: fragment.title,
+                    willUpdate: hasChanges,
+                    changes,
+                    currentValues,
+                    newValues,
+                });
+            } catch (error) {
+                errors++;
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: id,
+                    willUpdate: false,
+                    error: error.message,
+                });
             }
-
-            const jobStatus = jobManager.getJobStatus(jobId);
-
-            jobManager.completeJob(jobId, {
-                operation: 'bulk_delete',
-                total: fragmentIds.length,
-                successful: jobStatus.successful,
-                failed: jobStatus.failed,
-                message: `✓ Deleted ${jobStatus.successful} of ${fragmentIds.length} cards`,
-            });
-        } catch (error) {
-            jobManager.failJob(jobId, error);
         }
+
+        return {
+            operation: 'preview_bulk_update',
+            previews,
+            summary: { willUpdate, noChanges, errors },
+        };
+    }
+
+    /**
+     * Preview bulk publish/unpublish (shows what will change)
+     * @param {Object} params - { fragmentIds: string[], action: 'publish' | 'unpublish' }
+     */
+    async previewBulkPublish(params) {
+        const { fragmentIds, action = 'publish' } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for preview');
+        }
+
+        if (!['publish', 'unpublish'].includes(action)) {
+            throw new Error('Action must be either "publish" or "unpublish"');
+        }
+
+        const previews = [];
+        let willChange = 0;
+        let alreadyInState = 0;
+        let errors = 0;
+
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+                const isPublished = fragment.status === 'PUBLISHED' || fragment.status === 'Published';
+                const needsChange = (action === 'publish' && !isPublished) || (action === 'unpublish' && isPublished);
+
+                if (needsChange) {
+                    willChange++;
+                } else {
+                    alreadyInState++;
+                }
+
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: fragment.title,
+                    currentStatus: fragment.status,
+                    willChange: needsChange,
+                });
+            } catch (error) {
+                errors++;
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: id,
+                    willChange: false,
+                    error: error.message,
+                });
+            }
+        }
+
+        return {
+            operation: 'preview_bulk_publish',
+            action,
+            previews,
+            summary: { willChange, alreadyInState, errors },
+        };
+    }
+
+    /**
+     * Preview bulk delete (shows what will be deleted)
+     * @param {Object} params - { fragmentIds: string[] }
+     */
+    async previewBulkDelete(params) {
+        const { fragmentIds } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('At least one fragment ID is required for preview');
+        }
+
+        const previews = [];
+        let willDelete = 0;
+        let notFound = 0;
+        let errors = 0;
+
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+
+                willDelete++;
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: fragment.title,
+                    willDelete: true,
+                });
+            } catch (error) {
+                if (error.message.includes('not found')) {
+                    notFound++;
+                } else {
+                    errors++;
+                }
+                previews.push({
+                    fragmentId: id,
+                    fragmentName: id,
+                    willDelete: false,
+                    error: error.message,
+                });
+            }
+        }
+
+        return {
+            operation: 'preview_bulk_delete',
+            previews,
+            summary: { willDelete, notFound, errors },
+        };
     }
 
     /**

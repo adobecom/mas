@@ -12,6 +12,33 @@ const COLLECTION_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-
 const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 
 /**
+ * Strip HTML tags from text while preserving the content
+ * Used for searching text in HTML-formatted fields
+ * @param {string} html - HTML text to strip
+ * @returns {string} - Plain text without HTML tags
+ */
+function stripHtml(html) {
+    if (typeof html !== 'string') {
+        return '';
+    }
+    return html.replace(/<[^>]*>/g, '');
+}
+
+/**
+ * Check if text exists in either raw HTML or stripped plain text
+ * Handles both HTML-formatted fields and plain text fields
+ * @param {string} value - The field value to search in
+ * @param {string} find - The text to find
+ * @returns {boolean} - True if found in either raw or stripped version
+ */
+function textExistsInField(value, find) {
+    if (typeof value !== 'string' || typeof find !== 'string') {
+        return false;
+    }
+    return value.includes(find) || stripHtml(value).includes(find);
+}
+
+/**
  * Studio Operations Tools
  * MCP tools for Studio AI Chat operations (NO AI CALLS - pure execution only)
  *
@@ -158,7 +185,59 @@ export class StudioOperations {
     }
 
     /**
-     * Extract CTA elements from HTML content - simplified approach
+     * Extract content from slot="footer" attribute
+     * @private
+     * @param {string} htmlContent - HTML string to parse
+     * @returns {Array} Array of footer slot content strings
+     */
+    static extractFooterSlotContent(htmlContent) {
+        const footerSlots = [];
+
+        // Match div or other elements with slot="footer"
+        const slotRegex = /<(div|[a-z]+)\s[^>]*slot="footer"[^>]*>(.*?)<\/\1>/gis;
+        let match;
+
+        while ((match = slotRegex.exec(htmlContent)) !== null) {
+            footerSlots.push(match[2]);
+        }
+
+        // Also match slot element itself
+        const namedSlotRegex = /<slot\s+name="footer"[^>]*><\/slot>/gis;
+        if (namedSlotRegex.test(htmlContent)) {
+            // For named slots, we need to extract content from corresponding slot="footer"
+            footerSlots.push(htmlContent);
+        }
+
+        return footerSlots;
+    }
+
+    /**
+     * Check if content is inside a merch-addon element
+     * @private
+     * @param {string} htmlContent - Full HTML content
+     * @param {number} matchIndex - Index position to check
+     * @returns {boolean} True if position is inside merch-addon
+     */
+    static isInsideMerchAddon(htmlContent, matchIndex) {
+        // Find all merch-addon boundaries
+        const addonRegex = /<merch-addon[^>]*>(.*?)<\/merch-addon>/gis;
+        let addonMatch;
+
+        while ((addonMatch = addonRegex.exec(htmlContent)) !== null) {
+            const addonStart = addonMatch.index;
+            const addonEnd = addonMatch.index + addonMatch[0].length;
+
+            if (matchIndex >= addonStart && matchIndex < addonEnd) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extract CTA elements from HTML content
+     * Extracts ALL <a> and <button> tags from the content
      * @param {string} htmlContent - HTML string to parse
      * @returns {Array} Array of CTA objects with text and href properties
      */
@@ -170,7 +249,7 @@ export class StudioOperations {
         const ctas = [];
         let match;
 
-        // Pattern 1: ANY <a> tag (all links are potential CTAs)
+        // Pattern 1: Extract ALL <a> tags (not limited to footer slots)
         const linkRegex = /<a\s[^>]*>(.*?)<\/a>/gis;
 
         while ((match = linkRegex.exec(htmlContent)) !== null) {
@@ -190,7 +269,7 @@ export class StudioOperations {
             }
         }
 
-        // Pattern 2: ANY <button> tag (all buttons are potential CTAs)
+        // Pattern 2: Extract ALL <button> tags
         const buttonRegex = /<button\s[^>]*>(.*?)<\/button>/gis;
 
         while ((match = buttonRegex.exec(htmlContent)) !== null) {
@@ -230,20 +309,44 @@ export class StudioOperations {
 
         // Extract meaningful keywords (skip CTA-intent words)
         const skipWords = ['cta', 'button', 'link', 'call', 'action'];
-        const queryKeywords = lowerQuery
-            .split(/\s+/)
-            .filter(word => word.length > 2 && !skipWords.includes(word));
+        const queryKeywords = lowerQuery.split(/\s+/).filter((word) => word.length > 2 && !skipWords.includes(word));
 
         console.log(`[StudioOperations] Searching for keywords: ${queryKeywords.join(', ') || '(any CTA)'}`);
 
-        const filtered = fragments.filter(fragment => {
+        const filtered = fragments.filter((fragment) => {
             const fields = fragment.fields;
             if (!fields) return true; // Include if no fields to check
+
+            // FIRST: Check if this card has ANY merch-addon elements
+            const hasAddonElements = Object.values(fields).some((field) => {
+                // Fields have structure: { name, type, multiple, locked, values: [...] }
+                let fieldValue = null;
+                if (field && field.values && Array.isArray(field.values)) {
+                    fieldValue = field.values.join(' '); // Join all values if multiple
+                } else if (field && typeof field === 'string') {
+                    fieldValue = field; // Direct string field
+                }
+                return typeof fieldValue === 'string' && fieldValue.includes('<merch-addon');
+            });
+
+            // If card has addon elements, exclude it from CTA search results
+            if (hasAddonElements) {
+                console.log(`[StudioOperations] Excluding card with addon elements: ${fragment.id || fragment.title}`);
+                return false;
+            }
 
             // Check ALL fields - no exclusions or restrictions
             for (const fieldName of Object.keys(fields)) {
                 const field = fields[fieldName];
-                const fieldValue = field?.value || field;
+
+                // Fields have structure: { name, type, multiple, locked, values: [...] }
+                // Access the actual content from field.values array
+                let fieldValue = null;
+                if (field && field.values && Array.isArray(field.values)) {
+                    fieldValue = field.values.join(' '); // Join all values if multiple
+                } else if (field && typeof field === 'string') {
+                    fieldValue = field; // Direct string field
+                }
 
                 if (!fieldValue || typeof fieldValue !== 'string') continue;
 
@@ -263,10 +366,12 @@ export class StudioOperations {
                     const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
 
                     // Check if ALL keywords are found (more lenient)
-                    const hasMatch = queryKeywords.some(keyword => ctaContent.includes(keyword));
+                    const hasMatch = queryKeywords.some((keyword) => ctaContent.includes(keyword));
 
                     if (hasMatch) {
-                        console.log(`[StudioOperations] Match found: "${cta.text}" in ${fragment.id || fragment.title || 'fragment'}`);
+                        console.log(
+                            `[StudioOperations] Match found: "${cta.text}" in ${fragment.id || fragment.title || 'fragment'}`,
+                        );
                         return true;
                     }
                 }
@@ -555,29 +660,31 @@ export class StudioOperations {
 
                         textReplacements.forEach(({ field, find, replace }) => {
                             if (field) {
-                                const fieldData = fragment.fields[field];
-                                const currentValue = fieldData?.value || fieldData;
-                                if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
+                                const fieldObj = fragment.fields.find((f) => f.name === field);
+                                const currentValue = fieldObj?.values?.[0];
+                                if (textExistsInField(currentValue, find)) {
                                     const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                    fieldsToUpdate[field] = { value: currentValue.replace(regex, replace) };
+                                    const newValue = currentValue.replace(regex, replace);
+                                    fieldsToUpdate[field] = { value: newValue };
                                     console.log(`[BulkUpdate] Replaced in field "${field}":`, {
                                         id,
                                         field,
                                         oldValue: currentValue,
-                                        newValue: currentValue.replace(regex, replace),
+                                        newValue,
                                     });
                                 }
                             } else {
-                                Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
-                                    const currentValue = fieldData?.value || fieldData;
-                                    if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
+                                fragment.fields.forEach((fieldObj) => {
+                                    const currentValue = fieldObj?.values?.[0];
+                                    if (textExistsInField(currentValue, find)) {
                                         const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                                        fieldsToUpdate[fieldName] = { value: currentValue.replace(regex, replace) };
-                                        console.log(`[BulkUpdate] Replaced in field "${fieldName}":`, {
+                                        const newValue = currentValue.replace(regex, replace);
+                                        fieldsToUpdate[fieldObj.name] = { value: newValue };
+                                        console.log(`[BulkUpdate] Replaced in field "${fieldObj.name}":`, {
                                             id,
-                                            field: fieldName,
+                                            field: fieldObj.name,
                                             oldValue: currentValue,
-                                            newValue: currentValue.replace(regex, replace),
+                                            newValue,
                                         });
                                     }
                                 });
@@ -788,9 +895,20 @@ export class StudioOperations {
         let noChanges = 0;
         let errors = 0;
 
+        console.log('[Studio Ops] previewBulkUpdate called with:', {
+            fragmentIds: fragmentIds.length,
+            textReplacements,
+            updates,
+        });
+
         for (const id of fragmentIds) {
             try {
                 const fragment = await this.aemClient.getFragment(id);
+                console.log(`[Studio Ops] Fragment ${id} loaded:`, {
+                    title: fragment.title,
+                    fieldNames: fragment.fields.map((f) => f.name),
+                });
+
                 let fieldsToUpdate = { ...updates };
                 const changes = [];
                 const currentValues = {};
@@ -798,10 +916,23 @@ export class StudioOperations {
 
                 if (textReplacements.length > 0) {
                     textReplacements.forEach(({ field, find, replace }) => {
+                        console.log(
+                            `[Studio Ops] Processing replacement: field=${field}, find="${find}", replace="${replace}"`,
+                        );
+
                         if (field) {
-                            const fieldData = fragment.fields[field];
-                            const currentValue = fieldData?.value || fieldData;
-                            if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
+                            const fieldObj = fragment.fields.find((f) => f.name === field);
+                            const currentValue = fieldObj?.values?.[0];
+                            const found = textExistsInField(currentValue, find);
+                            console.log(`[Studio Ops] Field-specific search in "${field}":`, {
+                                type: typeof currentValue,
+                                length: typeof currentValue === 'string' ? currentValue.length : 'n/a',
+                                rawMatch: currentValue && currentValue.includes(find),
+                                stripHtmlMatch: currentValue && stripHtml(currentValue).includes(find),
+                                found,
+                            });
+
+                            if (found) {
                                 const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                 const newValue = currentValue.replace(regex, replace);
                                 fieldsToUpdate[field] = { value: newValue };
@@ -810,15 +941,24 @@ export class StudioOperations {
                                 newValues[field] = newValue;
                             }
                         } else {
-                            Object.entries(fragment.fields).forEach(([fieldName, fieldData]) => {
-                                const currentValue = fieldData?.value || fieldData;
-                                if (currentValue && typeof currentValue === 'string' && currentValue.includes(find)) {
+                            console.log(`[Studio Ops] All-fields search for "${find}" across ${fragment.fields.length} fields`);
+                            fragment.fields.forEach((fieldObj) => {
+                                const currentValue = fieldObj?.values?.[0];
+                                const hasMatch = textExistsInField(currentValue, find);
+
+                                if (hasMatch) {
+                                    console.log(`[Studio Ops] ✓ Match found in "${fieldObj.name}":`, {
+                                        valueSnippet: currentValue.substring(0, 100),
+                                        rawMatch: currentValue.includes(find),
+                                        stripHtmlMatch: stripHtml(currentValue).includes(find),
+                                        find,
+                                    });
                                     const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
                                     const newValue = currentValue.replace(regex, replace);
-                                    fieldsToUpdate[fieldName] = { value: newValue };
-                                    changes.push(`${fieldName}: "${find}" → "${replace}"`);
-                                    currentValues[fieldName] = currentValue;
-                                    newValues[fieldName] = newValue;
+                                    fieldsToUpdate[fieldObj.name] = { value: newValue };
+                                    changes.push(`${fieldObj.name}: "${find}" → "${replace}"`);
+                                    currentValues[fieldObj.name] = currentValue;
+                                    newValues[fieldObj.name] = newValue;
                                 }
                             });
                         }
@@ -1083,5 +1223,43 @@ export class StudioOperations {
 
         const basePath = surfaceMap[surface] || '/content/dam/mas';
         return `${basePath}/${locale}`;
+    }
+
+    /**
+     * Get job status for bulk operations
+     * @param {Object} params - { jobId: string }
+     * @returns {Promise<Object>} - Job status information
+     */
+    async getJobStatus(params) {
+        const { jobId } = params;
+
+        if (!jobId) {
+            throw new Error('jobId parameter is required');
+        }
+
+        const jobManager = new JobManager();
+        const job = await jobManager.getJob(jobId);
+
+        if (!job) {
+            throw new Error(`Job ${jobId} not found`);
+        }
+
+        return {
+            jobId: job.jobId,
+            type: job.type,
+            status: job.status,
+            total: job.total,
+            completed: job.completed,
+            successful: job.successful,
+            failed: job.failed,
+            skipped: job.skipped,
+            successCount: job.successful.length,
+            failureCount: job.failed.length,
+            skippedCount: job.skipped.length,
+            startedAt: job.startedAt,
+            updatedAt: job.updatedAt,
+            completedAt: job.completedAt,
+            percentage: job.total > 0 ? Math.round((job.completed / job.total) * 100) : 0,
+        };
     }
 }

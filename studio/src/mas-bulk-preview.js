@@ -35,7 +35,8 @@ export class MasBulkPreview extends LitElement {
     }
 
     renderUpdatePreview() {
-        const { previews = [], summary } = this.previewData;
+        const { previews = [], summary = {} } = this.previewData || {};
+        const { willUpdate = 0, noChanges = 0, errors = 0 } = summary;
 
         return html`
             <div class="bulk-preview-container">
@@ -45,11 +46,9 @@ export class MasBulkPreview extends LitElement {
                 </div>
 
                 <div class="bulk-preview-summary">
-                    <sp-badge size="m">${summary.willUpdate} cards will be updated</sp-badge>
-                    ${summary.noChanges > 0
-                        ? html`<sp-badge size="m" variant="neutral">${summary.noChanges} no changes</sp-badge>`
-                        : ''}
-                    ${summary.errors > 0 ? html`<sp-badge size="m" variant="negative">${summary.errors} errors</sp-badge>` : ''}
+                    <sp-badge size="m">${willUpdate} cards will be updated</sp-badge>
+                    ${noChanges > 0 ? html`<sp-badge size="m" variant="neutral">${noChanges} no changes</sp-badge>` : ''}
+                    ${errors > 0 ? html`<sp-badge size="m" variant="negative">${errors} errors</sp-badge>` : ''}
                 </div>
 
                 <div class="bulk-preview-items">
@@ -91,7 +90,8 @@ export class MasBulkPreview extends LitElement {
     }
 
     renderPublishPreview() {
-        const { previews = [], summary, action } = this.previewData;
+        const { previews = [], summary = {}, action } = this.previewData || {};
+        const { willChange = 0, alreadyInState = 0, errors = 0 } = summary;
         const actionLabel = action === 'publish' ? 'Published' : 'Unpublished';
 
         return html`
@@ -102,11 +102,11 @@ export class MasBulkPreview extends LitElement {
                 </div>
 
                 <div class="bulk-preview-summary">
-                    <sp-badge size="m">${summary.willChange} cards will be ${action}ed</sp-badge>
-                    ${summary.alreadyInState > 0
-                        ? html`<sp-badge size="m" variant="neutral">${summary.alreadyInState} already ${action}ed</sp-badge>`
+                    <sp-badge size="m">${willChange} cards will be ${action}ed</sp-badge>
+                    ${alreadyInState > 0
+                        ? html`<sp-badge size="m" variant="neutral">${alreadyInState} already ${action}ed</sp-badge>`
                         : ''}
-                    ${summary.errors > 0 ? html`<sp-badge size="m" variant="negative">${summary.errors} errors</sp-badge>` : ''}
+                    ${errors > 0 ? html`<sp-badge size="m" variant="negative">${errors} errors</sp-badge>` : ''}
                 </div>
 
                 <div class="bulk-preview-items">
@@ -143,7 +143,8 @@ export class MasBulkPreview extends LitElement {
     }
 
     renderDeletePreview() {
-        const { previews = [], summary } = this.previewData;
+        const { previews = [], summary = {} } = this.previewData || {};
+        const { willDelete = 0 } = summary;
 
         return html`
             <div class="bulk-preview-container bulk-preview-danger">
@@ -154,8 +155,7 @@ export class MasBulkPreview extends LitElement {
 
                 <div class="bulk-preview-warning">
                     <sp-icon-alert size="s"></sp-icon-alert>
-                    <strong>Warning:</strong> This action cannot be undone. ${summary.willDelete} cards will be permanently
-                    deleted.
+                    <strong>Warning:</strong> This action cannot be undone. ${willDelete} cards will be permanently deleted.
                 </div>
 
                 <div class="bulk-preview-items">

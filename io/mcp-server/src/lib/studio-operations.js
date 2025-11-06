@@ -38,6 +38,9 @@ function textExistsInField(value, find) {
     return value.includes(find) || stripHtml(value).includes(find);
 }
 
+// Create shared JobManager instance for all operations to avoid isolation issues
+const sharedJobManager = new JobManager();
+
 /**
  * Studio Operations Tools
  * MCP tools for Studio AI Chat operations (NO AI CALLS - pure execution only)
@@ -619,12 +622,11 @@ export class StudioOperations {
             throw new Error('At least one fragment ID is required for bulk update');
         }
 
-        const jobManager = new JobManager();
-        const jobId = await jobManager.createJob('bulk_update', fragmentIds.length);
+        const jobId = await sharedJobManager.createJob('bulk_update', fragmentIds.length);
 
-        this.processConcurrentUpdates(jobManager, jobId, fragmentIds, updates, textReplacements).catch((error) => {
+        this.processConcurrentUpdates(sharedJobManager, jobId, fragmentIds, updates, textReplacements).catch((error) => {
             console.error('[BulkUpdate] Job processing failed:', error);
-            jobManager.failJob(jobId, error);
+            sharedJobManager.failJob(jobId, error);
         });
 
         return {
@@ -814,12 +816,11 @@ export class StudioOperations {
             throw new Error('Action must be either "publish" or "unpublish"');
         }
 
-        const jobManager = new JobManager();
-        const jobId = await jobManager.createJob(`bulk_${action}`, fragmentIds.length);
+        const jobId = await sharedJobManager.createJob(`bulk_${action}`, fragmentIds.length);
 
-        this.processPublishJob(jobManager, jobId, fragmentIds, action).catch((error) => {
+        this.processPublishJob(sharedJobManager, jobId, fragmentIds, action).catch((error) => {
             console.error('[BulkPublish] Job processing failed:', error);
-            jobManager.failJob(jobId, error);
+            sharedJobManager.failJob(jobId, error);
         });
 
         return {
@@ -878,12 +879,11 @@ export class StudioOperations {
             throw new Error('At least one fragment ID is required for bulk delete');
         }
 
-        const jobManager = new JobManager();
-        const jobId = await jobManager.createJob('bulk_delete', fragmentIds.length);
+        const jobId = await sharedJobManager.createJob('bulk_delete', fragmentIds.length);
 
-        this.processDeleteJob(jobManager, jobId, fragmentIds).catch((error) => {
+        this.processDeleteJob(sharedJobManager, jobId, fragmentIds).catch((error) => {
             console.error('[BulkDelete] Job processing failed:', error);
-            jobManager.failJob(jobId, error);
+            sharedJobManager.failJob(jobId, error);
         });
 
         return {
@@ -1337,8 +1337,7 @@ export class StudioOperations {
             throw new Error('jobId parameter is required');
         }
 
-        const jobManager = new JobManager();
-        const job = await jobManager.getJob(jobId);
+        const job = await sharedJobManager.getJob(jobId);
 
         if (!job) {
             throw new Error(`Job ${jobId} not found`);

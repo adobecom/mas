@@ -45,7 +45,7 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     resolveFragment() {
-        if (this.isCollection || !Store.placeholders.preview.value) return;
+        if (!Store.placeholders.preview.value || this.isCollection) return;
 
         this.getResolvedFragment().then((result) => {
             this.replaceFrom(result);

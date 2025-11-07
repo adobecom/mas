@@ -26,8 +26,8 @@
                 },
                 "fields": {
                     "label": "All",
-                    "cards": ["c6727147-7992-4ca4-b566-819c52b0a585", "049231fd-0c45-4ef5-8792-7fa2dcd5005a"],
-                    "collections": []
+                    "collections": [],
+                    "cards": ["c6727147-7992-4ca4-b566-819c52b0a585", "049231fd-0c45-4ef5-8792-7fa2dcd5005a"]
                 }
             }
         },
@@ -37,10 +37,9 @@
                 "path": "/content/cq:tags/mas/offer_type/base",
                 "name": "base",
                 "title": "Base",
-                "id": "mas:offer_type/base",
                 "i18n": [],
-                "titlePath": "Merch at Scale : Offer type / Base",
-                "description": null
+                "id": "mas:offer_type/base",
+                "titlePath": "Merch at Scale : Offer type / Base"
             }
         },
         "mas:market_segments/com": {
@@ -49,8 +48,8 @@
                 "path": "/content/cq:tags/mas/market_segments/com",
                 "name": "com",
                 "title": "COM",
-                "id": "mas:market_segments/com",
                 "i18n": [],
+                "id": "mas:market_segments/com",
                 "titlePath": "Merch at Scale : Market segments / COM",
                 "description": ""
             }
@@ -106,9 +105,7 @@
             "value": {
                 "path": "/content/cq:tags/mas/product/cc/lightroom",
                 "name": "lightroom",
-                "title": "Lightroom (1TB)",
                 "id": "mas:product/cc/lightroom",
-                "i18n": [],
                 "titlePath": "Merch at Scale : Product / Creative Cloud / Lightroom (1TB)",
                 "description": ""
             }
@@ -119,8 +116,8 @@
                 "path": "/content/cq:tags/mas/product/cc/photoshop",
                 "name": "photoshop",
                 "title": "Photoshop",
-                "id": "mas:product/cc/photoshop",
                 "i18n": [],
+                "id": "mas:product/cc/photoshop",
                 "titlePath": "Merch at Scale : Product / Creative Cloud / Photoshop",
                 "description": ""
             }
@@ -188,9 +185,9 @@
                 },
                 "fields": {
                     "label": "Photo",
+                    "collections": [],
                     "icon": "https://main--milo--adobecom.hlx.page/drafts/astatescu/icons/camera.svg",
-                    "cards": ["049231fd-0c45-4ef5-8792-7fa2dcd5005a", "c6727147-7992-4ca4-b566-819c52b0a585"],
-                    "collections": []
+                    "cards": ["049231fd-0c45-4ef5-8792-7fa2dcd5005a", "c6727147-7992-4ca4-b566-819c52b0a585"]
                 }
             }
         }

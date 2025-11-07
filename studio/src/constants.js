@@ -40,8 +40,8 @@ export const ANALYTICS_LINK_IDS = [
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {
-    ccd: {
-        'mas-ff-defaults': 'on',
+    'adobe-home': {
+        'mas-ff-defaults': 'off',
     },
 };
 
@@ -96,7 +96,6 @@ export const OPERATIONS = {
     SAVE: 'save',
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
-    CREATE: 'create',
 };
 
 export const EnvColorCode = {

@@ -26,10 +26,10 @@ describe('Router URL parameter handling', async () => {
     });
 
     it('should link store with a dot in the key to hash parameters', async () => {
-        const router = new Router({ hash: '#test.param=value' });
+        const router = new Router({ hash: '#commerce.env=stage' });
         const testStore = new ReactiveStore();
-        router.linkStoreToHash(testStore, 'test.param');
-        expect(testStore.get()).to.equal('value');
+        router.linkStoreToHash(testStore, 'commerce.env');
+        expect(testStore.get()).to.equal('stage');
     });
 
     it('should link store to hash parameters', async () => {
@@ -113,14 +113,15 @@ describe('Router URL parameter handling', async () => {
     });
 
     it('should initialize all stores in start method', async () => {
-        const router = new Router({ hash: '#page=content' });
-
-        const pageSetSpy = sandbox.spy(Store.page, 'set');
+        const router = new Router({ hash: '#page=content&commerce.landscape=DRAFT' });
 
         router.start();
 
-        expect(pageSetSpy.called).to.be.true;
+        // Wait a bit for the stores to be initialized
+        await delay(50);
+
         expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+        expect(Store.landscape.get()).to.equal('DRAFT');
     });
 
     it('should initialize landscape store with hash parameter', async () => {

@@ -36,7 +36,6 @@ function transformFields(body) {
 }
 
 function buildReferenceTree(fields, references) {
-    if (!fields) return [];
     const referencesTree = [];
     for (const [fieldName, fieldValue] of Object.entries(fields)) {
         // Handle array of references (like cards or collections)
@@ -81,10 +80,10 @@ function transformReferences(body) {
         references[ref.id] = {
             type: ref.type,
             value: {
-                name: ref.name || '',
-                title: ref.title || '',
-                description: ref.description || '',
-                path: ref.path || '',
+                name: ref.name,
+                title: ref.title,
+                description: ref.description,
+                path: ref.path,
                 id: ref.id,
                 model: { id: ref.model?.id },
                 fields,
@@ -98,15 +97,7 @@ function transformReferences(body) {
                     // Check if tag not already added
                     references[tag.id] = {
                         type: 'tag',
-                        value: {
-                            id: tag.id,
-                            name: tag.name || '',
-                            title: tag.title || '',
-                            path: tag.path || '',
-                            description: tag.description !== undefined ? tag.description : null,
-                            i18n: tag.i18n || [],
-                            titlePath: tag.titlePath || '',
-                        },
+                        value: tag,
                     };
                 }
             });

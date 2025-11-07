@@ -47,9 +47,12 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-5: Edit mnemonic field', async () => {
-            const iconInput = await editor.iconURL.first();
-            await expect(iconInput).toBeVisible();
-            await iconInput.fill(data.iconURL.updated);
+            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await editor.openMnemonicModal(0);
+            await editor.mnemonicUrlTab.click();
+            await expect(await editor.iconURL).toBeVisible();
+            await editor.iconURL.fill(data.iconURL.updated);
+            await editor.saveMnemonicModal();
         });
 
         await test.step('step-6: Save card', async () => {
@@ -74,8 +77,10 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
                 // Validate mnemonic in editor and card
                 test.step('Validation-3: Validate edited mnemonic', async () => {
-                    const iconInput = await editor.iconURL.first();
-                    await expect(iconInput).toHaveValue(data.iconURL.updated);
+                    await editor.openMnemonicModal(0);
+                    await editor.mnemonicUrlTab.click();
+                    await expect(await editor.iconURL).toHaveValue(data.iconURL.updated);
+                    await editor.cancelMnemonicModal();
                     await expect(await clonedCard.locator(fries.icon).first()).toHaveAttribute('src', data.iconURL.updated);
                 }),
             ]);

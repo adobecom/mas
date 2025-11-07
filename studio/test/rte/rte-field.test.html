@@ -46,6 +46,38 @@
 
             runTests(async () => {
                 await mockFetch(withWcs);
+                // Wait for mas-commerce-service to be ready
+                await customElements.whenDefined('mas-commerce-service');
+                const masCommerceService = document.querySelector('mas-commerce-service');
+
+                // Ensure settings and featureFlags are available for tests
+                if (masCommerceService) {
+                    if (!masCommerceService.settings) {
+                        Object.defineProperty(masCommerceService, 'settings', {
+                            value: {
+                                displayOldPrice: false,
+                                displayPerUnit: false,
+                                displayPlanType: false,
+                                displayRecurrence: false,
+                                displayTax: false,
+                                isPerpetual: false,
+                                checkoutWorkflowStep: undefined,
+                            },
+                            writable: true,
+                            configurable: true,
+                        });
+                    }
+
+                    if (!masCommerceService.featureFlags) {
+                        Object.defineProperty(masCommerceService, 'featureFlags', {
+                            value: {
+                                'mas-ff-defaults': false,
+                            },
+                            writable: true,
+                            configurable: true,
+                        });
+                    }
+                }
 
                 const openLinkEditor = async function (rte) {
                     rte.linkEditorButtonElement.click();
@@ -295,7 +327,7 @@
                 });
             });
         </script>
-        <mas-commerce-service></mas-commerce-service>
+        <mas-commerce-service data-mas-ff-defaults="off" env="stage"></mas-commerce-service>
         <button onclick="toggleTheme()" style="position: absolute; right: 0; bottom: 0">Toggle theme</button>
         <main>
             <sp-theme color="light" scale="medium"> </sp-theme>

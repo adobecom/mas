@@ -62,7 +62,7 @@ export default {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
                 iconURL: {
                     original: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
-                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                    updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -279,6 +279,25 @@ export default {
                     updated: 'save-now-1',
                 },
                 daaLH: 'phsp',
+            },
+            browserParams: '#page=content&path=nala&query=',
+            tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
+        },
+        {
+            tcid: '17',
+            name: '@studio-suggested-edit-discard-product-icon-picker',
+            path: '/studio.html',
+            data: {
+                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                productIcon: {
+                    name: 'Illustrator',
+                    original: {
+                        src: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg',
+                    },
+                    updated: {
+                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
+                    },
+                },
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',

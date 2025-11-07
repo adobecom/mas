@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 const SUCCESS = 'success';
 const ERROR = 'error';
 const OK = 'ok';
@@ -7,7 +6,20 @@ const FAIL = 'fail';
 async function checkEndpoint(endpoint, validateJson) {
     let result = OK;
     try {
-        const response = await fetch(endpoint);
+        const controller = new AbortController();
+        // Increase timeout to 5 seconds for container environments
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        // Add headers that node-fetch included by default
+        const response = await fetch(endpoint, {
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json, */*',
+                'Accept-Encoding': 'gzip, deflate',
+                'User-Agent': 'Mozilla/5.0 (compatible; mas-io-health-check/1.0)',
+            },
+        });
+        clearTimeout(timeoutId);
         const json = await response.json();
         if (response?.ok) {
             const isJsonValid = validateJson(json);
@@ -26,6 +38,7 @@ async function checkEndpoint(endpoint, validateJson) {
             };
         }
     } catch (e) {
+        console.log(`[healthcheck] Error checking endpoint ${endpoint}:`, e);
         result = {
             status: FAIL,
             reason: e.message,

@@ -22,7 +22,7 @@
         },
         "shortDescription": { "mimeType": "text/html" },
         "description": {
-            "value": "<p>Corps XS/Regular Obtenez plus de 20 applications pour tous types de travaux créatifs, de l'édition de photos et de vidéos à la conception de logos et plus encore.</p><p><a class=\"primary-link\" href=\"https://example.com\" target=\"_self\">{{learn-more}}</a></p>",
+            "value": "<p>french default description</p>",
             "mimeType": "text/html"
         },
         "callout": {
@@ -33,9 +33,104 @@
             "value": "<a class=\"accent\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\" target=\"_self\" data-analytics-id=\"buy-now\">{{select}}</a>",
             "mimeType": "text/html"
         },
-        "tags": ["mas:plan_type/abm", "mas:offer_type/base", "mas:product_family", "mas:commitment/access_pass"]
+        "tags": ["mas:plan_type/abm", "mas:offer_type/base", "mas:product_family", "mas:commitment/access_pass"],
+        "variations": ["d99c359d-5349-43cc-95f4-8e388c299855", "d88c359d-5349-43cc-95f4-8e388c299855"]
     },
     "references": {
+        "d99c359d-5349-43cc-95f4-8e388c299855": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app",
+                "name": "",
+                "title": "Photography Promo",
+                "id": "d99c359d-5349-43cc-95f4-8e388c299855",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ" },
+                "fields": {
+                    "variant": "plans",
+                    "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
+                    "size": "Default",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/lightroom.svg",
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
+                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
+                    "badge": { "value": "canadian card", "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://main--milo--adobecom.hlx.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
+                    "cardTitle": "Photography  (1TB)",
+                    "prices": {
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/phlt",
+                        "mas:market_segments/com"
+                    ],
+                    "originalId": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+                    "locReady": false
+                }
+            }
+        },
+        "d88c359d-5349-43cc-95f4-8e388c299855": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/fr_CH/ccd-slice-wide-cc-all-app",
+                "name": "",
+                "title": "Photography Promo",
+                "id": "d88c359d-5349-43cc-95f4-8e388c299855",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ" },
+                "fields": {
+                    "variant": "plans",
+                    "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
+                    "size": "Default",
+                    "mnemonicIcon": [],
+                    "mnemonicAlt": [],
+                    "mnemonicLink": [],
+                    "badge": { "value": "swiss card", "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://main--milo--adobecom.hlx.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
+                    "cardTitle": "Photography  (1TB)",
+                    "prices": {
+                        "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"K79yhO4-kgnn85ghM8NwRIACiaH_LucDbaIKajqpYk8\"></span>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "value": "<p>swiss description</p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/phlt",
+                        "mas:market_segments/com"
+                    ],
+                    "originalId": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+                    "locReady": false
+                }
+            }
+        },
         "mas:plan_type/abm": {
             "type": "tag",
             "value": {
@@ -54,6 +149,28 @@
             "fieldName": "tags",
             "identifier": "mas:plan_type/abm",
             "referencesTree": []
+        },
+        {
+            "fieldName": "variations",
+            "identifier": "d99c359d-5349-43cc-95f4-8e388c299855",
+            "referencesTree": [
+                { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+            ]
+        },
+        {
+            "fieldName": "variations",
+            "identifier": "d88c359d-5349-43cc-95f4-8e388c299855",
+            "referencesTree": [
+                { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+            ]
         }
     ]
 }

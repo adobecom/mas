@@ -37,7 +37,7 @@ export default {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
                 iconURL: {
                     original: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-                    updated: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                    updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
                 },
             },
             browserParams: '#page=content&path=nala&query=',
@@ -71,6 +71,25 @@ export default {
                 ctaText: {
                     original: 'Select',
                     updated: 'Buy now',
+                },
+            },
+            browserParams: '#page=content&path=nala&query=',
+            tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
+        },
+        {
+            tcid: '5',
+            name: '@studio-fries-edit-discard-product-icon-picker',
+            path: '/studio.html',
+            data: {
+                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
+                productIcon: {
+                    name: 'Illustrator',
+                    original: {
+                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                    },
+                    updated: {
+                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
+                    },
                 },
             },
             browserParams: '#page=content&path=nala&query=',

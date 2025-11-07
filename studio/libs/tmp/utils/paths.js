@@ -9,7 +9,7 @@ function rootURL(preview) {
 }
 
 /**
- * builds a full fetchable path to the fragment
+ * builds a full fetchable url to the fragment
  * @param {*} id id of the fragment,
  * @param {*} preview preview object if to be used
  * @returns full fetchable path to the fragment
@@ -19,7 +19,7 @@ function odinId(id, preview) {
 }
 
 /**
- * builds a full fetchable path to the fragment references
+ * builds a full fetchable url to the fragment references
  * @param {*} id id of the fragment,
  * @param {boolean} allHydrated whether to fetch all references or not
  * @param {boolean} preview preview object if to be used
@@ -30,15 +30,15 @@ function odinReferences(id, allHydrated = false, preview) {
 }
 
 /**
- * builds a full fetchable path to the fragment
+ * builds a full fetchable url to the fragment
  * @param {*} surface surface of the fragment,
  * @param {*} locale locale of the fragment,
  * @param {*} fragmentPath subpath of the fragment from the locale root
  * @param {boolean} preview preview object if to be used
  * @returns full fetchable path to the fragment
  */
-function odinPath(surface, locale, fragmentPath, preview) {
+function odinUrl(surface, locale, fragmentPath, preview) {
     return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
-export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinPath, odinId, odinReferences };
+export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinUrl, odinId, odinReferences };

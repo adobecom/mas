@@ -25,8 +25,9 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { LANGUAGE_DEFAULTS, getDictionary } from '../libs/fragment-client.js';
+
 import { SURFACES } from './editors/variant-picker.js';
+import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
 
 let fragmentCache;
 
@@ -433,8 +434,9 @@ export class MasRepository extends LitElement {
     getFallbackLocale(locale) {
         if (!locale) return null;
         const [languageCode] = locale.split('_');
-        const match = LANGUAGE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
-        return match || null;
+        const match = LOCALE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
+        if (!match || match === locale) return null;
+        return match;
     }
 
     async ensureDictionaryFolder(dictionaryPath) {
@@ -573,7 +575,15 @@ export class MasRepository extends LitElement {
     }
 
     async ensureDictionaryIndex(dictionaryPath, visited = new Set()) {
-        if (!dictionaryPath || visited.has(dictionaryPath)) return null;
+        if (!dictionaryPath) return null;
+        if (visited.has(dictionaryPath)) {
+            try {
+                return await this.fetchIndexFragment(`${dictionaryPath}/index`);
+            } catch (error) {
+                console.error(`Failed to fetch already visited dictionary index for ${dictionaryPath}:`, error);
+                return null;
+            }
+        }
         visited.add(dictionaryPath);
 
         const { locale, surfacePath, surfaceRoot } = this.parseDictionaryPath(dictionaryPath);
@@ -586,8 +596,12 @@ export class MasRepository extends LitElement {
         let parentReference = null;
 
         const fallbackLocale = this.getFallbackLocale(locale);
-        const sameSurfaceDictionaryPath =
-            fallbackLocale && fallbackLocale !== locale ? this.getDictionaryFolderPath(surfacePath, fallbackLocale) : null;
+        const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
+        const acomFallbackLocale = fallbackLocale ?? locale;
+
+        const sameSurfaceDictionaryPath = surfaceFallbackLocale
+            ? this.getDictionaryFolderPath(surfacePath, surfaceFallbackLocale)
+            : null;
 
         // 2. Check surface language fallback (same surface, fallback locale)
         if (sameSurfaceDictionaryPath) {
@@ -599,16 +613,15 @@ export class MasRepository extends LitElement {
             }
         }
 
-        // 3. Check ACOM language fallback (ACOM surface, fallback locale)
-        if (!parentReference && surfaceRoot !== SURFACES.ACOM && fallbackLocale) {
-            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM, fallbackLocale);
+        // 3. Check ACOM language fallback (ACOM surface, fallback locale or current locale)
+        if (!parentReference && surfaceRoot !== SURFACES.ACOM && acomFallbackLocale) {
+            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM, acomFallbackLocale);
             if (acomFallbackPath) {
                 try {
-                    const acomIndexPath = `${acomFallbackPath}/index`;
-                    const acomIndex = await this.fetchIndexFragment(acomIndexPath);
+                    const acomIndex = await this.ensureDictionaryIndex(acomFallbackPath, visited);
                     if (acomIndex?.path) parentReference = acomIndex.path;
                 } catch (error) {
-                    console.error(`Failed to fetch ACOM fallback index for ${acomFallbackPath}:`, error);
+                    console.error(`Failed to ensure ACOM fallback index for ${acomFallbackPath}:`, error);
                 }
             }
         }

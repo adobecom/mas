@@ -253,4 +253,156 @@ describe('wcs corner cases', function () {
             },
         });
     });
+
+    it('should fallback to en_US locale when unsupported locale is provided', async function () {
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT') &&
+                        !url.includes('promotion_code'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('promotion_code=NICOPROMO') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.locale = 'xx_YY'; // Unsupported locale
+        context = await wcs.process(context);
+        expect(context.body.wcs).to.deep.equal({
+            prod: {
+                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult': [
+                    {
+                        blah: 'blah',
+                    },
+                ],
+                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo': [
+                    {
+                        foo: 'bar',
+                    },
+                ],
+            },
+        });
+    });
+
+    it('should fallback to US country when unsupported country is provided', async function () {
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT') &&
+                        !url.includes('promotion_code'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('promotion_code=NICOPROMO') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.locale = 'en_XX'; // Unsupported country in locale
+        context.country = 'XX'; // Unsupported country
+        context = await wcs.process(context);
+        expect(context.body.wcs).to.deep.equal({
+            prod: {
+                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult': [
+                    {
+                        blah: 'blah',
+                    },
+                ],
+                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo': [
+                    {
+                        foo: 'bar',
+                    },
+                ],
+            },
+        });
+    });
+
+    it('should fallback to both en_US locale and US country when both are unsupported', async function () {
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT') &&
+                        !url.includes('promotion_code'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('country=US') &&
+                        url.includes('locale=en_US') &&
+                        url.includes('landscape=PUBLISHED') &&
+                        url.includes('promotion_code=NICOPROMO') &&
+                        url.includes('api_key=testing_wcs') &&
+                        url.includes('language=MULT'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.locale = 'xx_YY'; // Both unsupported locale and country
+        context.country = 'YY';
+        context = await wcs.process(context);
+        expect(context.body.wcs).to.deep.equal({
+            prod: {
+                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult': [
+                    {
+                        blah: 'blah',
+                    },
+                ],
+                'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo': [
+                    {
+                        foo: 'bar',
+                    },
+                ],
+            },
+        });
+    });
 });

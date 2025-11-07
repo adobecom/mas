@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { transformer as settings, PLAN_TYPE_LOCALES } from '../../src/fragment/settings.js';
+import { transformer as settings, PLAN_TYPE_LOCALES } from '../../src/fragment/transformers/settings.js';
 
 describe('settings transformer', () => {
     let context;

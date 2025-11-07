@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import nock from 'nock';
+import sinon from 'sinon';
 import { main } from '../src/health-check/index.js';
+import { createResponse } from './fragment/mocks/MockFetch.js';
 
 const ODIN_RESPONSE = {
     path: '/content/dam/mas/nala/ccd/slice-cc-allapps31211',
@@ -44,15 +45,21 @@ const WCS_RESPONSE = {
 };
 
 const PARAMS = {
-    ODIN_CDN_ENDPOINT: 'https://odincdn/testurl',
-    ODIN_ORIGIN_ENDPOINT: 'https://odinorigin/testurl',
-    WCS_CDN_ENDPOINT: 'https://wcscdn/testurl',
-    WCS_ORIGIN_ENDPOINT: 'https://wcsorigin/testurl',
+    ODIN_CDN_ENDPOINT: 'https://odincdn.adobe.com/testurl',
+    ODIN_ORIGIN_ENDPOINT: 'https://odinorigin.adobe.com/testurl',
+    WCS_CDN_ENDPOINT: 'https://wcscdn.adobe.com/testurl',
+    WCS_ORIGIN_ENDPOINT: 'https://wcsorigin.adobe.com/testurl',
 };
 
 describe('health-check', () => {
+    let fetchStub;
+
+    beforeEach(() => {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
     afterEach(() => {
-        nock.cleanAll();
+        fetchStub.restore();
     });
 
     it('main should be defined', () => {
@@ -60,10 +67,10 @@ describe('health-check', () => {
     });
 
     it('return 200 & success status if odin & wcs are valid', async () => {
-        nock('https://odincdn').get('/testurl').reply(200, ODIN_RESPONSE);
-        nock('https://odinorigin').get('/testurl').reply(200, ODIN_RESPONSE);
-        nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
-        nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
+        fetchStub.withArgs('https://odincdn.adobe.com/testurl').returns(createResponse(200, ODIN_RESPONSE));
+        fetchStub.withArgs('https://odinorigin.adobe.com/testurl').returns(createResponse(200, ODIN_RESPONSE));
+        fetchStub.withArgs('https://wcscdn.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
+        fetchStub.withArgs('https://wcsorigin.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
 
         const response = await main(PARAMS);
         expect(response).to.deep.equal({
@@ -83,10 +90,10 @@ describe('health-check', () => {
             path: '/content/dam/mas/nala/ccd/slice-cc-allapps31211',
             id: '0ef2a804-e788-4959-abb8-b4d96a18b0ef',
         };
-        nock('https://odincdn').get('/testurl').reply(200, ODIN_RESPONSE);
-        nock('https://odinorigin').get('/testurl').reply(200, odininvalidJson);
-        nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
-        nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
+        fetchStub.withArgs('https://odincdn.adobe.com/testurl').returns(createResponse(200, ODIN_RESPONSE));
+        fetchStub.withArgs('https://odinorigin.adobe.com/testurl').returns(createResponse(200, odininvalidJson));
+        fetchStub.withArgs('https://wcscdn.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
+        fetchStub.withArgs('https://wcsorigin.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
 
         const response = await main(PARAMS);
         expect(response).to.deep.equal({
@@ -95,7 +102,7 @@ describe('health-check', () => {
                 status: 'error',
                 odinCDN: 'ok',
                 odinOrigin: {
-                    url: 'https://odinorigin/testurl',
+                    url: 'https://odinorigin.adobe.com/testurl',
                     reason: 'Invalid JSON.',
                     status: 'fail',
                 },
@@ -106,10 +113,10 @@ describe('health-check', () => {
     });
 
     it('return 500 & error if odin cdn is 404', async () => {
-        nock('https://odincdn').get('/testurl').reply(404, {});
-        nock('https://odinorigin').get('/testurl').reply(200, ODIN_RESPONSE);
-        nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
-        nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
+        fetchStub.withArgs('https://odincdn.adobe.com/testurl').returns(createResponse(404, {}, 'Not Found'));
+        fetchStub.withArgs('https://odinorigin.adobe.com/testurl').returns(createResponse(200, ODIN_RESPONSE));
+        fetchStub.withArgs('https://wcscdn.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
+        fetchStub.withArgs('https://wcsorigin.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
 
         const response = await main(PARAMS);
         expect(response).to.deep.equal({
@@ -117,7 +124,7 @@ describe('health-check', () => {
             body: {
                 status: 'error',
                 odinCDN: {
-                    url: 'https://odincdn/testurl',
+                    url: 'https://odincdn.adobe.com/testurl',
                     reason: '404 Not Found',
                     status: 'fail',
                 },
@@ -129,10 +136,10 @@ describe('health-check', () => {
     });
 
     it('return 500 & error if WCS is 503', async () => {
-        nock('https://odincdn').get('/testurl').reply(200, ODIN_RESPONSE);
-        nock('https://odinorigin').get('/testurl').reply(200, ODIN_RESPONSE);
-        nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
-        nock('https://wcsorigin').get('/testurl').reply(503, {});
+        fetchStub.withArgs('https://odincdn.adobe.com/testurl').returns(createResponse(200, ODIN_RESPONSE));
+        fetchStub.withArgs('https://odinorigin.adobe.com/testurl').returns(createResponse(200, ODIN_RESPONSE));
+        fetchStub.withArgs('https://wcscdn.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
+        fetchStub.withArgs('https://wcsorigin.adobe.com/testurl').returns(createResponse(503, {}, 'Service Unavailable'));
 
         const response = await main(PARAMS);
         expect(response).to.deep.equal({
@@ -143,7 +150,7 @@ describe('health-check', () => {
                 odinOrigin: 'ok',
                 wcsCDN: 'ok',
                 wcsOrigin: {
-                    url: 'https://wcsorigin/testurl',
+                    url: 'https://wcsorigin.adobe.com/testurl',
                     reason: '503 Service Unavailable',
                     status: 'fail',
                 },
@@ -152,10 +159,10 @@ describe('health-check', () => {
     });
 
     it('return 500 if any fetch error', async () => {
-        nock('https://odincdn').get('/testurl').replyWithError('fetch error');
-        nock('https://odinorigin').get('/testurl').reply(200, ODIN_RESPONSE);
-        nock('https://wcscdn').get('/testurl').reply(200, WCS_RESPONSE);
-        nock('https://wcsorigin').get('/testurl').reply(200, WCS_RESPONSE);
+        fetchStub.withArgs('https://odincdn.adobe.com/testurl').rejects(new Error('fetch error'));
+        fetchStub.withArgs('https://odinorigin.adobe.com/testurl').returns(createResponse(200, ODIN_RESPONSE));
+        fetchStub.withArgs('https://wcscdn.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
+        fetchStub.withArgs('https://wcsorigin.adobe.com/testurl').returns(createResponse(200, WCS_RESPONSE));
 
         const response = await main(PARAMS);
         expect(response).to.deep.equal({
@@ -163,8 +170,8 @@ describe('health-check', () => {
             body: {
                 status: 'error',
                 odinCDN: {
-                    url: 'https://odincdn/testurl',
-                    reason: 'request to https://odincdn/testurl failed, reason: fetch error',
+                    url: 'https://odincdn.adobe.com/testurl',
+                    reason: 'fetch error',
                     status: 'fail',
                 },
                 odinOrigin: 'ok',

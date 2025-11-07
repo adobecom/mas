@@ -1,0 +1,281 @@
+{
+    "path": "/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app",
+    "name": "",
+    "title": "CCD Slice Wide CC All Apps",
+    "id": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+    "description": "",
+    "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ" },
+    "fields": {
+        "variant": "plans",
+        "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
+        "size": "Default",
+        "mnemonicIcon": [
+            "https://www.adobe.com/content/dam/shared/images/product-icons/svg/lightroom.svg",
+            "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
+        ],
+        "mnemonicAlt": ["Lightroom", "Illustrator"],
+        "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
+        "badge": { "mimeType": "text/html" },
+        "trialBadge": { "mimeType": "text/html" },
+        "backgroundImage": "https://main--milo--adobecom.hlx.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
+        "cardTitle": "Photography  (1TB)",
+        "prices": { "mimeType": "text/html" },
+        "shortDescription": { "mimeType": "text/html" },
+        "description": {
+            "value": "<p>Edit this is the {{demo-sunil}} organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\" rel=\"noopener noreferrer\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br>\n<a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\" rel=\"noopener noreferrer\">See all plans &amp; pricing details</a></p>\n",
+            "mimeType": "text/html"
+        },
+        "callout": { "mimeType": "text/html" },
+        "showSecureLabel": false,
+        "showPlanType": false,
+        "ctas": {
+            "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
+            "mimeType": "text/html"
+        },
+        "variations": ["d99c359d-5349-43cc-95f4-8e388c299855", "15891dd8-872f-4643-99a6-492d8917d46b"],
+        "tags": [
+            "mas:offer_type/base",
+            "mas:plan_type/abm",
+            "mas:customer_segment/individual",
+            "mas:product_code/phlt",
+            "mas:market_segments/com"
+        ],
+        "originalId": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+        "locReady": false
+    },
+    "references": {
+        "d99c359d-5349-43cc-95f4-8e388c299855": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_AU/ccd-slice-wide-cc-all-app",
+                "name": "",
+                "title": "Photography Promo",
+                "id": "d99c359d-5349-43cc-95f4-8e388c299855",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ" },
+                "fields": {
+                    "variant": "plans",
+                    "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
+                    "size": "Default",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/lightroom.svg",
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
+                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
+                    "badge": { "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://main--milo--adobecom.hlx.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
+                    "cardTitle": "Photography  (1TB)",
+                    "prices": {
+                        "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"K79yhO4-kgnn85ghM8NwRIACiaH_LucDbaIKajqpYk8\"></span>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "value": "<p>Edit this is the {{demo-sunil}} organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/phlt",
+                        "mas:market_segments/com"
+                    ],
+                    "originalId": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+                    "locReady": false
+                }
+            }
+        },
+        "mas:offer_type/base": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/offer_type/base",
+                "name": "base",
+                "title": "Base",
+                "id": "mas:offer_type/base",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Offer type / Base",
+                "description": null
+            }
+        },
+        "mas:plan_type/abm": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/plan_type/abm",
+                "name": "abm",
+                "title": "ABM",
+                "id": "mas:plan_type/abm",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Plan type / ABM",
+                "description": ""
+            }
+        },
+        "mas:customer_segment/individual": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/customer_segment/individual",
+                "name": "individual",
+                "title": "Individual",
+                "id": "mas:customer_segment/individual",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Customer segment / Individual",
+                "description": null
+            }
+        },
+        "mas:product_code/phlt": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/product_code/phlt",
+                "name": "phlt",
+                "title": "Photoshop Lightroom Bundle (20GB)",
+                "id": "mas:product_code/phlt",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Product code / Photoshop Lightroom Bundle (20GB)",
+                "description": ""
+            }
+        },
+        "mas:market_segments/com": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/market_segments/com",
+                "name": "com",
+                "title": "COM",
+                "id": "mas:market_segments/com",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Market segments / COM",
+                "description": ""
+            }
+        },
+        "15891dd8-872f-4643-99a6-492d8917d46b": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_IN/ccd-slice-wide-cc-all-app",
+                "name": "",
+                "title": "Photography Promo",
+                "id": "15891dd8-872f-4643-99a6-492d8917d46b",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ" },
+                "fields": {
+                    "variant": "plans",
+                    "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
+                    "size": "Default",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/lightroom.svg",
+                        "https://www.adobe.com/content/dam/shared/images/product-icons/svg/photoshop.svg"
+                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
+                    "badge": { "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://main--milo--adobecom.hlx.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium",
+                    "cardTitle": "Photography  (1TB)",
+                    "prices": {
+                        "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"K79yhO4-kgnn85ghM8NwRIACiaH_LucDbaIKajqpYk8\"></span>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "value": "<p>Edit this is the {{demo-sunil}} organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/phlt",
+                        "mas:market_segments/com"
+                    ],
+                    "originalId": "aec092ef-d5b5-4271-8b6f-4bbd535fcc56",
+                    "locReady": false
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "variations",
+            "identifier": "d99c359d-5349-43cc-95f4-8e388c299855",
+            "referencesTree": [
+                { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+            ]
+        },
+        {
+            "fieldName": "variations",
+            "identifier": "15891dd8-872f-4643-99a6-492d8917d46b",
+            "referencesTree": [
+                { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
+                { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+            ]
+        },
+        { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
+        { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
+        { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
+        { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
+        { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+    ],
+    "modelReferences": {
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+            "path": "/conf/mas/settings/dam/cfm/models/card",
+            "title": "Card",
+            "fields": {
+                "variant": { "type": "text" },
+                "osi": { "type": "text" },
+                "size": { "type": "text" },
+                "mnemonicIcon": { "type": "text" },
+                "mnemonicAlt": { "type": "text" },
+                "mnemonicLink": { "type": "text" },
+                "badge": { "type": "long-text" },
+                "trialBadge": { "type": "long-text" },
+                "backgroundColor": { "type": "text" },
+                "borderColor": { "type": "text" },
+                "backgroundImage": { "type": "text" },
+                "backgroundImageAltText": { "type": "text" },
+                "cardTitle": { "type": "text" },
+                "cardName": { "type": "text" },
+                "cardTitleLink": { "type": "text" },
+                "subtitle": { "type": "text" },
+                "prices": { "type": "long-text" },
+                "shortDescription": { "type": "long-text" },
+                "promoText": { "type": "text" },
+                "promoCode": { "type": "text" },
+                "description": { "type": "long-text" },
+                "callout": { "type": "long-text" },
+                "showSecureLabel": { "type": "boolean" },
+                "showPlanType": { "type": "boolean" },
+                "quantitySelect": { "type": "text" },
+                "addon": { "type": "text" },
+                "addonConfirmation": { "type": "text" },
+                "ctas": { "type": "long-text" },
+                "variations": { "type": "content-fragment" },
+                "product": { "type": "content-reference" },
+                "whatsIncluded": { "type": "text" },
+                "tags": { "type": "tag" },
+                "perUnitLabel": { "type": "text" },
+                "originalId": { "type": "text" },
+                "locReady": { "type": "boolean" }
+            }
+        }
+    }
+}

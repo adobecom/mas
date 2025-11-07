@@ -1,23 +1,21 @@
-import { odinReferences, odinPath } from './paths.js';
-import { fetch, log, logDebug, logError } from './common.js';
+import { odinReferences, odinUrl } from '../utils/paths.js';
+import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { log, logDebug, logError } from '../utils/log.js';
+
 const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
 const TRANSFORMER_NAME = 'replace';
 
 async function getDictionaryId(context) {
-    const { surface, locale, preview } = context;
-    const dictionaryPath = odinPath(surface, locale, DICTIONARY_ID_PATH, preview);
-    const response = await fetch(dictionaryPath, context, 'dictionary-id');
-    if (response.status == 200) {
-        const { items } = response.body;
-        if (items?.length > 0) {
-            const id = items[0].id;
-            context.dictionaryId = id;
-            return id;
-        }
+    const { surface } = await getRequestInfos(context);
+    const { locale, preview } = context;
+    const dictionaryUrl = odinUrl(surface, locale, DICTIONARY_ID_PATH, preview);
+    const { id, status, message } = await getFragmentId(context, dictionaryUrl, 'dictionary-id');
+    if (status != 200) {
+        return { status, message };
     }
-    return null;
+    return { status: 200, id };
 }
 
 function extractValue(ref) {
@@ -30,7 +28,7 @@ export async function getDictionary(context) {
     /* c8 ignore next 1 */
     if (context.hasExternalDictionary) return context.dictionary;
     const dictionary = context.dictionary || {};
-    const id = context.dictionaryId ?? (await getDictionaryId(context));
+    const { id } = await getDictionaryId(context);
     if (!id) {
         return dictionary;
     }
@@ -82,7 +80,7 @@ async function init(context) {
     // if dictionaryId is present in cache - early load dictionary
     // if nothing in cache - dictionaryId and dictionary itself will be loaded later,
     // during process
-    return context.dictionaryId ? await getDictionary(context) : null;
+    return await getDictionary(context);
 }
 
 async function replace(context) {

@@ -10,8 +10,40 @@ describe('onPlaceholderSelect', () => {
     let onPlaceholderSelect;
 
     before(async () => {
+        // Create and configure mas-commerce-service
         const masCommerceService = document.createElement('mas-commerce-service');
+        masCommerceService.setAttribute('data-mas-ff-defaults', 'off');
+        masCommerceService.setAttribute('env', 'stage');
         document.head.appendChild(masCommerceService);
+
+        // Manually ensure settings and featureFlags are available for tests
+        // In a test environment, the service may not fully initialize asynchronously
+        if (!masCommerceService.settings) {
+            Object.defineProperty(masCommerceService, 'settings', {
+                value: {
+                    displayOldPrice: false,
+                    displayPerUnit: false,
+                    displayPlanType: false,
+                    displayRecurrence: false,
+                    displayTax: false,
+                    isPerpetual: false,
+                    checkoutWorkflowStep: undefined,
+                },
+                writable: true,
+                configurable: true,
+            });
+        }
+
+        if (!masCommerceService.featureFlags) {
+            Object.defineProperty(masCommerceService, 'featureFlags', {
+                value: {
+                    'mas-ff-defaults': false,
+                },
+                writable: true,
+                configurable: true,
+            });
+        }
+
         ostRoot = document.createElement('div');
         ostRoot.id = 'ost';
         document.body.appendChild(ostRoot);

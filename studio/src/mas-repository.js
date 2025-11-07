@@ -17,6 +17,7 @@ import {
     TAG_MODEL_ID_MAPPING,
     EDITABLE_FRAGMENT_MODEL_IDS,
     DICTIONARY_MODEL_ID,
+    PROMOTION_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -25,6 +26,7 @@ import {
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDictionary } from '../libs/fragment-client.js';
+import { Promotion } from './aem/promotion.js';
 
 let fragmentCache;
 
@@ -68,6 +70,7 @@ export class MasRepository extends LitElement {
             search: null,
             recentlyUpdated: null,
             placeholders: null,
+            promotions: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -129,6 +132,9 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
+                break;
+            case PAGE_NAMES.PROMOTIONS:
+                this.loadPromotions();
                 break;
         }
     }
@@ -394,8 +400,38 @@ export class MasRepository extends LitElement {
         }
     }
 
+    async loadPromotions() {
+        try {
+            const promotionsPath = this.getPromotionsPath();
+
+            const searchOptions = {
+                path: promotionsPath,
+                sort: [{ on: 'created', order: 'ASC' }],
+            };
+
+            if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
+            this.#abortControllers.promotions = new AbortController();
+
+            Store.promotions.list.loading.set(true);
+
+            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
+
+            const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
+
+            Store.promotions.list.data.set(promotions);
+        } catch (error) {
+            this.processError(error, 'Could not load promotions.');
+        } finally {
+            Store.promotions.list.loading.set(false);
+        }
+    }
+
     getDictionaryPath() {
         return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+    }
+
+    getPromotionsPath() {
+        return `${ROOT_PATH}/promotions`;
     }
 
     /**
@@ -655,6 +691,59 @@ export class MasRepository extends LitElement {
             return true;
         } catch (error) {
             this.processError(error, 'Failed to create');
+            return false;
+        }
+    }
+
+    async createPromotion(promotion) {
+        const promotionPath = this.getPromotionsPath();
+
+        console.log('promotionPath:', promotionPath);
+        console.log('promotion:', promotion);
+
+        const payload = {
+            name: promotion.name,
+            parentPath: promotionPath,
+            modelId: PROMOTION_MODEL_ID,
+            title: promotion.title,
+            fields: [
+                {
+                    name: 'title',
+                    type: 'text',
+                    values: [promotion.title],
+                },
+                {
+                    name: 'promoCode',
+                    type: 'text',
+                    values: [promotion.promoCode],
+                },
+                {
+                    name: 'startDate',
+                    type: 'date',
+                    values: [promotion.startDate],
+                },
+                {
+                    name: 'endDate',
+                    type: 'date',
+                    values: [promotion.endDate],
+                },
+                {
+                    name: 'tags',
+                    type: 'tag',
+                    values: promotion.tags,
+                },
+                {
+                    name: 'surfaces',
+                    type: 'long-text',
+                    values: promotion.surfaces,
+                },
+            ],
+        };
+        try {
+            await this.createFragment(payload, false);
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to create promotion.');
             return false;
         }
     }

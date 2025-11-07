@@ -91,49 +91,25 @@ export class Fragment {
 
     updateField(fieldName, value) {
         let change = false;
-        const existingField = this.fields.find((field) => field.name === fieldName);
-        
-        if (existingField) {
-            //handles encoding of values for characters like ✓
-            const encodedValues = value.map((v) => {
-                if (typeof v === 'string') {
-                    return v.normalize('NFC');
-                }
-                return v;
+        this.fields
+            .filter((field) => field.name === fieldName)
+            .forEach((field) => {
+                //handles encoding of values for characters like ✓
+                const encodedValues = value.map((v) => {
+                    if (typeof v === 'string') {
+                        return v.normalize('NFC');
+                    }
+                    return v;
+                });
+                if (
+                    field.values.length === encodedValues.length &&
+                    field.values.every((v, index) => v === encodedValues[index])
+                )
+                    return;
+                field.values = encodedValues;
+                this.hasChanges = true;
+                change = true;
             });
-            if (
-                existingField.values.length === encodedValues.length &&
-                existingField.values.every((v, index) => v === encodedValues[index])
-            )
-                return change;
-            existingField.values = encodedValues;
-            this.hasChanges = true;
-            change = true;
-        } else {
-            // Field doesn't exist, create it
-            const encodedValues = value.map((v) => {
-                if (typeof v === 'string') {
-                    return v.normalize('NFC');
-                }
-                return v;
-            });
-            // Determine field type - default to 'text' for most fields
-            let fieldType = 'text';
-            if (fieldName === 'tags') {
-                fieldType = 'tag';
-            } else if (fieldName === 'locReady' || fieldName === 'showSecureLabel' || fieldName === 'showPlanType') {
-                fieldType = 'boolean';
-            } else if (['badge', 'trialBadge', 'prices', 'description', 'shortDescription', 'callout', 'ctas'].includes(fieldName)) {
-                fieldType = 'long-text';
-            }
-            this.fields.push({
-                name: fieldName,
-                type: fieldType,
-                values: encodedValues,
-            });
-            this.hasChanges = true;
-            change = true;
-        }
         if (fieldName === 'tags') this.newTags = value;
         return change;
     }

@@ -56,6 +56,13 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    promotions: {
+        list: {
+            loading: new ReactiveStore(true),
+            data: new ReactiveStore([]),
+        },
+        inEdit: new ReactiveStore(null),
+    },
 };
 
 // #region Validators
@@ -84,7 +91,13 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
+    const validPages = [
+        PAGE_NAMES.WELCOME,
+        PAGE_NAMES.CONTENT,
+        PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.PROMOTIONS,
+        PAGE_NAMES.PROMOTIONS_FORM,
+    ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 

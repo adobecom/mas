@@ -4,6 +4,7 @@ export const VARIANT_NAMES = {
     ALL: 'all',
     CATALOG: 'catalog',
     PLANS: 'plans',
+    PLANS_V2: 'plans-v2',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
     SLICES: 'ccd-slice',
@@ -20,6 +21,11 @@ export const VARIANTS = [
     { label: 'All', value: VARIANT_NAMES.ALL, surface: 'all' },
     { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surface: 'acom' },
     { label: 'Plans', value: VARIANT_NAMES.PLANS, surface: 'acom' },
+    {
+        label: 'Plans v2',
+        value: VARIANT_NAMES.PLANS_V2,
+        surface: 'acom',
+    },
     {
         label: 'Plans Students',
         value: VARIANT_NAMES.PLANS_STUDENTS,

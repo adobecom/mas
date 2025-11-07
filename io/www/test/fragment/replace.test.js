@@ -1,7 +1,9 @@
 import { expect } from 'chai';
-import nock from 'nock';
-import { transformer as replace } from '../../src/fragment/replace.js';
+import sinon from 'sinon';
+import { transformer as replace } from '../../src/fragment/transformers/replace.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
+import { createResponse } from './mocks/MockFetch.js';
+
 const DICTIONARY_CF_RESPONSE = {
     items: [
         {
@@ -21,27 +23,29 @@ const odinResponse = (description, cta = '{{buy-now}}') => ({
     },
 });
 
-const mockDictionary = (preview = false) => {
+let fetchStub;
+
+const mockDictionary = (preview, fetchStub) => {
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
-    nock(odinDomain)
-        .get(odinUriRoot)
-        .query({ path: '/content/dam/mas/sandbox/fr_FR/dictionary/index' })
-        .reply(200, DICTIONARY_CF_RESPONSE);
-    // Use the new URL format with ?references=all-hydrated
-    nock(odinDomain).get(`${odinUriRoot}/fr_FR_dictionary?references=all-hydrated`).reply(200, DICTIONARY_RESPONSE);
+
+    fetchStub
+        .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/dictionary/index`)
+        .returns(createResponse(200, DICTIONARY_CF_RESPONSE));
+
+    fetchStub
+        .withArgs(`${odinDomain}${odinUriRoot}/fr_FR_dictionary?references=all-hydrated`)
+        .returns(createResponse(200, DICTIONARY_RESPONSE));
 };
 
 const getResponse = async (description, cta) => {
-    mockDictionary();
-    return await replace.process({
-        status: 200,
-        loggedTransformer: 'replace',
-        requestId: 'mas-replace-ut',
-        surface: 'sandbox',
-        locale: 'fr_FR',
-        body: odinResponse(description, cta),
-    });
+    mockDictionary(false, fetchStub);
+    const context = { surface: 'sandbox', locale: 'fr_FR', loggedTransformer: 'replace', requestId: 'mas-replace-ut' };
+    context.promises = {};
+    context.promises.replace = replace.init(context);
+    await context.promises.replace;
+    context.body = odinResponse(description, cta);
+    return await replace.process(context);
 };
 
 const expectedResponse = (description) => ({
@@ -57,16 +61,25 @@ const expectedResponse = (description) => ({
     },
     loggedTransformer: 'replace',
     requestId: 'mas-replace-ut',
-    dictionaryId: 'fr_FR_dictionary',
+    fragmentsIds: {
+        'dictionary-id': 'fr_FR_dictionary',
+    },
     locale: 'fr_FR',
     surface: 'sandbox',
 });
 
 describe('replace', () => {
+    beforeEach(() => {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(() => {
+        fetchStub.restore();
+    });
+
     it('returns 200 & no placeholders', async () => {
         const response = await getResponse('foo', 'Buy now');
         const expected = expectedResponse('foo');
-        delete expected.dictionaryId;
         expect(response).to.deep.include(expected);
     });
     it('returns 200 & replaced entries keys with text', async () => {
@@ -100,14 +113,6 @@ describe('replace', () => {
         expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
     });
     describe('corner cases', () => {
-        beforeEach(() => {
-            nock.cleanAll();
-        });
-
-        afterEach(() => {
-            nock.cleanAll();
-        });
-
         const FAKE_CONTEXT = {
             status: 200,
             surface: 'sandbox',
@@ -132,59 +137,50 @@ describe('replace', () => {
         };
 
         it('manages gracefully fetch failure to find dictionary', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
-                .replyWithError('fetch error');
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .rejects(new Error('fetch error'));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully non 2xx to find dictionary', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments')
-                .query({
-                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
-                })
-                .reply(404, 'not found');
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .returns(createResponse(404, 'not found', 'Not Found'));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully fetch no dictionary index', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
-                .reply(200, { items: [] });
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .returns(createResponse(200, { items: [] }));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
         });
 
         it('manages gracefully failure to find entries', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments')
-                .query({
-                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
-                })
-                .reply(200, DICTIONARY_CF_RESPONSE);
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
-                .replyWithError('fetch error');
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .returns(createResponse(200, DICTIONARY_CF_RESPONSE));
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
+                .rejects(new Error('fetch error'));
             const context = await replace.process(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
-            expect(context).to.deep.include({ ...EXPECTED, dictionaryId });
+            expect(context).to.deep.include({ ...EXPECTED, fragmentsIds: { 'dictionary-id': dictionaryId } });
         });
         it('manages gracefully non 2xx to find entries', async () => {
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments')
-                .query({
-                    path: '/content/dam/mas/sandbox/fr_FR/dictionary/index',
-                })
-                .reply(200, DICTIONARY_CF_RESPONSE);
-            nock('https://odin.adobe.com')
-                .get('/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
-                .reply(500, 'server error');
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .returns(createResponse(200, DICTIONARY_CF_RESPONSE));
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
+                .returns(createResponse(500, 'server error', 'Internal Server Error'));
             const context = await replace.process(FAKE_CONTEXT);
             const dictionaryId = 'fr_FR_dictionary';
-            expect(context).to.deep.include({ ...EXPECTED, dictionaryId });
+            expect(context).to.deep.include({ ...EXPECTED, fragmentsIds: { 'dictionary-id': dictionaryId } });
         });
     });
 });

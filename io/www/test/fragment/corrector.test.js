@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { transformer } from '../../src/fragment/corrector.js';
+import { transformer } from '../../src/fragment/transformers/corrector.js';
 
 describe('corrector', () => {
     describe('price literals cleanup', () => {

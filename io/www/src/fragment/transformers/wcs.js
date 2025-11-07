@@ -1,4 +1,5 @@
-import { log, logError, fetch } from './common.js';
+import { fetch } from '../utils/common.js';
+import { log, logError } from '../utils/log.js';
 import { SUPPORTED_COUNTRIES, SUPPORTED_LANGUAGES, SUPPORTED_LANGUAGE_COUNTRY } from '../../web-components/src/constants.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;

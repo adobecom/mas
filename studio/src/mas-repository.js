@@ -18,6 +18,7 @@ import {
     EDITABLE_FRAGMENT_MODEL_IDS,
     DICTIONARY_INDEX_MODEL_ID,
     DICTIONARY_ENTRY_MODEL_ID,
+    PROMOTION_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -29,6 +30,7 @@ import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { SURFACES } from './editors/variant-picker.js';
 import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
+import { Promotion } from './aem/promotion.js';
 
 let fragmentCache;
 
@@ -72,6 +74,7 @@ export class MasRepository extends LitElement {
             search: null,
             recentlyUpdated: null,
             placeholders: null,
+            promotions: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -133,6 +136,9 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
+                break;
+            case PAGE_NAMES.PROMOTIONS:
+                this.loadPromotions();
                 break;
         }
     }
@@ -414,6 +420,32 @@ export class MasRepository extends LitElement {
         }
     }
 
+    async loadPromotions() {
+        try {
+            const promotionsPath = this.getPromotionsPath();
+
+            const searchOptions = {
+                path: promotionsPath,
+                sort: [{ on: 'created', order: 'ASC' }],
+            };
+
+            if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
+            this.#abortControllers.promotions = new AbortController();
+
+            Store.promotions.list.loading.set(true);
+
+            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
+
+            const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
+
+            Store.promotions.list.data.set(promotions);
+        } catch (error) {
+            this.processError(error, 'Could not load promotions.');
+        } finally {
+            Store.promotions.list.loading.set(false);
+        }
+    }
+
     getDictionaryPath() {
         return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
     }
@@ -655,6 +687,10 @@ export class MasRepository extends LitElement {
         }
 
         return indexFragment;
+    }
+
+    getPromotionsPath() {
+        return `${ROOT_PATH}/promotions`;
     }
 
     /**

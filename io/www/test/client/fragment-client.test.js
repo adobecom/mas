@@ -19,8 +19,22 @@ function createResponse(status, data, statusText = 'OK') {
 describe('FragmentClient', () => {
     const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
     let fetchStub;
+    let localStorageStub;
 
     before(() => {
+        // Create a mock localStorage
+        const storage = {};
+        localStorageStub = {
+            getItem: sinon.stub().callsFake((key) => storage[key] || null),
+            setItem: sinon.stub().callsFake((key, value) => {
+                storage[key] = value.toString();
+            }),
+        };
+
+        // Stub window.localStorage
+        globalThis.window = globalThis.window || { localStorage: {} };
+        sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
+
         fetchStub = sinon.stub(globalThis, 'fetch');
         fetchStub
             .withArgs(`${baseUrl}/${mockCardFragment.id}?references=all-hydrated`)
@@ -45,6 +59,9 @@ describe('FragmentClient', () => {
 
     after(() => {
         fetchStub.restore();
+        if (globalThis.window?.localStorage) {
+            sinon.restore();
+        }
     });
 
     it('should fetch and transform card fragment for preview', async () => {

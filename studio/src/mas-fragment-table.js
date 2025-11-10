@@ -15,12 +15,14 @@ class MasFragmentTable extends LitElement {
         customRender: { type: Function, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, state: true, attribute: false },
+        nested: { type: Boolean, attribute: false },
     };
 
     constructor() {
         super();
         this.offerData = null;
         this.expanded = false;
+        this.nested = false;
     }
 
     #reactiveControllers = new ReactiveController(this);
@@ -142,6 +144,7 @@ class MasFragmentTable extends LitElement {
                                               class="mas-fragment"
                                               data-id="${variationFragment.id}"
                                               .fragmentStore=${new FragmentStore(new Fragment(variationFragment))}
+                                              .nested=${true}
                                           ></mas-fragment-table>
                                       `,
                                   )
@@ -168,15 +171,17 @@ class MasFragmentTable extends LitElement {
         return html`
             <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
                 <sp-table-cell class="name">
-                    <button
-                        class="expand-button"
-                        @click=${this.toggleExpand}
-                        aria-label="${this.expanded ? 'Collapse' : 'Expand'} row"
-                    >
-                        ${this.expanded
-                            ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
-                            : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
-                    </button>
+                    ${!this.nested
+                        ? html`<button
+                              class="expand-button"
+                              @click=${this.toggleExpand}
+                              aria-label="${this.expanded ? 'Collapse' : 'Expand'} row"
+                          >
+                              ${this.expanded
+                                  ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                                  : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
+                          </button>`
+                        : ''}
                     ${this.icon} ${this.getFragmentName(data)}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>

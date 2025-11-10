@@ -1,3 +1,5 @@
+const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -114,7 +116,26 @@ export class Fragment {
         return change;
     }
 
+    /**
+     * Lists all locale variations of the fragment. Other name: regional variations.
+     * @returns {Fragment[]}
+     */
     listLocaleVariations() {
-        return this.references?.filter((reference) => reference.path.split('/').pop() === this.path.split('/').pop());
+        const currentMatch = this.path.match(PATH_TOKENS);
+        if (!currentMatch?.groups) {
+            return [];
+        }
+
+        const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
+
+        return this.references?.filter((reference) => {
+            const refMatch = reference.path.match(PATH_TOKENS);
+            if (!refMatch?.groups) {
+                return false;
+            }
+            const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
+            // Match if surface and fragmentPath are identical, but locale is different
+            return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
+        });
     }
 }

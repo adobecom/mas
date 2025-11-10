@@ -9,7 +9,7 @@ import { transformer as corrector } from './tmp/transformers/corrector.js';
 import { transformer as fetchFragment } from './tmp/transformers/fetchFragment.js';
 import { getDictionary, transformer as replace } from './tmp/transformers/replace.js';
 import { transformer as settings } from './tmp/transformers/settings.js';
-import { transformer as customize } from './tmp/transformers/customize.js';
+import { transformer as customize, LOCALE_DEFAULTS } from './tmp/transformers/customize.js';
 import { transformer as promotions } from './tmp/transformers/promotions.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
@@ -103,4 +103,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export { previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector, LOCALE_DEFAULTS };

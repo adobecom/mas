@@ -227,4 +227,4 @@ export const transformer = {
     process: customize,
     init,
 };
-export { getCorrespondingLocale, deepMerge };
+export { getCorrespondingLocale, deepMerge, LOCALE_DEFAULTS };

@@ -429,13 +429,22 @@ sp-table-cell {
 .expanded-row-container {
     display: block;
     width: 100%;
-    background-color: var(--spectrum-gray-75);
+    background-color: var(--spectrum-gray-50);
     border-bottom: 1px solid var(--spectrum-gray-200);
 }
 
 .expanded-content {
     padding: 24px;
-    background-color: var(--spectrum-gray-75);
+    background-color: var(--spectrum-gray-50);
+}
+
+/* Highlight expanded parent row */
+sp-table-row.expanded {
+    background-color: var(--spectrum-blue-100) !important;
+}
+
+sp-table-row.expanded:hover {
+    background-color: var(--spectrum-blue-200) !important;
 }
 
 .expanded-title {
@@ -447,6 +456,29 @@ sp-table-cell {
 
 .expanded-content sp-tabs {
     width: 100%;
+}
+
+.expanded-content sp-tab-panel {
+    width: 100%;
+    margin-top: 16px;
+}
+
+.expanded-content sp-table {
+    width: 100%;
+}
+
+.expanded-content .nested-fragment {
+    width: 100%;
+}
+
+.expanded-content .nested-fragment sp-table-row,
+.expanded-content sp-table-body .nested-fragment sp-table-row {
+    background-color: var(--spectrum-blue-100) !important;
+}
+
+.expanded-content .nested-fragment sp-table-row:hover,
+.expanded-content sp-table-body .nested-fragment sp-table-row:hover {
+    background-color: var(--spectrum-blue-200) !important;
 }
 
 .embedded-table-container {

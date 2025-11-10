@@ -45,6 +45,11 @@ export class Fragment {
         return this.status.toLowerCase();
     }
 
+    get locale() {
+        const match = this.path.match(PATH_TOKENS);
+        return match?.groups?.parsedLocale || '';
+    }
+
     getTagTitle(id) {
         const tags = this.tags.filter((tag) => tag.id.includes(id));
         return tags[0]?.title;

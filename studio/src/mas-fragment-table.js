@@ -136,20 +136,22 @@ class MasFragmentTable extends LitElement {
                     <sp-tab value="promotion" label="Promotion">Promotion</sp-tab>
                     <sp-tab value="personalization" label="Personalization">Personalization</sp-tab>
                     <sp-tab-panel value="locale">
-                        <div class="embedded-table-container">
-                            ${hasVariations
-                                ? variations.map(
-                                      (variationFragment) => html`
-                                          <mas-fragment-table
-                                              class="mas-fragment"
-                                              data-id="${variationFragment.id}"
-                                              .fragmentStore=${new FragmentStore(new Fragment(variationFragment))}
-                                              .nested=${true}
-                                          ></mas-fragment-table>
-                                      `,
-                                  )
-                                : html`<p>No locale variations found</p>`}
-                        </div>
+                        ${hasVariations
+                            ? html`<sp-table size="m">
+                                  <sp-table-body>
+                                      ${variations.map(
+                                          (variationFragment) => html`
+                                              <mas-fragment-table
+                                                  class="mas-fragment nested-fragment"
+                                                  data-id="${variationFragment.id}"
+                                                  .fragmentStore=${new FragmentStore(new Fragment(variationFragment))}
+                                                  .nested=${true}
+                                              ></mas-fragment-table>
+                                          `,
+                                      )}
+                                  </sp-table-body>
+                              </sp-table>`
+                            : html`<p>No locale variations found</p>`}
                     </sp-tab-panel>
                     <sp-tab-panel value="promotion">
                         <div class="tab-content-placeholder">
@@ -182,7 +184,7 @@ class MasFragmentTable extends LitElement {
                                   : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                           </button>`
                         : ''}
-                    ${this.icon} ${this.getFragmentName(data)}
+                    ${this.nested ? html`${data.locale}` : html`${this.icon} ${this.getFragmentName(data)}`}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>
                 <sp-table-cell class="offer-id">

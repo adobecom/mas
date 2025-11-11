@@ -1,4 +1,5 @@
 import { createTimeoutPromise, mark, measureTiming, getJsonFromState } from './utils/common.js';
+import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from './utils/cache.js';
 import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
@@ -27,16 +28,6 @@ const RESPONSE_HEADERS = {
     'Content-Type': 'application/json',
     'Content-Encoding': 'br',
 };
-
-async function getRequestMetadata(context) {
-    const requestKey = `req-${context.id}-${context.locale}`;
-    const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
-    if (cachedMetadata) {
-        log(`found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
-        return cachedMetadata;
-    }
-    return null;
-}
 
 async function main(params) {
     const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + performance.now();
@@ -153,15 +144,8 @@ async function mainProcess(context) {
     const originalContext = context;
 
     const cachedMetadata = await getRequestMetadata(context);
-    const { fragmentsIds, surface, parsedLocale, fragmentPath } = cachedMetadata || {};
-    const requestKey = `req-${context.id}-${context.locale}`;
-    context = {
-        ...context,
-        fragmentsIds,
-        surface,
-        parsedLocale,
-        fragmentPath,
-    };
+    const metadataContext = extractContextFromMetadata(cachedMetadata);
+    context = { ...context, ...metadataContext };
     // Initialize all transformers that have an init function
     // those requests are done in parallel and results stored in context.promises
     const initPromises = {};
@@ -207,27 +191,8 @@ async function mainProcess(context) {
     if (context.status == 200) {
         responseBody = JSON.stringify(context.body, null, 0);
         logDebug(() => `response body: ${responseBody}`, context);
-        // Calculate hash of response body
         const hash = calculateHash(responseBody);
-        const updated = !cachedMetadata?.hash || cachedMetadata.hash !== hash;
-        let lastModified = new Date(Date.now());
-        if (updated || !cachedMetadata?.fragmentPath) {
-            //we add fragment path to condition to ensure cache is updated
-            const metadata = JSON.stringify({
-                fragmentsIds: context.fragmentsIds,
-                fragmentPath: context.fragmentPath,
-                hash,
-                lastModified: lastModified.toUTCString(),
-                parsedLocale: context.parsedLocale,
-                surface: context.surface,
-            });
-            log(`updating cache for ${requestKey} -> ${metadata}`, context);
-            mark(context, 'req-state-put');
-            await context.state.put(requestKey, metadata);
-            measureTiming(context, 'req-state-put');
-        } else if (cachedMetadata?.lastModified) {
-            lastModified = new Date(cachedMetadata.lastModified);
-        }
+        const { lastModified } = await storeRequestMetadata(context, cachedMetadata, hash);
         // Check If-Modified-Since header
         const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
         if (ifModifiedSince) {

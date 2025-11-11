@@ -1,6 +1,5 @@
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import eslintPluginImport from 'eslint-plugin-import';
-import eslintPluginReactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
 const ignoresConfig = {
@@ -21,7 +20,6 @@ const ignoresConfig = {
 const baseConfig = {
     plugins: {
         import: eslintPluginImport,
-        'react-hooks': eslintPluginReactHooks,
     },
     rules: {
         'prefer-const': 'error',
@@ -36,7 +34,6 @@ const baseConfig = {
         'import/no-unresolved': 'off',
         'import/no-cycle': 'off',
         'import/no-default-export': 'off',
-        'react-hooks/rules-of-hooks': 'off',
     },
     languageOptions: {
         globals: {

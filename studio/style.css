@@ -484,6 +484,13 @@ sp-table-row.expanded:hover {
 
 .expanded-content sp-table {
     width: 100%;
+    border: none !important;
+}
+
+.expanded-content sp-table-body {
+    border: none !important;
+    border-inline: none !important;
+    border-radius: none !important;
 }
 
 .expanded-content .nested-fragment {

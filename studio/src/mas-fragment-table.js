@@ -2,7 +2,7 @@ import { LitElement, html } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { generateCodeToUse, getService, showToast } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
-import Store from './store.js';
+import Store, { editFragment } from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
@@ -87,6 +87,25 @@ class MasFragmentTable extends LitElement {
 
     openCardPreview() {
         openPreview(this.fragmentStore.value.id, { left: 'min(300px, 15%)' });
+    }
+
+    handleActionsClick(event) {
+        event.stopPropagation();
+        const actionMenu = event.currentTarget.querySelector('sp-action-menu');
+        if (actionMenu) {
+            actionMenu.open = !actionMenu.open;
+        }
+    }
+
+    handleCreateVariation(event) {
+        event.stopPropagation();
+        // TODO: Implement create variation logic
+        console.log('Create variation for:', this.fragmentStore.value);
+    }
+
+    handleEditFragment(event) {
+        event.stopPropagation();
+        editFragment(this.fragmentStore, event.clientX);
     }
 
     getTruncatedOfferId() {
@@ -204,6 +223,21 @@ class MasFragmentTable extends LitElement {
                     ><div class="status-dot"></div>
                     <span class="status-text">${data.status}</span></sp-table-cell
                 >
+                <sp-table-cell class="actions">
+                    <sp-action-menu placement="bottom-end" quiet>
+                        <sp-icon-more slot="icon"></sp-icon-more>
+                        ${!this.nested
+                            ? html`<sp-menu-item @click=${this.handleCreateVariation}>
+                                  <sp-icon-user-group slot="icon"></sp-icon-user-group>
+                                  Create variation
+                              </sp-menu-item>`
+                            : ''}
+                        <sp-menu-item @click=${this.handleEditFragment}>
+                            <sp-icon-edit slot="icon"></sp-icon-edit>
+                            Edit fragment
+                        </sp-menu-item>
+                    </sp-action-menu>
+                </sp-table-cell>
                 ${data.model.path === CARD_MODEL_PATH
                     ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
                           ><sp-icon-preview label="Preview item"></sp-icon-preview

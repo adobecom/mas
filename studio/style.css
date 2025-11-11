@@ -274,10 +274,11 @@ mas-content {
 #content sp-table {
     --table-content-name-flex-grow: 1.6;
     --table-content-title-flex-grow: 1;
-    --table-content-offer-id-flex-grow: 1.1;
+    --table-content-offer-id-flex-grow: 0.6;
     --table-content-offer-type-flex-grow: 0.4;
     --table-content-price-flex-grow: 0.4;
     --table-content-status-flex-grow: 0.3;
+    --table-content-actions-flex-grow: 0.1;
     --table-content-preview-flex-grow: 0.1;
     width: 100%;
     border: 1px solid var(--spectrum-gray-200);
@@ -416,6 +417,15 @@ sp-table-cell {
 
         &.published-cell .status-dot {
             background-color: var(--spectrum-green-700);
+        }
+    }
+
+    &.actions {
+        flex-grow: var(--table-content-actions-flex-grow);
+        text-align: center;
+
+        sp-action-menu {
+            --mod-actionbutton-background-color-default: transparent;
         }
     }
 
@@ -606,6 +616,10 @@ sp-table-head-cell {
 
     &.status {
         flex-grow: var(--table-content-status-flex-grow);
+    }
+
+    &.actions {
+        flex-grow: var(--table-content-actions-flex-grow);
     }
 
     &.preview {

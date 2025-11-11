@@ -191,18 +191,16 @@ class MasFragmentTable extends LitElement {
         const data = this.fragmentStore.value;
         return html`
             <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
-                <sp-table-cell class="name">
-                    ${!this.nested
-                        ? html`<button
-                              class="expand-button"
-                              @click=${this.toggleExpand}
-                              aria-label="${this.expanded ? 'Collapse' : 'Expand'} row"
-                          >
+                ${!this.nested
+                    ? html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
+                          <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
                               ${this.expanded
                                   ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                                   : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
-                          </button>`
-                        : ''}
+                          </button>
+                      </sp-table-cell>`
+                    : html`<sp-table-cell class="expand-cell"></sp-table-cell>`}
+                <sp-table-cell class="name">
                     ${this.nested ? html`${data.locale}` : html`${this.icon} ${this.getFragmentName(data)}`}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>

@@ -112,6 +112,7 @@ class MasContent extends LitElement {
             @change=${this.updateTableSelection}
         >
             <sp-table-head>
+                <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
                 <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
                 <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
                 <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>

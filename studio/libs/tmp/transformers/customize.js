@@ -6,7 +6,7 @@ import { logDebug } from '../utils/log.js';
  * 'zh_HK',
  * 'zh_TW',
  * 'zh_CN', */
-const LOCALE_DEFAULTS = [
+export const LOCALE_DEFAULTS = [
     'ar_MENA',
     'bg_BG',
     'cs_CZ',
@@ -224,4 +224,4 @@ export const transformer = {
     process: customize,
     init,
 };
-export { getCorrespondingLocale, deepMerge };
+export { getCorrespondingLocale, deepMerge};

@@ -46,10 +46,12 @@ class MasPlaceholders extends LitElement {
     }
 
     reactiveController = new ReactiveController(this, [
-        Store.placeholders.list.loading,
-        Store.placeholders.selection,
-        Store.placeholders.index,
         Store.filters,
+        Store.folders.data,
+        Store.folders.loaded,
+        Store.placeholders?.list?.data,
+        Store.placeholders?.list?.loading,
+        Store.search,
     ]);
     filterAndSortReactiveController = new ReactiveController(
         this,

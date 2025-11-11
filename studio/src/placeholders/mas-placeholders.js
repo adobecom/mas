@@ -22,6 +22,7 @@ class MasPlaceholders extends LitElement {
         showCreationModal: { type: Boolean, state: true },
         selects: { type: String, state: true },
         pending: { type: Boolean, state: true },
+        error: { type: String, state: true },
     };
 
     constructor() {

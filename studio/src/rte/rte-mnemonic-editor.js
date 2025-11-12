@@ -142,19 +142,12 @@ class RteMnemonicEditor extends LitElement {
                 width: 100%;
             }
 
-            sp-dialog::part(footer) {
-                display: flex;
-                justify-content: space-between;
-                padding-top: 16px;
-                border-top: 1px solid var(--spectrum-gray-200);
+            sp-dialog {
+                padding-bottom: var(--spectrum-global-dimension-size-200);
             }
 
-            sp-button[slot='button'][variant='secondary'] {
-                margin-right: auto;
-            }
-
-            sp-button[slot='button'][variant='accent'] {
-                margin-left: auto;
+            sp-button[slot='button'] {
+                margin-top: var(--spectrum-global-dimension-size-200);
             }
         `;
     }

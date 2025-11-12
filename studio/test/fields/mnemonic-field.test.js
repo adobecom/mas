@@ -40,13 +40,22 @@ describe('Mnemonic field', () => {
         expect(iconImg.src).to.include('creative-cloud.svg');
     });
 
-    it('should open modal when edit button is clicked', async () => {
+    it('should open modal when edit menu item is clicked', async () => {
         const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
 
-        const editButton = el.shadowRoot.querySelector('.edit-button');
-        expect(editButton).to.exist;
+        const menu = el.shadowRoot.querySelector('sp-action-menu');
+        expect(menu).to.exist;
 
-        editButton.click();
+        const listener = oneEvent(el, 'change');
+        const changeEvent = new CustomEvent('change', {
+            bubbles: true,
+            composed: true,
+        });
+        Object.defineProperty(changeEvent, 'target', {
+            value: { value: 'edit' },
+            enumerable: true,
+        });
+        menu.dispatchEvent(changeEvent);
         await el.updateComplete;
 
         expect(el.modalOpen).to.be.true;
@@ -54,6 +63,25 @@ describe('Mnemonic field', () => {
         const modal = el.shadowRoot.querySelector('mas-mnemonic-modal');
         expect(modal).to.exist;
         expect(modal.open).to.be.true;
+    });
+
+    it('should dispatch delete-field event when delete menu item is clicked', async () => {
+        const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
+
+        const listener = oneEvent(el, 'delete-field');
+
+        const menu = el.shadowRoot.querySelector('sp-action-menu');
+        const changeEvent = new CustomEvent('change', {
+            bubbles: true,
+            composed: true,
+        });
+        Object.defineProperty(changeEvent, 'target', {
+            value: { value: 'delete' },
+            enumerable: true,
+        });
+        menu.dispatchEvent(changeEvent);
+
+        await listener;
     });
 
     it('should update values when modal saves', async () => {

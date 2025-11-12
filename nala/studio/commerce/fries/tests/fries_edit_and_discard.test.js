@@ -24,11 +24,11 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title.updated);
+            await editor.fillRteField(editor.title, data.title.updated);
         });
 
         await test.step('step-4: Validate edited title field in Editor panel', async () => {
-            await expect(await editor.title).toContainText(data.title.updated);
+            await editor.expectRteFieldToContainText(editor.title, data.title.updated);
         });
 
         await test.step('step-5: Validate edited title field on the card', async () => {
@@ -63,11 +63,11 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-3: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description.updated);
+            await editor.fillRteField(editor.description, data.description.updated);
         });
 
         await test.step('step-4: Validate edited description in Editor panel', async () => {
-            await expect(await editor.description).toContainText(data.description.updated);
+            await editor.expectRteFieldToContainText(editor.description, data.description.updated);
         });
 
         await test.step('step-5: Validate edited description on the card', async () => {

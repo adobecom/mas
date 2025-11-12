@@ -3,15 +3,15 @@ import { expect } from '@playwright/test';
 export default class EditorPage {
     constructor(page) {
         this.page = page;
-        this.panel = page.locator('editor-panel > #editor');
+        this.panel = page.locator('mas-fragment-editor #fragment-editor');
 
-        // Editor panel fields
+        // Fragment editor fields
         this.authorPath = page.locator('#author-path');
         this.variant = this.panel.locator('#card-variant');
         this.size = this.panel.locator('#card-size');
-        this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
-        this.subtitle = this.panel.locator('#card-subtitle input');
-        this.badge = this.panel.locator('#card-badge input');
+        this.title = this.panel.locator('rte-field#card-title');
+        this.subtitle = this.panel.locator('#card-subtitle');
+        this.badge = this.panel.locator('#card-badge');
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
@@ -23,14 +23,14 @@ export default class EditorPage {
         this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal[open] #url-link >> input');
         this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="accent"]');
         this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="secondary"]');
-        this.promoText = this.panel.locator('#promo-text input');
-        this.backgroundImage = this.panel.locator('#background-image input');
+        this.promoText = this.panel.locator('#promo-text');
+        this.backgroundImage = this.panel.locator('#background-image');
         this.prices = this.panel.locator('sp-field-group#prices');
         this.footer = this.panel.locator('sp-field-group#ctas');
         this.CTA = this.panel.locator('sp-field-group#ctas a');
         this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
-        this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
-        this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
+        this.description = this.panel.locator('rte-field#description');
+        this.shortDescription = this.panel.locator('rte-field#shortDescription');
         this.borderColor = this.panel.locator('sp-picker#border-color');
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.OSI = this.panel.locator('osi-field#osi');
@@ -38,20 +38,20 @@ export default class EditorPage {
         this.tags = this.panel.locator('aem-tag-picker-field[label="Tags"]');
         this.CTAClassSecondary = this.panel.locator('sp-field-group#ctas a.secondary');
         this.callout = this.panel.locator('sp-field-group#callout');
-        this.calloutRTE = this.panel.locator('sp-field-group#callout div[contenteditable="true"]');
+        this.calloutRTE = this.panel.locator('rte-field#callout');
         this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
         this.showAddOn = this.panel.locator('#addon-field #input');
         this.showQuantitySelector = this.panel.locator('#quantitySelect sp-checkbox input');
-        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelector #title-quantity input');
-        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelector #start-quantity input');
-        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelector #step-quantity input');
-        this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
+        this.quantitySelectorTitle = this.panel.locator('#title-quantity');
+        this.quantitySelectorStart = this.panel.locator('#start-quantity');
+        this.quantitySelectorStep = this.panel.locator('#step-quantity');
+        this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-icon-add');
-        this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
-        this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
+        this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon');
+        this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
-        this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
-        this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
+
+        // Discard dialog (triggered by navigation, not buttons)
         this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
@@ -109,6 +109,9 @@ export default class EditorPage {
         const editButton = this.mnemonicEditButton.nth(index);
         await editButton.waitFor({ state: 'visible' });
         await editButton.click();
+        const editOption = this.page.locator('sp-menu-item:has-text("Edit")').first();
+        await editOption.waitFor({ state: 'visible', timeout: 5000 });
+        await editOption.click();
         await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'attached' });
     }
 
@@ -155,5 +158,108 @@ export default class EditorPage {
 
     get iconURL() {
         return this.mnemonicUrlIconInput;
+    }
+
+    async navigateToContent(baseURL, miloLibs = '') {
+        await this.page.goto(`${baseURL}/studio.html${miloLibs}#page=content&path=nala`);
+        await this.page.waitForLoadState('domcontentloaded');
+    }
+
+    async handleDiscardPrompt(confirm = true) {
+        await this.page.waitForTimeout(500);
+        const dialogVisible = await this.discardConfirmDialog.isVisible().catch(() => false);
+
+        if (dialogVisible) {
+            const button = confirm ? this.discardConfirmButton : this.cancelDiscardButton;
+            await button.click();
+            await this.page.waitForLoadState('domcontentloaded');
+            return true;
+        }
+        return false;
+    }
+
+    async navigateToFragmentEditor(fragmentId, baseURL, path = 'nala', miloLibs = '') {
+        const url = `${baseURL}/studio.html${miloLibs}#page=fragment-editor&fragmentId=${fragmentId}&path=${path}`;
+        await this.page.goto(url);
+        await this.page.waitForLoadState('domcontentloaded');
+        await this.panel.waitFor({ state: 'visible', timeout: 10000 });
+    }
+
+    async fillRteField(rteFieldLocator, text) {
+        await rteFieldLocator.waitFor({ state: 'visible', timeout: 10000 });
+        const prosemirrorDiv = rteFieldLocator.locator('#editor .ProseMirror');
+        await prosemirrorDiv.waitFor({ state: 'visible', timeout: 5000 });
+        await prosemirrorDiv.click();
+        await this.page.keyboard.press('ControlOrMeta+a');
+        await this.page.keyboard.press('Backspace');
+        await prosemirrorDiv.type(text);
+    }
+
+    async getRteFieldText(rteFieldLocator) {
+        await rteFieldLocator.waitFor({ state: 'visible', timeout: 10000 });
+        const prosemirrorDiv = rteFieldLocator.locator('#editor .ProseMirror');
+        return await prosemirrorDiv.innerText();
+    }
+
+    async expectRteFieldToContainText(rteFieldLocator, text) {
+        const content = await this.getRteFieldText(rteFieldLocator);
+        await expect(content).toContain(text);
+    }
+
+    async fillSpectrumTextField(spectrumFieldLocator, text) {
+        await spectrumFieldLocator.waitFor({ state: 'visible', timeout: 10000 });
+        await spectrumFieldLocator.evaluate((el, value) => {
+            el.value = value;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }, text);
+    }
+
+    async getSpectrumTextFieldValue(spectrumFieldLocator) {
+        await spectrumFieldLocator.waitFor({ state: 'visible', timeout: 10000 });
+        return await spectrumFieldLocator.evaluate((el) => el.value);
+    }
+
+    async expectSpectrumTextFieldToHaveValue(spectrumFieldLocator, text) {
+        const value = await this.getSpectrumTextFieldValue(spectrumFieldLocator);
+        await expect(value).toBe(text);
+    }
+
+    async waitForPreviewUpdate() {
+        await this.page.evaluate(() => {
+            return new Promise((resolve) => {
+                const editor = document.querySelector('mas-fragment-editor');
+                if (!editor) {
+                    resolve();
+                    return;
+                }
+
+                const timeout = setTimeout(() => {
+                    resolve();
+                }, 5000);
+
+                editor.addEventListener(
+                    'preview-updated',
+                    () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    },
+                    { once: true },
+                );
+            });
+        });
+    }
+
+    async waitForCacheReady(fragmentId) {
+        await this.page.waitForFunction(
+            (id) => {
+                const AemFragment = customElements.get('aem-fragment');
+                if (!AemFragment?.cache) return true;
+                const cached = AemFragment.cache.get(id);
+                return cached !== null && cached !== undefined;
+            },
+            fragmentId,
+            { timeout: 5000 },
+        );
     }
 }

@@ -84,6 +84,24 @@ class AemTagPickerField extends LitElement {
         sp-tags {
             width: 100%;
             position: relative;
+            gap: 12px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        sp-tag {
+            background-color: var(--spectrum-gray-100);
+            border: none;
+        }
+
+        .circular-add-button {
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            padding: 0;
+            background-color: var(--spectrum-gray-100);
+            border: none;
         }
 
         sp-dialog {
@@ -384,9 +402,8 @@ class AemTagPickerField extends LitElement {
             this.tagsInHierarchy,
             (path) => path,
             (path) => html`
-                <sp-tag deletable @delete=${this.#deleteTag} data-path=${path}>
+                <sp-tag size="m" deletable @delete=${this.#deleteTag} data-path=${path}>
                     ${this.#resolveTagTitle(path)}
-                    <sp-icon-label slot="icon"></sp-icon-label>
                 </sp-tag>
             `,
         );
@@ -528,10 +545,10 @@ class AemTagPickerField extends LitElement {
         if (!this.ready) return nothing;
         return html`
             <sp-tags>
+                ${this.tags}
                 <overlay-trigger placement="bottom">
-                    <sp-action-button slot="trigger">
-                        ${this.triggerLabel}
-                        <sp-icon-labels slot="icon"></sp-icon-labels>
+                    <sp-action-button slot="trigger" class="circular-add-button">
+                        <sp-icon-add slot="icon"></sp-icon-add>
                     </sp-action-button>
                     <sp-popover slot="click-content">
                         <sp-dialog size="s" no-divider>
@@ -541,7 +558,6 @@ class AemTagPickerField extends LitElement {
                         </sp-dialog>
                     </sp-popover>
                 </overlay-trigger>
-                ${this.tags}
             </sp-tags>
         `;
     }

@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
-import { editFragment } from './store.js';
+import router from './router.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
@@ -44,13 +44,13 @@ export class MasCreateDialog extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
-        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this.onOstSelect);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
-        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this.onOstSelect);
     }
 
     handleKeyDown(event) {
@@ -92,7 +92,7 @@ export class MasCreateDialog extends LitElement {
         this.title = value;
     }
 
-    _onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
+    onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
     };
@@ -104,9 +104,7 @@ export class MasCreateDialog extends LitElement {
 
     async createFragment(masRepository, fragmentData) {
         const fragment = await masRepository.createFragment(fragmentData);
-        const sourceStore = generateFragmentStore(fragment);
-        sourceStore.new = true;
-        editFragment(sourceStore, 0);
+        await router.navigateToFragmentEditor(fragment.id);
         this.close();
     }
 

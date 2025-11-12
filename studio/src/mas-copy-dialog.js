@@ -49,16 +49,10 @@ export class MasCopyDialog extends LitElement {
             max-height: 90vh;
             display: flex;
             flex-direction: column;
-        }
-
-        sp-dialog-wrapper::part(dialog) {
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
             overflow: hidden;
         }
 
-        sp-dialog-wrapper::part(content) {
+        .dialog-content {
             overflow-y: auto;
             flex: 1;
             min-height: 0;
@@ -352,49 +346,52 @@ export class MasCopyDialog extends LitElement {
                     ?dismissable=${!this.loading}
                     @click=${(e) => e.stopPropagation()}
                 >
-                    <div class="form-field">
-                        <sp-field-label for="locale-picker">Select Locale</sp-field-label>
-                        <sp-picker
-                            id="locale-picker"
-                            value=${this.selectedLocale}
-                            @change=${(e) => (this.selectedLocale = e.target.value)}
-                        >
-                            ${LOCALES.map(
-                                (locale) => html`
-                                    <sp-menu-item value="${locale.code}" ?selected="${locale.code === this.selectedLocale}">
-                                        ${locale.flag} ${locale.name} (${locale.code})
-                                    </sp-menu-item>
-                                `,
-                            )}
-                        </sp-picker>
-                    </div>
+                    <div class="dialog-content">
+                        <div class="form-field">
+                            <sp-field-label for="locale-picker">Select Locale</sp-field-label>
+                            <sp-picker
+                                id="locale-picker"
+                                value=${this.selectedLocale}
+                                @change=${(e) => (this.selectedLocale = e.target.value)}
+                            >
+                                ${LOCALES.map(
+                                    (locale) => html`
+                                        <sp-menu-item value="${locale.code}" ?selected="${locale.code === this.selectedLocale}">
+                                            ${locale.flag} ${locale.name} (${locale.code})
+                                        </sp-menu-item>
+                                    `,
+                                )}
+                            </sp-picker>
+                        </div>
 
-                    <div class="form-field">
-                        <sp-field-label for="folder-picker">Select Destination Folder</sp-field-label>
+                        <div class="form-field">
+                            <sp-field-label for="folder-picker">Select Destination Folder</sp-field-label>
 
-                        ${this.loading
-                            ? html` <sp-progress-circle indeterminate></sp-progress-circle> `
-                            : html`
-                                  <div class="folder-tree">
-                                      ${this.merchFolders.length === 0
-                                          ? html`<div class="error-message">No folders available</div>`
-                                          : this.merchFolders.map((folder) => {
-                                                return html`
-                                                    <div
-                                                        class="folder-item ${this.selectedFolder?.fullPath === folder.fullPath
-                                                            ? 'selected'
-                                                            : ''}"
-                                                        @click=${() => this.selectFolder(folder)}
-                                                        title="${folder.fullPath}"
-                                                    >
-                                                        <sp-icon-folder class="folder-icon"></sp-icon-folder>
-                                                        <span>${folder.displayName}</span>
-                                                    </div>
-                                                `;
-                                            })}
-                                  </div>
-                              `}
-                        ${this.error ? html` <div class="error-message">${this.error}</div> ` : ''}
+                            ${this.loading
+                                ? html` <sp-progress-circle indeterminate></sp-progress-circle> `
+                                : html`
+                                      <div class="folder-tree">
+                                          ${this.merchFolders.length === 0
+                                              ? html`<div class="error-message">No folders available</div>`
+                                              : this.merchFolders.map((folder) => {
+                                                    return html`
+                                                        <div
+                                                            class="folder-item ${this.selectedFolder?.fullPath ===
+                                                            folder.fullPath
+                                                                ? 'selected'
+                                                                : ''}"
+                                                            @click=${() => this.selectFolder(folder)}
+                                                            title="${folder.fullPath}"
+                                                        >
+                                                            <sp-icon-folder class="folder-icon"></sp-icon-folder>
+                                                            <span>${folder.displayName}</span>
+                                                        </div>
+                                                    `;
+                                                })}
+                                      </div>
+                                  `}
+                            ${this.error ? html` <div class="error-message">${this.error}</div> ` : ''}
+                        </div>
                     </div>
                 </sp-dialog-wrapper>
             </div>

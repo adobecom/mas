@@ -27,12 +27,14 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible({ timeout: 10000 });
-            await editor.title.fill(data.title.updated);
+            await editor.fillRteField(editor.title, data.title.updated);
         });
 
         await test.step('step-4: Validate title field updated', async () => {
-            await expect(await editor.title).toContainText(data.title.updated);
-            await expect(await fullPricingExpress.cardTitle).toContainText(data.title.updated);
+            await editor.expectRteFieldToContainText(editor.title, data.title.updated);
+            const cardInEditor = await studio.getCard(data.cardid);
+            const cardTitle = cardInEditor.locator('h3, h2, h4, h1');
+            await expect(cardTitle).toContainText(data.title.updated);
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -40,7 +42,10 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
         });
 
         await test.step('step-6: Verify there is no changes of the card', async () => {
-            await expect(await fullPricingExpress.cardTitle).toContainText(data.title.original);
+            const card = await studio.getCard(data.cardid);
+            await expect(card).toBeVisible();
+            const cardTitle = card.locator('h3, h2, h4, h1');
+            await expect(cardTitle).toContainText(data.title.original);
         });
     });
 
@@ -110,12 +115,12 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
 
         await test.step('step-3: Edit shortDescription field', async () => {
             await expect(await editor.shortDescription).toBeVisible();
-            await expect(await editor.shortDescription).toContainText(data.shortDescription.original);
-            await editor.shortDescription.fill(data.shortDescription.updated);
+            await editor.expectRteFieldToContainText(editor.shortDescription, data.shortDescription.original);
+            await editor.fillRteField(editor.shortDescription, data.shortDescription.updated);
         });
 
         await test.step('step-4: Validate shortDescription field updated', async () => {
-            await expect(await editor.shortDescription).toContainText(data.shortDescription.updated);
+            await editor.expectRteFieldToContainText(editor.shortDescription, data.shortDescription.updated);
             await expect(await fullPricingExpress.cardShortDescription).toContainText(data.shortDescription.updated);
         });
 

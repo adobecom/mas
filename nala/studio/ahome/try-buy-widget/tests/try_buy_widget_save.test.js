@@ -84,22 +84,24 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
             await editor.variant.locator('sp-picker').first().click();
             await page.getByRole('option', { name: 'slice' }).click();
-            await page.waitForTimeout(2000);
+            await editor.waitForPreviewUpdate();
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate variant change', async () => {
             await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
-            await expect(await studio.getCard(data.clonedCardID)).not.toHaveAttribute('variant', 'ah-try-buy-widget');
-            await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('variant', 'ccd-slice');
-            await expect(await (await studio.getCard(data.clonedCardID)).locator(slice.cardCTA).first()).toHaveAttribute(
-                'data-wcs-osi',
-                data.osi,
-            );
-            await expect(await (await studio.getCard(data.clonedCardID)).locator(slice.cardCTA).first()).toHaveAttribute(
-                'is',
-                'checkout-button',
-            );
+            await expect(async () => {
+                await expect(await studio.getCard(data.clonedCardID)).not.toHaveAttribute('variant', 'ah-try-buy-widget');
+                await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('variant', 'ccd-slice');
+                await expect(await (await studio.getCard(data.clonedCardID)).locator(slice.cardCTA).first()).toHaveAttribute(
+                    'data-wcs-osi',
+                    data.osi,
+                );
+                await expect(await (await studio.getCard(data.clonedCardID)).locator(slice.cardCTA).first()).toHaveAttribute(
+                    'is',
+                    'checkout-button',
+                );
+            }).toPass({ timeout: 10000, intervals: [500, 1000] });
         });
     });
 

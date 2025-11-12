@@ -10,9 +10,10 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
-import { getFragmentMapping } from '../utils.js';
+import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
 import Store from '../store.js';
+import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
@@ -31,41 +32,16 @@ class MerchCardEditor extends LitElement {
         currentVariantMapping: { type: Object, attribute: false },
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
+        parentFragment: { type: Object, attribute: false },
     };
 
-    styles = {
-        menuItemContainer: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            overflow: 'hidden',
-            minWidth: 0,
-            width: '100%',
-        },
-        colorSwatch: {
-            width: '16px',
-            height: '16px',
-            border: '1px solid var(--spectrum-global-color-gray-300)',
-            'border-radius': '3px',
-            flexShrink: 0,
-        },
-        colorNameText: {
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            minWidth: 0,
-        },
+    static SECTION_FIELDS = {
+        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color'],
+        "What's included": ['whatsIncluded', 'quantitySelect'],
+        'Product details': ['description', 'shortDescription', 'callout'],
+        Footer: ['ctas'],
+        'Options and settings': ['secureLabel', 'planType', 'addon'],
     };
-
-    styleObjectToString(styleObj) {
-        return Object.entries(styleObj)
-            .map(([key, value]) => {
-                // Convert camelCase to kebab-case for CSS properties
-                const cssKey = key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
-                return `${cssKey}: ${value}`;
-            })
-            .join('; ');
-    }
 
     availableSizes = [];
     availableColors = [];
@@ -73,16 +49,76 @@ class MerchCardEditor extends LitElement {
     availableBadgeColors = [];
     availableBackgroundColors = [];
     quantitySelectorValues = '';
+    lastMnemonicState = null;
 
     constructor() {
         super();
         this.fragmentStore = null;
         this.updateFragment = null;
         this.currentVariantMapping = null;
+        this.parentFragment = null;
+        this.lastMnemonicState = null;
     }
 
     createRenderRoot() {
         return this;
+    }
+
+    getEffectiveFieldValue(fieldName, index = 0) {
+        return this.fragment.getEffectiveFieldValue(fieldName, this.parentFragment, index);
+    }
+
+    getEffectiveFieldValues(fieldName) {
+        return this.fragment.getEffectiveFieldValues(fieldName, this.parentFragment);
+    }
+
+    isFieldOverridden(fieldName) {
+        return this.fragment.isFieldOverridden(fieldName);
+    }
+
+    getFieldState(fieldName) {
+        return this.fragment.getFieldState(fieldName, this.parentFragment);
+    }
+
+    resetFieldToParent(fieldName) {
+        const success = this.fragment.resetFieldToParent(fieldName);
+        if (success) {
+            this.requestUpdate();
+        }
+        return success;
+    }
+
+    renderOverrideIndicator(fieldName) {
+        const state = this.getFieldState(fieldName);
+        if (state !== 'overridden') {
+            return nothing;
+        }
+        return html`
+            <div class="field-reset-link">
+                <a href="javascript:void(0)" @click=${() => this.resetFieldToParent(fieldName)}>
+                    ↩ Overridden. Click to restore parent value.
+                </a>
+            </div>
+        `;
+    }
+
+    getFormWithInheritance() {
+        const allFieldNames = new Set();
+        this.fragment.fields.forEach((f) => allFieldNames.add(f.name));
+        if (this.parentFragment) {
+            this.parentFragment.fields.forEach((f) => allFieldNames.add(f.name));
+        }
+
+        const form = {};
+        allFieldNames.forEach((fieldName) => {
+            const effectiveValues = this.getEffectiveFieldValues(fieldName);
+            form[fieldName] = {
+                name: fieldName,
+                values: effectiveValues,
+            };
+        });
+
+        return form;
     }
 
     connectedCallback() {
@@ -91,6 +127,7 @@ class MerchCardEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.lastMnemonicState = null;
     }
 
     willUpdate(changedProperties) {
@@ -104,8 +141,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get whatsIncludedElement() {
-        const whatsIncludedValues = this.fragment.fields.find((f) => f.name === WHAT_IS_INCLUDED)?.values ?? [];
-        const whatsIncludedHtml = whatsIncludedValues?.length ? whatsIncludedValues[0] : '';
+        const whatsIncludedHtml = this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '';
 
         if (!whatsIncludedHtml) return undefined;
 
@@ -136,11 +172,11 @@ class MerchCardEditor extends LitElement {
     get mnemonics() {
         if (!this.fragment) return [];
 
-        const mnemonicIcon = this.fragment.fields.find((f) => f.name === 'mnemonicIcon')?.values ?? [];
-        const mnemonicAlt = this.fragment.fields.find((f) => f.name === 'mnemonicAlt')?.values ?? [];
-        const mnemonicLink = this.fragment.fields.find((f) => f.name === 'mnemonicLink')?.values ?? [];
-        const mnemonicTooltipText = this.fragment.fields.find((f) => f.name === 'mnemonicTooltipText')?.values ?? [];
-        const mnemonicTooltipPlacement = this.fragment.fields.find((f) => f.name === 'mnemonicTooltipPlacement')?.values ?? [];
+        const mnemonicIcon = this.getEffectiveFieldValues('mnemonicIcon');
+        const mnemonicAlt = this.getEffectiveFieldValues('mnemonicAlt');
+        const mnemonicLink = this.getEffectiveFieldValues('mnemonicLink');
+        const mnemonicTooltipText = this.getEffectiveFieldValues('mnemonicTooltipText');
+        const mnemonicTooltipPlacement = this.getEffectiveFieldValues('mnemonicTooltipPlacement');
         return (
             mnemonicIcon?.map((icon, index) => ({
                 icon,
@@ -276,48 +312,156 @@ class MerchCardEditor extends LitElement {
                 if (field) field.style.display = 'none';
             });
         }
+
+        this.toggleSectionHeadings();
+    }
+
+    toggleSectionHeadings() {
+        Object.entries(this.constructor.SECTION_FIELDS).forEach(([sectionTitle, fieldIds]) => {
+            const hasVisibleFields = fieldIds.some((fieldId) => {
+                const field = this.querySelector(`#${fieldId}`);
+                return field && field.style.display !== 'none';
+            });
+
+            const sectionHeadings = Array.from(this.querySelectorAll('.section-title'));
+            const heading = sectionHeadings.find((h) => h.textContent.trim() === sectionTitle);
+
+            if (heading) {
+                heading.style.display = hasVisibleFields ? 'block' : 'none';
+            }
+        });
     }
 
     render() {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
-        const form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
+        // Guard against rendering variations without parent fragment data
+        if (this.fragment.isVariation && this.fragment.isVariation() && !this.parentFragment) {
+            return html`
+                <div class="loading-container">
+                    <sp-progress-circle indeterminate size="m"></sp-progress-circle>
+                </div>
+            `;
+        }
+
+        const form = this.getFormWithInheritance();
         return html`
-            <sp-field-group id="variant">
-                <sp-field-label for="card-variant">Variant</sp-field-label>
-                <variant-picker
-                    id="card-variant"
-                    ?show-all="false"
-                    data-field="variant"
-                    default-value="${form.variant.values[0]}"
-                    @change="${this.#handleVariantChange}"
-                ></variant-picker>
-            </sp-field-group>
-            <sp-field-group class="toggle" id="size">
-                <sp-field-label for="card-size">Size</sp-field-label>
-                <sp-picker
-                    id="card-size"
-                    data-field="size"
-                    value="${form.size.values[0] || 'Default'}"
-                    data-default-value="Default"
-                    @change="${this.#handleFragmentUpdate}"
-                >
-                    ${(this.availableSizes || []).map(
-                        (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
-                    )}
-                </sp-picker>
-            </sp-field-group>
-            <sp-field-group class="toggle" id="cardName">
-                <sp-field-label for="card-name">Card name</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter card name"
-                    id="card-name"
-                    data-field="cardName"
-                    value="${form.cardName.values[0]}"
-                    @input="${this.#handleFragmentUpdate}"
-                ></sp-textfield>
-            </sp-field-group>
+            <style>
+                .field-reset-link {
+                    margin-top: 4px;
+                }
+
+                .field-reset-link a {
+                    color: var(--spectrum-global-color-blue-600);
+                    font-size: 12px;
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+
+                .section-title {
+                    font-size: 20px;
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                    color: var(--spectrum-global-color-gray-900);
+                    letter-spacing: -0.01em;
+                }
+
+                .section-description {
+                    font-size: 13px;
+                    color: var(--spectrum-global-color-gray-700);
+                    margin-bottom: 24px;
+                    line-height: 1.5;
+                }
+
+                .two-column-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px;
+                }
+
+                .tags-spacing {
+                    margin: 24px 0;
+                }
+
+                .full-width {
+                    width: 100%;
+                }
+
+                #whatsIncluded sp-textfield {
+                    margin-bottom: 16px;
+                }
+
+                .loading-container {
+                    padding: 16px;
+                    text-align: center;
+                }
+
+                .menu-item-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    overflow: hidden;
+                    min-width: 0;
+                    width: 100%;
+                }
+
+                .color-swatch {
+                    width: 16px;
+                    height: 16px;
+                    border: 1px solid var(--spectrum-global-color-gray-300);
+                    border-radius: 3px;
+                    flex-shrink: 0;
+                }
+
+                .color-name-text {
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    min-width: 0;
+                }
+            </style>
+            <div class="section-title">General info</div>
+            <div class="two-column-grid">
+                <sp-field-group id="variant">
+                    <sp-field-label for="card-variant">Template</sp-field-label>
+                    <variant-picker
+                        id="card-variant"
+                        ?show-all="false"
+                        data-field="variant"
+                        default-value="${form.variant.values[0]}"
+                        @change="${this.#handleVariantChange}"
+                    ></variant-picker>
+                </sp-field-group>
+                <sp-field-group class="toggle" id="cardName">
+                    <sp-field-label for="card-name">Card name</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter card name"
+                        id="card-name"
+                        data-field="cardName"
+                        value="${form.cardName.values[0]}"
+                        @input="${this.#handleFragmentUpdate}"
+                    ></sp-textfield>
+                </sp-field-group>
+                <sp-field-group id="fragment-title-group">
+                    <sp-field-label for="fragment-title">Fragment title</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter fragment title"
+                        id="fragment-title"
+                        value="${this.fragment.title}"
+                        @input="${this.#handleFragmentTitleUpdate}"
+                    ></sp-textfield>
+                </sp-field-group>
+                <sp-field-group id="fragment-description-group">
+                    <sp-field-label for="fragment-description">Fragment description</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter fragment description"
+                        id="fragment-description"
+                        value="${this.fragment.description}"
+                        @input="${this.#handleFragmentDescriptionUpdate}"
+                    ></sp-textfield>
+                </sp-field-group>
+            </div>
             <sp-field-group class="toggle" id="title">
                 <sp-field-label for="card-title">Title</sp-field-label>
                 <rte-field
@@ -330,21 +474,52 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.cardTitle.values[0] || '')}</rte-field
                 >
+                ${this.renderOverrideIndicator('cardTitle')}
             </sp-field-group>
-            <sp-field-group class="toggle" id="subtitle">
-                <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter card subtitle"
-                    id="card-subtitle"
-                    data-field="subtitle"
-                    value="${form.subtitle.values[0]}"
-                    @input="${this.#handleFragmentUpdate}"
-                ></sp-textfield>
+            <div class="two-column-grid">
+                <sp-field-group class="toggle" id="subtitle">
+                    <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter card subtitle"
+                        id="card-subtitle"
+                        data-field="subtitle"
+                        value="${form.subtitle.values[0]}"
+                        @input="${this.#handleFragmentUpdate}"
+                    ></sp-textfield>
+                    ${this.renderOverrideIndicator('subtitle')}
+                </sp-field-group>
+                <sp-field-group class="toggle" id="size">
+                    <sp-field-label for="card-size">Size</sp-field-label>
+                    <sp-picker
+                        id="card-size"
+                        data-field="size"
+                        value="${form.size.values[0] || 'Default'}"
+                        data-default-value="Default"
+                        @change="${this.#handleFragmentUpdate}"
+                    >
+                        ${(this.availableSizes || []).map(
+                            (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
+                        )}
+                    </sp-picker>
+                </sp-field-group>
+            </div>
+            <sp-field-group id="tags">
+                <sp-field-label for="tags-field">Tags</sp-field-label>
+                <aem-tag-picker-field
+                    id="tags-field"
+                    label="Tags"
+                    namespace="/content/cq:tags/mas"
+                    multiple
+                    class="tags-spacing"
+                    value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
+                    @change=${this.#handeTagsChange}
+                ></aem-tag-picker-field>
             </sp-field-group>
+            <div class="section-title">Visuals</div>
             <sp-field-group class="toggle" id="mnemonics">
-                <sp-field-label for="mnemonics">Mnemonics</sp-field-label>
                 <mas-multifield
                     id="mnemonics"
+                    button-label="Visual"
                     .value="${this.mnemonics}"
                     @change="${this.#updateMnemonics}"
                     @input="${this.#updateMnemonics}"
@@ -354,8 +529,47 @@ class MerchCardEditor extends LitElement {
                     </template>
                 </mas-multifield>
             </sp-field-group>
+            <div class="two-column-grid">
+                <sp-field-group class="toggle" id="badge">
+                    <sp-field-label for="card-badge">Badge</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter badge text"
+                        id="card-badge"
+                        data-field="badge"
+                        value="${this.badge.text}"
+                        @input="${this.#updateBadgeText}"
+                    ></sp-textfield>
+                    ${this.renderOverrideIndicator('badge')}
+                </sp-field-group>
+                <sp-field-group class="toggle" id="trialBadge">
+                    <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter badge text"
+                        id="card-trial-badge"
+                        data-field="trialBadge"
+                        value="${this.trialBadge.text}"
+                        @input="${this.#updateTrialBadgeText}"
+                    ></sp-textfield>
+                    ${this.renderOverrideIndicator('trialBadge')}
+                </sp-field-group>
+            </div>
+            ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}
+            <div class="two-column-grid">
+                ${this.#renderColorPicker(
+                    'border-color',
+                    'Border Color',
+                    this.availableBorderColors,
+                    form.borderColor?.values[0],
+                    'borderColor',
+                )}
+                ${this.#backgroundColorSelection(
+                    this.availableBackgroundColors,
+                    form.backgroundColor?.values[0],
+                    'backgroundColor',
+                )}
+            </div>
+            <div class="section-title">What's included</div>
             <sp-field-group class="toggle" id="whatsIncluded">
-                <sp-field-label for="whatsIncludedLabel">What's included</sp-field-label>
                 <sp-textfield
                     id="whatsIncludedLabel"
                     placeholder="Enter the label text"
@@ -372,60 +586,77 @@ class MerchCardEditor extends LitElement {
                     </template>
                 </mas-multifield>
             </sp-field-group>
-            <sp-field-group class="toggle" id="badge">
-                <sp-field-label for="card-badge">Badge</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter badge text"
-                    id="card-badge"
-                    data-field="badge"
-                    value="${this.badge.text}"
-                    @input="${this.#updateBadgeText}"
-                ></sp-textfield>
-                ${this.#renderBadgeColors()}
+            <sp-field-group class="toggle" id="quantitySelect">
+                <sp-checkbox
+                    size="m"
+                    value="${this.quantitySelectorDisplayed}"
+                    .checked="${this.quantitySelectorDisplayed}"
+                    @change="${this.#showQuantityFields}"
+                    ?disabled=${this.disabled}
+                    >Show quantity selector</sp-checkbox
+                >
+                <div class="two-column-grid">
+                    <sp-field-group id="quantitySelectorTitle">
+                        <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
+                        <sp-textfield
+                            id="title-quantity"
+                            data-field="titleQuantity"
+                            value="${this.quantityTitle}"
+                            @input="${this.#updateQuantityValues}"
+                            ?disabled=${this.disabled}
+                        ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group id="quantitySelectorStart">
+                        <sp-field-label for="start-quantity">Start quantity</sp-field-label>
+                        <sp-textfield
+                            id="start-quantity"
+                            data-field="startQuantity"
+                            pattern="[0-9]*"
+                            value="${this.quantityStart}"
+                            @input="${this.#updateQuantityValues}"
+                            ?disabled=${this.disabled}
+                            ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
+                        >
+                    </sp-field-group>
+                </div>
+                <sp-field-group id="quantitySelectorStep">
+                    <sp-field-label for="step-quantity">Step</sp-field-label>
+                    <sp-textfield
+                        id="step-quantity"
+                        data-field="stepQuantity"
+                        pattern="[0-9]*"
+                        value="${this.quantityStep}"
+                        @input="${this.#updateQuantityValues}"
+                        ?disabled=${this.disabled}
+                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
+                    >
+                </sp-field-group>
             </sp-field-group>
-            <sp-field-group class="toggle" id="trialBadge">
-                <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter trial badge text"
-                    id="card-trial-badge"
-                    data-field="trialBadge"
-                    value="${this.trialBadge.text}"
-                    @input="${this.#updateTrialBadgeText}"
-                ></sp-textfield>
-                ${this.#renderTrialBadgeColors()}
-            </sp-field-group>
-            ${this.#renderColorPicker(
-                'border-color',
-                'Border Color',
-                this.availableBorderColors,
-                form.borderColor?.values[0],
-                'borderColor',
-            )}
-            ${this.#backgroundColorSelection(
-                this.availableBackgroundColors,
-                form.backgroundColor?.values[0],
-                'backgroundColor',
-            )}
-            <sp-field-group class="toggle" id="backgroundImage">
-                <sp-field-label for="background-image">Background Image</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter background image URL"
-                    id="background-image"
-                    data-field="backgroundImage"
-                    value="${form.backgroundImage.values[0]}"
-                    @input="${this.#handleFragmentUpdate}"
-                ></sp-textfield>
-                <sp-field-label for="background-image-alt-text">Background Image Alt Text</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter background image Alt Text"
-                    id="background-image-alt-text"
-                    data-field="backgroundImageAltText"
-                    value="${form.backgroundImageAltText.values[0]}"
-                    @input="${this.#handleFragmentUpdate}"
-                ></sp-textfield>
-            </sp-field-group>
+            <div class="two-column-grid">
+                <sp-field-group class="toggle" id="backgroundImage">
+                    <sp-field-label for="background-image">Background Image</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter background image URL"
+                        id="background-image"
+                        data-field="backgroundImage"
+                        value="${form.backgroundImage.values[0]}"
+                        @input="${this.#handleFragmentUpdate}"
+                    ></sp-textfield>
+                </sp-field-group>
+                <sp-field-group class="toggle" id="backgroundImageAltText">
+                    <sp-field-label for="background-image-alt-text">Background Image Alt Text</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter background image Alt Text"
+                        id="background-image-alt-text"
+                        data-field="backgroundImageAltText"
+                        value="${form.backgroundImageAltText.values[0]}"
+                        @input="${this.#handleFragmentUpdate}"
+                    ></sp-textfield>
+                </sp-field-group>
+            </div>
+            <div class="section-title">Price and Promo</div>
             <sp-field-group class="toggle" id="prices">
-                <sp-field-label for="prices">Prices</sp-field-label>
+                <sp-field-label for="prices">Product price</sp-field-label>
                 <rte-field
                     id="prices"
                     styling
@@ -438,18 +669,32 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.prices.values[0])}</rte-field
                 >
+                ${this.renderOverrideIndicator('prices')}
             </sp-field-group>
-            <sp-field-group id="promoCode">
-                <sp-field-label for="promo-code">Promo Code</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter promo code"
-                    id="promo-code"
-                    data-field="promoCode"
-                    value="${form.promoCode?.values[0]}"
-                    @input="${this.#handleFragmentUpdate}"
-                    ?disabled=${this.disabled}
-                ></sp-textfield>
-            </sp-field-group>
+            <div class="two-column-grid">
+                <sp-field-group id="promoCode">
+                    <sp-field-label for="promo-code">Promo Code</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter promo code"
+                        id="promo-code"
+                        data-field="promoCode"
+                        value="${form.promoCode?.values[0]}"
+                        @input="${this.#handleFragmentUpdate}"
+                        ?disabled=${this.disabled}
+                    ></sp-textfield>
+                </sp-field-group>
+                <sp-field-group class="toggle" id="addonConfirmation">
+                    <sp-field-label for="addon-confirmation">Addon Confirmation</sp-field-label>
+                    <sp-textfield
+                        placeholder="Enter addon confirmation text"
+                        id="addon-confirmation"
+                        data-field="addonConfirmation"
+                        value="${form.addonConfirmation?.values[0]}"
+                        @input="${this.#handleFragmentUpdate}"
+                        ?disabled=${this.disabled}
+                    ></sp-textfield>
+                </sp-field-group>
+            </div>
             <sp-field-group class="toggle" id="promoText">
                 <sp-field-label for="promo-text">Promo Text</sp-field-label>
                 <sp-textfield
@@ -461,19 +706,31 @@ class MerchCardEditor extends LitElement {
                     ?disabled=${this.disabled}
                 ></sp-textfield>
             </sp-field-group>
-            <sp-field-group class="toggle" id="addonConfirmation">
-                <sp-field-label for="addon-confirmation">Addon Confirmation</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter addon confirmation text"
-                    id="addon-confirmation"
-                    data-field="addonConfirmation"
-                    value="${form.addonConfirmation?.values[0]}"
+            <sp-field-group>
+                <sp-field-label for="osi">OSI Search</sp-field-label>
+                <osi-field
+                    id="osi"
+                    data-field="osi"
+                    .value=${form.osi.values[0]}
                     @input="${this.#handleFragmentUpdate}"
-                    ?disabled=${this.disabled}
+                    @change="${this.#handleFragmentUpdate}"
+                ></osi-field>
+            </sp-field-group>
+            <sp-field-group id="perUnitLabel" class="toggle">
+                <sp-divider></sp-divider>
+                <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
+                <sp-textfield
+                    id="per-unit-label"
+                    placeholder="Enter per unit label"
+                    data-field="perUnitLabel"
+                    class="full-width"
+                    value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
+                    @input="${this.#handlePerUnitLabelUpdate}"
                 ></sp-textfield>
             </sp-field-group>
+            <div class="section-title">Product details</div>
             <sp-field-group class="toggle" id="description">
-                <sp-field-label for="description">Description</sp-field-label>
+                <sp-field-label for="description">Product description</sp-field-label>
                 <rte-field
                     id="description"
                     styling
@@ -489,6 +746,7 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.description.values[0])}</rte-field
                 >
+                ${this.renderOverrideIndicator('description')}
             </sp-field-group>
             <sp-field-group class="toggle" id="shortDescription">
                 <sp-field-label for="shortDescription">Short Description</sp-field-label>
@@ -505,6 +763,7 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.shortDescription?.values[0] || '')}</rte-field
                 >
+                ${this.renderOverrideIndicator('shortDescription')}
             </sp-field-group>
             <sp-field-group class="toggle" id="callout">
                 <sp-field-label for="callout"> Callout text </sp-field-label>
@@ -520,88 +779,8 @@ class MerchCardEditor extends LitElement {
                     >${unsafeHTML(form.callout?.values[0])}</rte-field
                 >
             </sp-field-group>
-            <sp-field-group id="secureLabel" class="toggle">
-                <secure-text-field
-                    id="secure-text-field"
-                    label="Secure Transaction Label"
-                    data-field="showSecureLabel"
-                    value="${form.showSecureLabel?.values[0]}"
-                    @change="${this.#handleFragmentUpdate}"
-                >
-                </secure-text-field>
-            </sp-field-group>
-            <sp-field-group id="planType" class="toggle">
-                <mas-plan-type-field
-                    id="plan-type-field"
-                    label="Plan Type text"
-                    data-field="showPlanType"
-                    value="${form.showPlanType?.values[0]}"
-                    @change="${this.#handleFragmentUpdate}"
-                >
-                </mas-plan-type-field>
-            </sp-field-group>
-            <sp-field-group id="planType" class="toggle">
-                <mas-plan-type-field
-                    id="plan-type-field"
-                    label="Plan Type text"
-                    data-field="showPlanType"
-                    value="${form.showPlanType?.values[0]}"
-                    @change="${this.updateFragment}"
-                >
-                </mas-plan-type-field>
-            </sp-field-group>
-            <sp-field-group id="addon" class="toggle">
-                <mas-addon-field
-                    id="addon-field"
-                    label="Addon"
-                    data-field="addon"
-                    .value="${form.addon?.values[0]}"
-                    @change="${this.updateFragment}"
-                >
-                </mas-addon-field>
-            </sp-field-group>
-            <sp-field-group class="toggle" id="quantitySelect">
-                <sp-checkbox
-                    size="m"
-                    value="${this.quantitySelectorDisplayed}"
-                    .checked="${this.quantitySelectorDisplayed}"
-                    @change="${this.#showQuantityFields}"
-                    ?disabled=${this.disabled}
-                    >Show Quantity selector</sp-checkbox
-                >
-                <sp-field-group id="quantitySelector">
-                    <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
-                    <sp-textfield
-                        id="title-quantity"
-                        data-field="titleQuantity"
-                        value="${this.quantityTitle}"
-                        @input="${this.#updateQuantityValues}"
-                        ?disabled=${this.disabled}
-                    ></sp-textfield>
-                    <sp-field-label for="start-quantity">Start quantity</sp-field-label>
-                    <sp-textfield
-                        id="start-quantity"
-                        data-field="startQuantity"
-                        pattern="[0-9]*"
-                        value="${this.quantityStart}"
-                        @input="${this.#updateQuantityValues}"
-                        ?disabled=${this.disabled}
-                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
-                    >
-                    <sp-field-label for="step-quantity">Step</sp-field-label>
-                    <sp-textfield
-                        id="step-quantity"
-                        data-field="stepQuantity"
-                        pattern="[0-9]*"
-                        value="${this.quantityStep}"
-                        @input="${this.#updateQuantityValues}"
-                        ?disabled=${this.disabled}
-                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
-                    >
-                </sp-field-group>
-            </sp-field-group>
+            <div class="section-title">Footer</div>
             <sp-field-group class="toggle" id="ctas">
-                <sp-field-label for="ctas">Footer</sp-field-label>
                 <rte-field
                     id="ctas"
                     link
@@ -612,35 +791,40 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleFragmentUpdate}"
                     >${unsafeHTML(form.ctas.values[0])}</rte-field
                 >
+                ${this.renderOverrideIndicator('ctas')}
             </sp-field-group>
-            <sp-field-group>
-                <sp-field-label for="osi">OSI Search</sp-field-label>
-                <osi-field
-                    id="osi"
-                    data-field="osi"
-                    .value=${form.osi.values[0]}
-                    @input="${this.#handleFragmentUpdate}"
-                    @change="${this.#handleFragmentUpdate}"
-                ></osi-field>
-            </sp-field-group>
-            <aem-tag-picker-field
-                label="Tags"
-                namespace="/content/cq:tags/mas"
-                multiple
-                value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
-                @change=${this.#handeTagsChange}
-            ></aem-tag-picker-field>
-            <sp-field-group id="perUnitLabel" class="toggle">
-                <sp-divider></sp-divider>
-                <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
-                <sp-textfield
-                    id="per-unit-label"
-                    placeholder="Enter per unit label"
-                    data-field="perUnitLabel"
-                    value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
-                    style="width: 100%;"
-                    @input="${this.#handlePerUnitLabelUpdate}"
-                ></sp-textfield>
+            <div class="section-title">Options and settings</div>
+            <div class="two-column-grid">
+                <sp-field-group id="secureLabel" class="toggle">
+                    <secure-text-field
+                        id="secure-text-field"
+                        label="Secure Transaction Label"
+                        data-field="showSecureLabel"
+                        value="${form.showSecureLabel?.values[0]}"
+                        @change="${this.#handleFragmentUpdate}"
+                    >
+                    </secure-text-field>
+                </sp-field-group>
+                <sp-field-group id="planType" class="toggle">
+                    <mas-plan-type-field
+                        id="plan-type-field"
+                        label="Plan Type text"
+                        data-field="showPlanType"
+                        value="${form.showPlanType?.values[0]}"
+                        @change="${this.#handleFragmentUpdate}"
+                    >
+                    </mas-plan-type-field>
+                </sp-field-group>
+            </div>
+            <sp-field-group id="addon" class="toggle">
+                <mas-addon-field
+                    id="addon-field"
+                    label="Addon"
+                    data-field="addon"
+                    .value="${form.addon?.values[0]}"
+                    @change="${this.updateFragment}"
+                >
+                </mas-addon-field>
             </sp-field-group>
         `;
     }
@@ -660,6 +844,16 @@ class MerchCardEditor extends LitElement {
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tags', newTags);
+    }
+
+    #handleFragmentTitleUpdate(e) {
+        this.fragment.title = e.target.value;
+        this.updateFragment();
+    }
+
+    #handleFragmentDescriptionUpdate(e) {
+        this.fragment.description = e.target.value;
+        this.updateFragment();
     }
 
     createIncludedElement(label, values) {
@@ -717,6 +911,17 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateMnemonics(event) {
+        const fragment = this.fragmentStore.get();
+
+        this.lastMnemonicState = {
+            timestamp: Date.now(),
+            mnemonicIcon: [...this.getEffectiveFieldValues('mnemonicIcon')],
+            mnemonicAlt: [...this.getEffectiveFieldValues('mnemonicAlt')],
+            mnemonicLink: [...this.getEffectiveFieldValues('mnemonicLink')],
+            mnemonicTooltipText: [...this.getEffectiveFieldValues('mnemonicTooltipText')],
+            mnemonicTooltipPlacement: [...this.getEffectiveFieldValues('mnemonicTooltipPlacement')],
+        };
+
         const mnemonicIcon = [];
         const mnemonicAlt = [];
         const mnemonicLink = [];
@@ -729,13 +934,47 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipText.push(mnemonicText ?? '');
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
-        const fragment = this.fragmentStore.get();
+
         fragment.updateField('mnemonicIcon', mnemonicIcon);
         fragment.updateField('mnemonicAlt', mnemonicAlt);
         fragment.updateField('mnemonicLink', mnemonicLink);
         fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
         fragment.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
         this.fragmentStore.set(fragment);
+
+        const previousCount = this.lastMnemonicState.mnemonicIcon.length;
+        const newCount = mnemonicIcon.length;
+        const isAdd = newCount > previousCount;
+        const isRemove = newCount < previousCount;
+
+        if (isAdd || isRemove) {
+            Events.toast.emit({
+                variant: isAdd ? 'positive' : 'negative',
+                content: isAdd ? 'Visual added' : 'Visual removed',
+                action: {
+                    label: 'UNDO',
+                    handler: () => this.#undoMnemonicChange(),
+                },
+            });
+        }
+    }
+
+    #undoMnemonicChange() {
+        if (!this.lastMnemonicState) return;
+
+        const fragment = this.fragmentStore.get();
+        fragment.updateField('mnemonicIcon', this.lastMnemonicState.mnemonicIcon);
+        fragment.updateField('mnemonicAlt', this.lastMnemonicState.mnemonicAlt);
+        fragment.updateField('mnemonicLink', this.lastMnemonicState.mnemonicLink);
+        fragment.updateField('mnemonicTooltipText', this.lastMnemonicState.mnemonicTooltipText);
+        fragment.updateField('mnemonicTooltipPlacement', this.lastMnemonicState.mnemonicTooltipPlacement);
+        this.fragmentStore.set(fragment);
+
+        this.lastMnemonicState = null;
+
+        this.requestUpdate();
+
+        showToast('Visual change undone', 'info');
     }
 
     #formatName(name) {
@@ -802,8 +1041,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get badgeText() {
-        const badgeValues = this.fragment.fields.find((f) => f.name === 'badge')?.values ?? [];
-        return badgeValues?.length ? badgeValues[0] : '';
+        return this.getEffectiveFieldValue('badge', 0) || '';
     }
 
     get badgeElement() {
@@ -850,8 +1088,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get trialBadgeText() {
-        const trialBadgeValues = this.fragment.fields.find((f) => f.name === 'trialBadge')?.values ?? [];
-        return trialBadgeValues?.length ? trialBadgeValues[0] : '';
+        return this.getEffectiveFieldValue('trialBadge', 0) || '';
     }
 
     get trialBadgeElement() {
@@ -977,14 +1214,22 @@ class MerchCardEditor extends LitElement {
         if (!this.supportsBadgeColors) return;
 
         return html`
-            ${this.#renderColorPicker('badgeColor', 'Badge Color', this.availableBadgeColors, this.badge.bgColor, 'badgeColor')}
-            ${this.#renderColorPicker(
-                'badgeBorderColor',
-                'Badge Border Color',
-                this.availableBadgeColors,
-                this.badge.borderColor,
-                'badgeBorderColor',
-            )}
+            <div class="two-column-grid">
+                ${this.#renderColorPicker(
+                    'badgeColor',
+                    'Badge Color',
+                    this.availableBadgeColors,
+                    this.badge.bgColor,
+                    'badgeColor',
+                )}
+                ${this.#renderColorPicker(
+                    'badgeBorderColor',
+                    'Badge Border Color',
+                    this.availableBadgeColors,
+                    this.badge.borderColor,
+                    'badgeBorderColor',
+                )}
+            </div>
         `;
     }
 
@@ -992,20 +1237,22 @@ class MerchCardEditor extends LitElement {
         if (!this.supportsBadgeColors) return;
 
         return html`
-            ${this.#renderColorPicker(
-                'trialBadgeColor',
-                'Trial Badge Color',
-                this.availableBadgeColors,
-                this.trialBadge.bgColor,
-                'trialBadgeColor',
-            )}
-            ${this.#renderColorPicker(
-                'trialBadgeBorderColor',
-                'Trial Badge Border Color',
-                this.availableBadgeColors,
-                this.trialBadge.borderColor,
-                'trialBadgeBorderColor',
-            )}
+            <div class="two-column-grid">
+                ${this.#renderColorPicker(
+                    'trialBadgeColor',
+                    'Trial Badge Color',
+                    this.availableBadgeColors,
+                    this.trialBadge.bgColor,
+                    'trialBadgeColor',
+                )}
+                ${this.#renderColorPicker(
+                    'trialBadgeBorderColor',
+                    'Trial Badge Border Color',
+                    this.availableBadgeColors,
+                    this.trialBadge.borderColor,
+                    'trialBadgeBorderColor',
+                )}
+            </div>
         `;
     }
 
@@ -1167,7 +1414,7 @@ class MerchCardEditor extends LitElement {
                     ${options.map(
                         (color) => html`
                             <sp-menu-item value="${color}">
-                                <div style="${this.styleObjectToString(this.styles.menuItemContainer)}">
+                                <div class="menu-item-container">
                                     ${color === 'Default'
                                         ? html`<span>Default</span>`
                                         : color === 'Transparent'
@@ -1176,25 +1423,18 @@ class MerchCardEditor extends LitElement {
                                             ? html`
                                                   ${!isBackground && !isSpecialValue(color)
                                                       ? html`
-                                                            <div
-                                                                style="${this.styleObjectToString({
-                                                                    ...this.styles.colorSwatch,
-                                                                    background: `var(--${color})`,
-                                                                })}"
-                                                            ></div>
+                                                            <div class="color-swatch" style="background: var(--${color})"></div>
                                                         `
                                                       : isSpecialValue(color)
                                                         ? html`
                                                               <div
-                                                                  style="${this.styleObjectToString({
-                                                                      ...this.styles.colorSwatch,
-                                                                      background: variantSpecialValues[color],
-                                                                  })}"
+                                                                  class="color-swatch"
+                                                                  style="background: ${variantSpecialValues[color]}"
                                                               ></div>
                                                           `
                                                         : nothing}
                                                   <span
-                                                      style="${this.styleObjectToString(this.styles.colorNameText)}"
+                                                      class="color-name-text"
                                                       title="${isBackground
                                                           ? this.#formatName(color)
                                                           : isSpecialValue(color)
@@ -1256,24 +1496,14 @@ class MerchCardEditor extends LitElement {
                         .map(
                             ([colorName, colorValue]) => html`
                                 <sp-menu-item value="${colorName}">
-                                    <div style="${this.styleObjectToString(this.styles.menuItemContainer)}">
+                                    <div class="menu-item-container">
                                         ${colorName === 'Default'
                                             ? html`<span>Default</span>`
                                             : colorName === 'Transparent'
                                               ? html`<span>Transparent</span>`
                                               : html`
-                                                    <div
-                                                        style="${this.styleObjectToString({
-                                                            ...this.styles.colorSwatch,
-                                                            background: colorValue,
-                                                        })}"
-                                                    ></div>
-                                                    <span
-                                                        style="${this.styleObjectToString(this.styles.colorNameText)}"
-                                                        title="${colorName}"
-                                                    >
-                                                        ${colorName}
-                                                    </span>
+                                                    <div class="color-swatch" style="background: ${colorValue}"></div>
+                                                    <span class="color-name-text" title="${colorName}"> ${colorName} </span>
                                                 `}
                                     </div>
                                 </sp-menu-item>

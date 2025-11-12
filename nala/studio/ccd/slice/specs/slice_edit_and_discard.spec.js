@@ -99,7 +99,7 @@ export default {
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ctaText: {
                     original: 'Buy now',
-                    updated: 'save-now',
+                    updated: 'Save now',
                     option: 'Save now',
                 },
                 ucv3: 'commerce.adobe.com/store/email',

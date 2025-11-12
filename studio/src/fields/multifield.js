@@ -7,6 +7,7 @@ class MasMultifield extends LitElement {
             min: { type: Number, attribute: true },
             value: { type: Array, attribute: false },
             draggingIndex: { type: Number, state: true },
+            buttonLabel: { type: String, attribute: 'button-label' },
         };
     }
 
@@ -26,11 +27,6 @@ class MasMultifield extends LitElement {
             padding: 4px;
         }
 
-        .field-wrapper:hover {
-            outline: 2px dashed var(--spectrum-global-color-gray-400);
-            border-radius: var(--spectrum-global-dimension-size-50);
-        }
-
         .field-wrapper > *:first-child {
             flex: 1;
         }
@@ -43,27 +39,8 @@ class MasMultifield extends LitElement {
             border: 1px dashed #007bff;
         }
 
-        sp-icon-drag-handle {
-            visibility: hidden;
-            margin-block-start: 24px;
-            cursor: grab;
-            pointer-events: auto;
-        }
-
-        .field-wrapper:hover sp-icon-drag-handle {
-            visibility: visible;
-        }
-
-        sp-icon-close {
-            pointer-events: auto;
-            padding: 8px;
-            margin-block-start: 24px;
-            align-self: start;
-            cursor: pointer;
-        }
-
-        sp-icon-close:hover {
-            cursor: pointer;
+        sp-action-button {
+            width: 100%;
         }
     `;
 
@@ -76,6 +53,18 @@ class MasMultifield extends LitElement {
         super();
         this.draggingIndex = -1;
         this.min = 0;
+        this.buttonLabel = 'Add';
+        this.addEventListener('delete-field', (e) => {
+            e.stopPropagation();
+            const path = e.composedPath();
+            const fieldWrapper = path.find((el) => el.classList?.contains('field-wrapper'));
+            if (fieldWrapper) {
+                const index = Array.from(this.shadowRoot.querySelectorAll('.field-wrapper')).indexOf(fieldWrapper);
+                if (index !== -1) {
+                    this.removeField(index);
+                }
+            }
+        });
     }
 
     initValue() {
@@ -109,8 +98,20 @@ class MasMultifield extends LitElement {
 
     // Add a new field
     addField() {
+        const newIndex = this.value.length;
         this.value = [...this.value, {}];
         this.#dispatchEvent();
+
+        requestAnimationFrame(() => {
+            const fieldWrappers = this.shadowRoot.querySelectorAll('.field-wrapper');
+            const newFieldWrapper = fieldWrappers[newIndex];
+            if (newFieldWrapper) {
+                const mnemonicField = newFieldWrapper.querySelector('mas-mnemonic-field');
+                if (mnemonicField) {
+                    mnemonicField.modalOpen = true;
+                }
+            }
+        });
     }
 
     getFieldIndex(element) {
@@ -216,7 +217,7 @@ class MasMultifield extends LitElement {
     }
     /* c8 ignore end */
 
-    // Render individual field with reorder and delete options
+    // Render individual field with reorder options
     renderField(field, index) {
         let fieldEl = this.#template.cloneNode(true).firstElementChild;
         // if the element is a wrapper, get the field element
@@ -236,8 +237,6 @@ class MasMultifield extends LitElement {
                 @dragend=${this.dragEnd}
             >
                 ${fieldEl}
-                <sp-icon-close label="Remove field" @click=${() => this.removeField(index)}></sp-icon-close>
-                <sp-icon-drag-handle label="Order"></sp-icon-drag-handle>
             </div>
         `;
     }
@@ -248,7 +247,7 @@ class MasMultifield extends LitElement {
             <div @change="${this.handleChange}" @input="${this.handleInput}">
                 ${this.value.map((field, index) => this.renderField(field, index))}
                 <sp-action-button quiet @click=${this.addField}>
-                    <sp-icon-add label="Add" slot="icon"></sp-icon-add>Add
+                    <sp-icon-add label="${this.buttonLabel}" slot="icon"></sp-icon-add>${this.buttonLabel}
                 </sp-action-button>
             </div>
         `;

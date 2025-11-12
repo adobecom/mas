@@ -97,6 +97,11 @@ function setTestPage(url) {
     currentTestPage = url;
 }
 
+// Function to get current test page URL
+function getTestPage() {
+    return currentTestPage;
+}
+
 // Export the global page objects so test files can access them
 export {
     studio,
@@ -113,6 +118,7 @@ export {
     setClonedCardID,
     getClonedCardID,
     setTestPage,
+    getTestPage,
     miloLibs,
 };
 

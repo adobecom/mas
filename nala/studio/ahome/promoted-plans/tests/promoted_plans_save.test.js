@@ -45,7 +45,9 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         });
 
         await test.step('step-4: Verify border change is saved', async () => {
-            await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('border-color', data.border.updated.cssColor);
+            const card = await studio.getCard(data.clonedCardID);
+            const borderColorValue = await card.getAttribute('border-color');
+            expect(borderColorValue.toLowerCase()).toBe(data.border.updated.cssColor.toLowerCase());
             await expect(await editor.borderColor).toContainText(data.border.updated.color);
         });
     });

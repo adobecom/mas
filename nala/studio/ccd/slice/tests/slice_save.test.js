@@ -133,12 +133,12 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description);
+            await editor.fillRteField(editor.description, data.description);
         });
 
         await test.step('step-4: Edit badge field', async () => {
             await expect(await editor.badge).toBeVisible();
-            await editor.badge.fill(data.badge);
+            await editor.fillSpectrumTextField(editor.badge, data.badge);
         });
 
         await test.step('step-5: Edit mnemonic field', async () => {
@@ -152,7 +152,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-6: Edit background image field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
-            await editor.backgroundImage.fill(data.backgroundURL);
+            await editor.fillSpectrumTextField(editor.backgroundImage, data.backgroundURL);
         });
 
         await test.step('step-7: Edit size field', async () => {
@@ -170,12 +170,12 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify description saved', async () => {
-                    await expect(await editor.description).toContainText(data.description);
+                    await editor.expectRteFieldToContainText(editor.description, data.description);
                     await expect(await clonedCard.locator(slice.cardDescription)).toHaveText(data.description);
                 }),
 
                 test.step('Validation-2: Verify badge saved', async () => {
-                    await expect(await editor.badge).toHaveValue(data.badge);
+                    await editor.expectSpectrumTextFieldToHaveValue(editor.badge, data.badge);
                     await expect(await clonedCard.locator(slice.cardBadge)).toBeVisible();
                     await expect(await clonedCard.locator(slice.cardBadge)).toHaveText(data.badge);
                 }),
@@ -189,7 +189,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 }),
 
                 test.step('Validation-4: Verify background image saved', async () => {
-                    await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL);
+                    await editor.expectSpectrumTextFieldToHaveValue(editor.backgroundImage, data.backgroundURL);
                     await expect(await clonedCard.locator(slice.cardImage)).toBeVisible();
                     await expect(await clonedCard.locator(slice.cardImage)).toHaveAttribute('src', data.backgroundURL);
                 }),
@@ -246,7 +246,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-4: Validate edited fields in Editor panel', async () => {
-            await expect(await editor.description).toContainText(data.price);
+            await editor.expectRteFieldToContainText(editor.description, data.price);
             await expect(await editor.description).not.toContainText(data.strikethroughPrice);
             await expect(await clonedCard.locator(slice.cardDescription)).toContainText(data.price);
             await expect(await clonedCard.locator(slice.cardDescription)).not.toContainText(data.strikethroughPrice);

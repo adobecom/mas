@@ -111,17 +111,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title);
+            await editor.fillRteField(editor.title, data.title);
         });
 
         await test.step('step-4: Edit badge field', async () => {
             await expect(await editor.badge).toBeVisible();
-            await editor.badge.fill(data.badge);
+            await editor.fillSpectrumTextField(editor.badge, data.badge);
         });
 
         await test.step('step-5: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description);
+            await editor.fillRteField(editor.description, data.description);
         });
 
         await test.step('step-6: Edit mnemonic field', async () => {
@@ -135,12 +135,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-7: Edit callout field', async () => {
             await expect(await editor.calloutRTE).toBeVisible();
-            await editor.calloutRTE.fill(data.callout);
+            await editor.fillRteField(editor.calloutRTE, data.callout);
         });
 
         await test.step('step-8: Edit promo text field', async () => {
             await expect(await editor.promoText).toBeVisible();
-            await editor.promoText.fill(data.promoText);
+            await editor.fillSpectrumTextField(editor.promoText, data.promoText);
         });
 
         await test.step('step-9: Edit OSI', async () => {
@@ -158,7 +158,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-10: Edit whats included field', async () => {
             await expect(await editor.whatsIncludedLabel).toBeVisible();
-            await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
+            await editor.fillSpectrumTextField(editor.whatsIncludedLabel, data.whatsIncludedText);
         });
 
         await test.step('step-11: Edit badge color', async () => {
@@ -203,17 +203,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify title saved', async () => {
-                    await expect(await editor.title).toContainText(data.title);
+                    await editor.expectRteFieldToContainText(editor.title, data.title);
                     await expect(await clonedCard.locator(individuals.cardTitle)).toHaveText(data.title);
                 }),
 
                 test.step('Validation-2: Verify badge saved', async () => {
-                    await expect(await editor.badge).toHaveValue(data.badge);
+                    await editor.expectSpectrumTextFieldToHaveValue(editor.badge, data.badge);
                     await expect(await clonedCard.locator(individuals.cardBadge)).toHaveText(data.badge);
                 }),
 
                 test.step('Validation-3: Verify description saved', async () => {
-                    await expect(await editor.description).toContainText(data.description);
+                    await editor.expectRteFieldToContainText(editor.description, data.description);
                     await expect(await clonedCard.locator(individuals.cardDescription)).toHaveText(data.description);
                 }),
 
@@ -226,12 +226,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 }),
 
                 test.step('Validation-5: Verify callout saved', async () => {
-                    await expect(await editor.calloutRTE).toContainText(data.callout);
+                    await editor.expectRteFieldToContainText(editor.calloutRTE, data.callout);
                     await expect(await clonedCard.locator(individuals.cardCallout)).toHaveText(data.callout);
                 }),
 
                 test.step('Validation-6: Verify promo text saved', async () => {
-                    await expect(await editor.promoText).toHaveValue(data.promoText);
+                    await editor.expectSpectrumTextFieldToHaveValue(editor.promoText, data.promoText);
                     await expect(await clonedCard.locator(individuals.cardPromoText)).toHaveText(data.promoText);
                 }),
 
@@ -259,7 +259,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 }),
 
                 test.step('Validation-8: Verify whats included saved', async () => {
-                    await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncludedText);
+                    await editor.expectSpectrumTextFieldToHaveValue(editor.whatsIncludedLabel, data.whatsIncludedText);
                     await expect(await clonedCard.locator(individuals.cardWhatsIncluded)).toHaveText(data.whatsIncludedText);
                 }),
 
@@ -519,7 +519,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate description field updated', async () => {
-            await expect(await editor.description).toContainText(data.legalDisclaimer);
+            await editor.expectRteFieldToContainText(editor.description, data.legalDisclaimer);
             await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimer);
         });
     });
@@ -555,11 +555,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();
+            await editor.waitForPreviewUpdate();
             await studio.saveCard();
         });
 
         await test.step('step-5: Validate mnemonic icon saved', async () => {
-            await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.productIcon.updated.src);
+            await expect(async () => {
+                await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute(
+                    'src',
+                    data.productIcon.updated.src,
+                );
+            }).toPass({ timeout: 10000, intervals: [500, 1000] });
         });
     });
 });

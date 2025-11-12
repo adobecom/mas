@@ -349,7 +349,7 @@ export default {
                     },
                     updated: {
                         option: 'Save now',
-                        text: 'save-now',
+                        text: 'Save now',
                         workflowStep: 'segmentation',
                         workflowOption: 'Segmentation',
                         ucv3: 'commerce.adobe.com/store/segmentation',

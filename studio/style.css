@@ -20,6 +20,8 @@ mas-studio {
     background-color: var(--spectrum-global-color-gray-100);
     align-items: center;
     flex-direction: column;
+    height: 100vh;
+    overflow-y: clip;
 }
 
 .show {
@@ -32,10 +34,38 @@ mas-studio {
 
 .studio-content {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 75px 1fr;
     grid-row: 2 / 3;
     width: 100%;
-    min-height: calc(100vh - var(--mas-nav-height));
+    height: calc(100vh - var(--mas-nav-height));
+}
+
+.breadcrumbs-container {
+    grid-column: 1 / -1;
+    grid-row: 1 / 2;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 16px 24px 0px 86px;
+}
+
+.breadcrumbs-container sp-breadcrumbs {
+    margin-bottom: 0;
+}
+
+.breadcrumbs-container sp-breadcrumb-item {
+    cursor: pointer;
+    color: var(--spectrum-global-color-gray-800);
+    font-size: 14px;
+}
+
+.breadcrumbs-container sp-breadcrumb-item:hover {
+    color: var(--spectrum-global-color-blue-600);
+}
+
+.breadcrumbs-container sp-breadcrumb-item:last-child {
+    cursor: default;
+    pointer-events: none;
 }
 
 side-nav {
@@ -92,19 +122,23 @@ side-nav sp-sidenav-item:hover {
 
 .main-container {
     grid-column: 2 / 3;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding-block: 24px;
-    padding-inline: 16px;
+    height: 100%;
+    margin-block-start: 16px;
+    margin-block-end: 20px;
+    margin-inline: 16px;
+    border-radius: 16px 16px 0 0;
+    background: var(--spectrum-global-color-gray-75);
+    border: 1px solid var(--spectrum-gray-75, #f3f3f3);
+    box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
 }
 
 #content-container {
-    height: 100%;
+    height: fit-content;
     border-radius: 8px;
     padding-inline: 24px;
-    background-color: var(--spectrum-white);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     box-sizing: border-box;
     position: relative;
 }
@@ -162,12 +196,10 @@ sp-underlay + sp-dialog {
     margin-top: 20px;
 }
 
-editor-panel[position='left'] #move-left {
-    display: none;
-}
-
-editor-panel[position='right'] #move-right {
-    display: none;
+.two-column-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 }
 
 #actions {
@@ -240,11 +272,6 @@ mas-fragment-render[selected]:hover sp-icon-remove {
 
 mas-fragment-render:not([selected]):hover sp-icon-add {
     display: block;
-}
-
-mas-multifield,
-rte-field {
-    margin-inline-end: 16px;
 }
 
 mas-recently-updated[loading] {
@@ -449,10 +476,6 @@ sp-table-head-cell {
     background-color: #f8f8f8;
 }
 
-#badgeBorderColor {
-    margin: 0;
-}
-
 .quick-action-card div[slot='cover-photo'] svg {
     width: 36px;
     height: 36px;
@@ -589,8 +612,75 @@ sp-progress-circle.next-page {
     position: relative;
 }
 
+.derived-from-container {
+    background: var(--spectrum-blue-100);
+    border: 2px solid var(--spectrum-blue-400);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.derived-from-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.derived-from-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--spectrum-blue-900);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.derived-from-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--spectrum-global-color-blue-400);
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.derived-from-link:hover {
+    color: var(--spectrum-global-color-blue-500);
+    text-decoration: none;
+}
+
+.derived-from-content {
+    color: var(--spectrum-blue-900);
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 8px;
+    text-decoration: none;
+    display: block;
+}
+
+.derived-from-content:hover {
+    color: var(--spectrum-global-color-blue-500);
+    text-decoration: none;
+}
+
 @media screen and (max-width: 1100px) {
     sp-table-cell.offer-id {
         word-break: break-all;
     }
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 16px;
+}
+
+.loading-text {
+    font-size: 14px;
+    color: var(--spectrum-global-color-gray-700);
 }

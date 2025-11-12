@@ -140,12 +140,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Remove badge field', async () => {
             await expect(await editor.badge).toBeVisible();
-            await expect(await editor.badge).toHaveValue(data.badge.original);
-            await editor.badge.fill('');
+            await editor.expectSpectrumTextFieldToHaveValue(editor.badge, data.badge.original);
+            await editor.fillSpectrumTextField(editor.badge, '');
+            await editor.waitForPreviewUpdate();
         });
 
         await test.step('step-4: Validate edited badge field in Editor panel', async () => {
-            await expect(await editor.badge).toHaveValue('');
+            await editor.expectSpectrumTextFieldToHaveValue(editor.badge, '');
         });
 
         await test.step('step-5: Validate badge is removed from the card', async () => {
@@ -153,11 +154,12 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-6: Enter new value in the badge field', async () => {
-            await editor.badge.fill(data.badge.updated);
+            await editor.fillSpectrumTextField(editor.badge, data.badge.updated);
+            await editor.waitForPreviewUpdate();
         });
 
         await test.step('step-7: Validate edited badge field in Editor panel', async () => {
-            await expect(await editor.badge).toHaveValue(data.badge.updated);
+            await editor.expectSpectrumTextFieldToHaveValue(editor.badge, data.badge.updated);
         });
 
         await test.step('step-8: Validate new badge on the card', async () => {
@@ -194,12 +196,12 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.original);
-            await editor.description.fill(data.description.updated);
+            await editor.expectRteFieldToContainText(editor.description, data.description.original);
+            await editor.fillRteField(editor.description, data.description.updated);
         });
 
         await test.step('step-4: Validate edited description field in Editor panel', async () => {
-            await expect(await editor.description).toContainText(data.description.updated);
+            await editor.expectRteFieldToContainText(editor.description, data.description.updated);
         });
 
         await test.step('step-5: Validate edited description on the card', async () => {
@@ -277,12 +279,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Remove background URL field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL.original);
-            await editor.backgroundImage.fill('');
+            await editor.expectSpectrumTextFieldToHaveValue(editor.backgroundImage, data.backgroundURL.original);
+            await editor.fillSpectrumTextField(editor.backgroundImage, '');
+            await editor.waitForPreviewUpdate();
         });
 
         await test.step('step-4: Validate edited background image url field in Editor panel', async () => {
-            await expect(await editor.backgroundImage).toHaveValue('');
+            await editor.expectSpectrumTextFieldToHaveValue(editor.backgroundImage, '');
         });
 
         await test.step('step-5: Validate image is removed from the card', async () => {
@@ -290,11 +293,12 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-6: Enter new value in the background URL field', async () => {
-            await editor.backgroundImage.fill(data.backgroundURL.updated);
+            await editor.fillSpectrumTextField(editor.backgroundImage, data.backgroundURL.updated);
+            await editor.waitForPreviewUpdate();
         });
 
         await test.step('step-7: Validate edited background image url field in Editor panel', async () => {
-            await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL.updated);
+            await editor.expectSpectrumTextFieldToHaveValue(editor.backgroundImage, data.backgroundURL.updated);
         });
 
         await test.step('step-8: Validate new image on the card', async () => {
@@ -332,8 +336,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit price field', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(data.price);
-            await expect(await editor.description).toContainText(data.strikethroughPrice);
+            await editor.expectRteFieldToContainText(editor.description, data.price);
+            await editor.expectRteFieldToContainText(editor.description, data.strikethroughPrice);
 
             await editor.description.locator(editor.regularPrice).dblclick();
             await expect(await ost.priceStrikethrough).toBeVisible();
@@ -348,7 +352,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-4: Validate edited price field in Editor panel', async () => {
-            await expect(await editor.description).toContainText(data.strikethroughPrice);
+            await editor.expectRteFieldToContainText(editor.description, data.strikethroughPrice);
             await expect(await editor.description).not.toContainText(data.price);
             await expect(await editor.description.locator(editor.strikethroughPrice).locator('.price-strikethrough')).toHaveCSS(
                 'text-decoration-line',
@@ -399,7 +403,9 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.footer).toBeVisible();
             await expect(await editor.footer).toContainText(data.ctaText.original);
 
-            await editor.CTA.dblclick();
+            await editor.CTA.waitFor({ state: 'visible', timeout: 5000 });
+            await page.waitForTimeout(1000);
+            await editor.CTA.dblclick({ force: true });
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeEnabled();

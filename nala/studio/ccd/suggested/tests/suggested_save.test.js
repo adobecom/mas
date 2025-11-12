@@ -172,12 +172,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title);
+            await editor.fillRteField(editor.title, data.title);
         });
 
         await test.step('step-4: Edit eyebrow field', async () => {
             await expect(await editor.subtitle).toBeVisible();
-            await editor.subtitle.fill(data.subtitle);
+            await editor.fillSpectrumTextField(editor.subtitle, data.subtitle);
         });
 
         await test.step('step-5: Edit mnemonic field', async () => {
@@ -191,12 +191,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
         await test.step('step-6: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description);
+            await editor.fillRteField(editor.description, data.description);
         });
 
         await test.step('step-7: Edit background image field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
-            await editor.backgroundImage.fill(data.backgroundURL);
+            await editor.fillSpectrumTextField(editor.backgroundImage, data.backgroundURL);
         });
 
         await test.step('step-8: Save card with all changes', async () => {
@@ -208,12 +208,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify title saved', async () => {
-                    await expect(await editor.title).toContainText(data.title);
+                    await editor.expectRteFieldToContainText(editor.title, data.title);
                     await expect(await clonedCard.locator(suggested.cardTitle)).toHaveText(data.title);
                 }),
 
                 test.step('Validation-2: Verify eyebrow saved', async () => {
-                    await expect(await editor.subtitle).toHaveValue(data.subtitle);
+                    await editor.expectSpectrumTextFieldToHaveValue(editor.subtitle, data.subtitle);
                     await expect(await clonedCard.locator(suggested.cardEyebrow)).toHaveText(data.subtitle);
                 }),
 
@@ -226,12 +226,12 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 }),
 
                 test.step('Validation-4: Verify description saved', async () => {
-                    await expect(await editor.description).toContainText(data.description);
+                    await editor.expectRteFieldToContainText(editor.description, data.description);
                     await expect(await clonedCard.locator(suggested.cardDescription)).toHaveText(data.description);
                 }),
 
                 test.step('Validation-5: Verify background image saved', async () => {
-                    await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL);
+                    await editor.expectSpectrumTextFieldToHaveValue(editor.backgroundImage, data.backgroundURL);
                     await expect(await clonedCard).toHaveAttribute('background-image', data.backgroundURL);
                 }),
             ]);

@@ -3,13 +3,29 @@ import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 
 export class PreviewFragmentStore extends FragmentStore {
+    resolved = false;
+    placeholderUnsubscribe = null;
+    #resolving = false;
+
     /**
      * @param {Fragment} initialValue
      * @param {(value: any) => any} validator
      */
     constructor(initialValue, validator) {
         super(initialValue, validator);
-        this.resolveFragment();
+
+        // DEFENSE LAYER 2: Subscribe to placeholder changes for automatic retry
+        // If placeholders load after this store is created, retry resolution
+        this.placeholderUnsubscribe = Store.placeholders.preview.subscribe(() => {
+            if (!this.resolved && Store.placeholders.preview.value) {
+                this.resolveFragment();
+            }
+        });
+
+        const hasEssentialFields = initialValue.fields.some((f) => f.name === 'variant' && f.values?.length > 0);
+        if (!initialValue.isVariation() || hasEssentialFields) {
+            this.resolveFragment();
+        }
     }
 
     set(value) {
@@ -45,11 +61,50 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     resolveFragment() {
+        // Guard against overlapping resolution calls
+        if (this.#resolving) {
+            return;
+        }
+
+        // DEFENSE LAYER 4: Null safety and error handling
+        if (!this.value) {
+            console.warn('[PreviewFragmentStore] Cannot resolve: no fragment value');
+            return;
+        }
+
+        // Check for valid fragment model structure
+        if (!this.value?.model?.path) {
+            console.warn('[PreviewFragmentStore] Cannot resolve: invalid fragment model', {
+                fragmentId: this.value?.id,
+                hasModel: !!this.value?.model,
+            });
+            return;
+        }
+
         if (this.isCollection || !Store.placeholders.preview.value) return;
 
-        this.getResolvedFragment().then((result) => {
-            this.replaceFrom(result);
-        });
+        const isVariation = this.value.isVariation && this.value.isVariation();
+        const hasVariantField = this.value.fields?.some((f) => f.name === 'variant' && f.values?.length > 0);
+        if (isVariation && !hasVariantField) {
+            return;
+        }
+
+        this.#resolving = true;
+        this.getResolvedFragment()
+            .then((result) => {
+                if (result) {
+                    this.replaceFrom(result);
+                    this.refreshAemFragment();
+                    this.resolved = true;
+                }
+            })
+            .catch((error) => {
+                console.error('[PreviewFragmentStore] Failed to resolve fragment:', error);
+                // Don't throw - let UI handle gracefully with fallback rendering
+            })
+            .finally(() => {
+                this.#resolving = false;
+            });
     }
 
     async getResolvedFragment() {
@@ -79,7 +134,35 @@ export class PreviewFragmentStore extends FragmentStore {
 
     replaceFrom(value) {
         this.value.replaceFrom(value);
+        this.resolved = true;
+        this.populateGlobalCache();
         this.notify();
-        this.refreshAemFragment();
+    }
+
+    populateGlobalCache() {
+        const AemFragment = customElements.get('aem-fragment');
+        if (AemFragment?.cache) {
+            AemFragment.cache.remove(this.value.id);
+            AemFragment.cache.add(this.value);
+        }
+    }
+
+    refreshAemFragment() {
+        this.populateGlobalCache();
+        const aemFragments = document.querySelectorAll(`aem-fragment[fragment="${this.value.id}"]`);
+        aemFragments.forEach((aemFragment) => {
+            aemFragment.refresh(false);
+        });
+    }
+
+    /**
+     * Cleanup subscription to prevent memory leaks
+     * Call this when the store is no longer needed
+     */
+    dispose() {
+        if (this.placeholderUnsubscribe) {
+            Store.placeholders.preview.unsubscribe(this.placeholderUnsubscribe);
+            this.placeholderUnsubscribe = null;
+        }
     }
 }

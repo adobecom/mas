@@ -24,12 +24,12 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-3: Enter long string in title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await expect(await editor.title).toContainText(data.title.original);
-            await editor.title.fill(data.title.updated);
+            await editor.expectRteFieldToContainText(editor.title, data.title.original);
+            await editor.fillRteField(editor.title, data.title.updated);
         });
 
         await test.step('step-4: Validate title truncation in card', async () => {
-            await expect(await editor.title).toContainText(data.title.updated);
+            await editor.expectRteFieldToContainText(editor.title, data.title.updated);
             await expect(await promotedplans.cardTitle).toHaveText(data.title.truncated);
         });
 
@@ -108,12 +108,12 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
 
         await test.step('step-3: Update description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.original);
-            await editor.description.fill(data.description.updated);
+            await editor.expectRteFieldToContainText(editor.description, data.description.original);
+            await editor.fillRteField(editor.description, data.description.updated);
         });
 
         await test.step('step-4: Validate updated description field updated', async () => {
-            await expect(await editor.description).toContainText(data.description.updated);
+            await editor.expectRteFieldToContainText(editor.description, data.description.updated);
             await expect(await promotedplans.cardDescription).toContainText(data.description.updated);
         });
 

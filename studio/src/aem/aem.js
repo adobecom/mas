@@ -211,6 +211,13 @@ class AEM {
         return items[0];
     }
 
+    areFieldValuesEqual(values1, values2) {
+        if (!values1 && !values2) return true;
+        if (!values1 || !values2) return false;
+        if (values1.length !== values2.length) return false;
+        return values1.every((v, i) => v === values2[i]);
+    }
+
     /**
      * Save given fragment
      * @param {Object} fragment
@@ -226,7 +233,28 @@ class AEM {
             throw new Error('Failed to retrieve fragment for update');
         }
 
-        const { title, description, fields } = fragment;
+        let { title, description, fields } = fragment;
+
+        if (fragment.isVariation && fragment.isVariation()) {
+            const parentId = fragment.getParentId && fragment.getParentId();
+            if (parentId) {
+                try {
+                    const parentFragment = await this.sites.cf.fragments.getById(parentId);
+                    fields = fields.filter((field) => {
+                        if (field.name === 'originalId' || field.name === 'variations') {
+                            return true;
+                        }
+                        const parentField = parentFragment.fields.find((f) => f.name === field.name);
+                        if (!parentField) {
+                            return true;
+                        }
+                        return !this.areFieldValuesEqual(field.values, parentField.values);
+                    });
+                } catch (error) {
+                    console.error('Failed to fetch parent fragment for comparison:', error);
+                }
+            }
+        }
 
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
@@ -631,6 +659,14 @@ class AEM {
     async copyToFolder(fragment, targetPath, customName = null, targetLocale = 'en_US') {
         this.validateFragmentForCopy(fragment);
 
+        if (!targetPath || typeof targetPath !== 'string') {
+            throw new UserFriendlyError('Target path is required and must be a valid string');
+        }
+
+        if (!targetLocale || typeof targetLocale !== 'string') {
+            throw new UserFriendlyError('Target locale is required and must be a valid string');
+        }
+
         const originalName = fragment.path.split('/').pop();
         const assetName = customName || originalName;
         const finalTargetPath = `${targetPath}/${targetLocale}`;
@@ -645,10 +681,23 @@ class AEM {
 
             const copiedFragment = await this.createFragmentCopy(fullFragment, finalTargetPath, finalName, csrfToken);
 
-            await this.wait(COPY_WAIT_TIME);
-            await this.copyFragmentTags(copiedFragment, fullFragment.tags);
+            // Poll until fragment is accessible instead of fixed wait
+            let finalFragment;
+            for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
+                try {
+                    finalFragment = await this.sites.cf.fragments.getById(copiedFragment.id);
+                    if (finalFragment) break;
+                } catch (error) {
+                    if (i === MAX_POLL_ATTEMPTS - 1) throw error;
+                }
+                await this.wait(POLL_TIMEOUT);
+            }
 
-            const finalFragment = await this.sites.cf.fragments.getById(copiedFragment.id);
+            if (!finalFragment) {
+                throw new UserFriendlyError('Copy completed but fragment could not be retrieved.');
+            }
+
+            await this.copyFragmentTags(copiedFragment, fullFragment.tags);
 
             if (renamed) {
                 finalFragment.renamedTo = finalName;
@@ -765,6 +814,140 @@ class AEM {
         }
 
         return await this.getFragment(response);
+    }
+
+    async createFragmentVariation(parentFragment, locale) {
+        if (!parentFragment?.id) {
+            throw new UserFriendlyError('Invalid parent fragment');
+        }
+
+        if (!locale || typeof locale !== 'string') {
+            throw new UserFriendlyError('Locale is required and must be a valid string');
+        }
+
+        // Basic locale format validation (e.g., en_US, fr_FR)
+        if (!/^[a-z]{2}_[A-Z]{2}$/.test(locale)) {
+            throw new UserFriendlyError('Locale must be in format: language_COUNTRY (e.g., en_US)');
+        }
+
+        const csrfToken = await this.getCsrfToken();
+        const fullParentFragment = await this.sites.cf.fragments.getById(parentFragment.id);
+
+        const pathParts = fullParentFragment.path.split('/');
+        const surface = pathParts[4];
+        const fragmentName = pathParts[pathParts.length - 1];
+
+        const targetPath = `/content/dam/mas/${surface}/${locale}`;
+
+        await this.ensureFolderExists(targetPath);
+
+        const { name: finalName, renamed } = await this.generateUniqueName(targetPath, fragmentName);
+
+        const variationFields = fullParentFragment.fields
+            .filter((field) => field.name === 'originalId' || field.name === 'variations')
+            .map((field) => {
+                if (field.name === 'originalId') {
+                    return {
+                        ...field,
+                        values: [fullParentFragment.id],
+                    };
+                }
+                if (field.name === 'variations') {
+                    return {
+                        ...field,
+                        values: [],
+                    };
+                }
+                return field;
+            });
+
+        const variationData = {
+            title: fullParentFragment.title,
+            description: fullParentFragment.description,
+            modelId: fullParentFragment.model.id,
+            parentPath: targetPath,
+            name: finalName,
+            fields: variationFields,
+        };
+
+        const response = await fetch(this.cfFragmentsUrl, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify(variationData),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Failed to create variation: ${response.status} ${errorText}`);
+        }
+
+        const createdVariation = await response.json();
+
+        // Poll until variation is accessible instead of fixed wait
+        let variationFragment;
+        for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
+            try {
+                variationFragment = await this.sites.cf.fragments.getById(createdVariation.id);
+                if (variationFragment) break;
+            } catch (error) {
+                if (i === MAX_POLL_ATTEMPTS - 1) throw error;
+            }
+            await this.wait(POLL_TIMEOUT);
+        }
+
+        if (!variationFragment) {
+            throw new UserFriendlyError('Variation created but could not be retrieved.');
+        }
+
+        await this.copyFragmentTags(createdVariation, fullParentFragment.tags);
+
+        await this.addVariationToParent(fullParentFragment, createdVariation.id);
+
+        const finalVariation = await this.sites.cf.fragments.getById(createdVariation.id);
+
+        if (renamed) {
+            finalVariation.renamedTo = finalName;
+        }
+
+        return finalVariation;
+    }
+
+    async addVariationToParent(parentFragment, variationId) {
+        const latestParent = await this.getFragmentWithEtag(parentFragment.id);
+
+        const variationsField = latestParent.fields.find((field) => field.name === 'variations');
+
+        if (variationsField) {
+            if (!variationsField.values.includes(variationId)) {
+                variationsField.values.push(variationId);
+            }
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${parentFragment.id}`, {
+            method: 'PUT',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+                'If-Match': latestParent.etag,
+            },
+            body: JSON.stringify({
+                title: latestParent.title,
+                description: latestParent.description,
+                fields: latestParent.fields,
+            }),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to add variation to parent: ${response.status} ${response.statusText}`);
+        }
+
+        return await this.pollUpdatedFragment(latestParent);
     }
 
     /**
@@ -946,6 +1129,14 @@ class AEM {
                  * @see AEM#copyToFolder
                  */
                 copyToFolder: this.copyToFolder.bind(this),
+                /**
+                 * @see AEM#createFragmentVariation
+                 */
+                createVariation: this.createFragmentVariation.bind(this),
+                /**
+                 * @see AEM#addVariationToParent
+                 */
+                addVariationToParent: this.addVariationToParent.bind(this),
             },
         },
     };

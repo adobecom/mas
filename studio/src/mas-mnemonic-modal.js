@@ -13,6 +13,7 @@ class MasMnemonicModal extends LitElement {
         link: { type: String },
         selectedTab: { type: String, state: true },
         selectedProductId: { type: String, state: true },
+        searchQuery: { type: String, state: true },
     };
 
     static styles = css`
@@ -142,19 +143,28 @@ class MasMnemonicModal extends LitElement {
             width: 100%;
         }
 
-        sp-dialog::part(footer) {
-            display: flex;
-            justify-content: space-between;
-            padding-top: 16px;
-            border-top: 1px solid var(--spectrum-gray-200);
+        sp-dialog {
+            padding-bottom: var(--spectrum-global-dimension-size-200);
         }
 
-        sp-button[slot='button'][variant='secondary'] {
-            margin-right: auto;
+        sp-button[slot='button'] {
+            margin-top: var(--spectrum-global-dimension-size-200);
         }
 
-        sp-button[slot='button'][variant='accent'] {
-            margin-left: auto;
+        .search-container {
+            margin-bottom: 16px;
+        }
+
+        .search-container sp-search {
+            width: 100%;
+        }
+
+        .section-heading {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--spectrum-gray-900);
+            margin-top: 12px;
         }
     `;
 
@@ -166,6 +176,7 @@ class MasMnemonicModal extends LitElement {
         this.link = '';
         this.selectedTab = 'product-icon';
         this.selectedProductId = null;
+        this.searchQuery = '';
 
         this.addEventListener('change', (e) => {
             e.stopImmediatePropagation();
@@ -232,6 +243,15 @@ class MasMnemonicModal extends LitElement {
         this.icon = `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;
     }
 
+    #handleSearchInput(e) {
+        this.searchQuery = e.target.value.toLowerCase();
+    }
+
+    get filteredProducts() {
+        if (!this.searchQuery) return ADOBE_PRODUCTS;
+        return ADOBE_PRODUCTS.filter((product) => product.name.toLowerCase().includes(this.searchQuery));
+    }
+
     #handleClose() {
         this.open = false;
         this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
@@ -281,8 +301,14 @@ class MasMnemonicModal extends LitElement {
     get productIconTab() {
         return html`
             <div class="tab-content">
+                <div class="search-container">
+                    <sp-search placeholder="Search product images" @input=${this.#handleSearchInput}></sp-search>
+                </div>
+
+                <div class="section-heading">Recently used:</div>
+
                 <div class="icon-grid">
-                    ${ADOBE_PRODUCTS.map(
+                    ${this.filteredProducts.map(
                         (product) => html`
                             <div
                                 class="icon-item ${this.selectedProductId === product.id ? 'selected' : ''}"
@@ -377,7 +403,7 @@ class MasMnemonicModal extends LitElement {
         return html`
             <sp-underlay ?open=${this.open}></sp-underlay>
             <sp-dialog @close=${this.#handleClose}>
-                <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Mnemonic Icon</h2>
+                <h2 slot="heading">Add visual</h2>
 
                 <form @submit=${this.#handleSubmit}>
                     <sp-tabs selected="${this.selectedTab}" @change=${this.#handleTabChange}>

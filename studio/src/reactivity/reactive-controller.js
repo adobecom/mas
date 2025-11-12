@@ -49,9 +49,12 @@ export default class ReactiveController {
         this.#unregister();
     }
 
-    updateStores(stores) {
+    updateStores(stores, callback) {
         this.#unregister();
         this.stores = stores;
+        if (callback !== undefined) {
+            this.callback = callback;
+        }
         this.#register();
     }
 }

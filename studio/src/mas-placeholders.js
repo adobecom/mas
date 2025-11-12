@@ -591,7 +591,7 @@ class MasPlaceholders extends LitElement {
                     try {
                         await this.repository.aem.sites.cf.fragments.publish(savedIndex);
                     } catch (publishError) {
-                        console.debug('Failed to publish index, but removal was successful');
+                        // Silently handle publish failure
                     }
                     return true;
                 }

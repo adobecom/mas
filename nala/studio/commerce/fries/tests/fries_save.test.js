@@ -38,12 +38,12 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title.updated);
+            await editor.fillRteField(editor.title, data.title.updated);
         });
 
         await test.step('step-4: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description.updated);
+            await editor.fillRteField(editor.description, data.description.updated);
         });
 
         await test.step('step-5: Edit mnemonic field', async () => {
@@ -65,13 +65,13 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             const results = await Promise.allSettled([
                 // Validate title in editor and card
                 test.step('Validation-1: Validate edited title', async () => {
-                    await expect(await editor.title).toContainText(data.title.updated);
+                    await editor.expectRteFieldToContainText(editor.title, data.title.updated);
                     await expect(await clonedCard.locator(fries.title)).toHaveText(data.title.updated);
                 }),
 
                 // Validate description in editor and card
                 test.step('Validation-2: Validate edited description', async () => {
-                    await expect(await editor.description).toContainText(data.description.updated);
+                    await editor.expectRteFieldToContainText(editor.description, data.description.updated);
                     await expect(await clonedCard.locator(fries.description)).toHaveText(data.description.updated);
                 }),
 

@@ -61,7 +61,8 @@ export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 export const LOCALES = [
     { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
     { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
-    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada' },
+    { code: 'en_CA', flag: '🇨🇦', name: 'Canada (English)' },
+    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada (French)' },
     { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
     { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
     { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },
@@ -96,6 +97,7 @@ export const OPERATIONS = {
     SAVE: 'save',
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
+    CREATE: 'create',
 };
 
 export const EnvColorCode = {
@@ -136,6 +138,7 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
+    FRAGMENT_EDITOR: 'fragment-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -177,4 +180,8 @@ export const VARIANT_CAPABILITIES = {
         label: 'Default Card',
         helpText: 'Drag a card here to set as default',
     },
+};
+
+export const VARIATION_TYPES = {
+    LOCALE: 'Locale',
 };

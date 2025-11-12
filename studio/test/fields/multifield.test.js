@@ -49,9 +49,11 @@ describe('Multifield', () => {
         addButton.click();
         await el.updateComplete;
         expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(1);
-        const removeButton = el.shadowRoot.querySelector('sp-icon-close');
-        removeButton.click();
-        await el.updateComplete;
+
+        const changeListener = oneEvent(el, 'change');
+        const fieldWrapper = el.shadowRoot.querySelector('.field-wrapper');
+        el.removeField(0);
+        await changeListener;
         expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(0);
     });
 

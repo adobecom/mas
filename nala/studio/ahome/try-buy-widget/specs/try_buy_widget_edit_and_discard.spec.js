@@ -112,7 +112,7 @@ export default {
                 cta: {
                     text: {
                         original: 'Free trial',
-                        updated: 'save-now',
+                        updated: 'Save now',
                     },
                     option: 'Save now',
                 },

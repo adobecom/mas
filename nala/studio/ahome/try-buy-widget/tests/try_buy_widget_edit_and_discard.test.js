@@ -37,8 +37,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.title).toBeVisible();
             await editor.title.click();
             await page.waitForTimeout(2000);
-            await expect(await editor.title).toContainText(data.title.old);
-            await editor.title.fill(data.title.updated);
+            await editor.expectRteFieldToContainText(editor.title, data.title.old);
+            await editor.fillRteField(editor.title, data.title.updated);
             await page.waitForTimeout(2000);
         });
 
@@ -160,12 +160,12 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Edit description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.description).toContainText(data.description.original);
-            await editor.description.fill(data.description.updated);
+            await editor.expectRteFieldToContainText(editor.description, data.description.original);
+            await editor.fillRteField(editor.description, data.description.updated);
         });
 
         await test.step('step-4: Validate update in description field of Editor panel', async () => {
-            await expect(await editor.description).toContainText(data.description.updated);
+            await editor.expectRteFieldToContainText(editor.description, data.description.updated);
         });
 
         await test.step('step-5: Validate update on the description of card', async () => {
@@ -243,29 +243,35 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Remove background URL field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.backgroundImage).toHaveValue(data.background.original);
-            await editor.backgroundImage.fill('');
+            await editor.expectSpectrumTextFieldToHaveValue(editor.backgroundImage, data.background.original);
+            await editor.fillSpectrumTextField(editor.backgroundImage, '');
+            await editor.waitForPreviewUpdate();
         });
 
         await test.step('step-4: Validate edited background image url field in Editor panel', async () => {
-            await expect(await editor.backgroundImage).toHaveValue('');
+            await editor.expectSpectrumTextFieldToHaveValue(editor.backgroundImage, '');
         });
 
         await test.step('step-5: Validate image is removed from the card', async () => {
-            await expect(await trybuywidget.cardImage).not.toBeVisible();
+            await expect(async () => {
+                await expect(await trybuywidget.cardImage).not.toBeVisible();
+            }).toPass({ timeout: 10000, intervals: [500, 1000] });
         });
 
         await test.step('step-6: Enter new value in the background URL field', async () => {
-            await editor.backgroundImage.fill(data.background.updated);
+            await editor.fillSpectrumTextField(editor.backgroundImage, data.background.updated);
+            await editor.waitForPreviewUpdate();
         });
 
         await test.step('step-7: Validate edited background image url field in Editor panel', async () => {
-            await expect(await editor.backgroundImage).toHaveValue(data.background.updated);
+            await editor.expectSpectrumTextFieldToHaveValue(editor.backgroundImage, data.background.updated);
         });
 
         await test.step('step-8: Validate new image on the card', async () => {
-            await expect(await trybuywidget.cardImage).toBeVisible();
-            await expect(await trybuywidget.cardImage).toHaveAttribute('src', data.background.updated);
+            await expect(async () => {
+                await expect(await trybuywidget.cardImage).toBeVisible();
+                await expect(await trybuywidget.cardImage).toHaveAttribute('src', data.background.updated);
+            }).toPass({ timeout: 10000, intervals: [500, 1000] });
         });
 
         await test.step('step-9: Close the editor and verify discard is triggered', async () => {
@@ -353,7 +359,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.footer).toBeVisible();
             await expect(await editor.footer).toContainText(data.cta.text.original);
 
-            await (await editor.CTAClassSecondary).dblclick();
+            await (await editor.CTAClassSecondary).waitFor({ state: 'visible', timeout: 5000 });
+            await page.waitForTimeout(1000);
+            await (await editor.CTAClassSecondary).dblclick({ force: true });
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeEnabled();
@@ -804,10 +812,13 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();
+            await editor.waitForPreviewUpdate();
         });
 
         await test.step('step-5: Validate mnemonic icon updated in editor', async () => {
-            await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.productIcon.updated.src);
+            await expect(async () => {
+                await expect(await trybuywidget.cardIcon).toHaveAttribute('src', data.productIcon.updated.src);
+            }).toPass({ timeout: 10000, intervals: [500, 1000] });
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {

@@ -200,6 +200,38 @@ describe('customize typical cases', function () {
         expect(result.body.fields.mnemonicIcon.length).to.equal(2);
     });
 
+    it('should surface error when default locale fragment fetch fails', async function () {
+        const fragmentPath = 'ccd-slice-wide-cc-all-app';
+        const defaultLocaleId = 'some-fr-fr-fragment';
+        fetchStub
+            .withArgs(`https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/${fragmentPath}`)
+            .returns(
+                createResponse(200, {
+                    items: [
+                        {
+                            path: `/content/dam/mas/sandbox/fr_FR/${fragmentPath}`,
+                            id: defaultLocaleId,
+                        },
+                    ],
+                }),
+            );
+        fetchStub
+            .withArgs(`https://odin.adobe.com/adobe/sites/fragments/${defaultLocaleId}?references=all-hydrated`)
+            .returns(createResponse(503, { detail: 'fetch error' }, 'Service Unavailable'));
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+            },
+            fragmentPath,
+            locale: 'fr_CA',
+        });
+
+        expect(result.status).to.equal(503);
+        expect(result.message).to.equal('fetch error');
+    });
+
     it('should return canadian fragment with override (us fragment, fr locale, ch country)', async function () {
         // french fragment by id
         mockFrenchFragment();

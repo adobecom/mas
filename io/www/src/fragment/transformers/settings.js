@@ -53,7 +53,7 @@ function applyCollectionSettings(context) {
         alphabeticallyText: '{{coll-alphabetically-text}}',
         noResultsText: '{{coll-no-results-text}}',
         plansSidenavTitle: '{{coll-plans-sidenav-title}}',
-		catalogSidenavTitle: '{{coll-catalog-sidenav-title}}',
+        catalogSidenavTitle: '{{coll-catalog-sidenav-title}}',
         resultText: '{{coll-result-text}}',
         resultsText: '{{coll-results-text}}',
         resultMobileText: '{{coll-result-mobile-text}}',
@@ -63,14 +63,9 @@ function applyCollectionSettings(context) {
         searchResultMobileText: '{{coll-search-result-mobile-text}}',
         searchResultsMobileText: '{{coll-search-results-mobile-text}}',
         noSearchResultsText: '{{coll-no-search-results-text}}',
-		noSearchResultsMobileText: '{{coll-no-search-results-mobile-text}}',
+        noSearchResultsMobileText: '{{coll-no-search-results-mobile-text}}',
         showMoreText: '{{coll-show-more-text}}',
-		tags: Object.fromEntries(
-			['desktop', 'mobile', 'web'].map(label => [
-				label,
-				`{{coll-tag-filter-${label}}}`,
-			])
-		) || {},
+        tags: Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {},
     };
     context.dictionary = {
         ...context?.dictionary,

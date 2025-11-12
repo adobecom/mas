@@ -1,0 +1,73 @@
+{
+    "path": "/content/dam/mas/ccd/fr_LU/dictionary/index",
+    "name": "",
+    "title": "index",
+    "id": "fragment-ccd-fr-lu",
+    "description": "Index of dictionary placeholders",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk"
+    },
+    "fields": {
+        "parent": "fragment-ccd-fr-fr"
+    },
+    "references": {
+        "fragment-ccd-fr-fr": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/ccd/fr_FR/dictionary/index",
+                "name": "",
+                "title": "index",
+                "id": "fragment-ccd-fr-fr",
+                "description": "Index of dictionary placeholders",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk"
+                },
+                "fields": {
+                    "parent": "fragment-acom-fr-fr"
+                }
+            }
+        },
+        "fragment-acom-fr-fr": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/acom/fr_FR/dictionary/index",
+                "name": "",
+                "title": "Index",
+                "id": "fragment-acom-fr-fr",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk"
+                },
+                "fields": {
+                    "entries": ["entry-acom-fr-fr"]
+                }
+            }
+        },
+        "entry-acom-fr-fr": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/acom/fr_FR/dictionary/foo",
+                "id": "entry-acom-fr-fr",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5"
+                },
+                "fields": {
+                    "key": "foo",
+                    "value": "afr"
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "parent",
+            "identifier": "fragment-ccd-fr-fr",
+            "referencesTree": [
+                {
+                    "fieldName": "parent",
+                    "identifier": "fragment-acom-fr-fr"
+                }
+            ]
+        }
+    ]
+}

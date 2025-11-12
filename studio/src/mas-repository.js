@@ -28,6 +28,7 @@ import generateFragmentStore from './reactivity/source-fragment-store.js';
 
 import { SURFACES } from './editors/variant-picker.js';
 import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
+import { getCorrespondingLocale } from '../libs/tmp/transformers/customize.js';
 
 let fragmentCache;
 
@@ -237,10 +238,14 @@ export class MasRepository extends LitElement {
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
         const damPath = getDamPath(path);
+
+        // For regional locales like en_AU, use the corresponding default locale (en_US) for search
+        const searchLocale = getCorrespondingLocale(this.filters.value.locale);
+
         const localSearch = {
             ...this.search.value,
             modelIds,
-            path: `${damPath}/${this.filters.value.locale}`,
+            path: `${damPath}/${searchLocale}`,
             tags,
             createdBy,
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
@@ -270,7 +275,12 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
-                if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
+
+                // Accept fragments from either the original locale path or the corresponding default locale path
+                const validPaths = [`${damPath}/${this.filters.value.locale}/`, `${damPath}/${searchLocale}/`];
+                const isValidPath = validPaths.some((path) => fragmentData?.path?.startsWith(path));
+
+                if (fragmentData && isValidPath) {
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
                     dataStore.set([sourceStore]);
@@ -322,7 +332,9 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(true);
 
         const dataStore = Store.fragments.recentlyUpdated.data;
-        const path = `${this.search.value.path}/${this.filters.value.locale}`;
+        // Use the corresponding default locale for regional locales
+        const searchLocale = getCorrespondingLocale(this.filters.value.locale);
+        const path = `${this.search.value.path}/${searchLocale}`;
 
         if (!looseEquals(dataStore.getMeta('path'), path)) {
             dataStore.set([]);

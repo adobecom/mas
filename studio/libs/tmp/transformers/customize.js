@@ -6,7 +6,7 @@ import { logDebug } from '../utils/log.js';
  * 'zh_HK',
  * 'zh_TW',
  * 'zh_CN', */
-export const LOCALE_DEFAULTS = [
+const LOCALE_DEFAULTS = [
     'ar_MENA',
     'bg_BG',
     'cs_CZ',
@@ -79,7 +79,10 @@ async function getDefaultLanguageVariation(context) {
         const defaultLocaleUrl = odinReferences(defaultLocaleId, true, preview);
         const response = await fetch(defaultLocaleUrl, context, 'default-locale-fragment');
         if (response.status != 200 || !response.body) {
-            return { status: response.status, message: response.message || 'Error fetching default locale fragment' };
+            /* c8 ignore next */
+            const message = response.message || 'Error fetching default locale fragment';
+            /* c8 ignore next */
+            return { status: response.status || 503, message };
         }
         ({ body } = response);
     }
@@ -224,4 +227,4 @@ export const transformer = {
     process: customize,
     init,
 };
-export { getCorrespondingLocale, deepMerge};
+export { getCorrespondingLocale, deepMerge, LOCALE_DEFAULTS };

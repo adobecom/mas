@@ -7,7 +7,7 @@ export class Placeholder extends Fragment {
 
     get isRichText() {
         const initialRichTextValue = this.initialValue.fields.find((field) => field.name === 'richTextValue');
-        return initialRichTextValue.values.length > 0;
+        return initialRichTextValue.values.filter((v) => v !== undefined).length > 0;
     }
 
     get value() {

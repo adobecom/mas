@@ -16,7 +16,8 @@ import {
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
     EDITABLE_FRAGMENT_MODEL_IDS,
-    DICTIONARY_MODEL_ID,
+    DICTIONARY_INDEX_MODEL_ID,
+    DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -24,7 +25,9 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDictionary } from '../libs/fragment-client.js';
+
+import { SURFACES } from './editors/variant-picker.js';
+import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
 
 let fragmentCache;
 
@@ -347,6 +350,11 @@ export class MasRepository extends LitElement {
             if (!this.search.value.path) return;
 
             const dictionaryPath = this.getDictionaryPath();
+            try {
+                await this.ensureDictionaryIndex(dictionaryPath);
+            } catch (error) {
+                console.error('Failed to ensure dictionary index:', error);
+            }
 
             const searchOptions = {
                 path: dictionaryPath,
@@ -362,7 +370,7 @@ export class MasRepository extends LitElement {
 
             const indexFragment = fragments.find((fragment) => fragment.path.endsWith('/index'));
             if (indexFragment) Store.placeholders.index.set(indexFragment);
-            else console.error('No index fragment found:', error);
+            else console.warn('No index fragment found for dictionary path:', dictionaryPath);
 
             const placeholders = fragments
                 .filter((fragment) => !fragment.path.endsWith('/index'))
@@ -396,6 +404,245 @@ export class MasRepository extends LitElement {
 
     getDictionaryPath() {
         return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+    }
+
+    parseDictionaryPath(dictionaryPath) {
+        if (!dictionaryPath?.startsWith(ROOT_PATH)) return {};
+        const relativePath = dictionaryPath.slice(ROOT_PATH.length).replace(/^\/+/, '');
+
+        // Expected structure: [surface segments...]/[locale]/dictionary
+        const match = relativePath.match(/^(?<surfacePath>.*?)\/(?<locale>[^/]+)\/dictionary$/);
+        if (!match) return {};
+
+        const { surfacePath = '', locale } = match.groups;
+        const surfaceRoot = surfacePath.split('/').filter(Boolean)[0] ?? '';
+
+        return {
+            locale,
+            surfacePath,
+            surfaceRoot,
+        };
+    }
+
+    getDictionaryFolderPath(surfacePath, locale) {
+        if (!locale) return null;
+        const trimmedSurface = surfacePath?.replace(/^\/+|\/+$/g, '') ?? '';
+        const prefix = trimmedSurface ? `${ROOT_PATH}/${trimmedSurface}` : ROOT_PATH;
+        return `${prefix}/${locale}/dictionary`;
+    }
+
+    getFallbackLocale(locale) {
+        if (!locale) return null;
+        const [languageCode] = locale.split('_');
+        const match = LOCALE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
+        if (!match || match === locale) return null;
+        return match;
+    }
+
+    async ensureDictionaryFolder(dictionaryPath) {
+        if (!dictionaryPath) return false;
+        const normalized = dictionaryPath.replace(/\/+$/, '');
+        if (!normalized) return false;
+
+        const parentPath = normalized.slice(0, normalized.lastIndexOf('/'));
+        const folderName = normalized.slice(parentPath.length + 1);
+        if (!parentPath || !folderName) return false;
+
+        // Check if dictionary folder already exists
+        let parentListResult;
+        try {
+            parentListResult = await this.aem.folders.list(parentPath);
+        } catch (error) {
+            console.warn('An error occurred while checking dictionary folder. Placeholder feature may be degraded:', error);
+            return false;
+        }
+
+        const { children = [] } = parentListResult ?? {};
+        const exists = children.some((child) => child.path === normalized || child.name === folderName);
+        if (exists) return true;
+
+        try {
+            await this.aem.folders.create(parentPath, folderName, folderName);
+            return true;
+        } catch (error) {
+            if (error.message?.includes('409')) return true;
+            console.warn('An error occurred while creating dictionary folder. Placeholder feature may be degraded:', error);
+            return false;
+        }
+    }
+
+    async fetchIndexFragment(indexPath) {
+        try {
+            return await this.aem.sites.cf.fragments.getByPath(indexPath);
+        } catch (error) {
+            const message = error.message?.toLowerCase() ?? '';
+            if (message.includes('404') || message.includes('not found')) return null;
+            throw error;
+        }
+    }
+
+    ensureReferenceField(fields, fieldName, value) {
+        const field = fields.find((item) => item.name === fieldName);
+        const desiredValues = value ? [value] : [];
+
+        if (field) {
+            const currentValues = Array.isArray(field.values) ? field.values : [];
+            const sameValues =
+                currentValues.length === desiredValues.length &&
+                currentValues.every((item, index) => item === desiredValues[index]);
+            if (sameValues && field.type === 'content-fragment' && field.multiple === false) {
+                return { fields, changed: false };
+            }
+            Object.assign(field, {
+                type: 'content-fragment',
+                multiple: false,
+                locked: false,
+                values: desiredValues,
+            });
+            return { fields, changed: true };
+        }
+
+        fields.push({
+            name: fieldName,
+            type: 'content-fragment',
+            multiple: false,
+            locked: false,
+            values: desiredValues,
+        });
+        return { fields, changed: true };
+    }
+
+    async ensureIndexFallbackFields(indexFragment, parentReference) {
+        if (!indexFragment || !parentReference) return indexFragment;
+
+        const fields = [...(indexFragment.fields ?? [])];
+        const result = this.ensureReferenceField(fields, 'parent', parentReference);
+
+        if (!result.changed) return indexFragment;
+
+        try {
+            const saved = await this.aem.sites.cf.fragments.save({
+                ...indexFragment,
+                fields,
+            });
+            return saved ?? indexFragment;
+        } catch (error) {
+            console.error('Failed to save dictionary index fallback fields:', error);
+            return indexFragment;
+        }
+    }
+
+    async createDictionaryIndexFragment({ parentPath, parentReference, publish = true }) {
+        try {
+            const fields = [
+                {
+                    name: 'parent',
+                    type: 'content-fragment',
+                    multiple: false,
+                    locked: false,
+                    values: parentReference ? [parentReference] : [],
+                },
+                {
+                    name: 'entries',
+                    type: 'content-fragment',
+                    multiple: true,
+                    values: [],
+                },
+            ];
+
+            const indexFragment = await this.aem.sites.cf.fragments.create({
+                parentPath,
+                modelId: DICTIONARY_INDEX_MODEL_ID,
+                name: 'index',
+                title: 'Dictionary Index',
+                description: 'Index of dictionary placeholders',
+                fields,
+            });
+
+            if (!indexFragment?.id) {
+                console.error('Failed to create dictionary index fragment');
+                return null;
+            }
+
+            if (publish) {
+                await this.publishFragment(indexFragment, [], false);
+            }
+            return indexFragment;
+        } catch (error) {
+            console.error('Failed to create dictionary index fragment:', error);
+            return null;
+        }
+    }
+
+    async ensureDictionaryIndex(dictionaryPath, visited = new Set()) {
+        if (!dictionaryPath) return null;
+        if (visited.has(dictionaryPath)) {
+            try {
+                return await this.fetchIndexFragment(`${dictionaryPath}/index`);
+            } catch (error) {
+                console.error(`Failed to fetch already visited dictionary index for ${dictionaryPath}:`, error);
+                return null;
+            }
+        }
+        visited.add(dictionaryPath);
+
+        const { locale, surfacePath, surfaceRoot } = this.parseDictionaryPath(dictionaryPath);
+        if (!locale || !surfacePath) return null;
+
+        const indexPath = `${dictionaryPath}/index`;
+        let indexFragment = await this.fetchIndexFragment(indexPath);
+        const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
+
+        let parentReference = null;
+
+        const fallbackLocale = this.getFallbackLocale(locale);
+        const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
+        const acomFallbackLocale = fallbackLocale ?? locale;
+
+        const sameSurfaceDictionaryPath = surfaceFallbackLocale
+            ? this.getDictionaryFolderPath(surfacePath, surfaceFallbackLocale)
+            : null;
+
+        // 2. Check surface language fallback (same surface, fallback locale)
+        if (sameSurfaceDictionaryPath) {
+            try {
+                const sameSurfaceIndex = await this.ensureDictionaryIndex(sameSurfaceDictionaryPath, visited);
+                if (sameSurfaceIndex?.path) parentReference = sameSurfaceIndex.path;
+            } catch (error) {
+                console.error(`Failed to ensure same-surface fallback index for ${sameSurfaceDictionaryPath}:`, error);
+            }
+        }
+
+        // 3. Check ACOM language fallback (ACOM surface, fallback locale or current locale)
+        if (!parentReference && surfaceRoot !== SURFACES.ACOM && acomFallbackLocale) {
+            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM, acomFallbackLocale);
+            if (acomFallbackPath) {
+                try {
+                    const acomIndex = await this.ensureDictionaryIndex(acomFallbackPath, visited);
+                    if (acomIndex?.path) parentReference = acomIndex.path;
+                } catch (error) {
+                    console.error(`Failed to ensure ACOM fallback index for ${acomFallbackPath}:`, error);
+                }
+            }
+        }
+
+        if (!indexFragment) {
+            const hasDictionaryFolder = await this.ensureDictionaryFolder(dictionaryPath);
+            if (!hasDictionaryFolder) {
+                console.error(`Failed to ensure dictionary folder exists: ${dictionaryPath}`);
+                return null;
+            }
+
+            indexFragment = await this.createDictionaryIndexFragment({
+                parentPath: dictionaryPath,
+                parentReference,
+            });
+            if (!indexFragment) return null;
+        } else if (parentReference && currentParent !== parentReference) {
+            indexFragment = await this.ensureIndexFallbackFields(indexFragment, parentReference);
+        }
+
+        return indexFragment;
     }
 
     /**
@@ -632,7 +879,7 @@ export class MasRepository extends LitElement {
             const payload = {
                 name: placeholder.key,
                 parentPath: dictionaryPath,
-                modelId: DICTIONARY_MODEL_ID,
+                modelId: DICTIONARY_ENTRY_MODEL_ID,
                 title: placeholder.key,
                 description: `Placeholder for ${placeholder.key}`,
                 fields: Object.keys(fields).map((key) => ({
@@ -688,18 +935,23 @@ export class MasRepository extends LitElement {
         const indexPath = `${parentPath}/index`;
 
         const indexFragment = await this.getIndexFragment(indexPath);
+        if (!indexFragment) {
+            console.error(`Index fragment does not exist at ${indexPath}.`);
+            return false;
+        }
 
         try {
-            if (!indexFragment) {
-                return this.createIndexFragment(parentPath, fragment.path);
+            const entriesField = indexFragment.getField('entries');
+            if (!entriesField) {
+                console.error(`Index fragment at ${indexPath} is missing entries field`);
+                return false;
             }
 
-            const entries = indexFragment.getField('entries');
-            const shouldUpdate = !entries.values.includes(fragment.path);
+            const shouldUpdate = !entriesField.values.includes(fragment.path);
 
             let updatedIndexFragment = indexFragment;
             if (shouldUpdate) {
-                indexFragment.updateField('entries', [...entries.values, fragment.path]);
+                indexFragment.updateField('entries', [...entriesField.values, fragment.path]);
                 updatedIndexFragment = await this.aem.sites.cf.fragments.save(indexFragment);
             } else {
                 console.info(`Fragment already added to index: ${fragment.path}`);
@@ -722,10 +974,9 @@ export class MasRepository extends LitElement {
         const indexPath = `${parentPath}/index`;
 
         const indexFragment = await this.getIndexFragment(indexPath);
+        if (!indexFragment) return false;
 
         try {
-            if (!indexFragment) return false;
-
             const entries = indexFragment.getField('entries');
             let shouldUpdate = false;
             for (const fragment of fragmentsToRemove) {
@@ -752,62 +1003,6 @@ export class MasRepository extends LitElement {
             return true;
         } catch (error) {
             this.processError(error, 'Failed to add fragment(s) to index.');
-            return false;
-        }
-    }
-
-    /**
-     * Creates a new index fragment with initial entries
-     * @param {string} parentPath - Parent path for the index
-     * @param {string} fragmentPath - Initial fragment path to include
-     * @returns {Promise<boolean>} - Success status
-     */
-    async createIndexFragment(parentPath, fragmentPath) {
-        try {
-            const indexFragment = await this.aem.sites.cf.fragments.create({
-                parentPath,
-                modelId: DICTIONARY_MODEL_ID,
-                name: 'index',
-                title: 'Dictionary Index',
-                description: 'Index of dictionary placeholders',
-                fields: [
-                    {
-                        name: 'entries',
-                        type: 'content-fragment',
-                        multiple: true,
-                        values: [fragmentPath],
-                    },
-                    {
-                        name: 'key',
-                        type: 'text',
-                        multiple: false,
-                        values: ['index'],
-                    },
-                    {
-                        name: 'value',
-                        type: 'text',
-                        multiple: false,
-                        values: ['Dictionary index'],
-                    },
-                    {
-                        name: 'locReady',
-                        type: 'boolean',
-                        multiple: false,
-                        values: [true],
-                    },
-                ],
-            });
-
-            if (!indexFragment?.id) {
-                console.error('Failed to create index fragment');
-                return false;
-            }
-
-            await this.publishFragment(indexFragment, [], false);
-
-            return true;
-        } catch (error) {
-            console.error('Failed to create index fragment:', error);
             return false;
         }
     }

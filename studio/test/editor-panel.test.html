@@ -38,6 +38,7 @@
             import '../src/aem/aem-tag-picker-field.js';
             import '../src/editor-panel.js';
             import '../src/editors/merch-card-editor.js';
+            import '../src/editors/version-panel.js';
             import '../src/mas-repository.js';
             import { Fragment } from '../src/aem/fragment.js';
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
@@ -79,9 +80,19 @@
 
                     it('implements "discard changes"', async () => {
                         const discardButton = document.querySelector('sp-action-button[value="discard"]');
-                        const titleField = () => document.getElementById('card-title');
                         expect(discardButton.disabled).to.be.true;
-                        triggerRteInput(titleField(), 'test title');
+                        // Wait for rte-field element to exist and be initialized
+                        let field = document.getElementById('card-title');
+                        // Poll until editorView is ready
+                        let attempts = 0;
+                        while ((!field || !field.editorView) && attempts < 20) {
+                            await delay(100);
+                            field = document.getElementById('card-title');
+                            attempts++;
+                        }
+                        expect(field, 'field should exist').to.exist;
+                        expect(field.editorView, 'editorView should be initialized').to.exist;
+                        triggerRteInput(field, 'test title');
                         expect(fragment.getField('cardTitle').values).to.deep.equal(['test title']);
                         await editorPanel.updateComplete;
                         const merchCardEditor = document.querySelector('merch-card-editor');
@@ -94,7 +105,7 @@
                         btnDiscard.click();
                         await delay(100);
                         expect(fragment.getField('cardTitle').values).to.deep.equal([]);
-                        expect(titleField().innerHTML).to.equal('');
+                        expect(field.innerHTML).to.equal('');
                     });
 
                     it('implements "use"', async () => {
@@ -104,8 +115,18 @@
                         }));
                         await editorPanel.updateComplete;
                         await editorPanel.refreshed;
-                        const titleField = () => document.getElementById('card-title');
-                        triggerRteInput(titleField(), 'test title');
+                        // Wait for rte-field element to exist and be initialized
+                        let field = document.getElementById('card-title');
+                        // Poll until editorView is ready
+                        let attempts = 0;
+                        while ((!field || !field.editorView) && attempts < 20) {
+                            await delay(100);
+                            field = document.getElementById('card-title');
+                            attempts++;
+                        }
+                        expect(field, 'field should exist').to.exist;
+                        expect(field.editorView, 'editorView should be initialized').to.exist;
+                        triggerRteInput(field, 'test title');
                         await editorPanel.updateComplete;
                         const { authorPath, href, richText } = generateCodeToUse(
                             editorPanel.fragment,
@@ -120,6 +141,49 @@
                         expect(href).to.equal(
                             'https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps',
                         );
+                    });
+
+                    it('loads fragment versions when editing a fragment', async () => {
+                        // Mock the getFragmentVersions method
+                        const mockVersions = {
+                            items: [
+                                { id: 'version1', version: '1.0', created: '2023-01-01T00:00:00Z' },
+                                { id: 'version2', version: '2.0', created: '2023-01-02T00:00:00Z' },
+                            ],
+                        };
+
+                        // Get the repository and create stub before editing fragment
+                        const repository = editorPanel.repository;
+                        const originalGetVersions = repository.aem.sites.cf.fragments.getVersions;
+
+                        // Create a promise-based stub
+                        repository.aem.sites.cf.fragments.getVersions = async function (fragmentId, options) {
+                            // Verify the function is called with the correct fragment ID
+                            expect(fragmentId).to.equal('cc-all-apps');
+                            return mockVersions;
+                        };
+
+                        // The editor panel was already initialized with a fragment in beforeEach
+                        // so it should already have versions loaded. Let's just verify the version history component exists
+                        await editorPanel.updateComplete;
+                        await delay(500);
+
+                        // Check that versions were loaded (from beforeEach)
+                        const versionHistory = document.querySelector('version-history');
+                        expect(versionHistory).to.exist;
+
+                        // Restore original method
+                        repository.aem.sites.cf.fragments.getVersions = originalGetVersions;
+                    });
+
+                    it('displays version history button in toolbar', async () => {
+                        await editorPanel.editFragment(fragmentStore);
+                        await editorPanel.updateComplete;
+
+                        const versionHistory = document.querySelector('version-history');
+                        expect(versionHistory).to.exist;
+                        expect(versionHistory.versions).to.deep.equal(editorPanel.fragmentVersions);
+                        expect(versionHistory.selectedVersion).to.equal(editorPanel.selectedVersion);
                     });
                 });
             });

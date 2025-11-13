@@ -2,7 +2,7 @@ import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
 
-const VALID_SURFACES = ['adobe-home', 'sandbox', 'ccd'];
+const SURFACES_TO_CORRECT = ['adobe-home', 'sandbox', 'ccd'];
 
 /**
  * Checks if the corrector should be applied for the given surface
@@ -12,7 +12,7 @@ const VALID_SURFACES = ['adobe-home', 'sandbox', 'ccd'];
 export function shouldApplyCorrector(surface) {
     if (!surface) return false;
     const normalizedSurface = surface.toLowerCase();
-    return VALID_SURFACES.includes(normalizedSurface);
+    return SURFACES_TO_CORRECT.includes(normalizedSurface);
 }
 
 /**

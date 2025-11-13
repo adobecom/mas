@@ -128,7 +128,7 @@ describe('pipeline full use case', () => {
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
             fragmentsIds: {
-                'dictionary-id': 'fr_FR_dictionary',
+                'dictionary-id': 'sandbox_fr_FR_dictionary',
                 'default-locale-id': 'some-fr-fr-fragment',
             },
             hash: EXPECTED_BODY_HASH,
@@ -164,7 +164,7 @@ describe('pipeline full use case', () => {
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
             fragmentsIds: {
-                'dictionary-id': 'fr_FR_dictionary',
+                'dictionary-id': 'sandbox_fr_FR_dictionary',
                 'default-locale-id': 'some-fr-fr-fragment',
             },
             hash: EXPECTED_BODY_HASH,
@@ -176,7 +176,7 @@ describe('pipeline full use case', () => {
             fetchStub,
             JSON.stringify({
                 fragmentsIds: {
-                    'dictionary-id': 'fr_FR_dictionary',
+                    'dictionary-id': 'sandbox_fr_FR_dictionary',
                     'default-locale-id': 'some-fr-fr-fragment',
                 },
                 fragmentPath: 'someFragment',
@@ -217,7 +217,7 @@ describe('pipeline full use case', () => {
         expect(Object.keys(state.store).length).to.equal(1);
         expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
-        expect(json.fragmentsIds['dictionary-id']).to.not.equal('fr_FR_dictionary');
+        expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
 
@@ -338,7 +338,7 @@ describe('pipeline corner cases', () => {
             'req-some-en-us-fragment-fr_FR',
             JSON.stringify({
                 fragmentsIds: {
-                    'dictionary-id': 'fr_FR_dictionary',
+                    'dictionary-id': 'sandbox_fr_FR_dictionary',
                     'default-locale-id': 'some-fr-fr-fragment',
                 },
                 lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
@@ -406,12 +406,12 @@ describe('pipeline corner cases', () => {
             .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
             .returns(
                 new Promise((resolve) =>
-                    setTimeout(() => resolve(createResponse(200, { items: [{ id: 'fr_FR_dictionary' }] })), 50),
+                    setTimeout(() => resolve(createResponse(200, { items: [{ id: 'sandbox_fr_FR_dictionary' }] })), 50),
                 ),
             );
 
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/fr_FR_dictionary?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
             .returns(createResponse(200, DICTIONARY_RESPONSE));
 
         const odinDomain = 'https://odin.adobe.com';
@@ -466,7 +466,7 @@ describe('pipeline corner cases', () => {
             fetchStub,
             JSON.stringify({
                 fragmentsIds: {
-                    'dictionary-id': 'fr_FR_dictionary',
+                    'dictionary-id': 'sandbox_fr_FR_dictionary',
                     'default-locale-id': 'some-fr-fr-fragment',
                 },
                 lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
@@ -484,7 +484,7 @@ describe('pipeline corner cases', () => {
         const result = await runOnFilledState(
             fetchStub,
             JSON.stringify({
-                dictionaryId: 'fr_FR_dictionary',
+                dictionaryId: 'sandbox_fr_FR_dictionary',
                 translatedId: 'some-fr-fr-fragment',
                 hash: EXPECTED_BODY_HASH,
             }),
@@ -710,7 +710,7 @@ describe('caching headers', () => {
         const result = await runOnFilledState(
             fetchStub,
             JSON.stringify({
-                dictionaryId: 'fr_FR_dictionary',
+                dictionaryId: 'sandbox_fr_FR_dictionary',
                 translatedId: 'some-fr-fr-fragment',
                 lastModified: RANDOM_OLD_DATE,
                 hash: EXPECTED_BODY_HASH,

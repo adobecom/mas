@@ -12,6 +12,7 @@ const COMMITMENT_MONTH = 'MONTH';
 const COMMITMENT_TERM_LICENSE = 'TERM_LICENSE';
 const TERM_ANNUAL = 'ANNUAL';
 const TERM_MONTHLY = 'MONTHLY';
+const errorValueNotOffer = 'NOT_IN_OFFER';
 const getPlanType = ({ commitment, term }) => {
     switch (commitment) {
         case undefined:

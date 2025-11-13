@@ -24,13 +24,14 @@
         "esm": "^3.2.25",
         "mocha": "^10.2.0",
         "nock": "^13.0.0",
+        "nodemon": "^3.1.10",
         "rollup": "^3.29.4"
     },
     "scripts": {
-        "test": "c8 --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 --exclude=src/fragment/odinSchemaTransform.js --exclude=src/ost-products/read.js --exclude=src/ost-products/write.js --exclude=test/**/* mocha --recursive ./test",
-        "test:watch": "mocha --watch --recursive ./test",
-        "test:file": "mocha --watch --recursive --grep",
-        "test:coverage": "c8 --reporter=lcov --reporter=text-summary --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 --exclude=src/fragment/odinSchemaTransform.js --exclude=src/ost-products/read.js --exclude=src/ost-products/write.js --exclude=test/**/* mocha --recursive ./test",
+        "test": "c8 --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 mocha --recursive ./test",
+        "test:watch": "nodemon --watch src --watch test --ext js,json --exec \"mocha --recursive ./test\"",
+        "test:file": "nodemon --watch src --watch test --ext js,json --exec \"mocha --recursive ./test --grep \\\"$npm_config_grep\\\"\"",
+        "test:coverage": "c8 --reporter=lcov --reporter=text-summary --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 mocha --recursive ./test",
         "lint": "eslint --ignore-pattern web-src --no-error-on-unmatched-pattern test src actions",
         "lint:fix": "npm run lint -- --fix",
         "build:client": "rollup -c rollup.config.js"

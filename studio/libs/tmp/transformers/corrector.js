@@ -11,7 +11,8 @@ function fixAdobeHomeDataExtraOptions(context) {
     const ctasValue = typeof ctasField === 'string' ? ctasField : ctasField?.value;
 
     if (ctasValue) {
-        const fixedCtasValue = ctasValue.replace(DATA_EXTRA_OPTIONS_REGEX, (match, jsonContent) => {
+        let fixedCtasValue = ctasValue.replace(/&quot;/g, '\"'); // normalize &quot; entities to proper format
+        fixedCtasValue = fixedCtasValue.replace(DATA_EXTRA_OPTIONS_REGEX, (match, jsonContent) => {
             // Replace both \" and literal " with &quot; inside the JSON object
             const fixedJson = jsonContent.replace(/\\"/g, '&quot;').replace(/"/g, '&quot;');
             return `data-extra-options="${fixedJson}"`;

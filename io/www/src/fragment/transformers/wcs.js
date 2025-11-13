@@ -74,7 +74,7 @@ async function wcs(context) {
         return context;
     }
     const { body, locale } = context;
-    let bodyString = JSON.stringify(body);
+    const bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
     if (matches.length > 0) {
         const tokenMap = new Map();

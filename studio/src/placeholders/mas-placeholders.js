@@ -22,6 +22,7 @@ class MasPlaceholders extends LitElement {
         showCreationModal: { type: Boolean, state: true },
         selects: { type: String, state: true },
         pending: { type: Boolean, state: true },
+        error: { type: String, state: true },
     };
 
     constructor() {
@@ -46,10 +47,15 @@ class MasPlaceholders extends LitElement {
     }
 
     reactiveController = new ReactiveController(this, [
+        Store.filters,
+        Store.folders.data,
+        Store.folders.loaded,
+        Store.placeholders?.list?.data,
+        Store.placeholders?.list?.loading,
+        Store.placeholders.index,
         Store.placeholders.list.loading,
         Store.placeholders.selection,
-        Store.placeholders.index,
-        Store.filters,
+        Store.search,
     ]);
     filterAndSortReactiveController = new ReactiveController(
         this,

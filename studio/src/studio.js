@@ -150,7 +150,7 @@ class MasStudio extends LitElement {
         if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
 
         const editor = document.querySelector('mas-fragment-editor');
-        if (!editor || !editor.fragment || editor.fragmentStore?.loading) {
+        if (!editor || !editor.fragment || !editor.previewResolved) {
             return nothing;
         }
 
@@ -219,7 +219,7 @@ class MasStudio extends LitElement {
                 ${this.masJsReady
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor}
-                          <editor-panel></editor-panel>
+                          ${this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR ? html`<editor-panel></editor-panel>` : nothing}
                       </div>`
                     : nothing}
             </div>

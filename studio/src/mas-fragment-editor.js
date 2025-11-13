@@ -512,6 +512,14 @@ export default class MasFragmentEditor extends LitElement {
                 showToast(`Failed to load fragment: ${error.message}`, 'negative');
             }
         }
+
+        // Dispatch fragment-loaded event to trigger breadcrumb updates
+        this.dispatchEvent(
+            new CustomEvent('fragment-loaded', {
+                bubbles: true,
+                composed: true,
+            }),
+        );
     }
 
     async fetchParentFragment() {

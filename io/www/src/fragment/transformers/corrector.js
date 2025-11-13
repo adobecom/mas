@@ -2,12 +2,25 @@ import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
 
+const SURFACES_TO_CORRECT = ['adobe-home', 'sandbox', 'ccd'];
+
+/**
+ * Checks if the corrector should be applied for the given surface
+ * @param {string} surface - Surface name
+ * @returns {boolean} - True if corrector should be applied
+ */
+export function shouldApplyCorrector(surface) {
+    if (!surface) return false;
+    const normalizedSurface = surface.toLowerCase();
+    return SURFACES_TO_CORRECT.includes(normalizedSurface);
+}
+
 /**
  * Fixes data-extra-options attributes in a field value
  * @param {string} fieldValue - The field value to fix
  * @returns {string} - The fixed field value
  */
-function fixDataExtraOptionsInValue(fieldValue) {
+export function fixDataExtraOptionsInValue(fieldValue) {
     let fixedValue = fieldValue.replace(/&quot;/g, '\"'); // normalize &quot; entities to proper format
     fixedValue = fixedValue.replace(DATA_EXTRA_OPTIONS_REGEX, (match, jsonContent) => {
         // Replace both \" and literal " with &quot; inside the JSON object
@@ -19,9 +32,9 @@ function fixDataExtraOptionsInValue(fieldValue) {
 
 /**
  * Fixes data-extra-options attributes in all relevant fields
- * @param {object} context - Context object
+ * @param {object} context - Context object with body.fields structure
  */
-function fixFieldsDataExtraOptions(context) {
+export function fixFieldsDataExtraOptions(context) {
     const fieldsToFix = ['ctas', 'description', 'shortDescription'];
 
     for (const fieldName of fieldsToFix) {
@@ -53,7 +66,7 @@ async function corrector(context) {
             delete context.body.priceLiterals[key];
         }
     }
-    if (surface === 'adobe-home' || surface === 'sandbox' || surface === 'ccd') {
+    if (shouldApplyCorrector(surface)) {
         fixFieldsDataExtraOptions(context);
     }
     return context;

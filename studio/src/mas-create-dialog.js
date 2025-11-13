@@ -97,6 +97,10 @@ export class MasCreateDialog extends LitElement {
         this.osi = offerSelectorId;
     };
 
+    _onTagSelect = ({ detail: { tags } }) => {
+        this.tags = tags;
+    };
+
     #handeTagsChange(e) {
         const value = e.target.getAttribute('value');
         this.tags = value ? value.split(',') : [];

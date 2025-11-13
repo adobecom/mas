@@ -269,8 +269,19 @@ describe('corrector', () => {
                     expectedCtas: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
                 },
                 {
-                    name: 'should only remove empty priceLiterals for non-adobe-home surface',
+                    name: 'should remove empty priceLiterals and fix data-extra-options for ccd surface',
                     surface: 'ccd',
+                    priceLiterals: {
+                        validKey: 'valid value',
+                        emptyKey: 'price-literal-something',
+                    },
+                    ctasInput: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    expectedPriceLiterals: { validKey: 'valid value' },
+                    expectedCtas: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+                },
+                {
+                    name: 'should only remove empty priceLiterals for acom surface',
+                    surface: 'acom',
                     priceLiterals: {
                         validKey: 'valid value',
                         emptyKey: 'price-literal-something',

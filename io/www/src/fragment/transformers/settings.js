@@ -65,7 +65,6 @@ function applyCollectionSettings(context) {
         noSearchResultsText: '{{coll-no-search-results-text}}',
         noSearchResultsMobileText: '{{coll-no-search-results-mobile-text}}',
         showMoreText: '{{coll-show-more-text}}',
-        tags: Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {},
     };
     context.dictionary = {
         ...context?.dictionary,
@@ -73,6 +72,7 @@ function applyCollectionSettings(context) {
         'coll-result-count': '<span data-placeholder=\\"resultCount\\"></span>',
         'coll-search-term': '<span data-placeholder=\\"searchTerm\\"></span>',
     };
+    context.body.tagLabels = Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 
 function applyPlansSettings(fragment, context) {

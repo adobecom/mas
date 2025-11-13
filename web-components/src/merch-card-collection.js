@@ -11,7 +11,7 @@ import {
     EVENT_MERCH_CARD_COLLECTION_SHOWMORE,
     EVENT_AEM_ERROR,
     EVENT_AEM_LOAD,
-    SORT_ORDER
+    SORT_ORDER,
 } from './constants.js';
 import { getService, getSlotText } from './utils.js';
 import { getFragmentMapping } from './variants/variants.js';
@@ -25,14 +25,17 @@ const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
     plans: ['four-merch-cards'],
     plansThreeColumns: ['three-merch-cards'],
-}
+};
 
 const SIDENAV_AUTOCLOSE = {
-    plans: true
-}
+    plans: true,
+};
 
 const categoryFilter = (elements, { filter }) =>
-    elements.filter((element) => element?.filters && element?.filters.hasOwnProperty(filter));
+    elements.filter(
+        (element) =>
+            element?.filters && element?.filters.hasOwnProperty(filter),
+    );
 
 const typeFilter = (elements, { types }) => {
     if (!types) return elements;
@@ -83,10 +86,10 @@ export class MerchCardCollection extends LitElement {
         filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
         hasMore: { type: Boolean },
         limit: { type: Number, attribute: 'limit' },
-        overrides : { type: String },
+        overrides: { type: String },
         page: { type: Number, attribute: 'page', reflect: true },
         resultCount: {
-          type: Number,
+            type: Number,
         },
         search: { type: String, attribute: 'search', reflect: true },
         sidenav: { type: Object },
@@ -123,8 +126,7 @@ export class MerchCardCollection extends LitElement {
     }
 
     render() {
-        return html`
-            <slot></slot>
+        return html` <slot></slot>
             ${this.footer}`;
     }
 
@@ -132,9 +134,12 @@ export class MerchCardCollection extends LitElement {
         const aemFragment = this.querySelector('aem-fragment');
         if (!aemFragment) return Promise.resolve(true);
         const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve(false), MERCH_CARD_COLLECTION_LOAD_TIMEOUT),
+            setTimeout(
+                () => resolve(false),
+                MERCH_CARD_COLLECTION_LOAD_TIMEOUT,
+            ),
         );
-        return Promise.race([this.hydrationReady, timeoutPromise])
+        return Promise.race([this.hydrationReady, timeoutPromise]);
     }
 
     updated(changedProperties) {
@@ -173,7 +178,7 @@ export class MerchCardCollection extends LitElement {
         }
         let reduced = new Map(result.reverse());
         for (const card of reduced.keys()) {
-          this.prepend(card);
+            this.prepend(card);
         }
 
         children.forEach((child) => {
@@ -191,33 +196,37 @@ export class MerchCardCollection extends LitElement {
         this.updateComplete.then(() => {
             this.dispatchLiteralsChanged();
             if (this.sidenav && !this.literalsHandlerAttached) {
-                this.sidenav.addEventListener(EVENT_MERCH_SIDENAV_SELECT, () => {
-                    this.dispatchLiteralsChanged();
-                });
+                this.sidenav.addEventListener(
+                    EVENT_MERCH_SIDENAV_SELECT,
+                    () => {
+                        this.dispatchLiteralsChanged();
+                    },
+                );
                 this.literalsHandlerAttached = true;
             }
         });
     }
 
     dispatchLiteralsChanged() {
-        this.dispatchEvent(new CustomEvent(EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
-        {
-            detail: {
-                resultCount: this.resultCount,
-                searchTerm: this.search,
-                filter: this.sidenav?.filters?.selectedText
-            }
-        }));
+        this.dispatchEvent(
+            new CustomEvent(EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED, {
+                detail: {
+                    resultCount: this.resultCount,
+                    searchTerm: this.search,
+                    filter: this.sidenav?.filters?.selectedText,
+                },
+            }),
+        );
     }
 
     buildOverrideMap() {
-      this.#overrideMap = {};
-      this.overrides?.split(',').forEach((token) => {
-        const [ key, value ] = token?.split(':');
-        if (key && value) {
-          this.#overrideMap[key] = value;
-        }
-      });
+        this.#overrideMap = {};
+        this.overrides?.split(',').forEach((token) => {
+            const [key, value] = token?.split(':');
+            if (key && value) {
+                this.#overrideMap[key] = value;
+            }
+        });
     }
 
     connectedCallback() {
@@ -257,7 +266,7 @@ export class MerchCardCollection extends LitElement {
         this.header = header;
         // Transfer header-related placeholders
         const existingPlaceholders = this.querySelectorAll('[placeholder]');
-        existingPlaceholders.forEach(placeholder => {
+        existingPlaceholders.forEach((placeholder) => {
             const key = placeholder.getAttribute('slot');
             if (this.header.placeholderKeys.includes(key)) {
                 this.header.append(placeholder);
@@ -268,7 +277,10 @@ export class MerchCardCollection extends LitElement {
     initializePlaceholders() {
         const placeholders = this.data?.placeholders || {};
         // If searchText is empty but sidenavSettings has it, use that value
-        if (!placeholders.searchText && this.data?.sidenavSettings?.searchText) {
+        if (
+            !placeholders.searchText &&
+            this.data?.sidenavSettings?.searchText
+        ) {
             placeholders.searchText = this.data.sidenavSettings.searchText;
         }
         for (const key of Object.keys(placeholders)) {
@@ -291,24 +303,28 @@ export class MerchCardCollection extends LitElement {
         if (SIDENAV_AUTOCLOSE[this.variant])
             this.sidenav.setAttribute('autoclose', '');
         this.initializeHeader();
-        this.dispatchEvent(new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED));
+        this.dispatchEvent(
+            new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED),
+        );
 
-        const onSidenavAttached = this.#merchCardElement?.getCollectionOptions(this.variant)?.onSidenavAttached;
+        const onSidenavAttached = this.#merchCardElement?.getCollectionOptions(
+            this.variant,
+        )?.onSidenavAttached;
         onSidenavAttached && onSidenavAttached(this);
     }
 
     #fail(error, details = {}, dispatch = true) {
-      this.#log.error(`merch-card-collection: ${error}`, details);
-      this.failed = true;
-      if (!dispatch) return;
-      this.dispatchEvent(
-          new CustomEvent(EVENT_MAS_ERROR, {
-              detail: { ...details, message: error },
-              bubbles: true,
-              composed: true,
-          }),
-      );
-  }
+        this.#log.error(`merch-card-collection: ${error}`, details);
+        this.failed = true;
+        if (!dispatch) return;
+        this.dispatchEvent(
+            new CustomEvent(EVENT_MAS_ERROR, {
+                detail: { ...details, message: error },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
 
     async hydrate() {
         if (this.hydrating) return false;
@@ -325,57 +341,69 @@ export class MerchCardCollection extends LitElement {
         const self = this;
 
         function normalizePayload(fragment, overrideMap) {
-
             // Support both checkboxGroups (direct format) and tagFilters (parsed format)
             let tagFilters;
             if (fragment.fields?.checkboxGroups) {
-              // Use checkboxGroups directly if provided
-              tagFilters = fragment.fields.checkboxGroups;
+                // Use checkboxGroups directly if provided
+                tagFilters = fragment.fields.checkboxGroups;
             } else if (fragment.fields?.tagFilters) {
-              // Parse tagFilters into checkbox group format
-              tagFilters = [
-                {
-                  "title": fragment.fields?.tagFiltersTitle,
-                  "label": "types",
-                  "deeplink": "types",
-                  "checkboxes": fragment.fields.tagFilters.map((tag) => {
-                    // Example: "mas:types/desktop" -> "desktop"
-                    // Example: "mas:types/mobile" -> "mobile"
-                    // Example: "mas:types/web" -> "web"
-                    // TODO: Get tag label from fragment instead of parsing the tag
-                    const parsedTag = tag.split('/').pop();
-                    let tagLabel = fragment.settings?.tagLabels?.[parsedTag] || parsedTag;
-                    tagLabel = tagLabel.startsWith('coll-tag-filter') ? parsedTag.charAt(0).toUpperCase() + parsedTag.slice(1) : tagLabel;
-                    return { name: parsedTag, label: tagLabel };
-                  })
-                }
-              ];
+                // Parse tagFilters into checkbox group format
+                tagFilters = [
+                    {
+                        title: fragment.fields?.tagFiltersTitle,
+                        label: 'types',
+                        deeplink: 'types',
+                        checkboxes: fragment.fields.tagFilters.map((tag) => {
+                            // Example: "mas:types/desktop" -> "desktop"
+                            // Example: "mas:types/mobile" -> "mobile"
+                            // Example: "mas:types/web" -> "web"
+                            // TODO: Get tag label from fragment instead of parsing the tag
+                            const parsedTag = tag.split('/').pop();
+                            let tagLabel =
+                                fragment.settings?.tagLabels?.[parsedTag] ||
+                                parsedTag;
+                            tagLabel = tagLabel.startsWith('coll-tag-filter')
+                                ? parsedTag.charAt(0).toUpperCase() +
+                                  parsedTag.slice(1)
+                                : tagLabel;
+                            return { name: parsedTag, label: tagLabel };
+                        }),
+                    },
+                ];
             }
 
             const sidenavSettings = {
-              searchText: fragment.fields?.searchText,
-              tagFilters: tagFilters,
-              linksTitle: fragment.fields?.linksTitle,
-              link: fragment.fields?.link,
-              linkText: fragment.fields?.linkText,
-              linkIcon: fragment.fields?.linkIcon,
-          };
+                searchText: fragment.fields?.searchText,
+                tagFilters: tagFilters,
+                linksTitle: fragment.fields?.linksTitle,
+                link: fragment.fields?.link,
+                linkText: fragment.fields?.linkText,
+                linkIcon: fragment.fields?.linkIcon,
+            };
 
             const payload = {
                 cards: [],
                 hierarchy: [],
                 placeholders: fragment.placeholders,
-                sidenavSettings: sidenavSettings
+                sidenavSettings: sidenavSettings,
             };
 
             function traverseReferencesTree(root, references) {
                 for (const reference of references) {
                     if (reference.fieldName === 'cards') {
-                        if (payload.cards.findIndex(card => card.id === reference.identifier) !== -1) continue;
-                        payload.cards.push(fragment.references[reference.identifier].value);
+                        if (
+                            payload.cards.findIndex(
+                                (card) => card.id === reference.identifier,
+                            ) !== -1
+                        )
+                            continue;
+                        payload.cards.push(
+                            fragment.references[reference.identifier].value,
+                        );
                         continue;
                     }
-                    const value = fragment.references[reference.identifier]?.value;
+                    const value =
+                        fragment.references[reference.identifier]?.value;
                     if (!value?.fields) continue;
                     const { fields } = value;
                     const collection = {
@@ -383,20 +411,26 @@ export class MerchCardCollection extends LitElement {
                         icon: fields.icon,
                         iconLight: fields.iconLight,
                         queryLabel: fields.queryLabel,
-                        cards: fields.cards ? fields.cards.map(cardId => overrideMap[cardId] || cardId) : [],
-                        collections: []
+                        cards: fields.cards
+                            ? fields.cards.map(
+                                  (cardId) => overrideMap[cardId] || cardId,
+                              )
+                            : [],
+                        collections: [],
                     };
                     if (fields.defaultchild) {
-                        collection.defaultchild = overrideMap[fields.defaultchild] || fields.defaultchild;
+                        collection.defaultchild =
+                            overrideMap[fields.defaultchild] ||
+                            fields.defaultchild;
                     }
                     root.push(collection);
-                    traverseReferencesTree(collection.collections, reference.referencesTree);
+                    traverseReferencesTree(
+                        collection.collections,
+                        reference.referencesTree,
+                    );
                 }
             }
-            traverseReferencesTree(
-                payload.hierarchy,
-                fragment.referencesTree,
-            );
+            traverseReferencesTree(payload.hierarchy, fragment.referencesTree);
             if (payload.hierarchy.length === 0) {
                 self.filtered = 'all';
             }
@@ -413,27 +447,36 @@ export class MerchCardCollection extends LitElement {
             this.data = normalizePayload(event.detail, this.#overrideMap);
             const { cards, hierarchy } = this.data;
 
-            const rootDefaultChild = hierarchy.length === 0 && event.detail.fields?.defaultchild
-                ? (this.#overrideMap[event.detail.fields.defaultchild] || event.detail.fields.defaultchild)
-                : null;
+            const rootDefaultChild =
+                hierarchy.length === 0 && event.detail.fields?.defaultchild
+                    ? this.#overrideMap[event.detail.fields.defaultchild] ||
+                      event.detail.fields.defaultchild
+                    : null;
 
             aemFragment.cache.add(...cards);
             const checkDefaultChild = (collections, fragmentId) => {
                 for (const collection of collections) {
                     if (collection.defaultchild === fragmentId) return true;
-                    if (collection.collections && checkDefaultChild(collection.collections, fragmentId)) return true;
+                    if (
+                        collection.collections &&
+                        checkDefaultChild(collection.collections, fragmentId)
+                    )
+                        return true;
                 }
                 return false;
             };
 
             for (const fragment of cards) {
                 const merchCard = document.createElement('merch-card');
-                const fragmentId = this.#overrideMap[fragment.id] || fragment.id;
+                const fragmentId =
+                    this.#overrideMap[fragment.id] || fragment.id;
                 merchCard.setAttribute('consonant', '');
                 merchCard.setAttribute('style', '');
 
                 // Check if this variant supports default child through mapping
-                const variantMapping = getFragmentMapping(fragment.fields.variant);
+                const variantMapping = getFragmentMapping(
+                    fragment.fields.variant,
+                );
                 if (variantMapping?.supportsDefaultChild) {
                     const isDefault = rootDefaultChild
                         ? fragmentId === rootDefaultChild
@@ -448,8 +491,12 @@ export class MerchCardCollection extends LitElement {
                     for (const node of level) {
                         const index = node.cards.indexOf(fragmentId);
                         if (index === -1) continue;
-                        const name = node.queryLabel ?? node?.label?.toLowerCase() ?? '';
-                        merchCard.filters[name] = { order: index + 1, size: fragment.fields.size };
+                        const name =
+                            node.queryLabel ?? node?.label?.toLowerCase() ?? '';
+                        merchCard.filters[name] = {
+                            order: index + 1,
+                            size: fragment.fields.size,
+                        };
                         populateFilters(node.collections);
                     }
                 }
@@ -474,9 +521,18 @@ export class MerchCardCollection extends LitElement {
             let nmbOfColumns = '';
             let variant = normalizeVariant(cards[0]?.fields?.variant);
             this.variant = variant;
-            if (variant === 'plans' && cards.length === 3 && !cards.some((card) => card.fields?.size?.includes('wide'))) nmbOfColumns = 'ThreeColumns';
+            if (
+                variant === 'plans' &&
+                cards.length === 3 &&
+                !cards.some((card) => card.fields?.size?.includes('wide'))
+            )
+                nmbOfColumns = 'ThreeColumns';
             if (variant) {
-                this.classList.add('merch-card-collection', variant, ...(VARIANT_CLASSES[`${variant}${nmbOfColumns}`] || []));
+                this.classList.add(
+                    'merch-card-collection',
+                    variant,
+                    ...(VARIANT_CLASSES[`${variant}${nmbOfColumns}`] || []),
+                );
             }
             this.displayResult = true;
             this.hydrating = false;
@@ -489,7 +545,7 @@ export class MerchCardCollection extends LitElement {
     get footer() {
         if (this.filtered) return;
         return html`<div id="footer">
-            <sp-theme  color="light" scale="medium">
+            <sp-theme color="light" scale="medium">
                 ${this.showMoreButton}
             </sp-theme>
         </div>`;
@@ -597,358 +653,407 @@ const RESULT_TEXT_SLOT_NAMES = {
         'searchResultMobileText',
         'searchResultsMobileText',
     ],
-  };
+};
 
-  const updatePlaceholders = (el, key, value) => {
+const updatePlaceholders = (el, key, value) => {
     const placeholders = el.querySelectorAll(`[data-placeholder="${key}"]`);
-    placeholders.forEach(placeholder => {
+    placeholders.forEach((placeholder) => {
         placeholder.innerText = value || '';
     });
-  };
+};
 
-  const defaultVisibility = {
+const defaultVisibility = {
     search: ['mobile', 'tablet'],
     filter: ['mobile', 'tablet'],
     sort: true,
     result: true,
     custom: false,
-  }
+};
 
-  const SEARCH_SIZE = {
-      catalog: 'l'
-  };
+const SEARCH_SIZE = {
+    catalog: 'l',
+};
 
-  export default class MerchCardCollectionHeader extends LitElement {
-      constructor() {
-          super();
-          this.collection = null;
-          this.#visibility = {
-              search: false,
-              filter: false,
-              sort: false,
-              result: false,
-              custom: false
-          }
-          this.updateLiterals = this.updateLiterals.bind(this);
-          this.handleSidenavAttached = this.handleSidenavAttached.bind(this);
-      }
+export default class MerchCardCollectionHeader extends LitElement {
+    constructor() {
+        super();
+        this.collection = null;
+        this.#visibility = {
+            search: false,
+            filter: false,
+            sort: false,
+            result: false,
+            custom: false,
+        };
+        this.updateLiterals = this.updateLiterals.bind(this);
+        this.handleSidenavAttached = this.handleSidenavAttached.bind(this);
+    }
 
-      #visibility;
-      #merchCardElement;
+    #visibility;
+    #merchCardElement;
 
-      connectedCallback() {
-          super.connectedCallback();
-          this.collection?.addEventListener(EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED, this.updateLiterals);
-          this.collection?.addEventListener(EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED, this.handleSidenavAttached);
-          this.#merchCardElement = customElements.get('merch-card');
-      }
+    connectedCallback() {
+        super.connectedCallback();
+        this.collection?.addEventListener(
+            EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+            this.updateLiterals,
+        );
+        this.collection?.addEventListener(
+            EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+            this.handleSidenavAttached,
+        );
+        this.#merchCardElement = customElements.get('merch-card');
+    }
 
-      disconnectedCallback() {
-          super.disconnectedCallback();
-          this.collection?.removeEventListener(EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED, this.updateLiterals);
-          this.collection?.removeEventListener(EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED, this.handleSidenavAttached);
-      }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.collection?.removeEventListener(
+            EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+            this.updateLiterals,
+        );
+        this.collection?.removeEventListener(
+            EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
+            this.handleSidenavAttached,
+        );
+    }
 
-      willUpdate() {
-          this.#visibility.search = this.getVisibility('search');
-          this.#visibility.filter = this.getVisibility('filter');
-          this.#visibility.sort = this.getVisibility('sort');
-          this.#visibility.result = this.getVisibility('result');
-          this.#visibility.custom = this.getVisibility('custom');
-      }
+    willUpdate() {
+        this.#visibility.search = this.getVisibility('search');
+        this.#visibility.filter = this.getVisibility('filter');
+        this.#visibility.sort = this.getVisibility('sort');
+        this.#visibility.result = this.getVisibility('result');
+        this.#visibility.custom = this.getVisibility('custom');
+    }
 
-      parseVisibilityOptions(visibility, type) {
-          if (!visibility) return null;
-          if (!Object.hasOwn(visibility, type)) return null;
-          const typeVisibility = visibility[type];
-          if (typeVisibility === false) return false;
-          if (typeVisibility === true) return true;
-          return typeVisibility.includes(this.currentMedia);
-      }
+    parseVisibilityOptions(visibility, type) {
+        if (!visibility) return null;
+        if (!Object.hasOwn(visibility, type)) return null;
+        const typeVisibility = visibility[type];
+        if (typeVisibility === false) return false;
+        if (typeVisibility === true) return true;
+        return typeVisibility.includes(this.currentMedia);
+    }
 
-      getVisibility(type) {
-          const visibility = this.#merchCardElement?.getCollectionOptions(this.collection?.variant)?.headerVisibility;
-          const typeVisibility = this.parseVisibilityOptions(visibility, type);
-          if (typeVisibility !== null) return typeVisibility;
-          return this.parseVisibilityOptions(defaultVisibility, type);
-      }
+    getVisibility(type) {
+        const visibility = this.#merchCardElement?.getCollectionOptions(
+            this.collection?.variant,
+        )?.headerVisibility;
+        const typeVisibility = this.parseVisibilityOptions(visibility, type);
+        if (typeVisibility !== null) return typeVisibility;
+        return this.parseVisibilityOptions(defaultVisibility, type);
+    }
 
-      get sidenav() {
-          return this.collection?.sidenav;
-      }
+    get sidenav() {
+        return this.collection?.sidenav;
+    }
 
-      get search() {
-          return this.collection?.search;
-      }
+    get search() {
+        return this.collection?.search;
+    }
 
-      get resultCount() {
-          return this.collection?.resultCount;
-      }
+    get resultCount() {
+        return this.collection?.resultCount;
+    }
 
-      get variant() {
-          return this.collection?.variant;
-      }
+    get variant() {
+        return this.collection?.variant;
+    }
 
-      tablet = new MatchMediaController(this, TABLET_UP);
-      desktop = new MatchMediaController(this, DESKTOP_UP);
+    tablet = new MatchMediaController(this, TABLET_UP);
+    desktop = new MatchMediaController(this, DESKTOP_UP);
 
-      get isMobile() {
-          return !this.isTablet && !this.isDesktop;
-      }
+    get isMobile() {
+        return !this.isTablet && !this.isDesktop;
+    }
 
-      get isTablet() {
-          return this.tablet.matches && !this.desktop.matches;
-      }
+    get isTablet() {
+        return this.tablet.matches && !this.desktop.matches;
+    }
 
-      get isDesktop() {
-          return this.desktop.matches;
-      }
+    get isDesktop() {
+        return this.desktop.matches;
+    }
 
-      get currentMedia() {
-          if (this.isDesktop) return 'desktop';
-          if (this.isTablet) return 'tablet';
-          return 'mobile';
-      }
+    get currentMedia() {
+        if (this.isDesktop) return 'desktop';
+        if (this.isTablet) return 'tablet';
+        return 'mobile';
+    }
 
-      get searchAction() {
-          if (!this.#visibility.search) return nothing;
-          const searchPlaceholder = getSlotText(this, 'searchText');
-          if (!searchPlaceholder) return nothing;
-          return html`
-              <merch-search deeplink="search" id="search">
-                  <sp-search
-                      id="search-bar"
-                      placeholder="${searchPlaceholder}"
-                      .size=${SEARCH_SIZE[this.variant]}
-                      aria-label="${searchPlaceholder}"
-                  ></sp-search>
-              </merch-search>
-          `;
-      }
+    get searchAction() {
+        if (!this.#visibility.search) return nothing;
+        const searchPlaceholder = getSlotText(this, 'searchText');
+        if (!searchPlaceholder) return nothing;
+        return html`
+            <merch-search deeplink="search" id="search">
+                <sp-search
+                    id="search-bar"
+                    placeholder="${searchPlaceholder}"
+                    .size=${SEARCH_SIZE[this.variant]}
+                    aria-label="${searchPlaceholder}"
+                ></sp-search>
+            </merch-search>
+        `;
+    }
 
-      get filterAction() {
-          if (!this.#visibility.filter) return nothing;
-          if (!this.sidenav) return nothing;
-          return html`
-              <sp-action-button
+    get filterAction() {
+        if (!this.#visibility.filter) return nothing;
+        if (!this.sidenav) return nothing;
+        return html`
+            <sp-action-button
                 id="filter"
                 variant="secondary"
                 treatment="outline"
                 @click="${this.openFilters}"
                 ><slot name="filtersText"></slot
-              ></sp-action-button>
-          `;
-      }
+            ></sp-action-button>
+        `;
+    }
 
-      get sortAction() {
-          if (!this.#visibility.sort) return nothing;
-          const sortText = getSlotText(this, 'sortText');
-          if (!sortText) return;
-          const popularityText = getSlotText(this, 'popularityText');
-          const alphabeticallyText = getSlotText(this, 'alphabeticallyText');
+    get sortAction() {
+        if (!this.#visibility.sort) return nothing;
+        const sortText = getSlotText(this, 'sortText');
+        if (!sortText) return;
+        const popularityText = getSlotText(this, 'popularityText');
+        const alphabeticallyText = getSlotText(this, 'alphabeticallyText');
 
-          if (!(popularityText && alphabeticallyText)) return;
-          const alphabetical = this.collection?.sort === SORT_ORDER.alphabetical;
+        if (!(popularityText && alphabeticallyText)) return;
+        const alphabetical = this.collection?.sort === SORT_ORDER.alphabetical;
 
-          return html`
-              <sp-action-menu
-                  id="sort"
-                  size="m"
-                  @change="${this.collection?.sortChanged}"
-                  selects="single"
-                  value="${alphabetical
-                      ? SORT_ORDER.alphabetical
-                      : SORT_ORDER.authored}"
-              >
-                  <span slot="label-only"
-                      >${sortText}:
-                      ${alphabetical ? alphabeticallyText : popularityText}</span
-                  >
-                  <sp-menu-item value="${SORT_ORDER.authored}"
-                      >${popularityText}</sp-menu-item
-                  >
-                  <sp-menu-item value="${SORT_ORDER.alphabetical}"
-                      >${alphabeticallyText}</sp-menu-item
-                  >
-              </sp-action-menu>
-          `;
-      }
+        return html`
+            <sp-action-menu
+                id="sort"
+                size="m"
+                @change="${this.collection?.sortChanged}"
+                selects="single"
+                value="${alphabetical
+                    ? SORT_ORDER.alphabetical
+                    : SORT_ORDER.authored}"
+            >
+                <span slot="label-only"
+                    >${sortText}:
+                    ${alphabetical ? alphabeticallyText : popularityText}</span
+                >
+                <sp-menu-item value="${SORT_ORDER.authored}"
+                    >${popularityText}</sp-menu-item
+                >
+                <sp-menu-item value="${SORT_ORDER.alphabetical}"
+                    >${alphabeticallyText}</sp-menu-item
+                >
+            </sp-action-menu>
+        `;
+    }
 
-      get resultSlotName() {
-          const slotType = `${this.search ? 'search' : 'filters'}${this.isMobile || this.isTablet ? 'Mobile' : ''}`;
-          return RESULT_TEXT_SLOT_NAMES[slotType][Math.min(this.resultCount, 2)];
-      }
+    get resultSlotName() {
+        const slotType = `${this.search ? 'search' : 'filters'}${this.isMobile || this.isTablet ? 'Mobile' : ''}`;
+        return RESULT_TEXT_SLOT_NAMES[slotType][Math.min(this.resultCount, 2)];
+    }
 
-      get resultLabel() {
-          if (!this.#visibility.result) return nothing;
-          if (!this.sidenav) return nothing;
-          const type = this.search ? 'search' : 'filter';
-          const quantity = !this.resultCount ? 'none' : this.resultCount === 1 ? 'single' : 'multiple';
-          return html`
-            <div id="result" aria-live="polite" type=${type} quantity=${quantity}>
-                <slot name="${this.resultSlotName}"></slot>
-            </div>`
-      }
+    get resultLabel() {
+        if (!this.#visibility.result) return nothing;
+        if (!this.sidenav) return nothing;
+        const type = this.search ? 'search' : 'filter';
+        const quantity = !this.resultCount
+            ? 'none'
+            : this.resultCount === 1
+              ? 'single'
+              : 'multiple';
+        return html` <div
+            id="result"
+            aria-live="polite"
+            type=${type}
+            quantity=${quantity}
+        >
+            <slot name="${this.resultSlotName}"></slot>
+        </div>`;
+    }
 
-      get customArea() {
-          if (!this.#visibility.custom) return nothing;
-          const customHeaderAreaGetter = this.#merchCardElement?.getCollectionOptions(this.collection?.variant)?.customHeaderArea;
-          if (!customHeaderAreaGetter) return nothing;
-          const customHeaderArea = customHeaderAreaGetter(this.collection);
-          if (!customHeaderArea || customHeaderArea === nothing) return nothing;
-          return html`<div id="custom" role="heading" aria-level="2">${customHeaderArea}</div>`;
-      }
+    get customArea() {
+        if (!this.#visibility.custom) return nothing;
+        const customHeaderAreaGetter =
+            this.#merchCardElement?.getCollectionOptions(
+                this.collection?.variant,
+            )?.customHeaderArea;
+        if (!customHeaderAreaGetter) return nothing;
+        const customHeaderArea = customHeaderAreaGetter(this.collection);
+        if (!customHeaderArea || customHeaderArea === nothing) return nothing;
+        return html`<div id="custom" role="heading" aria-level="2">
+            ${customHeaderArea}
+        </div>`;
+    }
 
-      // #region Handlers
+    // #region Handlers
 
-      openFilters(event) {
-          this.sidenav.showModal(event);
-      }
+    openFilters(event) {
+        this.sidenav.showModal(event);
+    }
 
-      updateLiterals(event) {
-          Object.keys(event.detail).forEach(key => {
-              updatePlaceholders(this, key, event.detail[key]);
-          });
-          this.requestUpdate();
-      }
+    updateLiterals(event) {
+        Object.keys(event.detail).forEach((key) => {
+            updatePlaceholders(this, key, event.detail[key]);
+        });
+        this.requestUpdate();
+    }
 
-      handleSidenavAttached() {
-          this.requestUpdate();
-      }
+    handleSidenavAttached() {
+        this.requestUpdate();
+    }
 
-      render() {
-          return html`
+    render() {
+        return html`
             <sp-theme color="light" scale="medium">
-              <div id="header">${this.searchAction}${this.filterAction}${this.sortAction}${this.resultLabel}${this.customArea}</div>
+                <div id="header">
+                    ${this.searchAction}${this.filterAction}${this
+                        .sortAction}${this.resultLabel}${this.customArea}
+                </div>
             </sp-theme>
-          `
-      }
+        `;
+    }
 
-      static styles = css`
-          :host {
-              --merch-card-collection-header-max-width: var(--merch-card-collection-card-width);
-              --merch-card-collection-header-margin-bottom: 32px;
-              --merch-card-collection-header-column-gap: 8px;
-              --merch-card-collection-header-row-gap: 16px;
-              --merch-card-collection-header-columns: auto auto;
-              --merch-card-collection-header-areas: "search search"
-                                                    "filter sort"
-                                                    "result result";
-              --merch-card-collection-header-search-max-width: unset;
-              --merch-card-collection-header-search-min-height: 44px;
-              --merch-card-collection-header-filter-height: 44px;
-              --merch-card-collection-header-filter-font-size: 16px;
-              --merch-card-collection-header-filter-padding: 15px;
-              --merch-card-collection-header-sort-height: var(--merch-card-collection-header-filter-height);
-              --merch-card-collection-header-sort-font-size: var(--merch-card-collection-header-filter-font-size);
-              --merch-card-collection-header-sort-padding: var(--merch-card-collection-header-filter-padding);
-              --merch-card-collection-header-result-font-size: 14px;
-          }
+    static styles = css`
+        :host {
+            --merch-card-collection-header-max-width: var(
+                --merch-card-collection-card-width
+            );
+            --merch-card-collection-header-margin-bottom: 32px;
+            --merch-card-collection-header-column-gap: 8px;
+            --merch-card-collection-header-row-gap: 16px;
+            --merch-card-collection-header-columns: auto auto;
+            --merch-card-collection-header-areas: 'search search' 'filter sort'
+                'result result';
+            --merch-card-collection-header-search-max-width: unset;
+            --merch-card-collection-header-search-min-height: 44px;
+            --merch-card-collection-header-filter-height: 44px;
+            --merch-card-collection-header-filter-font-size: 16px;
+            --merch-card-collection-header-filter-padding: 15px;
+            --merch-card-collection-header-sort-height: var(
+                --merch-card-collection-header-filter-height
+            );
+            --merch-card-collection-header-sort-font-size: var(
+                --merch-card-collection-header-filter-font-size
+            );
+            --merch-card-collection-header-sort-padding: var(
+                --merch-card-collection-header-filter-padding
+            );
+            --merch-card-collection-header-result-font-size: 14px;
+        }
 
-          sp-theme {
-              font-size: inherit;
-          }
+        sp-theme {
+            font-size: inherit;
+        }
 
-          #header {
-              display: grid;
-              column-gap: var(--merch-card-collection-header-column-gap);
-              row-gap: var(--merch-card-collection-header-row-gap);
-              align-items: center;
-              grid-template-columns: var(--merch-card-collection-header-columns);
-              grid-template-areas: var(--merch-card-collection-header-areas);
-              margin-bottom: var(--merch-card-collection-header-margin-bottom);
-              max-width: var(--merch-card-collection-header-max-width);
-          }
+        #header {
+            display: grid;
+            column-gap: var(--merch-card-collection-header-column-gap);
+            row-gap: var(--merch-card-collection-header-row-gap);
+            align-items: center;
+            grid-template-columns: var(--merch-card-collection-header-columns);
+            grid-template-areas: var(--merch-card-collection-header-areas);
+            margin-bottom: var(--merch-card-collection-header-margin-bottom);
+            max-width: var(--merch-card-collection-header-max-width);
+        }
 
-          #header:empty {
-              margin-bottom: 0;
-          }
+        #header:empty {
+            margin-bottom: 0;
+        }
 
-          #search {
-              grid-area: search;
-          }
+        #search {
+            grid-area: search;
+        }
 
-          #search sp-search {
-              max-width: var(--merch-card-collection-header-search-max-width);
-              width: 100%;
-              min-height: var(--merch-card-collection-header-search-min-height);
-          }
+        #search sp-search {
+            max-width: var(--merch-card-collection-header-search-max-width);
+            width: 100%;
+            min-height: var(--merch-card-collection-header-search-min-height);
+        }
 
-          #filter {
-              grid-area: filter;
-              --mod-actionbutton-edge-to-text: var(--merch-card-collection-header-filter-padding);
-              --mod-actionbutton-height: var(--merch-card-collection-header-filter-height);
-          }
+        #filter {
+            grid-area: filter;
+            --mod-actionbutton-edge-to-text: var(
+                --merch-card-collection-header-filter-padding
+            );
+            --mod-actionbutton-height: var(
+                --merch-card-collection-header-filter-height
+            );
+        }
 
-          #filter slot[name="filtersText"] {
-              font-size: var(--merch-card-collection-header-filter-font-size);
-          }
+        #filter slot[name='filtersText'] {
+            font-size: var(--merch-card-collection-header-filter-font-size);
+        }
 
-          #sort {
-              grid-area: sort;
-              --mod-actionbutton-edge-to-text: var(--merch-card-collection-header-sort-padding);
-              --mod-actionbutton-height: var(--merch-card-collection-header-sort-height);
-          }
+        #sort {
+            grid-area: sort;
+            --mod-actionbutton-edge-to-text: var(
+                --merch-card-collection-header-sort-padding
+            );
+            --mod-actionbutton-height: var(
+                --merch-card-collection-header-sort-height
+            );
+        }
 
-          #sort [slot="label-only"] {
-              font-size: var(--merch-card-collection-header-sort-font-size);
-          }
+        #sort [slot='label-only'] {
+            font-size: var(--merch-card-collection-header-sort-font-size);
+        }
 
-          #result {
-              grid-area: result;
-              font-size: var(--merch-card-collection-header-result-font-size);
-          }
+        #result {
+            grid-area: result;
+            font-size: var(--merch-card-collection-header-result-font-size);
+        }
 
-          #result[type="search"][quantity="none"] {
-              font-size: inherit;
-          }
+        #result[type='search'][quantity='none'] {
+            font-size: inherit;
+        }
 
-          #custom {
-              grid-area: custom;
-          }
+        #custom {
+            grid-area: custom;
+        }
 
-          /* tablets */
-          @media screen and ${unsafeCSS(TABLET_UP)} {
-              :host {
-                  --merch-card-collection-header-max-width: auto;
-                  --merch-card-collection-header-columns: 1fr fit-content(100%) fit-content(100%);
-                  --merch-card-collection-header-areas: "search filter sort"
-                                                        "result result result";
-              }
-          }
+        /* tablets */
+        @media screen and ${unsafeCSS(TABLET_UP)} {
+            :host {
+                --merch-card-collection-header-max-width: auto;
+                --merch-card-collection-header-columns: 1fr fit-content(100%)
+                    fit-content(100%);
+                --merch-card-collection-header-areas: 'search filter sort'
+                    'result result result';
+            }
+        }
 
-          /* Laptop */
-          @media screen and ${unsafeCSS(DESKTOP_UP)} {
-              :host {
-                  --merch-card-collection-header-columns: 1fr fit-content(100%);
-                  --merch-card-collection-header-areas: "result sort";
-                  --merch-card-collection-header-result-font-size: inherit;
-              }
-          }
-      `;
+        /* Laptop */
+        @media screen and ${unsafeCSS(DESKTOP_UP)} {
+            :host {
+                --merch-card-collection-header-columns: 1fr fit-content(100%);
+                --merch-card-collection-header-areas: 'result sort';
+                --merch-card-collection-header-result-font-size: inherit;
+            }
+        }
+    `;
 
-      get placeholderKeys() {
-          return [
-              'searchText',
-              'filtersText',
-              'sortText',
-              'popularityText',
-              'alphabeticallyText',
-              'noResultText',
-              'resultText',
-              'resultsText',
-              'resultMobileText',
-              'resultsMobileText',
-              'noSearchResultsText',
-              'searchResultText',
-              'searchResultsText',
-              'noSearchResultsMobileText',
-              'searchResultMobileText',
-              'searchResultsMobileText',
-          ];
-      }
-  }
+    get placeholderKeys() {
+        return [
+            'searchText',
+            'filtersText',
+            'sortText',
+            'popularityText',
+            'alphabeticallyText',
+            'noResultText',
+            'resultText',
+            'resultsText',
+            'resultMobileText',
+            'resultsMobileText',
+            'noSearchResultsText',
+            'searchResultText',
+            'searchResultsText',
+            'noSearchResultsMobileText',
+            'searchResultMobileText',
+            'searchResultsMobileText',
+        ];
+    }
+}
 
-  customElements.define('merch-card-collection-header', MerchCardCollectionHeader);
+customElements.define(
+    'merch-card-collection-header',
+    MerchCardCollectionHeader,
+);
 
 // #endregion

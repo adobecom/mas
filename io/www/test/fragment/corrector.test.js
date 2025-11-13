@@ -102,11 +102,26 @@ describe('corrector', () => {
             const surfaceTestCases = [
                 {
                     name: 'should not modify ctas for non-adobe-home surface',
-                    surface: 'ccd',
+                    surface: 'acom',
                 },
                 {
                     name: 'should not modify ctas when surface is missing',
                     surface: undefined,
+                },
+            ];
+
+            const surfacesWithFixTestCases = [
+                {
+                    name: 'should fix ctas for adobe-home surface',
+                    surface: 'adobe-home',
+                },
+                {
+                    name: 'should fix ctas for sandbox surface',
+                    surface: 'sandbox',
+                },
+                {
+                    name: 'should fix ctas for ccd surface',
+                    surface: 'ccd',
                 },
             ];
 
@@ -128,6 +143,28 @@ describe('corrector', () => {
                     await transformer.process(context);
 
                     expect(context.body.fields.ctas.value).to.equal(originalValue);
+                });
+            });
+
+            surfacesWithFixTestCases.forEach(({ name, surface }) => {
+                it(name, async () => {
+                    const inputValue = '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>';
+                    const expectedValue = '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>';
+                    const context = {
+                        surface,
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                ctas: {
+                                    value: inputValue,
+                                },
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.ctas.value).to.equal(expectedValue);
                 });
             });
         });
@@ -232,8 +269,19 @@ describe('corrector', () => {
                     expectedCtas: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
                 },
                 {
-                    name: 'should only remove empty priceLiterals for non-adobe-home surface',
+                    name: 'should remove empty priceLiterals and fix data-extra-options for ccd surface',
                     surface: 'ccd',
+                    priceLiterals: {
+                        validKey: 'valid value',
+                        emptyKey: 'price-literal-something',
+                    },
+                    ctasInput: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    expectedPriceLiterals: { validKey: 'valid value' },
+                    expectedCtas: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+                },
+                {
+                    name: 'should only remove empty priceLiterals for acom surface',
+                    surface: 'acom',
                     priceLiterals: {
                         validKey: 'valid value',
                         emptyKey: 'price-literal-something',

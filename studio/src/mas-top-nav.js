@@ -1,12 +1,18 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_PUBLISHED, WCS_LANDSCAPE_DRAFT } from './constants.js';
-import { LitElement, html, css } from 'lit';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_PUBLISHED, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
+import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
 import Store from './store.js';
 import { getService } from './utils.js';
+import StoreController from './reactivity/store-controller.js';
 import './mas-nav-folder-picker.js';
 import './filters/mas-nav-locale-picker.js';
 
 class MasTopNav extends LitElement {
+    page = new StoreController(this, Store.page);
+
+    createRenderRoot() {
+        return this;
+    }
     async profileBuilder() {
         try {
             const accessToken = window.adobeIMS.getAccessToken();
@@ -89,174 +95,8 @@ class MasTopNav extends LitElement {
         return this.showPickers;
     }
 
-    static get styles() {
-        return css`
-            :host {
-                width: 100%;
-                height: 56px;
-                background-color: var(--spectrum-gray-50, #ffffff);
-                border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
-            }
-
-            nav {
-                display: flex;
-                padding-block: 12px;
-                padding-inline: 30px;
-                gap: 20px;
-                align-items: center;
-                height: 100%;
-                box-sizing: border-box;
-            }
-
-            #brand {
-                display: flex;
-                align-items: center;
-                width: max-content;
-                gap: 12px;
-                text-decoration: none;
-            }
-
-            #logo {
-                display: flex;
-                width: 32px;
-                height: 32px;
-            }
-
-            #mas-studio {
-                font-size: 18px;
-                font-weight: 800;
-                line-height: 22px;
-                color: var(--spectrum-gray-800, #292929);
-                display: flex;
-                align-self: center;
-                font-family: 'Adobe Clean', sans-serif;
-            }
-
-            a {
-                cursor: pointer;
-            }
-
-            .spacer {
-                flex: 1;
-            }
-
-            .right-section {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            }
-
-            .icon-button {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 32px;
-                height: 32px;
-                background: transparent;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                padding: 0;
-            }
-
-            .icon-button:hover {
-                background-color: var(--spectrum-gray-100, #e1e1e1);
-            }
-
-            .icon-button sp-icon-help-circle,
-            .icon-button sp-icon-bell {
-                color: var(--spectrum-gray-800, #292929);
-            }
-
-            .divider {
-                width: 1px;
-                height: 32px;
-                background-color: var(--spectrum-gray-100, #e1e1e1);
-                border-radius: 2px;
-            }
-
-            .universal-elements {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .profile-button {
-                padding: 0;
-                cursor: pointer;
-                border: 0;
-                background: 0;
-                position: relative;
-                border-radius: 8px;
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .profile-button:hover {
-                background-color: var(--spectrum-gray-100, #e1e1e1);
-            }
-
-            .profile-button img {
-                border-radius: 12px;
-                width: 24px;
-                height: 24px;
-            }
-
-            .profile-body {
-                display: none;
-                margin: 0;
-                position: absolute;
-                min-width: 280px;
-                right: 30px;
-                top: 45px;
-                background: white;
-                padding: 20px 0;
-                border-radius: 10px;
-                box-shadow: 5px 5px 5px #cfcfcf;
-                z-index: 99;
-            }
-
-            .profile-body.show {
-                display: block;
-            }
-
-            .account-menu-header {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                padding: 0 20px 20px;
-            }
-
-            .account-info h2 {
-                margin: 0.5rem 0;
-            }
-
-            .account-info p {
-                margin: 0 0 0.5rem;
-                font-size: 14px;
-            }
-
-            .profile-actions {
-                list-style: none;
-            }
-
-            .account-menu hr {
-                margin: 0 20px 10px;
-            }
-
-            .account-menu-item {
-                font-size: 16px;
-                padding: 5px 20px;
-            }
-
-            .account-menu-item:hover {
-                background-color: var(--spectrum-global-color-gray-100);
-                color: var(--spectrum-global-color-gray-800);
-            }
-        `;
+    get isFragmentEditorPage() {
+        return Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
 
     get isDraftLandscape() {
@@ -293,8 +133,8 @@ class MasTopNav extends LitElement {
                 <div class="right-section">
                     ${this.shouldShowPickers
                         ? html`
-                              <mas-nav-folder-picker></mas-nav-folder-picker>
-                              <mas-nav-locale-picker></mas-nav-locale-picker>
+                              <mas-nav-folder-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-folder-picker>
+                              <mas-nav-locale-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-locale-picker>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

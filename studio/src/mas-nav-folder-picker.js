@@ -3,6 +3,10 @@ import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 
 export class MasNavFolderPicker extends LitElement {
+    static properties = {
+        disabled: { type: Boolean },
+    };
+
     static styles = css`
         :host {
             --mod-actionbutton-min-width: auto;
@@ -27,6 +31,32 @@ export class MasNavFolderPicker extends LitElement {
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        :host([disabled]) sp-action-menu {
+            cursor: not-allowed;
+            pointer-events: none;
+            opacity: 1 !important;
+            filter: none !important;
+            color: var(--spectrum-gray-900, #1e1e1e);
+        }
+
+        :host([disabled]) sp-action-menu [slot='icon'] {
+            color: var(--spectrum-gray-900, #1e1e1e) !important;
+            opacity: 1 !important;
+        }
+
+        :host([disabled]) .folder-label {
+            color: var(--spectrum-gray-900, #1e1e1e) !important;
+        }
+
+        :host([disabled]) {
+            --mod-actionbutton-content-color-disabled: var(--spectrum-gray-900, #1e1e1e);
+            --spectrum-actionbutton-content-color-disabled: var(--spectrum-gray-900, #1e1e1e);
+        }
+
+        :host([disabled]) sp-icon-chevron-down {
+            color: var(--spectrum-gray-900, #1e1e1e) !important;
         }
 
         .icon {
@@ -77,7 +107,7 @@ export class MasNavFolderPicker extends LitElement {
 
         return html`
             <div class="folder-picker-wrapper">
-                <sp-action-menu size="m" value=${this.search.value.path}>
+                <sp-action-menu size="m" value=${this.search.value.path} ?disabled=${this.disabled}>
                     <sp-icon-chevron-down dir="ltr" class="chevron" slot="icon"></sp-icon-chevron-down>
                     <span slot="label" class="folder-label">
                         <svg

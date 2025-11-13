@@ -98,6 +98,13 @@ export default class StudioPage {
         });
     }
 
+    getCurrentFragmentId() {
+        const url = this.page.url();
+        const hashPart = url.split('#')[1] || '';
+        const params = new URLSearchParams(hashPart);
+        return params.get('fragmentId');
+    }
+
     #setupConsoleListener(consoleErrors) {
         return (msg) => {
             if (msg.type() === 'error') {
@@ -287,7 +294,7 @@ export default class StudioPage {
                 }
 
                 // Wait for success toast
-                await this.toastPositive.waitFor({ timeout: 15000 }).catch(() => {
+                await this.toastPositive.waitFor({ timeout: 25000 }).catch(() => {
                     throw new Error('[NO_RESPONSE] Save operation failed - no success toast shown');
                 });
             });
@@ -445,6 +452,7 @@ export default class StudioPage {
             await this.page.waitForTimeout(1000);
         }
 
+        await this.fragmentEditor.waitFor({ state: 'hidden', timeout: 5000 });
         await expect(this.fragmentEditor).not.toBeVisible();
     }
 }

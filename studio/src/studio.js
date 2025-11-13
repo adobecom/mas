@@ -57,8 +57,13 @@ class MasStudio extends LitElement {
         this.initMasJs();
         this.subscribeLandscapeObserver();
         this.subscribeConsumerObserver();
+        this.addEventListener('fragment-loaded', this.handleFragmentLoaded);
         initUsers();
     }
+
+    handleFragmentLoaded = () => {
+        this.requestUpdate();
+    };
 
     initMasJs() {
         customElements.whenDefined('mas-commerce-service').then(() => (this.masJsReady = true));
@@ -103,6 +108,7 @@ class MasStudio extends LitElement {
         this.#unsubscribeLocaleObserver();
         this.#unsubscribeLandscapeObserver();
         this.#unsubscribeConsumerObserver();
+        this.removeEventListener('fragment-loaded', this.handleFragmentLoaded);
     }
 
     createRenderRoot() {
@@ -142,6 +148,11 @@ class MasStudio extends LitElement {
 
     get breadcrumbs() {
         if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
+
+        const editor = document.querySelector('mas-fragment-editor');
+        if (!editor || !editor.fragment || editor.fragmentStore?.loading) {
+            return nothing;
+        }
 
         const handleBackToBreadcrumb = async () => {
             if (Store.editor.hasChanges) {

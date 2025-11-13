@@ -9,7 +9,7 @@ import { baseKeymap, toggleMark, deleteSelection } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
-import { EVENT_OST_SELECT } from '../constants.js';
+import { EVENT_OST_SELECT, CHECKOUT_CTA_TEXTS } from '../constants.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
 
@@ -1295,8 +1295,19 @@ class RteField extends LitElement {
             ...attributes,
         };
 
-        const content =
-            attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && attributes.text ? state.schema.text(attributes.text) : null;
+        let textContent = attributes.text;
+        if (attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && textContent) {
+            const templateMatch = textContent.match(/^\{\{(.+)\}\}$/);
+            if (templateMatch) {
+                const templateKey = templateMatch[1];
+                const resolvedText = CHECKOUT_CTA_TEXTS[templateKey];
+                if (resolvedText) {
+                    textContent = resolvedText;
+                }
+            }
+        }
+
+        const content = attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && textContent ? state.schema.text(textContent) : null;
 
         const node = nodeType.create(mergedAttributes, content, selection.node?.marks);
         const tr = selection.empty

@@ -4,6 +4,10 @@ import StoreController from '../reactivity/store-controller.js';
 import { LOCALES } from '../constants.js';
 
 export class MasNavLocalePicker extends LitElement {
+    static properties = {
+        disabled: { type: Boolean },
+    };
+
     static styles = css`
         :host {
             --mod-actionbutton-min-width: auto;
@@ -28,6 +32,32 @@ export class MasNavLocalePicker extends LitElement {
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        :host([disabled]) sp-action-menu {
+            cursor: not-allowed;
+            pointer-events: none;
+            opacity: 1 !important;
+            filter: none !important;
+            color: var(--spectrum-gray-900, #1e1e1e);
+        }
+
+        :host([disabled]) sp-action-menu [slot='icon'] {
+            color: var(--spectrum-gray-900, #1e1e1e) !important;
+            opacity: 1 !important;
+        }
+
+        :host([disabled]) [slot='label'].locale-label {
+            color: var(--spectrum-gray-900, #1e1e1e) !important;
+        }
+
+        :host([disabled]) {
+            --mod-actionbutton-content-color-disabled: var(--spectrum-gray-900, #1e1e1e);
+            --spectrum-actionbutton-content-color-disabled: var(--spectrum-gray-900, #1e1e1e);
+        }
+
+        :host([disabled]) sp-icon-chevron-down {
+            color: var(--spectrum-gray-900, #1e1e1e) !important;
         }
 
         sp-action-menu [slot='icon'] {
@@ -82,7 +112,7 @@ export class MasNavLocalePicker extends LitElement {
 
         return html`
             <div class="locale-picker-wrapper">
-                <sp-action-menu size="m" value=${currentLocale.code}>
+                <sp-action-menu size="m" value=${currentLocale.code} ?disabled=${this.disabled}>
                     <sp-icon-chevron-down dir="ltr" class="chevron" slot="icon"></sp-icon-chevron-down>
                     <span slot="label" class="locale-label">
                         <span class="flag">${currentLocale.flag}</span>

@@ -10,7 +10,7 @@ export default class EditorPage {
         this.variant = this.panel.locator('#card-variant');
         this.size = this.panel.locator('#card-size');
         this.title = this.panel.locator('rte-field#card-title');
-        this.subtitle = this.panel.locator('#card-subtitle');
+        this.subtitle = this.panel.locator('#card-subtitle >> input');
         this.badge = this.panel.locator('#card-badge');
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
@@ -24,7 +24,7 @@ export default class EditorPage {
         this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="accent"]');
         this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="secondary"]');
         this.promoText = this.panel.locator('#promo-text');
-        this.backgroundImage = this.panel.locator('#background-image');
+        this.backgroundImage = this.panel.locator('#background-image >> input');
         this.prices = this.panel.locator('sp-field-group#prices');
         this.footer = this.panel.locator('sp-field-group#ctas');
         this.CTA = this.panel.locator('sp-field-group#ctas a');
@@ -178,8 +178,12 @@ export default class EditorPage {
         return false;
     }
 
-    async navigateToFragmentEditor(fragmentId, baseURL, path = 'nala', miloLibs = '') {
-        const url = `${baseURL}/studio.html${miloLibs}#page=fragment-editor&fragmentId=${fragmentId}&path=${path}`;
+    async navigateToFragmentEditor(fragmentId, baseURL, path = 'nala', miloLibs = '', locale = '') {
+        let url = `${baseURL}/studio.html${miloLibs}#`;
+        if (locale) {
+            url += `locale=${locale}&`;
+        }
+        url += `page=fragment-editor&fragmentId=${fragmentId}&path=${path}`;
         await this.page.goto(url);
         await this.page.waitForLoadState('domcontentloaded');
         await this.panel.waitFor({ state: 'visible', timeout: 10000 });

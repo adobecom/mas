@@ -68,6 +68,7 @@ test.describe('M@S Studio Variation Workflow test suite', () => {
             } catch {
                 await studio.createVariationButton.click({ force: true });
             }
+            await studio.createVariationDialog.waitFor({ state: 'visible', timeout: 5000 });
             await expect(studio.createVariationDialog).toBeVisible();
         });
 

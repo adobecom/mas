@@ -684,3 +684,171 @@ sp-progress-circle.next-page {
     font-size: 14px;
     color: var(--spectrum-global-color-gray-700);
 }
+
+/* mas-top-nav styles */
+mas-top-nav {
+    width: 100%;
+    height: 56px;
+    background-color: var(--spectrum-gray-50, #ffffff);
+    border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
+    display: block;
+}
+
+mas-top-nav nav {
+    display: flex;
+    padding-block: 12px;
+    padding-inline: 30px;
+    gap: 20px;
+    align-items: center;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+mas-top-nav #brand {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    gap: 12px;
+    text-decoration: none;
+}
+
+mas-top-nav #logo {
+    display: flex;
+    width: 32px;
+    height: 32px;
+}
+
+mas-top-nav #mas-studio {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 22px;
+    color: var(--spectrum-gray-800, #292929);
+    display: flex;
+    align-self: center;
+    font-family: 'Adobe Clean', sans-serif;
+}
+
+mas-top-nav a {
+    cursor: pointer;
+}
+
+mas-top-nav .spacer {
+    flex: 1;
+}
+
+mas-top-nav .right-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+mas-top-nav .icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+}
+
+mas-top-nav .icon-button:hover {
+    background-color: var(--spectrum-gray-100, #e1e1e1);
+}
+
+mas-top-nav .icon-button sp-icon-help-circle,
+mas-top-nav .icon-button sp-icon-bell {
+    color: var(--spectrum-gray-800, #292929);
+}
+
+mas-top-nav .divider {
+    width: 1px;
+    height: 32px;
+    background-color: var(--spectrum-gray-100, #e1e1e1);
+    border-radius: 2px;
+}
+
+mas-top-nav .universal-elements {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+mas-top-nav .profile-button {
+    padding: 0;
+    cursor: pointer;
+    border: 0;
+    background: 0;
+    position: relative;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+mas-top-nav .profile-button:hover {
+    background-color: var(--spectrum-gray-100, #e1e1e1);
+}
+
+mas-top-nav .profile-button img {
+    border-radius: 12px;
+    width: 24px;
+    height: 24px;
+}
+
+mas-top-nav .profile-body {
+    display: none;
+    margin: 0;
+    position: absolute;
+    min-width: 280px;
+    right: 30px;
+    top: 45px;
+    background: white;
+    padding: 20px 0;
+    border-radius: 10px;
+    box-shadow: 5px 5px 5px #cfcfcf;
+    z-index: 99;
+}
+
+mas-top-nav .profile-body.show {
+    display: block;
+}
+
+mas-top-nav .account-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 0 20px 20px;
+}
+
+mas-top-nav .account-info h2 {
+    margin: 0.5rem 0;
+}
+
+mas-top-nav .account-info p {
+    margin: 0 0 0.5rem;
+    font-size: 14px;
+}
+
+mas-top-nav .profile-actions {
+    list-style: none;
+}
+
+mas-top-nav .account-menu hr {
+    margin: 0 20px 10px;
+}
+
+mas-top-nav .account-menu-item {
+    font-size: 16px;
+    padding: 5px 20px;
+}
+
+mas-top-nav .account-menu-item:hover {
+    background-color: var(--spectrum-global-color-gray-100);
+    color: var(--spectrum-global-color-gray-800);
+}

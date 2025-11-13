@@ -1,6 +1,7 @@
 import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
+import { Fragment } from '../aem/fragment.js';
 
 export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
@@ -12,7 +13,8 @@ export class PreviewFragmentStore extends FragmentStore {
      * @param {(value: any) => any} validator
      */
     constructor(initialValue, validator) {
-        super(initialValue, validator);
+        const fragmentInstance = initialValue instanceof Fragment ? initialValue : new Fragment(initialValue);
+        super(fragmentInstance, validator);
 
         // DEFENSE LAYER 2: Subscribe to placeholder changes for automatic retry
         // If placeholders load after this store is created, retry resolution
@@ -22,8 +24,8 @@ export class PreviewFragmentStore extends FragmentStore {
             }
         });
 
-        const hasEssentialFields = initialValue.fields.some((f) => f.name === 'variant' && f.values?.length > 0);
-        if (!initialValue.isVariation() || hasEssentialFields) {
+        const hasEssentialFields = fragmentInstance.fields.some((f) => f.name === 'variant' && f.values?.length > 0);
+        if (!fragmentInstance.isVariation() || hasEssentialFields) {
             this.resolveFragment();
         }
     }
@@ -81,11 +83,15 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
-        if (this.isCollection || !Store.placeholders.preview.value) return;
+        if (this.isCollection || !Store.placeholders.preview.value) {
+            this.refreshAemFragment();
+            return;
+        }
 
         const isVariation = this.value.isVariation && this.value.isVariation();
         const hasVariantField = this.value.fields?.some((f) => f.name === 'variant' && f.values?.length > 0);
         if (isVariation && !hasVariantField) {
+            this.refreshAemFragment();
             return;
         }
 
@@ -153,6 +159,17 @@ export class PreviewFragmentStore extends FragmentStore {
         aemFragments.forEach((aemFragment) => {
             aemFragment.refresh(false);
         });
+
+        const editor = document.querySelector('mas-fragment-editor');
+        if (editor) {
+            editor.dispatchEvent(
+                new CustomEvent('preview-updated', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { fragmentId: this.value.id },
+                }),
+            );
+        }
     }
 
     /**

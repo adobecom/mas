@@ -380,7 +380,9 @@ export default class MasFragmentEditor extends LitElement {
 
         // Background image
         const backgroundImage = getField('backgroundImage');
-        if (backgroundImage) attrs.backgroundImage = backgroundImage;
+        if (backgroundImage !== undefined) {
+            attrs.backgroundImage = backgroundImage || '';
+        }
 
         // Stock offers
         const stockOfferOsis = getAllFieldValues('stockOfferOsis');
@@ -1035,15 +1037,6 @@ export default class MasFragmentEditor extends LitElement {
 
             // Add preview data to cache
             AemFragment.cache.add(cacheData);
-
-            // Dispatch event to signal preview update is complete
-            this.dispatchEvent(
-                new CustomEvent('preview-updated', {
-                    bubbles: true,
-                    composed: true,
-                    detail: { fragmentId: this.fragment.id },
-                }),
-            );
         }
 
         return html`

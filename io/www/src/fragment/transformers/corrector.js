@@ -2,25 +2,52 @@ import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
 
-/**
- * Fixes data-extra-options attributes in all relevant fields for adobe-home surface
- * @param {object} context - Context object
- */
-function fixAdobeHomeDataExtraOptions(context) {
-    const ctasField = context.body?.fields?.['ctas'];
-    const ctasValue = typeof ctasField === 'string' ? ctasField : ctasField?.value;
+const VALID_SURFACES = ['adobe-home', 'sandbox', 'ccd'];
 
-    if (ctasValue) {
-        let fixedCtasValue = ctasValue.replace(/&quot;/g, '\"'); // normalize &quot; entities to proper format
-        fixedCtasValue = fixedCtasValue.replace(DATA_EXTRA_OPTIONS_REGEX, (match, jsonContent) => {
-            // Replace both \" and literal " with &quot; inside the JSON object
-            const fixedJson = jsonContent.replace(/\\"/g, '&quot;').replace(/"/g, '&quot;');
-            return `data-extra-options="${fixedJson}"`;
-        });
-        if (typeof ctasField === 'string') {
-            context.body.fields['ctas'] = fixedCtasValue;
-        } else {
-            context.body.fields['ctas'].value = fixedCtasValue;
+/**
+ * Checks if the corrector should be applied for the given surface
+ * @param {string} surface - Surface name
+ * @returns {boolean} - True if corrector should be applied
+ */
+export function shouldApplyCorrector(surface) {
+    if (!surface) return false;
+    const normalizedSurface = surface.toLowerCase();
+    return VALID_SURFACES.includes(normalizedSurface);
+}
+
+/**
+ * Fixes data-extra-options attributes in a field value
+ * @param {string} fieldValue - The field value to fix
+ * @returns {string} - The fixed field value
+ */
+export function fixDataExtraOptionsInValue(fieldValue) {
+    let fixedValue = fieldValue.replace(/&quot;/g, '\"'); // normalize &quot; entities to proper format
+    fixedValue = fixedValue.replace(DATA_EXTRA_OPTIONS_REGEX, (match, jsonContent) => {
+        // Replace both \" and literal " with &quot; inside the JSON object
+        const fixedJson = jsonContent.replace(/\\"/g, '&quot;').replace(/"/g, '&quot;');
+        return `data-extra-options="${fixedJson}"`;
+    });
+    return fixedValue;
+}
+
+/**
+ * Fixes data-extra-options attributes in all relevant fields
+ * @param {object} context - Context object with body.fields structure
+ */
+export function fixFieldsDataExtraOptions(context) {
+    const fieldsToFix = ['ctas', 'description', 'shortDescription'];
+
+    for (const fieldName of fieldsToFix) {
+        const field = context.body?.fields?.[fieldName];
+        const fieldValue = typeof field === 'string' ? field : field?.value;
+
+        if (fieldValue) {
+            const fixedValue = fixDataExtraOptionsInValue(fieldValue);
+            if (typeof field === 'string') {
+                context.body.fields[fieldName] = fixedValue;
+            } else {
+                context.body.fields[fieldName].value = fixedValue;
+            }
         }
     }
     logDebug(() => `Fixed data-extra-options attributes for adobe-home surface`, context);
@@ -39,8 +66,8 @@ async function corrector(context) {
             delete context.body.priceLiterals[key];
         }
     }
-    if (surface === 'adobe-home' || surface === 'sandbox' || surface === 'ccd') {
-        fixAdobeHomeDataExtraOptions(context);
+    if (shouldApplyCorrector(surface)) {
+        fixFieldsDataExtraOptions(context);
     }
     return context;
 }

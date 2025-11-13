@@ -72,7 +72,8 @@ function applyCollectionSettings(context) {
         'coll-result-count': '<span data-placeholder=\\"resultCount\\"></span>',
         'coll-search-term': '<span data-placeholder=\\"searchTerm\\"></span>',
     };
-    context.body.tagLabels =
+    context.body.settings = context.body.settings || {};
+    context.body.settings.tagLabels =
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 

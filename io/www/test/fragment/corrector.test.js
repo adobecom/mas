@@ -251,6 +251,217 @@ describe('corrector', () => {
                 });
             });
         });
+
+        describe('quote fixing with object description', () => {
+            const fixingTestCases = [
+                {
+                    name: 'should fix escaped quotes in description field for adobe-home surface',
+                    input: '<p>Text <a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Link</a></p>',
+                    expected: '<p>Text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                    mimeType: 'text/html',
+                },
+                {
+                    name: 'should fix literal quotes in description field for adobe-home surface',
+                    input: '<p>Text <a data-extra-options="{"actionId":"try"}">Link</a></p>',
+                    expected: '<p>Text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                    mimeType: 'text/html',
+                },
+                {
+                    name: 'should fix multiple data-extra-options in description field',
+                    input: '<p><a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Try</a><a data-extra-options="{\\\"actionId\\\":\\\"buy\\\"}">Buy</a></p>',
+                    expected:
+                        '<p><a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Try</a><a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">Buy</a></p>',
+                },
+            ];
+
+            fixingTestCases.forEach(({ name, input, expected, mimeType }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                description: {
+                                    value: input,
+                                    ...(mimeType && { mimeType }),
+                                },
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.description.value).to.equal(expected);
+                });
+            });
+        });
+
+        describe('quote fixing with string description', () => {
+            const stringDescriptionTestCases = [
+                {
+                    name: 'should fix escaped quotes when description is a string directly',
+                    input: '<p>Text <a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Link</a></p>',
+                    expected: '<p>Text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                },
+                {
+                    name: 'should fix literal quotes when description is a string directly',
+                    input: '<p>Text <a data-extra-options="{"actionId":"try"}">Link</a></p>',
+                    expected: '<p>Text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                },
+            ];
+
+            stringDescriptionTestCases.forEach(({ name, input, expected }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                description: input,
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.description).to.equal(expected);
+                });
+            });
+        });
+
+        describe('quote fixing with object shortDescription', () => {
+            const fixingTestCases = [
+                {
+                    name: 'should fix escaped quotes in shortDescription field for adobe-home surface',
+                    input: '<p>Short text <a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Link</a></p>',
+                    expected: '<p>Short text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                    mimeType: 'text/html',
+                },
+                {
+                    name: 'should fix literal quotes in shortDescription field for adobe-home surface',
+                    input: '<p>Short text <a data-extra-options="{"actionId":"try"}">Link</a></p>',
+                    expected: '<p>Short text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                    mimeType: 'text/html',
+                },
+                {
+                    name: 'should fix multiple data-extra-options in shortDescription field',
+                    input: '<p><a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Try</a><a data-extra-options="{\\\"actionId\\\":\\\"buy\\\"}">Buy</a></p>',
+                    expected:
+                        '<p><a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Try</a><a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">Buy</a></p>',
+                },
+            ];
+
+            fixingTestCases.forEach(({ name, input, expected, mimeType }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                shortDescription: {
+                                    value: input,
+                                    ...(mimeType && { mimeType }),
+                                },
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.shortDescription.value).to.equal(expected);
+                });
+            });
+        });
+
+        describe('quote fixing with string shortDescription', () => {
+            const stringShortDescriptionTestCases = [
+                {
+                    name: 'should fix escaped quotes when shortDescription is a string directly',
+                    input: '<p>Short text <a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Link</a></p>',
+                    expected: '<p>Short text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                },
+                {
+                    name: 'should fix literal quotes when shortDescription is a string directly',
+                    input: '<p>Short text <a data-extra-options="{"actionId":"try"}">Link</a></p>',
+                    expected: '<p>Short text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                },
+            ];
+
+            stringShortDescriptionTestCases.forEach(({ name, input, expected }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                shortDescription: input,
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.shortDescription).to.equal(expected);
+                });
+            });
+        });
+
+        describe('edge cases for description and shortDescription', () => {
+            const edgeCaseTests = [
+                {
+                    name: 'should handle missing description field',
+                    fields: {},
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle null description value',
+                    fields: { description: null },
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle undefined shortDescription value',
+                    fields: { shortDescription: undefined },
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle description without value property',
+                    fields: { description: { mimeType: 'text/html' } },
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle text without data-extra-options in description',
+                    fields: { description: { value: '<p>Plain text without links</p>' } },
+                    expectValue: '<p>Plain text without links</p>',
+                    fieldName: 'description',
+                },
+                {
+                    name: 'should handle text without data-extra-options in shortDescription',
+                    fields: { shortDescription: { value: '<p>Short plain text</p>' } },
+                    expectValue: '<p>Short plain text</p>',
+                    fieldName: 'shortDescription',
+                },
+            ];
+
+            edgeCaseTests.forEach(({ name, fields, expectUnchanged, expectValue, fieldName }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields,
+                        },
+                    };
+
+                    const result = await transformer.process(context);
+
+                    if (expectUnchanged) {
+                        expect(result).to.equal(context);
+                    } else if (expectValue && fieldName) {
+                        expect(context.body.fields[fieldName].value).to.equal(expectValue);
+                    }
+                });
+            });
+        });
     });
 
     describe('corrector transformer integration', () => {
@@ -314,6 +525,43 @@ describe('corrector', () => {
             });
         });
 
+        describe('combined fixing for all fields', () => {
+            it('should fix data-extra-options in ctas, description, and shortDescription fields', async () => {
+                const context = {
+                    surface: 'adobe-home',
+                    body: {
+                        priceLiterals: {},
+                        fields: {
+                            ctas: {
+                                value: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Try</a>',
+                                mimeType: 'text/html',
+                            },
+                            description: {
+                                value: '<p>Description <a data-extra-options="{\\\"actionId\\\":\\\"buy\\\"}">Buy</a></p>',
+                                mimeType: 'text/html',
+                            },
+                            shortDescription: {
+                                value: '<p>Short <a data-extra-options="{\\\"actionId\\\":\\\"upgrade\\\"}">Upgrade</a></p>',
+                                mimeType: 'text/html',
+                            },
+                        },
+                    },
+                };
+
+                await transformer.process(context);
+
+                expect(context.body.fields.ctas.value).to.equal(
+                    '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Try</a>',
+                );
+                expect(context.body.fields.description.value).to.equal(
+                    '<p>Description <a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">Buy</a></p>',
+                );
+                expect(context.body.fields.shortDescription.value).to.equal(
+                    '<p>Short <a data-extra-options="{&quot;actionId&quot;:&quot;upgrade&quot;}">Upgrade</a></p>',
+                );
+            });
+        });
+
         it('should handle real-world adobe-home fragment data', async () => {
             const context = {
                 surface: 'adobe-home',
@@ -325,7 +573,11 @@ describe('corrector', () => {
                             mimeType: 'text/html',
                         },
                         description: {
-                            value: '<p>3 Monate lang 50 % Rabatt auf Creative Cloud Pro, danach 9 Monate lang zum regulären Preis. Jahres-Abo erforderlich. <a class="primary-link" title="Siehe Bedingungen" href="https://www.adobe.com/de/offer-terms/cc-full-special-offer.html" target="_blank" rel="noopener" data-analytics-id="see-terms">Siehe Bedingungen</a></p>',
+                            value: '<p>3 Monate lang 50 % Rabatt auf Creative Cloud Pro, danach 9 Monate lang zum regulären Preis. Jahres-Abo erforderlich. <a class="primary-link" data-extra-options="{\\\"actionId\\\":\\\"terms\\\"}" title="Siehe Bedingungen" href="https://www.adobe.com/de/offer-terms/cc-full-special-offer.html" target="_blank" rel="noopener" data-analytics-id="see-terms">Siehe Bedingungen</a></p>',
+                            mimeType: 'text/html',
+                        },
+                        shortDescription: {
+                            value: '<p>Short description <a data-extra-options="{\\\"actionId\\\":\\\"info\\\"}">More info</a></p>',
                             mimeType: 'text/html',
                         },
                     },
@@ -341,7 +593,14 @@ describe('corrector', () => {
                 'data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;,&quot;ctx&quot;:&quot;if&quot;}"',
             );
 
+            expect(result.body.fields.description.value).to.include(
+                'data-extra-options="{&quot;actionId&quot;:&quot;terms&quot;}"',
+            );
             expect(result.body.fields.description.value).to.include('Siehe Bedingungen');
+
+            expect(result.body.fields.shortDescription.value).to.include(
+                'data-extra-options="{&quot;actionId&quot;:&quot;info&quot;}"',
+            );
         });
     });
 });

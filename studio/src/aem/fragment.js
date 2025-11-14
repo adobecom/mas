@@ -40,7 +40,7 @@ export class Fragment {
     }
 
     get statusVariant() {
-        return this.status.toLowerCase();
+        return this.status?.toLowerCase() || 'draft';
     }
 
     getTagTitle(id) {
@@ -89,6 +89,17 @@ export class Fragment {
         return this.fields.find((field) => field.name === 'originalId');
     }
 
+    isVariation() {
+        const originalIdField = this.getOriginalIdField();
+        const originalId = originalIdField?.values?.[0];
+        return !!originalId && originalId !== this.id;
+    }
+
+    getParentId() {
+        const originalIdField = this.getOriginalIdField();
+        return originalIdField?.values?.[0] || null;
+    }
+
     updateField(fieldName, value) {
         let change = false;
         this.fields
@@ -112,5 +123,46 @@ export class Fragment {
             });
         if (fieldName === 'tags') this.newTags = value;
         return change;
+    }
+
+    getEffectiveFieldValue(fieldName, parentFragment, index = 0) {
+        const ownValue = this.getFieldValue(fieldName, index);
+        if (ownValue !== undefined && ownValue !== null && ownValue !== '') {
+            return ownValue;
+        }
+        if (!parentFragment || !this.isVariation()) {
+            return ownValue;
+        }
+        return parentFragment.getFieldValue(fieldName, index);
+    }
+
+    getEffectiveFieldValues(fieldName, parentFragment) {
+        const ownField = this.getField(fieldName);
+        if (ownField && ownField.values && ownField.values.length > 0) {
+            return ownField.values;
+        }
+        if (!parentFragment || !this.isVariation()) {
+            return ownField?.values || [];
+        }
+        const parentField = parentFragment.getField(fieldName);
+        return parentField?.values || [];
+    }
+
+    getFieldState(fieldName, parentFragment) {
+        if (!this.isVariation() || !parentFragment) {
+            return 'no-parent';
+        }
+        const ownField = this.getField(fieldName);
+        if (!ownField || !ownField.values || ownField.values.length === 0) {
+            return 'inherited';
+        }
+        const parentField = parentFragment.getField(fieldName);
+        if (!parentField || !parentField.values) {
+            return 'overridden';
+        }
+        const areEqual =
+            ownField.values.length === parentField.values.length &&
+            ownField.values.every((v, i) => v === parentField.values[i]);
+        return areEqual ? 'same-as-parent' : 'overridden';
     }
 }

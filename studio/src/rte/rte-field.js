@@ -232,9 +232,9 @@ class RteField extends LitElement {
                 }
 
                 ${unsafeCSS(
-                    CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
+                    `${CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
                         .map(([mark]) => `span.${mark}`)
-                        .join(',\n') + ` { background-color: rgba(250, 50, 50, 0.1); }`,
+                        .join(',\n')} { background-color: rgba(250, 50, 50, 0.1); }`,
                 )}
 
                 #editor {
@@ -554,6 +554,12 @@ class RteField extends LitElement {
                 #stylingMenu .is-selected {
                     background-color: rgba(213, 213, 213);
                 }
+
+                .superscript-icon {
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -739,10 +745,10 @@ class RteField extends LitElement {
 
                             if (!triggerIcon) return false;
 
-                            let textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
-                            let textFromAriaLabel = triggerIcon.getAttribute('aria-label');
+                            const textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
+                            const textFromAriaLabel = triggerIcon.getAttribute('aria-label');
 
-                            let parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
+                            const parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
 
                             return {
                                 src: triggerIcon.getAttribute('src'),
@@ -1080,7 +1086,7 @@ class RteField extends LitElement {
     #handleTransaction(transaction) {
         try {
             const oldState = this.editorView.state;
-            let newState = oldState.apply(transaction);
+            const newState = oldState.apply(transaction);
             if (!newState) return;
 
             this.#updateSelection(newState);
@@ -1323,7 +1329,7 @@ class RteField extends LitElement {
             item.classList.remove('is-selected');
         });
 
-        let { state } = this.editorView;
+        const { state } = this.editorView;
         const {
             selection: { from, to },
         } = state;
@@ -1345,7 +1351,7 @@ class RteField extends LitElement {
     }
 
     handleStylingAction(stylingType) {
-        let { state, dispatch } = this.editorView;
+        const { state, dispatch } = this.editorView;
         const {
             selection: { from, to },
         } = state;
@@ -1372,7 +1378,7 @@ class RteField extends LitElement {
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
-            let { $from } = state.selection;
+            const { $from } = state.selection;
 
             let isInList = false;
             const listItemNode = this.#editorSchema.nodes.list_item;
@@ -1702,7 +1708,7 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
                 title="Superscript (Command+Shift+.)"
             >
-                <span slot="icon" style="font-family: sans-serif; font-size: 14px; font-weight: bold;">x²</span>
+                <span slot="icon" class="superscript-icon">x²</span>
             </sp-action-button>
         `;
     }

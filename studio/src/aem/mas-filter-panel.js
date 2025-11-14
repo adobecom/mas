@@ -45,6 +45,17 @@ class MasFilterPanel extends LitElement {
             align-items: center;
             flex-wrap: wrap;
         }
+
+        .filter-icon {
+            inline-size: 20px;
+            block-size: 20px;
+            color: var(--spectrum-white);
+        }
+
+        .filter-icon-path {
+            stroke: var(--spectrum-neutral-content-color-default);
+            stroke-width: 3px;
+        }
     `;
 
     reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users]);
@@ -325,7 +336,7 @@ class MasFilterPanel extends LitElement {
     }
 
     get filterIcon() {
-        return html`<sp-icon style="inline-size: 20px; block-size: 20px;  color: var(--spectrum-white);">
+        return html`<sp-icon class="filter-icon">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 36 36"
@@ -337,11 +348,8 @@ class MasFilterPanel extends LitElement {
                 aria-label=""
             >
                 <path
+                    class="filter-icon-path"
                     d="M30.946 2H3.054a1 1 0 0 0-.787 1.617L14 18.589V33.9a.992.992 0 0 0 1.68.824l3.981-4.153a1.219 1.219 0 0 0 .339-.843V18.589L31.733 3.617A1 1 0 0 0 30.946 2Z"
-                    style="
-    stroke: var(--spectrum-neutral-content-color-default);
-    stroke-width: 3px;
-"
                 ></path></svg
         ></sp-icon>`;
     }

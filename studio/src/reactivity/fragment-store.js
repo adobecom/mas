@@ -46,6 +46,6 @@ export class FragmentStore extends ReactiveStore {
     }
 
     get isCollection() {
-        return this.value.model.path === COLLECTION_MODEL_PATH;
+        return this.value?.model?.path === COLLECTION_MODEL_PATH;
     }
 }

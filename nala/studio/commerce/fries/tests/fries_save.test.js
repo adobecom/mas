@@ -4,6 +4,7 @@ import {
     studio,
     editor,
     fries,
+    ost,
     setClonedCardID,
     getClonedCardID,
     miloLibs,
@@ -121,12 +122,20 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-3: Edit price and save card', async () => {
             await expect(await editor.prices).toBeVisible();
+            await (await editor.prices.locator(editor.regularPrice)).dblclick();
+            await expect(await ost.price).toBeVisible();
+            await expect(await ost.priceUse).toBeVisible();
+            await expect(await ost.oldPriceCheckbox).toBeVisible();
+            await ost.oldPriceCheckbox.click();
+            await ost.priceUse.click();
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate card price', async () => {
-            await expect(await editor.prices).toBeVisible();
-            await expect(await clonedCard.locator(fries.price).first()).toBeVisible();
+            await expect(await editor.prices).toContainText(data.price);
+            await expect(await editor.prices).not.toContainText(data.strikethroughPrice);
+            await expect(await clonedCard.locator(fries.price)).toContainText(data.price);
+            await expect(await clonedCard.locator(fries.price)).not.toContainText(data.strikethroughPrice);
         });
     });
 

@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 export default class EditorPage {
     constructor(page) {
         this.page = page;
-        this.panel = page.locator('editor-panel > #editor');
+        this.panel = page.locator('mas-fragment-editor > #fragment-editor #editor-content');
 
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
@@ -42,16 +42,16 @@ export default class EditorPage {
         this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
         this.showAddOn = this.panel.locator('#addon-field #input');
         this.showQuantitySelector = this.panel.locator('#quantitySelect sp-checkbox input');
-        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelector #title-quantity input');
-        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelector #start-quantity input');
-        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelector #step-quantity input');
+        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelectorTitle #title-quantity input');
+        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelectorStart #start-quantity input');
+        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-icon-add');
         this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
-        this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
-        this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
+        // this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
+        // this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
         this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');

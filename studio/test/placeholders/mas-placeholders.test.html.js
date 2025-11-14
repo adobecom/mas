@@ -3,8 +3,10 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { elementUpdated } from '@open-wc/testing-helpers';
 
+// Import Store first - component imports it directly
+import Store from '../../src/store.js';
 // Import the component being tested
-import '../../src/mas-placeholders.js';
+import '../../src/placeholders/mas-placeholders.js';
 // Import necessary dependencies potentially used by the component or tests
 import '../../src/mas-repository.js';
 import '../../src/filters/locale-picker.js';
@@ -40,11 +42,11 @@ function createObservable(initialValue) {
 
 function createStoreMock(initialData = {}) {
     return {
-        search: createObservable(initialData.folder || { path: 'test-folder' }),
+        search: createObservable(initialData.search || { path: 'test-folder' }),
         filters: createObservable(initialData.filters || { locale: 'en_US' }),
         page: createObservable(initialData.page || PAGE_NAMES.PLACEHOLDERS),
         folders: {
-            data: createObservable(initialData.folderData || [{ path: 'test-folder', name: 'Test Folder' }]),
+            data: createObservable(initialData.folderData || ['test-folder']),
             loaded: createObservable(true),
         },
         placeholders: {
@@ -52,14 +54,11 @@ function createStoreMock(initialData = {}) {
                 data: createObservable(initialData.placeholders || []),
                 loading: createObservable(false),
             },
-            // Mock filtered data structure minimally
-            filtered: {
-                data: {
-                    set: sinon.stub(),
-                    get: () => initialData.placeholders || [], // Return initial data for simplicity
-                },
-            },
+            index: createObservable(null),
+            selection: createObservable([]),
+            search: createObservable(''),
         },
+        sort: createObservable({ sortBy: 'key', sortDirection: 'asc' }),
         // Mock necessary event emitters if component interacts with them directly
         toast: {
             emit: sinon.stub(),
@@ -139,11 +138,18 @@ runTests(async () => {
             });
             toastEmitStub = sinon.stub(Events.toast, 'emit'); // Use the actual Events object
 
-            // Create simplified mock store
-            store = createStoreMock({
-                placeholders: [...mockPlaceholdersData],
-            }); // Start with data
-            window.Store = store;
+            // Initialize Store with test data
+            Store.search.set({ path: 'test-folder' });
+            Store.filters.set({ locale: 'en_US' });
+            Store.page.set(PAGE_NAMES.PLACEHOLDERS);
+            Store.folders.data.set(['test-folder']);
+            Store.folders.loaded.set(true);
+            Store.sort.set({ sortBy: 'key', sortDirection: 'asc' });
+            Store.placeholders.list.data.set([]);
+            Store.placeholders.list.loading.set(false);
+            Store.placeholders.selection.set([]);
+            Store.placeholders.search.set('');
+            Store.placeholders.index.set(null);
 
             // Create elements manually for more control
             const parent = document.createElement('div');
@@ -155,25 +161,13 @@ runTests(async () => {
             document.body.appendChild(parent);
             // Wait for element to be connected
             await new Promise((r) => setTimeout(r, 0));
-            // Stub methods that interact heavily with the repository/AEM
-            sinon.stub(element, 'loadPlaceholders').resolves();
-            sinon.stub(element, 'createPlaceholder').resolves();
-            sinon.stub(element, 'saveEdit').resolves();
-            sinon.stub(element, 'handleDelete').resolves();
-            sinon.stub(element, 'handlePublish').resolves();
-            sinon.stub(element, 'handleBulkDelete').resolves();
-            sinon.stub(element, 'showDialog').resolves(true); // Assume confirmation dialogs are confirmed
-
             // Mock repository methods minimally
             masRepository.aem = { sites: { cf: { fragments: {} } } };
-            // Manually set data
-            element.placeholdersData = [...mockPlaceholdersData];
             await new Promise((r) => setTimeout(r, 10)); // Small delay to ensure rendering
         });
 
         afterEach(function () {
             sinon.restore(); // Restore all stubs/spies
-            delete window.Store;
             // Fix parentElement error by safeguarding
             if (element && element.parentElement) {
                 element.parentElement.remove();
@@ -190,27 +184,29 @@ runTests(async () => {
 
         // Loading state test
         it('should display loading indicator when loading', async function () {
-            // Set loading state
-            element.placeholdersLoading = true;
-            await elementUpdated(element); // Use proper element update method
+            // Set loading state via Store
+            Store.placeholders.list.loading.set(true);
+            await elementUpdated(element);
 
-            // Check for progress circle - wait a bit more and be more specific with selector
-            await new Promise((r) => setTimeout(r, 50)); // Increased delay
+            // Check for progress circle
+            await new Promise((r) => setTimeout(r, 50));
+            const progressCircle = element.shadowRoot.querySelector('sp-progress-circle');
+            expect(progressCircle).to.exist;
 
             // Reset state
-            element.placeholdersLoading = false;
+            Store.placeholders.list.loading.set(false);
             await elementUpdated(element);
-            await new Promise((r) => setTimeout(r, 50)); // Increased delay
+            await new Promise((r) => setTimeout(r, 50));
 
             // Check progress circle is gone
-            const progressAfter = element.shadowRoot.querySelector('sp-progress-circle, .progress-indicator');
+            const progressAfter = element.shadowRoot.querySelector('sp-progress-circle');
             expect(progressAfter).to.not.exist;
         });
 
         // Error display test
         it('should display error message when error property is set', async function () {
             element.error = 'Test Error';
-            await new Promise((r) => setTimeout(r, 10)); // Small delay
+            await elementUpdated(element);
             // Check for error message
             const errorElement = element.shadowRoot.querySelector('.error-message');
 
@@ -222,22 +218,13 @@ runTests(async () => {
         it('should update search query on input', async function () {
             // Find search input
             const searchInput = element.shadowRoot.querySelector('sp-search');
-            if (!searchInput) {
-                this.skip(); // Skip if search input isn't found
-                return;
-            }
-
-            // Create a spy for the searchPlaceholders method
-            const searchSpy = sinon.spy(element, 'searchPlaceholders');
-
             // Set value and dispatch event
             searchInput.value = 'test';
             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
             await elementUpdated(element);
 
-            // Check state updated
-            expect(element.searchQuery).to.equal('test');
-            expect(searchSpy.called).to.be.true; // Use proper sinon assertion
+            // Check Store was updated
+            expect(Store.placeholders.search.get()).to.equal('test');
         });
     });
 });

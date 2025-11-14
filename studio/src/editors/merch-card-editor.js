@@ -294,6 +294,19 @@ class MerchCardEditor extends LitElement {
                     @change="${this.#handleVariantChange}"
                 ></variant-picker>
             </sp-field-group>
+            <sp-field-group id="style">
+                <sp-field-label for="card-style">Style</sp-field-label>
+                <sp-picker
+                    id="card-style"
+                    data-field="style"
+                    value="${form.style?.values[0] || 'default'}"
+                    data-default-value="default"
+                    @change="${this.#handleFragmentUpdate}"
+                >
+                    <sp-menu-item value="default">Default</sp-menu-item>
+                    <sp-menu-item value="dark">Dark</sp-menu-item>
+                </sp-picker>
+            </sp-field-group>
             <sp-field-group class="toggle" id="size">
                 <sp-field-label for="card-size">Size</sp-field-label>
                 <sp-picker

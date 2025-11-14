@@ -61,7 +61,8 @@ export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 export const LOCALES = [
     { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
     { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
-    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada' },
+    { code: 'en_CA', flag: '🇨🇦', name: 'Canada (English)' },
+    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada (French)' },
     { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
     { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
     { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },

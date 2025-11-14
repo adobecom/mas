@@ -65,6 +65,7 @@ export class MerchCard extends LitElement {
         name: { type: String, attribute: 'name', reflect: true },
         variant: { type: String, reflect: true },
         size: { type: String, attribute: 'size', reflect: true },
+        cardStyle: { type: String, attribute: 'data-style', reflect: true },
         badgeColor: { type: String, attribute: 'badge-color', reflect: true },
         borderColor: { type: String, attribute: 'border-color', reflect: true },
         backgroundColor: {

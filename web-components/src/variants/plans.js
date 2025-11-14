@@ -58,6 +58,41 @@ export const PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
     })(),
 };
 
+export const PLANS_V2_AEM_FRAGMENT_MAPPING = {
+    cardName: { attribute: 'name' },
+    title: { tag: 'h3', slot: 'heading-xs' },
+    subtitle: { tag: 'p', slot: 'subtitle' },
+    prices: { tag: 'p', slot: 'heading-m' },
+    promoText: { tag: 'p', slot: 'promo-text' },
+    description: { tag: 'div', slot: 'body-xs' },
+    mnemonics: { size: 'l' },
+    callout: { tag: 'div', slot: 'callout-content' },
+    quantitySelect: { tag: 'div', slot: 'quantity-select' },
+    addon: true,
+    secureLabel: true,
+    planType: true,
+    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
+    allowedBadgeColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-gray-700-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+    ],
+    allowedBorderColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+    ],
+    borderColor: { attribute: 'border-color' },
+    size: ['wide', 'super-wide'],
+    whatsIncluded: { tag: 'div', slot: 'whats-included' },
+    ctas: { slot: 'footer', size: 'm' },
+    style: 'consonant',
+    perUnitLabel: { tag: 'span', slot: 'per-unit-label' },
+};
+
 export class Plans extends VariantLayout {
     constructor(card) {
         super(card);

@@ -8,6 +8,7 @@ export default class EditorPage {
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
         this.variant = this.panel.locator('#card-variant');
+        this.style = this.panel.locator('#card-style');
         this.size = this.panel.locator('#card-size');
         this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
         this.subtitle = this.panel.locator('#card-subtitle input');

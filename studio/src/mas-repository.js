@@ -28,6 +28,7 @@ import generateFragmentStore from './reactivity/source-fragment-store.js';
 
 import { SURFACES } from './editors/variant-picker.js';
 import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
+import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 
 let fragmentCache;
 
@@ -257,6 +258,9 @@ export class MasRepository extends LitElement {
                     this.#abortControllers.search,
                 );
                 if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
+                    // Apply corrector transformer before caching
+                    const surface = path.split('/').filter(Boolean)[0]?.toLowerCase();
+                    applyCorrectorToFragment(fragmentData, surface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
                     dataStore.set([sourceStore]);
@@ -276,9 +280,13 @@ export class MasRepository extends LitElement {
                 dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const fragmentStores = [];
+                // Extract surface from path for corrector
+                const surface = path.split('/').filter(Boolean)[0]?.toLowerCase();
                 for await (const result of cursor) {
                     for await (const item of result) {
                         if (this.skipVariant(variants, item)) continue;
+                        // Apply corrector transformer before caching
+                        applyCorrectorToFragment(item, surface);
                         const fragment = await this.#addToCache(item);
                         const sourceStore = generateFragmentStore(fragment);
                         fragmentStores.push(sourceStore);
@@ -327,7 +335,11 @@ export class MasRepository extends LitElement {
 
             const result = await cursor.next();
             const fragmentStores = [];
+            // Extract surface from path for corrector
+            const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
             for await (const item of result.value) {
+                // Apply corrector transformer before caching
+                applyCorrectorToFragment(item, surface);
                 const fragment = await this.#addToCache(item);
                 const sourceStore = generateFragmentStore(fragment);
                 fragmentStores.push(sourceStore);
@@ -695,6 +707,9 @@ export class MasRepository extends LitElement {
                 await this.aem.saveTags(latest);
                 latest = await this.aem.sites.cf.fragments.getById(result.id);
             }
+            // Apply corrector transformer before caching
+            const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+            applyCorrectorToFragment(latest, surface);
             const fragment = await this.#addToCache(latest);
 
             if (withToast) showToast('Fragment successfully created.', 'positive');
@@ -782,6 +797,9 @@ export class MasRepository extends LitElement {
                 await this.aem.saveTags(savedResult);
                 savedResult = await this.aem.sites.cf.fragments.getById(savedResult.id);
             }
+            // Apply corrector transformer before caching
+            const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+            applyCorrectorToFragment(savedResult, surface);
             const newFragment = await this.#addToCache(savedResult);
 
             const sourceStore = generateFragmentStore(newFragment);
@@ -1015,6 +1033,10 @@ export class MasRepository extends LitElement {
         store.setLoading(true);
         const id = store.get().id;
         const latest = await this.aem.sites.cf.fragments.getById(id);
+
+        // Apply corrector transformer before refreshing
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        applyCorrectorToFragment(latest, surface);
 
         store.refreshFrom(latest);
         if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {

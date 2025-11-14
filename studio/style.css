@@ -587,6 +587,14 @@ sp-underlay + sp-dialog {
     transform: translateY(-50%);
 }
 
+.preview-popover.position-left {
+    left: var(--popover-position);
+}
+
+.preview-popover.position-right {
+    right: var(--popover-position);
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -826,6 +834,11 @@ mas-top-nav .account-menu-header {
     padding: 0 20px 20px;
 }
 
+mas-top-nav .avatar-container {
+    width: 75px;
+    height: 75px;
+}
+
 mas-top-nav .account-info h2 {
     margin: 0.5rem 0;
 }
@@ -851,4 +864,8 @@ mas-top-nav .account-menu-item {
 mas-top-nav .account-menu-item:hover {
     background-color: var(--spectrum-global-color-gray-100);
     color: var(--spectrum-global-color-gray-800);
+}
+
+merch-card-editor .color-swatch {
+    background: var(--swatch-bg);
 }

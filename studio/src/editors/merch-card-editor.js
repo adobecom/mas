@@ -1423,13 +1423,16 @@ class MerchCardEditor extends LitElement {
                                             ? html`
                                                   ${!isBackground && !isSpecialValue(color)
                                                       ? html`
-                                                            <div class="color-swatch" style="background: var(--${color})"></div>
+                                                            <div
+                                                                class="color-swatch"
+                                                                style="--swatch-bg: var(--${color})"
+                                                            ></div>
                                                         `
                                                       : isSpecialValue(color)
                                                         ? html`
                                                               <div
                                                                   class="color-swatch"
-                                                                  style="background: ${variantSpecialValues[color]}"
+                                                                  style="--swatch-bg: ${variantSpecialValues[color]}"
                                                               ></div>
                                                           `
                                                         : nothing}
@@ -1502,7 +1505,7 @@ class MerchCardEditor extends LitElement {
                                             : colorName === 'Transparent'
                                               ? html`<span>Transparent</span>`
                                               : html`
-                                                    <div class="color-swatch" style="background: ${colorValue}"></div>
+                                                    <div class="color-swatch" style="--swatch-bg: ${colorValue}"></div>
                                                     <span class="color-name-text" title="${colorName}"> ${colorName} </span>
                                                 `}
                                     </div>

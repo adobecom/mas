@@ -554,6 +554,12 @@ class RteField extends LitElement {
                 #stylingMenu .is-selected {
                     background-color: rgba(213, 213, 213);
                 }
+
+                .superscript-icon {
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -1702,7 +1708,7 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
                 title="Superscript (Command+Shift+.)"
             >
-                <span slot="icon" style="font-family: sans-serif; font-size: 14px; font-weight: bold;">x²</span>
+                <span slot="icon" class="superscript-icon">x²</span>
             </sp-action-button>
         `;
     }

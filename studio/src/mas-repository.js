@@ -441,8 +441,6 @@ export class MasRepository extends LitElement {
             if (currentKey === cacheKey) {
                 // If result is empty and locale isn't en_US, try fallback
                 if ((!result || Object.keys(result).length === 0) && this.filters.value.locale !== 'en_US') {
-                    console.log(`[Dictionary] No dictionary for ${this.filters.value.locale}, falling back to en_US`);
-
                     const fallbackContext = {
                         preview: {
                             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',

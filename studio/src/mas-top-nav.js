@@ -35,7 +35,7 @@ class MasTopNav extends LitElement {
                 </button>
                 <div class="profile-body">
                     <div class="account-menu-header">
-                        <div style="width: 75px; height: 75px;"><img src="${avatar}" alt="${displayName}" width="100%"></div>
+                        <div class="avatar-container"><img src="${avatar}" alt="${displayName}" width="100%"></div>
                         <div class="account-info">
                             <h2>${displayName}</h2>
                             <p>${email}</p>

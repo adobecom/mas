@@ -139,7 +139,7 @@ export function onOfferSelect(offerSelectorId, type, offer) {
     );
 }
 
-export function getOffferSelectorTool() {
+export function getOfferSelectorTool() {
     return html`
         <sp-overlay id="ostDialog" type="modal">
             <sp-dialog-wrapper dismissable underlay>

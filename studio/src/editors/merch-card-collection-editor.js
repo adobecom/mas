@@ -921,9 +921,11 @@ class MerchCardCollectionEditor extends LitElement {
 
         const container = document.createElement('div');
         container.className = 'preview-container';
+        const positionClass = position.left !== undefined ? 'position-left' : 'position-right';
+        const positionValue = position.left !== undefined ? position.left : position.right;
         container.innerHTML = `
             <div class="preview-backdrop"></div>
-            <div class="preview-popover" style="${position.left !== undefined ? `left: ${position.left}px` : `right: ${position.right}px`}">
+            <div class="preview-popover ${positionClass}" style="--popover-position: ${positionValue}px">
                 <div class="preview-content">
                     <merch-card>
                         <aem-fragment author ims fragment="${previewItem.id}"></aem-fragment>

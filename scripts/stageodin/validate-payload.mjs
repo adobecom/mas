@@ -83,7 +83,7 @@ async function getStageMap(prodMap, path) {
 }
 
 async function main() {
-    let args = process.argv.slice(2);
+    const args = process.argv.slice(2);
     if (!args.length) {
         console.log('you should provide at least one URL to audit');
         return;

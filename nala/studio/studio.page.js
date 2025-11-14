@@ -42,7 +42,7 @@ export default class StudioPage {
         this.saveCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="save"]');
         // Topnav panel
         this.topnav = page.locator('mas-top-nav');
-        this.folderPicker = page.locator('mas-nav-folder-picker sp-action-menu');
+        this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-nav-locale-picker sp-action-menu');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');

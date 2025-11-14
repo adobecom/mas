@@ -19,7 +19,7 @@ test.describe('M@S Studio feature test suite', () => {
             // enable the follwoing check once loadiing this section is stable
             // await expect(await studio.recentlyUpdated).toBeVisible();
             await expect(await studio.topnav).toBeVisible();
-            await expect(await studio.folderPicker).toBeVisible();
+            await expect(await studio.surfacePicker).toBeVisible();
             await expect(await studio.localePicker).toBeVisible();
             await expect(await studio.sideNav).toBeVisible();
             await expect(await studio.homeButton).toBeVisible();
@@ -49,7 +49,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(page).toHaveURL(expectedUrl);
-            expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
+            expect(await studio.surfacePicker).toHaveAttribute('value', 'nala');
         });
     });
 
@@ -113,7 +113,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-2: Go to content', async () => {
             await expect(await studio.quickActions).toBeVisible();
             await expect(await studio.gotoContent).toBeVisible();
-            await expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
+            await expect(await studio.surfacePicker).toHaveAttribute('value', 'acom');
             await studio.gotoContent.click();
         });
 
@@ -122,7 +122,7 @@ test.describe('M@S Studio feature test suite', () => {
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
             await expect(page).toHaveURL(`${testPage}#page=content&path=acom`);
-            expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
+            expect(await studio.surfacePicker).toHaveAttribute('value', 'acom');
         });
     });
 
@@ -347,14 +347,14 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-2: Change surface', async () => {
             await expect(await studio.topnav).toBeVisible();
-            await expect(await studio.folderPicker).toBeVisible();
-            await studio.folderPicker.click();
+            await expect(await studio.surfacePicker).toBeVisible();
+            await studio.surfacePicker.click();
             await page.getByRole('menuitem', { name: 'sandbox' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-3: Validate surface change', async () => {
-            await expect(await studio.folderPicker).toHaveAttribute('value', 'sandbox');
+            await expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
             await expect(page).toHaveURL(`${testPage}#page=welcome&path=sandbox`);
             await expect(await studio.sideNav).toBeVisible();
             await expect(await studio.homeButton).toBeVisible();

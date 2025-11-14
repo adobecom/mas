@@ -103,6 +103,10 @@ class MasFragmentRender extends LitElement {
     }
 
     render() {
+        if (!this.fragment || !this.fragment.model) {
+            return nothing;
+        }
+
         return html`<div class="render-fragment">
             <div class="render-fragment-header">
                 <div class="render-fragment-actions"></div>

@@ -1,7 +1,6 @@
 import { LitElement, html } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { generateCodeToUse, getService } from './utils.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
+import { generateCodeToUse, getService, getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './utils.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';

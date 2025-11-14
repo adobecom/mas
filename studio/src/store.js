@@ -16,6 +16,9 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
     },
+    fragmentEditor: {
+        fragmentId: new ReactiveStore(null),
+    },
     operation: new ReactiveStore(),
     editor: {
         get hasChanges() {
@@ -30,6 +33,7 @@ const Store = {
     filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
     sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
+    viewMode: new ReactiveStore('default'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
@@ -83,7 +87,7 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
+    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS, PAGE_NAMES.FRAGMENT_EDITOR];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 
@@ -122,8 +126,6 @@ function previewValidator(value) {
 
 // #endregion
 
-const editorPanel = () => document.querySelector('editor-panel');
-
 /**
  * Toggle selection of a fragment
  */
@@ -131,16 +133,6 @@ export function toggleSelection(id) {
     const selection = Store.selection.get();
     if (selection.includes(id)) Store.selection.set(selection.filter((selectedId) => selectedId !== id));
     else Store.selection.set([...selection, id]);
-}
-
-/**
- * Edit a fragment in the editor panel
- */
-export function editFragment(store, x = 0) {
-    if (!Store.fragments.list.data.get().includes(store)) {
-        Store.fragments.list.data.set((prev) => [store, ...prev]);
-    }
-    editorPanel()?.editFragment(store, x);
 }
 
 export default Store;
@@ -158,6 +150,12 @@ Store.placeholders.preview.subscribe(() => {
     }
     if (Store.page.value === PAGE_NAMES.WELCOME) {
         for (const fragmentStore of Store.fragments.recentlyUpdated.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
+    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+        const fragmentStore = Store.fragments.inEdit.get();
+        if (fragmentStore) {
             fragmentStore.resolvePreviewFragment();
         }
     }

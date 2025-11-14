@@ -2,7 +2,8 @@ import { LitElement, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import Store, { editFragment } from './store.js';
+import Store from './store.js';
+import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
@@ -35,7 +36,7 @@ let fragmentCache;
 export function getDamPath(path) {
     if (!path) return ROOT_PATH;
     if (path.startsWith(ROOT_PATH)) return path;
-    return ROOT_PATH + '/' + path;
+    return `${ROOT_PATH}/${path}`;
 }
 
 export async function initFragmentCache() {
@@ -73,6 +74,8 @@ export class MasRepository extends LitElement {
             recentlyUpdated: null,
             placeholders: null,
         };
+        this.dictionaryCache = new Map();
+        this.inflightDictionaryRequest = null;
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
@@ -95,6 +98,15 @@ export class MasRepository extends LitElement {
         super.connectedCallback();
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
         this.aem = new AEM(this.bucket, this.baseUrl);
+
+        // Invalidate dictionary cache when filters or search path change
+        Store.filters.subscribe(() => {
+            this.dictionaryCache.clear();
+        });
+        Store.search.subscribe(() => {
+            this.dictionaryCache.clear();
+        });
+
         this.loadFolders();
         this.style.display = 'none';
     }
@@ -129,6 +141,9 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
+                this.loadPreviewPlaceholders();
+                break;
+            case PAGE_NAMES.FRAGMENT_EDITOR:
                 this.loadPreviewPlaceholders();
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
@@ -397,21 +412,79 @@ export class MasRepository extends LitElement {
     }
 
     async loadPreviewPlaceholders() {
+        const cacheKey = `${this.filters.value.locale}_${this.search.value.path}`;
+
+        // Return cached result if available
+        if (this.dictionaryCache.has(cacheKey)) {
+            Store.placeholders.preview.set(this.dictionaryCache.get(cacheKey));
+            return;
+        }
+
+        // Return existing promise if same cache key is already in-flight
+        if (this.inflightDictionaryRequest?.cacheKey === cacheKey) {
+            return this.inflightDictionaryRequest.promise;
+        }
+
+        // Abort previous placeholder fetch if still running with different cache key
+        if (this.#abortControllers.placeholders) {
+            this.#abortControllers.placeholders.abort();
+        }
+        this.#abortControllers.placeholders = new AbortController();
+
         try {
-            const context = {
-                preview: {
-                    url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
-                },
-                locale: this.filters.value.locale,
-                surface: this.search.value.path,
-            };
-            const result = await getDictionary(context);
-            Store.placeholders.preview.set(result);
+            const promise = this.fetchDictionary(this.#abortControllers.placeholders);
+            this.inflightDictionaryRequest = { promise, cacheKey };
+            const result = await promise;
+
+            // Verify cache key hasn't changed during fetch (prevents stale data)
+            const currentKey = `${this.filters.value.locale}_${this.search.value.path}`;
+            if (currentKey === cacheKey) {
+                // If result is empty and locale isn't en_US, try fallback
+                if ((!result || Object.keys(result).length === 0) && this.filters.value.locale !== 'en_US') {
+                    console.log(`[Dictionary] No dictionary for ${this.filters.value.locale}, falling back to en_US`);
+
+                    const fallbackContext = {
+                        preview: {
+                            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                        },
+                        locale: 'en_US',
+                        surface: this.search.value.path,
+                        signal: this.#abortControllers.placeholders?.signal,
+                    };
+
+                    const fallbackResult = await getDictionary(fallbackContext);
+                    this.dictionaryCache.set(cacheKey, fallbackResult);
+                    Store.placeholders.preview.set(fallbackResult);
+                } else {
+                    this.dictionaryCache.set(cacheKey, result);
+                    Store.placeholders.preview.set(result);
+                }
+            }
         } catch (error) {
+            if (error.name === 'AbortError') return; // Silent abort during navigation
             this.processError(error, 'Could not load preview placeholders.');
         } finally {
+            this.inflightDictionaryRequest = null;
+            this.#abortControllers.placeholders = null;
             Store.placeholders.list.loading.set(false);
         }
+    }
+
+    async fetchDictionary(abortController) {
+        const context = {
+            preview: {
+                url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+            },
+            locale: this.filters.value.locale,
+            surface: this.search.value.path,
+        };
+
+        // Pass abort signal if available (fragment-client may support it)
+        if (abortController) {
+            context.signal = abortController.signal;
+        }
+
+        return await getDictionary(context);
     }
 
     getDictionaryPath() {
@@ -804,7 +877,7 @@ export class MasRepository extends LitElement {
 
             const sourceStore = generateFragmentStore(newFragment);
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
-            editFragment(sourceStore);
+            await router.navigateToFragmentEditor(newFragment.id);
 
             this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);

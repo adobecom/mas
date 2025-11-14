@@ -195,7 +195,7 @@ class MasMultifield extends LitElement {
         const draggingField = this.value[this.draggingIndex];
 
         // Remove the dragging field from its original position
-        let updatedValue = [...this.value];
+        const updatedValue = [...this.value];
         updatedValue.splice(this.draggingIndex, 1);
 
         // Insert the dragging field into the new position

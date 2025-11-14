@@ -174,12 +174,12 @@ export function getService() {
     return document.querySelector('mas-commerce-service');
 }
 
-const MODEL_WEB_COMPONENT_MAPPING = {
+export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
-function getFragmentPartsToUse(fragment, path) {
+export function getFragmentPartsToUse(fragment, path) {
     let fragmentParts = '';
     let title = '';
     const surface = path?.toUpperCase();

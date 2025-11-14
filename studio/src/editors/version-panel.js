@@ -1,4 +1,8 @@
 import { LitElement, html, css, nothing } from 'lit';
+import { PAGE_NAMES } from '../constants.js';
+import Store from '../store.js';
+import router from '../router.js';
+
 class VersionHistoryButton extends LitElement {
     static properties = {
         versions: { type: Array, state: true },
@@ -489,7 +493,11 @@ class VersionHistoryButton extends LitElement {
     }
 
     togglePanel() {
-        this.showPanel = !this.showPanel;
+        // Navigate to the version page instead of opening a panel
+        if (this.fragmentId) {
+            Store.version.fragmentId.set(this.fragmentId);
+            Store.page.set(PAGE_NAMES.VERSION);
+        }
     }
 
     closePanel() {

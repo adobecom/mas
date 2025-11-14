@@ -173,6 +173,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
+        this.linkStoreToHash(Store.version.fragmentId, 'fragment');
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }

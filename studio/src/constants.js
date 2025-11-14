@@ -136,6 +136,7 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
+    VERSION: 'version',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';

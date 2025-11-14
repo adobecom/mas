@@ -99,6 +99,11 @@ side-nav sp-sidenav-item:hover {
     padding-inline: 16px;
 }
 
+.main-container:has(version-page) {
+    padding: 0;
+    overflow: hidden;
+}
+
 #content-container {
     height: 100%;
     border-radius: 8px;

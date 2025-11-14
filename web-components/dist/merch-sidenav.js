@@ -45,8 +45,8 @@ var L=Object.defineProperty;var k=(i,e,t)=>e in i?L(i,e,{enumerable:!0,configura
             flex-direction: column;
         }
     `);customElements.define("merch-sidenav-checkbox-group",m);var C="(max-width: 700px)";var R="(max-width: 1199px)";var z={catalog:"l"},B={catalog:"xl"},E=class extends G{constructor(){super();r(this,"mobileDevice",new d(this,C));r(this,"mobileAndTablet",new d(this,R));this.open=!1,this.autoclose=!1,this.variant=null,this.closeModal=this.closeModal.bind(this),this.handleSelection=this.handleSelection.bind(this)}connectedCallback(){super.connectedCallback(),this.addEventListener(h,this.handleSelection)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(h,this.handleSelection)}firstUpdated(){let t=z[this.variant];if(t){let s=this.querySelector("merch-search sp-search");s&&s?.setAttribute("size",t)}let o=B[this.variant];o&&this.querySelectorAll("merch-sidenav-checkbox-group sp-checkbox").forEach(n=>{n.setAttribute("size",o)})}updated(){this.mobileAndTablet.matches?(this.modal=!0,this.style.padding=0,this.style.margin=0):(this.modal=!1,this.style.removeProperty("padding"),this.style.removeProperty("margin"),this.open&&this.closeModal())}get filters(){return this.querySelector("merch-sidenav-list")}get search(){return this.querySelector("merch-search")}render(){return this.mobileAndTablet.matches?this.asDialog:this.asAside}get asDialog(){if(!this.open)return N;let t=this.autoclose?N:_`<sp-link @click="${this.closeModal}"
-                >${this.closeText||"Close"}</sp-link
-            >`;return _`
+                  >${this.closeText||"Close"}</sp-link
+              >`;return _`
             <sp-theme color="light" scale="medium">
                 <sp-overlay type="modal" open @sp-closed=${this.closeModal}>
                     <sp-dialog-base
@@ -67,7 +67,7 @@ var L=Object.defineProperty;var k=(i,e,t)=>e in i?L(i,e,{enumerable:!0,configura
                     </sp-dialog-base>
                 </sp-overlay>
             </sp-theme>
-        `}get asAside(){return _`<sp-theme  color="light" scale="medium"
+        `}get asAside(){return _`<sp-theme color="light" scale="medium"
             ><h2>${this.sidenavTitle}</h2>
             <slot></slot
         ></sp-theme>`}get dialog(){return this.shadowRoot.querySelector("sp-dialog-base")}handleSelection(){this.autoclose&&this.closeModal()}closeModal(){this.open=!1,document.querySelector("body")?.classList.remove("merch-modal")}showModal(){this.open=!0,document.querySelector("body")?.classList.add("merch-modal")}};r(E,"properties",{sidenavTitle:{type:String},closeText:{type:String,attribute:"close-text"},modal:{type:Boolean,reflect:!0},open:{type:Boolean,state:!0,reflect:!0},autoclose:{type:Boolean,attribute:"autoclose",reflect:!0}}),r(E,"styles",q`
@@ -98,14 +98,23 @@ var L=Object.defineProperty;var k=(i,e,t)=>e in i?L(i,e,{enumerable:!0,configura
             --merch-sidenav-item-label-bottom-margin: 8px;
             --merch-sidenav-item-icon-top-margin: 7px;
             --merch-sidenav-item-icon-gap: 8px;
-            --merch-sidenav-item-selected-color: var(--spectrum-gray-800, #222222);
-            --merch-sidenav-item-selected-background: var(--spectrum-gray-200, #E6E6E6);
+            --merch-sidenav-item-selected-color: var(
+                --spectrum-gray-800,
+                #222222
+            );
+            --merch-sidenav-item-selected-background: var(
+                --spectrum-gray-200,
+                #e6e6e6
+            );
             --merch-sidenav-list-item-gap: 4px;
             /* Checkbox group */
             --merch-sidenav-checkbox-group-title-font-size: 14px;
             --merch-sidenav-checkbox-group-title-font-weight: 400;
             --merch-sidenav-checkbox-group-title-line-height: 18px;
-            --merch-sidenav-checkbox-group-title-color: var(--spectrum-gray-700, #464646);
+            --merch-sidenav-checkbox-group-title-color: var(
+                --spectrum-gray-700,
+                #464646
+            );
             --merch-sidenav-checkbox-group-title-padding: 6px 0 8px;
             --merch-sidenav-checkbox-group-gap: 32px;
             --merch-sidenav-checkbox-group-padding: 0 12px;
@@ -129,24 +138,50 @@ var L=Object.defineProperty;var k=(i,e,t)=>e in i?L(i,e,{enumerable:!0,configura
 
         ::slotted(merch-sidenav-list) {
             --mod-sidenav-min-height: var(--merch-sidenav-item-height);
-            --mod-sidenav-inline-padding: var(--merch-sidenav-item-inline-padding);
-            --mod-sidenav-top-level-font-weight: var(--merch-sidenav-item-font-weight);
-            --mod-sidenav-top-level-font-size: var(--merch-sidenav-item-font-size);
-            --mod-sidenav-top-level-line-height: var(--merch-sidenav-item-line-height);
-            --mod-sidenav-top-to-label: var(--merch-sidenav-item-label-top-margin);
-            --mod-sidenav-bottom-to-label: var(--merch-sidenav-item-label-bottom-margin);
-            --mod-sidenav-top-to-icon: var(--merch-sidenav-item-icon-top-margin);
+            --mod-sidenav-inline-padding: var(
+                --merch-sidenav-item-inline-padding
+            );
+            --mod-sidenav-top-level-font-weight: var(
+                --merch-sidenav-item-font-weight
+            );
+            --mod-sidenav-top-level-font-size: var(
+                --merch-sidenav-item-font-size
+            );
+            --mod-sidenav-top-level-line-height: var(
+                --merch-sidenav-item-line-height
+            );
+            --mod-sidenav-top-to-label: var(
+                --merch-sidenav-item-label-top-margin
+            );
+            --mod-sidenav-bottom-to-label: var(
+                --merch-sidenav-item-label-bottom-margin
+            );
+            --mod-sidenav-top-to-icon: var(
+                --merch-sidenav-item-icon-top-margin
+            );
             --mod-sidenav-icon-spacing: var(--merch-sidenav-item-icon-gap);
-            --mod-sidenav-content-color-default-selected: var(--merch-sidenav-item-selected-color);
-            --mod-sidenav-item-background-default-selected: var(--merch-sidenav-item-selected-background);
+            --mod-sidenav-content-color-default-selected: var(
+                --merch-sidenav-item-selected-color
+            );
+            --mod-sidenav-item-background-default-selected: var(
+                --merch-sidenav-item-selected-background
+            );
             --mod-sidenav-gap: var(--merch-sidenav-list-item-gap);
         }
 
         ::slotted(merch-sidenav-checkbox-group) {
-            --mod-checkbox-font-size: var(--merch-sidenav-checkbox-group-label-font-size);
-            --mod-checkbox-spacing: var(--merch-sidenav-checkbox-group-checkbox-spacing);
-            --mod-checkbox-text-to-control: var(--merch-sidenav-checkbox-group-label-gap);
-            --mod-checkbox-top-to-text: var(--merch-sidenav-checkbox-group-label-top-margin);
+            --mod-checkbox-font-size: var(
+                --merch-sidenav-checkbox-group-label-font-size
+            );
+            --mod-checkbox-spacing: var(
+                --merch-sidenav-checkbox-group-checkbox-spacing
+            );
+            --mod-checkbox-text-to-control: var(
+                --merch-sidenav-checkbox-group-label-gap
+            );
+            --mod-checkbox-top-to-text: var(
+                --merch-sidenav-checkbox-group-label-top-margin
+            );
             --mod-checkbox-height: var(--merch-sidenav-checkbox-group-height);
         }
 
@@ -166,7 +201,7 @@ var L=Object.defineProperty;var k=(i,e,t)=>e in i?L(i,e,{enumerable:!0,configura
             justify-content: center;
             align-items: baseline;
         }
-        
+
         ::slotted(merch-search) {
             display: block;
             margin-bottom: var(--merch-sidenav-search-gap);
@@ -189,7 +224,9 @@ var L=Object.defineProperty;var k=(i,e,t)=>e in i?L(i,e,{enumerable:!0,configura
         }
 
         sp-dialog-base {
-            --mod-modal-confirm-border-radius: var(--merch-sidenav-modal-border-radius);
+            --mod-modal-confirm-border-radius: var(
+                --merch-sidenav-modal-border-radius
+            );
             --mod-modal-max-height: 100dvh;
         }
 
@@ -202,7 +239,10 @@ var L=Object.defineProperty;var k=(i,e,t)=>e in i?L(i,e,{enumerable:!0,configura
         }
 
         :host(:not([autoclose])) #sidenav h2 {
-            margin-top: calc(var(--merch-sidenav-modal-close-gap) + var(--merch-sidenav-modal-close-line-height));
+            margin-top: calc(
+                var(--merch-sidenav-modal-close-gap) +
+                    var(--merch-sidenav-modal-close-line-height)
+            );
         }
 
         sp-link {

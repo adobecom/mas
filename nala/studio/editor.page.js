@@ -57,6 +57,18 @@ export default class EditorPage {
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
 
+        // Drag and resize controls
+        this.positionButton = this.panel.locator('sp-action-button[value="position"]');
+        this.editorToolbar = this.panel.locator('#editor-toolbar');
+        this.resizeHandleN = this.panel.locator('.resize-n');
+        this.resizeHandleS = this.panel.locator('.resize-s');
+        this.resizeHandleE = this.panel.locator('.resize-e');
+        this.resizeHandleW = this.panel.locator('.resize-w');
+        this.resizeHandleNE = this.panel.locator('.resize-ne');
+        this.resizeHandleNW = this.panel.locator('.resize-nw');
+        this.resizeHandleSE = this.panel.locator('.resize-se');
+        this.resizeHandleSW = this.panel.locator('.resize-sw');
+
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');

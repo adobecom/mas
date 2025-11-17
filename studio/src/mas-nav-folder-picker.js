@@ -95,7 +95,7 @@ export class MasNavFolderPicker extends LitElement {
     }
 
     formatFolderName(folder) {
-        return folder.charAt(0).toUpperCase() + folder.slice(1).toLowerCase();
+        return folder.toUpperCase();
     }
 
     render() {

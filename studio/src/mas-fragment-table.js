@@ -1,4 +1,4 @@
-import { LitElement, html, render } from 'lit';
+import { LitElement, html } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { generateCodeToUse, getService, showToast } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
@@ -8,7 +8,6 @@ import { CARD_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
-import { styles } from './mas-fragment-table.css.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
@@ -16,32 +15,25 @@ class MasFragmentTable extends LitElement {
         customRender: { type: Function, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, state: true, attribute: false },
-        nested: { type: Boolean, reflect: true },
+        nested: { type: Boolean, attribute: false },
     };
-
-    static styles = styles;
 
     constructor() {
         super();
         this.offerData = null;
         this.expanded = false;
         this.nested = false;
-        this.#isRenderingLightDOM = false;
-
-        // Bind methods to maintain context
-        this.toggleExpand = this.toggleExpand.bind(this);
-        this.handleCreateVariation = this.handleCreateVariation.bind(this);
-        this.handleEditFragment = this.handleEditFragment.bind(this);
-        this.copyOfferIdToClipboard = this.copyOfferIdToClipboard.bind(this);
-        this.openCardPreview = this.openCardPreview.bind(this);
     }
 
     #reactiveControllers = new ReactiveController(this);
-    #isRenderingLightDOM = false;
 
     /** @type {MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
+    }
+
+    createRenderRoot() {
+        return this;
     }
 
     connectedCallback() {
@@ -139,8 +131,6 @@ class MasFragmentTable extends LitElement {
     async toggleExpand(e) {
         e.stopPropagation();
         this.expanded = !this.expanded;
-        // Force update of both shadow and light DOM
-        this.requestUpdate();
         const fragment = this.fragmentStore.value;
         // Fetch references only when expanding and references are not yet loaded
         if (this.expanded && this.repository && !fragment.references?.length) {
@@ -200,15 +190,7 @@ class MasFragmentTable extends LitElement {
     render() {
         const data = this.fragmentStore.value;
         return html`
-            <slot name="row"></slot>
-            ${this.expanded ? html`<div class="expanded-content"><slot name="expanded"></slot></div>` : ''}
-        `;
-    }
-
-    renderLightDOM() {
-        const data = this.fragmentStore.value;
-        return html`
-            <sp-table-row slot="row" value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
+            <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
                 ${!this.nested
                     ? html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
                           <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
@@ -260,36 +242,8 @@ class MasFragmentTable extends LitElement {
                       ></sp-table-cell>`
                     : html`<sp-table-cell class="preview"></sp-table-cell>`}
             </sp-table-row>
-            ${this.expanded ? html`<div slot="expanded">${this.renderExpandedContent()}</div>` : ''}
+            ${this.expanded ? html`<div class="expanded-row-container">${this.renderExpandedContent()}</div>` : ''}
         `;
-    }
-
-    firstUpdated() {
-        // Initial render of light DOM content
-        this.renderLightDOMContent();
-    }
-
-    async updated(changedProperties) {
-        super.updated(changedProperties);
-        // Wait for shadow DOM to be ready
-        await this.updateComplete;
-        // Re-render light DOM content only when relevant properties change
-        if (
-            !this.#isRenderingLightDOM &&
-            (changedProperties.has('fragmentStore') ||
-                changedProperties.has('offerData') ||
-                changedProperties.has('expanded') ||
-                changedProperties.has('nested'))
-        ) {
-            this.renderLightDOMContent();
-        }
-    }
-
-    renderLightDOMContent() {
-        this.#isRenderingLightDOM = true;
-        const lightDOMContent = this.renderLightDOM();
-        render(lightDOMContent, this);
-        this.#isRenderingLightDOM = false;
     }
 }
 

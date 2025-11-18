@@ -14,7 +14,7 @@ class MasSideNavItem extends LitElement {
             align-items: center;
             justify-content: center;
             padding: 12px 8px;
-            margin: 4px 8px;
+            margin: 4px;
             border-radius: 8px;
             font-size: 12px;
             color: var(--spectrum-gray-800, #292929);

@@ -19,6 +19,7 @@ class MasSideNav extends LitElement {
             width: 92px;
             padding: 16px 0;
             box-sizing: border-box;
+            overflow-y: scroll;
         }
 
         .nav-container {

@@ -1,6 +1,17 @@
 import { LitElement, html } from 'lit';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
+import { styles } from './mas-fragment-expanded-content.css.js';
+
+// Inject styles once
+let stylesInjected = false;
+function injectStyles() {
+    if (stylesInjected) return;
+    const styleElement = document.createElement('style');
+    styleElement.textContent = styles;
+    document.head.appendChild(styleElement);
+    stylesInjected = true;
+}
 
 class MasFragmentExpandedContent extends LitElement {
     static properties = {
@@ -12,6 +23,7 @@ class MasFragmentExpandedContent extends LitElement {
         super();
         this.fragment = null;
         this.loading = false;
+        injectStyles();
     }
 
     createRenderRoot() {

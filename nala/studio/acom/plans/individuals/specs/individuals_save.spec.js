@@ -134,7 +134,7 @@ export default {
                 legalDisclaimer: 'par licenceTVA comprise. Annual, billed monthly',
                 cardLegalDisclaimer: 'par licenceTVA comprise',
             },
-            browserParams: '#page=content&path=nala&locale=fr_FR&query=',
+            browserParams: '#locale=fr_FR&query=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {

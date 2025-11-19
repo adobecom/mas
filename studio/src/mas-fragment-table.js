@@ -6,8 +6,7 @@ import Store, { editFragment } from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
-import { Fragment } from './aem/fragment.js';
+import './mas-fragment-expanded-content.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
@@ -16,6 +15,7 @@ class MasFragmentTable extends LitElement {
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, state: true, attribute: false },
         nested: { type: Boolean, attribute: false },
+        loadingReferences: { type: Boolean, state: true, attribute: false },
     };
 
     constructor() {
@@ -23,6 +23,7 @@ class MasFragmentTable extends LitElement {
         this.offerData = null;
         this.expanded = false;
         this.nested = false;
+        this.loadingReferences = false;
     }
 
     #reactiveControllers = new ReactiveController(this);
@@ -134,57 +135,17 @@ class MasFragmentTable extends LitElement {
         const fragment = this.fragmentStore.value;
         // Fetch references only when expanding and references are not yet loaded
         if (this.expanded && this.repository && !fragment.references?.length) {
-            const references = await this.repository.loadReferences(fragment.id);
-            this.fragmentStore.value.references = references;
-            this.requestUpdate();
+            this.loadingReferences = true;
+            try {
+                const references = await this.repository.loadReferences(fragment.id);
+                this.fragmentStore.value.references = references;
+            } catch (error) {
+                console.error('Failed to load references:', error);
+                showToast('Failed to load references', 'negative');
+            } finally {
+                this.loadingReferences = false;
+            }
         }
-    }
-
-    renderExpandedContent() {
-        const fragment = this.fragmentStore.value;
-        const variations = fragment.listLocaleVariations();
-        const hasVariations = variations && Array.isArray(variations) && variations.length > 0;
-
-        return html`
-            <div class="expanded-content">
-                ${hasVariations
-                    ? html`<h3 class="expanded-title">Variations</h3>`
-                    : html`<h3 class="expanded-title">No Variations found.</h3>`}
-                <sp-tabs selected="locale" quiet>
-                    <sp-tab value="locale" label="Locale">Locale</sp-tab>
-                    <sp-tab value="promotion" label="Promotion">Promotion</sp-tab>
-                    <sp-tab value="personalization" label="Personalization">Personalization</sp-tab>
-                    <sp-tab-panel value="locale">
-                        ${hasVariations
-                            ? html`<sp-table size="m">
-                                  <sp-table-body>
-                                      ${variations.map(
-                                          (variationFragment) => html`
-                                              <mas-fragment-table
-                                                  class="mas-fragment nested-fragment"
-                                                  data-id="${variationFragment.id}"
-                                                  .fragmentStore=${new FragmentStore(new Fragment(variationFragment))}
-                                                  .nested=${true}
-                                              ></mas-fragment-table>
-                                          `,
-                                      )}
-                                  </sp-table-body>
-                              </sp-table>`
-                            : html`<p>No locale variations found</p>`}
-                    </sp-tab-panel>
-                    <sp-tab-panel value="promotion">
-                        <div class="tab-content-placeholder">
-                            <p>Promotion content will be displayed here</p>
-                        </div>
-                    </sp-tab-panel>
-                    <sp-tab-panel value="personalization">
-                        <div class="tab-content-placeholder">
-                            <p>Personalization content will be displayed here</p>
-                        </div>
-                    </sp-tab-panel>
-                </sp-tabs>
-            </div>
-        `;
     }
 
     render() {
@@ -242,7 +203,14 @@ class MasFragmentTable extends LitElement {
                       ></sp-table-cell>`
                     : html`<sp-table-cell class="preview"></sp-table-cell>`}
             </sp-table-row>
-            ${this.expanded ? html`<div class="expanded-row-container">${this.renderExpandedContent()}</div>` : ''}
+            ${this.expanded
+                ? html`<div class="expanded-row-container">
+                      <mas-fragment-expanded-content
+                          .fragment=${this.fragmentStore.value}
+                          .loading=${this.loadingReferences}
+                      ></mas-fragment-expanded-content>
+                  </div>`
+                : ''}
         `;
     }
 }

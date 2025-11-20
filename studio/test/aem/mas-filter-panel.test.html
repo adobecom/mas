@@ -38,10 +38,10 @@
             import '../../src/aem/aem-tag-picker-field.js';
             import '../../src/fields/user-picker.js';
 
-            async function clickTagClearButton(filterPanel, tagKey) {
-                const tag = filterPanel.shadowRoot.querySelector(`sp-tag[key="${tagKey}"]`);
-                const clearButton = tag.shadowRoot.querySelector('sp-clear-button');
-                clearButton.click();
+            async function clickTagClearButton(filterPanel, tagPath) {
+                const tags = filterPanel.shadowRoot.querySelectorAll('sp-tag');
+                const tag = Array.from(tags).find(t => t.value?.path === tagPath);
+                tag.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
                 await delay(50);
             }
 

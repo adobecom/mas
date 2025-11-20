@@ -74,6 +74,7 @@
                         fragment = new Fragment(fragmentData);
                         fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
+                        editorPanel.repository.aem.sites.cf.fragments.getVersions = async () => ({ items: [] });
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
                     });
@@ -114,17 +115,9 @@
                             path: 'acom',
                         }));
                         await editorPanel.updateComplete;
-                        await editorPanel.refreshed;
-                        // Wait for rte-field element to exist and be initialized
-                        let field = document.getElementById('card-title');
-                        // Poll until editorView is ready
-                        let attempts = 0;
-                        while ((!field || !field.editorView) && attempts < 20) {
-                            await delay(100);
-                            field = document.getElementById('card-title');
-                            attempts++;
-                        }
+                        const field = document.getElementById('card-title');
                         expect(field, 'field should exist').to.exist;
+                        await field.ready;
                         expect(field.editorView, 'editorView should be initialized').to.exist;
                         triggerRteInput(field, 'test title');
                         await editorPanel.updateComplete;

@@ -99,7 +99,8 @@
                         await aemTagPicker.toggleTag('/content/cq:tags/mas/status/documentation');
                         await aemTagPicker.updateComplete;
                         await delay(100);
-                        aemTagPicker.shadowRoot.querySelector('sp-tag').delete();
+                        const spTag = aemTagPicker.shadowRoot.querySelector('sp-tag');
+                        spTag.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
                         await aemTagPicker.updateComplete;
                         expect(aemTagPicker.value).to.deep.equal(['/content/cq:tags/mas/status/documentation']);
                     });
@@ -136,7 +137,7 @@
 
                         const checkboxList = aemTagPicker.shadowRoot.querySelector('.checkbox-list');
 
-                        const applyButton = aemTagPicker.shadowRoot.querySelector('sp-button[variant="accent"]');
+                        const applyButton = aemTagPicker.shadowRoot.querySelector('sp-button:not([variant])');
                         expect(applyButton).to.not.be.null;
 
                         // Setup listener before interaction
@@ -147,12 +148,14 @@
 
                         // Get the first item's value and toggle it
                         const firstItem = items[0];
-                        firstItem.click();
+                        firstItem.checked = true;
+                        firstItem.dispatchEvent(new Event('change', { bubbles: true }));
+                        await aemTagPicker.updateComplete;
                         await delay(50);
                         // Wait for the change event
                         applyButton.click();
-                        await delay(50);
                         const event = await listener;
+                        await aemTagPicker.updateComplete;
                         expect(event.type).to.equal('change');
                         expect(aemTagPicker.getAttribute('value')).to.include('mas:status/archived');
                     });

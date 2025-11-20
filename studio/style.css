@@ -17,7 +17,7 @@ sp-theme {
 mas-studio {
     width: 100%;
     display: flex;
-    background-color: var(--spectrum-global-color-gray-100);
+    background-color: var(--spectrum-gray-50);
     align-items: center;
     flex-direction: column;
     height: 100vh;
@@ -78,30 +78,21 @@ side-nav sp-sidenav-item {
 }
 
 sp-sidenav-item sp-icon {
-    width: 20px;
-    height: 20px;
+    inline-size: var(--spectrum-workflow-icon-size-100);
+    block-size: var(--spectrum-workflow-icon-size-100);
     color: #292929;
-}
-
-side-nav sp-sidenav-item[selected] {
-    font-weight: 800;
-}
-
-side-nav sp-sidenav-item:hover {
-    cursor: pointer;
-    font-weight: 700;
 }
 
 .main-container {
     grid-column: 2 / 3;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: auto;
     margin-block-start: 16px;
     margin-block-end: 20px;
-    margin-inline: 16px;
+    margin-inline: 12px;
     border-radius: 16px 16px 0 0;
-    background: var(--spectrum-global-color-gray-75);
+    background: var(--spectrum-white);
     border: 1px solid var(--spectrum-gray-75, #f3f3f3);
     box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
     overflow-y: auto;
@@ -133,7 +124,13 @@ sp-underlay + sp-dialog {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--spectrum-gray-100);
+    background: var(--spectrum-white);
+    border-radius: 16px;
+}
+
+sp-dialog-wrapper {
+    background: var(--spectrum-white);
+    border-radius: 16px;
 }
 
 #editor {
@@ -224,7 +221,7 @@ rte-field {
 }
 
 mas-fragment-render[selected] .render-fragment {
-    outline: 2px solid var(--spectrum-global-color-blue-600);
+    outline: 2px solid var(--spectrum-blue-600);
 }
 
 sp-progress-circle.fragments {
@@ -401,6 +398,7 @@ sp-table-head-cell {
     padding: 24px;
     width: 100%;
     box-sizing: border-box;
+    height: calc(100vh - var(--mas-nav-height));
 }
 
 #splash-container h1 {
@@ -618,6 +616,7 @@ mas-top-nav nav {
     align-items: center;
     height: 100%;
     box-sizing: border-box;
+    background-color: var(--spectrum-white);
 }
 
 mas-top-nav #brand {
@@ -742,6 +741,15 @@ mas-top-nav .account-menu-header {
     padding: 0 20px 20px;
 }
 
+mas-top-nav .avatar-container {
+    width: 75px;
+    height: 75px;
+}
+
+mas-top-nav .avatar-image {
+    width: 100%;
+}
+
 mas-top-nav .account-info h2 {
     margin: 0.5rem 0;
 }
@@ -765,6 +773,6 @@ mas-top-nav .account-menu-item {
 }
 
 mas-top-nav .account-menu-item:hover {
-    background-color: var(--spectrum-global-color-gray-100);
-    color: var(--spectrum-global-color-gray-800);
+    background-color: var(--spectrum-gray-100);
+    color: var(--spectrum-gray-800);
 }

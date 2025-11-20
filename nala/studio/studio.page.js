@@ -12,7 +12,7 @@ export default class StudioPage {
         this.gotoContent = page.locator('.quick-action-card[heading="Go to Content"]');
 
         this.searchInput = page.locator('#actions sp-search  input');
-        this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-magnify');
+        this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-search');
         this.filter = page.locator('sp-action-button[label="Filter"]');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
@@ -62,7 +62,7 @@ export default class StudioPage {
         }
 
         if (cloned) {
-            let baseSelector = `aem-fragment:not([fragment="${id}"])`;
+            const baseSelector = `aem-fragment:not([fragment="${id}"])`;
             const selector = secondID ? `${baseSelector}:not([fragment="${secondID}"])` : baseSelector;
             return card.filter({
                 has: this.page.locator(selector),
@@ -217,7 +217,7 @@ export default class StudioPage {
                                 .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
                                 .filter((err) => err); // Remove any undefined entries
 
-                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
                         }
                         return msg;
                     });
@@ -303,7 +303,7 @@ export default class StudioPage {
                                 .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
                                 .filter((err) => err); // Remove any undefined entries
 
-                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
                         }
                         return msg;
                     });
@@ -395,7 +395,7 @@ export default class StudioPage {
                                 .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
                                 .filter((err) => err); // Remove any undefined entries
 
-                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
                         }
                         return msg;
                     });

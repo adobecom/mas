@@ -42,7 +42,7 @@ export default {
                 },
                 css: {
                     original: 'rgba(0, 0, 0, 0)',
-                    updated: 'rgb(70, 70, 70)',
+                    updated: 'rgb(80, 80, 80)',
                 },
             },
             browserParams: '#page=content&path=nala&query=',

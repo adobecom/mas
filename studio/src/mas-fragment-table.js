@@ -101,7 +101,6 @@ class MasFragmentTable extends LitElement {
     handleCreateVariation(event) {
         event.stopPropagation();
         // TODO: Implement create variation logic
-        console.log('Create variation for:', this.fragmentStore.value);
     }
 
     handleEditFragment(event) {

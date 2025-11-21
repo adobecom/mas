@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
     <head>
+        <script type="module">
+            window.process = { env: {} };
+        </script>
         <title>Prosemirror RTE field custom element</title>
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -32,6 +35,7 @@
     </head>
     <body>
         <script type="module">
+
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
 
@@ -46,11 +50,9 @@
 
             runTests(async () => {
                 await mockFetch(withWcs);
-                // Wait for mas-commerce-service to be ready
                 await customElements.whenDefined('mas-commerce-service');
                 const masCommerceService = document.querySelector('mas-commerce-service');
 
-                // Ensure settings and featureFlags are available for tests
                 if (masCommerceService) {
                     if (!masCommerceService.settings) {
                         Object.defineProperty(masCommerceService, 'settings', {
@@ -77,6 +79,7 @@
                             configurable: true,
                         });
                     }
+                } else {
                 }
 
                 const openLinkEditor = async function (rte) {

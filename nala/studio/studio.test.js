@@ -18,6 +18,14 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.quickActions).toBeVisible();
             // enable the follwoing check once loadiing this section is stable
             // await expect(await studio.recentlyUpdated).toBeVisible();
+            await expect(await studio.topnav).toBeVisible();
+            await expect(await studio.surfacePicker).toBeVisible();
+            await expect(await studio.localePicker).toBeVisible();
+            await expect(await studio.sideNav).toBeVisible();
+            await expect(await studio.homeButton).toBeVisible();
+            await expect(await studio.fragmentsButton).toBeVisible();
+            await expect(await studio.placeholdersButton).toBeVisible();
+            await expect(await studio.supportButton).toBeVisible();
         });
     });
 
@@ -41,7 +49,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(page).toHaveURL(expectedUrl);
-            expect(await studio.folderPicker).toHaveAttribute('value', 'nala');
+            expect(await studio.surfacePicker).toHaveAttribute('value', 'nala');
         });
     });
 
@@ -105,7 +113,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-2: Go to content', async () => {
             await expect(await studio.quickActions).toBeVisible();
             await expect(await studio.gotoContent).toBeVisible();
-            await expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
+            await expect(await studio.surfacePicker).toHaveAttribute('value', 'acom');
             await studio.gotoContent.click();
         });
 
@@ -114,7 +122,7 @@ test.describe('M@S Studio feature test suite', () => {
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
             await expect(page).toHaveURL(`${testPage}#page=content&path=acom`);
-            expect(await studio.folderPicker).toHaveAttribute('value', 'acom');
+            expect(await studio.surfacePicker).toHaveAttribute('value', 'acom');
         });
     });
 
@@ -325,6 +333,62 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
+        });
+    });
+    // @studio-surface-change - Validate surface change in mas studio
+    test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[11].path}${miloLibs}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Change surface', async () => {
+            await expect(await studio.topnav).toBeVisible();
+            await expect(await studio.surfacePicker).toBeVisible();
+            await studio.surfacePicker.click();
+            await page.getByRole('menuitem', { name: 'sandbox' }).click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Validate surface change', async () => {
+            await expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
+            await expect(page).toHaveURL(`${testPage}#page=welcome&path=sandbox`);
+            await expect(await studio.sideNav).toBeVisible();
+            await expect(await studio.homeButton).toBeVisible();
+            await expect(await studio.fragmentsButton).toBeVisible();
+            await expect(await studio.placeholdersButton).toBeVisible();
+        });
+    });
+
+    // @studio-locale-change - Validate locale change in mas studio
+    test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[12].path}${miloLibs}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Change locale', async () => {
+            await expect(await studio.localePicker).toBeVisible();
+            await expect(await studio.localePicker).toHaveAttribute('value', 'en_US');
+            await studio.localePicker.click();
+            await page.getByRole('menuitem', { name: 'fr_FR' }).click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Validate locale change', async () => {
+            await expect(await studio.localePicker).toHaveAttribute('value', 'fr_FR');
+            await expect(page).toHaveURL(`${testPage}#locale=fr_FR&page=welcome&path=acom`);
+            await expect(await studio.sideNav).toBeVisible();
+            await expect(await studio.homeButton).toBeVisible();
+            await expect(await studio.fragmentsButton).toBeVisible();
+            await expect(await studio.placeholdersButton).toBeVisible();
+            await expect(await studio.supportButton).toBeVisible();
         });
     });
 });

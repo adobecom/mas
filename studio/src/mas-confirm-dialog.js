@@ -28,6 +28,8 @@ class MasConfirmDialog extends LitElement {
 
         .confirm-dialog-overlay sp-dialog-wrapper {
             max-width: 100vw;
+            background: var(--spectrum-white);
+            border-radius: 16px;
         }
     `;
 

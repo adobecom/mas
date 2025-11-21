@@ -121,7 +121,7 @@ class MasSelectionPanel extends LitElement {
                 : nothing}
             ${count > 0
                 ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>
-                      <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>
+                      <sp-icon-delete slot="icon"></sp-icon-delete>
                       <sp-tooltip self-managed placement="top">Delete</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
@@ -132,7 +132,7 @@ class MasSelectionPanel extends LitElement {
                       ?disabled=${!this.onPublish}
                       @click=${this.handlePublish}
                   >
-                      <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
+                      <sp-icon-publish slot="icon"></sp-icon-publish>
                       <sp-tooltip self-managed placement="top">Publish</sp-tooltip>
                   </sp-action-button>`
                 : nothing}

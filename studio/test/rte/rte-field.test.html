@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
     <head>
+        <script type="module">
+            window.process = { env: {} };
+        </script>
         <title>Prosemirror RTE field custom element</title>
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -46,11 +49,9 @@
 
             runTests(async () => {
                 await mockFetch(withWcs);
-                // Wait for mas-commerce-service to be ready
                 await customElements.whenDefined('mas-commerce-service');
                 const masCommerceService = document.querySelector('mas-commerce-service');
 
-                // Ensure settings and featureFlags are available for tests
                 if (masCommerceService) {
                     if (!masCommerceService.settings) {
                         Object.defineProperty(masCommerceService, 'settings', {
@@ -77,6 +78,7 @@
                             configurable: true,
                         });
                     }
+                } else {
                 }
 
                 const openLinkEditor = async function (rte) {
@@ -330,7 +332,7 @@
         <mas-commerce-service data-mas-ff-defaults="off" env="stage"></mas-commerce-service>
         <button onclick="toggleTheme()" style="position: absolute; right: 0; bottom: 0">Toggle theme</button>
         <main>
-            <sp-theme color="light" scale="medium"> </sp-theme>
+            <sp-theme system="spectrum-two" color="light" scale="medium"> </sp-theme>
         </main>
         <template id="rte">
             <rte-field link>

@@ -165,7 +165,7 @@ class MasPlaceholdersItem extends LitElement {
         `;
     }
 
-    renderKeyCell() {
+    get keyCell() {
         if (this.editing) {
             return html`
                 <sp-table-cell class="editing-cell key">
@@ -184,7 +184,7 @@ class MasPlaceholdersItem extends LitElement {
         return this.renderTableCell(this.placeholder.key, '', 'key');
     }
 
-    renderValueCell() {
+    get valueCell() {
         if (this.editing) {
             return html`
                 <sp-table-cell class="editing-cell value">
@@ -223,7 +223,7 @@ class MasPlaceholdersItem extends LitElement {
         return this.renderTableCell(this.placeholder.value, '', 'value');
     }
 
-    renderStatusCell() {
+    get statusCell() {
         return html`
             <sp-table-cell>
                 <div class="status-cell">
@@ -233,7 +233,7 @@ class MasPlaceholdersItem extends LitElement {
         `;
     }
 
-    renderActionCell() {
+    get actionCell() {
         if (this.editing) {
             return html`
                 <sp-table-cell class="action-cell">
@@ -244,7 +244,7 @@ class MasPlaceholdersItem extends LitElement {
                             aria-label="Save changes"
                             ?disabled=${!this.placeholder.hasChanges || this.disabled}
                         >
-                            <sp-icon-checkmark></sp-icon-checkmark>
+                            <sp-icon-checkmark size="m"></sp-icon-checkmark>
                         </button>
                         <button
                             class="action-button reject-button"
@@ -252,7 +252,7 @@ class MasPlaceholdersItem extends LitElement {
                             aria-label="Cancel editing"
                             ?disabled=${this.disabled}
                         >
-                            <sp-icon-close></sp-icon-close>
+                            <sp-icon-close size="m"></sp-icon-close>
                         </button>
                     </div>
                 </sp-table-cell>
@@ -268,7 +268,7 @@ class MasPlaceholdersItem extends LitElement {
                         aria-label="Edit placeholder"
                         ?disabled=${this.disabled}
                     >
-                        <sp-icon-edit></sp-icon-edit>
+                        <sp-icon-edit size="m"></sp-icon-edit>
                     </button>
                     <div class="dropdown-menu-container">
                         <button
@@ -278,7 +278,7 @@ class MasPlaceholdersItem extends LitElement {
                             aria-label="More options"
                             ?disabled=${this.disabled}
                         >
-                            <sp-icon-more></sp-icon-more>
+                            <sp-icon-more size="m"></sp-icon-more>
                         </button>
                         ${this.activeDropdown
                             ? html`
@@ -289,11 +289,11 @@ class MasPlaceholdersItem extends LitElement {
                                               : ''}"
                                           @click=${this.onPublish}
                                       >
-                                          <sp-icon-publish-check></sp-icon-publish-check>
+                                          <sp-icon-publish size="m"></sp-icon-publish>
                                           <span>Publish</span>
                                       </div>
                                       <div class="dropdown-item" @click="${this.onDelete}">
-                                          <sp-icon-delete></sp-icon-delete>
+                                          <sp-icon-delete size="m"></sp-icon-delete>
                                           <span>Delete</span>
                                       </div>
                                   </div>

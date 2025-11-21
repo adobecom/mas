@@ -97,7 +97,7 @@ class MasFragmentRender extends LitElement {
     get unknown() {
         const label = this.fragment.fields.find((field) => field.name === 'label')?.values[0];
         return html`<div class="unknown-fragment" slot="trigger">
-            <sp-icon-document-fragment></sp-icon-document-fragment> ${label} ${this.selectionOverlay}
+            <sp-icon-collection size="m"></sp-icon-collection> ${label} ${this.selectionOverlay}
             <p class="model-name">${this.fragment.title}</p>
         </div>`;
     }

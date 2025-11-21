@@ -30,7 +30,8 @@ class MasMnemonicModal extends LitElement {
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 2000;
-            background: var(--spectrum-gray-100);
+            background: var(--spectrum-white);
+            border-radius: 16px;
         }
 
         sp-dialog {
@@ -100,9 +101,9 @@ class MasMnemonicModal extends LitElement {
         }
 
         .icon-item.selected {
-            border-color: var(--spectrum-global-color-blue-600);
-            background-color: var(--spectrum-global-color-blue-50);
-            box-shadow: 0 0 0 1px var(--spectrum-global-color-blue-600);
+            border-color: var(--spectrum-blue-600);
+            background-color: var(--spectrum-blue-50);
+            box-shadow: 0 0 0 1px var(--spectrum-blue-600);
         }
 
         .icon-item img {
@@ -142,11 +143,11 @@ class MasMnemonicModal extends LitElement {
             width: 100%;
         }
 
-        sp-dialog::part(footer) {
-            display: flex;
-            justify-content: space-between;
-            padding-top: 16px;
-            border-top: 1px solid var(--spectrum-gray-200);
+        sp-dialog {
+            --spectrum-dialog-footer-display: flex;
+            --spectrum-dialog-footer-justify-content: space-between;
+            --spectrum-dialog-footer-padding-top: 16px;
+            --spectrum-dialog-footer-border-top: 1px solid var(--spectrum-gray-200);
         }
 
         sp-button[slot='button'][variant='secondary'] {

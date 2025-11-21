@@ -66,9 +66,11 @@
                         Store.search.set({ path: 'sandbox' });
                         Store.filters.set({ locale: 'en_US' });
 
-                        document.dispatchEvent(new CustomEvent('ost-offer-select', {
-                            detail: { offerSelectorId: null, offer: {} },
-                        }));
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: null, offer: {} },
+                            }),
+                        );
 
                         // Fill in the form
                         const titleField = dialog.shadowRoot.querySelector('#fragment-title');
@@ -94,9 +96,11 @@
                         Store.search.set({ path: 'sandbox' });
                         Store.filters.set({ locale: 'en_US' });
 
-                        document.dispatchEvent(new CustomEvent('ost-offer-select', {
-                            detail: { offerSelectorId: null, offer: {} },
-                        }));
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: null, offer: {} },
+                            }),
+                        );
 
                         dialog._onTagSelect({
                             detail: { tags: ['mas:offerless/dx'] },

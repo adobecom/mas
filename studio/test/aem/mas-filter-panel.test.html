@@ -43,7 +43,7 @@
 
             async function clickTagClearButton(filterPanel, tagPath) {
                 const tags = filterPanel.shadowRoot.querySelectorAll('sp-tag');
-                const tag = Array.from(tags).find(t => t.value?.path === tagPath);
+                const tag = Array.from(tags).find((t) => t.value?.path === tagPath);
                 tag.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
                 await delay(50);
             }

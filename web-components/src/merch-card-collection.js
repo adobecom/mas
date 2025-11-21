@@ -107,6 +107,8 @@ export class MerchCardCollection extends LitElement {
     #service;
     #log;
 
+    #merchCardElement;
+
     constructor() {
         super();
         // set defaults
@@ -120,6 +122,7 @@ export class MerchCardCollection extends LitElement {
         this.hydrating = false;
         this.hydrationReady = null;
         this.literalsHandlerAttached = false;
+        this.onUnmount = [];
     }
 
     render() {
@@ -232,6 +235,7 @@ export class MerchCardCollection extends LitElement {
         if (this.#service) {
             this.#log = this.#service.Log.module(MERCH_CARD_COLLECTION);
         }
+        this.#merchCardElement = customElements.get('merch-card');
         this.buildOverrideMap();
         this.init();
     }
@@ -251,6 +255,7 @@ export class MerchCardCollection extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.stopDeeplink?.();
+        for (const callback of this.onUnmount) callback();
     }
 
     initializeHeader() {
@@ -271,6 +276,13 @@ export class MerchCardCollection extends LitElement {
 
     initializePlaceholders() {
         const placeholders = this.data?.placeholders || {};
+        // If searchText is empty but sidenavSettings has it, use that value
+        if (
+            !placeholders.searchText &&
+            this.data?.sidenavSettings?.searchText
+        ) {
+            placeholders.searchText = this.data.sidenavSettings.searchText;
+        }
         for (const key of Object.keys(placeholders)) {
             const value = placeholders[key];
             const tag = value.includes('<p>') ? 'div' : 'p';
@@ -294,6 +306,11 @@ export class MerchCardCollection extends LitElement {
         this.dispatchEvent(
             new CustomEvent(EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED),
         );
+
+        const onSidenavAttached = this.#merchCardElement?.getCollectionOptions(
+            this.variant,
+        )?.onSidenavAttached;
+        onSidenavAttached && onSidenavAttached(this);
     }
 
     #fail(error, details = {}, dispatch = true) {
@@ -322,11 +339,53 @@ export class MerchCardCollection extends LitElement {
             resolveHydration = resolve;
         });
         const self = this;
+
         function normalizePayload(fragment, overrideMap) {
+            // Support both checkboxGroups (direct format) and tagFilters (parsed format)
+            let tagFilters;
+            if (fragment.fields?.checkboxGroups) {
+                // Use checkboxGroups directly if provided
+                tagFilters = fragment.fields.checkboxGroups;
+            } else if (fragment.fields?.tagFilters) {
+                // Parse tagFilters into checkbox group format
+                tagFilters = [
+                    {
+                        title: fragment.fields?.tagFiltersTitle,
+                        label: 'types',
+                        deeplink: 'types',
+                        checkboxes: fragment.fields.tagFilters.map((tag) => {
+                            // Example: "mas:types/desktop" -> "desktop"
+                            // Example: "mas:types/mobile" -> "mobile"
+                            // Example: "mas:types/web" -> "web"
+                            // TODO: Get tag label from fragment instead of parsing the tag
+                            const parsedTag = tag.split('/').pop();
+                            let tagLabel =
+                                fragment.settings?.tagLabels?.[parsedTag] ||
+                                parsedTag;
+                            tagLabel = tagLabel.startsWith('coll-tag-filter')
+                                ? parsedTag.charAt(0).toUpperCase() +
+                                  parsedTag.slice(1)
+                                : tagLabel;
+                            return { name: parsedTag, label: tagLabel };
+                        }),
+                    },
+                ];
+            }
+
+            const sidenavSettings = {
+                searchText: fragment.fields?.searchText,
+                tagFilters: tagFilters,
+                linksTitle: fragment.fields?.linksTitle,
+                link: fragment.fields?.link,
+                linkText: fragment.fields?.linkText,
+                linkIcon: fragment.fields?.linkIcon,
+            };
+
             const payload = {
                 cards: [],
                 hierarchy: [],
                 placeholders: fragment.placeholders,
+                sidenavSettings: sidenavSettings,
             };
 
             function traverseReferencesTree(root, references) {
@@ -343,8 +402,10 @@ export class MerchCardCollection extends LitElement {
                         );
                         continue;
                     }
-                    const { fields } =
-                        fragment.references[reference.identifier].value;
+                    const value =
+                        fragment.references[reference.identifier]?.value;
+                    if (!value?.fields) continue;
+                    const { fields } = value;
                     const collection = {
                         label: fields.label || '',
                         icon: fields.icon,
@@ -382,6 +443,7 @@ export class MerchCardCollection extends LitElement {
             aemFragment.remove();
         });
         aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
+            this.limit = 27; // number of cards per "page"
             this.data = normalizePayload(event.detail, this.#overrideMap);
             const { cards, hierarchy } = this.data;
 
@@ -673,7 +735,7 @@ export default class MerchCardCollectionHeader extends LitElement {
     }
 
     getVisibility(type) {
-        const visibility = this.#merchCardElement.getCollectionOptions(
+        const visibility = this.#merchCardElement?.getCollectionOptions(
             this.collection?.variant,
         )?.headerVisibility;
         const typeVisibility = this.parseVisibilityOptions(visibility, type);
@@ -728,6 +790,7 @@ export default class MerchCardCollectionHeader extends LitElement {
                     id="search-bar"
                     placeholder="${searchPlaceholder}"
                     .size=${SEARCH_SIZE[this.variant]}
+                    aria-label="${searchPlaceholder}"
                 ></sp-search>
             </merch-search>
         `;
@@ -808,7 +871,7 @@ export default class MerchCardCollectionHeader extends LitElement {
     get customArea() {
         if (!this.#visibility.custom) return nothing;
         const customHeaderAreaGetter =
-            this.#merchCardElement.getCollectionOptions(
+            this.#merchCardElement?.getCollectionOptions(
                 this.collection?.variant,
             )?.customHeaderArea;
         if (!customHeaderAreaGetter) return nothing;
@@ -859,7 +922,8 @@ export default class MerchCardCollectionHeader extends LitElement {
             --merch-card-collection-header-areas: 'search search' 'filter sort'
                 'result result';
             --merch-card-collection-header-search-max-width: unset;
-            --merch-card-collection-header-filter-height: 40px;
+            --merch-card-collection-header-search-min-height: 44px;
+            --merch-card-collection-header-filter-height: 44px;
             --merch-card-collection-header-filter-font-size: 16px;
             --merch-card-collection-header-filter-padding: 15px;
             --merch-card-collection-header-sort-height: var(
@@ -900,6 +964,7 @@ export default class MerchCardCollectionHeader extends LitElement {
         #search sp-search {
             max-width: var(--merch-card-collection-header-search-max-width);
             width: 100%;
+            min-height: var(--merch-card-collection-header-search-min-height);
         }
 
         #filter {

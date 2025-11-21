@@ -98,7 +98,6 @@
                         triggerRteInput(field, 'test title');
                         expect(fragment.getField('cardTitle').values).to.deep.equal(['test title']);
                         await editorPanel.updateComplete;
-                        const merchCardEditor = document.querySelector('merch-card-editor');
                         await delay(100);
                         expect(Store.editor.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
@@ -108,7 +107,10 @@
                         btnDiscard.click();
                         await delay(100);
                         expect(fragment.getField('cardTitle').values).to.deep.equal([]);
-                        expect(field.innerHTML).to.equal('');
+                        // Re-query the field after discard to get the newly created element
+                        field = document.getElementById('card-title');
+                        await delay(100); // Allow time for re-render to complete
+                        expect(field.value).to.equal('');
                     });
 
                     it('implements "use"', async () => {
@@ -117,9 +119,14 @@
                             path: 'acom',
                         }));
                         await editorPanel.updateComplete;
-                        const field = document.getElementById('card-title');
+                        let field = document.getElementById('card-title');
+                        let attempts = 0;
+                        while ((!field || !field.editorView) && attempts < 20) {
+                            await delay(100);
+                            field = document.getElementById('card-title');
+                            attempts++;
+                        }
                         expect(field, 'field should exist').to.exist;
-                        await field.ready;
                         expect(field.editorView, 'editorView should be initialized').to.exist;
                         triggerRteInput(field, 'test title');
                         await editorPanel.updateComplete;
@@ -174,6 +181,7 @@
                     it('displays version history button in toolbar', async () => {
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
+                        await delay(100);
 
                         const versionHistory = document.querySelector('version-history');
                         expect(versionHistory).to.exist;

@@ -91,7 +91,7 @@ function rewriteImportsToLibsFolder() {
         setup(build) {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
                 return {
-                    path: '../../deps/lit-all.min.js',
+                    path: './lit-all.min.js',
                     external: true,
                 };
             });

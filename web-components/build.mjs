@@ -70,6 +70,7 @@ Promise.all([
     buildLitComponent('merch-stock'),
     buildLitComponent('merch-whats-included'),
     buildLitComponent('merch-mnemonic-list'),
+    buildLitComponent('mas-mnemonic'),
 ]).catch(() => process.exit(1));
 
 async function buildLitComponent(name) {

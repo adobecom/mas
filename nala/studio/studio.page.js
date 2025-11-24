@@ -12,7 +12,7 @@ export default class StudioPage {
         this.gotoContent = page.locator('.quick-action-card[heading="Go to Content"]');
 
         this.searchInput = page.locator('#actions sp-search  input');
-        this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-magnify');
+        this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-search');
         this.filter = page.locator('sp-action-button[label="Filter"]');
         this.folderPicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
@@ -38,11 +38,22 @@ export default class StudioPage {
         this.ahPromotedPlansCardGradientBorder = page.locator(
             'merch-card[variant="ah-promoted-plans"][gradient-border="true"]',
         );
+        // Topnav panel
+        this.topnav = page.locator('mas-top-nav');
+        this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
+        this.localePicker = page.locator('mas-nav-locale-picker sp-action-menu');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
         this.deleteCardButton = this.sideNav.locator('mas-side-nav-item[label="Delete"]');
         this.saveCardButton = this.sideNav.locator('mas-side-nav-item[label="Save"]');
+        this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
+        this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
+        this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');
+        this.promotionsButton = this.sideNav.locator('mas-side-nav-item[label="Promotions"]');
+        this.collectionsButton = this.sideNav.locator('mas-side-nav-item[label="Collections"]');
+        this.placeholdersButton = this.sideNav.locator('mas-side-nav-item[label="Placeholders"]');
+        this.supportButton = this.sideNav.locator('mas-side-nav-item[label="Support"]');
     }
 
     async getCard(id, cloned, secondID) {
@@ -52,7 +63,7 @@ export default class StudioPage {
         }
 
         if (cloned) {
-            let baseSelector = `aem-fragment:not([fragment="${id}"])`;
+            const baseSelector = `aem-fragment:not([fragment="${id}"])`;
             const selector = secondID ? `${baseSelector}:not([fragment="${secondID}"])` : baseSelector;
             return card.filter({
                 has: this.page.locator(selector),
@@ -207,7 +218,7 @@ export default class StudioPage {
                                 .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
                                 .filter((err) => err); // Remove any undefined entries
 
-                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
                         }
                         return msg;
                     });
@@ -293,7 +304,7 @@ export default class StudioPage {
                                 .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
                                 .filter((err) => err); // Remove any undefined entries
 
-                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
                         }
                         return msg;
                     });
@@ -388,7 +399,7 @@ export default class StudioPage {
                                 .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
                                 .filter((err) => err); // Remove any undefined entries
 
-                            return `${msg}${attemptConsoleErrors.length ? '\nConsole errors:\n' + attemptConsoleErrors.join('\n') : ''}`;
+                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
                         }
                         return msg;
                     });

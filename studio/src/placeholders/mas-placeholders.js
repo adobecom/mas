@@ -305,7 +305,7 @@ class MasPlaceholders extends LitElement {
                     </sp-button>
                 </div>
 
-                ${this.renderError()}
+                ${this.errorMessage}
 
                 <div class="search-filters-container">
                     <div class="placeholders-title">
@@ -425,12 +425,12 @@ class MasPlaceholders extends LitElement {
 
     // #endregion
 
-    renderError() {
+    get errorMessage() {
         if (!this.error) return nothing;
 
         return html`
             <div class="error-message">
-                <sp-icon-alert></sp-icon-alert>
+                <sp-icon-alert size="m"></sp-icon-alert>
                 <span>${this.error}</span>
             </div>
         `;

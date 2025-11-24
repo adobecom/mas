@@ -101,7 +101,7 @@ export const styles = css`
     }
 
     .placeholders-table sp-table-head {
-        background-color: var(--spectrum-global-color-gray-100);
+        background-color: var(--spectrum-gray-100);
         border-bottom: 1px solid var(--spectrum-gray-200);
     }
 
@@ -194,7 +194,7 @@ export const styles = css`
     }
 
     .action-button:hover {
-        background-color: var(--spectrum-global-color-gray-200);
+        background-color: var(--spectrum-gray-200);
     }
 
     .dropdown-menu-container {
@@ -226,7 +226,7 @@ export const styles = css`
     }
 
     .dropdown-item:hover {
-        background-color: var(--spectrum-global-color-gray-100);
+        background-color: var(--spectrum-gray-100);
     }
 
     .dropdown-item.disabled {
@@ -311,7 +311,7 @@ export const styles = css`
     }
 
     .rich-text-cell a {
-        color: var(--spectrum-global-color-blue-600);
+        color: var(--spectrum-blue-600);
         text-decoration: none;
     }
 
@@ -359,14 +359,14 @@ export const styles = css`
         display: flex;
         flex-direction: column;
         gap: 0;
-        padding: var(--spectrum-global-dimension-size-200);
+        padding: var(calc(var(--swc-scale-factor) * 16px));
         width: 80vw;
         max-width: 900px;
         box-sizing: border-box;
     }
 
     .form-field {
-        margin-bottom: var(--spectrum-global-dimension-size-200);
+        margin-bottom: var(calc(var(--swc-scale-factor) * 16px));
         display: flex;
         flex-direction: column;
         gap: 4px;
@@ -378,7 +378,7 @@ export const styles = css`
 
     .form-field sp-field-label {
         display: block;
-        margin-bottom: var(--spectrum-global-dimension-size-75);
+        margin-bottom: var(calc(var(--swc-scale-factor) * 6px));
     }
 
     .form-field sp-picker,

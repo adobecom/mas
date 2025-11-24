@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
     <head>
+        <script type="module">
+            window.process = { env: {} };
+        </script>
         <title>editor-panel custom element test page</title>
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -32,7 +35,6 @@
             import sinon from 'sinon';
             import { html } from 'lit';
             import { fixture, oneEvent } from '@open-wc/testing-helpers';
-
             import '../src/swc.js';
             import '../src/rte/rte-field.js';
             import '../src/aem/aem-tag-picker-field.js';
@@ -48,10 +50,12 @@
 
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
+
                 const originalFetch = window.fetch;
                 const fragmentData = await originalFetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) =>
                     res.json(),
                 );
+
                 window.fetch = async function (args) {
                     const { pathname } = new URL(args);
                     if (/querybuilder.json?path=\/content\/cq:tags\/mas/.test(pathname)) {
@@ -74,6 +78,7 @@
                         fragment = new Fragment(fragmentData);
                         fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
+                        editorPanel.repository.aem.sites.cf.fragments.getVersions = async () => ({ items: [] });
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
                     });
@@ -81,9 +86,7 @@
                     it('implements "discard changes"', async () => {
                         const discardButton = document.querySelector('sp-action-button[value="discard"]');
                         expect(discardButton.disabled).to.be.true;
-                        // Wait for rte-field element to exist and be initialized
                         let field = document.getElementById('card-title');
-                        // Poll until editorView is ready
                         let attempts = 0;
                         while ((!field || !field.editorView) && attempts < 20) {
                             await delay(100);
@@ -95,7 +98,6 @@
                         triggerRteInput(field, 'test title');
                         expect(fragment.getField('cardTitle').values).to.deep.equal(['test title']);
                         await editorPanel.updateComplete;
-                        const merchCardEditor = document.querySelector('merch-card-editor');
                         await delay(100);
                         expect(Store.editor.hasChanges).to.be.true;
                         expect(discardButton.disabled).to.be.false;
@@ -105,7 +107,10 @@
                         btnDiscard.click();
                         await delay(100);
                         expect(fragment.getField('cardTitle').values).to.deep.equal([]);
-                        expect(field.innerHTML).to.equal('');
+                        // Re-query the field after discard to get the newly created element
+                        field = document.getElementById('card-title');
+                        await delay(100); // Allow time for re-render to complete
+                        expect(field.value).to.equal('');
                     });
 
                     it('implements "use"', async () => {
@@ -114,10 +119,7 @@
                             path: 'acom',
                         }));
                         await editorPanel.updateComplete;
-                        await editorPanel.refreshed;
-                        // Wait for rte-field element to exist and be initialized
                         let field = document.getElementById('card-title');
-                        // Poll until editorView is ready
                         let attempts = 0;
                         while ((!field || !field.editorView) && attempts < 20) {
                             await delay(100);
@@ -179,6 +181,7 @@
                     it('displays version history button in toolbar', async () => {
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
+                        await delay(100);
 
                         const versionHistory = document.querySelector('version-history');
                         expect(versionHistory).to.exist;
@@ -188,6 +191,6 @@
                 });
             });
         </script>
-        <sp-theme color="light" scale="medium"></sp-theme>
+        <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
     </body>
 </html>

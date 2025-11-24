@@ -35,7 +35,7 @@ class MasTopNav extends LitElement {
                 </button>
                 <div class="profile-body">
                     <div class="account-menu-header">
-                        <div class="avatar-container"><img src="${avatar}" alt="${displayName}" width="100%"></div>
+                        <div class="avatar-container"><img src="${avatar}" alt="${displayName}" class="avatar-image"></div>
                         <div class="account-info">
                             <h2>${displayName}</h2>
                             <p>${email}</p>
@@ -138,7 +138,7 @@ class MasTopNav extends LitElement {
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">
-                                      <sp-icon-help-circle size="m"></sp-icon-help-circle>
+                                      <sp-icon-help size="m"></sp-icon-help>
                                   </button>
                                   <button class="icon-button" title="Notifications">
                                       <sp-icon-bell size="m"></sp-icon-bell>

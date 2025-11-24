@@ -13,17 +13,22 @@ export class MasCreateDialog extends LitElement {
 
     static styles = css`
         .form-field {
-            margin-bottom: var(--spectrum-global-dimension-size-400);
+            margin-bottom: var(calc(var(--swc-scale-factor) * 32px));
         }
 
         sp-field-label {
             display: block;
-            margin-bottom: var(--spectrum-global-dimension-size-100);
+            margin-bottom: var(calc(var(--swc-scale-factor) * 8px));
         }
 
         sp-picker,
         sp-textfield {
             width: 100%;
+        }
+
+        sp-dialog-wrapper {
+            background: var(--spectrum-white);
+            border-radius: 16px;
         }
     `;
 
@@ -44,13 +49,13 @@ export class MasCreateDialog extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
-        document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
-        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
     }
 
     handleKeyDown(event) {
@@ -92,9 +97,13 @@ export class MasCreateDialog extends LitElement {
         this.title = value;
     }
 
-    _onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
+    #onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
+    };
+
+    _onTagSelect = ({ detail: { tags } }) => {
+        this.tags = tags;
     };
 
     #handeTagsChange(e) {
@@ -141,7 +150,8 @@ export class MasCreateDialog extends LitElement {
             return;
         }
 
-        if (this.type === 'merch-card' && !this.osi) {
+        const hasOfferlessTag = this.tags.some((tag) => tag?.includes('offerless'));
+        if (this.type === 'merch-card' && !this.osi && !hasOfferlessTag) {
             return;
         }
 

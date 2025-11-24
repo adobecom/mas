@@ -274,7 +274,7 @@ export class MasRepository extends LitElement {
                 );
                 if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
                     // Apply corrector transformer before caching
-                    const surface = path.split('/').filter(Boolean)[0]?.toLowerCase();
+                    const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                     applyCorrectorToFragment(fragmentData, surface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
@@ -296,7 +296,7 @@ export class MasRepository extends LitElement {
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const fragmentStores = [];
                 // Extract surface from path for corrector
-                const surface = path.split('/').filter(Boolean)[0]?.toLowerCase();
+                const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 for await (const result of cursor) {
                     for await (const item of result) {
                         if (this.skipVariant(variants, item)) continue;
@@ -819,7 +819,9 @@ export class MasRepository extends LitElement {
     async saveFragment(fragmentStore) {
         showToast('Saving fragment...');
         const fragmentToSave = fragmentStore.get();
-        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi')) {
+        const tags = fragmentToSave.getField('tags')?.values || [];
+        const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi') && !hasOfferlessTag) {
             showToast('Please select offer', 'negative');
             return false;
         }

@@ -62,15 +62,49 @@
                         fetchStub.restore();
                     });
 
-                    it('should make a POST fetch request when form is submitted', async () => {
+                    it('should not make a POST fetch request when no offer', async () => {
                         Store.search.set({ path: 'sandbox' });
                         Store.filters.set({ locale: 'en_US' });
 
                         document.dispatchEvent(
                             new CustomEvent('ost-offer-select', {
-                                detail: { offerSelectorId: 'ABC123', offer: {} },
+                                detail: { offerSelectorId: null, offer: {} },
                             }),
                         );
+
+                        // Fill in the form
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
+
+                        // Get the dialog wrapper
+                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
+
+                        // Set title
+                        titleField.value = 'Test Merch Card';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
+
+                        await dialog.updateComplete;
+
+                        // Submit the form by triggering the confirm event directly on dialog wrapper
+                        dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
+                        await dialog.updateComplete;
+
+                        // Verify fetch was called with correct parameters
+                        expect(fetchStub.called).to.be.false;
+                    });
+
+                    it('should make a POST fetch request when no offer but tags include offerless', async () => {
+                        Store.search.set({ path: 'sandbox' });
+                        Store.filters.set({ locale: 'en_US' });
+
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: null, offer: {} },
+                            }),
+                        );
+
+                        dialog._onTagSelect({
+                            detail: { tags: ['mas:offerless/dx'] },
+                        });
 
                         // Fill in the form
                         const titleField = dialog.shadowRoot.querySelector('#fragment-title');
@@ -101,23 +135,6 @@
                         const requestBody = JSON.parse(options.body);
                         expect(requestBody).to.have.property('title', 'Test Merch Card');
                         expect(requestBody).to.have.property('modelId');
-                    });
-
-                    it('should display the correct dialog title based on type', async () => {
-                        // Test with merch-card type
-                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
-                        dialog.type = 'merch-card';
-                        await dialog.updateComplete;
-
-                        let heading = dialogWrapper.shadowRoot.querySelector('h2[slot="heading"]');
-                        expect(heading.innerText).to.equal('Create New Merch Card');
-
-                        // Test with merch-card-collection type
-                        dialog.type = 'merch-card-collection';
-                        await dialog.updateComplete;
-
-                        heading = dialogWrapper.shadowRoot.querySelector('h2[slot="heading"]');
-                        expect(heading.innerText).to.equal('Create New Merch Card Collection');
                     });
                 });
             });

@@ -14,7 +14,7 @@ class MasSideNavItem extends LitElement {
             align-items: center;
             justify-content: center;
             padding: 12px 8px;
-            margin: 4px 8px;
+            margin: 4px;
             border-radius: 8px;
             font-size: 12px;
             color: var(--spectrum-gray-800, #292929);
@@ -27,11 +27,6 @@ class MasSideNavItem extends LitElement {
                 background-color 0.2s ease,
                 color 0.2s ease;
             user-select: none;
-        }
-
-        :host([selected]) {
-            background-color: rgba(0, 0, 0, 0.06);
-            font-weight: 600;
         }
 
         :host(:hover:not([disabled])) {
@@ -52,10 +47,19 @@ class MasSideNavItem extends LitElement {
             margin-bottom: 4px;
         }
 
+        :host([selected]) .icon-container {
+            background-color: var(--spectrum-gray-900, #000000);
+            border-radius: 8px;
+        }
+
         ::slotted(*) {
             width: 20px;
             height: 20px;
             color: var(--spectrum-gray-800, #292929);
+        }
+
+        :host([selected]) ::slotted(*) {
+            color: var(--spectrum-white, #ffffff);
         }
 
         .label {

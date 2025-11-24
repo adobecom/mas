@@ -353,7 +353,7 @@ class MerchCardEditor extends LitElement {
                 }
 
                 .field-reset-link a {
-                    color: var(--spectrum-global-color-blue-600);
+                    color: var(--spectrum-blue-600);
                     font-size: 12px;
                     text-decoration: none;
                     cursor: pointer;
@@ -363,13 +363,13 @@ class MerchCardEditor extends LitElement {
                     font-size: 20px;
                     font-weight: 700;
                     margin-bottom: 8px;
-                    color: var(--spectrum-global-color-gray-900);
+                    color: var(--spectrum-gray-900);
                     letter-spacing: -0.01em;
                 }
 
                 .section-description {
                     font-size: 13px;
-                    color: var(--spectrum-global-color-gray-700);
+                    color: var(--spectrum-gray-700);
                     margin-bottom: 24px;
                     line-height: 1.5;
                 }
@@ -409,7 +409,7 @@ class MerchCardEditor extends LitElement {
                 .color-swatch {
                     width: 16px;
                     height: 16px;
-                    border: 1px solid var(--spectrum-global-color-gray-300);
+                    border: 1px solid var(--spectrum-gray-300);
                     border-radius: 3px;
                     flex-shrink: 0;
                 }

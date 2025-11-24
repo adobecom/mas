@@ -14,7 +14,6 @@ export default class StudioPage {
         this.searchInput = page.locator('#actions sp-search  input');
         this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-magnify');
         this.filter = page.locator('sp-action-button[label="Filter"]');
-        this.folderPicker = page.locator('mas-folder-picker sp-action-menu');
         this.renderView = page.locator('#render');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('editor-panel > #editor');
@@ -41,6 +40,19 @@ export default class StudioPage {
         this.cloneCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="clone"]');
         this.deleteCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="delete"]');
         this.saveCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="save"]');
+        // Topnav panel
+        this.topnav = page.locator('mas-top-nav');
+        this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
+        this.localePicker = page.locator('mas-nav-locale-picker sp-action-menu');
+        // Sidenav toolbar
+        this.sideNav = page.locator('mas-side-nav');
+        this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
+        this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
+        this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');
+        this.promotionsButton = this.sideNav.locator('mas-side-nav-item[label="Promotions"]');
+        this.collectionsButton = this.sideNav.locator('mas-side-nav-item[label="Collections"]');
+        this.placeholdersButton = this.sideNav.locator('mas-side-nav-item[label="Placeholders"]');
+        this.supportButton = this.sideNav.locator('mas-side-nav-item[label="Support"]');
     }
 
     async getCard(id, cloned, secondID) {

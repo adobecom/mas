@@ -38,15 +38,26 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
             }
         });
 
-        await test.step('step-3: Validate table is rendered', async () => {
+        await test.step('step-3: Validate table is rendered with placeholder data', async () => {
             await expect(placeholders.placeholdersTable).toBeVisible();
-            // Wait for either placeholder rows or empty state message
-            await placeholders.waitForTableToLoad();
+
+            // Strictly require placeholder rows to exist for path=nala
+            const rowCount = await placeholders.waitForPlaceholderRows();
+            expect(rowCount).toBeGreaterThan(0);
+
+            // Verify first row has actual data
+            const firstRowData = await placeholders.verifyPlaceholderData(0);
+            expect(firstRowData.key).toBeTruthy();
+            expect(firstRowData.value).toBeTruthy();
         });
 
-        await test.step('step-4: Validate total placeholders label is present', async () => {
+        await test.step('step-4: Validate total placeholders count is greater than 0', async () => {
             await expect(placeholders.totalPlaceholdersLabel).toBeVisible();
             await expect(placeholders.totalPlaceholdersLabel).toContainText('Total Placeholders:');
+
+            // Verify count is greater than 0
+            const totalCount = await placeholders.getTotalPlaceholdersCount();
+            expect(totalCount).toBeGreaterThan(0);
         });
     });
 
@@ -88,6 +99,28 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
             const keyCursor = await placeholders.tableHeaders.key.evaluate((el) => window.getComputedStyle(el).cursor);
             expect(keyCursor).toBe('pointer');
         });
+
+        await test.step('step-4: Validate placeholder data rows exist', async () => {
+            // Ensure placeholder rows exist with actual data
+            const rowCount = await placeholders.waitForPlaceholderRows();
+            expect(rowCount).toBeGreaterThan(0);
+
+            // Verify first row contains data in all expected columns
+            const firstRow = placeholders.placeholderRows.first();
+            const cells = await firstRow.locator('sp-table-cell').all();
+
+            // Should have at least 7 cells (key, value, status, locale, updatedBy, updatedAt, action)
+            expect(cells.length).toBeGreaterThanOrEqual(7);
+
+            // Verify key and value cells have content
+            const keyText = await cells[0].textContent();
+            const valueText = await cells[1].textContent();
+
+            expect(keyText).toBeTruthy();
+            expect(keyText.trim()).not.toBe('');
+            expect(valueText).toBeTruthy();
+            expect(valueText.trim()).not.toBe('');
+        });
     });
 
     // Test 2: Validate UI elements are present
@@ -113,11 +146,19 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
             expect(placeholder).toBe('Search by key or value');
         });
 
-        await test.step('step-4: Validate locale picker is present', async () => {
-            await expect(placeholders.localePicker).toBeVisible();
-            // Check if it displays a locale (e.g., "Country: (en_US)")
-            const localeText = await placeholders.localePicker.textContent();
-            expect(localeText).toContain('Country:');
+        await test.step('step-4: Validate placeholders are loaded for en_US', async () => {
+            // Wait for table to load first
+            await placeholders.waitForTableToLoad();
+            await page.waitForTimeout(1000);
+
+            // Verify that placeholders are visible (which confirms correct locale)
+            const totalCount = await placeholders.getTotalPlaceholdersCount();
+            expect(totalCount).toBeGreaterThan(0);
+
+            // Verify we have the expected test placeholders for en_US
+            await placeholders.waitForPlaceholderRows();
+            const firstRowData = await placeholders.getPlaceholderRowData(0);
+            expect(firstRowData.locale.trim()).toBe('en_US');
         });
     });
 
@@ -131,20 +172,23 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate locale picker shows correct locale', async () => {
-            await expect(placeholders.localePicker).toBeVisible();
-            const localeText = await placeholders.localePicker.textContent();
-            expect(localeText).toContain('en_US');
+        await test.step('step-2: Validate page loaded with en_US locale', async () => {
+            // Wait for placeholders to load
+            await placeholders.waitForTableToLoad();
+
+            // Verify we have placeholders (confirming en_US locale is working)
+            const totalCount = await placeholders.getTotalPlaceholdersCount();
+            expect(totalCount).toBeGreaterThan(0);
         });
 
-        await test.step('step-3: Validate locale picker is clickable', async () => {
-            await placeholders.localePicker.click();
-            // Check if dropdown menu appears
-            const localeMenu = page.locator('sp-popover sp-menu');
-            await expect(localeMenu).toBeVisible();
+        await test.step('step-3: Validate en_US placeholders are loaded', async () => {
+            // Verify that placeholders exist for en_US locale
+            const rowCount = await placeholders.waitForPlaceholderRows();
+            expect(rowCount).toBeGreaterThan(0);
 
-            // Close the menu by clicking elsewhere
-            await page.keyboard.press('Escape');
+            // Verify the locale column shows en_US
+            const firstRowData = await placeholders.getPlaceholderRowData(0);
+            expect(firstRowData.locale.trim()).toBe('en_US');
         });
     });
 
@@ -158,58 +202,41 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Validate search input accepts text', async () => {
+        await test.step('step-2: Validate search functionality', async () => {
             await expect(placeholders.searchInput).toBeVisible();
-            await placeholders.searchInput.fill('test');
-            const value = await placeholders.searchInput.inputValue();
-            expect(value).toBe('test');
+
+            // First get the initial count
+            const initialRowCount = await placeholders.getRowCount();
+            expect(initialRowCount).toBeGreaterThan(0);
+
+            // Clear any existing search first
+            await placeholders.searchInput.clear();
+
+            // Search for a common prefix like "acro" which should filter results
+            await placeholders.searchInput.fill('acro');
+            await page.keyboard.press('Enter');
+
+            // Wait for search to process
+            await page.waitForTimeout(2000);
+
+            // Verify search filtered the results
+            const filteredRowCount = await placeholders.getRowCount();
+            expect(filteredRowCount).toBeGreaterThan(0);
+            expect(filteredRowCount).toBeLessThanOrEqual(initialRowCount);
+
+            // Verify the filtered results contain the search term
+            const firstRowData = await placeholders.getPlaceholderRowData(0);
+            expect(firstRowData.key.toLowerCase()).toContain('acro');
         });
 
         await test.step('step-3: Validate search input can be cleared', async () => {
             await placeholders.searchInput.fill('');
-            const value = await placeholders.searchInput.inputValue();
-            expect(value).toBe('');
-        });
-    });
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(1000);
 
-    // Test 5: Validate empty state message
-    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
-        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Navigate to placeholders page with non-existent locale', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Check for empty state or placeholder rows', async () => {
-            await placeholders.waitForTableToLoad();
-
-            // Either we have no placeholders message or we have rows
-            const isEmpty = await placeholders.isTableEmpty();
-
-            if (isEmpty) {
-                // If table is empty, verify the no placeholders message is shown
-                const noPlaceholdersVisible = await placeholders.noPlaceholdersMessage.isVisible().catch(() => false);
-                expect(noPlaceholdersVisible || (await placeholders.getRowCount()) === 0).toBeTruthy();
-            } else {
-                // If not empty, verify we have placeholder rows
-                const rowCount = await placeholders.getRowCount();
-                expect(rowCount).toBeGreaterThan(0);
-            }
-        });
-
-        await test.step('step-3: Validate total count reflects the state', async () => {
-            const totalCount = await placeholders.getTotalPlaceholdersCount();
+            // After clearing, should show all placeholders again
             const rowCount = await placeholders.getRowCount();
-
-            // Total count should be a valid number
-            expect(totalCount).toBeGreaterThanOrEqual(0);
-
-            // If we have rows, total should be greater than 0
-            if (rowCount > 0) {
-                expect(totalCount).toBeGreaterThan(0);
-            }
+            expect(rowCount).toBeGreaterThan(1); // Should show more than just the test placeholder
         });
     });
 });

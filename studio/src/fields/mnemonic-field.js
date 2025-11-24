@@ -87,7 +87,7 @@ class MnemonicField extends LitElement {
         }
 
         sp-icon-edit:hover {
-            color: var(--spectrum-global-color-blue-600);
+            color: var(--spectrum-blue-600);
         }
     `;
 

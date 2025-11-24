@@ -11,15 +11,15 @@ export const styles = css`
     }
 
     :host(.dragover) {
-        background-color: var(--spectrum-global-color-blue-50);
-        border: 2px dashed var(--spectrum-global-color-blue-500);
+        background-color: var(--spectrum-blue-50);
+        border: 2px dashed var(--spectrum-blue-500);
     }
 
     /* Default Card Drop Zone Styles */
     .default-card-section {
         margin-bottom: 24px;
         padding: 16px;
-        background-color: var(--spectrum-global-color-gray-50);
+        background-color: var(--spectrum-gray-50);
         border-radius: 8px;
     }
 
@@ -29,52 +29,52 @@ export const styles = css`
         gap: 8px;
         margin-bottom: 12px;
         font-weight: 600;
-        color: var(--spectrum-global-color-gray-800);
+        color: var(--spectrum-gray-800);
     }
 
     .default-card-header sp-icon-star {
-        color: var(--spectrum-global-color-yellow-600);
+        color: var(--spectrum-yellow-600);
     }
 
     .default-card-drop-zone {
         min-height: 80px;
-        border: 2px dashed var(--spectrum-global-color-gray-300);
+        border: 2px dashed var(--spectrum-gray-300);
         border-radius: 4px;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 16px;
         transition: all 0.2s ease;
-        background-color: var(--spectrum-global-color-gray-75);
+        background-color: var(--spectrum-gray-75);
         position: relative;
         z-index: 10;
     }
 
     .default-card-drop-zone.empty:hover {
-        border-color: var(--spectrum-global-color-blue-400);
-        background-color: var(--spectrum-global-color-blue-50);
+        border-color: var(--spectrum-blue-400);
+        background-color: var(--spectrum-blue-50);
     }
 
     .default-card-drop-zone.dragover {
-        border-color: var(--spectrum-global-color-blue-500);
-        background-color: var(--spectrum-global-color-blue-100);
+        border-color: var(--spectrum-blue-500);
+        background-color: var(--spectrum-blue-100);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .default-card-drop-zone.has-default {
-        background-color: var(--spectrum-global-color-yellow-50);
-        border-color: var(--spectrum-global-color-yellow-400);
+        background-color: var(--spectrum-yellow-50);
+        border-color: var(--spectrum-yellow-400);
     }
 
     .drop-zone-placeholder {
         text-align: center;
-        color: var(--spectrum-global-color-gray-600);
+        color: var(--spectrum-gray-600);
     }
 
-    .drop-zone-placeholder sp-icon-drag-handle {
+    .drop-zone-placeholder sp-icon-order {
         display: block;
         margin: 0 auto 8px;
-        color: var(--spectrum-global-color-gray-400);
+        color: var(--spectrum-gray-400);
     }
 
     .drop-zone-placeholder p {
@@ -83,7 +83,7 @@ export const styles = css`
 
     .drop-zone-placeholder .help-text {
         font-size: 12px;
-        color: var(--spectrum-global-color-gray-500);
+        color: var(--spectrum-gray-500);
     }
 
     .default-card-content {
@@ -103,7 +103,7 @@ export const styles = css`
     }
 
     .default-card-icon {
-        color: var(--spectrum-global-color-yellow-600);
+        color: var(--spectrum-yellow-600);
         flex-shrink: 0;
     }
 
@@ -116,7 +116,7 @@ export const styles = css`
 
     .default-card-title {
         font-weight: 600;
-        color: var(--spectrum-global-color-gray-800);
+        color: var(--spectrum-gray-800);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -124,7 +124,7 @@ export const styles = css`
 
     .default-card-name {
         font-size: 12px;
-        color: var(--spectrum-global-color-gray-600);
+        color: var(--spectrum-gray-600);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -132,8 +132,8 @@ export const styles = css`
 
     /* Default Card Indicator in List */
     .item-wrapper.is-default-card {
-        background-color: var(--spectrum-global-color-yellow-50);
-        border-color: var(--spectrum-global-color-yellow-400);
+        background-color: var(--spectrum-yellow-50);
+        border-color: var(--spectrum-yellow-400);
     }
 
     .item-wrapper.is-default-card .item-content {
@@ -141,7 +141,7 @@ export const styles = css`
     }
 
     .default-indicator {
-        color: var(--spectrum-global-color-yellow-600);
+        color: var(--spectrum-yellow-600);
         flex-shrink: 0;
     }
 
@@ -176,8 +176,8 @@ export const styles = css`
     }
 
     .empty-cards-placeholder:hover {
-        border-color: var(--spectrum-global-color-gray-300);
-        background-color: var(--spectrum-global-color-gray-50);
+        border-color: var(--spectrum-gray-300);
+        background-color: var(--spectrum-gray-50);
     }
 
     .items-container {
@@ -193,16 +193,16 @@ export const styles = css`
         justify-content: space-between;
         padding: 6px 12px;
         gap: 12px;
-        border: 1px solid var(--spectrum-global-color-gray-200);
+        border: 1px solid var(--spectrum-gray-200);
         border-radius: 4px;
-        background-color: var(--spectrum-global-color-gray-50);
+        background-color: var(--spectrum-gray-50);
         cursor: grab;
         position: relative;
         z-index: 1;
     }
 
     .item-wrapper:hover {
-        background-color: var(--spectrum-global-color-gray-100);
+        background-color: var(--spectrum-gray-100);
     }
 
     .item-wrapper sp-action-button {
@@ -224,7 +224,7 @@ export const styles = css`
     }
 
     .item-wrapper.dragover {
-        border: 2px dashed var(--spectrum-global-color-blue-500);
+        border: 2px dashed var(--spectrum-blue-500);
     }
 
     .item-content {
@@ -268,7 +268,7 @@ export const styles = css`
 
     .item-subtext {
         font-size: 12px;
-        color: var(--spectrum-global-color-gray-700);
+        color: var(--spectrum-gray-700);
         margin-top: 2px;
     }
 
@@ -282,20 +282,20 @@ export const styles = css`
 
     sp-icon-close {
         cursor: pointer;
-        color: var(--spectrum-global-color-gray-700);
+        color: var(--spectrum-gray-700);
     }
 
     sp-icon-close:hover {
-        color: var(--spectrum-global-color-red-600);
+        color: var(--spectrum-red-600);
     }
 
-    sp-icon-drag-handle {
+    sp-icon-order {
         cursor: grab;
-        color: var(--spectrum-global-color-gray-700);
+        color: var(--spectrum-gray-700);
     }
 
-    sp-icon-drag-handle:hover {
-        color: var(--spectrum-global-color-blue-600);
+    sp-icon-order:hover {
+        color: var(--spectrum-blue-600);
     }
 
     .editor-container {
@@ -307,7 +307,7 @@ export const styles = css`
     }
 
     .editor-container.dragover {
-        background-color: var(--spectrum-global-color-blue-50);
+        background-color: var(--spectrum-blue-50);
     }
 
     .tip {
@@ -327,8 +327,8 @@ export const styles = css`
     .preview-popover {
         position: fixed;
         min-width: 320px;
-        background-color: var(--spectrum-global-color-gray-50);
-        border: 1px solid var(--spectrum-global-color-gray-200);
+        background-color: var(--spectrum-gray-50);
+        border: 1px solid var(--spectrum-gray-200);
         border-radius: 4px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         z-index: 1000;

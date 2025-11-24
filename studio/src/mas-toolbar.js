@@ -11,7 +11,7 @@ const renderModes = [
     {
         value: 'render',
         label: 'Render view',
-        icon: html`<sp-icon-view-card slot="icon"></sp-icon-view-card>`,
+        icon: html`<sp-icon-view-grid-fluid slot="icon"></sp-icon-view-grid-fluid>`,
     },
     {
         value: 'table',
@@ -116,7 +116,6 @@ class MasToolbar extends LitElement {
         }
 
         sp-search {
-            --spectrum-search-border-radius: 16px;
             flex-grow: 1;
             max-width: 400px;
         }
@@ -166,9 +165,6 @@ class MasToolbar extends LitElement {
     }
 
     update() {
-        if (Store.createdByUsers.value.length > 0) {
-            this.filtersShown = true;
-        }
         super.update();
     }
 
@@ -188,9 +184,6 @@ class MasToolbar extends LitElement {
         }
         if (Store.createdByUsers.value.length > 0) {
             this.filterCount += 1;
-        }
-        if (this.filterCount > 0) {
-            this.filtersShown = true;
         }
     }
 
@@ -230,18 +223,14 @@ class MasToolbar extends LitElement {
 
     get searchAndFilterControls() {
         return html`<div id="read">
-            <sp-action-button
-                toggles
-                label="Filter"
-                @click="${this.onShowFilter}"
-                class="filters-button ${this.filterCount > 0 ? 'shown' : ''}"
-            >
+            <sp-action-button toggles label="Filter" class="filters-button ${this.filterCount > 0 ? 'shown' : ''}">
                 ${!this.filterCount > 0
-                    ? html`<sp-icon-filter-add slot="icon"></sp-icon-filter-add>`
+                    ? html`<sp-icon-filter slot="icon"></sp-icon-filter>`
                     : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
                 Filter</sp-action-button
             >
             <sp-search
+                label="Search"
                 placeholder="Search"
                 @submit="${this.handleSearchSubmit}"
                 @change=${this.handleChange}
@@ -277,7 +266,7 @@ class MasToolbar extends LitElement {
         return html`<div id="write">
             ${this.createButton}
             <sp-button @click=${() => Store.selecting.set(true)}>
-                <sp-icon-selection-checked slot="icon"></sp-icon-selection-checked>
+                <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
                 Select
             </sp-button>
             <sp-action-menu

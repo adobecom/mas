@@ -17,9 +17,11 @@ sp-theme {
 mas-studio {
     width: 100%;
     display: flex;
-    background-color: var(--spectrum-global-color-gray-100);
+    background-color: var(--spectrum-gray-50);
     align-items: center;
     flex-direction: column;
+    height: 100vh;
+    overflow-y: clip;
 }
 
 .show {
@@ -32,10 +34,10 @@ mas-studio {
 
 .studio-content {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 75px 1fr;
     grid-row: 2 / 3;
     width: 100%;
-    min-height: calc(100vh - var(--mas-nav-height));
+    height: calc(100vh - var(--mas-nav-height));
 }
 
 side-nav {
@@ -76,35 +78,30 @@ side-nav sp-sidenav-item {
 }
 
 sp-sidenav-item sp-icon {
-    width: 20px;
-    height: 20px;
+    inline-size: var(--spectrum-workflow-icon-size-100);
+    block-size: var(--spectrum-workflow-icon-size-100);
     color: #292929;
-}
-
-side-nav sp-sidenav-item[selected] {
-    font-weight: 800;
-}
-
-side-nav sp-sidenav-item:hover {
-    cursor: pointer;
-    font-weight: 700;
 }
 
 .main-container {
     grid-column: 2 / 3;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding-block: 24px;
-    padding-inline: 16px;
+    height: auto;
+    margin-block-start: 16px;
+    margin-block-end: 20px;
+    margin-inline: 12px;
+    border-radius: 16px 16px 0 0;
+    background: var(--spectrum-white);
+    border: 1px solid var(--spectrum-gray-75, #f3f3f3);
+    box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
 }
 
 #content-container {
-    height: 100%;
+    height: fit-content;
     border-radius: 8px;
     padding-inline: 24px;
-    background-color: var(--spectrum-white);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     box-sizing: border-box;
     position: relative;
 }
@@ -127,7 +124,13 @@ sp-underlay + sp-dialog {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--spectrum-gray-100);
+    background: var(--spectrum-white);
+    border-radius: 16px;
+}
+
+sp-dialog-wrapper {
+    background: var(--spectrum-white);
+    border-radius: 16px;
 }
 
 #editor {
@@ -218,7 +221,7 @@ rte-field {
 }
 
 mas-fragment-render[selected] .render-fragment {
-    outline: 2px solid var(--spectrum-global-color-blue-600);
+    outline: 2px solid var(--spectrum-blue-600);
 }
 
 sp-progress-circle.fragments {
@@ -395,6 +398,7 @@ sp-table-head-cell {
     padding: 24px;
     width: 100%;
     box-sizing: border-box;
+    height: calc(100vh - var(--mas-nav-height));
 }
 
 #splash-container h1 {
@@ -593,4 +597,182 @@ sp-progress-circle.next-page {
     sp-table-cell.offer-id {
         word-break: break-all;
     }
+}
+
+/* mas-top-nav styles */
+mas-top-nav {
+    width: 100%;
+    height: 56px;
+    background-color: var(--spectrum-gray-50, #ffffff);
+    border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
+    display: block;
+}
+
+mas-top-nav nav {
+    display: flex;
+    padding-block: 12px;
+    padding-inline: 30px;
+    gap: 20px;
+    align-items: center;
+    height: 100%;
+    box-sizing: border-box;
+    background-color: var(--spectrum-white);
+}
+
+mas-top-nav #brand {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    gap: 12px;
+    text-decoration: none;
+}
+
+mas-top-nav #logo {
+    display: flex;
+    width: 32px;
+    height: 32px;
+}
+
+mas-top-nav #mas-studio {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 22px;
+    color: var(--spectrum-gray-800, #292929);
+    display: flex;
+    align-self: center;
+    font-family: 'Adobe Clean', sans-serif;
+}
+
+mas-top-nav a {
+    cursor: pointer;
+}
+
+mas-top-nav .spacer {
+    flex: 1;
+}
+
+mas-top-nav .right-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+mas-top-nav .icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+}
+
+mas-top-nav .icon-button:hover {
+    background-color: var(--spectrum-gray-100, #e1e1e1);
+}
+
+mas-top-nav .icon-button sp-icon-help-circle,
+mas-top-nav .icon-button sp-icon-bell {
+    color: var(--spectrum-gray-800, #292929);
+}
+
+mas-top-nav .divider {
+    width: 1px;
+    height: 32px;
+    background-color: var(--spectrum-gray-100, #e1e1e1);
+    border-radius: 2px;
+}
+
+mas-top-nav .universal-elements {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+mas-top-nav .profile-button {
+    padding: 0;
+    cursor: pointer;
+    border: 0;
+    background: 0;
+    position: relative;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+mas-top-nav .profile-button:hover {
+    background-color: var(--spectrum-gray-100, #e1e1e1);
+}
+
+mas-top-nav .profile-button img {
+    border-radius: 12px;
+    width: 24px;
+    height: 24px;
+}
+
+mas-top-nav .profile-body {
+    display: none;
+    margin: 0;
+    position: absolute;
+    min-width: 280px;
+    right: 30px;
+    top: 45px;
+    background: white;
+    padding: 20px 0;
+    border-radius: 10px;
+    box-shadow: 5px 5px 5px #cfcfcf;
+    z-index: 99;
+}
+
+mas-top-nav .profile-body.show {
+    display: block;
+}
+
+mas-top-nav .account-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 0 20px 20px;
+}
+
+mas-top-nav .avatar-container {
+    width: 75px;
+    height: 75px;
+}
+
+mas-top-nav .avatar-image {
+    width: 100%;
+}
+
+mas-top-nav .account-info h2 {
+    margin: 0.5rem 0;
+}
+
+mas-top-nav .account-info p {
+    margin: 0 0 0.5rem;
+    font-size: 14px;
+}
+
+mas-top-nav .profile-actions {
+    list-style: none;
+}
+
+mas-top-nav .account-menu hr {
+    margin: 0 20px 10px;
+}
+
+mas-top-nav .account-menu-item {
+    font-size: 16px;
+    padding: 5px 20px;
+}
+
+mas-top-nav .account-menu-item:hover {
+    background-color: var(--spectrum-gray-100);
+    color: var(--spectrum-gray-800);
 }

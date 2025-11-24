@@ -6,16 +6,17 @@ import Store, { editFragment } from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
-import './mas-fragment-expanded-content.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
         customRender: { type: Function, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
-        expanded: { type: Boolean, state: true, attribute: false },
+        expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
+        toggleExpand: { type: Function, attribute: false },
         loadingReferences: { type: Boolean, state: true, attribute: false },
+        internalExpanded: { type: Boolean, state: true, attribute: false },
     };
 
     constructor() {
@@ -24,6 +25,7 @@ class MasFragmentTable extends LitElement {
         this.expanded = false;
         this.nested = false;
         this.loadingReferences = false;
+        this.internalExpanded = false;
     }
 
     #reactiveControllers = new ReactiveController(this);
@@ -50,6 +52,11 @@ class MasFragmentTable extends LitElement {
 
     get data() {
         return this.fragmentStore.value;
+    }
+
+    get isExpanded() {
+        // Nested fragments manage their own state, non-nested are controlled by parent
+        return this.nested ? this.internalExpanded : this.expanded;
     }
 
     async loadOfferData() {
@@ -128,13 +135,26 @@ class MasFragmentTable extends LitElement {
         }
     }
 
-    async toggleExpand(e) {
+    handleToggleExpand(e) {
+        if (this.nested) {
+            // Nested fragments manage their own state
+            this.toggleExpandNested(e);
+        } else if (this.toggleExpand) {
+            // Non-nested fragments call parent's method
+            this.toggleExpand(e);
+        }
+    }
+
+    async toggleExpandNested(e) {
         e.stopPropagation();
-        this.expanded = !this.expanded;
+        const newExpandedState = !this.internalExpanded;
+        this.internalExpanded = newExpandedState;
+
         const fragment = this.fragmentStore.value;
         // Fetch references only when expanding and references are not yet loaded
-        if (this.expanded && this.repository && !fragment.references?.length) {
+        if (newExpandedState && this.repository && !fragment.references?.length) {
             this.loadingReferences = true;
+
             try {
                 const references = await this.repository.loadReferences(fragment.id);
                 this.fragmentStore.value.references = references;
@@ -150,11 +170,11 @@ class MasFragmentTable extends LitElement {
     render() {
         const data = this.fragmentStore.value;
         return html`
-            <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
+            <sp-table-row value="${data.id}" class="${this.isExpanded ? 'expanded' : ''}">
                 ${!this.nested
-                    ? html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
-                          <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
-                              ${this.expanded
+                    ? html`<sp-table-cell class="expand-cell" @click=${this.handleToggleExpand}>
+                          <button class="expand-button" aria-label="${this.isExpanded ? 'Collapse' : 'Expand'} row">
+                              ${this.isExpanded
                                   ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                                   : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                           </button>
@@ -202,14 +222,6 @@ class MasFragmentTable extends LitElement {
                       ></sp-table-cell>`
                     : html`<sp-table-cell class="preview"></sp-table-cell>`}
             </sp-table-row>
-            ${this.expanded
-                ? html`<div class="expanded-row-container">
-                      <mas-fragment-expanded-content
-                          .fragment=${this.fragmentStore.value}
-                          .loading=${this.loadingReferences}
-                      ></mas-fragment-expanded-content>
-                  </div>`
-                : ''}
         `;
     }
 }

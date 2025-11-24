@@ -1,12 +1,5 @@
 export const styles = `
-/* Expanded row container styles */
-.expanded-row-container {
-    display: block;
-    width: 100%;
-    background-color: var(--spectrum-gray-50);
-    border-bottom: 1px solid var(--spectrum-gray-200);
-}
-
+/* Expanded content styles */
 .expanded-content {
     padding: 24px;
     background-color: var(--spectrum-gray-50);

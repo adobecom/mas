@@ -441,6 +441,14 @@ sp-table-cell {
     }
 }
 
+/* Expanded content container */
+mas-fragment-expanded-content {
+    display: block;
+    width: 100%;
+    background-color: var(--spectrum-gray-50);
+    border-bottom: 1px solid var(--spectrum-gray-200);
+}
+
 sp-table-head-cell {
     height: var(--spectrum-global-dimension-size-550);
     padding: 12px 20px;

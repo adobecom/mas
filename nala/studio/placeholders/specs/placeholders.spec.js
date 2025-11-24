@@ -1,0 +1,53 @@
+export default {
+    FeatureName: 'M@S Studio Placeholders',
+    features: [
+        {
+            tcid: '0',
+            name: '@studio-placeholders-page-load',
+            path: '/studio.html',
+            browserParams: '#page=placeholders&path=nala',
+            tags: '@mas-studio @placeholders @smoke',
+            description: 'Verify that placeholders page loads correctly with all essential elements',
+        },
+        {
+            tcid: '1',
+            name: '@studio-placeholders-table-structure',
+            path: '/studio.html',
+            browserParams: '#page=placeholders&path=nala',
+            tags: '@mas-studio @placeholders',
+            description: 'Validate that the placeholders table has all required column headers',
+        },
+        {
+            tcid: '2',
+            name: '@studio-placeholders-ui-elements',
+            path: '/studio.html',
+            browserParams: '#page=placeholders&path=nala',
+            tags: '@mas-studio @placeholders',
+            description: 'Check that all UI controls are present and visible',
+        },
+        {
+            tcid: '3',
+            name: '@studio-placeholders-locale-picker',
+            path: '/studio.html',
+            browserParams: '#page=placeholders&path=nala&locale=en_US',
+            tags: '@mas-studio @placeholders',
+            description: 'Verify locale picker is functional',
+        },
+        {
+            tcid: '4',
+            name: '@studio-placeholders-search-field',
+            path: '/studio.html',
+            browserParams: '#page=placeholders&path=nala',
+            tags: '@mas-studio @placeholders',
+            description: 'Validate search input field is present and accessible',
+        },
+        {
+            tcid: '5',
+            name: '@studio-placeholders-empty-state',
+            path: '/studio.html',
+            browserParams: '#page=placeholders&path=nala&locale=xx_XX',
+            tags: '@mas-studio @placeholders',
+            description: 'Verify empty state message when no placeholders exist',
+        },
+    ],
+};

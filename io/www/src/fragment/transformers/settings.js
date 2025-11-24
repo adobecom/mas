@@ -53,6 +53,7 @@ function applyCollectionSettings(context) {
         alphabeticallyText: '{{coll-alphabetically-text}}',
         noResultsText: '{{coll-no-results-text}}',
         plansSidenavTitle: '{{coll-plans-sidenav-title}}',
+        catalogSidenavTitle: '{{coll-catalog-sidenav-title}}',
         resultText: '{{coll-result-text}}',
         resultsText: '{{coll-results-text}}',
         resultMobileText: '{{coll-result-mobile-text}}',
@@ -62,14 +63,20 @@ function applyCollectionSettings(context) {
         searchResultMobileText: '{{coll-search-result-mobile-text}}',
         searchResultsMobileText: '{{coll-search-results-mobile-text}}',
         noSearchResultsText: '{{coll-no-search-results-text}}',
+        noSearchResultsMobileText: '{{coll-no-search-results-mobile-text}}',
         showMoreText: '{{coll-show-more-text}}',
     };
+
     context.dictionary = {
         ...context?.dictionary,
         'coll-filter': '<span data-placeholder=\\"filter\\"></span>',
         'coll-result-count': '<span data-placeholder=\\"resultCount\\"></span>',
         'coll-search-term': '<span data-placeholder=\\"searchTerm\\"></span>',
     };
+
+    context.body.settings = context.body.settings || {};
+    context.body.settings.tagLabels =
+        Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 
 function applyPlansSettings(fragment, context) {

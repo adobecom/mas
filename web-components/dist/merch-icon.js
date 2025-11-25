@@ -1,60 +1,7 @@
-var h = Object.defineProperty;
-var f = (i, t, e) =>
-    t in i
-        ? h(i, t, { enumerable: !0, configurable: !0, writable: !0, value: e })
-        : (i[t] = e);
-var x = (i, t) => () => (i && (t = i((i = 0))), t);
-var b = (i, t) => {
-    for (var e in t) h(i, e, { get: t[e], enumerable: !0 });
-};
-var s = (i, t, e) => f(i, typeof t != 'symbol' ? t + '' : t, e);
-var g = {};
-b(g, { default: () => r });
-import { LitElement as y, html as l, css as v } from './lit-all.min.js';
-function S() {
-    return (
-        customElements.get('sp-tooltip') !== void 0 &&
-        customElements.get('overlay-trigger') !== void 0 &&
-        document.querySelector('sp-theme') !== null
-    );
-}
-var r,
-    d = x(() => {
-        r = class extends y {
-            constructor() {
-                super(),
-                    (this.content = ''),
-                    (this.placement = 'top'),
-                    (this.variant = 'info'),
-                    (this.size = 'xs');
-            }
-            get effectiveContent() {
-                return (
-                    this.tooltipText || this.mnemonicText || this.content || ''
-                );
-            }
-            get effectivePlacement() {
-                return (
-                    this.tooltipPlacement ||
-                    this.mnemonicPlacement ||
-                    this.placement ||
-                    'top'
-                );
-            }
-            renderIcon() {
-                return this.src
-                    ? l`<merch-icon
+var h=Object.defineProperty;var f=(i,t,e)=>t in i?h(i,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):i[t]=e;var x=(i,t)=>()=>(i&&(t=i(i=0)),t);var b=(i,t)=>{for(var e in t)h(i,e,{get:t[e],enumerable:!0})};var s=(i,t,e)=>f(i,typeof t!="symbol"?t+"":t,e);var g={};b(g,{default:()=>r});import{LitElement as y,html as l,css as v}from"./lit-all.min.js";function S(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var r,d=x(()=>{r=class extends y{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs"}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?l`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`
-                    : l`<slot></slot>`;
-            }
-            render() {
-                let t = this.effectiveContent,
-                    e = this.effectivePlacement;
-                return t
-                    ? S()
-                        ? l`
+        ></merch-icon>`:l`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;return t?S()?l`
                 <overlay-trigger placement="${e}">
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
@@ -64,8 +11,7 @@ var r,
                         ${t}
                     </sp-tooltip>
                 </overlay-trigger>
-            `
-                        : l`
+            `:l`
                 <span
                     class="css-tooltip ${e}"
                     data-tooltip="${t}"
@@ -75,28 +21,7 @@ var r,
                 >
                     ${this.renderIcon()}
                 </span>
-            `
-                    : this.renderIcon();
-            }
-        };
-        s(r, 'properties', {
-            content: { type: String },
-            placement: { type: String },
-            variant: { type: String },
-            src: { type: String },
-            size: { type: String },
-            tooltipText: { type: String, attribute: 'tooltip-text' },
-            tooltipPlacement: { type: String, attribute: 'tooltip-placement' },
-            mnemonicText: { type: String, attribute: 'mnemonic-text' },
-            mnemonicPlacement: {
-                type: String,
-                attribute: 'mnemonic-placement',
-            },
-        }),
-            s(
-                r,
-                'styles',
-                v`
+            `:this.renderIcon()}};s(r,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"}}),s(r,"styles",v`
         :host {
             display: contents;
             overflow: visible;
@@ -206,81 +131,17 @@ var r,
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `,
-            );
-        customElements.define('mas-mnemonic', r);
-    });
-import { LitElement as $, html as u, css as w } from './lit-all.min.js';
-function z() {
-    return (
-        customElements.get('sp-tooltip') !== void 0 ||
-        document.querySelector('sp-theme') !== null
-    );
-}
-var n = class extends $ {
-    constructor() {
-        super(), (this.size = 'm'), (this.alt = ''), (this.loading = 'lazy');
-    }
-    connectedCallback() {
-        super.connectedCallback(), setTimeout(() => this.handleTooltips(), 0);
-    }
-    handleTooltips() {
-        if (z()) return;
-        this.querySelectorAll('sp-tooltip, overlay-trigger').forEach((e) => {
-            let a = '',
-                p = 'top';
-            if (e.tagName === 'SP-TOOLTIP')
-                (a = e.textContent), (p = e.getAttribute('placement') || 'top');
-            else if (e.tagName === 'OVERLAY-TRIGGER') {
-                let o = e.querySelector('sp-tooltip');
-                o &&
-                    ((a = o.textContent),
-                    (p =
-                        o.getAttribute('placement') ||
-                        e.getAttribute('placement') ||
-                        'top'));
-            }
-            if (a) {
-                let o = document.createElement('mas-mnemonic');
-                o.setAttribute('content', a), o.setAttribute('placement', p);
-                let c = this.querySelector('img'),
-                    m = this.querySelector('a');
-                m && m.contains(c) ? o.appendChild(m) : c && o.appendChild(c),
-                    (this.innerHTML = ''),
-                    this.appendChild(o),
-                    Promise.resolve().then(() => d());
-            }
-            e.remove();
-        });
-    }
-    render() {
-        let { href: t } = this;
-        return t
-            ? u`<a href="${t}">
+    `);customElements.define("mas-mnemonic",r)});import{LitElement as $,html as u,css as w}from"./lit-all.min.js";function z(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var n=class extends ${constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(z())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let a="",p="top";if(e.tagName==="SP-TOOLTIP")a=e.textContent,p=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let o=e.querySelector("sp-tooltip");o&&(a=o.textContent,p=o.getAttribute("placement")||e.getAttribute("placement")||"top")}if(a){let o=document.createElement("mas-mnemonic");o.setAttribute("content",a),o.setAttribute("placement",p);let c=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(c)?o.appendChild(m):c&&o.appendChild(c),this.innerHTML="",this.appendChild(o),Promise.resolve().then(()=>d())}e.remove()})}render(){let{href:t}=this;return t?u`<a href="${t}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>`
-            : u` <img
+              </a>`:u` <img
                   src="${this.src}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`;
-    }
-};
-s(n, 'properties', {
-    size: { type: String, attribute: !0 },
-    src: { type: String, attribute: !0 },
-    alt: { type: String, attribute: !0 },
-    href: { type: String, attribute: !0 },
-    loading: { type: String, attribute: !0 },
-}),
-    s(
-        n,
-        'styles',
-        w`
+              />`}};s(n,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),s(n,"styles",w`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -318,7 +179,4 @@ s(n, 'properties', {
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `,
-    );
-customElements.define('merch-icon', n);
-export { n as default };
+    `);customElements.define("merch-icon",n);export{n as default};

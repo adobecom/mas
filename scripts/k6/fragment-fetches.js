@@ -5,7 +5,7 @@ import { checkResponse, ramp, step } from './common.js';
 
 // Load the fragment IDs from the CSV file
 const fragments = new SharedArray('fragments', () => {
-    const filePath = `./fragment-files/${__ENV.ENV?.length > 0 ? `${__ENV.ENV}-` : ''}fragments.csv`;
+    const filePath = `./fragment-files/${__ENV.ENV?.length > 0 ? __ENV.ENV + '-' : ''}fragments.csv`;
     const f = open(filePath).split('\n'); // Read CSV
     const headers = f[0].split(','); // Get headers
     let fragmentArray = f

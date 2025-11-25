@@ -10,7 +10,7 @@ const EXCERPT_SIZE = 30;
 const LOC_REGEXP = '<loc>(?<url>[^<]+)</loc>';
 const PERSO_REGEXP = '<meta name="personalization" content="(?<urls>[^"]+)">';
 const HREF_REGEXP = 'href="(?<url>[^"]+)"';
-const LINK_REGEXP = `<a[^>]*${HREF_REGEXP}[^>]*>[^<]*</a>`;
+const LINK_REGEXP = '<a[^>]*' + HREF_REGEXP + '[^>]*>[^<]*</a>';
 const PARAMETER_REGEXP = '(?<left>\\w+)=(?<right>[^&]+)';
 const DOMAIN_REGEXP = '^https://[^/]+';
 // Constants for preventing hanging
@@ -511,7 +511,7 @@ const searchStringMatch = (pageContent, searchStrings) => {
     return match;
 };
 
-const prefixWcsKey = (key) => `wcs ${key}`;
+const prefixWcsKey = (key) => 'wcs ' + key;
 
 function getLocaleSettings(locale) {
     if (!locale) {
@@ -584,7 +584,7 @@ async function extractUrlsFromSiteMap(sitemapUrl) {
     const linkRegexp = new RegExp(LOC_REGEXP, 'g');
     let match;
     while ((match = linkRegexp.exec(sitemapContent)) != null) {
-        const { url } = match.groups;
+        let { url } = match.groups;
         listedUrls.add(url);
     }
     return Array.from(listedUrls);
@@ -778,7 +778,7 @@ async function auditPage(ctx, pageUrl, depth = 0) {
 
 const writeIframeUsagesToFile = () => {
     console.log(`collected ${foundUsages.length} entries`);
-    const headers = ['page URL', 'fragment URL', 'iFrame URL'];
+    let headers = ['page URL', 'fragment URL', 'iFrame URL'];
     fs.writeFileSync(
         file,
         `${headers.join(',')}\n${foundUsages.map(({ origin, pageUrl, url }) => `${origin},${pageUrl},${url}`).join('\n')}`,
@@ -805,7 +805,7 @@ const writeOstUsagesToFile = () => {
             .join('\n')}`,
     );
     if (searchMatches.length > 0) {
-        fs.writeFileSync(`${searchFile}.matches`, searchMatches.join('\n'));
+        fs.writeFileSync(searchFile + '.matches', searchMatches.join('\n'));
     }
 };
 
@@ -933,7 +933,7 @@ const processArgs = async () => {
 
 async function main() {
     const startTime = Date.now();
-    const { urlsToFetch, searchStrings } = await processArgs();
+    let { urlsToFetch, searchStrings } = await processArgs();
     console.log(`will audit ${urlsToFetch.length} URLs with buffer size ${defaultBufferSize}, targetting ${auditTarget}`);
     try {
         await processUrlBatchesWithRetries({ urlsToFetch, searchStrings });

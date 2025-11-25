@@ -339,7 +339,7 @@ class AEM {
      */
     async copyFragmentClassic(fragment) {
         const csrfToken = await this.getCsrfToken();
-        const parentPath = fragment.path.split('/').slice(0, -1).join('/');
+        let parentPath = fragment.path.split('/').slice(0, -1).join('/');
         const formData = new FormData();
         formData.append('cmd', 'copyPage');
         formData.append('srcPath', fragment.path);

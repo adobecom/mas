@@ -120,7 +120,7 @@ async function main() {
         process.exit(1);
     }
 
-    const args = process.argv.slice(2);
+    let args = process.argv.slice(2);
     if (!args.length) {
         console.log('you should provide comma separated offer ids');
         return;

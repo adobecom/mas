@@ -116,7 +116,7 @@ export class MasNavLocalePicker extends LitElement {
                     <sp-icon-chevron-down dir="ltr" class="chevron" slot="icon"></sp-icon-chevron-down>
                     <span slot="label" class="locale-label">
                         <span class="flag">${currentLocale.flag}</span>
-                        <span>${currentLocale.code.toUpperCase()}</span>
+                        <span>${currentLocale.code}</span>
                     </span>
                     <sp-menu size="m">
                         ${LOCALES.map(({ code, flag, name }) => {
@@ -128,7 +128,7 @@ export class MasNavLocalePicker extends LitElement {
                                 >
                                     <div class="locale-label">
                                         <span class="flag">${flag}</span>
-                                        <span>${name} (${code.toUpperCase()})</span>
+                                        <span>${name} (${code})</span>
                                     </div>
                                 </sp-menu-item>
                             `;

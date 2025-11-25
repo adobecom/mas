@@ -233,8 +233,6 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                <mas-locale-picker></mas-locale-picker>
-
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="market_segments"

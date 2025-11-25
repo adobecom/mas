@@ -1,15 +1,15 @@
 #!/bin/bash
 
-node ./build-docs.mjs inline-price.md ../inline-price.html
-node ./build-docs.mjs checkout-link.md ../checkout-link.html
-node ./build-docs.mjs checkout-button.md ../checkout-button.html
-node ./build-docs.mjs upt-link.md ../upt-link.html
-node ./build-docs.mjs mas.md ../mas.html
-node ./build-docs.mjs step-by-step.md ../step-by-step.html
-node ./build-docs.mjs mas.js.md ../mas.js.html
-node ./build-docs.mjs aem-fragment.md ../aem-fragment.html
-node ./build-docs.mjs merch-card.md ../merch-card.html
-node ./build-docs.mjs plans.md ../plans.html
-node ./build-docs.mjs commerce.md ../commerce.html
-node ./build-docs.mjs ccd.md ../ccd.html
-npx esbuild --bundle --loader:.css=text --outfile=../spectrum.js ./spectrum.mjs
+node ./docs/src/build-docs.mjs inline-price.md ./docs/inline-price.html
+node ./docs/src/build-docs.mjs checkout-link.md ./docs/checkout-link.html
+node ./docs/src/build-docs.mjs checkout-button.md ./docs/checkout-button.html
+node ./docs/src/build-docs.mjs upt-link.md ./docs/upt-link.html
+node ./docs/src/build-docs.mjs mas.md ./docs/mas.html
+node ./docs/src/build-docs.mjs step-by-step.md ./docs/step-by-step.html
+node ./docs/src/build-docs.mjs mas.js.md ./docs/mas.js.html
+node ./docs/src/build-docs.mjs aem-fragment.md ./docs/aem-fragment.html
+node ./docs/src/build-docs.mjs merch-card.md ./docs/merch-card.html
+node ./docs/src/build-docs.mjs plans.md ./docs/plans.html
+node ./docs/src/build-docs.mjs commerce.md ./docs/commerce.html
+node ./docs/src/build-docs.mjs ccd.md ./docs/ccd.html
+npx esbuild --bundle --external:*.css --outfile=./docs/spectrum.js ./docs/src/spectrum.mjs

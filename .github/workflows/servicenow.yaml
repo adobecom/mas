@@ -45,29 +45,45 @@ jobs:
       snow_instance_id: ${{ steps.set-instance-id.outputs.instance_id }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: dorny/paths-filter@v3
-        id: filter
         with:
-          filters: |
-            io:
-              - 'io/**'
-            studio:
-              - 'studio/**'
+          fetch-depth: 0  # Fetch all history to ensure we can compare commits
       
-      - name: Set SNOW Instance ID to the M@S IO Service Registry ID, the M@S Studio ID, or both
+      - name: Detect changed paths and set SNOW Instance ID
         id: set-instance-id
         run: |
-          IO_CHANGED="${{ steps.filter.outputs.io }}"
-          STUDIO_CHANGED="${{ steps.filter.outputs.studio }}"
+          # Get the list of changed files in the PR
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
           
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check if any files match the io/** pattern
+          IO_CHANGED=false
+          if echo "$CHANGED_FILES" | grep -q "^io/"; then
+            IO_CHANGED=true
+            echo "Changes detected in io/** path"
+          fi
+          
+          # Check if any files match the studio/** pattern
+          STUDIO_CHANGED=false
+          if echo "$CHANGED_FILES" | grep -q "^studio/"; then
+            STUDIO_CHANGED=true
+            echo "Changes detected in studio/** path"
+          fi
+          
+          # Set SNOW Instance ID based on which paths changed
           if [[ "$IO_CHANGED" == "true" && "$STUDIO_CHANGED" == "true" ]]; then
             echo "instance_id=$SNOW_INSTANCE_ID_IO, $SNOW_INSTANCE_ID_STUDIO" >> $GITHUB_OUTPUT
+            echo "Setting instance_id to both: $SNOW_INSTANCE_ID_IO, $SNOW_INSTANCE_ID_STUDIO"
           elif [[ "$IO_CHANGED" == "true" ]]; then
             echo "instance_id=$SNOW_INSTANCE_ID_IO" >> $GITHUB_OUTPUT
+            echo "Setting instance_id to IO: $SNOW_INSTANCE_ID_IO"
           elif [[ "$STUDIO_CHANGED" == "true" ]]; then
             echo "instance_id=$SNOW_INSTANCE_ID_STUDIO" >> $GITHUB_OUTPUT
+            echo "Setting instance_id to Studio: $SNOW_INSTANCE_ID_STUDIO"
           else
-            echo "instance_id=" >> $GITHUB_OUTPUT
+            echo "::error::ERROR: Workflow was triggered but no changes detected in io/ or studio/ paths. This should not happen given the path filters in the workflow trigger."
+            exit 1
           fi
 
   create-cmr:

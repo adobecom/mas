@@ -223,7 +223,7 @@ class RteField extends LitElement {
 
                 :host([focused]) #editor {
                     outline: 2px solid;
-                    outline-color: rgb(20, 122, 243);
+                    outline-color: var(--spectrum-blue-900);
                     outline-offset: 2px;
                 }
 
@@ -242,9 +242,9 @@ class RteField extends LitElement {
                     min-height: 36px;
                     flex: 1;
                     color: var(--spectrum-gray-800);
-                    background-color: var(--spectrum-gray-50);
-                    border: 1px solid rgb(144, 144, 144);
-                    border-radius: 4px;
+                    background-color: var(--spectrum-white);
+                    border: 2px solid var(--spectrum-gray-300);
+                    border-radius: 8px;
                 }
 
                 .exceeded {

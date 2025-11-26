@@ -253,7 +253,9 @@ class AEM {
             } catch (e) {
                 // Response might not be JSON
             }
-            throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`);
+            throw new Error(
+                `Failed to save fragment: ${response.status} ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`,
+            );
         }
 
         await this.saveTags(fragment);

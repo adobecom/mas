@@ -17,9 +17,6 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
-import './mas-recently-updated.js';
-import './editors/merch-card-editor.js';
-import './editors/merch-card-collection-editor.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
 import './version-page.js';
@@ -169,9 +166,6 @@ class MasStudio extends LitElement {
     }
 
     render() {
-        if (this.masJsReady) {
-            console.log('mas.js is ready', this.masJsReady);
-        }
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>

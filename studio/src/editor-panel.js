@@ -4,13 +4,20 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, OPERATIONS } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    EVENT_KEYDOWN,
+    EVENT_OST_OFFER_SELECT,
+    OPERATIONS,
+    PAGE_NAMES,
+} from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse } from './utils.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
-import './editors/version-panel.js';
+import router from './router.js';
 
 export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -62,9 +69,6 @@ export default class EditorPanel extends LitElement {
         showDiscardDialog: { type: Boolean, state: true },
         showCloneDialog: { type: Boolean, state: true },
         showEditor: { type: Boolean, state: true }, // Used to force re-rendering of the editor
-        fragmentVersions: { type: Array, state: true },
-        selectedVersion: { type: String, state: true },
-        versionsLoading: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -110,9 +114,6 @@ export default class EditorPanel extends LitElement {
         this.titleClone = '';
         this.tagsClone = [];
         this.osiClone = null;
-        this.fragmentVersions = [];
-        this.selectedVersion = '';
-        this.versionsLoading = false;
 
         // Bind methods
         this.handleClose = this.handleClose.bind(this);
@@ -124,10 +125,7 @@ export default class EditorPanel extends LitElement {
         this.discardConfirmed = this.discardConfirmed.bind(this);
         this.cancelDiscard = this.cancelDiscard.bind(this);
         this.onToolbarDiscard = this.onToolbarDiscard.bind(this);
-        this.loadFragmentVersions = this.loadFragmentVersions.bind(this);
-        this.handleVersionChange = this.handleVersionChange.bind(this);
-        this.handleVersionUpdated = this.handleVersionUpdated.bind(this);
-        this.handleVersionUpdateError = this.handleVersionUpdateError.bind(this);
+        this.openVersionHistory = this.openVersionHistory.bind(this);
     }
 
     createRenderRoot() {
@@ -414,84 +412,14 @@ export default class EditorPanel extends LitElement {
         this.osiClone = offerSelectorId;
     };
 
-    async loadFragmentVersions() {
+    openVersionHistory() {
         if (!this.fragment?.id) return;
 
-        this.versionsLoading = true;
-        try {
-            // Use enhanced API with proper options following Adobe AEM API specification
-            const versions = await this.repository.aem.sites.cf.fragments.getVersions(this.fragment.id);
-            this.fragmentVersions = versions.items || [];
-            // Set the current version as selected (usually the first/latest)
-            if (this.fragmentVersions.length > 0) {
-                this.selectedVersion = this.fragmentVersions[0].id;
-            }
-        } catch (error) {
-            console.error('Failed to load fragment versions:', error);
-            this.fragmentVersions = [];
-            Events.toast.emit({
-                variant: 'negative',
-                content: 'Failed to load fragment versions',
-            });
-        } finally {
-            this.versionsLoading = false;
-        }
-    }
+        // Store the fragment ID in the version store
+        Store.version.fragmentId.set(this.fragment.id);
 
-    async handleVersionChange(event) {
-        const { versionId, version } = event.detail;
-        this.selectedVersion = versionId;
-
-        if (version && versionId) {
-            // Load the selected version of the fragment using the proper API
-            try {
-                const versionFragment = await this.repository.aem.sites.cf.fragments.getVersion(this.fragment.id, versionId);
-
-                if (versionFragment) {
-                    // Update the fragment store with the version data
-                    this.fragmentStore.refreshFrom(versionFragment);
-
-                    // Mark fragment as having changes so save button is enabled
-                    this.fragmentStore.value.hasChanges = true;
-                    this.fragmentStore.notify();
-                    Events.toast.emit({
-                        variant: 'positive',
-                        content: `Switched to version ${version.title || versionId}. Save to apply changes.`,
-                    });
-                }
-            } catch (error) {
-                console.error('Failed to load fragment version:', error);
-                Events.toast.emit({
-                    variant: 'negative',
-                    content: 'Failed to load fragment version',
-                });
-            }
-        }
-    }
-
-    handleVersionUpdated(event) {
-        const { version, oldVersion } = event.detail;
-        // Update the fragment versions list
-        const versionIndex = this.fragmentVersions.findIndex((v) => v.id === version.id);
-        if (versionIndex !== -1) {
-            this.fragmentVersions[versionIndex] = version;
-            this.fragmentVersions = [...this.fragmentVersions]; // Trigger reactivity
-        }
-
-        Events.toast.emit({
-            variant: 'positive',
-            content: `Version "${version.title}" updated successfully`,
-        });
-    }
-
-    handleVersionUpdateError(event) {
-        const { error, version } = event.detail;
-        console.error('Version update failed:', error);
-
-        Events.toast.emit({
-            variant: 'negative',
-            content: `Failed to update version: ${error}`,
-        });
+        // Navigate to the version history page
+        router.navigateToPage(PAGE_NAMES.VERSION)();
     }
 
     get fragmentEditorToolbar() {
@@ -508,16 +436,15 @@ export default class EditorPanel extends LitElement {
                         <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
                         <sp-tooltip self-managed placement="bottom">Move left</sp-tooltip>
                     </sp-action-button>
-                    <version-history
-                        .versions="${this.fragmentVersions}"
-                        .selectedVersion="${this.selectedVersion}"
-                        .loading="${this.versionsLoading}"
-                        .fragmentId="${this.fragment.id}"
-                        .repository="${this.repository}"
-                        @version-change="${this.handleVersionChange}"
-                        @version-updated="${this.handleVersionUpdated}"
-                        @version-update-error="${this.handleVersionUpdateError}"
-                    ></version-history>
+                    <sp-action-button
+                        label="Version History"
+                        title="View version history"
+                        value="version-history"
+                        @click="${this.openVersionHistory}"
+                    >
+                        <sp-icon-history slot="icon"></sp-icon-history>
+                        <sp-tooltip self-managed placement="bottom">Version History</sp-tooltip>
+                    </sp-action-button>
                     <sp-action-button
                         label="Save"
                         title="Save changes"

@@ -38,7 +38,6 @@
             import '../src/aem/aem-tag-picker-field.js';
             import '../src/editor-panel.js';
             import '../src/editors/merch-card-editor.js';
-            import '../src/editors/version-panel.js';
             import '../src/mas-repository.js';
             import { Fragment } from '../src/aem/fragment.js';
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
@@ -143,47 +142,40 @@
                         );
                     });
 
-                    it('loads fragment versions when editing a fragment', async () => {
-                        // Mock the getFragmentVersions method
-                        const mockVersions = {
-                            items: [
-                                { id: 'version1', version: '1.0', created: '2023-01-01T00:00:00Z' },
-                                { id: 'version2', version: '2.0', created: '2023-01-02T00:00:00Z' },
-                            ],
-                        };
-
-                        // Get the repository and create stub before editing fragment
-                        const repository = editorPanel.repository;
-                        const originalGetVersions = repository.aem.sites.cf.fragments.getVersions;
-
-                        // Create a promise-based stub
-                        repository.aem.sites.cf.fragments.getVersions = async function (fragmentId, options) {
-                            // Verify the function is called with the correct fragment ID
-                            expect(fragmentId).to.equal('cc-all-apps');
-                            return mockVersions;
-                        };
-
-                        // The editor panel was already initialized with a fragment in beforeEach
-                        // so it should already have versions loaded. Let's just verify the version history component exists
-                        await editorPanel.updateComplete;
-                        await delay(500);
-
-                        // Check that versions were loaded (from beforeEach)
-                        const versionHistory = document.querySelector('version-history');
-                        expect(versionHistory).to.exist;
-
-                        // Restore original method
-                        repository.aem.sites.cf.fragments.getVersions = originalGetVersions;
-                    });
-
                     it('displays version history button in toolbar', async () => {
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
 
-                        const versionHistory = document.querySelector('version-history');
-                        expect(versionHistory).to.exist;
-                        expect(versionHistory.versions).to.deep.equal(editorPanel.fragmentVersions);
-                        expect(versionHistory.selectedVersion).to.equal(editorPanel.selectedVersion);
+                        // Check that the version history button exists
+                        const versionButton = document.querySelector('sp-action-button[value="version-history"]');
+                        expect(versionButton).to.exist;
+                        expect(versionButton.label).to.equal('Version History');
+
+                        // Check that it has the history icon
+                        const icon = versionButton.querySelector('sp-icon-history');
+                        expect(icon).to.exist;
+                    });
+
+                    it('navigates to version page when version history button is clicked', async () => {
+                        await editorPanel.editFragment(fragmentStore);
+                        await editorPanel.updateComplete;
+
+                        const versionButton = document.querySelector('sp-action-button[value="version-history"]');
+                        expect(versionButton).to.exist;
+
+                        // Store original Store.version.fragmentId value
+                        const Store = await import('../src/store.js').then((m) => m.default);
+                        const originalFragmentId = Store.version.fragmentId.get();
+
+                        // Click the button
+                        versionButton.click();
+                        await delay(100);
+
+                        // Verify the fragment ID was stored
+                        expect(Store.version.fragmentId.get()).to.equal(fragment.id);
+
+                        // Restore original value
+                        Store.version.fragmentId.set(originalFragmentId);
                     });
                 });
             });

@@ -89,7 +89,12 @@ const OST_VALUE_MAPPING = {
 };
 
 export function onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride) {
-    const changes = getObjectDifference(options, ostDefaultSettings());
+    const masCommerceService = document.querySelector('mas-commerce-service');
+    const settings = ostDefaultSettings();
+    if (masCommerceService.featureFlags['mas-ff-defaults']) {
+        settings.displayPerUnit = offer.customer_segment !== 'INDIVIDUAL';
+    }
+    const changes = getObjectDifference(options, settings);
 
     const attributes = { 'data-wcs-osi': offerSelectorId };
 

@@ -64,6 +64,10 @@ class MasPlaceholdersItem extends LitElement {
 
     /** @type {Placeholder} */
     get placeholder() {
+        // Return null if placeholderStore is not initialized
+        if (!this.placeholderStore) {
+            return null;
+        }
         return this.placeholderStore.get();
     }
 
@@ -135,12 +139,16 @@ class MasPlaceholdersItem extends LitElement {
     // #endregion
 
     render() {
+        // Guard clause: Don't render if placeholderStore is not initialized
+        if (!this.placeholderStore) {
+            return html``;
+        }
+
         return html`
             <sp-table-row value=${this.placeholder.key}>
-                ${this.renderKeyCell()} ${this.renderValueCell()} ${this.renderStatusCell()}
-                ${this.renderTableCell(this.locale, 'right')}
+                ${this.keyCell} ${this.valueCell} ${this.statusCell} ${this.renderTableCell(this.locale, 'right')}
                 ${this.renderTableCell(this.placeholder.updatedBy, 'right', 'updated-by', true)}
-                ${this.renderTableCell(this.placeholder.updatedAt, 'right')} ${this.renderActionCell()}
+                ${this.renderTableCell(this.placeholder.updatedAt, 'right')} ${this.actionCell}
             </sp-table-row>
         `;
     }

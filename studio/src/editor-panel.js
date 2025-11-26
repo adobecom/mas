@@ -793,6 +793,14 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get parentLocaleLabel() {
+        if (!this.parentFragment) return '';
+        const localeCode = this.parentFragment.getLocale();
+        if (!localeCode) return '';
+        const [lang, country] = localeCode.split('_');
+        return `: Default ${country} (${lang.toUpperCase()})`;
+    }
+
     get derivedFromContainer() {
         if (!this.fragment || !this.parentFragment || this.parentFragment.id === this.fragment.id) {
             return nothing;
@@ -811,7 +819,7 @@ export default class EditorPanel extends LitElement {
                     </a>
                 </div>
                 <a @click="${this.navigateToParentFragment}" class="derived-from-content clickable">
-                    ${this.parentFragment.title}
+                    ${this.parentFragment.title}${this.parentLocaleLabel}
                 </a>
             </div>
         `;

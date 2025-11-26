@@ -38,6 +38,14 @@ class MasMultifield extends LitElement {
         .field-wrapper.dragover {
             border: 1px dashed #007bff;
         }
+
+        .add-button-wrapper {
+            display: flex;
+        }
+
+        .add-button-wrapper sp-action-button {
+            flex: 1;
+        }
     `;
 
     /**
@@ -250,9 +258,11 @@ class MasMultifield extends LitElement {
         return html`
             <div @change="${this.handleChange}" @input="${this.handleInput}">
                 ${this.value.map((field, index) => this.renderField(field, index))}
-                <sp-action-button quiet @click=${this.addField}>
-                    <sp-icon-add label="Add" slot="icon"></sp-icon-add>${this.buttonLabel}
-                </sp-action-button>
+                <div class="add-button-wrapper">
+                    <sp-action-button @click=${this.addField}>
+                        <sp-icon-add label="Add" slot="icon"></sp-icon-add>${this.buttonLabel}
+                    </sp-action-button>
+                </div>
             </div>
         `;
     }

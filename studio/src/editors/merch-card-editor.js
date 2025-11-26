@@ -377,11 +377,11 @@ class MerchCardEditor extends LitElement {
                 .two-column-grid {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
-                    gap: 16px;
+                    gap: 20px;
                 }
 
                 .tags-spacing {
-                    margin: 24px 0;
+                    margin: 0;
                 }
 
                 .full-width {

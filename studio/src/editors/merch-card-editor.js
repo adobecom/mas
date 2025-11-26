@@ -388,6 +388,11 @@ class MerchCardEditor extends LitElement {
                     width: 100%;
                 }
 
+                sp-field-group sp-textfield,
+                sp-field-group sp-picker {
+                    width: 100%;
+                }
+
                 #whatsIncluded sp-textfield {
                     margin-bottom: 16px;
                 }

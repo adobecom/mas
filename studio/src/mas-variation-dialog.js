@@ -8,6 +8,7 @@ export class MasVariationDialog extends LitElement {
         selectedLocale: { state: true },
         loading: { state: true },
         error: { state: true },
+        existingVariationLocales: { state: true },
     };
 
     static styles = css`
@@ -86,6 +87,7 @@ export class MasVariationDialog extends LitElement {
         this.loading = false;
         this.error = null;
         this.aem = null;
+        this.existingVariationLocales = [];
 
         this.handleSubmit = this.handleSubmit.bind(this);
         this.close = this.close.bind(this);
@@ -97,11 +99,37 @@ export class MasVariationDialog extends LitElement {
         super.connectedCallback();
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
         this.aem = document.querySelector('mas-repository')?.aem;
+        this.loadExistingVariations();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
+    }
+
+    async loadExistingVariations() {
+        if (!this.aem || !this.fragment?.id) return;
+
+        try {
+            const searchGenerator = this.aem.sites.cf.fragments.search({
+                path: '/content/dam/mas',
+                modelIds: [this.fragment.model?.id],
+            });
+
+            const existingLocales = [];
+            for await (const items of searchGenerator) {
+                for (const item of items) {
+                    const originalIdField = item.fields?.find((f) => f.name === 'originalId');
+                    if (originalIdField?.values?.[0] === this.fragment.id) {
+                        const locale = extractLocaleFromPath(item.path);
+                        if (locale) existingLocales.push(locale);
+                    }
+                }
+            }
+            this.existingVariationLocales = existingLocales;
+        } catch (err) {
+            console.error('Failed to load existing variations:', err);
+        }
     }
 
     handleKeyDown(event) {
@@ -116,13 +144,29 @@ export class MasVariationDialog extends LitElement {
 
     get availableTargetLocales() {
         const sourceLocale = this.sourceLocale;
-        if (!sourceLocale) return LOCALES;
+        if (!sourceLocale) return LOCALES.map((l) => ({ ...l, disabled: false }));
 
         const [sourceLanguage] = sourceLocale.split('_');
         return LOCALES.filter((locale) => {
             const [lang] = locale.code.split('_');
             return lang === sourceLanguage && locale.code !== sourceLocale;
-        });
+        }).map((locale) => ({
+            ...locale,
+            disabled: this.existingVariationLocales.includes(locale.code),
+        }));
+    }
+
+    get firstAvailableLocale() {
+        const available = this.availableTargetLocales.find((l) => !l.disabled);
+        return available?.code || '';
+    }
+
+    updated(changedProperties) {
+        if (changedProperties.has('existingVariationLocales') || changedProperties.has('fragment')) {
+            if (!this.selectedLocale || this.existingVariationLocales.includes(this.selectedLocale)) {
+                this.selectedLocale = this.firstAvailableLocale;
+            }
+        }
     }
 
     get canSubmit() {
@@ -167,6 +211,14 @@ export class MasVariationDialog extends LitElement {
             if (!copiedFragment) {
                 throw new Error('Failed to create variation');
             }
+
+            const originalIdField = copiedFragment.fields?.find((f) => f.name === 'originalId');
+            if (originalIdField) {
+                originalIdField.values = [this.fragment.id];
+            } else {
+                copiedFragment.fields.push({ name: 'originalId', values: [this.fragment.id] });
+            }
+            await this.aem.sites.cf.fragments.save(copiedFragment);
 
             showToast('Variation created successfully', 'positive');
 
@@ -224,8 +276,8 @@ export class MasVariationDialog extends LitElement {
                         >
                             ${localeOptions.map(
                                 (locale) => html`
-                                    <sp-menu-item value="${locale.code}">
-                                        ${locale.name} (${locale.code.split('_')[1]})
+                                    <sp-menu-item value="${locale.code}" ?disabled=${locale.disabled}>
+                                        ${locale.name} (${locale.code.split('_')[1]})${locale.disabled ? ' (exists)' : ''}
                                     </sp-menu-item>
                                 `,
                             )}

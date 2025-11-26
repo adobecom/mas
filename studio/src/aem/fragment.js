@@ -40,7 +40,7 @@ export class Fragment {
     }
 
     get statusVariant() {
-        return this.status?.toLowerCase() || 'draft';
+        return this.status?.toLowerCase();
     }
 
     getTagTitle(id) {
@@ -98,6 +98,16 @@ export class Fragment {
     getParentId() {
         const originalIdField = this.getOriginalIdField();
         return originalIdField?.values?.[0] || null;
+    }
+
+    getVariations() {
+        const variationsField = this.fields.find((field) => field.name === 'variations');
+        return variationsField?.values || [];
+    }
+
+    hasVariations() {
+        const variations = this.getVariations();
+        return variations.length > 0;
     }
 
     updateField(fieldName, value) {
@@ -164,5 +174,23 @@ export class Fragment {
             ownField.values.length === parentField.values.length &&
             ownField.values.every((v, i) => v === parentField.values[i]);
         return areEqual ? 'same-as-parent' : 'overridden';
+    }
+
+    isFieldOverridden(fieldName) {
+        if (!this.isVariation()) {
+            return false;
+        }
+        const field = this.getField(fieldName);
+        return field && field.values && field.values.length > 0;
+    }
+
+    resetFieldToParent(fieldName) {
+        const fieldIndex = this.fields.findIndex((field) => field.name === fieldName);
+        if (fieldIndex !== -1) {
+            this.fields.splice(fieldIndex, 1);
+            this.hasChanges = true;
+            return true;
+        }
+        return false;
     }
 }

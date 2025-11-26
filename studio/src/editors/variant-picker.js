@@ -1,4 +1,4 @@
-import { html, LitElement } from 'lit';
+import { html, LitElement, css } from 'lit';
 
 export const VARIANT_NAMES = {
     ALL: 'all',
@@ -89,6 +89,17 @@ export const VARIANTS = [
 ];
 
 class VariantPicker extends LitElement {
+    static styles = css`
+        :host {
+            display: block;
+            width: 100%;
+        }
+
+        sp-picker {
+            width: 100%;
+        }
+    `;
+
     static properties = {
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },

@@ -7,6 +7,7 @@ class MasMultifield extends LitElement {
             min: { type: Number, attribute: true },
             value: { type: Array, attribute: false },
             draggingIndex: { type: Number, state: true },
+            buttonLabel: { type: String, attribute: 'button-label' },
         };
     }
 
@@ -26,11 +27,6 @@ class MasMultifield extends LitElement {
             padding: 4px;
         }
 
-        .field-wrapper:hover {
-            outline: 2px dashed var(--spectrum-gray-400);
-            border-radius: var(calc(var(--swc-scale-factor) * 4px));
-        }
-
         .field-wrapper > *:first-child {
             flex: 1;
         }
@@ -41,29 +37,6 @@ class MasMultifield extends LitElement {
 
         .field-wrapper.dragover {
             border: 1px dashed #007bff;
-        }
-
-        sp-icon-order {
-            visibility: hidden;
-            margin-block-start: 24px;
-            cursor: grab;
-            pointer-events: auto;
-        }
-
-        .field-wrapper:hover sp-icon-order {
-            visibility: visible;
-        }
-
-        sp-icon-close {
-            pointer-events: auto;
-            padding: 8px;
-            margin-block-start: 24px;
-            align-self: start;
-            cursor: pointer;
-        }
-
-        sp-icon-close:hover {
-            cursor: pointer;
         }
     `;
 
@@ -76,7 +49,30 @@ class MasMultifield extends LitElement {
         super();
         this.draggingIndex = -1;
         this.min = 0;
+        this.buttonLabel = 'Add';
     }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.addEventListener('delete-field', this.#handleDeleteField);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.removeEventListener('delete-field', this.#handleDeleteField);
+    }
+
+    #handleDeleteField = (event) => {
+        event.stopPropagation();
+        const path = event.composedPath();
+        const fieldWrapper = path.find((el) => el.classList?.contains('field-wrapper'));
+        if (fieldWrapper) {
+            const index = Array.from(this.shadowRoot.querySelectorAll('.field-wrapper')).indexOf(fieldWrapper);
+            if (index !== -1) {
+                this.removeField(index);
+            }
+        }
+    };
 
     initValue() {
         // auto assign ids.
@@ -107,10 +103,19 @@ class MasMultifield extends LitElement {
         }
     }
 
-    // Add a new field
     addField() {
         this.value = [...this.value, {}];
         this.#dispatchEvent();
+        requestAnimationFrame(() => {
+            const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
+            const lastField = fields[fields.length - 1];
+            if (lastField) {
+                const mnemonicField = lastField.querySelector('mas-mnemonic-field');
+                if (mnemonicField) {
+                    mnemonicField.modalOpen = true;
+                }
+            }
+        });
     }
 
     getFieldIndex(element) {
@@ -236,8 +241,6 @@ class MasMultifield extends LitElement {
                 @dragend=${this.dragEnd}
             >
                 ${fieldEl}
-                <sp-icon-close size="m" label="Remove field" @click=${() => this.removeField(index)}></sp-icon-close>
-                <sp-icon-order size="m" label="Order"></sp-icon-order>
             </div>
         `;
     }
@@ -248,7 +251,7 @@ class MasMultifield extends LitElement {
             <div @change="${this.handleChange}" @input="${this.handleInput}">
                 ${this.value.map((field, index) => this.renderField(field, index))}
                 <sp-action-button quiet @click=${this.addField}>
-                    <sp-icon-add label="Add" slot="icon"></sp-icon-add>Add
+                    <sp-icon-add label="Add" slot="icon"></sp-icon-add>${this.buttonLabel}
                 </sp-action-button>
             </div>
         `;

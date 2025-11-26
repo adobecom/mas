@@ -524,7 +524,7 @@ sp-underlay + sp-dialog {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1;
-    background: var(--spectrum-gray-100);
+    background: var(--spectrum-white);
 }
 
 .unknown-fragment {
@@ -646,14 +646,14 @@ sp-progress-circle.next-page {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--spectrum-global-color-blue-400);
+    color: var(--spectrum-blue-900);
     font-size: 14px;
     cursor: pointer;
     text-decoration: none;
 }
 
 .derived-from-link:hover {
-    color: var(--spectrum-global-color-blue-500);
+    color: var(--spectrum-blue-900);
     text-decoration: none;
 }
 
@@ -871,4 +871,8 @@ mas-top-nav .account-menu-item:hover {
 
 merch-card-editor .color-swatch {
     background: var(--swatch-bg);
+}
+
+mas-mnemonic-field sp-action-menu sp-overlay sp-popover sp-menu {
+    min-width: auto;
 }

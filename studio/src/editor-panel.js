@@ -4,13 +4,15 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, OPERATIONS } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse } from './utils.js';
+import { generateCodeToUse, showToast } from './utils.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import './editors/version-panel.js';
+import router from './router.js';
 
 export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -61,10 +63,12 @@ export default class EditorPanel extends LitElement {
         showDeleteDialog: { type: Boolean, state: true },
         showDiscardDialog: { type: Boolean, state: true },
         showCloneDialog: { type: Boolean, state: true },
-        showEditor: { type: Boolean, state: true }, // Used to force re-rendering of the editor
+        showEditor: { type: Boolean, state: true },
         fragmentVersions: { type: Array, state: true },
         selectedVersion: { type: String, state: true },
         versionsLoading: { type: Boolean, state: true },
+        parentFragment: { type: Object, state: true },
+        parentFragmentLoading: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -102,6 +106,7 @@ export default class EditorPanel extends LitElement {
     operation = Store.operation;
 
     reactiveController = new ReactiveController(this);
+    editorContextStore = new EditorContextStore(null);
 
     #discardPromiseResolver;
 
@@ -112,7 +117,6 @@ export default class EditorPanel extends LitElement {
         this.showCloneDialog = false;
         this.cloneInProgress = false;
         this.showEditor = true;
-        // Used to resolve the discard confirmation promise.
         this.#discardPromiseResolver = null;
         this.titleClone = '';
         this.tagsClone = [];
@@ -120,8 +124,9 @@ export default class EditorPanel extends LitElement {
         this.fragmentVersions = [];
         this.selectedVersion = '';
         this.versionsLoading = false;
+        this.parentFragment = null;
+        this.parentFragmentLoading = false;
 
-        // Bind methods
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.updateFragment = this.updateFragment.bind(this);
@@ -135,6 +140,8 @@ export default class EditorPanel extends LitElement {
         this.handleVersionChange = this.handleVersionChange.bind(this);
         this.handleVersionUpdated = this.handleVersionUpdated.bind(this);
         this.handleVersionUpdateError = this.handleVersionUpdateError.bind(this);
+        this.fetchParentFragment = this.fetchParentFragment.bind(this);
+        this.navigateToParentFragment = this.navigateToParentFragment.bind(this);
     }
 
     createRenderRoot() {
@@ -195,8 +202,6 @@ export default class EditorPanel extends LitElement {
         const currentId = this.fragment?.id;
         if (id === currentId) return;
         const wasEmpty = !currentId;
-        // If there is an existing fragment and unsaved changes,
-        // prompt to discard before switching.
         if (!wasEmpty && !(await this.closeEditor())) return;
         if (Number.isInteger(x)) {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
@@ -208,15 +213,79 @@ export default class EditorPanel extends LitElement {
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
-        // Load fragment versions when opening a fragment
         this.loadFragmentVersions();
+        await this.loadParentFragmentContext(id);
+    }
+
+    async loadParentFragmentContext(fragmentId) {
+        this.editorContextStore.reset();
+        this.parentFragment = null;
+        this.parentFragmentLoading = false;
+
+        try {
+            await this.editorContextStore.loadFragmentContext(fragmentId);
+            if (this.editorContextStore.hasParent()) {
+                await this.fetchParentFragment();
+            }
+        } catch (error) {
+            console.error('Failed to load fragment context:', error);
+        }
+    }
+
+    async fetchParentFragment() {
+        const parentId = this.editorContextStore.getParentId();
+        if (!parentId || parentId === this.fragment?.id) {
+            this.parentFragment = null;
+            this.parentFragmentLoading = false;
+            return;
+        }
+
+        this.parentFragmentLoading = true;
+        try {
+            const parentData = await this.repository.aem.sites.cf.fragments.getById(parentId);
+            this.parentFragment = new Fragment(parentData);
+        } catch (error) {
+            console.error('Failed to fetch parent fragment:', error);
+            showToast(`Failed to load parent fragment: ${error.message}`, 'negative');
+            this.parentFragment = null;
+        } finally {
+            this.parentFragmentLoading = false;
+        }
+    }
+
+    async navigateToParentFragment() {
+        if (!this.parentFragment) return;
+        await this.closeEditor();
+        await router.navigateToFragmentEditor(this.parentFragment.id);
     }
 
     handleKeyDown(event) {
         if (event.code === 'Escape') this.closeEditor();
         if (!event.ctrlKey) return;
+
         if (event.code === 'ArrowLeft' && event.shiftKey) this.updatePosition('left');
         if (event.code === 'ArrowRight' && event.shiftKey) this.updatePosition('right');
+
+        if (event.code === 'KeyS') {
+            event.preventDefault();
+            if (Store.editor.hasChanges) this.saveFragment();
+        }
+        if (event.code === 'KeyU') {
+            event.preventDefault();
+            this.publishFragment();
+        }
+        if (event.code === 'KeyL') {
+            event.preventDefault();
+            this.showClone();
+        }
+        if (event.code === 'KeyK') {
+            event.preventDefault();
+            this.copyToUse();
+        }
+        if (event.code === 'Backspace') {
+            event.preventDefault();
+            this.deleteFragment();
+        }
     }
 
     handleClose(e) {
@@ -527,7 +596,7 @@ export default class EditorPanel extends LitElement {
                     ></version-history>
                     <sp-action-button
                         label="Save"
-                        title="Save changes"
+                        title="Save changes (Ctrl+S)"
                         value="save"
                         ?disabled="${!Store.editor.hasChanges}"
                         @click="${this.saveFragment}"
@@ -535,7 +604,7 @@ export default class EditorPanel extends LitElement {
                         ${this.operation.equals(OPERATIONS.SAVE)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html`<sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>`}
-                        <sp-tooltip self-managed placement="bottom">Save changes</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Save changes (Ctrl+S)</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Discard"
@@ -547,18 +616,18 @@ export default class EditorPanel extends LitElement {
                         <sp-icon-undo slot="icon"></sp-icon-undo>
                         <sp-tooltip self-managed placement="bottom">Discard changes</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Clone" value="clone" @click="${this.showClone}">
+                    <sp-action-button label="Clone" title="Clone (Ctrl+L)" value="clone" @click="${this.showClone}">
                         ${this.operation.equals(OPERATIONS.CLONE)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html` <sp-icon-duplicate slot="icon"></sp-icon-duplicate>`}
 
-                        <sp-tooltip self-managed placement="bottom">Clone</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Clone (Ctrl+L)</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Publish" value="publish" @click="${this.publishFragment}">
+                    <sp-action-button label="Publish" title="Publish (Ctrl+U)" value="publish" @click="${this.publishFragment}">
                         ${this.operation.equals(OPERATIONS.PUBLISH)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html` <sp-icon-publish slot="icon"></sp-icon-publish>`}
-                        <sp-tooltip self-managed placement="bottom">Publish</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Publish (Ctrl+U)</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Unpublish"
@@ -569,20 +638,25 @@ export default class EditorPanel extends LitElement {
                         <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
                         <sp-tooltip self-managed placement="bottom">Unpublish</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Use" value="use" @click="${this.copyToUse}">
+                    <sp-action-button label="Use" title="Use (Ctrl+K)" value="use" @click="${this.copyToUse}">
                         <sp-icon-code slot="icon"></sp-icon-code>
-                        <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Use (Ctrl+K)</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Delete fragment" value="delete" @click="${this.deleteFragment}">
+                    <sp-action-button
+                        label="Delete fragment"
+                        title="Delete fragment (Ctrl+Backspace)"
+                        value="delete"
+                        @click="${this.deleteFragment}"
+                    >
                         ${this.operation.equals(OPERATIONS.DELETE)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html` <sp-icon-delete slot="icon"></sp-icon-delete>`}
 
-                        <sp-tooltip self-managed placement="bottom">Delete fragment</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Delete fragment (Ctrl+Backspace)</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button title="Close" label="Close" value="close" @click="${this.closeEditor}">
+                    <sp-action-button title="Close (Esc)" label="Close" value="close" @click="${this.closeEditor}">
                         <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
-                        <sp-tooltip self-managed placement="bottom">Close</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Close (Esc)</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Move right"
@@ -719,8 +793,28 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
-    get authorPath() {
-        return generateCodeToUse(this.fragment, Store.search.get().path, Store.page.get()).authorPath;
+    get derivedFromContainer() {
+        if (!this.fragment || !this.parentFragment || this.parentFragment.id === this.fragment.id) {
+            return nothing;
+        }
+
+        return html`
+            <div class="derived-from-container">
+                <div class="derived-from-header">
+                    <div class="derived-from-label">
+                        <sp-icon-link size="s"></sp-icon-link>
+                        <span>Derived from</span>
+                    </div>
+                    <a @click="${this.navigateToParentFragment}" class="derived-from-link clickable">
+                        <span>View fragment</span>
+                        <sp-icon-open-in size="s"></sp-icon-open-in>
+                    </a>
+                </div>
+                <a @click="${this.navigateToParentFragment}" class="derived-from-content clickable">
+                    ${this.parentFragment.title}
+                </a>
+            </div>
+        `;
     }
 
     render() {
@@ -734,12 +828,14 @@ export default class EditorPanel extends LitElement {
                     editor = html` <merch-card-editor
                         .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
+                        .parentFragment=${this.parentFragment}
                     ></merch-card-editor>`;
                     break;
                 case COLLECTION_MODEL_PATH:
                     editor = html` <merch-card-collection-editor
                         .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
+                        .parentFragment=${this.parentFragment}
                     ></merch-card-collection-editor>`;
                     break;
             }
@@ -748,9 +844,7 @@ export default class EditorPanel extends LitElement {
             <div id="editor">
                 ${this.fragmentEditorToolbar}
                 <sp-divider size="s"></sp-divider>
-                <div>
-                    <p id="author-path">${this.authorPath}</p>
-                </div>
+                ${this.derivedFromContainer}
                 <sp-divider size="s"></sp-divider>
                 ${editor}
                 <sp-divider size="s"></sp-divider>

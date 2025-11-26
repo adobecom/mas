@@ -1,4 +1,4 @@
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, LOCALE_DEFAULTS } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 
@@ -244,4 +244,38 @@ export function showToast(message, variant = 'info') {
         variant,
         content: message,
     });
+}
+
+/**
+ * Extracts the locale code from a fragment path
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @returns {string | null} - The locale code (e.g., 'en_US') or null if not found
+ */
+export function extractLocaleFromPath(fragmentPath) {
+    if (!fragmentPath) return null;
+    const parts = fragmentPath.split('/');
+    const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
+    return parts.find((part) => localePattern.test(part)) || null;
+}
+
+/**
+ * Checks if a locale is a default locale (can be used as source for variations)
+ * @param {string} locale - The locale code to check
+ * @returns {boolean} - True if the locale is in LOCALE_DEFAULTS
+ */
+export function isDefaultLocale(locale) {
+    if (!locale) return false;
+    return LOCALE_DEFAULTS.includes(locale);
+}
+
+/**
+ * Gets the default locale for a given language
+ * @param {string} locale - Any locale code (e.g., 'en_GB', 'en_AU')
+ * @returns {string | null} - The default locale for that language (e.g., 'en_US') or null
+ */
+export function getDefaultLocaleForLanguage(locale) {
+    if (!locale) return null;
+    const [language] = locale.split('_');
+    return LOCALE_DEFAULTS.find((def) => def.startsWith(`${language}_`)) || null;
 }

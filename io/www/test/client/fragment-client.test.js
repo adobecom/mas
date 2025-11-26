@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { previewFragment } from '../../../../studio/libs/fragment-client.js';
 import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
 import mockCardFragment from '../fragment/mocks/preview-fragment.json' with { type: 'json' };
@@ -19,6 +18,7 @@ function createResponse(status, data, statusText = 'OK') {
 describe('FragmentClient', () => {
     const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
     let fetchStub;
+    let previewFragment;
     let localStorageStub;
 
     before(() => {
@@ -36,6 +36,7 @@ describe('FragmentClient', () => {
         sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
 
         fetchStub = sinon.stub(globalThis, 'fetch');
+        ({ previewFragment } = await import('../../../../studio/libs/fragment-client.js'));
         fetchStub
             .withArgs(`${baseUrl}/${mockCardFragment.id}?references=all-hydrated`)
             .returns(createResponse(200, mockCardFragment));

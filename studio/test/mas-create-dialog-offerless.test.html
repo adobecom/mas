@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+        </script>
+        <title>mas-create-dialog test page</title>
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../../style.css" />
+        <style>
+            body {
+                margin: 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background-color: white;
+            }
+
+            main {
+                width: 100%;
+                padding: 0 100px;
+            }
+
+            sp-theme {
+                display: contents;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { stub } from 'sinon';
+
+            import Store from '../src/store.js';
+            import '../libs/swc.js';
+            import '../../src/mas-create-dialog.js';
+            import '../../src/mas-repository.js';
+            runTests(async () => {
+                describe('mas-create-dialog custom element', async () => {
+                    let dialog;
+                    let fetchStub;
+
+                    beforeEach(async () => {
+                        dialog = document.querySelector('mas-create-dialog');
+                        // Set the type property directly since it's now passed from the parent
+                        dialog.type = 'merch-card';
+                        await dialog.updateComplete;
+
+                        // Mock fetch API
+                        fetchStub = stub(window, 'fetch').resolves({
+                            ok: true,
+                            headers: {
+                                get() {},
+                            },
+                            json: () => Promise.resolve({ success: true }),
+                        });
+                    });
+
+                    afterEach(() => {
+                        fetchStub.restore();
+                    });
+
+                    it('should not make a POST fetch request when no offer', async () => {
+                        Store.search.set({ path: 'sandbox' });
+                        Store.filters.set({ locale: 'en_US' });
+
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: null, offer: {} },
+                            }),
+                        );
+
+                        // Fill in the form
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
+
+                        // Get the dialog wrapper
+                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
+
+                        // Set title
+                        titleField.value = 'Test Merch Card';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
+
+                        await dialog.updateComplete;
+
+                        // Submit the form by triggering the confirm event directly on dialog wrapper
+                        dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
+                        await dialog.updateComplete;
+
+                        // Verify fetch was called with correct parameters
+                        expect(fetchStub.called).to.be.false;
+                    });
+
+                    it('should make a POST fetch request when no offer but tags include offerless', async () => {
+                        Store.search.set({ path: 'sandbox' });
+                        Store.filters.set({ locale: 'en_US' });
+
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: null, offer: {} },
+                            }),
+                        );
+
+                        dialog._onTagSelect({
+                            detail: { tags: ['mas:offerless/dx'] },
+                        });
+
+                        // Fill in the form
+                        const titleField = dialog.shadowRoot.querySelector('#fragment-title');
+
+                        // Get the dialog wrapper
+                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
+
+                        // Set title
+                        titleField.value = 'Test Merch Card';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true }));
+
+                        await dialog.updateComplete;
+
+                        // Submit the form by triggering the confirm event directly on dialog wrapper
+                        dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
+                        await dialog.updateComplete;
+
+                        // Verify fetch was called with correct parameters
+                        expect(fetchStub.called).to.be.true;
+                        const fetchCall = fetchStub.getCall(0);
+                        expect(fetchCall.args[0]).to.include('/test/mocks/adobe/sites/cf/fragments');
+
+                        // Verify it was a POST request with correct data
+                        const options = fetchCall.args[1];
+                        expect(options.method).to.equal('POST');
+
+                        // Parse the request body
+                        const requestBody = JSON.parse(options.body);
+                        expect(requestBody).to.have.property('title', 'Test Merch Card');
+                        expect(requestBody).to.have.property('modelId');
+                    });
+                });
+            });
+        </script>
+        <main>
+            <mas-repository bucket="test" base-url="http://localhost:2023/test/mocks"></mas-repository>
+            <sp-theme system="spectrum-two" color="light" scale="medium">
+                <mas-create-dialog open></mas-create-dialog>
+            </sp-theme>
+        </main>
+    </body>
+</html>

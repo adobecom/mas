@@ -30,7 +30,7 @@ const RESPONSE_HEADERS = {
 };
 
 async function main(params) {
-    const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + performance.now();
+    const requestId = params.__ow_headers?.['x-request-id'] || `mas-${performance.now()}`;
     const region = process.env.__OW_REGION || 'unknown';
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
@@ -126,7 +126,7 @@ async function main(params) {
         'Cache-Control': cacheControl,
     };
     returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
-    logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
+    logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
     const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
     const measures = context.measures

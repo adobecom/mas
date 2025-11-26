@@ -6,6 +6,7 @@ const testRunnerHtml = (testFramework) => `
   <head>
     <script type="module">
         window.process = { env: {} };
+        window.__swc = { warn: () => {} };
     </script>
   </head>
   <body>

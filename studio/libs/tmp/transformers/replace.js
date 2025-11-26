@@ -24,6 +24,31 @@ function extractValue(ref) {
     return value.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/"/g, '\\"');
 }
 
+// Helper function to process entries for a fragment and its parents
+function collectDictionariesEntries(fragmentId, rootFragment, references, dictionary) {
+    // Get the fragment from references or use root
+    const fragment = fragmentId === rootFragment.id ? rootFragment : references[fragmentId]?.value;
+
+    if (!fragment) return;
+
+    // Process this fragment's entries first (child takes precedence)
+    const entries = fragment.fields?.entries || [];
+    entries.forEach((entryId) => {
+        const entry = references[entryId]?.value?.fields;
+        if (entry?.key && !(entry.key in dictionary)) {
+            //we just test truthy keys as we can have empty placeholders
+            //(treated different from absent ones)
+            dictionary[entry.key] = extractValue(entry);
+        }
+    });
+
+    // Then process parent if exists
+    const parentId = fragment.fields?.parent;
+    if (parentId) {
+        collectDictionariesEntries(parentId, rootFragment, references, dictionary);
+    }
+}
+
 export async function getDictionary(context) {
     /* c8 ignore next 1 */
     if (context.hasExternalDictionary) return context.dictionary;
@@ -35,14 +60,21 @@ export async function getDictionary(context) {
     const response = await fetch(odinReferences(id, true, context.preview), context, 'dictionary');
     if (response.status == 200) {
         const references = response.body.references;
-        Object.keys(references).forEach((id) => {
-            const ref = references[id]?.value?.fields;
-            if (ref?.key) {
+        const rootFragment = response.body;
+
+        // Start processing from root fragment (handles hierarchical parent chain)
+        collectDictionariesEntries(rootFragment.id, rootFragment, references, dictionary);
+
+        // Also process any additional entries in references not in entries array
+        Object.keys(references).forEach((refId) => {
+            const ref = references[refId]?.value?.fields;
+            if (ref?.key && !(ref.key in dictionary)) {
                 //we just test truthy keys as we can have empty placeholders
                 //(treated different from absent ones)
                 dictionary[ref.key] = extractValue(ref);
             }
         });
+
         return dictionary;
     }
     return dictionary;

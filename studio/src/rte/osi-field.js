@@ -1,4 +1,4 @@
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, nothing, css } from 'lit';
 import { EVENT_OST_OFFER_SELECT } from '../constants.js';
 import { openOfferSelectorTool, closeOfferSelectorTool } from './ost.js';
 
@@ -10,6 +10,12 @@ class OsiField extends LitElement {
         value: { type: String },
         showOfferSelector: { type: String },
     };
+
+    static styles = css`
+        .error-state {
+            color: #ea3829;
+        }
+    `;
 
     #boundHandlers;
     constructor() {
@@ -66,8 +72,8 @@ class OsiField extends LitElement {
                 @click=${this.handleOpenOfferSelector}
                 title="Offer Selector Tool"
             >
-                <sp-icon-shopping-cart slot="icon" style="${!this.value ? 'color: #ea3829' : ''}"></sp-icon-shopping-cart>
-                ${!this.value ? html` <sp-icon-alert slot="icon" style="color: #ea3829;"></sp-icon-alert> ` : nothing}
+                <sp-icon-shopping-cart slot="icon" class="${!this.value ? 'error-state' : ''}"></sp-icon-shopping-cart>
+                ${!this.value ? html` <sp-icon-alert size="m" slot="icon" class="error-state"></sp-icon-alert> ` : nothing}
             </sp-action-button>
         `;
     }

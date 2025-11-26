@@ -49,34 +49,25 @@ export class MasCopyDialog extends LitElement {
             max-height: 90vh;
             display: flex;
             flex-direction: column;
-        }
-
-        sp-dialog-wrapper::part(dialog) {
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        sp-dialog-wrapper::part(content) {
-            overflow-y: auto;
-            flex: 1;
-            min-height: 0;
+            background: var(--spectrum-white);
+            border-radius: 16px;
+            --spectrum-dialog-max-height: 90vh;
+            --spectrum-dialog-content-overflow-y: auto;
         }
 
         .form-field {
-            margin-bottom: var(--spectrum-global-dimension-size-400);
+            margin-bottom: var(calc(var(--swc-scale-factor) * 32px));
         }
 
         sp-field-label {
             display: block;
-            margin-bottom: var(--spectrum-global-dimension-size-100);
+            margin-bottom: var(calc(var(--swc-scale-factor) * 8px));
         }
 
         .folder-tree {
             max-height: 200px;
             overflow-y: auto;
-            border: 1px solid var(--spectrum-global-color-gray-300);
+            border: 1px solid var(--spectrum-gray-300);
             border-radius: 4px;
             padding: 8px;
         }
@@ -90,11 +81,11 @@ export class MasCopyDialog extends LitElement {
         }
 
         .folder-item:hover {
-            background-color: var(--spectrum-global-color-gray-200);
+            background-color: var(--spectrum-gray-200);
         }
 
         .folder-item.selected {
-            background-color: var(--spectrum-global-color-blue-400);
+            background-color: var(--spectrum-blue-400);
             color: white;
         }
 
@@ -110,12 +101,12 @@ export class MasCopyDialog extends LitElement {
 
         .current-path {
             font-size: 12px;
-            color: var(--spectrum-global-color-gray-700);
+            color: var(--spectrum-gray-700);
             margin-bottom: 8px;
         }
 
         .error-message {
-            color: var(--spectrum-global-color-red-600);
+            color: var(--spectrum-red-600);
             font-size: 12px;
             margin-top: 8px;
         }
@@ -387,7 +378,7 @@ export class MasCopyDialog extends LitElement {
                                                         @click=${() => this.selectFolder(folder)}
                                                         title="${folder.fullPath}"
                                                     >
-                                                        <sp-icon-folder class="folder-icon"></sp-icon-folder>
+                                                        <sp-icon-folder size="m" class="folder-icon"></sp-icon-folder>
                                                         <span>${folder.displayName}</span>
                                                     </div>
                                                 `;

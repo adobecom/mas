@@ -682,12 +682,9 @@ export default class MasFragmentEditor extends LitElement {
 
         try {
             this.cloneInProgress = true;
-            const newFragmentId = await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
+            await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
             this.cancelClone();
             this.cloneInProgress = false;
-            if (newFragmentId) {
-                await router.navigateToFragmentEditor(newFragmentId);
-            }
         } catch (error) {
             this.cloneInProgress = false;
             console.error('Error cloning fragment:', error);

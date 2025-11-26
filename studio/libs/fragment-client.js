@@ -20,6 +20,7 @@ async function previewFragment(id, options) {
         preview = {
             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
         },
+        surface,
     } = options;
     let context = {
         id,
@@ -33,6 +34,7 @@ async function previewFragment(id, options) {
         },
         api_key: 'n/a',
         locale,
+        surface,
     };
     const initPromises = {};
     context.fragmentsIds = context.fragmentsIds || {};
@@ -69,6 +71,7 @@ async function previewFragmentWithContext(id, options) {
         preview = {
             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
         },
+        surface,
     } = options;
     let context = {
         id,
@@ -82,6 +85,7 @@ async function previewFragmentWithContext(id, options) {
         },
         api_key: 'n/a',
         locale,
+        surface,
     };
     const initPromises = {};
     context.fragmentsIds = context.fragmentsIds || {};

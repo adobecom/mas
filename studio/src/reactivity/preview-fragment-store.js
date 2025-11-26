@@ -88,6 +88,11 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
+        if (!Store.search.value.path) {
+            this.refreshAemFragment();
+            return;
+        }
+
         const isVariation = this.value.isVariation && this.value.isVariation();
         const hasVariantField = this.value.fields?.some((f) => f.name === 'variant' && f.values?.length > 0);
         if (isVariation && !hasVariantField) {

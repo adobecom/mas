@@ -111,21 +111,14 @@ export class MasVariationDialog extends LitElement {
         if (!this.aem || !this.fragment?.id) return;
 
         try {
-            const searchGenerator = this.aem.sites.cf.fragments.search({
-                path: '/content/dam/mas',
-                modelIds: [this.fragment.model?.id],
-            });
+            const parentFragment = await this.aem.sites.cf.fragments.getById(this.fragment.id);
+            if (!parentFragment) return;
 
-            const existingLocales = [];
-            for await (const items of searchGenerator) {
-                for (const item of items) {
-                    const originalIdField = item.fields?.find((f) => f.name === 'originalId');
-                    if (originalIdField?.values?.[0] === this.fragment.id) {
-                        const locale = extractLocaleFromPath(item.path);
-                        if (locale) existingLocales.push(locale);
-                    }
-                }
-            }
+            const variationsField = parentFragment.fields?.find((f) => f.name === 'variations');
+            const variationPaths = variationsField?.values || [];
+
+            const existingLocales = variationPaths.map((path) => extractLocaleFromPath(path)).filter(Boolean);
+
             this.existingVariationLocales = existingLocales;
         } catch (err) {
             console.error('Failed to load existing variations:', err);
@@ -188,43 +181,27 @@ export class MasVariationDialog extends LitElement {
             this.loading = true;
             showToast('Creating variation...');
 
-            const fragmentPath = this.fragment.path;
-            const pathParts = fragmentPath.split('/');
-            const sourceLocale = this.sourceLocale;
-            const localeIndex = pathParts.findIndex((part) => part === sourceLocale);
-
-            if (localeIndex === -1) {
-                throw new Error('Could not determine source locale from path');
+            const parentFragment = await this.aem.sites.cf.fragments.getById(this.fragment.id);
+            if (!parentFragment) {
+                throw new Error('Failed to fetch parent fragment');
             }
 
-            const targetPathParts = [...pathParts];
-            targetPathParts[localeIndex] = this.selectedLocale;
-            const targetFolder = targetPathParts.slice(0, -1).join('/');
-
-            const copiedFragment = await this.aem.sites.cf.fragments.copyToFolder(
-                this.fragment,
-                targetFolder,
-                null,
+            const variationFragment = await this.aem.sites.cf.fragments.createEmptyVariation(
+                parentFragment,
                 this.selectedLocale,
             );
 
-            if (!copiedFragment) {
+            if (!variationFragment) {
                 throw new Error('Failed to create variation');
             }
 
-            const originalIdField = copiedFragment.fields?.find((f) => f.name === 'originalId');
-            if (originalIdField) {
-                originalIdField.values = [this.fragment.id];
-            } else {
-                copiedFragment.fields.push({ name: 'originalId', values: [this.fragment.id] });
-            }
-            await this.aem.sites.cf.fragments.save(copiedFragment);
+            await this.aem.sites.cf.fragments.updateParentVariations(parentFragment, variationFragment.path);
 
             showToast('Variation created successfully', 'positive');
 
             this.dispatchEvent(
                 new CustomEvent('fragment-copied', {
-                    detail: { fragment: copiedFragment },
+                    detail: { fragment: variationFragment },
                     bubbles: true,
                     composed: true,
                 }),

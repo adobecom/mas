@@ -573,15 +573,13 @@ class AEM {
      * @returns {Promise<Object>} The newly created fragment
      */
     async createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
-        const fields = fullFragment.fields.filter((field) => field.name !== 'originalId');
-
         const copyData = {
             title: fullFragment.title,
             description: fullFragment.description,
             modelId: fullFragment.model.id,
             parentPath: targetPath,
             name,
-            fields,
+            fields: fullFragment.fields,
         };
 
         const response = await fetch(this.cfFragmentsUrl, {
@@ -658,6 +656,127 @@ class AEM {
         } catch (err) {
             throw new Error(`Failed to copy fragment: ${err.message}`);
         }
+    }
+
+    /**
+     * Creates an empty variation fragment in the target locale folder.
+     * The variation starts with no content fields - it inherits from parent at runtime.
+     * @param {Object} parentFragment - The parent fragment to create a variation from
+     * @param {string} targetLocale - Target locale for the variation (e.g., 'en_GB')
+     * @returns {Promise<Object>} The newly created empty variation fragment
+     */
+    async createEmptyVariation(parentFragment, targetLocale) {
+        this.validateFragmentForCopy(parentFragment);
+
+        const parentPath = parentFragment.path;
+        const pathParts = parentPath.split('/');
+        const fragmentName = pathParts.pop();
+
+        const sourceLocaleIndex = pathParts.findIndex((part) => /^[a-z]{2}_[A-Z]{2}$/.test(part));
+        if (sourceLocaleIndex === -1) {
+            throw new Error('Could not determine source locale from parent path');
+        }
+
+        pathParts[sourceLocaleIndex] = targetLocale;
+        const targetFolder = pathParts.join('/');
+
+        await this.ensureFolderExists(targetFolder);
+
+        const { name: finalName } = await this.generateUniqueName(targetFolder, fragmentName);
+
+        const variationData = {
+            title: parentFragment.title,
+            description: parentFragment.description,
+            modelId: parentFragment.model.id,
+            parentPath: targetFolder,
+            name: finalName,
+            fields: [],
+        };
+
+        const response = await fetch(this.cfFragmentsUrl, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(variationData),
+        }).catch((err) => {
+            throw new Error(`Network error: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Failed to create variation: ${response.status} ${errorText}`);
+        }
+
+        const newFragment = await this.getFragment(response);
+        await this.wait(COPY_WAIT_TIME);
+
+        if (parentFragment.tags?.length) {
+            await this.copyFragmentTags(newFragment, parentFragment.tags);
+        }
+
+        return this.pollCreatedFragment(newFragment);
+    }
+
+    /**
+     * Updates the parent fragment's variations field to include a new variation path.
+     * @param {Object} parentFragment - The parent fragment to update
+     * @param {string} variationPath - The path of the variation to add
+     * @returns {Promise<Object>} The updated parent fragment
+     */
+    async updateParentVariations(parentFragment, variationPath) {
+        const variationsField = parentFragment.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+
+        if (currentVariations.includes(variationPath)) {
+            return parentFragment;
+        }
+
+        const updatedVariations = [...currentVariations, variationPath];
+
+        const latestParent = await this.getFragmentWithEtag(parentFragment.id);
+        if (!latestParent) {
+            throw new Error('Failed to retrieve parent fragment for update');
+        }
+
+        const updatedFields = latestParent.fields.map((field) => {
+            if (field.name === 'variations') {
+                return { ...field, values: updatedVariations };
+            }
+            return field;
+        });
+
+        if (!variationsField) {
+            updatedFields.push({
+                name: 'variations',
+                type: 'content-fragment',
+                multiple: true,
+                values: updatedVariations,
+            });
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${parentFragment.id}`, {
+            method: 'PUT',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+                'If-Match': latestParent.etag,
+            },
+            body: JSON.stringify({
+                title: latestParent.title,
+                description: latestParent.description,
+                fields: updatedFields,
+            }),
+        }).catch((err) => {
+            throw new Error(`Network error: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to update parent variations: ${response.status} ${response.statusText}`);
+        }
+
+        return this.pollUpdatedFragment(latestParent);
     }
 
     async listFolders(path) {
@@ -946,6 +1065,14 @@ class AEM {
                  * @see AEM#copyToFolder
                  */
                 copyToFolder: this.copyToFolder.bind(this),
+                /**
+                 * @see AEM#createEmptyVariation
+                 */
+                createEmptyVariation: this.createEmptyVariation.bind(this),
+                /**
+                 * @see AEM#updateParentVariations
+                 */
+                updateParentVariations: this.updateParentVariations.bind(this),
             },
         },
     };

@@ -13,8 +13,8 @@ function getCorrespondingLocale(locale) {
 }
 
 export class EditorContextStore extends ReactiveStore {
-    fragmentsIds = {};
     loading = false;
+    parentFragment = null;
 
     constructor(initialValue, validator) {
         super(initialValue, validator);
@@ -44,37 +44,21 @@ export class EditorContextStore extends ReactiveStore {
 
     async loadFragmentContext(fragmentId) {
         this.loading = true;
+        this.parentFragment = null;
+
         try {
             const fragment = Store.fragments.inEdit.get()?.get();
             const fragmentLocale = this.extractLocaleFromPath(fragment?.path) || Store.filters.value.locale;
 
-            const options = {
-                locale: fragmentLocale,
-                surface: Store.search.value.path,
-            };
-            const result = await previewFragmentWithContext(fragmentId, options);
-            if (result.status === 200) {
-                this.fragmentsIds = result.fragmentsIds || {};
-                this.set(result.body);
-            }
-
-            if (!this.fragmentsIds['default-locale-id'] && fragment) {
-                const originalIdField = fragment.fields?.find((f) => f.name === 'originalId');
-                const originalId = originalIdField?.values?.[0];
-                if (originalId && originalId !== fragmentId) {
-                    this.fragmentsIds['default-locale-id'] = originalId;
-                }
-            }
-
-            if (!this.fragmentsIds['default-locale-id'] && fragment?.path) {
+            if (fragment?.path) {
                 const parentPath = this.deduceParentPath(fragment.path, fragmentLocale);
                 if (parentPath) {
                     try {
                         const aem = document.querySelector('mas-repository')?.aem;
                         if (aem) {
-                            const parentFragment = await aem.sites.cf.fragments.getByPath(parentPath);
-                            if (parentFragment?.id && parentFragment.id !== fragmentId) {
-                                this.fragmentsIds['default-locale-id'] = parentFragment.id;
+                            const parent = await aem.sites.cf.fragments.getByPath(parentPath);
+                            if (parent?.id && parent.id !== fragmentId) {
+                                this.parentFragment = parent;
                             }
                         }
                     } catch (err) {
@@ -83,22 +67,39 @@ export class EditorContextStore extends ReactiveStore {
                 }
             }
 
+            if (!Store.search.value.path) {
+                return { status: 0, body: null };
+            }
+
+            const options = {
+                locale: fragmentLocale,
+                surface: Store.search.value.path,
+            };
+            const result = await previewFragmentWithContext(fragmentId, options);
+            if (result.status === 200) {
+                this.set(result.body);
+            }
+
             return result;
         } finally {
             this.loading = false;
         }
     }
 
+    getParentFragment() {
+        return this.parentFragment;
+    }
+
     getParentId() {
-        return this.fragmentsIds['default-locale-id'] || null;
+        return this.parentFragment?.id || null;
     }
 
     hasParent() {
-        return !!this.getParentId();
+        return !!this.parentFragment;
     }
 
     reset() {
-        this.fragmentsIds = {};
+        this.parentFragment = null;
         this.set(null);
     }
 }

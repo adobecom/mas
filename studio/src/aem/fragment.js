@@ -1,3 +1,65 @@
+const LOCALE_DEFAULTS = [
+    'ar_MENA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_DE',
+    'el_GR',
+    'en_US',
+    'es_ES',
+    'et_EE',
+    'fi_FI',
+    'fr_FR',
+    'he_IL',
+    'hr_HR',
+    'hu_HU',
+    'id_ID',
+    'it_IT',
+    'ja_JP',
+    'ko_KR',
+    'lt_LT',
+    'lv_LV',
+    'ms_MY',
+    'nb_NO',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'ro_RO',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sr_RS',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'vi_VN',
+    'zh_CN',
+    'zh_TW',
+];
+
+function extractLocaleFromPath(path) {
+    if (!path) return null;
+    const parts = path.split('/');
+    for (const part of parts) {
+        if (/^[a-z]{2}_[A-Z]{2}$/.test(part)) {
+            return part;
+        }
+    }
+    return null;
+}
+
+function getCorrespondingLocale(locale) {
+    if (!locale) return null;
+    const [language] = locale.split('_');
+    for (const defaultLocale of LOCALE_DEFAULTS) {
+        if (defaultLocale.startsWith(`${language}_`)) {
+            return defaultLocale;
+        }
+    }
+    return locale;
+}
+
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -85,19 +147,20 @@ export class Fragment {
         return this.fields.find((field) => field.name === fieldName)?.values?.[index];
     }
 
-    getOriginalIdField() {
-        return this.fields.find((field) => field.name === 'originalId');
+    getLocale() {
+        return extractLocaleFromPath(this.path);
+    }
+
+    getDefaultLocale() {
+        const locale = this.getLocale();
+        return locale ? getCorrespondingLocale(locale) : null;
     }
 
     isVariation() {
-        const originalIdField = this.getOriginalIdField();
-        const originalId = originalIdField?.values?.[0];
-        return !!originalId && originalId !== this.id;
-    }
-
-    getParentId() {
-        const originalIdField = this.getOriginalIdField();
-        return originalIdField?.values?.[0] || null;
+        const locale = this.getLocale();
+        if (!locale) return false;
+        const defaultLocale = getCorrespondingLocale(locale);
+        return locale !== defaultLocale;
     }
 
     getVariations() {

@@ -22,7 +22,6 @@ import {
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
-    LOCALE_DEFAULT,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
@@ -412,6 +411,8 @@ export class MasRepository extends LitElement {
     }
 
     async loadPreviewPlaceholders() {
+        if (!this.search.value.path) return;
+
         const cacheKey = `${this.filters.value.locale}_${this.search.value.path}`;
 
         // Return cached result if available
@@ -848,21 +849,16 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            if ((updatedTitle && updatedTitle !== result.title) || tags.length) {
-                if (updatedTitle) result.title = updatedTitle;
-                if (tags.length) {
-                    result.fields.forEach((field) => {
-                        if (field.name === 'tags') {
-                            field.values = tags;
-                        }
-                        if (field.name === 'originalId') {
-                            field.values = [result.id];
-                        }
-                        if (osi && field.name === 'osi') {
-                            field.values = [osi];
-                        }
-                    });
+            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            if (needsSave) {
+                if (updatedTitle && updatedTitle !== result.title) {
+                    result.title = updatedTitle;
                 }
+                result.fields.forEach((field) => {
+                    if (osi && field.name === 'osi') {
+                        field.values = [osi];
+                    }
+                });
                 savedResult = await this.aem.sites.cf.fragments.save(result);
             }
             if (tags.length) {
@@ -1112,23 +1108,6 @@ export class MasRepository extends LitElement {
         applyCorrectorToFragment(latest, surface);
 
         store.refreshFrom(latest);
-        if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {
-            // originalId allows to keep track of the relation between en_US fragment and the current one if in different locales
-            const originalId = store.get().getOriginalIdField();
-            if (this.filters.value.locale === LOCALE_DEFAULT) {
-                originalId.values = [latest.id];
-            } else {
-                const enUsPath = latest.path.replace(this.filters.value.locale, LOCALE_DEFAULT);
-                try {
-                    const sourceFragment = await this.aem.sites.cf.fragments.getByPath(enUsPath);
-                    if (sourceFragment) {
-                        originalId.values = [sourceFragment.id];
-                    }
-                } catch (error) {
-                    //not all fragments have en_US version, so we can ignore this error
-                }
-            }
-        }
         this.#addToCache(store.get());
         store.setLoading(false);
     }

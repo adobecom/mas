@@ -17,3 +17,5 @@ npm run proxy
 ```
 
 The proxy points to the Odin PROD bucket (`author-p22655-e59433`) and it can be changed in `package.json`.
+
+

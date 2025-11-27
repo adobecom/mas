@@ -589,62 +589,6 @@ class VersionPage extends LitElement {
         }
     }
 
-    async handleLabelVersion(version) {
-        if (!version || version.isCurrent) return;
-
-        const label = prompt('Enter a label for this version:', version.title || '');
-        if (label === null || label.trim() === '') {
-            return; // User cancelled or entered empty label
-        }
-
-        try {
-            this.loading = true;
-            Events.toast.emit({
-                variant: 'info',
-                content: 'Updating version label...',
-            });
-
-            // Update the version metadata
-            await this.repository.aem.sites.cf.fragments.updateVersion(this.fragmentId.value, version.id, {
-                title: label.trim(),
-                comment: version.comment || '',
-            });
-
-            Events.toast.emit({
-                variant: 'positive',
-                content: `Successfully updated version label to "${label.trim()}"`,
-            });
-
-            // Reload the version history to show the updated label
-            await this.loadVersionHistory();
-        } catch (error) {
-            console.error('Failed to update version label:', error);
-            Events.toast.emit({
-                variant: 'negative',
-                content: `Failed to update version label: ${error.message}`,
-            });
-        } finally {
-            this.loading = false;
-        }
-    }
-
-    async handleDeleteVersion(version) {
-        if (!version || version.isCurrent) return;
-
-        const versionLabel = version.title || `version from ${this.formatVersionDate(version.created)}`;
-        const confirmMessage = `Are you sure you want to delete "${versionLabel}"?\n\nCreated: ${this.formatVersionDate(version.created)}\nBy: ${version.createdBy || 'Unknown'}\n\nThis action cannot be undone.`;
-
-        if (!confirm(confirmMessage)) {
-            return;
-        }
-
-        Events.toast.emit({
-            variant: 'negative',
-            content: 'Version deletion is not yet supported by the AEM API',
-        });
-        // TODO: Implement when AEM API supports version deletion
-    }
-
     handleBackClick() {
         router.navigateToPage(PAGE_NAMES.CONTENT)();
     }
@@ -734,13 +678,6 @@ class VersionPage extends LitElement {
                                   >
                                       <sp-menu-item @click="${() => this.handleRestoreVersion(version)}">
                                           Restore this version
-                                      </sp-menu-item>
-                                      <sp-menu-item @click="${() => this.handleLabelVersion(version)}">
-                                          Add label
-                                      </sp-menu-item>
-                                      <sp-menu-divider></sp-menu-divider>
-                                      <sp-menu-item @click="${() => this.handleDeleteVersion(version)}">
-                                          Delete version
                                       </sp-menu-item>
                                   </sp-action-menu>
                               `

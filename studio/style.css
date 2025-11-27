@@ -419,7 +419,6 @@ sp-table-head-cell {
     padding: 24px;
     width: 100%;
     box-sizing: border-box;
-    height: calc(100vh - var(--mas-nav-height));
 }
 
 #splash-container h1 {

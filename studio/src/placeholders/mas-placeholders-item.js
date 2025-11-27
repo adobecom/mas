@@ -64,6 +64,10 @@ class MasPlaceholdersItem extends LitElement {
 
     /** @type {Placeholder} */
     get placeholder() {
+        // Return null if placeholderStore is not initialized
+        if (!this.placeholderStore) {
+            return null;
+        }
         return this.placeholderStore.get();
     }
 
@@ -135,6 +139,11 @@ class MasPlaceholdersItem extends LitElement {
     // #endregion
 
     render() {
+        // Guard clause: Don't render if placeholderStore is not initialized
+        if (!this.placeholderStore) {
+            return html``;
+        }
+
         return html`
             <sp-table-row value=${this.placeholder.key}>
                 ${this.keyCell} ${this.valueCell} ${this.statusCell} ${this.renderTableCell(this.locale, 'right')}

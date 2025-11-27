@@ -79,7 +79,7 @@ class VersionPage extends LitElement {
         }
 
         .version-list-header {
-            padding: 24px 24px 20px;
+            padding: 0 24px 20px;
             border-bottom: 1px solid #e0e0e0;
         }
 
@@ -91,6 +91,7 @@ class VersionPage extends LitElement {
         }
 
         sp-search {
+            --spectrum-search-border-radius: 16px;
             width: 100%;
         }
 
@@ -121,14 +122,12 @@ class VersionPage extends LitElement {
         }
 
         .version-item.selected {
-            background-color: #e8f4fd;
             border: 2px solid #378ef0;
             padding: 19px;
         }
 
         .version-item.current {
             border: 2px solid #268e6c;
-            background: #f2fbf7;
             padding: 19px;
         }
 
@@ -150,6 +149,7 @@ class VersionPage extends LitElement {
             align-items: center;
             gap: 8px;
             margin-bottom: 8px;
+            margin-left: 4px;
         }
 
         .current-indicator {
@@ -167,7 +167,7 @@ class VersionPage extends LitElement {
         .current-dot {
             width: 7px;
             height: 7px;
-            background: white;
+            background: #268e6c;
             border-radius: 50%;
         }
 
@@ -175,6 +175,8 @@ class VersionPage extends LitElement {
             font-size: 13px;
             color: #6e6e6e;
             margin-bottom: 6px;
+            display: flex;
+            gap: 6px;
         }
 
         .version-author {
@@ -231,14 +233,6 @@ class VersionPage extends LitElement {
             align-items: center;
         }
 
-        .preview-column-title {
-            margin: 0 0 4px 0;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
         .diff-badge {
             display: inline-flex;
             align-items: center;
@@ -262,6 +256,8 @@ class VersionPage extends LitElement {
             margin: 0;
             font-size: 13px;
             color: #464646;
+            display: flex;
+            gap: 6px;
         }
 
         .preview-column-content {
@@ -681,7 +677,7 @@ class VersionPage extends LitElement {
         return html`
             <div class="version-list-panel">
                 <div class="version-list-header">
-                    <div class="version-list-title">Version history</div>
+                    <h2>Version history</h2>
                     <sp-search
                         placeholder="Search version history"
                         @input="${this.handleSearchInput}"
@@ -706,6 +702,10 @@ class VersionPage extends LitElement {
         }
 
         return html`
+            <div class="version-status">
+                <div class="current-dot"></div>
+                Current version
+            </div>
             ${versions.map((version, index) => {
                 const isSelected = this.selectedVersion?.id === version.id;
                 const isCurrent = version.isCurrent;
@@ -715,17 +715,9 @@ class VersionPage extends LitElement {
                         @click="${() => this.handleVersionClick(version)}"
                     >
                         <div class="version-content">
-                            ${isCurrent
-                                ? html`
-                                      <div class="version-status">
-                                          <div class="current-indicator">
-                                              <div class="current-dot"></div>
-                                              Current version
-                                          </div>
-                                      </div>
-                                  `
-                                : nothing}
-                            <div class="version-date-time">${this.formatVersionDate(version.created)}</div>
+                            <div class="version-date-time">
+                                <sp-icon-calendar slot="icon"></sp-icon-calendar>${this.formatVersionDate(version.created)}
+                            </div>
                             <div class="version-author">By ${version.createdBy || 'Unknown'}</div>
                             ${version.title && !isCurrent
                                 ? html`<div class="version-description"><strong>${version.title}</strong></div>`
@@ -985,9 +977,11 @@ class VersionPage extends LitElement {
             <div class="preview-column ${className}">
                 <div class="preview-column-header">
                     <div>
-                        <sp-field-label class="preview-column-title">${label.toUpperCase()}</sp-field-label>
-                        <sp-icon-calendar slot="icon"></sp-icon-calendar>
-                        <sp-detail class="preview-column-date">${this.formatVersionDate(version.created)}</sp-detail>
+                        <sp-detail class="preview-column-date"
+                            ><sp-icon-calendar slot="icon"></sp-icon-calendar>${this.formatVersionDate(
+                                version.created,
+                            )}</sp-detail
+                        >
                     </div>
                     ${hasDifferences
                         ? html`<div class="diff-badge">

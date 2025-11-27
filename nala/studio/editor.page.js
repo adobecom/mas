@@ -16,7 +16,7 @@ export default class EditorPage {
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
-        this.mnemonicEditMenu = this.panel.locator('mas-mnemonic-field sp-action-menu');
+        this.mnemonicEditMenu = this.panel.locator('mas-mnemonic-field sp-action-menu').first();
         this.mnemonicEditButton = this.mnemonicEditMenu.locator('sp-menu sp-menu-item:has-text("Edit")');
         this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
         this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');

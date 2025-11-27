@@ -162,7 +162,7 @@ class MasPlaceholdersItem extends LitElement {
         const needsTooltip = forceTooltip || content.length > 50;
         const value = content.length > 50 ? `${content.substring(0, 47)}...` : content;
         return html`
-            <sp-table-cell class=${className} style="${align === 'right' ? 'text-align: right;' : ''}"
+            <sp-table-cell class="${className} ${align === 'right' ? 'align-right' : ''}"
                 >${html`<overlay-trigger placement="top"
                     ><div class="cell-content" slot="trigger">${value}</div>
                     ${needsTooltip

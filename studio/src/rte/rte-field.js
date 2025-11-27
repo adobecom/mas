@@ -223,7 +223,7 @@ class RteField extends LitElement {
 
                 :host([focused]) #editor {
                     outline: 2px solid;
-                    outline-color: rgb(20, 122, 243);
+                    outline-color: var(--spectrum-blue-900);
                     outline-offset: 2px;
                 }
 
@@ -232,9 +232,9 @@ class RteField extends LitElement {
                 }
 
                 ${unsafeCSS(
-                    CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
+                    `${CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
                         .map(([mark]) => `span.${mark}`)
-                        .join(',\n') + ` { background-color: rgba(250, 50, 50, 0.1); }`,
+                        .join(',\n')} { background-color: rgba(250, 50, 50, 0.1); }`,
                 )}
 
                 #editor {
@@ -242,9 +242,9 @@ class RteField extends LitElement {
                     min-height: 36px;
                     flex: 1;
                     color: var(--spectrum-gray-800);
-                    background-color: var(--spectrum-gray-50);
-                    border: 1px solid rgb(144, 144, 144);
-                    border-radius: 4px;
+                    background-color: var(--spectrum-white);
+                    border: 2px solid var(--spectrum-gray-300);
+                    border-radius: 8px;
                 }
 
                 .exceeded {
@@ -745,10 +745,10 @@ class RteField extends LitElement {
 
                             if (!triggerIcon) return false;
 
-                            let textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
-                            let textFromAriaLabel = triggerIcon.getAttribute('aria-label');
+                            const textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
+                            const textFromAriaLabel = triggerIcon.getAttribute('aria-label');
 
-                            let parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
+                            const parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
 
                             return {
                                 src: triggerIcon.getAttribute('src'),
@@ -1086,7 +1086,7 @@ class RteField extends LitElement {
     #handleTransaction(transaction) {
         try {
             const oldState = this.editorView.state;
-            let newState = oldState.apply(transaction);
+            const newState = oldState.apply(transaction);
             if (!newState) return;
 
             this.#updateSelection(newState);
@@ -1329,7 +1329,7 @@ class RteField extends LitElement {
             item.classList.remove('is-selected');
         });
 
-        let { state } = this.editorView;
+        const { state } = this.editorView;
         const {
             selection: { from, to },
         } = state;
@@ -1351,7 +1351,7 @@ class RteField extends LitElement {
     }
 
     handleStylingAction(stylingType) {
-        let { state, dispatch } = this.editorView;
+        const { state, dispatch } = this.editorView;
         const {
             selection: { from, to },
         } = state;
@@ -1378,7 +1378,7 @@ class RteField extends LitElement {
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
-            let { $from } = state.selection;
+            const { $from } = state.selection;
 
             let isInList = false;
             const listItemNode = this.#editorSchema.nodes.list_item;

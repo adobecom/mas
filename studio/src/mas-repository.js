@@ -2,7 +2,8 @@ import { LitElement, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import Store, { editFragment } from './store.js';
+import Store from './store.js';
+import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
@@ -21,7 +22,6 @@ import {
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
-    LOCALE_DEFAULT,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
@@ -35,7 +35,7 @@ let fragmentCache;
 export function getDamPath(path) {
     if (!path) return ROOT_PATH;
     if (path.startsWith(ROOT_PATH)) return path;
-    return ROOT_PATH + '/' + path;
+    return `${ROOT_PATH}/${path}`;
 }
 
 export async function initFragmentCache() {
@@ -73,6 +73,8 @@ export class MasRepository extends LitElement {
             recentlyUpdated: null,
             placeholders: null,
         };
+        this.dictionaryCache = new Map();
+        this.inflightDictionaryRequest = null;
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
@@ -95,6 +97,15 @@ export class MasRepository extends LitElement {
         super.connectedCallback();
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
         this.aem = new AEM(this.bucket, this.baseUrl);
+
+        // Invalidate dictionary cache when filters or search path change
+        Store.filters.subscribe(() => {
+            this.dictionaryCache.clear();
+        });
+        Store.search.subscribe(() => {
+            this.dictionaryCache.clear();
+        });
+
         this.loadFolders();
         this.style.display = 'none';
     }
@@ -129,6 +140,9 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
+                this.loadPreviewPlaceholders();
+                break;
+            case PAGE_NAMES.FRAGMENT_EDITOR:
                 this.loadPreviewPlaceholders();
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
@@ -397,21 +411,79 @@ export class MasRepository extends LitElement {
     }
 
     async loadPreviewPlaceholders() {
+        if (!this.search.value.path) return;
+
+        const cacheKey = `${this.filters.value.locale}_${this.search.value.path}`;
+
+        // Return cached result if available
+        if (this.dictionaryCache.has(cacheKey)) {
+            Store.placeholders.preview.set(this.dictionaryCache.get(cacheKey));
+            return;
+        }
+
+        // Return existing promise if same cache key is already in-flight
+        if (this.inflightDictionaryRequest?.cacheKey === cacheKey) {
+            return this.inflightDictionaryRequest.promise;
+        }
+
+        // Abort previous placeholder fetch if still running with different cache key
+        if (this.#abortControllers.placeholders) {
+            this.#abortControllers.placeholders.abort();
+        }
+        this.#abortControllers.placeholders = new AbortController();
+
         try {
-            const context = {
-                preview: {
-                    url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
-                },
-                locale: this.filters.value.locale,
-                surface: this.search.value.path,
-            };
-            const result = await getDictionary(context);
-            Store.placeholders.preview.set(result);
+            const promise = this.fetchDictionary(this.#abortControllers.placeholders);
+            this.inflightDictionaryRequest = { promise, cacheKey };
+            const result = await promise;
+
+            // Verify cache key hasn't changed during fetch (prevents stale data)
+            const currentKey = `${this.filters.value.locale}_${this.search.value.path}`;
+            if (currentKey === cacheKey) {
+                // If result is empty and locale isn't en_US, try fallback
+                if ((!result || Object.keys(result).length === 0) && this.filters.value.locale !== 'en_US') {
+                    const fallbackContext = {
+                        preview: {
+                            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                        },
+                        locale: 'en_US',
+                        surface: this.search.value.path,
+                        signal: this.#abortControllers.placeholders?.signal,
+                    };
+
+                    const fallbackResult = await getDictionary(fallbackContext);
+                    this.dictionaryCache.set(cacheKey, fallbackResult);
+                    Store.placeholders.preview.set(fallbackResult);
+                } else {
+                    this.dictionaryCache.set(cacheKey, result);
+                    Store.placeholders.preview.set(result);
+                }
+            }
         } catch (error) {
+            if (error.name === 'AbortError') return; // Silent abort during navigation
             this.processError(error, 'Could not load preview placeholders.');
         } finally {
+            this.inflightDictionaryRequest = null;
+            this.#abortControllers.placeholders = null;
             Store.placeholders.list.loading.set(false);
         }
+    }
+
+    async fetchDictionary(abortController) {
+        const context = {
+            preview: {
+                url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+            },
+            locale: this.filters.value.locale,
+            surface: this.search.value.path,
+        };
+
+        // Pass abort signal if available (fragment-client may support it)
+        if (abortController) {
+            context.signal = abortController.signal;
+        }
+
+        return await getDictionary(context);
     }
 
     getDictionaryPath() {
@@ -777,21 +849,16 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            if ((updatedTitle && updatedTitle !== result.title) || tags.length) {
-                if (updatedTitle) result.title = updatedTitle;
-                if (tags.length) {
-                    result.fields.forEach((field) => {
-                        if (field.name === 'tags') {
-                            field.values = tags;
-                        }
-                        if (field.name === 'originalId') {
-                            field.values = [result.id];
-                        }
-                        if (osi && field.name === 'osi') {
-                            field.values = [osi];
-                        }
-                    });
+            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            if (needsSave) {
+                if (updatedTitle && updatedTitle !== result.title) {
+                    result.title = updatedTitle;
                 }
+                result.fields.forEach((field) => {
+                    if (osi && field.name === 'osi') {
+                        field.values = [osi];
+                    }
+                });
                 savedResult = await this.aem.sites.cf.fragments.save(result);
             }
             if (tags.length) {
@@ -806,7 +873,7 @@ export class MasRepository extends LitElement {
 
             const sourceStore = generateFragmentStore(newFragment);
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
-            editFragment(sourceStore);
+            await router.navigateToFragmentEditor(newFragment.id);
 
             this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);
@@ -1041,23 +1108,6 @@ export class MasRepository extends LitElement {
         applyCorrectorToFragment(latest, surface);
 
         store.refreshFrom(latest);
-        if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {
-            // originalId allows to keep track of the relation between en_US fragment and the current one if in different locales
-            const originalId = store.get().getOriginalIdField();
-            if (this.filters.value.locale === LOCALE_DEFAULT) {
-                originalId.values = [latest.id];
-            } else {
-                const enUsPath = latest.path.replace(this.filters.value.locale, LOCALE_DEFAULT);
-                try {
-                    const sourceFragment = await this.aem.sites.cf.fragments.getByPath(enUsPath);
-                    if (sourceFragment) {
-                        originalId.values = [sourceFragment.id];
-                    }
-                } catch (error) {
-                    //not all fragments have en_US version, so we can ignore this error
-                }
-            }
-        }
         this.#addToCache(store.get());
         store.setLoading(false);
     }

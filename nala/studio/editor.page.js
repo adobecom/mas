@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 export default class EditorPage {
     constructor(page) {
         this.page = page;
-        this.panel = page.locator('editor-panel > #editor');
+        this.panel = page.locator('mas-fragment-editor > #fragment-editor #editor-content');
 
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
@@ -16,7 +16,8 @@ export default class EditorPage {
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
-        this.mnemonicEditButton = this.panel.locator('mas-mnemonic-field sp-action-button');
+        this.mnemonicEditMenu = this.panel.locator('mas-mnemonic-field sp-action-menu').first();
+        this.mnemonicEditButton = this.mnemonicEditMenu.locator('sp-menu sp-menu-item:has-text("Edit")');
         this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
         this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');
         this.mnemonicUrlIconInput = page.locator('mas-mnemonic-modal[open] #url-icon >> input');
@@ -43,16 +44,16 @@ export default class EditorPage {
         this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
         this.showAddOn = this.panel.locator('#addon-field #input');
         this.showQuantitySelector = this.panel.locator('#quantitySelect sp-checkbox input');
-        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelector #title-quantity input');
-        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelector #start-quantity input');
-        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelector #step-quantity input');
+        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelectorTitle #title-quantity input');
+        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelectorStart #start-quantity input');
+        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-icon-add');
         this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
-        this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
-        this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
+        // this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
+        // this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
         this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
@@ -106,8 +107,10 @@ export default class EditorPage {
         return this.linkVariant.locator(link);
     }
 
-    async openMnemonicModal(index = 0) {
-        const editButton = this.mnemonicEditButton.nth(index);
+    async openMnemonicModal() {
+        await expect(await this.mnemonicEditMenu).toBeVisible();
+        await this.mnemonicEditMenu.click();
+        const editButton = this.mnemonicEditButton;
         await editButton.waitFor({ state: 'visible' });
         await editButton.click();
         await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'attached' });

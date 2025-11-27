@@ -21,11 +21,11 @@ class MnemonicField extends LitElement {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 8px;
+            padding: 12px;
             border: 1px solid var(--spectrum-gray-300);
-            border-radius: 4px;
+            border-radius: 8px;
             min-height: 48px;
-            max-width: 340px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
         }
 
         .icon-preview {
@@ -58,12 +58,6 @@ class MnemonicField extends LitElement {
             min-width: 0;
         }
 
-        .mnemonic-info .label {
-            font-size: 12px;
-            color: var(--spectrum-gray-700);
-            margin-bottom: 2px;
-        }
-
         .mnemonic-info .value {
             font-size: 14px;
             color: var(--spectrum-gray-900);
@@ -77,17 +71,8 @@ class MnemonicField extends LitElement {
             font-style: italic;
         }
 
-        .edit-button {
+        .action-menu {
             margin-left: auto;
-        }
-
-        sp-icon-edit {
-            cursor: pointer;
-            color: var(--spectrum-gray-700);
-        }
-
-        sp-icon-edit:hover {
-            color: var(--spectrum-blue-600);
         }
     `;
 
@@ -117,6 +102,15 @@ class MnemonicField extends LitElement {
 
     #handleModalClose() {
         this.modalOpen = false;
+    }
+
+    #handleDeleteClick() {
+        this.dispatchEvent(
+            new CustomEvent('delete-field', {
+                bubbles: true,
+                composed: true,
+            }),
+        );
     }
 
     #handleModalSave(event) {
@@ -178,26 +172,22 @@ class MnemonicField extends LitElement {
                 </div>
 
                 <div class="mnemonic-info">
-                    <div class="label">Icon</div>
                     <div class="value">${this.#getDisplayText(this.#getIconName(), 'No icon selected')}</div>
-
-                    ${this.alt
-                        ? html`
-                              <div class="label">Alt text</div>
-                              <div class="value">${this.alt}</div>
-                          `
-                        : ''}
-                    ${this.link
-                        ? html`
-                              <div class="label">Link</div>
-                              <div class="value">${this.link}</div>
-                          `
-                        : ''}
                 </div>
 
-                <sp-action-button class="edit-button" quiet @click=${this.#handleEditClick} title="Edit mnemonic">
-                    <sp-icon-edit slot="icon"></sp-icon-edit>
-                </sp-action-button>
+                <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end">
+                    <sp-icon-more slot="icon"></sp-icon-more>
+                    <sp-menu>
+                        <sp-menu-item @click=${this.#handleEditClick}>
+                            <sp-icon-edit slot="icon"></sp-icon-edit>
+                            Edit
+                        </sp-menu-item>
+                        <sp-menu-item @click=${this.#handleDeleteClick}>
+                            <sp-icon-delete slot="icon"></sp-icon-delete>
+                            Delete
+                        </sp-menu-item>
+                    </sp-menu>
+                </sp-action-menu>
             </div>
 
             <mas-mnemonic-modal

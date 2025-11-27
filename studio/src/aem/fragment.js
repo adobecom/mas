@@ -1,3 +1,65 @@
+const LOCALE_DEFAULTS = [
+    'ar_MENA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_DE',
+    'el_GR',
+    'en_US',
+    'es_ES',
+    'et_EE',
+    'fi_FI',
+    'fr_FR',
+    'he_IL',
+    'hr_HR',
+    'hu_HU',
+    'id_ID',
+    'it_IT',
+    'ja_JP',
+    'ko_KR',
+    'lt_LT',
+    'lv_LV',
+    'ms_MY',
+    'nb_NO',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'ro_RO',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sr_RS',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'vi_VN',
+    'zh_CN',
+    'zh_TW',
+];
+
+function extractLocaleFromPath(path) {
+    if (!path) return null;
+    const parts = path.split('/');
+    for (const part of parts) {
+        if (/^[a-z]{2}_[A-Z]{2}$/.test(part)) {
+            return part;
+        }
+    }
+    return null;
+}
+
+function getCorrespondingLocale(locale) {
+    if (!locale) return null;
+    const [language] = locale.split('_');
+    for (const defaultLocale of LOCALE_DEFAULTS) {
+        if (defaultLocale.startsWith(`${language}_`)) {
+            return defaultLocale;
+        }
+    }
+    return locale;
+}
+
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -40,7 +102,7 @@ export class Fragment {
     }
 
     get statusVariant() {
-        return this.status.toLowerCase();
+        return this.status?.toLowerCase();
     }
 
     getTagTitle(id) {
@@ -85,8 +147,30 @@ export class Fragment {
         return this.fields.find((field) => field.name === fieldName)?.values?.[index];
     }
 
-    getOriginalIdField() {
-        return this.fields.find((field) => field.name === 'originalId');
+    getLocale() {
+        return extractLocaleFromPath(this.path);
+    }
+
+    getDefaultLocale() {
+        const locale = this.getLocale();
+        return locale ? getCorrespondingLocale(locale) : null;
+    }
+
+    isVariation() {
+        const locale = this.getLocale();
+        if (!locale) return false;
+        const defaultLocale = getCorrespondingLocale(locale);
+        return locale !== defaultLocale;
+    }
+
+    getVariations() {
+        const variationsField = this.fields.find((field) => field.name === 'variations');
+        return variationsField?.values || [];
+    }
+
+    hasVariations() {
+        const variations = this.getVariations();
+        return variations.length > 0;
     }
 
     updateField(fieldName, value) {
@@ -112,5 +196,64 @@ export class Fragment {
             });
         if (fieldName === 'tags') this.newTags = value;
         return change;
+    }
+
+    getEffectiveFieldValue(fieldName, parentFragment, index = 0) {
+        const ownValue = this.getFieldValue(fieldName, index);
+        if (ownValue !== undefined && ownValue !== null && ownValue !== '') {
+            return ownValue;
+        }
+        if (!parentFragment || !this.isVariation()) {
+            return ownValue;
+        }
+        return parentFragment.getFieldValue(fieldName, index);
+    }
+
+    getEffectiveFieldValues(fieldName, parentFragment) {
+        const ownField = this.getField(fieldName);
+        if (ownField && ownField.values && ownField.values.length > 0) {
+            return ownField.values;
+        }
+        if (!parentFragment || !this.isVariation()) {
+            return ownField?.values || [];
+        }
+        const parentField = parentFragment.getField(fieldName);
+        return parentField?.values || [];
+    }
+
+    getFieldState(fieldName, parentFragment) {
+        if (!this.isVariation() || !parentFragment) {
+            return 'no-parent';
+        }
+        const ownField = this.getField(fieldName);
+        if (!ownField || !ownField.values || ownField.values.length === 0) {
+            return 'inherited';
+        }
+        const parentField = parentFragment.getField(fieldName);
+        if (!parentField || !parentField.values) {
+            return 'overridden';
+        }
+        const areEqual =
+            ownField.values.length === parentField.values.length &&
+            ownField.values.every((v, i) => v === parentField.values[i]);
+        return areEqual ? 'same-as-parent' : 'overridden';
+    }
+
+    isFieldOverridden(fieldName) {
+        if (!this.isVariation()) {
+            return false;
+        }
+        const field = this.getField(fieldName);
+        return field && field.values && field.values.length > 0;
+    }
+
+    resetFieldToParent(fieldName) {
+        const fieldIndex = this.fields.findIndex((field) => field.name === fieldName);
+        if (fieldIndex !== -1) {
+            this.fields.splice(fieldIndex, 1);
+            this.hasChanges = true;
+            return true;
+        }
+        return false;
     }
 }

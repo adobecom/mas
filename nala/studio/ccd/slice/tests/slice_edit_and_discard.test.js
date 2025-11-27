@@ -50,7 +50,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -234,7 +234,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();
@@ -701,7 +700,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -1036,7 +1035,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-4: Select product icon from icon picker', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();

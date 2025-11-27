@@ -136,6 +136,10 @@ class MasToolbar extends LitElement {
         this.handleCopyToFolder = this.handleCopyToFolder.bind(this);
     }
 
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
     filters = new StoreController(this, Store.filters);
     search = new StoreController(this, Store.search);
     renderMode = new StoreController(this, Store.renderMode);
@@ -327,6 +331,7 @@ class MasToolbar extends LitElement {
             <mas-selection-panel
                 ?open=${this.selecting.value}
                 .selectionStore=${Store.selection}
+                .repository=${this.repository}
                 .onCopyToFolder=${this.handleCopyToFolder}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>

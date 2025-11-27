@@ -1,0 +1,70 @@
+.render-fragment {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.render-fragment.dragging {
+    opacity: 0.6;
+    transform: scale(0.95);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.render-fragment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.render-fragment-content {
+    cursor: grab;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.render-fragment-content:hover {
+    transform: translateY(-2px);
+}
+
+.render-fragment-content:active {
+    cursor: grabbing;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--spectrum-global-color-gray-900);
+    font-size: 24px;
+    cursor: pointer;
+    border-radius: 16px;
+    z-index: 99;
+    pointer-events: auto;
+}
+
+.overlay sp-icon-select-rectangle,
+.overlay sp-icon-select-no {
+    display: none;
+}
+
+.render-fragment:hover .overlay sp-icon-select-rectangle,
+.render-fragment:hover .overlay sp-icon-select-no {
+    display: block;
+}
+
+.unknown-fragment {
+    position: relative;
+    padding: 16px;
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    border-radius: 4px;
+    background-color: var(--spectrum-global-color-gray-50);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}

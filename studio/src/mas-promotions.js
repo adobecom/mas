@@ -5,56 +5,41 @@ import { MasRepository } from './mas-repository.js';
 import styles from './mas-promotions-css.js';
 import { PAGE_NAMES } from './constants.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { showToast } from './utils.js';
 
 class MasPromotions extends LitElement {
     static styles = styles;
 
     static properties = {
-        searchQuery: { type: String, state: true },
+        filter: { type: String, state: true },
+        filterOptions: { type: Array, state: true },
         sortField: { type: String, state: true },
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
         promotionsData: { type: Array, state: true },
         promotionsLoading: { type: Boolean, state: true },
-        modifiedPromotions: { type: Object, state: true },
+        isDialogOpen: { type: Boolean, state: true },
+        confirmDialogConfig: { type: Object, state: true },
     };
 
     constructor() {
         super();
 
-        this.searchQuery = '';
+        this.filter = Store.promotions?.list?.filter?.get() || 'scheduled';
+        this.filterOptions = Store.promotions?.list?.filterOptions?.get() || [];
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
-        this.selectedFolder = {};
-        this.selectedLocale = 'en_US';
-        this.folderData = [];
-        this.foldersLoaded = false;
-        this.promotionsData = [];
-        this.promotionsLoading = false;
-
+        this.promotionsData = Store.promotions?.list?.data?.get() || [];
+        this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
+        this.isDialogOpen = false;
+        this.confirmDialogConfig = null;
         this.reactiveController = new ReactiveController(this, [
-            Store.search,
-            Store.filters,
-            Store.folders.data,
-            Store.folders.loaded,
             Store.promotions?.list?.data,
             Store.promotions?.list?.loading,
+            Store.promotions?.list?.filter,
+            Store.promotions?.list?.filterOptions,
         ]);
-
-        if (Store.promotions?.list?.data) {
-            this.promotionsData = Store.promotions.list.data.get() || [];
-            console.log(this.promotionsData.length);
-        }
-        if (Store.promotions?.list?.loading) {
-            this.promotionsLoading = Store.promotions.list.loading.get() || false;
-        }
-        if (Store.search) {
-            this.selectedFolder = Store.search.get() || {};
-        }
-        if (Store.filters) {
-            this.selectedLocale = Store.filters.get().locale || 'en_US';
-        }
     }
 
     /** @type {MasRepository} */
@@ -79,9 +64,6 @@ class MasPromotions extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        document.addEventListener('click', this.handleClickOutside);
-
-        console.log('connectedCallback');
 
         const currentPage = Store.page.get();
         if (currentPage !== PAGE_NAMES.PROMOTIONS) {
@@ -93,9 +75,6 @@ class MasPromotions extends LitElement {
             this.error = 'Repository component not found';
             return;
         }
-
-        this.selectedFolder = Store.search.get();
-        this.selectedLocale = Store.filters.get().locale || 'en_US';
         this.promotionsData = Store.promotions?.list?.data?.get() || [];
 
         Store.promotions.list.loading.set(true);
@@ -104,7 +83,6 @@ class MasPromotions extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        document.removeEventListener('click', this.handleClickOutside);
     }
 
     renderError() {
@@ -127,12 +105,48 @@ class MasPromotions extends LitElement {
         return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
     }
 
+    set loading(value = true) {
+        this.promotionsLoading = value;
+        Store.promotions.list.loading.set(value);
+    }
+
     async loadPromotions() {
-        console.log('loadPromotions');
         await this.repository.loadPromotions();
         this.promotionsData = Store.promotions.list.data.get() || [];
         this.promotionsLoading = Store.promotions.list.loading.get() || false;
         this.requestUpdate();
+    }
+
+    /**
+     * Display a dialog for confirmation
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {Object} options - Additional options
+     * @returns {Promise<boolean>} - True if confirmed, false if canceled
+     */
+    async #showDialog(title, message, options = {}) {
+        if (this.isDialogOpen) {
+            return false;
+        }
+
+        this.isDialogOpen = true;
+        const { confirmText = 'OK', cancelText = 'Cancel', variant = 'primary' } = options;
+
+        return new Promise((resolve) => {
+            this.confirmDialogConfig = {
+                title,
+                message,
+                confirmText,
+                cancelText,
+                variant,
+                onConfirm: () => {
+                    resolve(true);
+                },
+                onCancel: () => {
+                    resolve(false);
+                },
+            };
+        });
     }
 
     renderPromotionsContent() {
@@ -144,6 +158,7 @@ class MasPromotions extends LitElement {
     }
 
     renderPromotionsTable() {
+        this.#handleFilterPromotions(this.filter);
         const filteredPromotions = this.promotionsData;
 
         const columns = [
@@ -182,7 +197,7 @@ class MasPromotions extends LitElement {
                             <sp-table-row value=${promotion.get().path} data-id=${promotion.get().id}>
                                 <sp-table-cell>${promotion.get().title}</sp-table-cell>
                                 <sp-table-cell>${promotion.get().timeline}</sp-table-cell>
-                                <sp-table-cell>${promotion.get().promotionStatus}</sp-table-cell>
+                                <sp-table-cell>${this.#upperCaseFirst(promotion.get().promotionStatus)}</sp-table-cell>
                                 <sp-table-cell>${promotion.get().createdBy}</sp-table-cell>
                                 ${this.renderActionCell(promotion)}
                             </sp-table-row>
@@ -203,7 +218,7 @@ class MasPromotions extends LitElement {
                         @input=${this.handleSearch}
                         value=${this.searchQuery}
                     ></sp-search>
-                    <sp-button variant="accent" @click=${() => this.handleAddPromotion()} class="create-button">
+                    <sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
                         <sp-icon-add slot="icon"></sp-icon-add>
                         Create Campaign
                     </sp-button>
@@ -212,14 +227,20 @@ class MasPromotions extends LitElement {
                 ${this.renderError()}
 
                 <div class="promotions-segmented-control-container">
-                    <sp-action-group selects="single" emphasized size="m" justified selected='["scheduled"]'>
-                        <sp-action-button value="all">All</sp-action-button>
-                        <sp-action-button value="active">Active</sp-action-button>
-                        <sp-action-button value="scheduled">Scheduled</sp-action-button>
-                        <sp-action-button value="expired">Expired</sp-action-button>
-                        <sp-action-button value="archived">Archived</sp-action-button>
+                    <sp-action-group selects="single" emphasized size="m" justified selected='["${this.filter}"]'>
+                        ${repeat(
+                            this.filterOptions,
+                            (filter) =>
+                                html`<sp-action-button
+                                    value=${filter.value}
+                                    @click=${() => this.#handleFilterPromotions(filter.value)}
+                                    >${filter.label}</sp-action-button
+                                >`,
+                        )}
                     </sp-action-group>
                 </div>
+
+                ${this.renderConfirmDialog()}
 
                 <div class="promotions-filters-container">
                     <div class="filters-container"><sp-icon-filter></sp-icon-filter><span>Filters:</span></div>
@@ -255,43 +276,23 @@ class MasPromotions extends LitElement {
             <sp-table-cell class="action-cell">
                 <sp-action-menu size="m">
                     ${html`
-                        <sp-menu-item
-                            @click=${(e) => {
-                                e.stopPropagation();
-                            }}
-                        >
+                        <sp-menu-item @click="${() => this.#handleEditPromotion(promotion)}">
                             <sp-icon-edit></sp-icon-edit>
                             <span>Edit</span>
                         </sp-menu-item>
-                        <sp-menu-item
-                            @click=${(e) => {
-                                e.stopPropagation();
-                            }}
-                        >
+                        <sp-menu-item disabled>
                             <sp-icon-duplicate></sp-icon-duplicate>
                             <span>Duplicate</span>
                         </sp-menu-item>
-                        <sp-menu-item
-                            @click=${(e) => {
-                                e.stopPropagation();
-                            }}
-                        >
+                        <sp-menu-item disabled>
                             <sp-icon-pause></sp-icon-pause>
                             <span>Pause</span>
                         </sp-menu-item>
-                        <sp-menu-item
-                            @click=${(e) => {
-                                e.stopPropagation();
-                            }}
-                        >
+                        <sp-menu-item disabled>
                             <sp-icon-archive></sp-icon-archive>
                             <span>Archive</span>
                         </sp-menu-item>
-                        <sp-menu-item
-                            @click=${(e) => {
-                                e.stopPropagation();
-                            }}
-                        >
+                        <sp-menu-item @click=${() => this.#handleDeletePromotion(promotion)}>
                             <sp-icon-delete></sp-icon-delete>
                             <span>Delete</span>
                         </sp-menu-item>
@@ -301,15 +302,99 @@ class MasPromotions extends LitElement {
         `;
     }
 
-    handleAddPromotion() {
-        console.log('handleAddPromotion');
-        Store.page.set(PAGE_NAMES.PROMOTIONS_FORM);
-        this.requestUpdate();
+    /**
+     * Renders a confirmation dialog
+     * @returns {TemplateResult} - HTML template
+     */
+    renderConfirmDialog() {
+        if (!this.confirmDialogConfig) return nothing;
+
+        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
+
+        return html`
+            <div class="confirm-dialog-overlay">
+                <sp-dialog-wrapper
+                    open
+                    underlay
+                    id="promotion-delete-confirm-dialog"
+                    .heading=${title}
+                    .variant=${variant || 'negative'}
+                    .confirmLabel=${confirmText}
+                    .cancelLabel=${cancelText}
+                    @confirm=${() => {
+                        this.confirmDialogConfig = null;
+                        this.isDialogOpen = false;
+                        onConfirm && onConfirm();
+                    }}
+                    @cancel=${() => {
+                        this.confirmDialogConfig = null;
+                        this.isDialogOpen = false;
+                        onCancel && onCancel();
+                    }}
+                >
+                    <div>${message}</div>
+                </sp-dialog-wrapper>
+            </div>
+        `;
     }
 
-    handleSearch(e) {
-        this.searchQuery = e.target.value;
-        this.requestUpdate();
+    #handleAddPromotion() {
+        Store.promotions.inEdit.set(null);
+        Store.promotions.promotionId.set('');
+        Store.page.set(PAGE_NAMES.PROMOTIONS_EDITOR);
+    }
+
+    #handleEditPromotion(promotion) {
+        Store.promotions.inEdit.set(promotion);
+        Store.promotions.promotionId.set(promotion.get().id);
+        Store.page.set(PAGE_NAMES.PROMOTIONS_EDITOR);
+    }
+
+    async #handleDeletePromotion(promotion) {
+        if (this.isDialogOpen) {
+            return;
+        }
+        const confirmed = await this.#showDialog(
+            'Delete Promotion Campaign',
+            `Are you sure you want to delete the promotion "${promotion.get().title}"? This action cannot be undone.`,
+            {
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                variant: 'negative',
+            },
+        );
+        if (!confirmed) return;
+        try {
+            this.loading = true;
+            showToast('Deleting promotion campaign...');
+            await this.repository.deleteFragment(promotion, { startToast: false, endToast: false });
+            const updatedPromotions = this.promotionsData.filter((p) => p.get().id !== promotion.get().id);
+            this.promotionsData = updatedPromotions;
+            Store.promotions.list.data.set(updatedPromotions);
+            showToast('Promotion campaign successfully deleted.', 'positive');
+        } catch (error) {
+            console.error('Error deleting promotion:', error);
+            showToast('Failed to delete promotion campaign.', 'negative');
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    #handleFilterPromotions(filter) {
+        // reset promotions data
+        this.promotionsData = Store.promotions.list.data.get() || [];
+        this.filter = filter;
+        Store.promotions.list.filter.set(filter);
+
+        if (filter !== 'all') {
+            const filteredPromotions = this.promotionsData.filter((promotion) => promotion.value?.promotionStatus === filter);
+            this.promotionsData = filteredPromotions;
+        }
+    }
+
+    #upperCaseFirst(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
     }
 }
 

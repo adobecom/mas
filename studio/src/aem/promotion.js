@@ -27,7 +27,7 @@ export class Promotion extends Fragment {
 
     get promotionStatus() {
         if (!this.startDateValue || !this.endDateValue) {
-            return 'Unknown';
+            return 'unknown';
         }
 
         const now = new Date();
@@ -36,20 +36,20 @@ export class Promotion extends Fragment {
 
         // Check if dates are valid
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            return 'Unknown';
+            return 'unknown';
         }
 
         // Active: current time is between startDate and endDate
         if (now >= startDate && now <= endDate) {
-            return 'Active';
+            return 'active';
         }
 
         // Expired: endDate is in the past
         if (now > endDate) {
-            return 'Expired';
+            return 'expired';
         }
 
         // Scheduled: startDate and endDate are in the future
-        return 'Scheduled';
+        return 'scheduled';
     }
 }

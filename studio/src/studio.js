@@ -8,7 +8,7 @@ import './mas-side-nav.js';
 import './mas-toolbar.js';
 import './mas-content.js';
 import './mas-promotions.js';
-import './mas-promotions-form.js';
+import './mas-promotions-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
@@ -141,9 +141,9 @@ class MasStudio extends LitElement {
         return html`<mas-promotions></mas-promotions>`;
     }
 
-    get promotionsForm() {
-        if (this.page.value !== PAGE_NAMES.PROMOTIONS_FORM) return nothing;
-        return html`<mas-promotions-form></mas-promotions-form>`;
+    get promotionsEditor() {
+        if (this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR) return nothing;
+        return html`<mas-promotions-editor></mas-promotions-editor>`;
     }
 
     renderCommerceService() {
@@ -185,7 +185,7 @@ class MasStudio extends LitElement {
                 <mas-side-nav></mas-side-nav>
                 ${this.masJsReady
                     ? html`<div class="main-container">
-                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.promotions} ${this.promotionsForm}
+                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.promotions} ${this.promotionsEditor}
                       </div>`
                     : nothing}
             </div>

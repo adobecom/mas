@@ -391,4 +391,39 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.supportButton).toBeVisible();
         });
     });
+
+    // @studio-table-view - Validate Table View
+    test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-2: Change to the table view', async () => {
+            await expect(await studio.previewMenu).toBeVisible();
+            await expect(await studio.previewMenu).toHaveAttribute('value', 'render');
+            await studio.previewMenu.click();
+            await expect(await studio.renderViewOption).toBeVisible();
+            await expect(await studio.tableViewOption).toBeVisible();
+            await studio.tableViewOption.click();
+            await page.waitForTimeout(2000);
+        });
+
+        await test.step('step-3: Validate the table view', async () => {
+            await expect(await studio.tableView).toBeVisible();
+            await expect(await studio.tableViewHeaders).toBeVisible();
+            const cards = await studio.tableView.locator('mas-fragment');
+            expect(await cards.count()).toBeGreaterThan(1);
+            await expect(await studio.tableView.locator('mas-fragment').first()).toHaveAttribute('view', 'table');
+        });
+
+        await test.step('step-4: Validate card editing in table view', async () => {
+            await studio.tableView.locator('mas-fragment').first().dblclick();
+            await expect(await editor.panel).toBeVisible();
+        });
+    });
 });

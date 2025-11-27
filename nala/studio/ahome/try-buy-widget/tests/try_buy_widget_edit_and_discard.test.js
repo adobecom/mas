@@ -200,7 +200,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();
@@ -438,7 +437,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.borderColor).not.toBeVisible();
             await expect(await editor.backgroundColor).not.toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -500,7 +499,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.borderColor).not.toBeVisible();
             await expect(await editor.backgroundColor).not.toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -800,7 +799,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Select product icon from icon picker', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();

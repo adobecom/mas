@@ -48,7 +48,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-5: Edit mnemonic field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal(0);
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();

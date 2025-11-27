@@ -138,7 +138,7 @@ export const PAGE_NAMES = {
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
     PROMOTIONS: 'promotions',
-    PROMOTIONS_FORM: 'promotions-form',
+    PROMOTIONS_EDITOR: 'promotions-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';

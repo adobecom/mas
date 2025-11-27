@@ -15,6 +15,21 @@ export const styles = css`
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         border: 1px solid var(--spectrum-gray-200);
         padding: 6px 24px 24px 24px;
+        position: relative;
+    }
+
+    .promotion-loading {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+        z-index: 10;
     }
 
     .promotions-form-panel-content {
@@ -41,6 +56,14 @@ export const styles = css`
         justify-content: flex-end;
         gap: 12px;
         padding-top: 24px;
+    }
+
+    .promotions-form-surfaces-panel sp-button {
+        background: white;
+    }
+
+    .promotions-form-surfaces-panel div.label {
+        align-content: center;
     }
 
     .surfaces-empty-state {

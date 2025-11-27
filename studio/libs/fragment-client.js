@@ -4,13 +4,13 @@
  */
 
 // Import the modules
-import { logError } from '../../io/www/src/fragment/utils/log.js';
-import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
-import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
-import { getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
-import { transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
-import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
-import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
+import { logError } from './tmp/utils/log.js';
+import { transformer as corrector } from './tmp/transformers/corrector.js';
+import { transformer as fetchFragment } from './tmp/transformers/fetchFragment.js';
+import { getDictionary, transformer as replace } from './tmp/transformers/replace.js';
+import { transformer as settings } from './tmp/transformers/settings.js';
+import { transformer as customize, LOCALE_DEFAULTS } from './tmp/transformers/customize.js';
+import { transformer as promotions } from './tmp/transformers/promotions.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
 
@@ -103,4 +103,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export { previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector, LOCALE_DEFAULTS };

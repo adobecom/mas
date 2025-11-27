@@ -41,293 +41,525 @@ describe('corrector', () => {
     });
 
     describe('adobe-home data-extra-options fixing', () => {
-        it('should fix escaped quotes in ctas field for adobe-home surface', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: {
-                            value: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
-                            mimeType: 'text/html',
-                        },
-                    },
+        describe('quote fixing with object ctas', () => {
+            const fixingTestCases = [
+                {
+                    name: 'should fix escaped quotes in ctas field for adobe-home surface',
+                    input: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    expected: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+                    mimeType: 'text/html',
                 },
-            };
+                {
+                    name: 'should fix literal quotes in ctas field for adobe-home surface',
+                    input: '<a data-extra-options="{"actionId":"try"}">Test</a>',
+                    expected: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+                    mimeType: 'text/html',
+                },
+                {
+                    name: 'should fix multiple data-extra-options in ctas field',
+                    input: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Try</a><a data-extra-options="{\\\"actionId\\\":\\\"buy\\\"}">Buy</a>',
+                    expected:
+                        '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Try</a><a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">Buy</a>',
+                },
+                {
+                    name: 'should fix complex data-extra-options with multiple properties',
+                    input: '<a class="secondary" data-checkout-workflow="UCv3" data-extra-options="{\\\"actionId\\\":\\\"try\\\",\\\"ctx\\\":\\\"if\\\"}">Try</a>',
+                    expected:
+                        '<a class="secondary" data-checkout-workflow="UCv3" data-extra-options="{&quot;actionId&quot;:&quot;try&quot;,&quot;ctx&quot;:&quot;if&quot;}">Try</a>',
+                },
+                {
+                    name: 'should normalize &quot; to escaped quotes when no escaped quotes present',
+                    input: '\u003Ca class=&quot;accent&quot; data-checkout-workflow=&quot;UCv3&quot; data-checkout-workflow-step=&quot;segmentation&quot; data-extra-options=&quot;{&quot;actionId&quot;:&quot;upgrade&quot;,&quot;ctx&quot;:&quot;if&quot;}&quot; data-wcs-osi=&quot;r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8&quot; data-template=&quot;checkoutUrl&quot; title=&quot;Upgrade now&quot; target=&quot;_self&quot; data-analytics-id=&quot;upgrade-now&quot;\u003EMettre à niveau\u003C/a\u003E',
+                    expected:
+                        '\u003Ca class=\"accent\" data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"segmentation\" data-extra-options=\"{&quot;actionId&quot;:&quot;upgrade&quot;,&quot;ctx&quot;:&quot;if&quot;}\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\" data-template=\"checkoutUrl\" title=\"Upgrade now\" target=\"_self\" data-analytics-id=\"upgrade-now\"\u003EMettre à niveau\u003C/a\u003E',
+                    mimeType: 'text/html',
+                },
+            ];
 
-            await transformer.process(context);
+            fixingTestCases.forEach(({ name, input, expected, mimeType }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                ctas: {
+                                    value: input,
+                                    ...(mimeType && { mimeType }),
+                                },
+                            },
+                        },
+                    };
 
-            expect(context.body.fields.ctas.value).to.equal(
-                '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
-            );
+                    await transformer.process(context);
+
+                    expect(context.body.fields.ctas.value).to.equal(expected);
+                });
+            });
         });
 
-        it('should fix literal quotes in ctas field for adobe-home surface', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: {
-                            value: '<a data-extra-options="{"actionId":"try"}">Test</a>',
-                            mimeType: 'text/html',
-                        },
-                    },
+        describe('surface-specific behavior', () => {
+            const surfaceTestCases = [
+                {
+                    name: 'should not modify ctas for non-adobe-home surface',
+                    surface: 'acom',
                 },
-            };
+                {
+                    name: 'should not modify ctas when surface is missing',
+                    surface: undefined,
+                },
+            ];
 
-            await transformer.process(context);
+            const surfacesWithFixTestCases = [
+                {
+                    name: 'should fix ctas for adobe-home surface',
+                    surface: 'adobe-home',
+                },
+                {
+                    name: 'should fix ctas for sandbox surface',
+                    surface: 'sandbox',
+                },
+                {
+                    name: 'should fix ctas for ccd surface',
+                    surface: 'ccd',
+                },
+            ];
 
-            expect(context.body.fields.ctas.value).to.equal(
-                '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
-            );
+            surfaceTestCases.forEach(({ name, surface }) => {
+                it(name, async () => {
+                    const originalValue = '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>';
+                    const context = {
+                        ...(surface && { surface }),
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                ctas: {
+                                    value: originalValue,
+                                },
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.ctas.value).to.equal(originalValue);
+                });
+            });
+
+            surfacesWithFixTestCases.forEach(({ name, surface }) => {
+                it(name, async () => {
+                    const inputValue = '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>';
+                    const expectedValue = '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>';
+                    const context = {
+                        surface,
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                ctas: {
+                                    value: inputValue,
+                                },
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.ctas.value).to.equal(expectedValue);
+                });
+            });
         });
 
-        it('should fix multiple data-extra-options in ctas field', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: {
-                            value: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Try</a><a data-extra-options="{\\\"actionId\\\":\\\"buy\\\"}">Buy</a>',
-                        },
-                    },
-                },
-            };
-
-            await transformer.process(context);
-
-            expect(context.body.fields.ctas.value).to.equal(
-                '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Try</a><a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">Buy</a>',
-            );
-        });
-
-        it('should fix complex data-extra-options with multiple properties', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: {
-                            value: '<a class="secondary" data-checkout-workflow="UCv3" data-extra-options="{\\\"actionId\\\":\\\"try\\\",\\\"ctx\\\":\\\"if\\\"}">Try</a>',
-                        },
-                    },
-                },
-            };
-
-            await transformer.process(context);
-
-            expect(context.body.fields.ctas.value).to.equal(
-                '<a class="secondary" data-checkout-workflow="UCv3" data-extra-options="{&quot;actionId&quot;:&quot;try&quot;,&quot;ctx&quot;:&quot;if&quot;}">Try</a>',
-            );
-        });
-
-        it('should not modify ctas for non-adobe-home surface', async () => {
-            const originalValue = '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>';
-            const context = {
-                surface: 'ccd',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: {
-                            value: originalValue,
-                        },
-                    },
-                },
-            };
-
-            await transformer.process(context);
-
-            expect(context.body.fields.ctas.value).to.equal(originalValue);
-        });
-
-        it('should not modify ctas when surface is missing', async () => {
-            const originalValue = '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>';
-            const context = {
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: {
-                            value: originalValue,
-                        },
-                    },
-                },
-            };
-
-            await transformer.process(context);
-
-            expect(context.body.fields.ctas.value).to.equal(originalValue);
-        });
-
-        it('should handle missing ctas field', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
+        describe('edge cases', () => {
+            const edgeCaseTests = [
+                {
+                    name: 'should handle missing ctas field',
                     fields: {},
+                    expectUnchanged: true,
                 },
-            };
-
-            const result = await transformer.process(context);
-            expect(result).to.equal(context);
-        });
-
-        it('should handle null ctas value', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: null,
-                    },
+                {
+                    name: 'should handle null ctas value',
+                    fields: { ctas: null },
+                    expectUnchanged: true,
                 },
-            };
-
-            const result = await transformer.process(context);
-            expect(result).to.equal(context);
-        });
-
-        it('should handle undefined ctas value', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: undefined,
-                    },
+                {
+                    name: 'should handle undefined ctas value',
+                    fields: { ctas: undefined },
+                    expectUnchanged: true,
                 },
-            };
+                {
+                    name: 'should handle ctas without value property',
+                    fields: { ctas: { mimeType: 'text/html' } },
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle text without data-extra-options',
+                    fields: { ctas: { value: '<a class="primary">Buy Now</a>' } },
+                    expectValue: '<a class="primary">Buy Now</a>',
+                },
+            ];
 
-            const result = await transformer.process(context);
-            expect(result).to.equal(context);
-        });
-
-        it('should handle ctas without value property', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: {
-                            mimeType: 'text/html',
+            edgeCaseTests.forEach(({ name, fields, expectUnchanged, expectValue }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields,
                         },
-                    },
-                },
-            };
+                    };
 
-            const result = await transformer.process(context);
-            expect(result).to.equal(context);
+                    const result = await transformer.process(context);
+
+                    if (expectUnchanged) {
+                        expect(result).to.equal(context);
+                    } else if (expectValue) {
+                        expect(context.body.fields.ctas.value).to.equal(expectValue);
+                    }
+                });
+            });
         });
 
-        it('should handle text without data-extra-options', async () => {
-            const originalValue = '<a class="primary">Buy Now</a>';
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: {
-                            value: originalValue,
+        describe('quote fixing with string ctas', () => {
+            const stringCtasTestCases = [
+                {
+                    name: 'should fix escaped quotes when ctas is a string directly',
+                    input: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    expected: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+                },
+                {
+                    name: 'should fix literal quotes when ctas is a string directly',
+                    input: '<a data-extra-options="{"actionId":"try"}">Test</a>',
+                    expected: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+                },
+            ];
+
+            stringCtasTestCases.forEach(({ name, input, expected }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                ctas: input,
+                            },
                         },
-                    },
-                },
-            };
+                    };
 
-            await transformer.process(context);
+                    await transformer.process(context);
 
-            expect(context.body.fields.ctas.value).to.equal(originalValue);
+                    expect(context.body.fields.ctas).to.equal(expected);
+                });
+            });
         });
 
-        it('should fix escaped quotes when ctas is a string directly', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
-                    },
+        describe('quote fixing with object description', () => {
+            const fixingTestCases = [
+                {
+                    name: 'should fix escaped quotes in description field for adobe-home surface',
+                    input: '<p>Text <a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Link</a></p>',
+                    expected: '<p>Text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                    mimeType: 'text/html',
                 },
-            };
+                {
+                    name: 'should fix literal quotes in description field for adobe-home surface',
+                    input: '<p>Text <a data-extra-options="{"actionId":"try"}">Link</a></p>',
+                    expected: '<p>Text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                    mimeType: 'text/html',
+                },
+                {
+                    name: 'should fix multiple data-extra-options in description field',
+                    input: '<p><a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Try</a><a data-extra-options="{\\\"actionId\\\":\\\"buy\\\"}">Buy</a></p>',
+                    expected:
+                        '<p><a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Try</a><a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">Buy</a></p>',
+                },
+            ];
 
-            await transformer.process(context);
+            fixingTestCases.forEach(({ name, input, expected, mimeType }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                description: {
+                                    value: input,
+                                    ...(mimeType && { mimeType }),
+                                },
+                            },
+                        },
+                    };
 
-            expect(context.body.fields.ctas).to.equal(
-                '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
-            );
+                    await transformer.process(context);
+
+                    expect(context.body.fields.description.value).to.equal(expected);
+                });
+            });
         });
 
-        it('should fix literal quotes when ctas is a string directly', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
-                    priceLiterals: {},
-                    fields: {
-                        ctas: '<a data-extra-options="{"actionId":"try"}">Test</a>',
-                    },
+        describe('quote fixing with string description', () => {
+            const stringDescriptionTestCases = [
+                {
+                    name: 'should fix escaped quotes when description is a string directly',
+                    input: '<p>Text <a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Link</a></p>',
+                    expected: '<p>Text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
                 },
-            };
+                {
+                    name: 'should fix literal quotes when description is a string directly',
+                    input: '<p>Text <a data-extra-options="{"actionId":"try"}">Link</a></p>',
+                    expected: '<p>Text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                },
+            ];
 
-            await transformer.process(context);
+            stringDescriptionTestCases.forEach(({ name, input, expected }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                description: input,
+                            },
+                        },
+                    };
 
-            expect(context.body.fields.ctas).to.equal(
-                '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
-            );
+                    await transformer.process(context);
+
+                    expect(context.body.fields.description).to.equal(expected);
+                });
+            });
+        });
+
+        describe('quote fixing with object shortDescription', () => {
+            const fixingTestCases = [
+                {
+                    name: 'should fix escaped quotes in shortDescription field for adobe-home surface',
+                    input: '<p>Short text <a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Link</a></p>',
+                    expected: '<p>Short text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                    mimeType: 'text/html',
+                },
+                {
+                    name: 'should fix literal quotes in shortDescription field for adobe-home surface',
+                    input: '<p>Short text <a data-extra-options="{"actionId":"try"}">Link</a></p>',
+                    expected: '<p>Short text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                    mimeType: 'text/html',
+                },
+                {
+                    name: 'should fix multiple data-extra-options in shortDescription field',
+                    input: '<p><a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Try</a><a data-extra-options="{\\\"actionId\\\":\\\"buy\\\"}">Buy</a></p>',
+                    expected:
+                        '<p><a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Try</a><a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">Buy</a></p>',
+                },
+            ];
+
+            fixingTestCases.forEach(({ name, input, expected, mimeType }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                shortDescription: {
+                                    value: input,
+                                    ...(mimeType && { mimeType }),
+                                },
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.shortDescription.value).to.equal(expected);
+                });
+            });
+        });
+
+        describe('quote fixing with string shortDescription', () => {
+            const stringShortDescriptionTestCases = [
+                {
+                    name: 'should fix escaped quotes when shortDescription is a string directly',
+                    input: '<p>Short text <a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Link</a></p>',
+                    expected: '<p>Short text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                },
+                {
+                    name: 'should fix literal quotes when shortDescription is a string directly',
+                    input: '<p>Short text <a data-extra-options="{"actionId":"try"}">Link</a></p>',
+                    expected: '<p>Short text <a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Link</a></p>',
+                },
+            ];
+
+            stringShortDescriptionTestCases.forEach(({ name, input, expected }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields: {
+                                shortDescription: input,
+                            },
+                        },
+                    };
+
+                    await transformer.process(context);
+
+                    expect(context.body.fields.shortDescription).to.equal(expected);
+                });
+            });
+        });
+
+        describe('edge cases for description and shortDescription', () => {
+            const edgeCaseTests = [
+                {
+                    name: 'should handle missing description field',
+                    fields: {},
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle null description value',
+                    fields: { description: null },
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle undefined shortDescription value',
+                    fields: { shortDescription: undefined },
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle description without value property',
+                    fields: { description: { mimeType: 'text/html' } },
+                    expectUnchanged: true,
+                },
+                {
+                    name: 'should handle text without data-extra-options in description',
+                    fields: { description: { value: '<p>Plain text without links</p>' } },
+                    expectValue: '<p>Plain text without links</p>',
+                    fieldName: 'description',
+                },
+                {
+                    name: 'should handle text without data-extra-options in shortDescription',
+                    fields: { shortDescription: { value: '<p>Short plain text</p>' } },
+                    expectValue: '<p>Short plain text</p>',
+                    fieldName: 'shortDescription',
+                },
+            ];
+
+            edgeCaseTests.forEach(({ name, fields, expectUnchanged, expectValue, fieldName }) => {
+                it(name, async () => {
+                    const context = {
+                        surface: 'adobe-home',
+                        body: {
+                            priceLiterals: {},
+                            fields,
+                        },
+                    };
+
+                    const result = await transformer.process(context);
+
+                    if (expectUnchanged) {
+                        expect(result).to.equal(context);
+                    } else if (expectValue && fieldName) {
+                        expect(context.body.fields[fieldName].value).to.equal(expectValue);
+                    }
+                });
+            });
         });
     });
 
     describe('corrector transformer integration', () => {
-        it('should remove empty priceLiterals and fix data-extra-options for adobe-home', async () => {
-            const context = {
-                surface: 'adobe-home',
-                body: {
+        describe('combined price literals cleanup and ctas fixing', () => {
+            const integrationTestCases = [
+                {
+                    name: 'should remove empty priceLiterals and fix data-extra-options for adobe-home',
+                    surface: 'adobe-home',
                     priceLiterals: {
                         validKey: 'valid value',
                         emptyKey: 'price-literal-something',
                         anotherEmptyKey: '{{price-literal-test}}',
                     },
-                    fields: {
-                        ctas: {
-                            value: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
-                        },
-                    },
+                    ctasInput: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    expectedPriceLiterals: { validKey: 'valid value' },
+                    expectedCtas: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
                 },
-            };
-
-            const result = await transformer.process(context);
-
-            expect(result.body.priceLiterals).to.deep.equal({
-                validKey: 'valid value',
-            });
-
-            expect(result.body.fields.ctas.value).to.equal(
-                '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
-            );
-        });
-
-        it('should only remove empty priceLiterals for non-adobe-home surface', async () => {
-            const context = {
-                surface: 'ccd',
-                body: {
+                {
+                    name: 'should remove empty priceLiterals and fix data-extra-options for ccd surface',
+                    surface: 'ccd',
                     priceLiterals: {
                         validKey: 'valid value',
                         emptyKey: 'price-literal-something',
                     },
-                    fields: {
-                        ctas: {
-                            value: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    ctasInput: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    expectedPriceLiterals: { validKey: 'valid value' },
+                    expectedCtas: '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Test</a>',
+                },
+                {
+                    name: 'should only remove empty priceLiterals for acom surface',
+                    surface: 'acom',
+                    priceLiterals: {
+                        validKey: 'valid value',
+                        emptyKey: 'price-literal-something',
+                    },
+                    ctasInput: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                    expectedPriceLiterals: { validKey: 'valid value' },
+                    expectedCtas: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>',
+                },
+            ];
+
+            integrationTestCases.forEach(({ name, surface, priceLiterals, ctasInput, expectedPriceLiterals, expectedCtas }) => {
+                it(name, async () => {
+                    const context = {
+                        surface,
+                        body: {
+                            priceLiterals,
+                            fields: {
+                                ctas: {
+                                    value: ctasInput,
+                                },
+                            },
+                        },
+                    };
+
+                    const result = await transformer.process(context);
+
+                    expect(result.body.priceLiterals).to.deep.equal(expectedPriceLiterals);
+                    expect(result.body.fields.ctas.value).to.equal(expectedCtas);
+                });
+            });
+        });
+
+        describe('combined fixing for all fields', () => {
+            it('should fix data-extra-options in ctas, description, and shortDescription fields', async () => {
+                const context = {
+                    surface: 'adobe-home',
+                    body: {
+                        priceLiterals: {},
+                        fields: {
+                            ctas: {
+                                value: '<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Try</a>',
+                                mimeType: 'text/html',
+                            },
+                            description: {
+                                value: '<p>Description <a data-extra-options="{\\\"actionId\\\":\\\"buy\\\"}">Buy</a></p>',
+                                mimeType: 'text/html',
+                            },
+                            shortDescription: {
+                                value: '<p>Short <a data-extra-options="{\\\"actionId\\\":\\\"upgrade\\\"}">Upgrade</a></p>',
+                                mimeType: 'text/html',
+                            },
                         },
                     },
-                },
-            };
+                };
 
-            const result = await transformer.process(context);
+                await transformer.process(context);
 
-            expect(result.body.priceLiterals).to.deep.equal({
-                validKey: 'valid value',
+                expect(context.body.fields.ctas.value).to.equal(
+                    '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">Try</a>',
+                );
+                expect(context.body.fields.description.value).to.equal(
+                    '<p>Description <a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">Buy</a></p>',
+                );
+                expect(context.body.fields.shortDescription.value).to.equal(
+                    '<p>Short <a data-extra-options="{&quot;actionId&quot;:&quot;upgrade&quot;}">Upgrade</a></p>',
+                );
             });
-
-            expect(result.body.fields.ctas.value).to.equal('<a data-extra-options="{\\\"actionId\\\":\\\"try\\\"}">Test</a>');
         });
 
         it('should handle real-world adobe-home fragment data', async () => {
@@ -341,7 +573,11 @@ describe('corrector', () => {
                             mimeType: 'text/html',
                         },
                         description: {
-                            value: '<p>3 Monate lang 50 % Rabatt auf Creative Cloud Pro, danach 9 Monate lang zum regulären Preis. Jahres-Abo erforderlich. <a class="primary-link" title="Siehe Bedingungen" href="https://www.adobe.com/de/offer-terms/cc-full-special-offer.html" target="_blank" rel="noopener" data-analytics-id="see-terms">Siehe Bedingungen</a></p>',
+                            value: '<p>3 Monate lang 50 % Rabatt auf Creative Cloud Pro, danach 9 Monate lang zum regulären Preis. Jahres-Abo erforderlich. <a class="primary-link" data-extra-options="{\\\"actionId\\\":\\\"terms\\\"}" title="Siehe Bedingungen" href="https://www.adobe.com/de/offer-terms/cc-full-special-offer.html" target="_blank" rel="noopener" data-analytics-id="see-terms">Siehe Bedingungen</a></p>',
+                            mimeType: 'text/html',
+                        },
+                        shortDescription: {
+                            value: '<p>Short description <a data-extra-options="{\\\"actionId\\\":\\\"info\\\"}">More info</a></p>',
                             mimeType: 'text/html',
                         },
                     },
@@ -357,7 +593,14 @@ describe('corrector', () => {
                 'data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;,&quot;ctx&quot;:&quot;if&quot;}"',
             );
 
+            expect(result.body.fields.description.value).to.include(
+                'data-extra-options="{&quot;actionId&quot;:&quot;terms&quot;}"',
+            );
             expect(result.body.fields.description.value).to.include('Siehe Bedingungen');
+
+            expect(result.body.fields.shortDescription.value).to.include(
+                'data-extra-options="{&quot;actionId&quot;:&quot;info&quot;}"',
+            );
         });
     });
 });

@@ -65,7 +65,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.borderColor).toContainText(data.standardBorder.color);
             await expect(promotedPlansCard).toHaveAttribute('border-color', data.standardBorder.cssColor);
-            await editor.borderColor.click();
+            await editor.borderColorButton.click();
             await page.waitForSelector(`sp-menu-item[value="${data.gradientBorder.value}"]`, {
                 state: 'visible',
             });

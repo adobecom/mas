@@ -78,7 +78,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Edit background color field', async () => {
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundColor).toHaveAttribute('value', data.color.original);
-            await editor.backgroundColorButton.click();
+            await editor.backgroundColor.click();
             await page.getByRole('option', { name: data.color.updated }).click();
             await page.waitForTimeout(2000);
         });
@@ -116,7 +116,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Edit border color field', async () => {
             await expect(await editor.borderColor).toBeVisible();
-            await editor.borderColorButton.click();
+            await editor.borderColor.click();
             await page.getByRole('option', { name: data.color.updated }).click();
             await page.waitForTimeout(2000);
         });

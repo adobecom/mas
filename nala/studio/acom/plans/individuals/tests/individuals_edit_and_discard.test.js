@@ -909,7 +909,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit badge color field', async () => {
             await expect(await editor.badgeColor).toBeVisible();
             await expect(await editor.badgeColor).toContainText(data.color.original);
-            await editor.badgeColorButton.click();
+            await editor.badgeColor.click();
             await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });
@@ -958,7 +958,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit badge border color field', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
             await expect(await editor.badgeBorderColor).toContainText(data.color.original);
-            await editor.badgeBorderColorButton.click();
+            await editor.badgeBorderColor.click();
             await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });
@@ -1011,7 +1011,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit card border color field', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
             await expect(await editor.cardBorderColor).toContainText(data.color.original);
-            await editor.cardBorderColorButton.click();
+            await editor.cardBorderColor.click();
             await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });

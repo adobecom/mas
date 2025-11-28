@@ -163,21 +163,21 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-11: Edit badge color', async () => {
             await expect(await editor.badgeColor).toBeVisible();
-            await editor.badgeColorButton.click();
+            await editor.badgeColor.click();
             await page.getByRole('option', { name: data.badgeColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-12: Edit badge border color', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
-            await editor.badgeBorderColorButton.click();
+            await editor.badgeBorderColor.click();
             await page.getByRole('option', { name: data.badgeBorderColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-13: Edit card border color', async () => {
             await expect(await editor.cardBorderColor).toBeVisible();
-            await editor.cardBorderColorButton.click();
+            await editor.cardBorderColor.click();
             await page.getByRole('option', { name: data.cardBorderColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });

@@ -14,11 +14,8 @@ export default class EditorPage {
         this.subtitle = this.panel.locator('#card-subtitle input');
         this.badge = this.panel.locator('#card-badge input');
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
-        this.badgeColorButton = this.panel.locator('sp-picker#badgeColor button');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
-        this.badgeBorderColorButton = this.panel.locator('sp-picker#badgeBorderColor button');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
-        this.cardBorderColorButton = this.panel.locator('sp-picker#border-color button');
         this.mnemonicEditButton = this.panel.locator('mas-mnemonic-field sp-action-button');
         this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
         this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');
@@ -36,9 +33,7 @@ export default class EditorPage {
         this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
         this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
         this.borderColor = this.panel.locator('sp-picker#border-color');
-        this.borderColorButton = this.panel.locator('sp-picker#border-color button');
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
-        this.backgroundColorButton = this.panel.locator('sp-picker#backgroundColor button');
         this.OSI = this.panel.locator('osi-field#osi');
         this.OSIButton = this.panel.locator('#offerSelectorToolButtonOSI');
         this.tags = this.panel.locator('aem-tag-picker-field[label="Tags"]');

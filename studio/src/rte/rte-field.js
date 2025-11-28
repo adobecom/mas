@@ -1450,11 +1450,19 @@ class RteField extends LitElement {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         if (!element && this.osi) {
-            element = document.createElement('span');
-            element.setAttribute('data-wcs-osi', this.osi);
-            element.isInlinePrice = true;
+            element = this.selectedMerchLink;
+            if (!element) {
+                element = document.createElement('span');
+                element.setAttribute('data-wcs-osi', this.osi);
+                element.isInlinePrice = true;
+            }
         }
+        
         openOfferSelectorTool(this, element);
+    }
+
+    get selectedMerchLink() {
+        return this.shadowRoot.querySelector('.ProseMirror-selectednode[data-wcs-osi]');
     }
 
     get #linkEditorButton() {

@@ -17,11 +17,9 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
-import './mas-recently-updated.js';
-import './editors/merch-card-editor.js';
-import './editors/merch-card-collection-editor.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
+import './version-page.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
@@ -134,6 +132,11 @@ class MasStudio extends LitElement {
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
+    get versionPage() {
+        if (this.page.value !== PAGE_NAMES.VERSION) return nothing;
+        return html`<version-page></version-page>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -163,16 +166,15 @@ class MasStudio extends LitElement {
     }
 
     render() {
-        if (this.masJsReady) {
-            console.log('mas.js is ready', this.masJsReady);
-        }
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
                 ${this.masJsReady
-                    ? html`<div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>`
+                    ? html`<div class="main-container">
+                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.versionPage}
+                      </div>`
                     : nothing}
             </div>
             <editor-panel></editor-panel>

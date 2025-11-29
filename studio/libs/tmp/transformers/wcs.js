@@ -1,4 +1,5 @@
-import { log, logError, fetch } from './common.js';
+import { fetch } from '../utils/common.js';
+import { log, logError } from '../utils/log.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
@@ -73,7 +74,7 @@ async function wcs(context) {
         return context;
     }
     const { body, locale } = context;
-    let bodyString = JSON.stringify(body);
+    const bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
     if (matches.length > 0) {
         const tokenMap = new Map();

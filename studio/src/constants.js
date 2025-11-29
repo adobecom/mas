@@ -61,7 +61,8 @@ export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 export const LOCALES = [
     { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
     { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
-    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada' },
+    { code: 'en_CA', flag: '🇨🇦', name: 'Canada (English)' },
+    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada (French)' },
     { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
     { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
     { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },
@@ -145,7 +146,8 @@ export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
-export const DICTIONARY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+export const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';

@@ -694,6 +694,47 @@ class AEM {
         };
     }
 
+    async createFolder(parentPath, name, title = name) {
+        const payload = [
+            {
+                path: `${parentPath}/${name}`,
+                title,
+            },
+        ];
+        const response = await fetch(`${this.baseUrl}/adobe/folders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                ...this.headers,
+                'x-api-key': 'mas-studio',
+            },
+            body: JSON.stringify(payload),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (response.status === 409) {
+            return null;
+        }
+
+        if (!response.ok) {
+            let detail;
+            try {
+                const errorData = await response.json();
+                detail = errorData?.detail;
+                if (detail) throw new UserFriendlyError(detail);
+            } catch (parseError) {}
+            throw new Error(`Failed to create folder: ${response.status} ${response.statusText}`);
+        }
+
+        try {
+            return await response.json();
+        } catch (error) {
+            return null;
+        }
+    }
+
     async listTags(root) {
         const response = await fetch(
             `${this.baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1`,
@@ -929,6 +970,10 @@ class AEM {
          * @see AEM#listFolders
          */
         list: this.listFolders.bind(this),
+        /**
+         * @see AEM#createFolder
+         */
+        create: this.createFolder.bind(this),
     };
 }
 

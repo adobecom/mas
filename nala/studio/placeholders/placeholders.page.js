@@ -3,13 +3,12 @@ export default class PlaceholdersPage {
         this.page = page;
 
         // Header elements
-        // Locale picker is the button in the navigation that contains 'en_US' text
-        this.localePicker = page.locator('mas-nav sp-button:has-text("en_US")');
-        this.createButton = page.locator('sp-button:has-text("Create New Placeholder")');
+        // this.localePicker = page.locator('mas-nav sp-button:has-text("en_US")');
+        this.localePicker = page.locator('mas-nav-locale-picker sp-action-menu');
 
-        // Search and filters
+        this.createButton = page.locator('sp-button.create-button');
         this.searchInput = page.getByRole('searchbox', { name: 'Search' });
-        this.totalPlaceholdersLabel = page.locator('h2:has-text("Total Placeholders")');
+        this.totalPlaceholdersLabel = page.locator('.placeholders-title:has-text("Total Placeholders")');
 
         // Table elements
         this.placeholdersTable = page.locator('sp-table');
@@ -57,15 +56,12 @@ export default class PlaceholdersPage {
     async waitForTableToLoad() {
         // For test environment with path=nala, we expect placeholders to exist
         // Wait specifically for placeholder rows to appear
-        await this.page.waitForSelector('mas-placeholders-item', { timeout: 10000 });
+        await this.placeholderRows.first().waitFor({ timeout: 10000 });
     }
 
     async waitForPlaceholderRows() {
         // Strict wait that fails if no placeholder rows are found
-        await this.page.waitForSelector('mas-placeholders-item', {
-            timeout: 10000,
-            state: 'visible',
-        });
+        await this.placeholderRows.first().waitFor({ timeout: 10000 });
         const rowCount = await this.placeholderRows.count();
         if (rowCount === 0) {
             throw new Error('No placeholder rows found - expected at least one placeholder for path=nala');
@@ -80,12 +76,14 @@ export default class PlaceholdersPage {
 
     async clickCreateButton() {
         await this.createButton.click();
-        await this.page.waitForSelector('mas-placeholders-creation-modal', { state: 'visible' });
+        await this.creationModal.waitFor({ timeout: 10000 });
     }
 
     async selectLocale(locale) {
         await this.localePicker.click();
-        await this.page.locator(`sp-menu-item:has-text("${locale}")`).click();
+        await this.localePicker.locator(`sp-menu-item:has-text("${locale}")`).click();
+        await this.page.waitForTimeout(3000);
+        await this.waitForTableToLoad();
     }
 
     async sortByColumn(columnName) {

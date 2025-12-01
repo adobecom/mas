@@ -14,7 +14,12 @@ export default class StudioPage {
         this.searchInput = page.locator('#actions sp-search  input');
         this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-search');
         this.filter = page.locator('sp-action-button[label="Filter"]');
+        this.previewMenu = page.locator('#actions sp-action-menu[value="render"]');
+        this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');
+        this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
         this.renderView = page.locator('#render');
+        this.tableView = page.locator('sp-table');
+        this.tableViewHeaders = page.locator('sp-table-head');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('editor-panel > #editor');
         this.confirmationDialog = page.locator('sp-dialog[variant="confirmation"]');

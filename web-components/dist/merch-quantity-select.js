@@ -1,4 +1,4 @@
-import{html as c,LitElement as A,nothing as m}from"../../deps/lit-all.min.js";import{css as _}from"../../deps/lit-all.min.js";var h=_`
+import{html as c,LitElement as A,nothing as m}from"./lit-all.min.js";import{css as _}from"./lit-all.min.js";var h=_`
     :host {
         box-sizing: border-box;
         --background-color: var(--qs-background-color, #f6f6f6);
@@ -47,6 +47,7 @@ import{html as c,LitElement as A,nothing as m}from"../../deps/lit-all.min.js";im
         padding-inline-start: 12px;
         box-sizing: border-box;
         -moz-appearance: textfield;
+        z-index: 1;
     }
 
     .text-field-input::-webkit-inner-spin-button,

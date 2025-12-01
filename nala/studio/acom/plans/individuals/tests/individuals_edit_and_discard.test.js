@@ -1008,15 +1008,15 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Edit card border color field', async () => {
-            await expect(await editor.cardBorderColor).toBeVisible();
-            await expect(await editor.cardBorderColor).toContainText(data.color.original);
-            await editor.cardBorderColor.click();
+            await expect(await editor.borderColor).toBeVisible();
+            await expect(await editor.borderColor).toContainText(data.color.original);
+            await editor.borderColor.click();
             await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate card border color field updated', async () => {
-            await expect(await editor.cardBorderColor).toContainText(data.color.updated);
+            await expect(await editor.borderColor).toContainText(data.color.updated);
             expect(
                 await webUtil.verifyCSS(individualsCard, {
                     'border-color': data.colorCSS.updated,

@@ -166,6 +166,9 @@ class MasStudio extends LitElement {
     }
 
     render() {
+        if (this.masJsReady) {
+            console.log('mas.js is ready', this.masJsReady);
+        }
         return html`
             <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>

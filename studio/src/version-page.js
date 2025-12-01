@@ -218,15 +218,13 @@ class VersionPage extends LitElement {
             display: flex;
             flex-direction: column;
             background: white;
-            border-radius: 8px;
+            border-radius: 16px;
             border: 1px solid #d4d4d4;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-            overflow: hidden;
         }
 
         .preview-column-header {
             padding: 20px 24px;
-            background: #fafafa;
             border-bottom: 1px solid #e0e0e0;
             display: flex;
             justify-content: space-between;
@@ -258,11 +256,6 @@ class VersionPage extends LitElement {
             color: #464646;
             display: flex;
             gap: 6px;
-        }
-
-        .preview-column-content {
-            overflow: auto;
-            background: white;
         }
 
         .fragment-preview {
@@ -310,7 +303,6 @@ class VersionPage extends LitElement {
 
         .fragment-info {
             padding: 12px;
-            background: #fafafa;
             font-size: 12px;
         }
 

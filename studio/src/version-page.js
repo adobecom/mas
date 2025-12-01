@@ -60,7 +60,6 @@ class VersionPage extends LitElement {
         .version-page-content {
             display: flex;
             flex: 1;
-            overflow: hidden;
             gap: 24px;
             margin: 24px;
             background: white;
@@ -97,7 +96,6 @@ class VersionPage extends LitElement {
 
         .version-list-content {
             flex: 1;
-            overflow-y: auto;
             padding: 16px;
         }
 
@@ -201,7 +199,6 @@ class VersionPage extends LitElement {
 
         .preview-content {
             flex: 1;
-            overflow-y: auto;
             padding: 0;
         }
 
@@ -210,7 +207,6 @@ class VersionPage extends LitElement {
             flex-direction: column;
             gap: 24px;
             height: 100%;
-            overflow-y: auto;
             padding: 0;
         }
 

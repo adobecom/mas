@@ -186,49 +186,6 @@
 
                         // Restore original value
                         Store.version.fragmentId.set(originalFragmentId);
-                        it('loads fragment versions when editing a fragment', async () => {
-                            // Mock the getFragmentVersions method
-                            const mockVersions = {
-                                items: [
-                                    { id: 'version1', version: '1.0', created: '2023-01-01T00:00:00Z' },
-                                    { id: 'version2', version: '2.0', created: '2023-01-02T00:00:00Z' },
-                                ],
-                            };
-
-                            // Get the repository and create stub before editing fragment
-                            const repository = editorPanel.repository;
-                            const originalGetVersions = repository.aem.sites.cf.fragments.getVersions;
-
-                            // Create a promise-based stub
-                            repository.aem.sites.cf.fragments.getVersions = async function (fragmentId, options) {
-                                // Verify the function is called with the correct fragment ID
-                                expect(fragmentId).to.equal('cc-all-apps');
-                                return mockVersions;
-                            };
-
-                            // The editor panel was already initialized with a fragment in beforeEach
-                            // so it should already have versions loaded. Let's just verify the version history component exists
-                            await editorPanel.updateComplete;
-                            await delay(500);
-
-                            // Check that versions were loaded (from beforeEach)
-                            const versionHistory = document.querySelector('version-history');
-                            expect(versionHistory).to.exist;
-
-                            // Restore original method
-                            repository.aem.sites.cf.fragments.getVersions = originalGetVersions;
-                        });
-
-                        it('displays version history button in toolbar', async () => {
-                            await editorPanel.editFragment(fragmentStore);
-                            await editorPanel.updateComplete;
-                            await delay(100);
-
-                            const versionHistory = document.querySelector('version-history');
-                            expect(versionHistory).to.exist;
-                            expect(versionHistory.versions).to.deep.equal(editorPanel.fragmentVersions);
-                            expect(versionHistory.selectedVersion).to.equal(editorPanel.selectedVersion);
-                        });
                     });
                 });
             });

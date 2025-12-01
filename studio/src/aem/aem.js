@@ -245,17 +245,7 @@ class AEM {
         });
 
         if (!response.ok) {
-            let errorDetails = '';
-            try {
-                const errorBody = await response.json();
-                errorDetails = JSON.stringify(errorBody);
-                console.error('AEM API Error Response:', errorBody);
-            } catch (e) {
-                // Response might not be JSON
-            }
-            throw new Error(
-                `Failed to save fragment: ${response.status} ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`,
-            );
+            throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}`);
         }
 
         await this.saveTags(fragment);

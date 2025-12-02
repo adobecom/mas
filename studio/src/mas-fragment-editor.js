@@ -7,10 +7,16 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, LOCALES, PAGE_NAMES } from './constants.js';
 import router from './router.js';
+import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
+
+const MODEL_WEB_COMPONENT_MAPPING = {
+    [CARD_MODEL_PATH]: 'merch-card',
+    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
+};
 
 export default class MasFragmentEditor extends LitElement {
     static styles = css`
@@ -209,6 +215,12 @@ export default class MasFragmentEditor extends LitElement {
         .locale-variation-header strong {
             font-weight: 700;
             color: var(--spectrum-global-color-gray-900);
+        }
+
+        #author-path {
+            margin: 0 0 16px 0;
+            font-size: 14px;
+            color: var(--spectrum-global-color-gray-700);
         }
     `;
 
@@ -929,6 +941,27 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
+    get authorPath() {
+        if (!this.fragment) return nothing;
+        const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
+
+        const pathParts = this.fragment.path?.split('/') || [];
+        const masIndex = pathParts.indexOf('mas');
+        const surface = masIndex >= 0 && pathParts[masIndex + 1] ? pathParts[masIndex + 1].toUpperCase() : '';
+
+        const variantCode = this.fragment.getField('variant')?.values[0];
+        const variantLabel = VARIANTS.find((v) => v.value === variantCode)?.label || '';
+        const customerSegment = this.fragment.getTagTitle('customer_segment') || '';
+        const marketSegment = this.fragment.getTagTitle('market_segment') || '';
+        const product = this.fragment.getTagTitle('mas:product/') || '';
+        const promotion = this.fragment.getTagTitle('mas:promotion/') || '';
+
+        const buildPart = (part) => (part ? ` / ${part}` : '');
+        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(product)}${buildPart(promotion)}`;
+
+        return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
+    }
+
     get fragmentEditor() {
         if (!this.fragment) return nothing;
 
@@ -970,7 +1003,7 @@ export default class MasFragmentEditor extends LitElement {
 
         return html`
             ${this.derivedFromContainer}
-            <div class="section">${this.localeVariationHeader} ${editorContent}</div>
+            <div class="section">${this.authorPath} ${this.localeVariationHeader} ${editorContent}</div>
         `;
     }
 

@@ -107,6 +107,12 @@ export default class EditorPanel extends LitElement {
             background: var(--spectrum-white);
             border-radius: 16px;
         }
+
+        #author-path {
+            margin: 8px 0;
+            font-size: 14px;
+            color: var(--spectrum-gray-700);
+        }
     `;
 
     inEdit = Store.fragments.inEdit;
@@ -833,6 +839,18 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get authorPath() {
+        if (!this.fragment) return nothing;
+        const { fragmentParts } = getFragmentPartsToUse(Store, this.fragment);
+        if (!fragmentParts) return nothing;
+        const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
+        return html`
+            <div>
+                <p id="author-path">${modelName}: ${fragmentParts}</p>
+            </div>
+        `;
+    }
+
     render() {
         if (this.page.get() === PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
         if (!this.fragment) return nothing;
@@ -859,7 +877,7 @@ export default class EditorPanel extends LitElement {
         }
         return html`
             <div id="editor">
-                ${this.fragmentEditorToolbar}
+                ${this.fragmentEditorToolbar} ${this.authorPath}
                 <sp-divider size="s"></sp-divider>
                 ${this.derivedFromContainer}
                 <sp-divider size="s"></sp-divider>

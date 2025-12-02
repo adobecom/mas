@@ -32,7 +32,7 @@ class MerchCardEditor extends LitElement {
         currentVariantMapping: { type: Object, attribute: false },
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
-        parentFragment: { type: Object, attribute: false },
+        localeDefaultFragment: { type: Object, attribute: false },
     };
 
     static SECTION_FIELDS = {
@@ -56,7 +56,7 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore = null;
         this.updateFragment = null;
         this.currentVariantMapping = null;
-        this.parentFragment = null;
+        this.localeDefaultFragment = null;
         this.lastMnemonicState = null;
     }
 
@@ -65,11 +65,11 @@ class MerchCardEditor extends LitElement {
     }
 
     getEffectiveFieldValue(fieldName, index = 0) {
-        return this.fragment.getEffectiveFieldValue(fieldName, this.parentFragment, index);
+        return this.fragment.getEffectiveFieldValue(fieldName, this.localeDefaultFragment, index);
     }
 
     getEffectiveFieldValues(fieldName) {
-        return this.fragment.getEffectiveFieldValues(fieldName, this.parentFragment);
+        return this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment);
     }
 
     isFieldOverridden(fieldName) {
@@ -77,27 +77,39 @@ class MerchCardEditor extends LitElement {
     }
 
     getFieldState(fieldName) {
-        return this.fragment.getFieldState(fieldName, this.parentFragment);
+        return this.fragment.getFieldState(fieldName, this.localeDefaultFragment);
     }
 
-    resetFieldToParent(fieldName) {
-        const success = this.fragment.resetFieldToParent(fieldName);
+    async resetFieldToParent(fieldName) {
+        await Promise.resolve();
+        const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+        const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         if (success) {
             this.requestUpdate();
+            const rteField = this.querySelector(`rte-field[data-field="${fieldName}"]`);
+            if (rteField && parentValues.length > 0) {
+                rteField.updateContent(parentValues[0]);
+            }
         }
         return success;
     }
 
     renderOverrideIndicator(fieldName) {
         const state = this.getFieldState(fieldName);
-        if (state !== 'overridden') {
-            return nothing;
-        }
+        const isOverridden = state === 'overridden';
         return html`
             <div class="field-reset-link">
-                <a href="javascript:void(0)" @click=${() => this.resetFieldToParent(fieldName)}>
-                    ↩ Overridden. Click to restore parent value.
-                </a>
+                ${isOverridden
+                    ? html`<a
+                          href="javascript:void(0)"
+                          @click=${(e) => {
+                              e.preventDefault();
+                              this.resetFieldToParent(fieldName);
+                          }}
+                      >
+                          ↩ Overridden. Click to restore parent value.
+                      </a>`
+                    : nothing}
             </div>
         `;
     }
@@ -105,8 +117,8 @@ class MerchCardEditor extends LitElement {
     getFormWithInheritance() {
         const allFieldNames = new Set();
         this.fragment.fields.forEach((f) => allFieldNames.add(f.name));
-        if (this.parentFragment) {
-            this.parentFragment.fields.forEach((f) => allFieldNames.add(f.name));
+        if (this.localeDefaultFragment) {
+            this.localeDefaultFragment.fields.forEach((f) => allFieldNames.add(f.name));
         }
 
         const form = {};
@@ -335,13 +347,10 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
-        // Guard against rendering variations without parent fragment data
-        if (this.fragment.isVariation && this.fragment.isVariation() && !this.parentFragment) {
-            return html`
-                <div class="loading-container">
-                    <sp-progress-circle indeterminate size="m"></sp-progress-circle>
-                </div>
-            `;
+        if (this.fragmentStore?.previewStore?.isResolving?.()) {
+            return html`<div class="loading-container">
+                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+            </div>`;
         }
 
         const form = this.getFormWithInheritance();
@@ -397,8 +406,10 @@ class MerchCardEditor extends LitElement {
                 }
 
                 .loading-container {
-                    padding: 16px;
-                    text-align: center;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 40px;
                 }
 
                 .menu-item-container {

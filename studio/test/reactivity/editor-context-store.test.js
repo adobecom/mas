@@ -16,7 +16,7 @@ describe('EditorContextStore', () => {
         fields: [{ name: 'title', values: ['Test Title'] }],
     };
 
-    const mockParentFragment = {
+    const mockLocaleDefaultFragment = {
         id: 'parent-fragment-id',
         path: '/content/dam/mas/commerce/en_US/parent-fragment',
         fields: [],
@@ -34,7 +34,7 @@ describe('EditorContextStore', () => {
         sites: {
             cf: {
                 fragments: {
-                    getById: sinon.stub().resolves(mockParentFragment),
+                    getById: sinon.stub().resolves(mockLocaleDefaultFragment),
                 },
             },
         },
@@ -82,9 +82,14 @@ describe('EditorContextStore', () => {
             expect(store.loading).to.be.false;
         });
 
-        it('should initialize parentFragment as null', () => {
+        it('should initialize localeDefaultFragment as null', () => {
             store = new EditorContextStore(null);
-            expect(store.parentFragment).to.be.null;
+            expect(store.localeDefaultFragment).to.be.null;
+        });
+
+        it('should initialize defaultLocaleId as null', () => {
+            store = new EditorContextStore(null);
+            expect(store.defaultLocaleId).to.be.null;
         });
     });
 
@@ -125,51 +130,62 @@ describe('EditorContextStore', () => {
         });
     });
 
-    describe('Parent Fragment Methods', () => {
+    describe('Locale Default Fragment Methods', () => {
         beforeEach(() => {
             store = new EditorContextStore(null);
         });
 
-        it('getParentFragment should return the parent fragment', () => {
-            store.parentFragment = mockParentFragment;
-            expect(store.getParentFragment()).to.deep.equal(mockParentFragment);
+        it('getLocaleDefaultFragment should return the locale default fragment', () => {
+            store.localeDefaultFragment = mockLocaleDefaultFragment;
+            expect(store.getLocaleDefaultFragment()).to.deep.equal(mockLocaleDefaultFragment);
         });
 
-        it('getParentFragment should return null when no parent', () => {
-            store.parentFragment = null;
-            expect(store.getParentFragment()).to.be.null;
+        it('getLocaleDefaultFragment should return null when no locale default fragment', () => {
+            store.localeDefaultFragment = null;
+            expect(store.getLocaleDefaultFragment()).to.be.null;
         });
 
-        it('getParentId should return parent ID when parent exists', () => {
-            store.parentFragment = mockParentFragment;
-            expect(store.getParentId()).to.equal('parent-fragment-id');
+        it('getDefaultLocaleId should return default locale ID when set', () => {
+            store.defaultLocaleId = 'parent-fragment-id';
+            expect(store.getDefaultLocaleId()).to.equal('parent-fragment-id');
         });
 
-        it('getParentId should return null when no parent', () => {
-            store.parentFragment = null;
-            expect(store.getParentId()).to.be.null;
+        it('getDefaultLocaleId should return null when not set', () => {
+            store.defaultLocaleId = null;
+            expect(store.getDefaultLocaleId()).to.be.null;
         });
 
-        it('hasParent should return true when parent exists', () => {
-            store.parentFragment = mockParentFragment;
-            expect(store.hasParent()).to.be.true;
+        it('isVariation should return true when defaultLocaleId differs from fragmentId', () => {
+            store.defaultLocaleId = 'parent-fragment-id';
+            expect(store.isVariation('different-id')).to.be.true;
         });
 
-        it('hasParent should return false when no parent', () => {
-            store.parentFragment = null;
-            expect(store.hasParent()).to.be.false;
+        it('isVariation should return false when defaultLocaleId equals fragmentId', () => {
+            store.defaultLocaleId = 'same-id';
+            expect(store.isVariation('same-id')).to.be.false;
+        });
+
+        it('isVariation should return falsy value when no defaultLocaleId', () => {
+            store.defaultLocaleId = null;
+            expect(store.isVariation('any-id')).to.not.be.ok;
         });
     });
 
     describe('reset', () => {
         beforeEach(() => {
             store = new EditorContextStore({ initial: 'value' });
-            store.parentFragment = mockParentFragment;
+            store.localeDefaultFragment = mockLocaleDefaultFragment;
+            store.defaultLocaleId = 'parent-fragment-id';
         });
 
-        it('should clear parentFragment', () => {
+        it('should clear localeDefaultFragment', () => {
             store.reset();
-            expect(store.parentFragment).to.be.null;
+            expect(store.localeDefaultFragment).to.be.null;
+        });
+
+        it('should clear defaultLocaleId', () => {
+            store.reset();
+            expect(store.defaultLocaleId).to.be.null;
         });
 
         it('should set value to null', () => {

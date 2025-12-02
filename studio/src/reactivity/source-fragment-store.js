@@ -45,6 +45,15 @@ export class SourceFragmentStore extends FragmentStore {
         this.previewStore.discardChanges();
     }
 
+    resetFieldToParent(fieldName, parentValues = []) {
+        const success = this.value.resetFieldToParent(fieldName);
+        if (success) {
+            this.notify();
+            this.previewStore.updateFieldWithParentValue(fieldName, parentValues);
+        }
+        return success;
+    }
+
     resolvePreviewFragment() {
         this.previewStore.resolveFragment();
     }

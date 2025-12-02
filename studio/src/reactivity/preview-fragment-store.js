@@ -26,8 +26,8 @@ export class PreviewFragmentStore extends FragmentStore {
             }
         });
 
-        const hasEssentialFields = fragmentInstance.fields.some((f) => f.name === 'variant' && f.values?.length > 0);
-        if (!fragmentInstance.isVariation() || hasEssentialFields) {
+        const hasVariantField = fragmentInstance.fields.some((f) => f.name === 'variant' && f.values?.length > 0);
+        if (!fragmentInstance.isVariation() || hasVariantField) {
             this.resolveFragment();
         }
     }
@@ -64,6 +64,29 @@ export class PreviewFragmentStore extends FragmentStore {
         this.resolveFragment();
     }
 
+    updateFieldWithParentValue(fieldName, parentValues) {
+        const field = this.value.getField(fieldName);
+        if (field) {
+            field.values = parentValues;
+        } else if (parentValues.length > 0) {
+            const existingField = this.value.fields.find((f) => f.name === fieldName);
+            if (existingField) {
+                existingField.values = parentValues;
+            } else {
+                this.value.fields.push({
+                    name: fieldName,
+                    values: parentValues,
+                    multiple: parentValues.length > 1,
+                });
+            }
+        }
+        this.resolveFragment();
+    }
+
+    isResolving() {
+        return this.#resolving;
+    }
+
     resolveFragment() {
         clearTimeout(this.#resolveDebounceTimer);
         this.#resolveDebounceTimer = setTimeout(() => {
@@ -90,11 +113,13 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         if (this.isCollection || !Store.placeholders.preview.value) {
+            this.resolved = true;
             this.refreshAemFragment();
             return;
         }
 
         if (!Store.search.value.path) {
+            this.resolved = true;
             this.refreshAemFragment();
             return;
         }
@@ -102,6 +127,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const isVariation = this.value.isVariation && this.value.isVariation();
         const hasVariantField = this.value.fields?.some((f) => f.name === 'variant' && f.values?.length > 0);
         if (isVariation && !hasVariantField) {
+            this.resolved = true;
             this.refreshAemFragment();
             return;
         }

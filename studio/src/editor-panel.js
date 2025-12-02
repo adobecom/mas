@@ -74,8 +74,9 @@ export default class EditorPanel extends LitElement {
         fragmentVersions: { type: Array, state: true },
         selectedVersion: { type: String, state: true },
         versionsLoading: { type: Boolean, state: true },
-        parentFragment: { type: Object, state: true },
-        parentFragmentLoading: { type: Boolean, state: true },
+        localeDefaultFragment: { type: Object, state: true },
+        localeDefaultFragmentLoading: { type: Boolean, state: true },
+        variationsToDelete: { type: Array, state: true },
     };
 
     static styles = css`
@@ -138,8 +139,9 @@ export default class EditorPanel extends LitElement {
         this.fragmentVersions = [];
         this.selectedVersion = '';
         this.versionsLoading = false;
-        this.parentFragment = null;
-        this.parentFragmentLoading = false;
+        this.localeDefaultFragment = null;
+        this.localeDefaultFragmentLoading = false;
+        this.variationsToDelete = [];
 
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -154,8 +156,8 @@ export default class EditorPanel extends LitElement {
         this.handleVersionChange = this.handleVersionChange.bind(this);
         this.handleVersionUpdated = this.handleVersionUpdated.bind(this);
         this.handleVersionUpdateError = this.handleVersionUpdateError.bind(this);
-        this.fetchParentFragment = this.fetchParentFragment.bind(this);
-        this.navigateToParentFragment = this.navigateToParentFragment.bind(this);
+        this.fetchLocaleDefaultFragment = this.fetchLocaleDefaultFragment.bind(this);
+        this.navigateToLocaleDefaultFragment = this.navigateToLocaleDefaultFragment.bind(this);
     }
 
     createRenderRoot() {
@@ -228,49 +230,49 @@ export default class EditorPanel extends LitElement {
             this.maskOtherFragments(id);
         }
         this.loadFragmentVersions();
-        await this.loadParentFragmentContext(id);
+        await this.loadLocaleDefaultFragmentContext(id);
     }
 
-    async loadParentFragmentContext(fragmentId) {
+    async loadLocaleDefaultFragmentContext(fragmentId) {
         this.editorContextStore.reset();
-        this.parentFragment = null;
-        this.parentFragmentLoading = false;
+        this.localeDefaultFragment = null;
+        this.localeDefaultFragmentLoading = false;
 
         try {
             await this.editorContextStore.loadFragmentContext(fragmentId);
-            if (this.editorContextStore.hasParent()) {
-                await this.fetchParentFragment();
+            if (this.editorContextStore.isVariation(fragmentId)) {
+                await this.fetchLocaleDefaultFragment();
             }
         } catch (error) {
             console.error('Failed to load fragment context:', error);
         }
     }
 
-    async fetchParentFragment() {
-        const parentId = this.editorContextStore.getParentId();
-        if (!parentId || parentId === this.fragment?.id) {
-            this.parentFragment = null;
-            this.parentFragmentLoading = false;
+    async fetchLocaleDefaultFragment() {
+        const defaultLocaleId = this.editorContextStore.getDefaultLocaleId();
+        if (!defaultLocaleId || defaultLocaleId === this.fragment?.id) {
+            this.localeDefaultFragment = null;
+            this.localeDefaultFragmentLoading = false;
             return;
         }
 
-        this.parentFragmentLoading = true;
+        this.localeDefaultFragmentLoading = true;
         try {
-            const parentData = await this.repository.aem.sites.cf.fragments.getById(parentId);
-            this.parentFragment = new Fragment(parentData);
+            const parentData = await this.repository.aem.sites.cf.fragments.getById(defaultLocaleId);
+            this.localeDefaultFragment = new Fragment(parentData);
         } catch (error) {
-            console.error('Failed to fetch parent fragment:', error);
-            showToast(`Failed to load parent fragment: ${error.message}`, 'negative');
-            this.parentFragment = null;
+            console.error('Failed to fetch locale default fragment:', error);
+            showToast(`Failed to load locale default fragment: ${error.message}`, 'negative');
+            this.localeDefaultFragment = null;
         } finally {
-            this.parentFragmentLoading = false;
+            this.localeDefaultFragmentLoading = false;
         }
     }
 
-    async navigateToParentFragment() {
-        if (!this.parentFragment) return;
+    async navigateToLocaleDefaultFragment() {
+        if (!this.localeDefaultFragment) return;
         await this.closeEditor();
-        await router.navigateToFragmentEditor(this.parentFragment.id);
+        await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
 
     handleKeyDown(event) {
@@ -360,14 +362,18 @@ export default class EditorPanel extends LitElement {
     }
 
     async deleteFragment() {
-        // Ask for confirmation using sp-underlay and sp-dialog
+        this.variationsToDelete = this.fragment?.getVariations() || [];
         this.showDeleteDialog = true;
     }
 
     async confirmDelete() {
         this.showDeleteDialog = false;
         try {
-            await this.repository.deleteFragment(this.fragment);
+            if (this.variationsToDelete.length > 0) {
+                await this.repository.deleteFragmentWithVariations(this.fragment);
+            } else {
+                await this.repository.deleteFragment(this.fragment);
+            }
             await this.closeEditor();
         } catch (error) {
             console.error('Error deleting fragment:', error);
@@ -689,6 +695,14 @@ export default class EditorPanel extends LitElement {
 
     get deleteConfirmationDialog() {
         if (!this.showDeleteDialog) return nothing;
+        const hasVariations = this.variationsToDelete.length > 0;
+        const message = hasVariations
+            ? html`<p>Are you sure you want to delete this fragment?</p>
+                  <p>
+                      <strong>Warning:</strong> This will also delete ${this.variationsToDelete.length} locale variation(s).
+                      This action cannot be undone.
+                  </p>`
+            : html`<p>Are you sure you want to delete this fragment? This action cannot be undone.</p>`;
         return html`
             <sp-underlay open @click="${this.cancelDelete}"></sp-underlay>
             <sp-dialog
@@ -698,7 +712,7 @@ export default class EditorPanel extends LitElement {
                 @sp-dialog-dismiss="${this.cancelDelete}"
             >
                 <h1 slot="heading">Confirm Deletion</h1>
-                <p>Are you sure you want to delete this fragment? This action cannot be undone.</p>
+                ${message}
                 <sp-button slot="button" variant="secondary" @click="${this.cancelDelete}"> Cancel </sp-button>
                 <sp-button slot="button" variant="accent" @click="${this.confirmDelete}"> Delete </sp-button>
             </sp-dialog>
@@ -807,16 +821,16 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
-    get parentLocaleLabel() {
-        if (!this.parentFragment) return '';
-        const localeCode = this.parentFragment.getLocale();
+    get localeDefaultLocaleLabel() {
+        if (!this.localeDefaultFragment) return '';
+        const localeCode = this.localeDefaultFragment.getLocale();
         if (!localeCode) return '';
         const [lang, country] = localeCode.split('_');
         return `: Default ${country} (${lang.toUpperCase()})`;
     }
 
     get derivedFromContainer() {
-        if (!this.fragment || !this.parentFragment || this.parentFragment.id === this.fragment.id) {
+        if (!this.fragment || !this.localeDefaultFragment || this.localeDefaultFragment.id === this.fragment.id) {
             return nothing;
         }
 
@@ -827,13 +841,13 @@ export default class EditorPanel extends LitElement {
                         <sp-icon-link size="s"></sp-icon-link>
                         <span>Derived from</span>
                     </div>
-                    <a @click="${this.navigateToParentFragment}" class="derived-from-link clickable">
+                    <a @click="${this.navigateToLocaleDefaultFragment}" class="derived-from-link clickable">
                         <span>View fragment</span>
                         <sp-icon-open-in size="s"></sp-icon-open-in>
                     </a>
                 </div>
-                <a @click="${this.navigateToParentFragment}" class="derived-from-content clickable">
-                    ${this.parentFragment.title}${this.parentLocaleLabel}
+                <a @click="${this.navigateToLocaleDefaultFragment}" class="derived-from-content clickable">
+                    ${this.localeDefaultFragment.title}${this.localeDefaultLocaleLabel}
                 </a>
             </div>
         `;
@@ -863,14 +877,14 @@ export default class EditorPanel extends LitElement {
                     editor = html` <merch-card-editor
                         .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
-                        .parentFragment=${this.parentFragment}
+                        .localeDefaultFragment=${this.localeDefaultFragment}
                     ></merch-card-editor>`;
                     break;
                 case COLLECTION_MODEL_PATH:
                     editor = html` <merch-card-collection-editor
                         .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
-                        .parentFragment=${this.parentFragment}
+                        .localeDefaultFragment=${this.localeDefaultFragment}
                     ></merch-card-collection-editor>`;
                     break;
             }

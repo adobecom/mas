@@ -1083,6 +1083,40 @@ class RteField extends LitElement {
         this.editorView.dispatch(tr);
     }
 
+    updateContent(html) {
+        if (!this.editorView) return;
+        try {
+            const container = document.createElement('div');
+            container.innerHTML = html || '';
+            container.querySelectorAll('div').forEach((div) => {
+                div.replaceWith(...div.childNodes);
+            });
+            container.querySelectorAll('strong > a').forEach((a) => {
+                a.parentElement.replaceWith(a);
+            });
+            container.querySelectorAll('a').forEach((a) => {
+                if (a.dataset.wcsOsi) {
+                    a.setAttribute('is', CUSTOM_ELEMENT_CHECKOUT_LINK);
+                }
+            });
+            container.querySelectorAll('span merch-icon').forEach((icon) => {
+                const span = icon.parentElement;
+                if (!span.classList.contains('mnemonic')) {
+                    span.classList.add('mnemonic');
+                }
+                if (span.classList.contains('mnemonic-text')) {
+                    span.classList.remove('mnemonic-text');
+                }
+            });
+            const parser = DOMParser.fromSchema(this.#editorSchema);
+            const doc = parser.parse(container);
+            const tr = this.editorView.state.tr.replaceWith(0, this.editorView.state.doc.content.size, doc.content);
+            this.editorView.dispatch(tr);
+        } catch (error) {
+            console.error('Error updating editor content:', error);
+        }
+    }
+
     #handleTransaction(transaction) {
         try {
             const oldState = this.editorView.state;

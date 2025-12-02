@@ -177,6 +177,12 @@ export class MasVariationDialog extends LitElement {
             return;
         }
 
+        if (this.fragment?.isVariation?.()) {
+            this.error = 'Cannot create a variation from another variation. Please use the default locale fragment.';
+            showToast(this.error, 'negative');
+            return;
+        }
+
         try {
             this.loading = true;
             showToast('Creating variation...');

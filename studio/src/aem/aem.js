@@ -372,6 +372,7 @@ class AEM {
         let newFragment = await this.getFragmentByPath(newPath);
         if (newFragment) {
             newFragment = await this.sites.cf.fragments.getById(newFragment.id);
+            newFragment = await this.clearVariationsField(newFragment);
         }
         return newFragment;
     }
@@ -573,13 +574,15 @@ class AEM {
      * @returns {Promise<Object>} The newly created fragment
      */
     async createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
+        const fieldsWithoutVariations = fullFragment.fields.filter((field) => field.name !== 'variations');
+
         const copyData = {
             title: fullFragment.title,
             description: fullFragment.description,
             modelId: fullFragment.model.id,
             parentPath: targetPath,
             name,
-            fields: fullFragment.fields,
+            fields: fieldsWithoutVariations,
         };
 
         const response = await fetch(this.cfFragmentsUrl, {
@@ -615,6 +618,16 @@ class AEM {
         } catch {
             // Silent fail - tags are not critical
         }
+    }
+
+    async clearVariationsField(fragment) {
+        const variationsField = fragment.fields.find((f) => f.name === 'variations');
+        if (variationsField && variationsField.values?.length > 0) {
+            variationsField.values = [];
+            await this.sites.cf.fragments.save(fragment);
+            return this.sites.cf.fragments.getById(fragment.id);
+        }
+        return fragment;
     }
 
     /**
@@ -682,14 +695,19 @@ class AEM {
 
         await this.ensureFolderExists(targetFolder);
 
-        const { name: finalName } = await this.generateUniqueName(targetFolder, fragmentName);
+        // Check if variation already exists - fail if it does
+        const targetPath = `${targetFolder}/${fragmentName}`;
+        const existingFragment = await this.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        if (existingFragment) {
+            throw new Error(`A variation already exists at ${targetPath}`);
+        }
 
         const variationData = {
             title: parentFragment.title,
             description: parentFragment.description,
             modelId: parentFragment.model.id,
             parentPath: targetFolder,
-            name: finalName,
+            name: fragmentName,
             fields: [],
         };
 
@@ -777,6 +795,31 @@ class AEM {
         }
 
         return this.pollUpdatedFragment(latestParent);
+    }
+
+    async removeFromParentVariations(parentFragment, variationPath) {
+        const latestParent = await this.getFragmentWithEtag(parentFragment.id);
+        if (!latestParent) {
+            throw new Error('Failed to retrieve parent fragment for update');
+        }
+
+        const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+
+        if (!currentVariations.includes(variationPath)) {
+            return latestParent;
+        }
+
+        const updatedVariations = currentVariations.filter((v) => v !== variationPath);
+
+        const updatedFields = latestParent.fields.map((field) => {
+            if (field.name === 'variations') {
+                return { ...field, values: updatedVariations };
+            }
+            return field;
+        });
+
+        return this.saveFragment({ ...latestParent, fields: updatedFields });
     }
 
     async listFolders(path) {
@@ -1073,6 +1116,10 @@ class AEM {
                  * @see AEM#updateParentVariations
                  */
                 updateParentVariations: this.updateParentVariations.bind(this),
+                /**
+                 * @see AEM#removeFromParentVariations
+                 */
+                removeFromParentVariations: this.removeFromParentVariations.bind(this),
             },
         },
     };

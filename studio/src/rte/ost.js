@@ -12,9 +12,8 @@ if (!ostRoot) {
 
 const ostDefaultSettings = () => {
     const masCommerceService = document.querySelector('mas-commerce-service');
-    const { displayPerUnit, displayPlanType, displayRecurrence, displayTax, isPerpetual, checkoutWorkflowStep } =
+    let { displayOldPrice, displayPerUnit, displayPlanType, displayRecurrence, displayTax, isPerpetual, checkoutWorkflowStep } =
         masCommerceService.settings;
-    let { displayOldPrice } = masCommerceService.settings;
     if (!masCommerceService.featureFlags['mas-ff-defaults']) {
         displayOldPrice = true;
     }
@@ -139,7 +138,7 @@ export function onOfferSelect(offerSelectorId, type, offer) {
     );
 }
 
-export function getOfferSelectorTool() {
+export function getOffferSelectorTool() {
     return html`
         <sp-overlay id="ostDialog" type="modal">
             <sp-dialog-wrapper dismissable underlay>

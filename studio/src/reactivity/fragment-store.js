@@ -42,6 +42,15 @@ export class FragmentStore extends ReactiveStore {
         this.refreshAemFragment();
     }
 
+    resetFieldToParent(fieldName, parentValues = []) {
+        const success = this.value.resetFieldToParent(fieldName);
+        if (success) {
+            this.notify();
+            this.refreshAemFragment();
+        }
+        return success;
+    }
+
     refreshAemFragment() {
         clearTimeout(this.#refreshDebounceTimer);
         this.#refreshDebounceTimer = setTimeout(() => {

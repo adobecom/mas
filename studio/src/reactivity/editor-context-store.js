@@ -1,10 +1,12 @@
 import { ReactiveStore } from './reactive-store.js';
 import { previewFragmentForEditor } from 'fragment-client';
 import Store from '../store.js';
+import { extractLocaleFromPath, getCorrespondingLocale } from '../aem/fragment.js';
 
 export class EditorContextStore extends ReactiveStore {
     loading = false;
-    parentFragment = null;
+    localeDefaultFragment = null;
+    defaultLocaleId = null;
 
     constructor(initialValue, validator) {
         super(initialValue, validator);
@@ -12,7 +14,8 @@ export class EditorContextStore extends ReactiveStore {
 
     async loadFragmentContext(fragmentId) {
         this.loading = true;
-        this.parentFragment = null;
+        this.localeDefaultFragment = null;
+        this.defaultLocaleId = null;
 
         try {
             if (!Store.search.value.path) {
@@ -28,17 +31,18 @@ export class EditorContextStore extends ReactiveStore {
             if (result.status === 200) {
                 this.set(result.body);
 
-                const parentId = result.fragmentsIds?.['default-locale-id'];
-                if (parentId && parentId !== fragmentId) {
+                this.defaultLocaleId = result.fragmentsIds?.['default-locale-id'];
+                if (this.defaultLocaleId && this.defaultLocaleId !== fragmentId) {
                     const aem = document.querySelector('mas-repository')?.aem;
                     if (aem) {
                         try {
-                            this.parentFragment = await aem.sites.cf.fragments.getById(parentId);
+                            this.localeDefaultFragment = await aem.sites.cf.fragments.getById(this.defaultLocaleId);
                         } catch (err) {
-                            console.debug('Parent fragment not found:', parentId);
+                            console.debug('Locale default fragment not found:', this.defaultLocaleId);
                         }
                     }
                 }
+                this.notify();
             }
 
             return result;
@@ -47,20 +51,55 @@ export class EditorContextStore extends ReactiveStore {
         }
     }
 
-    getParentFragment() {
-        return this.parentFragment;
+    getLocaleDefaultFragment() {
+        return this.localeDefaultFragment;
     }
 
-    getParentId() {
-        return this.parentFragment?.id || null;
+    async fetchLocaleDefaultFragment() {
+        if (this.localeDefaultFragment) {
+            return this.localeDefaultFragment;
+        }
+
+        if (!this.value?.path) return null;
+
+        const locale = extractLocaleFromPath(this.value.path);
+        if (!locale) return null;
+
+        const defaultLocale = getCorrespondingLocale(locale);
+        if (!defaultLocale || locale === defaultLocale) return null;
+
+        const parentPath = this.value.path.replace(`/${locale}/`, `/${defaultLocale}/`);
+        const aem = document.querySelector('mas-repository')?.aem;
+
+        if (!aem) return null;
+
+        try {
+            this.localeDefaultFragment = await aem.sites.cf.fragments.getByPath(parentPath);
+            return this.localeDefaultFragment;
+        } catch (error) {
+            console.warn('Could not fetch locale default fragment:', parentPath);
+            return null;
+        }
     }
 
-    hasParent() {
-        return !!this.parentFragment;
+    getDefaultLocaleId() {
+        return this.defaultLocaleId;
+    }
+
+    isVariation(fragmentId) {
+        if (this.defaultLocaleId) {
+            return this.defaultLocaleId !== fragmentId;
+        }
+        if (!this.value?.path) return false;
+        const locale = extractLocaleFromPath(this.value.path);
+        if (!locale) return false;
+        const defaultLocale = getCorrespondingLocale(locale);
+        return locale !== defaultLocale;
     }
 
     reset() {
-        this.parentFragment = null;
+        this.localeDefaultFragment = null;
+        this.defaultLocaleId = null;
         this.set(null);
     }
 }

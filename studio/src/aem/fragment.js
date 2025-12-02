@@ -1,4 +1,4 @@
-const LOCALE_DEFAULTS = [
+export const LOCALE_DEFAULTS = [
     'ar_MENA',
     'bg_BG',
     'cs_CZ',
@@ -38,7 +38,7 @@ const LOCALE_DEFAULTS = [
     'zh_TW',
 ];
 
-function extractLocaleFromPath(path) {
+export function extractLocaleFromPath(path) {
     if (!path) return null;
     const parts = path.split('/');
     for (const part of parts) {
@@ -49,7 +49,7 @@ function extractLocaleFromPath(path) {
     return null;
 }
 
-function getCorrespondingLocale(locale) {
+export function getCorrespondingLocale(locale) {
     if (!locale) return null;
     const [language] = locale.split('_');
     for (const defaultLocale of LOCALE_DEFAULTS) {

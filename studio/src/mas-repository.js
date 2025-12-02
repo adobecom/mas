@@ -212,9 +212,11 @@ export class MasRepository extends LitElement {
 
         const currentPath = dataStore.getMeta('path');
         const currentQuery = dataStore.getMeta('query');
+        const currentLocale = dataStore.getMeta('locale');
         const currentData = dataStore.get();
+        const locale = this.filters.value.locale;
 
-        if (currentData?.length > 0 && currentPath === path && currentQuery === query) {
+        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
             Store.fragments.list.loading.set(false);
             Store.fragments.list.firstPageLoaded.set(true);
             return;
@@ -318,6 +320,7 @@ export class MasRepository extends LitElement {
 
             dataStore.setMeta('path', path);
             dataStore.setMeta('query', query);
+            dataStore.setMeta('locale', locale);
             dataStore.setMeta('tags', tags);
 
             this.#abortControllers.search = null;
@@ -947,6 +950,64 @@ export class MasRepository extends LitElement {
     async bulkDeleteFragments(fragments, options) {
         const promises = fragments.map((fragment) => this.deleteFragment(fragment, options));
         return Promise.all(promises);
+    }
+
+    /**
+     * Deletes a fragment and all its locale variations
+     * @param {Fragment} fragment - The parent fragment to delete
+     * @returns {Promise<{success: boolean, failedVariations: string[]}>}
+     */
+    async deleteFragmentWithVariations(fragment) {
+        const variations = fragment.getVariations();
+        const failedVariations = [];
+
+        if (variations.length > 0) {
+            showToast(`Deleting fragment and ${variations.length} variation(s)...`);
+
+            for (const variationPath of variations) {
+                try {
+                    const variationData = await this.aem.sites.cf.fragments.getByPath(variationPath);
+                    if (variationData) {
+                        const variationFragment = new Fragment(variationData);
+                        await this.deleteFragment(variationFragment, { startToast: false, endToast: false });
+                    }
+                } catch (error) {
+                    console.error(`Failed to delete variation ${variationPath}:`, error);
+                    failedVariations.push(variationPath);
+                }
+            }
+
+            const successfullyDeleted = variations.filter((v) => !failedVariations.includes(v));
+            if (successfullyDeleted.length > 0) {
+                try {
+                    const latestParent = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
+                    if (latestParent) {
+                        const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+                        if (variationsField) {
+                            variationsField.values = failedVariations;
+                        }
+                        await this.aem.sites.cf.fragments.save(latestParent);
+                    }
+                } catch (error) {
+                    console.error('Failed to update parent variations field:', error);
+                }
+            }
+        }
+
+        const success = await this.deleteFragment(fragment, {
+            startToast: variations.length === 0,
+            endToast: false,
+        });
+
+        if (success) {
+            if (failedVariations.length > 0) {
+                showToast(`Fragment deleted but ${failedVariations.length} variation(s) failed to delete`, 'warning');
+            } else if (variations.length > 0) {
+                showToast('Fragment and all variations successfully deleted.', 'positive');
+            }
+        }
+
+        return { success, failedVariations };
     }
 
     async createPlaceholder(placeholder) {

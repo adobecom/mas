@@ -727,12 +727,15 @@ class AEM {
                 title,
             },
         ];
+
         const response = await fetch(`${this.baseUrl}/adobe/folders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
-                ...this.headers,
+                Authorization: this.headers.Authorization,
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
                 'x-api-key': 'mas-studio',
             },
             body: JSON.stringify(payload),

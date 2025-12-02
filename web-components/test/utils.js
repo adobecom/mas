@@ -20,6 +20,12 @@ export const keyDown = async (key) => {
     });
 };
 
+export async function toggleDesktop() {
+    try {
+        await setViewport({ width: 1200, height: 1400 });
+    } catch {}
+}
+
 export async function toggleLargeDesktop() {
     try {
         await setViewport({ width: 1600, height: 1400 });
@@ -59,16 +65,16 @@ export const appendMiloStyles = () => {
     const customStyles = document.querySelector('style');
     let style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = `/__wds-outside-root__/1/node_modules/@adobecom/milo/libs/styles/styles.css`;
+    style.href = `/__wds-outside-root__/2/styles/styles.css`;
     document.head.insertBefore(style, customStyles);
 
     style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = `/__wds-outside-root__/1/node_modules/@adobecom/milo/libs/blocks/merch/merch.css`;
+    style.href = `/__wds-outside-root__/2/blocks/merch/merch.css`;
 
     style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = `/__wds-outside-root__/1/node_modules/@adobecom/milo/libs/blocks/merch-card/merch-card.css`;
+    style.href = `/__wds-outside-root__/2/blocks/merch-card/merch-card.css`;
     document.head.append(style, customStyles);
 };
 

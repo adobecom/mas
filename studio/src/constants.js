@@ -185,33 +185,33 @@ export const VARIANT_CAPABILITIES = {
 };
 export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 
-export const SURFACES = [
-    {
+export const SURFACES = {
+    ACOM: {
         label: 'Adobe.com',
         name: 'acom',
     },
-    {
+    ADOBE_HOME: {
         label: 'Adobe Home',
         name: 'adobe-home',
     },
-    {
+    CCD: {
         label: 'CCD',
         name: 'ccd',
     },
-    {
+    COMMERCE: {
         label: 'Commerce',
         name: 'commerce',
     },
-    {
+    EXPRESS: {
         label: 'Express',
         name: 'express',
     },
-    {
+    NALA: {
         label: 'Nala',
         name: 'nala',
     },
-    {
+    SANDBOX: {
         label: 'Sandbox',
         name: 'sandbox',
     },
-];
+};

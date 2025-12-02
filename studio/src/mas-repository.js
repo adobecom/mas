@@ -18,7 +18,6 @@ import {
     EDITABLE_FRAGMENT_MODEL_IDS,
     DICTIONARY_INDEX_MODEL_ID,
     DICTIONARY_ENTRY_MODEL_ID,
-    PROMOTION_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -27,7 +26,7 @@ import {
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 
-import { SURFACES } from './editors/variant-picker.js';
+import { SURFACES } from './constants.js';
 import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
@@ -658,8 +657,8 @@ export class MasRepository extends LitElement {
         }
 
         // 3. Check ACOM language fallback (ACOM surface, fallback locale or current locale)
-        if (!parentReference && surfaceRoot !== SURFACES.ACOM && acomFallbackLocale) {
-            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM, acomFallbackLocale);
+        if (!parentReference && surfaceRoot !== SURFACES.ACOM.name && acomFallbackLocale) {
+            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM.name, acomFallbackLocale);
             if (acomFallbackPath) {
                 try {
                     const acomIndex = await this.ensureDictionaryIndex(acomFallbackPath, visited);

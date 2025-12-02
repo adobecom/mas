@@ -11,12 +11,12 @@ export class Promotion extends Fragment {
         const startDate = new Date(this.startDateValue);
         const endDate = new Date(this.endDateValue);
 
-        const startMonth = startDate.toLocaleString('default', { month: 'short' });
-        const startDay = String(startDate.getDate()).padStart(2, '0');
+        const startMonth = startDate.toLocaleString('en-US', { timeZone: 'UTC', month: 'short' });
+        const startDay = String(startDate.getUTCDate()).padStart(2, '0');
 
-        const endMonth = endDate.toLocaleString('default', { month: 'short' });
-        const endDay = String(endDate.getDate()).padStart(2, '0');
-        const endYear = endDate.getFullYear();
+        const endMonth = endDate.toLocaleString('en-US', { timeZone: 'UTC', month: 'short' });
+        const endDay = String(endDate.getUTCDate()).padStart(2, '0');
+        const endYear = endDate.getUTCFullYear();
 
         return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${endYear}`;
     }

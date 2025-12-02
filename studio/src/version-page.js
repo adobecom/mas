@@ -272,7 +272,6 @@ class VersionPage extends LitElement {
             justify-content: center;
             align-items: center;
             padding: 12px;
-            background: #f5f5f5;
             min-height: 297px;
         }
 

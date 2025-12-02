@@ -7,6 +7,8 @@ export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
     placeholderUnsubscribe = null;
     #resolving = false;
+    #resolveDebounceTimer = null;
+    #refreshDebounceTimer = null;
 
     /**
      * @param {Fragment} initialValue
@@ -63,18 +65,22 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     resolveFragment() {
-        // Guard against overlapping resolution calls
+        clearTimeout(this.#resolveDebounceTimer);
+        this.#resolveDebounceTimer = setTimeout(() => {
+            this.#doResolveFragment();
+        }, 150);
+    }
+
+    #doResolveFragment() {
         if (this.#resolving) {
             return;
         }
 
-        // DEFENSE LAYER 4: Null safety and error handling
         if (!this.value) {
             console.warn('[PreviewFragmentStore] Cannot resolve: no fragment value');
             return;
         }
 
-        // Check for valid fragment model structure
         if (!this.value?.model?.path) {
             console.warn('[PreviewFragmentStore] Cannot resolve: invalid fragment model', {
                 fragmentId: this.value?.id,
@@ -111,7 +117,6 @@ export class PreviewFragmentStore extends FragmentStore {
             })
             .catch((error) => {
                 console.error('[PreviewFragmentStore] Failed to resolve fragment:', error);
-                // Don't throw - let UI handle gracefully with fallback rendering
             })
             .finally(() => {
                 this.#resolving = false;
@@ -159,22 +164,25 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     refreshAemFragment() {
-        this.populateGlobalCache();
-        const aemFragments = document.querySelectorAll(`aem-fragment[fragment="${this.value.id}"]`);
-        aemFragments.forEach((aemFragment) => {
-            aemFragment.refresh(false);
-        });
+        clearTimeout(this.#refreshDebounceTimer);
+        this.#refreshDebounceTimer = setTimeout(() => {
+            this.populateGlobalCache();
+            const aemFragments = document.querySelectorAll(`aem-fragment[fragment="${this.value.id}"]`);
+            aemFragments.forEach((aemFragment) => {
+                aemFragment.refresh(false);
+            });
 
-        const editor = document.querySelector('mas-fragment-editor');
-        if (editor) {
-            editor.dispatchEvent(
-                new CustomEvent('preview-updated', {
-                    bubbles: true,
-                    composed: true,
-                    detail: { fragmentId: this.value.id },
-                }),
-            );
-        }
+            const editor = document.querySelector('mas-fragment-editor');
+            if (editor) {
+                editor.dispatchEvent(
+                    new CustomEvent('preview-updated', {
+                        bubbles: true,
+                        composed: true,
+                        detail: { fragmentId: this.value.id },
+                    }),
+                );
+            }
+        }, 100);
     }
 
     /**

@@ -156,11 +156,10 @@ class MerchCardEditor extends LitElement {
         this.whatsIncludedElement?.querySelectorAll('merch-mnemonic-list').forEach((listEl) => {
             const iconEl = listEl.querySelector('merch-icon');
             const icon = iconEl?.getAttribute('src') || '';
-            const text = listEl.querySelector('[slot="description"]')?.textContent || '';
-            values.push({
-                icon,
-                text,
-            });
+            const alt = iconEl?.getAttribute('alt') || '';
+            const linkEl = listEl.querySelector('[slot="icon"] a');
+            const link = linkEl?.getAttribute('href') || '';
+            values.push({ icon, alt, link });
         });
 
         return {
@@ -874,21 +873,28 @@ class MerchCardEditor extends LitElement {
         element.append(content);
         values.forEach((value) => {
             const list = document.createElement('merch-mnemonic-list');
-            const icon = document.createElement('div');
-            icon.setAttribute('slot', 'icon');
+            const iconSlot = document.createElement('div');
+            iconSlot.setAttribute('slot', 'icon');
             if (value.icon) {
                 const merchIcon = document.createElement('merch-icon');
                 merchIcon.setAttribute('size', 's');
                 merchIcon.setAttribute('src', value.icon);
-                merchIcon.setAttribute('alt', value.text);
-                icon.append(merchIcon);
+                merchIcon.setAttribute('alt', value.alt || '');
+                if (value.link) {
+                    const anchor = document.createElement('a');
+                    anchor.setAttribute('href', value.link);
+                    anchor.append(merchIcon);
+                    iconSlot.append(anchor);
+                } else {
+                    iconSlot.append(merchIcon);
+                }
             }
             const description = document.createElement('p');
             description.setAttribute('slot', 'description');
             const strong = document.createElement('strong');
-            strong.textContent = value.text || '';
+            strong.textContent = value.alt || '';
             description.append(strong);
-            list.append(icon);
+            list.append(iconSlot);
             list.append(description);
             content.append(list);
         });
@@ -900,11 +906,8 @@ class MerchCardEditor extends LitElement {
         let label = '';
         let values = [];
         if (Array.isArray(event.target.value)) {
-            event.target.value.forEach(({ icon, text }) => {
-                values.push({
-                    icon,
-                    text,
-                });
+            event.target.value.forEach(({ icon, alt, link }) => {
+                values.push({ icon, alt, link });
             });
             label = this.whatsIncluded.label;
         } else {

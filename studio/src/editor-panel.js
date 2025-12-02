@@ -5,7 +5,14 @@ import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, OPERATIONS } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    EVENT_KEYDOWN,
+    EVENT_OST_OFFER_SELECT,
+    OPERATIONS,
+    PAGE_NAMES,
+} from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, showToast } from './utils.js';
@@ -104,6 +111,7 @@ export default class EditorPanel extends LitElement {
 
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
+    page = Store.page;
 
     reactiveController = new ReactiveController(this);
     editorContextStore = new EditorContextStore(null);
@@ -826,6 +834,7 @@ export default class EditorPanel extends LitElement {
     }
 
     render() {
+        if (this.page.get() === PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
         if (!this.fragment) return nothing;
         if (this.fragment.loading) return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
 

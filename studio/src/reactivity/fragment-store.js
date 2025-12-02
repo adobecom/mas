@@ -3,6 +3,7 @@ import { ReactiveStore } from './reactive-store.js';
 
 export class FragmentStore extends ReactiveStore {
     loading = false;
+    #refreshDebounceTimer = null;
 
     set(value) {
         super.set(value);
@@ -42,7 +43,10 @@ export class FragmentStore extends ReactiveStore {
     }
 
     refreshAemFragment() {
-        document.querySelector(`aem-fragment[fragment="${this.value.id}"]`)?.refresh(false);
+        clearTimeout(this.#refreshDebounceTimer);
+        this.#refreshDebounceTimer = setTimeout(() => {
+            document.querySelector(`aem-fragment[fragment="${this.value.id}"]`)?.refresh(false);
+        }, 100);
     }
 
     get isCollection() {

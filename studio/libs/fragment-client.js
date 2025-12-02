@@ -65,7 +65,7 @@ async function previewFragment(id, options) {
     return context.body;
 }
 
-async function previewFragmentWithContext(id, options) {
+async function previewFragmentForEditor(id, options) {
     const {
         locale = 'en_US',
         preview = {
@@ -112,11 +112,7 @@ async function previewFragmentWithContext(id, options) {
     if (context.status != 200) {
         logError(context.message, context);
     }
-    return {
-        body: context.body,
-        fragmentsIds: context.fragmentsIds,
-        status: context.status,
-    };
+    return context;
 }
 
 /* c8 ignore next 38 */
@@ -159,4 +155,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewFragmentWithContext, previewStudioFragment, customize, settings, replace, getDictionary, corrector, LOCALE_DEFAULTS };
+export { previewFragment, previewFragmentForEditor, previewStudioFragment, customize, settings, replace, getDictionary, corrector, LOCALE_DEFAULTS };

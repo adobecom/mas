@@ -39,9 +39,11 @@ export class Router extends EventTarget {
                     Store.fragmentEditor.fragmentId.set(null);
                 }
                 Store.fragments.inEdit.set();
-                Store.fragments.list.data.set([]);
-                Store.search.set((prev) => ({ ...prev, query: undefined }));
-                Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+                if (value !== PAGE_NAMES.CONTENT) {
+                    Store.fragments.list.data.set([]);
+                    Store.search.set((prev) => ({ ...prev, query: undefined }));
+                    Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+                }
                 Store.viewMode.set('default');
                 Store.page.set(value);
             }

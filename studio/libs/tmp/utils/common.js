@@ -195,10 +195,7 @@ async function getRequestInfos(context) {
     if (!parsedLocale || !surface || !fragmentPath || !body) {
         const fetchResult = await context.promises?.fetchFragment;
         if (fetchResult) {
-            parsedLocale = parsedLocale || fetchResult.parsedLocale;
-            surface = surface || fetchResult.surface;
-            fragmentPath = fragmentPath || fetchResult.fragmentPath;
-            body = body || fetchResult.body;
+            ({ parsedLocale, surface, fragmentPath, body } = fetchResult);
         }
     }
     return { parsedLocale, surface, fragmentPath, body };

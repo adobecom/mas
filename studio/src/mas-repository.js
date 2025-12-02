@@ -165,7 +165,6 @@ export class MasRepository extends LitElement {
                     ...prev,
                     path: folders.at(0),
                 }));
-            Store.fragments.list.data.set([]);
         } catch (error) {
             Store.fragments.list.loading.set(false);
             Store.fragments.list.firstPageLoaded.set(false);
@@ -207,12 +206,23 @@ export class MasRepository extends LitElement {
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
         if (!Store.profile.value) return;
 
-        Store.fragments.list.loading.set(true);
-        Store.fragments.list.firstPageLoaded.set(false);
-
         const path = this.search.value.path;
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
+
+        const currentPath = dataStore.getMeta('path');
+        const currentQuery = dataStore.getMeta('query');
+        const currentData = dataStore.get();
+
+        if (currentData?.length > 0 && currentPath === path && currentQuery === query) {
+            Store.fragments.list.loading.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            return;
+        }
+
+        Store.fragments.list.loading.set(true);
+        Store.fragments.list.firstPageLoaded.set(false);
+
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
         let tags = [];
@@ -266,7 +276,6 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.firstPageLoaded.set(true);
                     return;
                 }
-                dataStore.set([]);
                 const fragmentData = await this.aem.sites.cf.fragments.getById(
                     localSearch.query,
                     this.#abortControllers.search,
@@ -289,9 +298,6 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
-                Store.fragments.list.loading.set(true);
-                Store.fragments.list.firstPageLoaded.set(false);
-                dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const fragmentStores = [];
                 // Extract surface from path for corrector

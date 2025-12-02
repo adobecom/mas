@@ -70,7 +70,6 @@ export default class MasFragmentEditor extends LitElement {
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: fit-content;
             margin: 0 auto;
             border-radius: 12px;
             box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
@@ -99,13 +98,17 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         .preview-content {
+            width: 100%;
             padding: 32px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: auto;
-            width: fit-content;
             position: relative;
+        }
+
+        .preview-content merch-card {
+            flex-shrink: 0;
         }
 
         .preview-content .preview-loading {
@@ -265,8 +268,14 @@ export default class MasFragmentEditor extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.handleFragmentIdChange = this.handleFragmentIdChange.bind(this);
+
+        const currentFragmentId = Store.fragmentEditor.fragmentId.get();
+        if (currentFragmentId) {
+            this.fragmentId = currentFragmentId;
+        }
+
         Store.fragmentEditor.fragmentId.subscribe(this.handleFragmentIdChange);
-        if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR && Store.fragmentEditor.fragmentId.get()) {
+        if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR && currentFragmentId) {
             this.initFragment();
         }
     }
@@ -295,9 +304,7 @@ export default class MasFragmentEditor extends LitElement {
 
         if (aemFragment && merchCard) {
             try {
-                // Give element time to initialize and start fetching
                 await Promise.resolve();
-                // Only await updateComplete if it's a valid promise
                 if (aemFragment.updateComplete instanceof Promise) {
                     await aemFragment.updateComplete;
                 }
@@ -363,14 +370,6 @@ export default class MasFragmentEditor extends LitElement {
         // Card name
         const cardName = getField('cardName');
         if (cardName) attrs.name = cardName;
-
-        // Badge attributes (simple attribute-based badges)
-        const badge = getField('badge');
-        if (badge) {
-            attrs.badgeText = badge;
-            attrs.badgeColor = getField('badgeColor') || '#000000';
-            attrs.badgeBackgroundColor = getField('badgeBackgroundColor') || '#F8D904';
-        }
 
         // Background image
         const backgroundImage = getField('backgroundImage');
@@ -525,11 +524,18 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async fetchParentFragment() {
-        // Use context-based parent ID from fragmentsIds['default-locale-id']
         const parentId = this.editorContextStore.getParentId();
         if (!parentId || parentId === this.fragment?.id) {
             this.parentFragment = null;
             this.parentFragmentLoading = false;
+            return;
+        }
+
+        const cachedParent = this.editorContextStore.getParentFragment();
+        if (cachedParent) {
+            this.parentFragment = new Fragment(cachedParent);
+            this.parentFragmentLoading = false;
+            this.mergeEssentialParentFields();
             return;
         }
 
@@ -1036,9 +1042,6 @@ export default class MasFragmentEditor extends LitElement {
                         variant=${attrs.variant || nothing}
                         size=${attrs.size || nothing}
                         name=${attrs.name || nothing}
-                        badge-text=${attrs.badgeText || nothing}
-                        badge-color=${attrs.badgeColor || nothing}
-                        badge-background-color=${attrs.badgeBackgroundColor || nothing}
                         border-color=${borderAttrs.borderColor || nothing}
                         background-image=${attrs.backgroundImage || nothing}
                         stock-offer-osis=${attrs.stockOfferOsis || nothing}

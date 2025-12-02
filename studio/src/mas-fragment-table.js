@@ -30,7 +30,7 @@ class MasFragmentTable extends LitElement {
 
     getFragmentName(data) {
         const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
-        const fragmentParts = getFragmentPartsToUse(Store, data).fragmentParts;
+        const fragmentParts = getFragmentPartsToUse(data, Store.search.get().path).fragmentParts;
         return `${webComponentName}: ${fragmentParts}`;
     }
 

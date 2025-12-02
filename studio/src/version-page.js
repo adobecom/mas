@@ -176,11 +176,13 @@ class VersionPage extends LitElement {
             display: flex;
             gap: 6px;
         }
-
         .version-author {
+            font-size: 18px;
+        }
+        .version-author-name {
             font-weight: 700;
             color: #2c2c2c;
-            font-size: 14px;
+            font-size: 18px;
             margin-bottom: 8px;
         }
 
@@ -649,7 +651,7 @@ class VersionPage extends LitElement {
                             <div class="version-date-time">
                                 <sp-icon-calendar slot="icon"></sp-icon-calendar>${this.formatVersionDate(version.created)}
                             </div>
-                            <div class="version-author">By ${version.createdBy || 'Unknown'}</div>
+                            <div class="version-author">By <span class="version-author-name">${version.createdBy || 'Unknown'}</span></div>
                             ${version.title && !isCurrent
                                 ? html`<div class="version-description"><strong>${version.title}</strong></div>`
                                 : nothing}

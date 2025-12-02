@@ -171,13 +171,14 @@ class VersionPage extends LitElement {
 
         .version-date-time {
             font-size: 13px;
-            color: #6e6e6e;
+            color: #494949;
             margin-bottom: 6px;
             display: flex;
             gap: 6px;
         }
         .version-author {
             font-size: 18px;
+            color: #494949;
         }
         .version-author-name {
             font-weight: 700;

@@ -727,7 +727,6 @@ class AEM {
                 title,
             },
         ];
-
         const response = await fetch(`${this.baseUrl}/adobe/folders`, {
             method: 'POST',
             headers: {

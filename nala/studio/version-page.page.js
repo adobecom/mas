@@ -6,113 +6,164 @@ export default class VersionPage {
 
         // Version page main container
         this.versionPage = page.locator('version-page');
+        this.versionPageWrapper = page.locator('version-page .version-page-wrapper');
+
+        // Breadcrumbs
         this.breadcrumbs = page.locator('version-page sp-breadcrumbs');
+        this.breadcrumbItems = page.locator('version-page sp-breadcrumb-item');
         this.breadcrumbHome = page.locator('version-page sp-breadcrumb-item').first();
         this.breadcrumbCurrent = page.locator('version-page sp-breadcrumb-item').last();
 
         // Header section
         this.header = page.locator('version-page .version-page-header');
-        this.fragmentTitle = page.locator('version-page .fragment-title');
-        this.fragmentPath = page.locator('version-page .fragment-path');
+        this.breadcrumbWrapper = page.locator('version-page .breadcrumb-wrapper');
 
-        // Search and filter
-        this.searchInput = page.locator('version-page sp-search input');
-        this.searchButton = page.locator('version-page sp-search sp-icon-search');
+        // Version list panel
+        this.versionListPanel = page.locator('version-page .version-list-panel');
+        this.versionListHeader = page.locator('version-page .version-list-header');
+        this.versionListContent = page.locator('version-page .version-list-content');
 
-        // Version list
-        this.versionList = page.locator('version-page .version-list-panel');
+        // Search functionality
+        this.searchInput = page.locator('version-page sp-search');
+        this.searchInputField = page.locator('version-page sp-search input');
+
+        // Version status and items
+        this.versionStatus = page.locator('version-page .version-status');
+        this.currentDot = page.locator('version-page .current-dot');
         this.versionItems = page.locator('version-page .version-item');
         this.currentVersionItem = page.locator('version-page .version-item.current');
-        this.currentVersionStatus = page.locator('version-page .version-status');
-        this.currentDot = page.locator('version-page .current-dot');
+        this.selectedVersionItem = page.locator('version-page .version-item.selected');
 
         // Version item details
         this.versionDateTime = page.locator('version-page .version-date-time');
         this.versionAuthor = page.locator('version-page .version-author');
         this.versionDescription = page.locator('version-page .version-description');
+        this.versionMenu = page.locator('version-page .version-menu');
 
-        // Version actions
-        this.versionActionButton = page.locator('version-page sp-action-button[value="version-actions"]');
-        this.restoreMenuItem = page.locator('sp-menu-item:has-text("Restore Version")');
+        // Preview panel
+        this.previewPanel = page.locator('version-page .preview-panel');
+        this.previewContent = page.locator('version-page .preview-content');
+        this.previewSplit = page.locator('version-page .preview-split');
+        this.previewColumns = page.locator('version-page .preview-column');
+        this.previewColumn = page.locator('version-page .preview-column').first();
 
-        // Preview section
-        this.previewColumn = page.locator('version-page .preview-column');
-        this.previewCard = page.locator('version-page .fragment-preview merch-card');
-        this.previewLabel = page.locator('version-page .preview-label');
-        this.diffBadge = page.locator('version-page sp-badge.diff-badge');
-
-        // Empty states
-        this.emptyState = page.locator('version-page .empty-state');
-        this.noVersionsMessage = page.locator('version-page :text("No versions found")');
+        // Preview details
+        this.previewColumnHeader = page.locator('version-page .preview-column-header');
+        this.previewColumnDate = page.locator('version-page .preview-column-date');
+        this.diffBadge = page.locator('version-page .diff-badge');
+        this.fragmentPreview = page.locator('version-page .fragment-preview-wrapper');
+        this.merchCard = page.locator('version-page merch-card');
 
         // Loading states
         this.loadingSpinner = page.locator('version-page sp-progress-circle');
+        this.loadingMessage = page.locator('version-page .loading-message');
+
+        // Empty states
+        this.noFragmentMessage = page.locator('version-page .no-fragment-message');
+        this.noDataMessage = page.locator('version-page .no-data-message');
     }
 
     /**
      * Navigate to version page for a specific fragment
      */
     async navigateToVersionPage(fragmentId, basePath = 'nala') {
-        const currentUrl = this.page.url();
-        const url = new URL(currentUrl);
-        // The router uses 'fragment' as the hash parameter for fragmentId
-        url.hash = `#page=version&path=${basePath}&fragment=${fragmentId}`;
-        await this.page.goto(url.toString());
-        await this.page.waitForTimeout(1000);
+        // Use page.evaluate to set the store and trigger router navigation
+        await this.page.evaluate(
+            ({ fId, path }) => {
+                if (window.Store && window.Store.version && window.Store.version.fragmentId) {
+                    window.Store.version.fragmentId.set(fId);
+                    window.Store.page.set('version');
+                    window.Store.path.set(path);
+                    // Also update the hash
+                    window.location.hash = `#page=version&path=${path}&fragment=${fId}`;
+                }
+            },
+            { fId: fragmentId, path: basePath },
+        );
+        await this.page.waitForTimeout(2000);
     }
 
     /**
-     * Get current version item (the one with green border)
-     */
-    getCurrentVersionItem() {
-        return this.page.locator('version-page .version-item.current');
-    }
-
-    /**
-     * Get version by index (0-based)
+     * Get version by index (0-based, where 0 is the current version)
      */
     getVersionByIndex(index) {
         return this.versionItems.nth(index);
     }
 
     /**
-     * Select a version by index
+     * Select a version by clicking on it
      */
     async selectVersionByIndex(index) {
         const versionItem = this.getVersionByIndex(index);
         await versionItem.click();
-        await this.page.waitForTimeout(500);
+        await this.page.waitForTimeout(1000);
     }
 
     /**
      * Search for versions
      */
     async searchVersions(query) {
-        await this.searchInput.fill(query);
-        await this.page.keyboard.press('Enter');
+        await this.searchInputField.fill(query);
         await this.page.waitForTimeout(500);
     }
 
     /**
-     * Restore a version by index
+     * Clear search
      */
-    async restoreVersionByIndex(index) {
-        const versionItem = this.getVersionByIndex(index);
-        await versionItem.locator('sp-action-menu').click();
-        await this.page.waitForTimeout(300);
-        await this.restoreMenuItem.click();
+    async clearSearch() {
+        await this.searchInputField.clear();
+        await this.page.waitForTimeout(500);
     }
 
     /**
-     * Wait for versions to load
+     * Open version action menu for a specific version
      */
-    async waitForVersionsLoaded() {
-        // Wait for at least one version item to appear
-        await this.page.waitForSelector('version-page .version-item', { timeout: 15000 });
-        // Wait for loading spinner to disappear if present
-        await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    async openVersionMenu(index) {
+        const versionItem = this.getVersionByIndex(index);
+        const menu = versionItem.locator('sp-action-menu');
+        await menu.click();
+        await this.page.waitForTimeout(300);
+    }
+
+    /**
+     * Wait for version page to be fully loaded
+     */
+    async waitForVersionPageLoaded() {
+        // Wait for router to process hash params and load the page
+        await this.page.waitForTimeout(3000);
+
+        // Wait for the version page element with longer timeout
+        await this.versionPage.waitFor({ state: 'visible', timeout: 30000 });
+
+        // Wait for version list to load
+        await this.page.waitForSelector('version-page .version-item', { timeout: 30000 });
+
+        // Wait for any loading spinner to disappear
+        await this.page
+            .waitForFunction(
+                () => {
+                    const spinners = document.querySelectorAll('version-page sp-progress-circle');
+                    return (
+                        spinners.length === 0 || Array.from(spinners).every((s) => s.style.display === 'none' || !s.isConnected)
+                    );
+                },
+                { timeout: 20000 },
+            )
+            .catch(() => {});
+
         // Additional wait for rendering
-        await this.page.waitForTimeout(1000);
+        await this.page.waitForTimeout(2000);
+    }
+
+    /**
+     * Wait for preview to update
+     */
+    async waitForPreviewUpdate() {
+        // Wait for preview content to be visible
+        await this.previewContent.waitFor({ state: 'visible', timeout: 10000 });
+
+        // Wait for any loading spinner in preview to disappear
+        await this.page.waitForTimeout(1500);
     }
 
     /**
@@ -120,5 +171,13 @@ export default class VersionPage {
      */
     async navigateBackToContent() {
         await this.breadcrumbHome.click();
+        await this.page.waitForTimeout(1000);
+    }
+
+    /**
+     * Get version count
+     */
+    async getVersionCount() {
+        return await this.versionItems.count();
     }
 }

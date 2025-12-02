@@ -22,7 +22,8 @@ export class RteIconEditor extends LitElement {
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 2000;
-            background: var(--spectrum-gray-100);
+            background: var(--spectrum-white);
+            border-radius: 16px;
         }
 
         sp-dialog {

@@ -70,6 +70,7 @@ Promise.all([
     buildLitComponent('merch-stock'),
     buildLitComponent('merch-whats-included'),
     buildLitComponent('merch-mnemonic-list'),
+    buildLitComponent('mas-mnemonic'),
 ]).catch(() => process.exit(1));
 
 async function buildLitComponent(name) {
@@ -90,7 +91,7 @@ function rewriteImportsToLibsFolder() {
         setup(build) {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
                 return {
-                    path: '/deps/lit-all.min.js',
+                    path: './lit-all.min.js',
                     external: true,
                 };
             });

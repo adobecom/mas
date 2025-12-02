@@ -164,7 +164,7 @@ class MasPromotionsEditor extends LitElement {
     #handleDateUpdate({ target }) {
         const fieldName = target.dataset.field;
 
-        const utcDate = new Date(target.value + 'Z').toISOString();
+        const utcDate = new Date(`${target.value}Z`).toISOString();
         this.fragmentStore.updateField(fieldName, [utcDate]);
     }
 
@@ -358,15 +358,20 @@ class MasPromotionsEditor extends LitElement {
                                                   ${repeat(
                                                       form.surfaces.values,
                                                       (surface) => surface,
-                                                      (surface) => html`
-                                                          <sp-tag
-                                                              value="${surface}"
-                                                              deletable
-                                                              @delete=${this.#handleSurfaceDelete}
-                                                          >
-                                                              ${SURFACES.find((s) => s.name === surface)?.label || surface}
-                                                          </sp-tag>
-                                                      `,
+                                                      (surface) => {
+                                                          const surfaceLabel =
+                                                              Object.values(SURFACES).find((s) => s.name === surface)?.label ||
+                                                              surface;
+                                                          return html`
+                                                              <sp-tag
+                                                                  value="${surface}"
+                                                                  deletable
+                                                                  @delete=${this.#handleSurfaceDelete}
+                                                              >
+                                                                  ${surfaceLabel}
+                                                              </sp-tag>
+                                                          `;
+                                                      },
                                                   )}
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
                                                       ${this.renderAddSurfacesDialog()}
@@ -414,7 +419,7 @@ class MasPromotionsEditor extends LitElement {
                     </sp-table-head>
                     <sp-table-body>
                         ${repeat(
-                            SURFACES,
+                            Object.values(SURFACES),
                             (surface) => surface.name,
                             (surface) => html`
                                 <sp-table-row value="${surface.name}">

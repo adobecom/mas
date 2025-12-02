@@ -9,7 +9,7 @@ test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run
 const workerSetup = createWorkerPageSetup({
     pages: [
         { name: 'EXPRESS', url: DOCS_GALLERY_PATH.EXPRESS },
-        { name: 'FULL_PRICING_EXPRESS', url: '/libs/features/mas/docs/express.html' },
+        { name: 'FULL_PRICING_EXPRESS', url: '/web-components/docs/express.html' },
     ],
 });
 
@@ -175,7 +175,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Full Pricing Express page elements', async () => {
-            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', '/libs/features/mas/docs/express.html', expect);
+            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });
@@ -232,7 +232,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Full Pricing Express page elements', async () => {
-            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', '/libs/features/mas/docs/express.html', expect);
+            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });
@@ -301,7 +301,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Full Pricing Express page elements', async () => {
-            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', '/libs/features/mas/docs/express.html', expect);
+            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });

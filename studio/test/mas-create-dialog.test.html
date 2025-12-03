@@ -75,17 +75,15 @@
                         // Fill in the form
                         const titleField = dialog.shadowRoot.querySelector('#fragment-title');
 
-                        // Get the dialog wrapper
-                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
-
                         // Set title
                         titleField.value = 'Test Merch Card';
                         titleField.dispatchEvent(new Event('input', { bubbles: true }));
 
                         await dialog.updateComplete;
 
-                        // Submit the form by triggering the confirm event directly on dialog wrapper
-                        dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
+                        // Submit the form by clicking the Create button
+                        const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
+                        createButton.click();
                         await dialog.updateComplete;
 
                         // Verify fetch was called with correct parameters
@@ -104,20 +102,24 @@
                     });
 
                     it('should display the correct dialog title based on type', async () => {
+                        // Reset dialog state from previous tests
+                        dialog.loading = false;
+
                         // Test with merch-card type
-                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
                         dialog.type = 'merch-card';
                         await dialog.updateComplete;
 
-                        let heading = dialogWrapper.shadowRoot.querySelector('h2[slot="heading"]');
-                        expect(heading.innerText).to.equal('Create New Merch Card');
+                        let heading = dialog.shadowRoot.querySelector('.dialog-header');
+                        expect(heading).to.exist;
+                        expect(heading.textContent.trim()).to.equal('Create New Merch Card');
 
                         // Test with merch-card-collection type
                         dialog.type = 'merch-card-collection';
                         await dialog.updateComplete;
 
-                        heading = dialogWrapper.shadowRoot.querySelector('h2[slot="heading"]');
-                        expect(heading.innerText).to.equal('Create New Merch Card Collection');
+                        heading = dialog.shadowRoot.querySelector('.dialog-header');
+                        expect(heading).to.exist;
+                        expect(heading.textContent.trim()).to.equal('Create New Merch Card Collection');
                     });
                 });
             });

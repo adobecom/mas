@@ -7,7 +7,6 @@ import {
     PLANS_AEM_FRAGMENT_MAPPING,
     PLANS_EDUCATION_AEM_FRAGMENT_MAPPING,
     PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
-    PLANS_V2_AEM_FRAGMENT_MAPPING,
 } from './plans.js';
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
 import { Product } from './product.js';
@@ -64,13 +63,6 @@ registerVariant(
     'plans',
     Plans,
     PLANS_AEM_FRAGMENT_MAPPING,
-    Plans.variantStyle,
-    Plans.collectionOptions,
-);
-registerVariant(
-    'plans-v2',
-    Plans,
-    PLANS_V2_AEM_FRAGMENT_MAPPING,
     Plans.variantStyle,
     Plans.collectionOptions,
 );

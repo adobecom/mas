@@ -35,7 +35,7 @@ let fragmentCache;
 export function getDamPath(path) {
     if (!path) return ROOT_PATH;
     if (path.startsWith(ROOT_PATH)) return path;
-    return ROOT_PATH + '/' + path;
+    return `${ROOT_PATH}/${path}`;
 }
 
 export async function initFragmentCache() {
@@ -1131,13 +1131,10 @@ export class MasRepository extends LitElement {
             if (!this.aem) {
                 throw new Error('AEM client not initialized');
             }
-
             const fragmentWithRefs = await this.aem.sites.cf.fragments.getById(fragmentId);
-
             if (fragmentWithRefs.references) {
                 return fragmentWithRefs.references;
             }
-
             return [];
         } catch (error) {
             console.error('Failed to load references:', error);

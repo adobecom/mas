@@ -818,109 +818,49 @@ class VersionPage extends LitElement {
                 .map(([fieldName]) => fieldName),
         );
 
-        // Handle both fields and elements as arrays
         const sourceArray = data.fields || data.elements;
-        if (Array.isArray(sourceArray)) {
-            const fields = {};
-            sourceArray.forEach((element) => {
-                if (element.name && element.value !== undefined) {
-                    let value = element.value;
+        if (!Array.isArray(sourceArray)) return {};
 
-                    if (arrayFields.has(element.name)) {
-                        // Ensure array fields are always arrays (even empty ones)
-                        if (!Array.isArray(value)) {
-                            value = [value];
-                        }
-                        // Keep as array (even if empty) - these fields need .find(), .map() etc
-                        fields[element.name] = value;
-                    } else if (Array.isArray(value)) {
-                        if (value.length === 0) {
-                            // Empty arrays become undefined for non-array fields (skip field entirely)
-                            // Don't add to fields object
-                        } else if (value.length === 1) {
-                            // Check if it's an object (structured data) or primitive
-                            if (typeof value[0] === 'object' && value[0] !== null) {
-                                // Keep single-element object arrays as arrays
-                                fields[element.name] = value;
-                            } else {
-                                // Unwrap single-element primitive arrays
-                                fields[element.name] = value[0];
-                            }
-                        } else {
-                            // Multi-element arrays
-                            if (typeof value[0] === 'object' && value[0] !== null) {
-                                // Keep arrays of objects as is (structured data)
-                                fields[element.name] = value;
-                            } else {
-                                // For arrays of primitives, take first element
-                                fields[element.name] = value[0];
-                            }
-                        }
-                    } else {
-                        // Simple value (not array)
-                        fields[element.name] = value;
-                    }
-                } else if (element.name && element.values) {
-                    let value = element.values;
-
-                    if (arrayFields.has(element.name)) {
-                        // Ensure array fields are always arrays (even empty ones)
-                        if (!Array.isArray(value)) {
-                            value = [value];
-                        }
-                        // Keep as array (even if empty) - these fields need .find(), .map() etc
-                        fields[element.name] = value;
-                    } else if (Array.isArray(value)) {
-                        if (value.length === 0) {
-                            // Empty arrays become undefined for non-array fields (skip field entirely)
-                            // Don't add to fields object
-                        } else if (value.length === 1) {
-                            // Check if it's an object (structured data) or primitive
-                            if (typeof value[0] === 'object' && value[0] !== null) {
-                                // Keep single-element object arrays as arrays
-                                fields[element.name] = value;
-                            } else {
-                                // Unwrap single-element primitive arrays
-                                fields[element.name] = value[0];
-                            }
-                        } else {
-                            // Multi-element arrays
-                            if (typeof value[0] === 'object' && value[0] !== null) {
-                                // Keep arrays of objects as is (structured data)
-                                fields[element.name] = value;
-                            } else {
-                                // For arrays of primitives, take first element
-                                fields[element.name] = value[0];
-                            }
-                        }
-                    } else {
-                        // Simple value (not array)
-                        fields[element.name] = value;
-                    }
+        const fields = {};
+        const processFieldValue = (name, value) => {
+            if (arrayFields.has(name)) {
+                fields[name] = Array.isArray(value) ? value : [value];
+            } else if (Array.isArray(value)) {
+                if (value.length === 0) return; // Skip empty arrays for non-array fields
+                if (value.length === 1) {
+                    fields[name] = typeof value[0] === 'object' && value[0] !== null ? value : value[0];
+                } else {
+                    fields[name] = typeof value[0] === 'object' && value[0] !== null ? value : value[0];
                 }
-            });
-            return fields;
-        }
+            } else {
+                fields[name] = value;
+            }
+        };
 
-        return {};
+        sourceArray.forEach((element) => {
+            if (!element.name) return;
+            const value = element.value !== undefined ? element.value : element.values;
+            if (value !== undefined) {
+                processFieldValue(element.name, value);
+            }
+        });
+
+        return fields;
     }
 
     calculateDifferences(currentData, selectedData) {
         if (!currentData || !selectedData) return [];
 
         const differences = [];
-        // AEM uses 'fields' object for live fragments and 'elements' array for version data
         const fields = this.normalizeFields(currentData);
         const selectedFields = this.normalizeFields(selectedData);
-
-        // Compare all fields
         const allKeys = new Set([...Object.keys(fields), ...Object.keys(selectedFields)]);
 
         allKeys.forEach((key) => {
             const currentValue = fields[key];
             let selectedValue = selectedFields[key];
 
-            // For tags, extract only the last segment after '/'
+            // Extract last segment from tags (e.g., 'caas:content-type/blog' → 'blog')
             if (key === 'tags') {
                 if (Array.isArray(selectedValue)) {
                     selectedValue = selectedValue.map((tag) => tag.split('/').pop());
@@ -928,8 +868,6 @@ class VersionPage extends LitElement {
                     selectedValue = Object.values(selectedValue).map((tag) => tag.split('/').pop());
                 }
             }
-
-            // Convert to strings for comparison
             const currentStr = JSON.stringify(currentValue);
             const selectedStr = JSON.stringify(selectedValue);
 
@@ -952,8 +890,6 @@ class VersionPage extends LitElement {
             className === 'selected' && this.fragment && fragmentData
                 ? this.calculateDifferences(this.fragment, fragmentData)
                 : [];
-
-        const hasDifferences = differences.length > 0;
 
         return html`
             <div class="preview-column ${className}">
@@ -980,17 +916,14 @@ class VersionPage extends LitElement {
             `;
         }
 
-        // Calculate card ID first
         const cardId = version.isCurrent ? `${fragmentData.id}-current` : `${fragmentData.id}-selected`;
         const isCardHydrated = this.hydratedCards.has(cardId);
         const isCard = fragmentData.model?.path === CARD_MODEL_PATH;
 
-        // Schedule the card hydration after render (store it for processing in updated())
         if (isCard && !isCardHydrated) {
             this.pendingHydrations.set(cardId, fragmentData);
         }
 
-        // Show only spinner while loading OR if card isn't hydrated yet (but still render card hidden)
         const showSpinner = !version.isCurrent && (this.loadingVersionData || !isCardHydrated);
 
         return html`

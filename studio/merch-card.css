@@ -21,33 +21,8 @@ merch-card:hover {
     background-color: var(--spectrum-background-base-color) !important;
 }
 
-merch-card sp-icon-add,
-merch-card sp-icon-remove {
-    display: none;
-}
-
-merch-card.selected:hover sp-icon-remove {
-    display: block;
-}
-
 merch-card:hover:not(.selected) sp-icon-add {
     display: block;
-}
-
-merch-card .overlay {
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 99;
-    pointer-events: auto;
-    cursor: pointer;
 }
 
 .mas-fragment merch-card[variant^='plans'][size='wide'] {

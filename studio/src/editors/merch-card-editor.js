@@ -1278,7 +1278,9 @@ class MerchCardEditor extends LitElement {
                                                     <div
                                                         style="${this.styleObjectToString({
                                                             ...this.styles.colorSwatch,
-                                                            background: colorValue,
+                                                            background: colorValue.startsWith('--')
+                                                                ? `var(${colorValue})`
+                                                                : colorValue,
                                                         })}"
                                                     ></div>
                                                     <span

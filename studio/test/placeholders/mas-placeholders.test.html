@@ -1,6 +1,10 @@
 <!doctype html>
 <html>
     <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
         <title>Merch at Scale Studio - Placeholders Test</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <!-- Load Spectrum Web Components -->
@@ -18,7 +22,7 @@
 
     <body>
         <!-- Basic theme wrapper required by Spectrum Web Components -->
-        <sp-theme color="light" scale="medium">
+        <sp-theme system="spectrum-two" color="light" scale="medium">
             <!-- Test content will be added dynamically by the tests -->
         </sp-theme>
 

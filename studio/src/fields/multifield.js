@@ -27,8 +27,8 @@ class MasMultifield extends LitElement {
         }
 
         .field-wrapper:hover {
-            outline: 2px dashed var(--spectrum-global-color-gray-400);
-            border-radius: var(--spectrum-global-dimension-size-50);
+            outline: 2px dashed var(--spectrum-gray-400);
+            border-radius: var(calc(var(--swc-scale-factor) * 4px));
         }
 
         .field-wrapper > *:first-child {
@@ -43,14 +43,14 @@ class MasMultifield extends LitElement {
             border: 1px dashed #007bff;
         }
 
-        sp-icon-drag-handle {
+        sp-icon-order {
             visibility: hidden;
             margin-block-start: 24px;
             cursor: grab;
             pointer-events: auto;
         }
 
-        .field-wrapper:hover sp-icon-drag-handle {
+        .field-wrapper:hover sp-icon-order {
             visibility: visible;
         }
 
@@ -236,8 +236,8 @@ class MasMultifield extends LitElement {
                 @dragend=${this.dragEnd}
             >
                 ${fieldEl}
-                <sp-icon-close label="Remove field" @click=${() => this.removeField(index)}></sp-icon-close>
-                <sp-icon-drag-handle label="Order"></sp-icon-drag-handle>
+                <sp-icon-close size="m" label="Remove field" @click=${() => this.removeField(index)}></sp-icon-close>
+                <sp-icon-order size="m" label="Order"></sp-icon-order>
             </div>
         `;
     }

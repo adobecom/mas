@@ -43,7 +43,8 @@ export class RteLinkEditor extends LitElement {
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 2000;
-            background: var(--spectrum-gray-100);
+            background: var(--spectrum-white);
+            border-radius: 16px;
         }
 
         sp-dialog {
@@ -79,7 +80,7 @@ export class RteLinkEditor extends LitElement {
 
         sp-button.selected,
         sp-link.selected {
-            outline: 2px dashed var(--spectrum-global-color-blue-700);
+            outline: 2px dashed var(--spectrum-blue-700);
             outline-offset: 2px;
         }
     `;

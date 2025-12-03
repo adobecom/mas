@@ -16,10 +16,10 @@ export default class COMFriesPage {
         this.cssProp = {
             card: {
                 'background-color': 'rgb(255, 255, 255)',
-                'border-top-color': 'rgb(213, 213, 213)',
-                'border-right-color': 'rgb(213, 213, 213)',
-                'border-bottom-color': 'rgb(213, 213, 213)',
-                'border-left-color': 'rgb(213, 213, 213)',
+                'border-top-color': 'rgb(218, 218, 218)',
+                'border-right-color': 'rgb(218, 218, 218)',
+                'border-bottom-color': 'rgb(218, 218, 218)',
+                'border-left-color': 'rgb(218, 218, 218)',
                 'min-width': '0px',
                 'max-width': '620px',
             },
@@ -30,7 +30,7 @@ export default class COMFriesPage {
                 color: 'rgb(19, 19, 19)',
             },
             price: {
-                color: 'rgb(0, 0, 0)',
+                color: 'rgb(19, 19, 19)',
             },
             cta: {
                 color: 'rgb(34, 34, 34)',

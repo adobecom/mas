@@ -241,14 +241,14 @@ class RteField extends LitElement {
                     padding: 8px 4px 4px 4px;
                     min-height: 36px;
                     flex: 1;
-                    color: var(--spectrum-global-color-gray-800);
-                    background-color: var(--spectrum-global-color-gray-50);
+                    color: var(--spectrum-gray-800);
+                    background-color: var(--spectrum-gray-50);
                     border: 1px solid rgb(144, 144, 144);
                     border-radius: 4px;
                 }
 
                 .exceeded {
-                    color: var(--spectrum-global-color-red-700);
+                    color: var(--spectrum-red-700);
                 }
 
                 rte-link-editor,
@@ -278,30 +278,30 @@ class RteField extends LitElement {
                 }
 
                 a.accent {
-                    background-color: var(--spectrum-global-color-blue-500);
-                    color: var(--spectrum-global-color-gray-50);
+                    background-color: var(--spectrum-blue-500);
+                    color: var(--spectrum-gray-50);
                 }
 
                 a.primary {
-                    background-color: var(--spectrum-global-color-gray-900);
-                    color: var(--spectrum-global-color-gray-50);
+                    background-color: var(--spectrum-gray-900);
+                    color: var(--spectrum-gray-50);
                 }
 
                 a.primary-outline {
                     background-color: initial;
-                    border: 2px solid var(--spectrum-global-color-gray-900);
-                    color: var(--spectrum-global-color-gray-900);
+                    border: 2px solid var(--spectrum-gray-900);
+                    color: var(--spectrum-gray-900);
                 }
 
                 a.secondary {
-                    color: var(--spectrum-global-color-gray-900);
-                    background-color: var(--spectrum-global-color-gray-200);
+                    color: var(--spectrum-gray-900);
+                    background-color: var(--spectrum-gray-200);
                 }
 
                 a.secondary-outline {
                     background-color: initial;
-                    border: 2px solid var(--spectrum-global-color-gray-300);
-                    color: var(--spectrum-global-color-gray-900);
+                    border: 2px solid var(--spectrum-gray-300);
+                    color: var(--spectrum-gray-900);
                 }
 
                 a.primary-link,
@@ -395,7 +395,7 @@ class RteField extends LitElement {
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused merch-icon.mnemonic-icon.ProseMirror-selectednode {
-                    outline: 2px dashed var(--spectrum-global-color-blue-500);
+                    outline: 2px dashed var(--spectrum-blue-500);
                     outline-offset: 2px;
                     border-radius: 16px;
                 }
@@ -403,7 +403,7 @@ class RteField extends LitElement {
                 div.ProseMirror-focused .ProseMirror-selectednode.mnemonic merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode {
-                    outline: 2px dashed var(--spectrum-global-color-blue-500) !important;
+                    outline: 2px dashed var(--spectrum-blue-500) !important;
                     outline-offset: 2px;
                 }
 
@@ -418,7 +418,7 @@ class RteField extends LitElement {
 
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode,
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode merch-icon {
-                    outline: 2px dashed var(--spectrum-global-color-blue-500) !important;
+                    outline: 2px dashed var(--spectrum-blue-500) !important;
                     outline-offset: 2px;
                 }
 
@@ -428,7 +428,7 @@ class RteField extends LitElement {
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode {
                     display: inline-flex;
                     vertical-align: middle;
-                    outline: 2px dashed var(--spectrum-global-color-blue-500) !important;
+                    outline: 2px dashed var(--spectrum-blue-500) !important;
                     outline-offset: 2px;
                 }
 
@@ -436,7 +436,7 @@ class RteField extends LitElement {
                 hr {
                     border: none;
                     margin: 0;
-                    background-color: var(--spectrum-global-color-gray-300);
+                    background-color: var(--spectrum-gray-300);
                     height: 1px;
                 }
 
@@ -553,6 +553,12 @@ class RteField extends LitElement {
 
                 #stylingMenu .is-selected {
                     background-color: rgba(213, 213, 213);
+                }
+
+                .superscript-icon {
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    font-weight: bold;
                 }
             `,
             prosemirrorStyles,
@@ -1632,7 +1638,7 @@ class RteField extends LitElement {
         if (!this.divider) return nothing;
         return html`
             <sp-action-button emphasized id="addDividerButton" @click=${this.addDivider} title="Add Divider">
-                <sp-icon-divide slot="icon"></sp-icon-divide>
+                <sp-icon-stroke-solid slot="icon"></sp-icon-stroke-solid>
             </sp-action-button>
         `;
     }
@@ -1663,7 +1669,7 @@ class RteField extends LitElement {
             title="Add Universal Promo Terms Link"
             @click=${this.#boundHandlers.addUptLink}
         >
-            <sp-icon-link-page slot="icon"></sp-icon-link-page>
+            <sp-icon-review-link slot="icon"></sp-icon-review-link>
         </sp-action-button>`;
     }
 
@@ -1674,14 +1680,14 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
                 title="Bold (Command+B)"
             >
-                <sp-icon-tag-bold slot="icon"></sp-icon-tag-bold>
+                <sp-icon-text-bold slot="icon"></sp-icon-text-bold>
             </sp-action-button>
             <sp-action-button
                 @click=${this.#handleToolbarAction('em')}
                 @mousedown=${(e) => e.preventDefault()}
                 title="Italic (Command+I)"
             >
-                <sp-icon-tag-italic slot="icon"></sp-icon-tag-italic>
+                <sp-icon-text-italic slot="icon"></sp-icon-text-italic>
             </sp-action-button>
             <sp-action-button
                 @click=${this.#handleToolbarAction('strikethrough')}
@@ -1702,7 +1708,7 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
                 title="Superscript (Command+Shift+.)"
             >
-                <span slot="icon" style="font-family: sans-serif; font-size: 14px; font-weight: bold;">x²</span>
+                <span slot="icon" class="superscript-icon">x²</span>
             </sp-action-button>
         `;
     }

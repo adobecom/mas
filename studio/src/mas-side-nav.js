@@ -15,11 +15,11 @@ class MasSideNav extends LitElement {
         :host {
             display: flex;
             flex-direction: column;
-            height: 100%;
-            width: 92px;
-            padding: 16px 0;
-            box-sizing: border-box;
-            overflow-y: scroll;
+            height: auto;
+            width: 68px;
+            padding: 32px 12px 12px 8px;
+            box-sizing: content-box;
+            overflow-y: overlay;
         }
 
         .nav-container {
@@ -164,28 +164,31 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-home slot="icon"></sp-icon-home>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Offers" disabled>
-                <sp-icon-offer slot="icon"></sp-icon-offer>
-            </mas-side-nav-item>
             <mas-side-nav-item
                 label="Fragments"
                 ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.CONTENT)}"
             >
-                <sp-icon-view-grid slot="icon"></sp-icon-view-grid>
+                <sp-icon-apps slot="icon"></sp-icon-apps>
+            </mas-side-nav-item>
+            <mas-side-nav-item label="Collections" disabled>
+                <sp-icon-aspect-ratio slot="icon"></sp-icon-aspect-ratio>
             </mas-side-nav-item>
             <mas-side-nav-item label="Promotions" disabled>
                 <sp-icon-promote slot="icon"></sp-icon-promote>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Collections" disabled>
-                <sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>
+            <mas-side-nav-item label="Offers" disabled>
+                <sp-icon-market slot="icon"></sp-icon-market>
             </mas-side-nav-item>
             <mas-side-nav-item
                 label="Placeholders"
                 ?selected=${Store.page.get() === PAGE_NAMES.PLACEHOLDERS}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.PLACEHOLDERS)}"
             >
-                <sp-icon-cclibrary slot="icon"></sp-icon-cclibrary>
+                <sp-icon-bookmark slot="icon"></sp-icon-bookmark>
+            </mas-side-nav-item>
+            <mas-side-nav-item label="Localization" disabled>
+                <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
             <mas-side-nav-item
                 class="side-nav-support"
@@ -193,7 +196,7 @@ class MasSideNav extends LitElement {
                 @nav-click="${() => window.open('https://adobe.enterprise.slack.com/archives/C02RZERR9CH', '_blank')}"
             >
                 <sp-icon-help slot="icon"></sp-icon-help>
-                <sp-icon-link-out-light class="side-nav-new-window"></sp-icon-link-out-light>
+                <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
             </mas-side-nav-item>
         `;
     }
@@ -216,7 +219,7 @@ class MasSideNav extends LitElement {
                 <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
             </mas-side-nav-item>
             <mas-side-nav-item label="Publish" @nav-click="${this.publishFragment}">
-                <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
+                <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
             <mas-side-nav-item label="Unpublish" @nav-click="${this.unpublishFragment}">
                 <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
@@ -231,7 +234,7 @@ class MasSideNav extends LitElement {
                 <sp-icon-settings slot="icon"></sp-icon-settings>
             </mas-side-nav-item>
             <mas-side-nav-item label="Delete" @nav-click="${this.deleteFragment}">
-                <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>
+                <sp-icon-delete slot="icon"></sp-icon-delete>
             </mas-side-nav-item>
         `;
     }

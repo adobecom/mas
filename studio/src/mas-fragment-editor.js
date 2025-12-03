@@ -116,17 +116,6 @@ export default class MasFragmentEditor extends LitElement {
             flex-shrink: 0;
         }
 
-        .preview-content .preview-loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .preview-loading-standalone {
-            margin: 0 auto;
-        }
-
         .section {
             background: var(--spectrum-global-color-gray-50);
             border: 1px solid var(--spectrum-global-color-gray-300);
@@ -298,6 +287,7 @@ export default class MasFragmentEditor extends LitElement {
         selectedVersion: { type: String, state: true },
         versionsLoading: { type: Boolean, state: true },
         contextLoaded: { type: Boolean, state: true },
+        initializingFragment: { type: Boolean, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -329,6 +319,7 @@ export default class MasFragmentEditor extends LitElement {
         this.selectedVersion = '';
         this.versionsLoading = false;
         this.contextLoaded = false;
+        this.initializingFragment = false;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -377,32 +368,15 @@ export default class MasFragmentEditor extends LitElement {
         if (this.fragmentStore?.previewStore) {
             this.previewResolved = this.fragmentStore.previewStore.resolved || false;
         }
+        if (this.initializingFragment) {
+            return;
+        }
     }
 
-    async updated() {
+    updated() {
         super.updated();
-        await this.updateComplete;
-
-        const spinner = this.querySelector('#preview-column .preview-loading');
-        if (!spinner) return;
-
-        const aemFragment = this.querySelector('#preview-column aem-fragment');
-        const merchCard = this.querySelector('#preview-column merch-card');
-
-        if (aemFragment && merchCard) {
-            try {
-                await Promise.resolve();
-                if (aemFragment.updateComplete instanceof Promise) {
-                    await aemFragment.updateComplete;
-                }
-                if (merchCard.checkReady) {
-                    await merchCard.checkReady();
-                }
-            } catch (error) {
-                console.error('[FragmentEditor] Preview failed:', error.message);
-            } finally {
-                spinner.remove();
-            }
+        if (this.initializingFragment) {
+            this.initializingFragment = false;
         }
     }
 
@@ -589,6 +563,7 @@ export default class MasFragmentEditor extends LitElement {
         if (existingStore) {
             if (existingStore.previewStore) {
                 existingStore.previewStore.resolved = false;
+                existingStore.previewStore.holdResolution = true;
             }
             this.repository.refreshFragment(existingStore).then(() => {
                 this.dispatchFragmentLoaded();
@@ -612,22 +587,31 @@ export default class MasFragmentEditor extends LitElement {
             }
         }
 
+        this.initializingFragment = true;
         this.requestUpdate();
         this.startLazyPreviewLoading();
 
         this.repository.loadPreviewPlaceholders().catch(() => {});
 
-        this.editorContextStore.loadFragmentContext(fragmentId).then(() => {
+        const fragmentPath = this.fragment?.path;
+        this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath).then(async () => {
             this.contextLoaded = true;
             const isVariation = this.editorContextStore.isVariation(fragmentId);
+
             if (isVariation) {
-                this.localeDefaultFragmentLoading = true;
-                this.fetchLocaleDefaultFragment().then(() => {
-                    this.requestUpdate();
-                });
+                const parentFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
+                if (parentFragment) {
+                    this.localeDefaultFragment = new Fragment(parentFragment);
+                    this.mergeEssentialParentFields();
+                } else {
+                    this.fragmentStore?.previewStore?.releaseHold?.();
+                }
             } else {
                 this.fragmentStore?.previewStore?.releaseHold?.();
             }
+
+            this.localeDefaultFragmentLoading = false;
+            this.requestUpdate();
         });
 
         this.loadFragmentVersions();
@@ -780,7 +764,7 @@ export default class MasFragmentEditor extends LitElement {
         showToast('Deleting fragment...');
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
-                const localeDefaultFragment = await this.editorContextStore.fetchLocaleDefaultFragment();
+                const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
                 if (localeDefaultFragment) {
                     await this.repository.aem.sites.cf.fragments.removeFromParentVariations(
                         localeDefaultFragment,
@@ -1277,7 +1261,6 @@ export default class MasFragmentEditor extends LitElement {
                     >
                         <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                     </merch-card>
-                    <sp-progress-circle class="preview-loading" indeterminate size="l"></sp-progress-circle>
                 </div>
             </div>
         `;

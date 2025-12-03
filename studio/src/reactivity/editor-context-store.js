@@ -1,20 +1,42 @@
 import { ReactiveStore } from './reactive-store.js';
-import { previewFragmentForEditor } from 'fragment-client';
+import { previewFragmentForEditor, LOCALE_DEFAULTS } from 'fragment-client';
 import Store from '../store.js';
 
 export class EditorContextStore extends ReactiveStore {
     loading = false;
     localeDefaultFragment = null;
     defaultLocaleId = null;
+    parentFetchPromise = null;
+    isVariationByPath = false;
+    expectedDefaultLocale = null;
 
     constructor(initialValue, validator) {
         super(initialValue, validator);
     }
 
-    async loadFragmentContext(fragmentId) {
+    detectVariationFromPath(fragmentPath) {
+        if (!fragmentPath) return { isVariation: false, defaultLocale: null };
+        const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
+        if (!pathMatch) return { isVariation: false, defaultLocale: null };
+        const pathLocale = pathMatch[1];
+        if (LOCALE_DEFAULTS.includes(pathLocale)) {
+            return { isVariation: false, defaultLocale: null };
+        }
+        const language = pathLocale.split('_')[0];
+        const expectedDefault = LOCALE_DEFAULTS.find((l) => l.startsWith(`${language}_`));
+        if (expectedDefault && expectedDefault !== pathLocale) {
+            return { isVariation: true, defaultLocale: expectedDefault, pathLocale };
+        }
+        return { isVariation: false, defaultLocale: null };
+    }
+
+    async loadFragmentContext(fragmentId, fragmentPath) {
         this.loading = true;
         this.localeDefaultFragment = null;
         this.defaultLocaleId = null;
+        this.parentFetchPromise = null;
+        this.isVariationByPath = false;
+        this.expectedDefaultLocale = null;
 
         try {
             if (!Store.search.value.path) {
@@ -34,14 +56,28 @@ export class EditorContextStore extends ReactiveStore {
                 if (this.defaultLocaleId && this.defaultLocaleId !== fragmentId) {
                     const aem = document.querySelector('mas-repository')?.aem;
                     if (aem) {
-                        try {
-                            this.localeDefaultFragment = await aem.sites.cf.fragments.getById(this.defaultLocaleId);
-                        } catch (err) {
-                            console.debug('Locale default fragment not found:', this.defaultLocaleId);
-                        }
+                        this.parentFetchPromise = aem.sites.cf.fragments
+                            .getById(this.defaultLocaleId)
+                            .then((data) => {
+                                this.localeDefaultFragment = data;
+                                return data;
+                            })
+                            .catch((err) => {
+                                console.debug('Locale default fragment not found:', this.defaultLocaleId);
+                                return null;
+                            });
                     }
                 }
                 this.notify();
+            }
+
+            if (!this.defaultLocaleId && fragmentPath) {
+                const pathDetection = this.detectVariationFromPath(fragmentPath);
+                if (pathDetection.isVariation) {
+                    this.isVariationByPath = true;
+                    this.expectedDefaultLocale = pathDetection.defaultLocale;
+                    this.fetchParentByPath(fragmentPath, pathDetection.defaultLocale, pathDetection.pathLocale);
+                }
             }
 
             return result;
@@ -50,7 +86,31 @@ export class EditorContextStore extends ReactiveStore {
         }
     }
 
+    fetchParentByPath(fragmentPath, defaultLocale, pathLocale) {
+        const aem = document.querySelector('mas-repository')?.aem;
+        if (!aem) return;
+        const parentPath = fragmentPath.replace(`/${pathLocale}/`, `/${defaultLocale}/`);
+        this.parentFetchPromise = aem.sites.cf.fragments
+            .getByPath(parentPath)
+            .then((data) => {
+                this.localeDefaultFragment = data;
+                this.defaultLocaleId = data?.id;
+                return data;
+            })
+            .catch((err) => {
+                console.debug('Locale default fragment not found by path:', parentPath);
+                return null;
+            });
+    }
+
     getLocaleDefaultFragment() {
+        return this.localeDefaultFragment;
+    }
+
+    async getLocaleDefaultFragmentAsync() {
+        if (this.parentFetchPromise) {
+            await this.parentFetchPromise;
+        }
         return this.localeDefaultFragment;
     }
 
@@ -59,6 +119,7 @@ export class EditorContextStore extends ReactiveStore {
     }
 
     isVariation(fragmentId) {
+        if (this.isVariationByPath) return true;
         if (!this.defaultLocaleId) return false;
         return this.defaultLocaleId !== fragmentId;
     }
@@ -66,6 +127,9 @@ export class EditorContextStore extends ReactiveStore {
     reset() {
         this.localeDefaultFragment = null;
         this.defaultLocaleId = null;
+        this.parentFetchPromise = null;
+        this.isVariationByPath = false;
+        this.expectedDefaultLocale = null;
         this.set(null);
     }
 }

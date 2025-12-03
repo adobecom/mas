@@ -1,7 +1,6 @@
 import { ReactiveStore } from './reactive-store.js';
 import { previewFragmentForEditor } from 'fragment-client';
 import Store from '../store.js';
-import { extractLocaleFromPath, getCorrespondingLocale } from '../aem/fragment.js';
 
 export class EditorContextStore extends ReactiveStore {
     loading = false;
@@ -55,46 +54,13 @@ export class EditorContextStore extends ReactiveStore {
         return this.localeDefaultFragment;
     }
 
-    async fetchLocaleDefaultFragment() {
-        if (this.localeDefaultFragment) {
-            return this.localeDefaultFragment;
-        }
-
-        if (!this.value?.path) return null;
-
-        const locale = extractLocaleFromPath(this.value.path);
-        if (!locale) return null;
-
-        const defaultLocale = getCorrespondingLocale(locale);
-        if (!defaultLocale || locale === defaultLocale) return null;
-
-        const parentPath = this.value.path.replace(`/${locale}/`, `/${defaultLocale}/`);
-        const aem = document.querySelector('mas-repository')?.aem;
-
-        if (!aem) return null;
-
-        try {
-            this.localeDefaultFragment = await aem.sites.cf.fragments.getByPath(parentPath);
-            return this.localeDefaultFragment;
-        } catch (error) {
-            console.warn('Could not fetch locale default fragment:', parentPath);
-            return null;
-        }
-    }
-
     getDefaultLocaleId() {
         return this.defaultLocaleId;
     }
 
     isVariation(fragmentId) {
-        if (this.defaultLocaleId) {
-            return this.defaultLocaleId !== fragmentId;
-        }
-        if (!this.value?.path) return false;
-        const locale = extractLocaleFromPath(this.value.path);
-        if (!locale) return false;
-        const defaultLocale = getCorrespondingLocale(locale);
-        return locale !== defaultLocale;
+        if (!this.defaultLocaleId) return false;
+        return this.defaultLocaleId !== fragmentId;
     }
 
     reset() {

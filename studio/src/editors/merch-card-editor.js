@@ -33,6 +33,7 @@ class MerchCardEditor extends LitElement {
         fragmentStore: { type: Object, attribute: false },
         updateFragment: { type: Function },
         localeDefaultFragment: { type: Object, attribute: false },
+        isVariation: { type: Boolean, attribute: false },
     };
 
     static SECTION_FIELDS = {
@@ -57,6 +58,7 @@ class MerchCardEditor extends LitElement {
         this.updateFragment = null;
         this.currentVariantMapping = null;
         this.localeDefaultFragment = null;
+        this.isVariation = false;
         this.lastMnemonicState = null;
     }
 
@@ -65,27 +67,27 @@ class MerchCardEditor extends LitElement {
     }
 
     getEffectiveFieldValue(fieldName, index = 0) {
-        return this.fragment.getEffectiveFieldValue(fieldName, this.localeDefaultFragment, index);
+        return this.fragment.getEffectiveFieldValue(fieldName, this.localeDefaultFragment, this.isVariation, index);
     }
 
     getEffectiveFieldValues(fieldName) {
-        return this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment);
+        return this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.isVariation);
     }
 
     isFieldOverridden(fieldName) {
-        return this.fragment.isFieldOverridden(fieldName);
+        return this.fragment.isFieldOverridden(fieldName, this.isVariation);
     }
 
     getFieldState(fieldName) {
-        return this.fragment.getFieldState(fieldName, this.localeDefaultFragment);
+        return this.fragment.getFieldState(fieldName, this.localeDefaultFragment, this.isVariation);
     }
 
     async resetFieldToParent(fieldName) {
-        await Promise.resolve();
+        await this.updateComplete;
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
         const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         if (success) {
-            this.requestUpdate();
+            await this.updateComplete;
             const rteField = this.querySelector(`rte-field[data-field="${fieldName}"]`);
             if (rteField && parentValues.length > 0) {
                 rteField.updateContent(parentValues[0]);

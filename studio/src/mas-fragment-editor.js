@@ -899,6 +899,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             <mas-variation-dialog
                 .fragment=${parentForVariation}
+                .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
                 @fragment-copied=${this.handleFragmentCopied}
                 @cancel=${this.cancelCreateVariation}
             ></mas-variation-dialog>
@@ -1028,6 +1029,7 @@ export default class MasFragmentEditor extends LitElement {
                         .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
                         .localeDefaultFragment=${this.localeDefaultFragment}
+                        .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
                     ></merch-card-editor>
                 `;
                 break;
@@ -1037,6 +1039,7 @@ export default class MasFragmentEditor extends LitElement {
                         .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
                         .localeDefaultFragment=${this.localeDefaultFragment}
+                        .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
                     ></merch-card-collection-editor>
                 `;
                 break;

@@ -18,18 +18,13 @@ export class PreviewFragmentStore extends FragmentStore {
         const fragmentInstance = initialValue instanceof Fragment ? initialValue : new Fragment(initialValue);
         super(fragmentInstance, validator);
 
-        // DEFENSE LAYER 2: Subscribe to placeholder changes for automatic retry
-        // If placeholders load after this store is created, retry resolution
         this.placeholderUnsubscribe = Store.placeholders.preview.subscribe(() => {
             if (!this.resolved && Store.placeholders.preview.value) {
                 this.resolveFragment();
             }
         });
 
-        const hasVariantField = fragmentInstance.fields.some((f) => f.name === 'variant' && f.values?.length > 0);
-        if (!fragmentInstance.isVariation() || hasVariantField) {
-            this.resolveFragment();
-        }
+        this.resolveFragment();
     }
 
     set(value) {
@@ -119,14 +114,6 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         if (!Store.search.value.path) {
-            this.resolved = true;
-            this.refreshAemFragment();
-            return;
-        }
-
-        const isVariation = this.value.isVariation && this.value.isVariation();
-        const hasVariantField = this.value.fields?.some((f) => f.name === 'variant' && f.values?.length > 0);
-        if (isVariation && !hasVariantField) {
             this.resolved = true;
             this.refreshAemFragment();
             return;

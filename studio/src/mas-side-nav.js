@@ -228,9 +228,7 @@ class MasSideNav extends LitElement {
 
     get editNavigation() {
         const fragmentId = this.fragmentEditor?.fragment?.id;
-        const fragment = this.fragmentEditor?.fragment;
-        const isVariation =
-            (fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId)) || fragment?.isVariation?.();
+        const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
 
         return html`
             <mas-side-nav-item label="Save" ?disabled=${!this.editorHasChanges} @nav-click="${this.saveFragment}">

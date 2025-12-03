@@ -5,6 +5,7 @@ import { showToast, extractLocaleFromPath } from './utils.js';
 export class MasVariationDialog extends LitElement {
     static properties = {
         fragment: { type: Object },
+        isVariation: { type: Boolean },
         selectedLocale: { state: true },
         loading: { state: true },
         error: { state: true },
@@ -83,6 +84,7 @@ export class MasVariationDialog extends LitElement {
     constructor() {
         super();
         this.fragment = null;
+        this.isVariation = false;
         this.selectedLocale = '';
         this.loading = false;
         this.error = null;
@@ -177,7 +179,7 @@ export class MasVariationDialog extends LitElement {
             return;
         }
 
-        if (this.fragment?.isVariation?.()) {
+        if (this.isVariation) {
             this.error = 'Cannot create a variation from another variation. Please use the default locale fragment.';
             showToast(this.error, 'negative');
             return;

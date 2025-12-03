@@ -109,7 +109,7 @@ jobs:
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       with:
         script: |
-          const main = require('./.github/workflows/snow-pr-comment.js')
+          const main = (await import('${{ github.workspace }}/.github/workflows/snow-pr-comment.js')).default
           if (process.env.PR_STATE == 'closed') {
             main({ github, context, transaction_id: null })
           } else {
@@ -130,7 +130,7 @@ jobs:
         TRANSACTION_ID: ${{ steps.create-close-cmr-step.outputs.transaction_id }}
       with:
         script: |
-          const main = require('./.github/workflows/snow-pr-comment.js')
+          const main = (await import('${{ github.workspace }}/.github/workflows/snow-pr-comment.js')).default
           if (process.env.PR_STATE == 'open') {
             main({ github, context })
           } else {
@@ -148,7 +148,7 @@ jobs:
         PLANNED_END_TIME: ${{ steps.create-close-cmr-step.outputs.planned_end_time }}
       with:
         script: |
-          const main = require('./.github/workflows/snow-cr-notification.js');
+          const main = (await import('${{ github.workspace }}/.github/workflows/snow-cr-notification.js')).default;
           if (process.env.PR_STATE == 'open') {
             await main({ github, context });
           } else {

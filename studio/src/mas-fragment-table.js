@@ -147,11 +147,13 @@ class MasFragmentTable extends LitElement {
                 <sp-table-cell class="offer-id">
                     <span class="offer-id-text" title=${this.offerData?.offerId}> ${this.getTruncatedOfferId()} </span>
                     ${this.offerData?.offerId
-                        ? html`<sp-icon-copy
-                              label="Copy to clipboard"
-                              class="copy-icon"
+                        ? html`<button
+                              class="copy-icon-button"
+                              aria-label="Copy Offer ID to clipboard"
                               @click=${this.copyOfferIdToClipboard}
-                          ></sp-icon-copy>`
+                          >
+                              <sp-icon-copy class="copy-icon"></sp-icon-copy>
+                          </button>`
                         : ''}
                 </sp-table-cell>
                 <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>

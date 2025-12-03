@@ -1,4 +1,4 @@
-const { slackNotification, getLocalConfigs } = require('./helpers.js');
+import { slackNotification, getLocalConfigs } from './helpers.js';
 
 async function main({
   github = getLocalConfigs().github,
@@ -32,4 +32,4 @@ async function main({
     );
 }
 
-module.exports = main;
+export default main;

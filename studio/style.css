@@ -1,3 +1,5 @@
+@import './mas-fragment-render.css';
+
 :root {
     --mas-nav-height: 50px;
 }
@@ -264,7 +266,8 @@ mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
 }
 
-mas-fragment-render[selected]:hover sp-icon-remove {
+mas-fragment-render[selected]:hover sp-icon-remove,
+mas-fragment-render[selected]:hover sp-icon-close {
     display: block;
 }
 

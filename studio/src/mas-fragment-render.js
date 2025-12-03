@@ -2,7 +2,6 @@ import { LitElement, html, nothing } from 'lit';
 import Store, { toggleSelection } from './store.js';
 import './mas-fragment-status.js';
 import { CARD_MODEL_PATH } from './constants.js';
-import { styles } from './mas-fragment-render.css.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
 class MasFragmentRender extends LitElement {
@@ -10,8 +9,6 @@ class MasFragmentRender extends LitElement {
         selected: { type: Boolean, attribute: true },
         fragmentStore: { type: Object, attribute: false },
     };
-
-    static styles = [styles];
 
     #reactiveControllers = new ReactiveController(this);
 
@@ -82,22 +79,21 @@ class MasFragmentRender extends LitElement {
         if (!Store.selecting.value) return nothing;
         return html`<div class="overlay" @click="${this.select}">
             ${this.selected
-                ? html`<sp-icon-remove slot="icon" label="Remove from selection"></sp-icon-remove>`
-                : html`<sp-icon-add slot="icon" label="Add to selection"></sp-icon-add>`}
+                ? html`<sp-icon-select-no size="xl" label="Remove from selection"></sp-icon-select-no>`
+                : html`<sp-icon-select-rectangle size="xl" label="Add to selection"></sp-icon-select-rectangle>`}
         </div>`;
     }
 
     get merchCard() {
         return html`<merch-card slot="trigger">
             <aem-fragment author fragment="${this.fragment.id}"></aem-fragment>
-            ${this.selectionOverlay}
         </merch-card>`;
     }
 
     get unknown() {
         const label = this.fragment.fields.find((field) => field.name === 'label')?.values[0];
         return html`<div class="unknown-fragment" slot="trigger">
-            <sp-icon-collection size="m"></sp-icon-collection> ${label} ${this.selectionOverlay}
+            <sp-icon-collection size="m"></sp-icon-collection> ${label}
             <p class="model-name">${this.fragment.title}</p>
         </div>`;
     }
@@ -125,6 +121,7 @@ class MasFragmentRender extends LitElement {
 
                     <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
                 </overlay-trigger>
+                ${this.selectionOverlay}
             </div>
         </div>`;
     }

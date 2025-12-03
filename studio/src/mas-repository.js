@@ -916,6 +916,65 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Publish multiple fragments in bulk
+     * @param {Array<string>} fragmentIds - Array of fragment IDs to publish
+     * @param {object} options - Options object
+     * @param {Array<string>} options.publishReferencesWithStatus - Statuses to include references for
+     * @param {boolean} options.withToast - Whether to show toast notifications
+     * @returns {Promise<boolean>} Whether or not it was successful
+     */
+    async bulkPublishFragments(fragmentIds, options = {}) {
+        const { publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true } = options;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            if (withToast) showToast('No fragments selected to publish.', 'negative');
+            return false;
+        }
+
+        try {
+            this.operation.set(OPERATIONS.PUBLISH);
+            if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
+
+            // Get fragment objects from the store
+            const fragments = fragmentIds
+                .map((id) => {
+                    const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
+                    return store?.get();
+                })
+                .filter(Boolean);
+
+            if (fragments.length === 0) {
+                if (withToast) showToast('No valid fragments found to publish.', 'negative');
+                return false;
+            }
+
+            // Publish all fragments in a single request
+            await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+
+            // Refresh all published fragments
+            const refreshPromises = fragmentIds.map((id) => {
+                const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
+                if (store) {
+                    return this.refreshFragment(store);
+                }
+                return Promise.resolve();
+            });
+            await Promise.all(refreshPromises);
+
+            if (withToast) {
+                showToast(`Successfully published ${fragments.length} fragment(s).`, 'positive');
+            }
+
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to publish fragments.');
+            return false;
+        } finally {
+            this.operation.set(null);
+        }
+    }
+
+    /**
      * @param {Fragment} fragment Fragment to delete
      * @param {object} options
      * @returns {Promise<boolean>} Whether or not it was successful

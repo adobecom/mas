@@ -15,7 +15,7 @@ import {
 } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, showToast } from './utils.js';
+import { generateCodeToUse, showToast, extractLocaleFromPath } from './utils.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import './editors/version-panel.js';
@@ -823,7 +823,7 @@ export default class EditorPanel extends LitElement {
 
     get localeDefaultLocaleLabel() {
         if (!this.localeDefaultFragment) return '';
-        const localeCode = this.localeDefaultFragment.getLocale();
+        const localeCode = extractLocaleFromPath(this.localeDefaultFragment.path);
         if (!localeCode) return '';
         const [lang, country] = localeCode.split('_');
         return `: Default ${country} (${lang.toUpperCase()})`;

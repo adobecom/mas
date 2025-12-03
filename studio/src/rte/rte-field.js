@@ -195,6 +195,7 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         osi: { type: String },
+        value: { type: String },
     };
 
     static get styles() {
@@ -568,7 +569,7 @@ class RteField extends LitElement {
     #boundHandlers;
     #editorSchema;
     editorView;
-    value = null;
+    #value = null;
     #serializer;
     #stylingMarksData;
 
@@ -609,6 +610,19 @@ class RteField extends LitElement {
     firstUpdated() {
         this.#initEditorSchema();
         this.#initializeEditor();
+    }
+
+    get value() {
+        return this.#value;
+    }
+
+    set value(newValue) {
+        const oldValue = this.#value;
+        this.#value = newValue;
+        if (oldValue !== newValue && this.editorView) {
+            this.updateContent(newValue);
+        }
+        this.requestUpdate('value', oldValue);
     }
 
     connectedCallback() {
@@ -1037,7 +1051,7 @@ class RteField extends LitElement {
         });
 
         try {
-            const html = this.innerHTML.trim();
+            const html = (this.value ?? this.innerHTML).trim();
             this.innerHTML = '';
             const container = document.createElement('div');
             container.innerHTML = html;

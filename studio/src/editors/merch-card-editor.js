@@ -1,5 +1,4 @@
 import { html, LitElement, nothing } from 'lit';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import '../fields/multifield.js';
 import '../fields/included-field.js';
 import '../fields/mnemonic-field.js';
@@ -488,9 +487,9 @@ class MerchCardEditor extends LitElement {
                     mnemonic
                     data-field="cardTitle"
                     .osi=${form.osi.values[0]}
+                    .value=${form.cardTitle.values[0] || ''}
                     @change="${this.#handleFragmentUpdate}"
-                    >${unsafeHTML(form.cardTitle.values[0] || '')}</rte-field
-                >
+                ></rte-field>
                 ${this.renderOverrideIndicator('cardTitle')}
             </sp-field-group>
             <div class="two-column-grid">
@@ -682,10 +681,10 @@ class MerchCardEditor extends LitElement {
                     multiline
                     data-field="prices"
                     .osi=${form.osi.values[0]}
+                    .value=${form.prices.values[0] || ''}
                     default-link-style="primary-outline"
                     @change="${this.#handleFragmentUpdate}"
-                    >${unsafeHTML(form.prices.values[0])}</rte-field
-                >
+                ></rte-field>
                 ${this.renderOverrideIndicator('prices')}
             </sp-field-group>
             <div class="two-column-grid">
@@ -759,10 +758,10 @@ class MerchCardEditor extends LitElement {
                     .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
                     data-field="description"
                     .osi=${form.osi.values[0]}
+                    .value=${form.description.values[0] || ''}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
-                    >${unsafeHTML(form.description.values[0])}</rte-field
-                >
+                ></rte-field>
                 ${this.renderOverrideIndicator('description')}
             </sp-field-group>
             <sp-field-group class="toggle" id="shortDescription">
@@ -776,10 +775,10 @@ class MerchCardEditor extends LitElement {
                     mnemonic
                     data-field="shortDescription"
                     .osi=${form.osi.values[0]}
+                    .value=${form.shortDescription?.values[0] || ''}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
-                    >${unsafeHTML(form.shortDescription?.values[0] || '')}</rte-field
-                >
+                ></rte-field>
                 ${this.renderOverrideIndicator('shortDescription')}
             </sp-field-group>
             <sp-field-group class="toggle" id="callout">
@@ -790,11 +789,11 @@ class MerchCardEditor extends LitElement {
                     icon
                     data-field="callout"
                     .osi=${form.osi.values[0]}
+                    .value=${form.callout?.values[0] || ''}
                     default-link-style="secondary-link"
                     @change="${this.#handleFragmentUpdate}"
                     ?readonly=${this.disabled}
-                    >${unsafeHTML(form.callout?.values[0])}</rte-field
-                >
+                ></rte-field>
             </sp-field-group>
             <div class="section-title">Footer</div>
             <sp-field-group class="toggle" id="ctas">
@@ -804,10 +803,10 @@ class MerchCardEditor extends LitElement {
                     inline
                     data-field="ctas"
                     .osi=${form.osi.values[0]}
+                    .value=${form.ctas.values[0] || ''}
                     default-link-style="primary-outline"
                     @change="${this.#handleFragmentUpdate}"
-                    >${unsafeHTML(form.ctas.values[0])}</rte-field
-                >
+                ></rte-field>
                 ${this.renderOverrideIndicator('ctas')}
             </sp-field-group>
             <div class="section-title">Options and settings</div>

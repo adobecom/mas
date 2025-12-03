@@ -953,7 +953,7 @@ export default class MasFragmentEditor extends LitElement {
 
     get localeDefaultLocaleLabel() {
         if (!this.localeDefaultFragment) return '';
-        const localeCode = this.localeDefaultFragment.getLocale();
+        const localeCode = this.extractLocaleFromPath(this.localeDefaultFragment.path);
         if (!localeCode) return '';
         const [lang, country] = localeCode.split('_');
         return `: Default ${country} (${lang.toUpperCase()})`;

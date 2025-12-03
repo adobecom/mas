@@ -39,8 +39,6 @@ jobs:
   # Detect which paths have changed in the PR
   detect-changes:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
     outputs:
       snow_instance_id: ${{ steps.set-instance-id.outputs.instance_id }}
     steps:

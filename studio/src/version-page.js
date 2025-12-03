@@ -326,8 +326,7 @@ class VersionPage extends LitElement {
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 0 16px;
-            min-height: 297px;
+            padding: 8px 16px;
         }
 
         .fragment-card-container.hidden {

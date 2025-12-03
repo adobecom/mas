@@ -18,6 +18,67 @@ class VersionPage extends LitElement {
         repository: { type: Object, state: true },
     };
 
+    // Centralized field configuration
+    static FIELD_CONFIG = {
+        // Fragment-level fields (metadata - not visible on card)
+        title: { label: 'Fragment Title', isArray: false, visible: false },
+        description: { label: 'Fragment Description', isArray: false, visible: false },
+        locReady: { label: 'Send to translation', isArray: false, visible: false },
+        tags: { label: 'Tags', isArray: true, visible: false },
+        // Merch Card configuration fields (not visible on card)
+        variant: { label: 'Variant', isArray: false, visible: false },
+        style: { label: 'Style', isArray: false, visible: false },
+        size: { label: 'Size', isArray: false, visible: false },
+        name: { label: 'Card name', isArray: false, visible: false },
+        osi: { label: 'OSI Search', isArray: false, visible: false },
+        // Merch Card visible content fields (rendered on card)
+        cardName: { label: 'Card name', isArray: true, visible: false },
+        cardTitle: { label: 'Title', isArray: false, visible: true },
+        subtitle: { label: 'Subtitle', isArray: false, visible: true },
+        mnemonics: { label: 'Mnemonics', isArray: false, visible: true },
+        mnemonicIcon: { label: 'Mnemonic Icon', isArray: true, visible: true },
+        mnemonicAlt: { label: 'Mnemonic Alt', isArray: true, visible: true },
+        mnemonicLink: { label: 'Mnemonic Link', isArray: true, visible: true },
+        whatsIncluded: { label: "What's included", isArray: false, visible: true },
+        badge: { label: 'Badge', isArray: false, visible: true },
+        badgeText: { label: 'Badge Text', isArray: true, visible: true },
+        trialBadge: { label: 'Trial Badge', isArray: false, visible: true },
+        backgroundImage: { label: 'Background Image', isArray: false, visible: true },
+        backgroundImageAltText: { label: 'Background Image Alt Text', isArray: false, visible: false },
+        prices: { label: 'Prices', isArray: true, visible: true },
+        offers: { label: 'Offers', isArray: true, visible: false },
+        priceDetails: { label: 'Price Details', isArray: true, visible: false },
+        promoCode: { label: 'Promo Code', isArray: false, visible: true },
+        promoText: { label: 'Promo Text', isArray: false, visible: true },
+        addonConfirmation: { label: 'Addon Confirmation', isArray: false, visible: true },
+        shortDescription: { label: 'Short Description', isArray: false, visible: true },
+        callout: { label: 'Callout text', isArray: false, visible: true },
+        ctas: { label: 'Footer', isArray: true, visible: true },
+        actionMenu: { label: 'Action Menu', isArray: true, visible: false },
+        icons: { label: 'Icons', isArray: true, visible: true },
+        links: { label: 'Links', isArray: true, visible: true },
+        descriptions: { label: 'Descriptions', isArray: true, visible: true },
+        ctaTexts: { label: 'CTA Texts', isArray: true, visible: true },
+        perUnitLabel: { label: 'Per Unit Label', isArray: false, visible: true },
+        backgroundColor: { label: 'Background Color', isArray: false, visible: true },
+        // Collection fields (visible on collection UI)
+        queryLabel: { label: 'Query label', isArray: false, visible: true },
+        label: { label: 'label', isArray: false, visible: true },
+        icon: { label: 'Default icon', isArray: false, visible: true },
+        iconLight: { label: 'Selected Icon', isArray: false, visible: true },
+        searchText: { label: 'Search Text', isArray: false, visible: true },
+        tagFiltersTitle: { label: 'Tag Filters Title', isArray: false, visible: true },
+        tagFilters: { label: 'Tag Filters', isArray: false, visible: true },
+        linksTitle: { label: 'Links Title', isArray: false, visible: true },
+        link: { label: 'Link', isArray: false, visible: true },
+        linkIcon: { label: 'Link Icon', isArray: false, visible: true },
+        linkText: { label: 'Link Text', isArray: false, visible: true },
+        // Quantity fields (visible on card)
+        quantityTitle: { label: 'Quantity selector title', isArray: false, visible: true },
+        startQuantity: { label: 'Start quantity', isArray: false, visible: true },
+        stepQuantity: { label: 'Step', isArray: false, visible: true },
+    };
+
     static styles = css`
         .version-page-wrapper {
             display: flex;
@@ -68,7 +129,7 @@ class VersionPage extends LitElement {
         }
 
         .version-list-panel {
-            width: 480px;
+            min-width: 480px;
             background: white;
             border-radius: 16px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
@@ -194,23 +255,20 @@ class VersionPage extends LitElement {
         }
 
         .preview-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
             margin: 24px;
+            width: 100%;
         }
 
         .preview-content {
-            flex: 1;
             padding: 0;
         }
 
         .preview-split {
             display: flex;
-            flex-direction: column;
             gap: 24px;
-            height: 100%;
             padding: 0;
+            flex-direction: column;
+            align-items: center;
         }
 
         .preview-column {
@@ -223,23 +281,10 @@ class VersionPage extends LitElement {
         }
 
         .preview-column-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 20px 16px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        .diff-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: #ffc800;
-            border-radius: 14px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #2c2c2c;
         }
 
         .diff-highlight {
@@ -255,6 +300,7 @@ class VersionPage extends LitElement {
             color: #464646;
             display: flex;
             gap: 6px;
+            align-items: center;
         }
 
         .fragment-preview {
@@ -274,7 +320,7 @@ class VersionPage extends LitElement {
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 12px;
+            padding: 0 16px;
             min-height: 297px;
         }
 
@@ -300,16 +346,21 @@ class VersionPage extends LitElement {
         }
 
         .fragment-info {
-            padding: 12px;
             font-size: 12px;
-        }
-
-        .fragment-info-divider {
-            margin: 8px 0;
+            margin: 0 16px 16px;
         }
 
         .changed-fields-label {
             margin-bottom: 4px;
+        }
+
+        .changed-fields-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-width: 274px;
+            padding-inline-start: 18px;
+            margin-block-start: 8px;
         }
 
         .changed-field-detail {
@@ -347,7 +398,7 @@ class VersionPage extends LitElement {
             }
 
             .version-list-panel {
-                width: 400px;
+                min-width: 400px;
             }
         }
     `;
@@ -755,24 +806,12 @@ class VersionPage extends LitElement {
             return data.fields;
         }
 
-        // Fields that should always remain as arrays (merch-card expects to call .map() or .find() on these)
-        const arrayFields = new Set([
-            'mnemonicIcon',
-            'mnemonicAlt',
-            'mnemonicLink',
-            'badgeText',
-            'actionMenu',
-            'cardName',
-            'prices',
-            'offers',
-            'priceDetails',
-            'ctas',
-            'icons',
-            'links',
-            'descriptions',
-            'ctaTexts',
-            'tags', // CRITICAL: tags.find() is called in hydrate.js line 656
-        ]);
+        // Get array fields from centralized config
+        const arrayFields = new Set(
+            Object.entries(VersionPage.FIELD_CONFIG)
+                .filter(([, config]) => config.isArray)
+                .map(([fieldName]) => fieldName),
+        );
 
         // Handle both fields and elements as arrays
         const sourceArray = data.fields || data.elements;
@@ -874,7 +913,16 @@ class VersionPage extends LitElement {
 
         allKeys.forEach((key) => {
             const currentValue = fields[key];
-            const selectedValue = selectedFields[key];
+            let selectedValue = selectedFields[key];
+
+            // For tags, extract only the last segment after '/'
+            if (key === 'tags') {
+                if (Array.isArray(selectedValue)) {
+                    selectedValue = selectedValue.map((tag) => tag.split('/').pop());
+                } else if (typeof selectedValue === 'object' && selectedValue !== null) {
+                    selectedValue = Object.values(selectedValue).map((tag) => tag.split('/').pop());
+                }
+            }
 
             // Convert to strings for comparison
             const currentStr = JSON.stringify(currentValue);
@@ -912,11 +960,6 @@ class VersionPage extends LitElement {
                             )}</sp-detail
                         >
                     </div>
-                    ${hasDifferences
-                        ? html`<div class="diff-badge">
-                              ${differences.length} ${differences.length === 1 ? 'change' : 'changes'}
-                          </div>`
-                        : nothing}
                 </div>
                 <div class="preview-column-content">${this.renderFragmentPreview(version, fragmentData, differences)}</div>
             </div>
@@ -936,7 +979,6 @@ class VersionPage extends LitElement {
         const cardId = version.isCurrent ? `${fragmentData.id}-current` : `${fragmentData.id}-selected`;
         const isCardHydrated = this.hydratedCards.has(cardId);
         const isCard = fragmentData.model?.path === CARD_MODEL_PATH;
-        const diffFields = new Set(differences.map((d) => d.field));
 
         // Schedule the card hydration after render (store it for processing in updated())
         if (isCard && !isCardHydrated) {
@@ -945,7 +987,7 @@ class VersionPage extends LitElement {
 
         // Show only spinner while loading OR if card isn't hydrated yet (but still render card hidden)
         const showSpinner = !version.isCurrent && (this.loadingVersionData || !isCardHydrated);
-
+        console.log('differences', differences);
         return html`
             <div class="fragment-preview-wrapper">
                 ${isCard
@@ -970,33 +1012,25 @@ class VersionPage extends LitElement {
                 ${showSpinner
                     ? nothing
                     : html`
-                          <sp-divider size="s"></sp-divider>
                           <div class="fragment-info">
-                              <sp-detail size="s"><strong>Fragment ID:</strong> ${fragmentData.id}</sp-detail>
-                              <sp-detail size="s"><strong>Version:</strong> ${version.version}</sp-detail>
-                              ${version.title && version.title !== 'Current version'
-                                  ? html`<sp-detail size="s" class="${diffFields.has('title') ? 'diff-highlight' : ''}">
-                                        <strong>Title:</strong> ${version.title}
-                                    </sp-detail>`
-                                  : nothing}
-                              ${this.normalizeFields(fragmentData).variant
-                                  ? html`<sp-detail size="s" class="${diffFields.has('variant') ? 'diff-highlight' : ''}">
-                                        <strong>Variant:</strong> ${this.normalizeFields(fragmentData).variant}
-                                    </sp-detail>`
-                                  : nothing}
                               ${differences.length > 0
                                   ? html`
-                                        <sp-divider size="s" class="fragment-info-divider"></sp-divider>
                                         <sp-detail size="s" class="changed-fields-label"
                                             ><strong>Changed Fields:</strong></sp-detail
                                         >
-                                        ${differences.map(
-                                            (diff) => html`
-                                                <sp-detail size="s" class="diff-highlight changed-field-detail">
-                                                    <strong>${diff.field}:</strong> ${this.formatFieldValue(diff.selectedValue)}
-                                                </sp-detail>
-                                            `,
-                                        )}
+                                        <ul class="changed-fields-list">
+                                            ${differences.map(
+                                                (diff) => html`
+                                                    <li>
+                                                        <sp-detail size="s" class="changed-field-detail">
+                                                            ${this.getFieldLabel(diff.field)}${this.getFieldVisible(diff.field)
+                                                                ? ''
+                                                                : `: ${this.formatFieldValue(diff.selectedValue)}`}
+                                                        </sp-detail>
+                                                    </li>
+                                                `,
+                                            )}
+                                        </ul>
                                     `
                                   : nothing}
                           </div>
@@ -1005,9 +1039,22 @@ class VersionPage extends LitElement {
         `;
     }
 
+    getFieldLabel(fieldName) {
+        return VersionPage.FIELD_CONFIG[fieldName]?.label || fieldName;
+    }
+
+    getFieldVisible(fieldName) {
+        return VersionPage.FIELD_CONFIG[fieldName]?.visible || false;
+    }
+
     formatFieldValue(value) {
         if (value === null || value === undefined) return 'N/A';
-        if (typeof value === 'object') return JSON.stringify(value, null, 2);
+        if (typeof value === 'object') {
+            if (Array.isArray(value)) {
+                return value.join(', ');
+            }
+            return Object.values(value).join(', ');
+        }
         return String(value);
     }
 
@@ -1038,23 +1085,9 @@ class VersionPage extends LitElement {
 
             // Ensure certain fields are always arrays (merch-card expects these)
             const safeFields = { ...fields };
-            const mustBeArrays = [
-                'mnemonicIcon',
-                'mnemonicAlt',
-                'mnemonicLink',
-                'badgeText',
-                'actionMenu',
-                'cardName',
-                'prices',
-                'offers',
-                'priceDetails',
-                'ctas',
-                'icons',
-                'links',
-                'descriptions',
-                'ctaTexts',
-                'tags', // CRITICAL: tags.find() is called in hydrate.js
-            ];
+            const mustBeArrays = Object.entries(VersionPage.FIELD_CONFIG)
+                .filter(([, config]) => config.isArray)
+                .map(([fieldName]) => fieldName);
 
             mustBeArrays.forEach((fieldName) => {
                 if (safeFields[fieldName] !== undefined && !Array.isArray(safeFields[fieldName])) {

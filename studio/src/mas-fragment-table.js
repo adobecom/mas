@@ -10,7 +10,6 @@ import { MasRepository } from './mas-repository.js';
 class MasFragmentTable extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
-        customRender: { type: Function, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
@@ -132,15 +131,15 @@ class MasFragmentTable extends LitElement {
         const data = this.fragmentStore.value;
         return html`
             <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
-                ${!this.nested
-                    ? html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
+                ${this.nested
+                    ? ''
+                    : html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
                           <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
                               ${this.expanded
                                   ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                                   : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                           </button>
-                      </sp-table-cell>`
-                    : html`<sp-table-cell class="expand-cell"></sp-table-cell>`}
+                      </sp-table-cell>`}
                 <sp-table-cell class="name">
                     ${this.nested ? html`${data.locale}` : html`${this.icon} ${this.getFragmentName(data)}`}
                 </sp-table-cell>
@@ -156,8 +155,8 @@ class MasFragmentTable extends LitElement {
                         : ''}
                 </sp-table-cell>
                 <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
+                <sp-table-cell class="last-modified-by">${data.modified?.by}</sp-table-cell>
                 <sp-table-cell class="price">${this.price}</sp-table-cell>
-                ${this.customRender?.(data)}
                 <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
                     ><div class="status-dot"></div>
                     <span class="status-text">${data.status}</span></sp-table-cell

@@ -114,16 +114,14 @@ class MasContent extends LitElement {
             <sp-table-head>
                 <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
                 <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                <sp-table-head-cell sortable class="title">Title</sp-table-head-cell>
                 <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
                 <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-type">Offer type</sp-table-head-cell>
+                <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
+                <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
                 <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                <slot name="headers"></slot>
                 <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
                 <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
-                <sp-table-head-cell class="preview"></sp-table-head-cell>
+                <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
             </sp-table-head>
             <sp-table-body>
                 ${repeat(

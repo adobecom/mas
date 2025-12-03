@@ -652,7 +652,9 @@ class VersionPage extends LitElement {
                             <div class="version-date-time">
                                 <sp-icon-calendar slot="icon"></sp-icon-calendar>${this.formatVersionDate(version.created)}
                             </div>
-                            <div class="version-author">By <span class="version-author-name">${version.createdBy || 'Unknown'}</span></div>
+                            <div class="version-author">
+                                By <span class="version-author-name">${version.createdBy || 'Unknown'}</span>
+                            </div>
                             ${version.title && !isCurrent
                                 ? html`<div class="version-description"><strong>${version.title}</strong></div>`
                                 : nothing}

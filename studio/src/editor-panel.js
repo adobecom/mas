@@ -272,20 +272,18 @@ export default class EditorPanel extends LitElement {
         }
         if (this.resizeDirection.includes('w')) {
             const proposedWidth = this.resizeStartWidth - deltaX;
-            if (proposedWidth >= minWidth && proposedWidth <= maxWidth) {
-                newWidth = proposedWidth;
-                newX = this.resizeStartDragX + deltaX;
-            }
+            newWidth = Math.max(minWidth, Math.min(maxWidth, proposedWidth));
+            const actualDeltaX = this.resizeStartWidth - newWidth;
+            newX = this.resizeStartDragX + actualDeltaX;
         }
         if (this.resizeDirection.includes('s')) {
             newHeight = Math.max(minHeight, Math.min(maxHeight, this.resizeStartHeight + deltaY));
         }
         if (this.resizeDirection.includes('n')) {
             const proposedHeight = this.resizeStartHeight - deltaY;
-            if (proposedHeight >= minHeight && proposedHeight <= maxHeight) {
-                newHeight = proposedHeight;
-                newY = this.resizeStartDragY + deltaY;
-            }
+            newHeight = Math.max(minHeight, Math.min(maxHeight, proposedHeight));
+            const actualDeltaY = this.resizeStartHeight - newHeight;
+            newY = this.resizeStartDragY + actualDeltaY;
         }
 
         this.editorWidth = newWidth;
@@ -332,7 +330,7 @@ export default class EditorPanel extends LitElement {
             const spaceOnRight = window.innerWidth - (cardRect.right + gap + editorWidth);
             const spaceOnLeft = cardRect.left - gap - editorWidth;
 
-            let newX, newY;
+            let newX;
 
             if (spaceOnRight >= 0) {
                 newX = cardRect.right + gap;
@@ -346,7 +344,7 @@ export default class EditorPanel extends LitElement {
                 }
             }
 
-            newY = cardRect.top + cardRect.height / 2 - editorHeight / 2;
+            const newY = cardRect.top + cardRect.height / 2 - editorHeight / 2;
 
             const maxX = window.innerWidth - editorWidth;
             const maxY = window.innerHeight - editorHeight;
@@ -925,19 +923,21 @@ export default class EditorPanel extends LitElement {
 
         return html`
             <div id="editor" style="${editorStyles}">
-                <div class="editor-drag-section" @mousedown="${this.startDrag}">
-                    <div class="drag-handle"></div>
-                    ${this.fragmentEditorToolbar}
+                <div class="editor-content">
+                    <div class="editor-drag-section" @mousedown="${this.startDrag}">
+                        <div class="drag-handle"></div>
+                        ${this.fragmentEditorToolbar}
+                    </div>
+                    <sp-divider size="s"></sp-divider>
+                    <div>
+                        <p id="author-path">${this.authorPath}</p>
+                    </div>
+                    <sp-divider size="s"></sp-divider>
+                    ${editor}
+                    <sp-divider size="s"></sp-divider>
+                    ${this.fragmentEditor}
                 </div>
-                <sp-divider size="s"></sp-divider>
-                <div>
-                    <p id="author-path">${this.authorPath}</p>
-                </div>
-                <sp-divider size="s"></sp-divider>
-                ${editor}
-                <sp-divider size="s"></sp-divider>
-                ${this.fragmentEditor} ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog}
-                ${this.cloneConfirmationDialog}
+                ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
 
                 <div class="resize-handle resize-n" @mousedown="${(e) => this.startResize('n', e)}"></div>
                 <div class="resize-handle resize-s" @mousedown="${(e) => this.startResize('s', e)}"></div>

@@ -138,16 +138,22 @@ sp-dialog-wrapper {
 #editor {
     position: relative;
     z-index: 2;
-    max-height: calc(100vh - 60px);
     background-color: var(--spectrum-white);
-    padding: 0px 20px 20px 20px;
-    overflow-x: hidden;
-    overflow-y: auto;
     box-sizing: border-box;
     box-shadow: 0px 1px 4px 4px rgb(0 0 0 / 10%);
     border-radius: 24px;
     border: 1px solid transparent;
     transition: border-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.editor-content {
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0px 20px 20px 20px;
 }
 
 #editor:hover {
@@ -190,11 +196,12 @@ sp-dialog-wrapper {
 .resize-handle {
     position: absolute;
     background-color: transparent;
+    z-index: 2;
 }
 
 .resize-n,
 .resize-s {
-    height: 6px;
+    height: 10px;
     width: 100%;
     left: 0;
     cursor: ns-resize;
@@ -210,7 +217,7 @@ sp-dialog-wrapper {
 
 .resize-e,
 .resize-w {
-    width: 6px;
+    width: 10px;
     height: 100%;
     top: 0;
     cursor: ew-resize;

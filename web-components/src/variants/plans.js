@@ -1,8 +1,9 @@
 import { VariantLayout } from './variant-layout';
 import { html, css, nothing } from 'lit';
 import { CSS } from './plans.css.js';
-import { matchMobile, isDesktop, matchDesktop } from '../media.js';
+import Media from '../media.js';
 import {
+    EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
@@ -58,41 +59,6 @@ export const PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
     })(),
 };
 
-export const PLANS_V2_AEM_FRAGMENT_MAPPING = {
-    cardName: { attribute: 'name' },
-    title: { tag: 'h3', slot: 'heading-xs' },
-    subtitle: { tag: 'p', slot: 'subtitle' },
-    prices: { tag: 'p', slot: 'heading-m' },
-    promoText: { tag: 'p', slot: 'promo-text' },
-    description: { tag: 'div', slot: 'body-xs' },
-    mnemonics: { size: 'l' },
-    callout: { tag: 'div', slot: 'callout-content' },
-    quantitySelect: { tag: 'div', slot: 'quantity-select' },
-    addon: true,
-    secureLabel: true,
-    planType: true,
-    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
-    allowedBadgeColors: [
-        'spectrum-yellow-300-plans',
-        'spectrum-gray-300-plans',
-        'spectrum-gray-700-plans',
-        'spectrum-green-900-plans',
-        'spectrum-red-700-plans',
-    ],
-    allowedBorderColors: [
-        'spectrum-yellow-300-plans',
-        'spectrum-gray-300-plans',
-        'spectrum-green-900-plans',
-        'spectrum-red-700-plans',
-    ],
-    borderColor: { attribute: 'border-color' },
-    size: ['wide', 'super-wide'],
-    whatsIncluded: { tag: 'div', slot: 'whats-included' },
-    ctas: { slot: 'footer', size: 'm' },
-    style: 'consonant',
-    perUnitLabel: { tag: 'span', slot: 'per-unit-label' },
-};
-
 export class Plans extends VariantLayout {
     constructor(card) {
         super(card);
@@ -135,7 +101,7 @@ export class Plans extends VariantLayout {
         }
         if (!sizes.includes(size)) return;
 
-        footer?.classList.toggle('wide-footer', isDesktop());
+        footer?.classList.toggle('wide-footer', Media.isDesktopOrUp);
         if (!shouldBeInFooter && slotInFooter) {
             if (slotInBody) slotInFooter.remove();
             else {
@@ -169,11 +135,11 @@ export class Plans extends VariantLayout {
             return;
         }
 
-        this.adjustSlotPlacement('addon', ['super-wide'], isDesktop());
+        this.adjustSlotPlacement('addon', ['super-wide'], Media.isDesktopOrUp);
         this.adjustSlotPlacement(
             'callout-content',
             ['super-wide'],
-            isDesktop(),
+            Media.isDesktopOrUp,
         );
     }
 
@@ -346,21 +312,16 @@ export class Plans extends VariantLayout {
     }
 
     connectedCallbackHook() {
-        const mobileWatcher = matchMobile();
-        if (mobileWatcher?.addEventListener)
-            mobileWatcher.addEventListener('change', this.adaptForMedia);
-        const desktopWatcher = matchDesktop();
-        if (desktopWatcher?.addEventListener)
-            desktopWatcher.addEventListener('change', this.adaptForMedia);
+        Media.matchMobile.addEventListener('change', this.adaptForMedia);
+        Media.matchDesktopOrUp.addEventListener('change', this.adaptForMedia);
     }
 
     disconnectedCallbackHook() {
-        const mobileWatcher = matchMobile();
-        if (mobileWatcher?.removeEventListener)
-            mobileWatcher.removeEventListener('change', this.adaptForMedia);
-        const desktopWatcher = matchDesktop();
-        if (desktopWatcher?.removeEventListener)
-            desktopWatcher.removeEventListener('change', this.adaptForMedia);
+        Media.matchMobile.removeEventListener('change', this.adaptForMedia);
+        Media.matchDesktopOrUp.removeEventListener(
+            'change',
+            this.adaptForMedia,
+        );
     }
 
     renderLayout() {
@@ -504,6 +465,54 @@ export class Plans extends VariantLayout {
             sort: false,
             result: ['mobile', 'tablet'],
             custom: ['desktop'],
+        },
+        onSidenavAttached: (collection) => {
+            const minifyOverflowingWideCards = () => {
+                const merchCards = collection.querySelectorAll('merch-card');
+                for (const merchCard of merchCards) {
+                    if (merchCard.hasAttribute('data-size')) {
+                        merchCard.setAttribute(
+                            'size',
+                            merchCard.getAttribute('data-size'),
+                        );
+                        merchCard.removeAttribute('data-size');
+                    }
+                }
+                if (!Media.isDesktop) return;
+                let columns = 0;
+                for (const merchCard of merchCards) {
+                    if (merchCard.style.display === 'none') continue;
+                    const size = merchCard.getAttribute('size');
+                    let columnCount =
+                        size === 'wide' ? 2 : size === 'super-wide' ? 3 : 1;
+                    if (columnCount === 2 && columns % 3 === 2) {
+                        merchCard.setAttribute('data-size', size);
+                        merchCard.removeAttribute('size');
+                        columnCount = 1;
+                    }
+                    columns += columnCount;
+                }
+            };
+
+            Media.matchDesktop.addEventListener(
+                'change',
+                minifyOverflowingWideCards,
+            );
+            collection.addEventListener(
+                EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+                minifyOverflowingWideCards,
+            );
+
+            collection.onUnmount.push(() => {
+                Media.matchDesktop.removeEventListener(
+                    'change',
+                    minifyOverflowingWideCards,
+                );
+                collection.removeEventListener(
+                    EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+                    minifyOverflowingWideCards,
+                );
+            });
         },
     };
 }

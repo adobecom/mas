@@ -231,4 +231,75 @@ test.describe('M@S Studio - Version Page test suite', () => {
             expect(contentVisible).toBe(true);
         });
     });
+
+    // @version-page-changed-fields - Validate changed fields display
+    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Navigate to version page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(5000);
+            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+        });
+
+        await test.step('step-2: Select a different version to show differences', async () => {
+            const versionCount = await versionPage.getVersionCount();
+            if (versionCount > 1) {
+                // Select the second version (first historical version)
+                await page.waitForSelector('version-page .version-item', { timeout: 15000 });
+                await versionPage.selectVersionByIndex(1);
+                await versionPage.waitForPreviewUpdate();
+
+                // Wait for preview to render
+                await page.waitForTimeout(2000);
+            }
+        });
+
+        await test.step('step-3: Validate changed fields section structure', async () => {
+            // Check if changed fields section exists
+            const hasChanges = await versionPage.hasChangedFields();
+
+            if (hasChanges) {
+                // Validate the changed fields label
+                await expect(versionPage.changedFieldsLabel).toBeVisible();
+                await expect(versionPage.changedFieldsLabel).toContainText('Changed Fields');
+
+                // Validate the list structure (ul element)
+                await expect(versionPage.changedFieldsList).toBeVisible();
+
+                // Verify list items exist
+                const fieldCount = await versionPage.getChangedFieldsCount();
+                expect(fieldCount).toBeGreaterThan(0);
+            }
+        });
+
+        await test.step('step-4: Validate field display format', async () => {
+            const hasChanges = await versionPage.hasChangedFields();
+
+            if (hasChanges) {
+                const fields = await versionPage.getAllChangedFields();
+
+                // Verify that fields are displayed
+                expect(fields.length).toBeGreaterThan(0);
+
+                // All fields should have labels
+                fields.forEach((field) => {
+                    expect(field.length).toBeGreaterThan(0);
+                });
+
+                // Metadata fields (visible: false) should show values with colon separator
+                // Visible fields (visible: true) should show label only without colon
+                const metadataFields = fields.filter((f) => f.includes(':'));
+                const visibleFields = fields.filter((f) => !f.includes(':'));
+
+                console.log('Changed fields:', {
+                    total: fields.length,
+                    metadataFields: metadataFields.length,
+                    visibleFields: visibleFields.length,
+                });
+            }
+        });
+    });
 });

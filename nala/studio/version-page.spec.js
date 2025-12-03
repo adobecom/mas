@@ -72,5 +72,15 @@ export default {
             browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
+        {
+            tcid: '7',
+            name: '@version-page-changed-fields',
+            path: '/studio.html',
+            data: {
+                fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
+            },
+            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            tags: '@mas-studio @version',
+        },
     ],
 };

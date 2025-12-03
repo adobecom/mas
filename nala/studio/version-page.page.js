@@ -54,6 +54,13 @@ export default class VersionPage {
         this.fragmentPreview = page.locator('version-page .fragment-preview-wrapper');
         this.merchCard = page.locator('version-page merch-card');
 
+        // Changed fields section
+        this.fragmentInfo = page.locator('version-page .fragment-info');
+        this.changedFieldsLabel = page.locator('version-page .changed-fields-label');
+        this.changedFieldsList = page.locator('version-page .changed-fields-list');
+        this.changedFieldItems = page.locator('version-page .changed-fields-list li');
+        this.changedFieldDetail = page.locator('version-page .changed-field-detail');
+
         // Loading states
         this.loadingSpinner = page.locator('version-page sp-progress-circle');
         this.loadingMessage = page.locator('version-page .loading-message');
@@ -179,5 +186,41 @@ export default class VersionPage {
      */
     async getVersionCount() {
         return await this.versionItems.count();
+    }
+
+    /**
+     * Get changed fields count
+     */
+    async getChangedFieldsCount() {
+        return await this.changedFieldItems.count();
+    }
+
+    /**
+     * Get changed field text by index
+     */
+    async getChangedFieldText(index) {
+        const item = this.changedFieldItems.nth(index);
+        const detail = item.locator('sp-detail');
+        return await detail.textContent();
+    }
+
+    /**
+     * Check if changed fields section is visible
+     */
+    async hasChangedFields() {
+        return await this.changedFieldsLabel.isVisible().catch(() => false);
+    }
+
+    /**
+     * Get all changed field texts
+     */
+    async getAllChangedFields() {
+        const count = await this.getChangedFieldsCount();
+        const fields = [];
+        for (let i = 0; i < count; i++) {
+            const text = await this.getChangedFieldText(i);
+            fields.push(text.trim());
+        }
+        return fields;
     }
 }

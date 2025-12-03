@@ -1,0 +1,310 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            window.__swc = { warn: () => {} };
+        </script>
+        <script type="module">
+            window.process = { env: {} };
+        </script>
+        <title>version-page custom element test page</title>
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../style.css" />
+        <style>
+            body {
+                margin: 32px;
+            }
+            sp-theme {
+                display: contents;
+            }
+            version-page {
+                width: 100%;
+                height: 100vh;
+            }
+        </style>
+        <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
+            import { html } from 'lit';
+            import { fixture, oneEvent } from '@open-wc/testing-helpers';
+            import '../src/swc.js';
+            import '../src/version-page.js';
+            import '../src/mas-repository.js';
+            import Store from '../src/store.js';
+
+            runTests(() => {
+                describe('version-page', () => {
+                    let versionPage;
+                    let sandbox;
+
+                    beforeEach(async () => {
+                        sandbox = sinon.createSandbox();
+                        // Initialize store
+                        Store.version.fragmentId.set('test-fragment-id');
+                        Store.search.set({ path: 'test-path' });
+                    });
+
+                    afterEach(() => {
+                        sandbox.restore();
+                        if (versionPage) {
+                            versionPage.remove();
+                        }
+                    });
+
+                    describe('FIELD_CONFIG', () => {
+                        it('should have all required field configurations', () => {
+                            const config = versionPage.constructor.FIELD_CONFIG;
+                            expect(config).to.exist;
+
+                            // Check critical fields exist
+                            expect(config.title).to.exist;
+                            expect(config.cardTitle).to.exist;
+                            expect(config.prices).to.exist;
+                            expect(config.badge).to.exist;
+                            expect(config.tags).to.exist;
+                        });
+
+                        it('should have label, isArray, and visible properties for each field', () => {
+                            const config = versionPage.constructor.FIELD_CONFIG;
+                            Object.entries(config).forEach(([fieldName, fieldConfig]) => {
+                                expect(fieldConfig).to.have.property('label');
+                                expect(fieldConfig).to.have.property('isArray');
+                                expect(fieldConfig).to.have.property('visible');
+                                expect(typeof fieldConfig.isArray).to.equal('boolean');
+                                expect(typeof fieldConfig.visible).to.equal('boolean');
+                            });
+                        });
+
+                        it('should mark visible fields correctly', () => {
+                            const config = versionPage.constructor.FIELD_CONFIG;
+
+                            // These should be visible (rendered on card)
+                            expect(config.cardTitle.visible).to.be.true;
+                            expect(config.prices.visible).to.be.true;
+                            expect(config.badge.visible).to.be.true;
+                            expect(config.ctas.visible).to.be.true;
+
+                            // These should not be visible (metadata)
+                            expect(config.title.visible).to.be.false;
+                            expect(config.tags.visible).to.be.false;
+                            expect(config.variant.visible).to.be.false;
+                            expect(config.osi.visible).to.be.false;
+                        });
+
+                        it('should mark array fields correctly', () => {
+                            const config = versionPage.constructor.FIELD_CONFIG;
+
+                            // These should be arrays
+                            expect(config.tags.isArray).to.be.true;
+                            expect(config.prices.isArray).to.be.true;
+                            expect(config.ctas.isArray).to.be.true;
+                            expect(config.mnemonicIcon.isArray).to.be.true;
+
+                            // These should not be arrays
+                            expect(config.title.isArray).to.be.false;
+                            expect(config.cardTitle.isArray).to.be.false;
+                            expect(config.badge.isArray).to.be.false;
+                        });
+                    });
+
+                    describe('getFieldLabel', () => {
+                        beforeEach(async () => {
+                            versionPage = await fixture(html`<version-page></version-page>`);
+                        });
+
+                        it('should return user-friendly labels for known fields', () => {
+                            expect(versionPage.getFieldLabel('title')).to.equal('Fragment Title');
+                            expect(versionPage.getFieldLabel('cardTitle')).to.equal('Title');
+                            expect(versionPage.getFieldLabel('prices')).to.equal('Prices');
+                            expect(versionPage.getFieldLabel('badge')).to.equal('Badge');
+                        });
+
+                        it('should return the field name for unknown fields', () => {
+                            expect(versionPage.getFieldLabel('unknownField')).to.equal('unknownField');
+                        });
+                    });
+
+                    describe('getFieldVisible', () => {
+                        beforeEach(async () => {
+                            versionPage = await fixture(html`<version-page></version-page>`);
+                        });
+
+                        it('should return true for visible fields', () => {
+                            expect(versionPage.getFieldVisible('cardTitle')).to.be.true;
+                            expect(versionPage.getFieldVisible('prices')).to.be.true;
+                            expect(versionPage.getFieldVisible('badge')).to.be.true;
+                        });
+
+                        it('should return false for non-visible fields', () => {
+                            expect(versionPage.getFieldVisible('title')).to.be.false;
+                            expect(versionPage.getFieldVisible('tags')).to.be.false;
+                            expect(versionPage.getFieldVisible('variant')).to.be.false;
+                        });
+
+                        it('should return false for unknown fields', () => {
+                            expect(versionPage.getFieldVisible('unknownField')).to.be.false;
+                        });
+                    });
+
+                    describe('formatFieldValue', () => {
+                        beforeEach(async () => {
+                            versionPage = await fixture(html`<version-page></version-page>`);
+                        });
+
+                        it('should return "N/A" for null or undefined', () => {
+                            expect(versionPage.formatFieldValue(null)).to.equal('N/A');
+                            expect(versionPage.formatFieldValue(undefined)).to.equal('N/A');
+                        });
+
+                        it('should join array values with comma', () => {
+                            expect(versionPage.formatFieldValue(['tag1', 'tag2', 'tag3'])).to.equal('tag1, tag2, tag3');
+                            expect(versionPage.formatFieldValue(['single'])).to.equal('single');
+                            expect(versionPage.formatFieldValue([])).to.equal('');
+                        });
+
+                        it('should join object values with comma', () => {
+                            expect(versionPage.formatFieldValue({ a: 'value1', b: 'value2' })).to.equal('value1, value2');
+                        });
+
+                        it('should convert primitives to string', () => {
+                            expect(versionPage.formatFieldValue('test')).to.equal('test');
+                            expect(versionPage.formatFieldValue(123)).to.equal('123');
+                            expect(versionPage.formatFieldValue(true)).to.equal('true');
+                        });
+                    });
+
+                    describe('normalizeFields', () => {
+                        beforeEach(async () => {
+                            versionPage = await fixture(html`<version-page></version-page>`);
+                        });
+
+                        it('should return fields object if already normalized', () => {
+                            const data = {
+                                fields: { title: 'Test', description: 'Description' },
+                            };
+                            const result = versionPage.normalizeFields(data);
+                            expect(result).to.deep.equal(data.fields);
+                        });
+
+                        it('should convert elements array to fields object', () => {
+                            const data = {
+                                elements: [
+                                    { name: 'title', value: 'Test Title' },
+                                    { name: 'description', values: ['Test Description'] },
+                                ],
+                            };
+                            const result = versionPage.normalizeFields(data);
+                            expect(result.title).to.equal('Test Title');
+                            expect(result.description).to.deep.equal(['Test Description']);
+                        });
+
+                        it('should ensure array fields are arrays', () => {
+                            const data = {
+                                elements: [
+                                    { name: 'tags', value: 'single-tag' }, // Should become array
+                                    { name: 'prices', values: ['$10'] }, // Should stay array
+                                ],
+                            };
+                            const result = versionPage.normalizeFields(data);
+                            expect(result.tags).to.be.an('array');
+                            expect(result.tags).to.deep.equal(['single-tag']);
+                            expect(result.prices).to.be.an('array');
+                            expect(result.prices).to.deep.equal(['$10']);
+                        });
+                    });
+
+                    describe('calculateDifferences', () => {
+                        beforeEach(async () => {
+                            versionPage = await fixture(html`<version-page></version-page>`);
+                        });
+
+                        it('should return empty array if no data provided', () => {
+                            expect(versionPage.calculateDifferences(null, null)).to.deep.equal([]);
+                            expect(versionPage.calculateDifferences({}, null)).to.deep.equal([]);
+                            expect(versionPage.calculateDifferences(null, {})).to.deep.equal([]);
+                        });
+
+                        it('should detect changes in simple fields', () => {
+                            const current = {
+                                fields: { title: 'Old Title', description: 'Same' },
+                            };
+                            const selected = {
+                                fields: { title: 'New Title', description: 'Same' },
+                            };
+                            const diffs = versionPage.calculateDifferences(current, selected);
+
+                            expect(diffs).to.have.lengthOf(1);
+                            expect(diffs[0].field).to.equal('title');
+                            expect(diffs[0].currentValue).to.equal('Old Title');
+                            expect(diffs[0].selectedValue).to.equal('New Title');
+                        });
+
+                        it('should extract last segment from tags', () => {
+                            const current = {
+                                fields: { tags: ['caas:content-type/blog'] },
+                            };
+                            const selected = {
+                                fields: { tags: ['caas:content-type/article'] },
+                            };
+                            const diffs = versionPage.calculateDifferences(current, selected);
+
+                            expect(diffs).to.have.lengthOf(1);
+                            expect(diffs[0].field).to.equal('tags');
+                            expect(diffs[0].selectedValue).to.deep.equal(['article']);
+                        });
+
+                        it('should not report unchanged fields', () => {
+                            const current = {
+                                fields: { title: 'Same', description: 'Same', badge: 'Same' },
+                            };
+                            const selected = {
+                                fields: { title: 'Same', description: 'Same', badge: 'Same' },
+                            };
+                            const diffs = versionPage.calculateDifferences(current, selected);
+
+                            expect(diffs).to.have.lengthOf(0);
+                        });
+                    });
+
+                    describe('rendering', () => {
+                        beforeEach(async () => {
+                            versionPage = await fixture(html`<version-page></version-page>`);
+                        });
+
+                        it('should render version page structure', () => {
+                            expect(versionPage).to.exist;
+
+                            const wrapper = versionPage.querySelector('.version-page-wrapper');
+                            expect(wrapper).to.exist;
+                        });
+
+                        it('should have breadcrumbs in header', () => {
+                            const breadcrumbs = versionPage.querySelector('sp-breadcrumbs');
+                            expect(breadcrumbs).to.exist;
+                        });
+
+                        it('should have version list panel', () => {
+                            const panel = versionPage.querySelector('.version-list-panel');
+                            expect(panel).to.exist;
+                        });
+
+                        it('should have preview panel', () => {
+                            const panel = versionPage.querySelector('.preview-panel');
+                            expect(panel).to.exist;
+                        });
+
+                        it('should have search input', () => {
+                            const search = versionPage.querySelector('sp-search');
+                            expect(search).to.exist;
+                        });
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

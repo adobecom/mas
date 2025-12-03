@@ -1,7 +1,6 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { Fragment } from '../aem/fragment.js';
-import { FragmentStore } from '../reactivity/fragment-store.js';
 import { styles } from './merch-card-collection-editor.css.js';
 import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH, VARIANT_CAPABILITIES } from '../constants.js';
 import Store, { editFragment } from '../store.js';
@@ -665,8 +664,8 @@ class MerchCardCollectionEditor extends LitElement {
             // Add the new reference
             this.fragment.references = [...(this.fragment.references || []), fragmentData];
 
-            // Create a FragmentStore for the new reference
-            this.#fragmentReferencesMap.set(fragmentData.path, new FragmentStore(new Fragment(fragmentData)));
+            // Create a fragment store with preview support for the new reference
+            this.#fragmentReferencesMap.set(fragmentData.path, generateFragmentStore(new Fragment(fragmentData)));
         }
     }
 

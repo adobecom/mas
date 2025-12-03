@@ -305,6 +305,10 @@ mas-content {
     gap: 15px;
 }
 
+sp-table-row {
+    border-bottom: 1px solid var(--spectrum-gray-100);
+}
+
 sp-table-cell {
     display: flex;
     align-items: center;
@@ -321,9 +325,19 @@ sp-table-cell {
             background: none;
             border: none;
             cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--spectrum-gray-800);
 
             &:hover {
                 transform: scale(1.1);
+            }
+
+            sp-icon-chevron-down,
+            sp-icon-chevron-right {
+                color: inherit;
             }
         }
     }

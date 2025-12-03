@@ -6,17 +6,6 @@ export const styles = `
     position: relative;
 }
 
-.expanded-content::before {
-    content: '';
-    position: absolute;
-    left: 30px;
-    top: 0;
-    bottom: 0;
-    width: 12px;
-    background: linear-gradient(to right, #e5f0fe 0%, transparent 100%);
-    border-radius: 4px 0 0 4px;
-}
-
 .expanded-title {
     font-size: 14px;
     font-weight: 700;

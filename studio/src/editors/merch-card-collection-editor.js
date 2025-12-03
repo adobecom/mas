@@ -664,8 +664,10 @@ class MerchCardCollectionEditor extends LitElement {
             // Add the new reference
             this.fragment.references = [...(this.fragment.references || []), fragmentData];
 
-            // Create a fragment store with preview support for the new reference
-            this.#fragmentReferencesMap.set(fragmentData.path, generateFragmentStore(new Fragment(fragmentData)));
+            // Create a FragmentStore for the new reference
+            const newFragment = new Fragment(fragmentData);
+            const newFragmentStore = generateFragmentStore(newFragment);
+            this.#fragmentReferencesMap.set(fragmentData.path, newFragmentStore);
         }
     }
 

@@ -96,6 +96,9 @@ class MerchCardEditor extends LitElement {
     }
 
     renderOverrideIndicator(fieldName) {
+        if (this.isVariation && !this.localeDefaultFragment) {
+            return nothing;
+        }
         const state = this.getFieldState(fieldName);
         const isOverridden = state === 'overridden';
         return html`
@@ -348,12 +351,6 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
-        if (this.fragmentStore?.previewStore?.isResolving?.()) {
-            return html`<div class="loading-container">
-                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-            </div>`;
-        }
-
         const form = this.getFormWithInheritance();
         return html`
             <style>
@@ -404,13 +401,6 @@ class MerchCardEditor extends LitElement {
 
                 #whatsIncluded sp-textfield {
                     margin-bottom: 16px;
-                }
-
-                .loading-container {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 40px;
                 }
 
                 .menu-item-container {

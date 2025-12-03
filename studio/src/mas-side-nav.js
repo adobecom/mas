@@ -149,23 +149,18 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.publishFragment();
     }
 
-    async unpublishFragment() {
-        Events.toast.emit({
-            variant: 'info',
-            content: 'Unpublish feature coming soon',
-        });
-    }
-
     async copyCode() {
         if (!this.fragmentEditor) return;
         await this.fragmentEditor.copyToUse();
     }
 
     async showHistory() {
-        Events.toast.emit({
-            variant: 'info',
-            content: 'History feature coming soon',
-        });
+        const editorPanel = document.querySelector('editor-panel');
+        const versionHistory =
+            editorPanel?.querySelector('version-history') || this.fragmentEditor?.querySelector('version-history');
+        if (versionHistory) {
+            versionHistory.togglePanel();
+        }
     }
 
     async unlockFragment() {
@@ -247,7 +242,7 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Publish" @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Unpublish" @nav-click="${this.unpublishFragment}">
+            <mas-side-nav-item label="Unpublish" disabled>
                 <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
             </mas-side-nav-item>
             <mas-side-nav-item label="Copy Code" @nav-click="${this.copyCode}">

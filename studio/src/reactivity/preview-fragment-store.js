@@ -6,6 +6,7 @@ import { Fragment } from '../aem/fragment.js';
 export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
     placeholderUnsubscribe = null;
+    holdResolution = false;
     #resolving = false;
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
@@ -13,10 +14,12 @@ export class PreviewFragmentStore extends FragmentStore {
     /**
      * @param {Fragment} initialValue
      * @param {(value: any) => any} validator
+     * @param {{ skipAutoResolve?: boolean }} options
      */
-    constructor(initialValue, validator) {
+    constructor(initialValue, validator, options = {}) {
         const fragmentInstance = initialValue instanceof Fragment ? initialValue : new Fragment(initialValue);
         super(fragmentInstance, validator);
+        this.holdResolution = options.skipAutoResolve || false;
 
         this.placeholderUnsubscribe = Store.placeholders.preview.subscribe(() => {
             if (!this.resolved && Store.placeholders.preview.value) {
@@ -24,7 +27,9 @@ export class PreviewFragmentStore extends FragmentStore {
             }
         });
 
-        this.resolveFragment();
+        if (!options.skipAutoResolve) {
+            this.resolveFragment();
+        }
     }
 
     set(value) {
@@ -82,6 +87,11 @@ export class PreviewFragmentStore extends FragmentStore {
         return this.#resolving;
     }
 
+    releaseHold() {
+        this.holdResolution = false;
+        this.resolveFragment();
+    }
+
     resolveFragment() {
         clearTimeout(this.#resolveDebounceTimer);
         this.#resolveDebounceTimer = setTimeout(() => {
@@ -90,7 +100,7 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     #doResolveFragment() {
-        if (this.#resolving) {
+        if (this.#resolving || this.holdResolution) {
             return;
         }
 

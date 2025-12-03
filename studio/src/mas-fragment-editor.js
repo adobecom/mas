@@ -11,6 +11,7 @@ import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
+import './editors/version-panel.js';
 import './mas-variation-dialog.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
@@ -220,6 +221,64 @@ export default class MasFragmentEditor extends LitElement {
             font-size: 14px;
             color: var(--spectrum-global-color-gray-700);
         }
+
+        .preview-skeleton {
+            width: 300px;
+            min-height: 400px;
+            background: var(--spectrum-gray-100);
+            border-radius: 8px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .skeleton-element {
+            background: linear-gradient(
+                90deg,
+                var(--spectrum-gray-200) 25%,
+                var(--spectrum-gray-100) 50%,
+                var(--spectrum-gray-200) 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .skeleton-header {
+            height: 24px;
+            width: 60%;
+        }
+
+        .skeleton-subtitle {
+            height: 16px;
+            width: 40%;
+        }
+
+        .skeleton-body {
+            height: 80px;
+            width: 100%;
+        }
+
+        .skeleton-price {
+            height: 32px;
+            width: 50%;
+        }
+
+        .skeleton-cta {
+            height: 40px;
+            width: 100%;
+            margin-top: auto;
+        }
     `;
 
     static properties = {
@@ -233,7 +292,12 @@ export default class MasFragmentEditor extends LitElement {
         localeDefaultFragment: { type: Object, state: true },
         localeDefaultFragmentLoading: { type: Boolean, state: true },
         previewResolved: { type: Boolean, state: true },
+        previewLazyLoaded: { type: Boolean, state: true },
         variationsToDelete: { type: Array, state: true },
+        fragmentVersions: { type: Array, state: true },
+        selectedVersion: { type: String, state: true },
+        versionsLoading: { type: Boolean, state: true },
+        contextLoaded: { type: Boolean, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -257,8 +321,14 @@ export default class MasFragmentEditor extends LitElement {
         this.cloneInProgress = false;
         this.localeDefaultFragment = null;
         this.previewResolved = false;
+        this.previewLazyLoaded = false;
+        this.previewLazyLoadTimer = null;
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
+        this.fragmentVersions = [];
+        this.selectedVersion = '';
+        this.versionsLoading = false;
+        this.contextLoaded = false;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -296,6 +366,10 @@ export default class MasFragmentEditor extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.fragmentEditor.fragmentId.unsubscribe(this.handleFragmentIdChange);
+        if (this.previewLazyLoadTimer) {
+            clearTimeout(this.previewLazyLoadTimer);
+            this.previewLazyLoadTimer = null;
+        }
     }
 
     willUpdate(changedProperties) {
@@ -336,6 +410,35 @@ export default class MasFragmentEditor extends LitElement {
         if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR && newFragmentId && newFragmentId !== this.fragmentId) {
             this.initFragment();
         }
+    }
+
+    startLazyPreviewLoading() {
+        if (this.previewLazyLoadTimer) {
+            clearTimeout(this.previewLazyLoadTimer);
+        }
+        this.previewLazyLoaded = false;
+        this.previewLazyLoadTimer = setTimeout(() => {
+            this.previewLazyLoaded = true;
+            if (this.contextLoaded && !this.editorContextStore.isVariation(this.fragmentId)) {
+                this.fragmentStore?.previewStore?.resolveFragment();
+            }
+        }, 300);
+    }
+
+    get previewSkeleton() {
+        return html`
+            <div id="preview-column">
+                <div class="preview-content">
+                    <div class="preview-skeleton">
+                        <div class="skeleton-element skeleton-header"></div>
+                        <div class="skeleton-element skeleton-subtitle"></div>
+                        <div class="skeleton-element skeleton-body"></div>
+                        <div class="skeleton-element skeleton-price"></div>
+                        <div class="skeleton-element skeleton-cta"></div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     get repository() {
@@ -476,58 +579,61 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         this.fragmentId = fragmentId;
-
-        // DEFENSE LAYER 1: Ensure placeholders are loaded before proceeding
-        // This prevents race condition where PreviewFragmentStore attempts resolution before placeholders are ready
-        try {
-            await this.repository.loadPreviewPlaceholders();
-        } catch (error) {
-            // Continue anyway - Layer 2 (subscription) will handle retry if needed
-        }
+        this.previewLazyLoaded = false;
+        this.previewResolved = false;
+        this.contextLoaded = false;
 
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+        let fragmentStore;
 
         if (existingStore) {
-            await this.repository.refreshFragment(existingStore);
-            this.inEdit.set(existingStore);
-
-            // Load context to get parent ID from fragmentsIds['default-locale-id']
-            await this.editorContextStore.loadFragmentContext(fragmentId);
-            const isVariation = this.editorContextStore.isVariation(fragmentId);
-            if (isVariation) {
-                this.localeDefaultFragmentLoading = true;
+            if (existingStore.previewStore) {
+                existingStore.previewStore.resolved = false;
             }
-
-            await this.fetchLocaleDefaultFragment();
+            this.repository.refreshFragment(existingStore).then(() => {
+                this.dispatchFragmentLoaded();
+            });
+            fragmentStore = existingStore;
+            this.inEdit.set(existingStore);
             this.reactiveController.updateStores([this.inEdit, existingStore, existingStore.previewStore, this.operation]);
-            this.previewResolved = existingStore.previewStore?.resolved || false;
-            this.requestUpdate();
         } else {
             try {
                 const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
                 const fragment = new Fragment(fragmentData);
-                const fragmentStore = generateFragmentStore(fragment);
+                fragmentStore = generateFragmentStore(fragment, { skipAutoResolve: true });
                 Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
                 this.inEdit.set(fragmentStore);
-
-                // Load context to get parent ID from fragmentsIds['default-locale-id']
-                await this.editorContextStore.loadFragmentContext(fragmentId);
-                const isVariation = this.editorContextStore.isVariation(fragmentId);
-                if (isVariation) {
-                    this.localeDefaultFragmentLoading = true;
-                }
-
-                await this.fetchLocaleDefaultFragment();
                 this.reactiveController.updateStores([this.inEdit, fragmentStore, fragmentStore.previewStore, this.operation]);
-                this.previewResolved = fragmentStore.previewStore?.resolved || false;
-                this.requestUpdate();
+                this.dispatchFragmentLoaded();
             } catch (error) {
                 console.error('Failed to fetch fragment:', error);
                 showToast(`Failed to load fragment: ${error.message}`, 'negative');
+                return;
             }
         }
 
-        // Dispatch fragment-loaded event to trigger breadcrumb updates
+        this.requestUpdate();
+        this.startLazyPreviewLoading();
+
+        this.repository.loadPreviewPlaceholders().catch(() => {});
+
+        this.editorContextStore.loadFragmentContext(fragmentId).then(() => {
+            this.contextLoaded = true;
+            const isVariation = this.editorContextStore.isVariation(fragmentId);
+            if (isVariation) {
+                this.localeDefaultFragmentLoading = true;
+                this.fetchLocaleDefaultFragment().then(() => {
+                    this.requestUpdate();
+                });
+            } else {
+                this.fragmentStore?.previewStore?.releaseHold?.();
+            }
+        });
+
+        this.loadFragmentVersions();
+    }
+
+    dispatchFragmentLoaded() {
         this.dispatchEvent(
             new CustomEvent('fragment-loaded', {
                 bubbles: true,
@@ -601,8 +707,8 @@ export default class MasFragmentEditor extends LitElement {
             }
         });
 
-        // Trigger preview resolution with all merged fields
-        fragmentStore.previewStore.resolveFragment();
+        this.previewLazyLoaded = true;
+        fragmentStore.previewStore.releaseHold?.();
     }
 
     async navigateToLocaleDefaultFragment() {
@@ -790,6 +896,60 @@ export default class MasFragmentEditor extends LitElement {
         } catch (e) {
             showToast('Failed to copy code to clipboard', 'negative');
         }
+    }
+
+    async loadFragmentVersions() {
+        if (!this.fragment?.id) return;
+        this.versionsLoading = true;
+        try {
+            const versions = await this.repository.aem.sites.cf.fragments.getVersions(this.fragment.id);
+            this.fragmentVersions = versions.items || [];
+            if (this.fragmentVersions.length > 0) {
+                this.selectedVersion = this.fragmentVersions[0].id;
+            }
+        } catch (error) {
+            console.error('Failed to load fragment versions:', error);
+            this.fragmentVersions = [];
+            showToast('Failed to load fragment versions', 'negative');
+        } finally {
+            this.versionsLoading = false;
+        }
+    }
+
+    async handleVersionChange(event) {
+        const { versionId, version } = event.detail;
+        this.selectedVersion = versionId;
+
+        if (version && versionId) {
+            try {
+                const versionFragment = await this.repository.aem.sites.cf.fragments.getVersion(this.fragment.id, versionId);
+                if (versionFragment) {
+                    this.fragmentStore.refreshFrom(versionFragment);
+                    this.fragmentStore.value.hasChanges = true;
+                    this.fragmentStore.notify();
+                    showToast(`Switched to version ${version.title || versionId}. Save to apply changes.`, 'positive');
+                }
+            } catch (error) {
+                console.error('Failed to load fragment version:', error);
+                showToast('Failed to load fragment version', 'negative');
+            }
+        }
+    }
+
+    handleVersionUpdated(event) {
+        const { version } = event.detail;
+        const versionIndex = this.fragmentVersions.findIndex((v) => v.id === version.id);
+        if (versionIndex !== -1) {
+            this.fragmentVersions[versionIndex] = version;
+            this.fragmentVersions = [...this.fragmentVersions];
+        }
+        showToast(`Version "${version.title}" updated successfully`, 'positive');
+    }
+
+    handleVersionUpdateError(event) {
+        const { error } = event.detail;
+        console.error('Version update failed:', error);
+        showToast(`Failed to update version: ${error}`, 'negative');
     }
 
     get deleteConfirmationDialog() {
@@ -1007,19 +1167,6 @@ export default class MasFragmentEditor extends LitElement {
     get fragmentEditor() {
         if (!this.fragment) return nothing;
 
-        if (this.editorContextStore.isVariation(this.fragment.id) && this.localeDefaultFragmentLoading) {
-            return html`
-                ${this.derivedFromContainer}
-                <div class="section">
-                    ${this.localeVariationHeader}
-                    <div class="loading-container">
-                        <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-                        <div class="loading-text">Loading locale default fragment...</div>
-                    </div>
-                </div>
-            `;
-        }
-
         let editorContent = nothing;
 
         switch (this.fragment.model.path) {
@@ -1054,8 +1201,8 @@ export default class MasFragmentEditor extends LitElement {
     get previewColumn() {
         if (!this.fragment || this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
-        if (!this.previewResolved) {
-            return html` <sp-progress-circle class="preview-loading-standalone" indeterminate size="l"></sp-progress-circle> `;
+        if (!this.previewLazyLoaded || !this.previewResolved) {
+            return this.previewSkeleton;
         }
 
         const attrs = this.previewAttributes;
@@ -1168,6 +1315,17 @@ export default class MasFragmentEditor extends LitElement {
                 </div>
                 ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
                 ${this.copyVariationDialog}
+                <version-history
+                    hide-button
+                    .versions="${this.fragmentVersions}"
+                    .selectedVersion="${this.selectedVersion}"
+                    .loading="${this.versionsLoading}"
+                    .fragmentId="${this.fragment.id}"
+                    .repository="${this.repository}"
+                    @version-change="${this.handleVersionChange}"
+                    @version-updated="${this.handleVersionUpdated}"
+                    @version-update-error="${this.handleVersionUpdateError}"
+                ></version-history>
             </div>
         `;
     }

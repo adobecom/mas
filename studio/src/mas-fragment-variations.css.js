@@ -10,12 +10,8 @@ export const styles = `
     font-size: 14px;
     font-weight: 700;
     line-height: 18px;
-    color: #292929;
+    color: var(--spectrum-gray-800);
     margin: 0 0 16px 0;
-    padding-left: 16px;
-}
-
-.expanded-content sp-tabs {
     padding-left: 16px;
 }
 
@@ -26,7 +22,7 @@ export const styles = `
 
 #content .expanded-content sp-table {
     margin-top: 16px;
-    background-color: #e5f0fe;
+    background-color: var(--spectrum-blue-100);
     border: none;
 }
 
@@ -56,11 +52,11 @@ export const styles = `
 
 /* Nested table rows styling */
 #content .expanded-content .nested-fragment sp-table-row {
-    background-color: var(--spectrum-blue-50);
-    border-bottom: 1px solid var(--spectrum-blue-100);
+    background-color: var(--spectrum-blue-200);
+    border-bottom: 1px solid var(--spectrum-gray-200);
 }
 
 #content .expanded-content .nested-fragment sp-table-row:hover {
-    background-color: var(--spectrum-blue-100);
+    background-color: var(--spectrum-blue-400);
 }
 `;

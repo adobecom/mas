@@ -276,8 +276,14 @@ class VersionPage extends LitElement {
             flex-direction: column;
             background: white;
             border-radius: 16px;
-            border: 1px solid #d4d4d4;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .preview-column.current {
+            border: 2px solid #268e6c;
+        }
+
+        .preview-column.selected {
+            border: 2px solid #378ef0;
         }
 
         .preview-column-header {
@@ -987,7 +993,7 @@ class VersionPage extends LitElement {
 
         // Show only spinner while loading OR if card isn't hydrated yet (but still render card hidden)
         const showSpinner = !version.isCurrent && (this.loadingVersionData || !isCardHydrated);
-        console.log('differences', differences);
+
         return html`
             <div class="fragment-preview-wrapper">
                 ${isCard

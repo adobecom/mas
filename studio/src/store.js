@@ -141,7 +141,11 @@ export function toggleSelection(id) {
  * Edit a fragment in the editor panel
  */
 export function editFragment(store, x = 0) {
-    if (!Store.fragments.list.data.get().includes(store)) {
+    const fragmentId = store.get().id;
+    const storeFragments = Store.fragments.list.data.get();
+    const defaultInStore = storeFragments.includes(store);
+    const variationInStore = storeFragments.find((s) => s.get().references?.find((r) => r.id === fragmentId));
+    if (!defaultInStore && !variationInStore) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }
     editorPanel()?.editFragment(store, x);

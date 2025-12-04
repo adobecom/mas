@@ -1,5 +1,3 @@
-import { expect } from '@playwright/test';
-
 export default class VersionPage {
     constructor(page) {
         this.page = page;

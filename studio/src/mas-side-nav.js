@@ -187,7 +187,11 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-bookmark slot="icon"></sp-icon-bookmark>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Localization" disabled>
+            <mas-side-nav-item
+                label="Localization"
+                ?selected=${Store.page.get() === PAGE_NAMES.LOCALIZATION}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.LOCALIZATION)}"
+            >
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
             <mas-side-nav-item

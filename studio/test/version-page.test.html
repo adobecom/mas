@@ -35,9 +35,30 @@
             import '../src/swc.js';
             import '../src/version-page.js';
             import '../src/mas-repository.js';
+            import '../src/version-repository.js';
+            import {
+                normalizeFields,
+                denormalizeFields,
+                calculateDifferences,
+                formatFieldValue,
+                getFieldLabel,
+                getFieldVisible,
+                setFieldConfig,
+            } from '../src/utils/version-transformer.js';
             import Store from '../src/store.js';
 
             runTests(() => {
+                // Initialize field config for tests
+                setFieldConfig({
+                    title: { label: 'Fragment Title', isArray: false, visible: false },
+                    description: { label: 'Fragment Description', isArray: false, visible: false },
+                    tags: { label: 'Tags', isArray: true, visible: false },
+                    cardTitle: { label: 'Title', isArray: false, visible: true },
+                    prices: { label: 'Prices', isArray: true, visible: true },
+                    ctas: { label: 'Footer', isArray: true, visible: true },
+                    badge: { label: 'Badge', isArray: false, visible: true },
+                });
+
                 describe('version-page', () => {
                     let versionPage;
                     let sandbox;
@@ -111,82 +132,65 @@
                         });
                     });
 
-                    describe('getFieldLabel', () => {
-                        beforeEach(async () => {
-                            versionPage = await fixture(html`<version-page></version-page>`);
-                        });
-
+                    describe('getFieldLabel (utility)', () => {
                         it('should return user-friendly labels for known fields', () => {
-                            expect(versionPage.getFieldLabel('title')).to.equal('Fragment Title');
-                            expect(versionPage.getFieldLabel('cardTitle')).to.equal('Title');
-                            expect(versionPage.getFieldLabel('prices')).to.equal('Prices');
-                            expect(versionPage.getFieldLabel('badge')).to.equal('Badge');
+                            expect(getFieldLabel('title')).to.equal('Fragment Title');
+                            expect(getFieldLabel('cardTitle')).to.equal('Title');
+                            expect(getFieldLabel('prices')).to.equal('Prices');
+                            expect(getFieldLabel('badge')).to.equal('Badge');
                         });
 
                         it('should return the field name for unknown fields', () => {
-                            expect(versionPage.getFieldLabel('unknownField')).to.equal('unknownField');
+                            expect(getFieldLabel('unknownField')).to.equal('unknownField');
                         });
                     });
 
-                    describe('getFieldVisible', () => {
-                        beforeEach(async () => {
-                            versionPage = await fixture(html`<version-page></version-page>`);
-                        });
-
+                    describe('getFieldVisible (utility)', () => {
                         it('should return true for visible fields', () => {
-                            expect(versionPage.getFieldVisible('cardTitle')).to.be.true;
-                            expect(versionPage.getFieldVisible('prices')).to.be.true;
-                            expect(versionPage.getFieldVisible('badge')).to.be.true;
+                            expect(getFieldVisible('cardTitle')).to.be.true;
+                            expect(getFieldVisible('prices')).to.be.true;
+                            expect(getFieldVisible('badge')).to.be.true;
                         });
 
                         it('should return false for non-visible fields', () => {
-                            expect(versionPage.getFieldVisible('title')).to.be.false;
-                            expect(versionPage.getFieldVisible('tags')).to.be.false;
-                            expect(versionPage.getFieldVisible('variant')).to.be.false;
+                            expect(getFieldVisible('title')).to.be.false;
+                            expect(getFieldVisible('tags')).to.be.false;
                         });
 
                         it('should return false for unknown fields', () => {
-                            expect(versionPage.getFieldVisible('unknownField')).to.be.false;
+                            expect(getFieldVisible('unknownField')).to.be.false;
                         });
                     });
 
-                    describe('formatFieldValue', () => {
-                        beforeEach(async () => {
-                            versionPage = await fixture(html`<version-page></version-page>`);
-                        });
-
+                    describe('formatFieldValue (utility)', () => {
                         it('should return "N/A" for null or undefined', () => {
-                            expect(versionPage.formatFieldValue(null)).to.equal('N/A');
-                            expect(versionPage.formatFieldValue(undefined)).to.equal('N/A');
+                            expect(formatFieldValue(null)).to.equal('N/A');
+                            expect(formatFieldValue(undefined)).to.equal('N/A');
                         });
 
                         it('should join array values with comma', () => {
-                            expect(versionPage.formatFieldValue(['tag1', 'tag2', 'tag3'])).to.equal('tag1, tag2, tag3');
-                            expect(versionPage.formatFieldValue(['single'])).to.equal('single');
-                            expect(versionPage.formatFieldValue([])).to.equal('');
+                            expect(formatFieldValue(['tag1', 'tag2', 'tag3'])).to.equal('tag1, tag2, tag3');
+                            expect(formatFieldValue(['single'])).to.equal('single');
+                            expect(formatFieldValue([])).to.equal('');
                         });
 
                         it('should join object values with comma', () => {
-                            expect(versionPage.formatFieldValue({ a: 'value1', b: 'value2' })).to.equal('value1, value2');
+                            expect(formatFieldValue({ a: 'value1', b: 'value2' })).to.equal('value1, value2');
                         });
 
                         it('should convert primitives to string', () => {
-                            expect(versionPage.formatFieldValue('test')).to.equal('test');
-                            expect(versionPage.formatFieldValue(123)).to.equal('123');
-                            expect(versionPage.formatFieldValue(true)).to.equal('true');
+                            expect(formatFieldValue('test')).to.equal('test');
+                            expect(formatFieldValue(123)).to.equal('123');
+                            expect(formatFieldValue(true)).to.equal('true');
                         });
                     });
 
-                    describe('normalizeFields', () => {
-                        beforeEach(async () => {
-                            versionPage = await fixture(html`<version-page></version-page>`);
-                        });
-
+                    describe('normalizeFields (utility)', () => {
                         it('should return fields object if already normalized', () => {
                             const data = {
                                 fields: { title: 'Test', description: 'Description' },
                             };
-                            const result = versionPage.normalizeFields(data);
+                            const result = normalizeFields(data);
                             expect(result).to.deep.equal(data.fields);
                         });
 
@@ -198,31 +202,25 @@
                                     { name: 'prices', values: ['$10', '$20'] },
                                 ],
                             };
-                            const result = versionPage.normalizeFields(data);
+                            const result = normalizeFields(data);
                             expect(result.title).to.equal('Test Title');
-                            // description is not an array field, so single-element arrays get unwrapped
                             expect(result.description).to.equal('Test Description');
-                            // prices is an array field (isArray: true), but for non-array fields
-                            // with multiple values, it takes the first element
                             expect(result.prices).to.be.an('array');
                         });
 
                         it('should ensure array fields stay as arrays', () => {
                             const data = {
                                 elements: [
-                                    { name: 'tags', value: 'single-tag' }, // Should become array (tags is array field)
-                                    { name: 'prices', values: ['$10'] }, // Should stay array (prices is array field)
-                                    { name: 'ctas', values: [] }, // Empty array should stay as array
+                                    { name: 'tags', value: 'single-tag' },
+                                    { name: 'prices', values: ['$10'] },
+                                    { name: 'ctas', values: [] },
                                 ],
                             };
-                            const result = versionPage.normalizeFields(data);
-                            // tags has isArray: true, so even a single value becomes an array
+                            const result = normalizeFields(data);
                             expect(result.tags).to.be.an('array');
                             expect(result.tags).to.deep.equal(['single-tag']);
-                            // prices has isArray: true, so stays as array
                             expect(result.prices).to.be.an('array');
                             expect(result.prices).to.deep.equal(['$10']);
-                            // ctas has isArray: true, so even empty stays as array
                             expect(result.ctas).to.be.an('array');
                             expect(result.ctas).to.deep.equal([]);
                         });
@@ -230,26 +228,21 @@
                         it('should unwrap single-element arrays for non-array fields', () => {
                             const data = {
                                 elements: [
-                                    { name: 'title', values: ['Single Title'] }, // Non-array field
-                                    { name: 'badge', values: ['Best Value'] }, // Non-array field
+                                    { name: 'title', values: ['Single Title'] },
+                                    { name: 'badge', values: ['Best Value'] },
                                 ],
                             };
-                            const result = versionPage.normalizeFields(data);
-                            // Non-array fields with single-element arrays get unwrapped
+                            const result = normalizeFields(data);
                             expect(result.title).to.equal('Single Title');
                             expect(result.badge).to.equal('Best Value');
                         });
                     });
 
-                    describe('calculateDifferences', () => {
-                        beforeEach(async () => {
-                            versionPage = await fixture(html`<version-page></version-page>`);
-                        });
-
+                    describe('calculateDifferences (utility)', () => {
                         it('should return empty array if no data provided', () => {
-                            expect(versionPage.calculateDifferences(null, null)).to.deep.equal([]);
-                            expect(versionPage.calculateDifferences({}, null)).to.deep.equal([]);
-                            expect(versionPage.calculateDifferences(null, {})).to.deep.equal([]);
+                            expect(calculateDifferences(null, null)).to.deep.equal([]);
+                            expect(calculateDifferences({}, null)).to.deep.equal([]);
+                            expect(calculateDifferences(null, {})).to.deep.equal([]);
                         });
 
                         it('should detect changes in simple fields', () => {
@@ -259,7 +252,7 @@
                             const selected = {
                                 fields: { title: 'New Title', description: 'Same' },
                             };
-                            const diffs = versionPage.calculateDifferences(current, selected);
+                            const diffs = calculateDifferences(current, selected);
 
                             expect(diffs).to.have.lengthOf(1);
                             expect(diffs[0].field).to.equal('title');
@@ -274,7 +267,7 @@
                             const selected = {
                                 fields: { tags: ['caas:content-type/article'] },
                             };
-                            const diffs = versionPage.calculateDifferences(current, selected);
+                            const diffs = calculateDifferences(current, selected);
 
                             expect(diffs).to.have.lengthOf(1);
                             expect(diffs[0].field).to.equal('tags');
@@ -288,7 +281,7 @@
                             const selected = {
                                 fields: { title: 'Same', description: 'Same', badge: 'Same' },
                             };
-                            const diffs = versionPage.calculateDifferences(current, selected);
+                            const diffs = calculateDifferences(current, selected);
 
                             expect(diffs).to.have.lengthOf(0);
                         });
@@ -317,11 +310,73 @@
                         });
 
                         it('should have required methods', () => {
-                            expect(versionPage.getFieldLabel).to.be.a('function');
-                            expect(versionPage.getFieldVisible).to.be.a('function');
-                            expect(versionPage.formatFieldValue).to.be.a('function');
-                            expect(versionPage.normalizeFields).to.be.a('function');
-                            expect(versionPage.calculateDifferences).to.be.a('function');
+                            expect(versionPage.loadVersionHistory).to.be.a('function');
+                            expect(versionPage.loadVersionData).to.be.a('function');
+                            expect(versionPage.handleVersionClick).to.be.a('function');
+                            expect(versionPage.handleRestoreVersion).to.be.a('function');
+                            expect(versionPage.hydrateCard).to.be.a('function');
+                        });
+
+                        it('should have versionRepository initialized after connectedCallback', async () => {
+                            const masRepo = document.createElement('mas-repository');
+                            document.body.appendChild(masRepo);
+
+                            const testPage = await fixture(html`<version-page></version-page>`);
+                            await testPage.updateComplete;
+
+                            expect(testPage.versionRepository).to.exist;
+                            expect(testPage.versionRepository.constructor.name).to.equal('VersionRepository');
+
+                            testPage.remove();
+                            masRepo.remove();
+                        });
+                    });
+
+                    describe('VersionRepository', () => {
+                        let mockRepository;
+                        let versionRepo;
+
+                        beforeEach(() => {
+                            mockRepository = {
+                                aem: {
+                                    sites: {
+                                        cf: {
+                                            fragments: {
+                                                getById: sinon.stub(),
+                                                getVersions: sinon.stub(),
+                                                getVersion: sinon.stub(),
+                                                save: sinon.stub(),
+                                            },
+                                        },
+                                    },
+                                },
+                            };
+                            sandbox = sinon.createSandbox();
+                        });
+
+                        it('should search versions by query', () => {
+                            versionRepo = new (await import('../src/version-repository.js')).VersionRepository(
+                                mockRepository,
+                            );
+                            const versions = [
+                                { version: '1.0', createdBy: 'John', comment: 'Initial version' },
+                                { version: '2.0', createdBy: 'Jane', comment: 'Updated design' },
+                                { version: '3.0', createdBy: 'Bob', comment: 'Bug fix' },
+                            ];
+
+                            const results = versionRepo.searchVersions(versions, 'Jane');
+                            expect(results).to.have.lengthOf(1);
+                            expect(results[0].version).to.equal('2.0');
+                        });
+
+                        it('should return all versions when query is empty', () => {
+                            versionRepo = new (await import('../src/version-repository.js')).VersionRepository(
+                                mockRepository,
+                            );
+                            const versions = [{ version: '1.0' }, { version: '2.0' }];
+
+                            const results = versionRepo.searchVersions(versions, '');
+                            expect(results).to.have.lengthOf(2);
                         });
                     });
                 });

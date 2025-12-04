@@ -4,6 +4,16 @@ import Store from './store.js';
 import { PAGE_NAMES, CARD_MODEL_PATH } from './constants.js';
 import router from './router.js';
 import Events from './events.js';
+import { VersionRepository } from './version-repository.js';
+import {
+    setFieldConfig,
+    normalizeFields,
+    denormalizeFields,
+    calculateDifferences,
+    formatFieldValue,
+    getFieldLabel,
+    getFieldVisible,
+} from './utils/version-transformer.js';
 
 class VersionPage extends LitElement {
     static properties = {
@@ -419,8 +429,12 @@ class VersionPage extends LitElement {
         this.loadingVersionData = false;
         this.searchQuery = '';
         this.repository = null;
-        this.pendingHydrations = new Map(); // Track cards that need hydration after render
-        this.hydratedCards = new Set(); // Track which cards have been successfully hydrated
+        this.versionRepository = null;
+        this.pendingHydrations = new Map();
+        this.hydratedCards = new Set();
+
+        // Initialize version transformer with field configuration
+        setFieldConfig(VersionPage.FIELD_CONFIG);
     }
 
     // Disable shadow DOM to allow global styles (like merch-card.css) to apply
@@ -434,6 +448,9 @@ class VersionPage extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.repository = document.querySelector('mas-repository');
+        if (this.repository) {
+            this.versionRepository = new VersionRepository(this.repository);
+        }
     }
 
     updated(changedProperties) {
@@ -473,38 +490,23 @@ class VersionPage extends LitElement {
 
         this.loading = true;
         try {
-            // Load the current fragment using the correct API method
-            this.fragment = await this.repository.aem.sites.cf.fragments.getById(this.fragmentId.value);
+            const { fragment, versions, currentVersion } = await this.versionRepository.loadVersionHistory(
+                this.fragmentId.value,
+            );
 
-            // Create a "current version" from the live fragment
-            this.currentVersion = {
-                id: 'current',
-                version: 'current',
-                created: new Date().toISOString(),
-                createdBy: this.fragment.modifiedBy || 'Unknown',
-                title: 'Current version',
-                comment: 'Includes current changes',
-                isCurrent: true,
-                fragment: this.fragment,
-            };
-
-            // Load version history using the correct API method
-            const versionsResponse = await this.repository.aem.sites.cf.fragments.getVersions(this.fragmentId.value);
-
-            this.versions = [this.currentVersion, ...(versionsResponse.items || [])];
+            this.fragment = fragment;
+            this.versions = versions;
+            this.currentVersion = currentVersion;
 
             // Set the selected version to the first historical version (second item)
             if (this.versions.length > 1) {
                 this.selectedVersion = this.versions[1];
-                // Load the version data for the selected version
                 await this.loadVersionData(this.versions[1]);
             } else {
-                // If there's only current version, select it
                 this.selectedVersion = this.currentVersion;
                 this.selectedVersionData = this.fragment;
             }
         } catch (error) {
-            console.error('Failed to load version history:', error);
             this.versions = [];
             this.fragment = null;
         } finally {
@@ -556,13 +558,10 @@ class VersionPage extends LitElement {
 
         // loadingVersionData is already set to true in handleVersionClick
         try {
-            const versionData = await this.repository.aem.sites.cf.fragments.getVersion(this.fragmentId.value, version.id);
+            const versionData = await this.versionRepository.loadVersionData(this.fragmentId.value, version.id);
             this.selectedVersionData = versionData;
-
-            // Wait for the component to render with new data
             await this.updateComplete;
         } catch (error) {
-            console.error('Failed to load version data:', error);
             this.selectedVersionData = null;
         } finally {
             this.loadingVersionData = false;
@@ -590,46 +589,12 @@ class VersionPage extends LitElement {
                 content: 'Restoring version...',
             });
 
-            // Load the version data if not already loaded
-            let versionData = version.id === this.selectedVersion?.id ? this.selectedVersionData : null;
-            if (!versionData) {
-                versionData = await this.repository.aem.sites.cf.fragments.getVersion(this.fragmentId.value, version.id);
-            }
-
-            // Normalize the version fields (convert elements array to fields object)
-            const normalizedFields = this.normalizeFields(versionData);
-
-            if (!normalizedFields.variant) {
-                throw new Error('Variant field is missing from normalized data. Cannot restore.');
-            }
-
-            // Convert back to AEM array format for saving
-            // Pass current fragment to preserve field types and structure
-            const fieldsArray = this.denormalizeFields(normalizedFields, this.fragment);
-
-            // Update the current fragment with the version data
-            // Keep all fragment properties but replace fields
-            const updatedFragment = {
-                ...this.fragment,
-                fields: fieldsArray,
-            };
-
-            // Save the fragment
-            await this.repository.aem.sites.cf.fragments.save(updatedFragment);
-
-            Events.toast.emit({
-                variant: 'positive',
-                content: `Successfully restored "${versionLabel}"`,
-            });
+            await this.versionRepository.restoreVersion(version, this.fragment, normalizeFields, denormalizeFields);
 
             // Reload the version history to show the new state
             await this.loadVersionHistory();
         } catch (error) {
-            console.error('Failed to restore version:', error);
-            Events.toast.emit({
-                variant: 'negative',
-                content: `Failed to restore version: ${error.message}`,
-            });
+            // Error is already handled in versionRepository
         } finally {
             this.loading = false;
         }
@@ -644,14 +609,8 @@ class VersionPage extends LitElement {
     }
 
     get filteredVersions() {
-        if (!this.searchQuery) return this.versions;
-        return this.versions.filter((version) => {
-            const searchableText = [version.title, version.comment, version.createdBy, this.formatVersionDate(version.created)]
-                .filter(Boolean)
-                .join(' ')
-                .toLowerCase();
-            return searchableText.includes(this.searchQuery);
-        });
+        if (!this.versionRepository) return this.versions;
+        return this.versionRepository.searchVersions(this.versions, this.searchQuery);
     }
 
     formatVersionDate(dateString) {
@@ -763,133 +722,11 @@ class VersionPage extends LitElement {
         `;
     }
 
-    denormalizeFields(fieldsObject, currentFragment) {
-        // Convert flat fields object back to AEM array format for saving
-        // Use current fragment's field definitions to preserve types and structure
-        const fieldsArray = [];
-
-        // Create a map of field names to their definitions from current fragment
-        const fieldDefinitions = new Map();
-        if (currentFragment?.fields && Array.isArray(currentFragment.fields)) {
-            currentFragment.fields.forEach((field) => {
-                fieldDefinitions.set(field.name, field);
-            });
-        }
-
-        for (const [name, value] of Object.entries(fieldsObject)) {
-            // Get the field definition from current fragment (includes type)
-            const fieldDef = fieldDefinitions.get(name);
-            if (!fieldDef) {
-                continue;
-            }
-
-            // Convert values to array format
-            let values;
-            if (Array.isArray(value)) {
-                values = value;
-            } else if (value !== undefined && value !== null) {
-                values = [value];
-            } else {
-                // Skip undefined/null values
-                continue;
-            }
-
-            // Preserve the field structure from current fragment but update values
-            fieldsArray.push({
-                ...fieldDef, // Keep type and other properties
-                values, // Update with new values
-            });
-        }
-
-        return fieldsArray;
-    }
-
-    normalizeFields(data) {
-        // Transform AEM data to fields object format
-        // Check if fields is already an object (not an array)
-        if (data.fields && !Array.isArray(data.fields)) {
-            return data.fields;
-        }
-
-        // Get array fields from centralized config
-        const arrayFields = new Set(
-            Object.entries(VersionPage.FIELD_CONFIG)
-                .filter(([, config]) => config.isArray)
-                .map(([fieldName]) => fieldName),
-        );
-
-        const sourceArray = data.fields || data.elements;
-        if (!Array.isArray(sourceArray)) return {};
-
-        const fields = {};
-        const processFieldValue = (name, value) => {
-            if (arrayFields.has(name)) {
-                fields[name] = Array.isArray(value) ? value : [value];
-            } else if (Array.isArray(value)) {
-                if (value.length === 0) return; // Skip empty arrays for non-array fields
-                if (value.length === 1) {
-                    fields[name] = typeof value[0] === 'object' && value[0] !== null ? value : value[0];
-                } else {
-                    fields[name] = typeof value[0] === 'object' && value[0] !== null ? value : value[0];
-                }
-            } else {
-                fields[name] = value;
-            }
-        };
-
-        sourceArray.forEach((element) => {
-            if (!element.name) return;
-            const value = element.value !== undefined ? element.value : element.values;
-            if (value !== undefined) {
-                processFieldValue(element.name, value);
-            }
-        });
-
-        return fields;
-    }
-
-    calculateDifferences(currentData, selectedData) {
-        if (!currentData || !selectedData) return [];
-
-        const differences = [];
-        const fields = this.normalizeFields(currentData);
-        const selectedFields = this.normalizeFields(selectedData);
-        const allKeys = new Set([...Object.keys(fields), ...Object.keys(selectedFields)]);
-
-        allKeys.forEach((key) => {
-            const currentValue = fields[key];
-            let selectedValue = selectedFields[key];
-
-            // Extract last segment from tags (e.g., 'caas:content-type/blog' → 'blog')
-            if (key === 'tags') {
-                if (Array.isArray(selectedValue)) {
-                    selectedValue = selectedValue.map((tag) => tag.split('/').pop());
-                } else if (typeof selectedValue === 'object' && selectedValue !== null) {
-                    selectedValue = Object.values(selectedValue).map((tag) => tag.split('/').pop());
-                }
-            }
-            const currentStr = JSON.stringify(currentValue);
-            const selectedStr = JSON.stringify(selectedValue);
-
-            if (currentStr !== selectedStr) {
-                differences.push({
-                    field: key,
-                    currentValue,
-                    selectedValue,
-                });
-            }
-        });
-
-        return differences;
-    }
-
     renderPreviewColumn(version, label, fragmentData, className = '') {
         if (!version) return nothing;
 
         const differences =
-            className === 'selected' && this.fragment && fragmentData
-                ? this.calculateDifferences(this.fragment, fragmentData)
-                : [];
+            className === 'selected' && this.fragment && fragmentData ? calculateDifferences(this.fragment, fragmentData) : [];
 
         return html`
             <div class="preview-column ${className}">
@@ -961,9 +798,9 @@ class VersionPage extends LitElement {
                                                 (diff) => html`
                                                     <li>
                                                         <sp-detail size="s" class="changed-field-detail">
-                                                            ${this.getFieldLabel(diff.field)}${this.getFieldVisible(diff.field)
+                                                            ${getFieldLabel(diff.field)}${getFieldVisible(diff.field)
                                                                 ? ''
-                                                                : `: ${this.formatFieldValue(diff.selectedValue)}`}
+                                                                : `: ${formatFieldValue(diff.selectedValue)}`}
                                                         </sp-detail>
                                                     </li>
                                                 `,
@@ -975,25 +812,6 @@ class VersionPage extends LitElement {
                       `}
             </div>
         `;
-    }
-
-    getFieldLabel(fieldName) {
-        return VersionPage.FIELD_CONFIG[fieldName]?.label || fieldName;
-    }
-
-    getFieldVisible(fieldName) {
-        return VersionPage.FIELD_CONFIG[fieldName]?.visible || false;
-    }
-
-    formatFieldValue(value) {
-        if (value === null || value === undefined) return 'N/A';
-        if (typeof value === 'object') {
-            if (Array.isArray(value)) {
-                return value.join(', ');
-            }
-            return Object.values(value).join(', ');
-        }
-        return String(value);
     }
 
     async hydrateCard(cardId, fragmentData) {
@@ -1010,7 +828,7 @@ class VersionPage extends LitElement {
         }
 
         // Transform AEM data to the format merch-card expects
-        const fields = this.normalizeFields(fragmentData);
+        const fields = normalizeFields(fragmentData);
 
         if (!fields.variant) {
             throw new Error(`Fragment data missing variant. Available keys: ${Object.keys(fields).join(', ')}`);

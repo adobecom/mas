@@ -79,6 +79,7 @@
         "prosemirror-view": "^1.34.3"
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.10.0",
         "@esm-bundle/chai": "4.3.4-fix.0",
         "@esm-bundle/chai-as-promised": "7.1.1",
         "@open-wc/testing": "^4.0.0",

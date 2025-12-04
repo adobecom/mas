@@ -2,16 +2,11 @@ import { LitElement, html } from 'lit';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import { styles } from './mas-fragment-variations.css.js';
+import { editFragment } from './store.js';
 
-// Inject styles once
-let stylesInjected = false;
-function injectStyles() {
-    if (stylesInjected) return;
-    const styleElement = document.createElement('style');
-    styleElement.textContent = styles;
-    document.head.appendChild(styleElement);
-    stylesInjected = true;
-}
+const styleElement = document.createElement('style');
+styleElement.textContent = styles;
+document.head.appendChild(styleElement);
 
 class MasFragmentVariations extends LitElement {
     static properties = {
@@ -23,7 +18,6 @@ class MasFragmentVariations extends LitElement {
         super();
         this.fragment = null;
         this.loading = false;
-        injectStyles();
     }
 
     createRenderRoot() {
@@ -36,6 +30,10 @@ class MasFragmentVariations extends LitElement {
 
     get hasVariations() {
         return this.variations && Array.isArray(this.variations) && this.variations.length > 0;
+    }
+
+    handleEdit(fragmentStore, event) {
+        editFragment(fragmentStore, event.clientX);
     }
 
     renderVariations() {
@@ -55,16 +53,18 @@ class MasFragmentVariations extends LitElement {
         return html`
             <sp-table size="m">
                 <sp-table-body>
-                    ${this.variations.map(
-                        (variationFragment) => html`
+                    ${this.variations.map((variationFragment) => {
+                        const fragmentStore = new FragmentStore(new Fragment(variationFragment));
+                        return html`
                             <mas-fragment-table
                                 class="mas-fragment nested-fragment"
                                 data-id="${variationFragment.id}"
-                                .fragmentStore=${new FragmentStore(new Fragment(variationFragment))}
+                                .fragmentStore=${fragmentStore}
                                 .nested=${true}
+                                @dblclick=${(e) => this.handleEdit(fragmentStore, e)}
                             ></mas-fragment-table>
-                        `,
-                    )}
+                        `;
+                    })}
                 </sp-table-body>
             </sp-table>
         `;

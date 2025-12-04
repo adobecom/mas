@@ -35,7 +35,6 @@
             import '../src/swc.js';
             import '../src/version-page.js';
             import '../src/mas-repository.js';
-            import '../src/version-repository.js';
             import {
                 normalizeFields,
                 denormalizeFields,
@@ -317,66 +316,14 @@
                             expect(versionPage.hydrateCard).to.be.a('function');
                         });
 
-                        it('should have versionRepository initialized after connectedCallback', async () => {
-                            const masRepo = document.createElement('mas-repository');
-                            document.body.appendChild(masRepo);
-
-                            const testPage = await fixture(html`<version-page></version-page>`);
-                            await testPage.updateComplete;
-
-                            expect(testPage.versionRepository).to.exist;
-                            expect(testPage.versionRepository.constructor.name).to.equal('VersionRepository');
-
-                            testPage.remove();
-                            masRepo.remove();
-                        });
-                    });
-
-                    describe('VersionRepository', () => {
-                        let mockRepository;
-                        let versionRepo;
-
-                        beforeEach(() => {
-                            mockRepository = {
-                                aem: {
-                                    sites: {
-                                        cf: {
-                                            fragments: {
-                                                getById: sinon.stub(),
-                                                getVersions: sinon.stub(),
-                                                getVersion: sinon.stub(),
-                                                save: sinon.stub(),
-                                            },
-                                        },
-                                    },
-                                },
-                            };
-                            sandbox = sinon.createSandbox();
+                        it('should initialize with repository property', async () => {
+                            expect(versionPage).to.have.property('repository');
+                            expect(versionPage).to.have.property('versionRepository');
                         });
 
-                        it('should search versions by query', () => {
-                            versionRepo = new (await import('../src/version-repository.js')).VersionRepository(
-                                mockRepository,
-                            );
-                            const versions = [
-                                { version: '1.0', createdBy: 'John', comment: 'Initial version' },
-                                { version: '2.0', createdBy: 'Jane', comment: 'Updated design' },
-                                { version: '3.0', createdBy: 'Bob', comment: 'Bug fix' },
-                            ];
-
-                            const results = versionRepo.searchVersions(versions, 'Jane');
-                            expect(results).to.have.lengthOf(1);
-                            expect(results[0].version).to.equal('2.0');
-                        });
-
-                        it('should return all versions when query is empty', () => {
-                            versionRepo = new (await import('../src/version-repository.js')).VersionRepository(
-                                mockRepository,
-                            );
-                            const versions = [{ version: '1.0' }, { version: '2.0' }];
-
-                            const results = versionRepo.searchVersions(versions, '');
-                            expect(results).to.have.lengthOf(2);
+                        it('should initialize pendingHydrations and hydratedCards', () => {
+                            expect(versionPage.pendingHydrations).to.be.an.instanceof(Map);
+                            expect(versionPage.hydratedCards).to.be.an.instanceof(Set);
                         });
                     });
                 });

@@ -924,3 +924,6 @@ class VersionPage extends LitElement {
 }
 
 customElements.define('version-page', VersionPage);
+
+export { VersionPage };
+export const FIELD_CONFIG = VersionPage.FIELD_CONFIG;

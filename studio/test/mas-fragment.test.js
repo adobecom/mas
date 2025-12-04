@@ -44,31 +44,34 @@ describe('MasFragment', () => {
 
         it('loads references when expanding without existing references', async () => {
             const fragmentStore = createFragmentStore();
+            const mockReferences = [{ id: 'ref1' }];
             const mockRepo = {
-                loadReferences: sandbox.stub().resolves([{ id: 'ref1' }]),
+                refreshFragment: sandbox.stub().callsFake(async (store) => {
+                    store.value.references = mockReferences;
+                }),
             };
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
             sandbox.stub(el, 'repository').get(() => mockRepo);
             await el.toggleExpand();
-            expect(mockRepo.loadReferences.calledWith('fragment-1')).to.be.true;
-            expect(fragmentStore.value.references).to.deep.equal([{ id: 'ref1' }]);
+            expect(mockRepo.refreshFragment.calledWith(fragmentStore)).to.be.true;
+            expect(fragmentStore.value.references).to.deep.equal(mockReferences);
         });
 
         it('does not load references when already loaded', async () => {
             const fragmentStore = createFragmentStore({ references: [{ id: 'existing' }] });
             const mockRepo = {
-                loadReferences: sandbox.stub().resolves([{ id: 'ref1' }]),
+                refreshFragment: sandbox.stub().resolves([{ id: 'ref1' }]),
             };
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
             sandbox.stub(el, 'repository').get(() => mockRepo);
             await el.toggleExpand();
-            expect(mockRepo.loadReferences.called).to.be.false;
+            expect(mockRepo.refreshFragment.called).to.be.false;
         });
 
         it('handles error when loading references', async () => {
             const fragmentStore = createFragmentStore();
             const mockRepo = {
-                loadReferences: sandbox.stub().rejects(new Error('Load failed')),
+                refreshFragment: sandbox.stub().rejects(new Error('Load failed')),
             };
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
             sandbox.stub(el, 'repository').get(() => mockRepo);

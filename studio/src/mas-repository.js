@@ -1122,28 +1122,6 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Loads references for a fragment by fetching it with references included
-     * @param {string} fragmentId - The ID of the fragment to load references for
-     * @returns {Promise<Array>} The references array
-     */
-    async loadReferences(fragmentId) {
-        try {
-            if (!this.aem) {
-                throw new Error('AEM client not initialized');
-            }
-            const fragmentWithRefs = await this.aem.sites.cf.fragments.getById(fragmentId);
-            if (fragmentWithRefs.references) {
-                return fragmentWithRefs.references;
-            }
-            return [];
-        } catch (error) {
-            console.error('Failed to load references:', error);
-            showToast('Failed to load references', 'negative');
-            return [];
-        }
-    }
-
-    /**
      * Fetches a fragment by its path to get the latest version
      * @param {string} path - Path to the fragment
      * @returns {Promise<Object>} - The latest fragment data

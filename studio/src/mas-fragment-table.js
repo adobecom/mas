@@ -14,7 +14,6 @@ class MasFragmentTable extends LitElement {
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
         toggleExpand: { type: Function, attribute: false },
-        loadingReferences: { type: Boolean, state: true, attribute: false },
     };
 
     constructor() {
@@ -22,7 +21,6 @@ class MasFragmentTable extends LitElement {
         this.offerData = null;
         this.expanded = false;
         this.nested = false;
-        this.loadingReferences = false;
     }
 
     #reactiveControllers = new ReactiveController(this);

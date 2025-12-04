@@ -417,37 +417,4 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.publishFragment.called).to.be.false;
         });
     });
-
-    describe('loadReferences', () => {
-        it('returns references when fragment has them', async () => {
-            const repo = createRepository();
-            const refs = [{ id: 'ref1' }, { id: 'ref2' }];
-            repo.aem = createAemMock();
-            repo.aem.sites.cf.fragments.getById.resolves({ references: refs });
-            const result = await repo.loadReferences('fragment-id');
-            expect(result).to.deep.equal(refs);
-        });
-
-        it('returns empty array when no references', async () => {
-            const repo = createRepository();
-            repo.aem = createAemMock();
-            repo.aem.sites.cf.fragments.getById.resolves({});
-            const result = await repo.loadReferences('fragment-id');
-            expect(result).to.deep.equal([]);
-        });
-
-        it('returns empty array on error', async () => {
-            const repo = createRepository();
-            repo.aem = createAemMock();
-            repo.aem.sites.cf.fragments.getById.rejects(new Error('API error'));
-            const result = await repo.loadReferences('fragment-id');
-            expect(result).to.deep.equal([]);
-        });
-
-        it('throws when AEM not initialized', async () => {
-            const repo = createRepository();
-            const result = await repo.loadReferences('fragment-id');
-            expect(result).to.deep.equal([]);
-        });
-    });
 });

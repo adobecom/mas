@@ -61,8 +61,7 @@ class MasFragment extends LitElement {
             this.loadingReferences = true;
 
             try {
-                const references = await this.repository.loadReferences(fragment.id);
-                this.fragmentStore.value.references = references;
+                await this.repository.refreshFragment(this.fragmentStore);
                 this.requestUpdate();
             } catch (error) {
                 console.error('Failed to load references:', error);

@@ -164,6 +164,12 @@ export function processSize(fields, merchCard, sizeConfig) {
     }
 }
 
+export function processStyle(fields, merchCard, styleConfig) {
+    if (styleConfig?.includes(fields.style)) {
+        merchCard.setAttribute('data-style', fields.style);
+    }
+}
+
 export function processCardName(fields, merchCard) {
     if (fields.cardName) {
         merchCard.setAttribute('name', fields.cardName);
@@ -721,6 +727,7 @@ export function cleanup(merchCard) {
         'badge-text',
         'gradient-border',
         'size',
+        'data-style',
         ANALYTICS_SECTION_ATTR,
     ];
     attributesToRemove.forEach((attr) => merchCard.removeAttribute(attr));
@@ -771,6 +778,7 @@ export async function hydrate(fragment, merchCard) {
     processBadge(fields, merchCard, mapping);
     processTrialBadge(fields, merchCard, mapping);
     processSize(fields, merchCard, mapping.size);
+    processStyle(fields, merchCard, mapping.allowedStyles);
     processCardName(fields, merchCard);
     processTitle(fields, merchCard, mapping.title);
     processSubtitle(fields, merchCard, mapping);

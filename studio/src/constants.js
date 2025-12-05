@@ -180,3 +180,34 @@ export const VARIANT_CAPABILITIES = {
         helpText: 'Drag a card here to set as default',
     },
 };
+
+export const SURFACES = {
+    ACOM: {
+        label: 'Adobe.com',
+        name: 'acom',
+    },
+    ADOBE_HOME: {
+        label: 'Adobe Home',
+        name: 'adobe-home',
+    },
+    CCD: {
+        label: 'CCD',
+        name: 'ccd',
+    },
+    COMMERCE: {
+        label: 'Commerce',
+        name: 'commerce',
+    },
+    EXPRESS: {
+        label: 'Express',
+        name: 'express',
+    },
+    NALA: {
+        label: 'Nala',
+        name: 'nala',
+    },
+    SANDBOX: {
+        label: 'Sandbox',
+        name: 'sandbox',
+    },
+};

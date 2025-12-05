@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import router from './router.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
-import { PAGE_NAMES } from './constants.js';
+import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
 import './mas-side-nav-item.js';
 
@@ -49,6 +49,7 @@ class MasSideNav extends LitElement {
 
     currentPage = new StoreController(this, Store.page);
     viewMode = new StoreController(this, Store.viewMode);
+    search = new StoreController(this, Store.search);
     editorHasChanges = false;
     fragmentStoreSubscription = null;
 
@@ -102,6 +103,11 @@ class MasSideNav extends LitElement {
 
     get fragmentEditor() {
         return document.querySelector('mas-fragment-editor');
+    }
+
+    get isLocalizationEnabled() {
+        const surface = this.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        return [SURFACES.ACOM.name, SURFACES.EXPRESS.name].includes(surface);
     }
 
     async saveFragment() {
@@ -190,7 +196,8 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item
                 label="Localization"
                 ?selected=${Store.page.get() === PAGE_NAMES.LOCALIZATION}
-                @nav-click="${router.navigateToPage(PAGE_NAMES.LOCALIZATION)}"
+                @nav-click="${this.isLocalizationEnabled && router.navigateToPage(PAGE_NAMES.LOCALIZATION)}"
+                ?disabled=${!this.isLocalizationEnabled}
             >
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>

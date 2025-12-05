@@ -22,11 +22,11 @@ import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
     LOCALE_DEFAULT,
+    SURFACES,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 
-import { SURFACES } from './editors/variant-picker.js';
 import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 
@@ -35,7 +35,7 @@ let fragmentCache;
 export function getDamPath(path) {
     if (!path) return ROOT_PATH;
     if (path.startsWith(ROOT_PATH)) return path;
-    return ROOT_PATH + '/' + path;
+    return `${ROOT_PATH}/${path}`;
 }
 
 export async function initFragmentCache() {
@@ -626,8 +626,8 @@ export class MasRepository extends LitElement {
         }
 
         // 3. Check ACOM language fallback (ACOM surface, fallback locale or current locale)
-        if (!parentReference && surfaceRoot !== SURFACES.ACOM && acomFallbackLocale) {
-            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM, acomFallbackLocale);
+        if (!parentReference && surfaceRoot !== SURFACES.ACOM.name && acomFallbackLocale) {
+            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM.name, acomFallbackLocale);
             if (acomFallbackPath) {
                 try {
                     const acomIndex = await this.ensureDictionaryIndex(acomFallbackPath, visited);

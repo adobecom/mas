@@ -135,14 +135,14 @@ class VersionPage extends LitElement {
             margin: 24px;
             background: white;
             border-radius: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 2px 0 rgba(0, 0, 0, 0.12);
         }
 
         .version-list-panel {
             min-width: 480px;
             background: white;
             border-radius: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 2px 0 rgba(0, 0, 0, 0.12);
             display: flex;
             flex-direction: column;
             margin: 24px;

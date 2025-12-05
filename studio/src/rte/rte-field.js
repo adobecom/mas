@@ -1087,7 +1087,7 @@ class RteField extends LitElement {
         try {
             const oldState = this.editorView?.state;
             if (!oldState) return;
-            
+
             const newState = oldState.apply(transaction);
             if (!newState) return;
 

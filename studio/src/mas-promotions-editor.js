@@ -266,20 +266,18 @@ class MasPromotionsEditor extends LitElement {
         let form = nothing;
         if (this.fragment) {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
-            console.log('form.surfaces.values:', form.surfaces?.values);
-            console.log('form.tags.values:', form.tags?.values);
         }
         return html`
             <div class="promotions-form-breadcrumb">
                 <sp-breadcrumbs>
                     <sp-breadcrumb-item slot="root" href="/studio.html#page=promotions">Promotions</sp-breadcrumb-item>
-                    <sp-breadcrumb-item value="trend">Campaign Creation</sp-breadcrumb-item>
+                    <sp-breadcrumb-item value="trend">Create new project</sp-breadcrumb-item>
                 </sp-breadcrumbs>
             </div>
             ${this.renderConfirmDialog()}
             <div class="promotions-form-container">
                 <div class="promotions-form-header">
-                    <h1>${this.isNewPromotion ? 'Create new Campaign' : 'Edit Campaign'}</h1>
+                    <h1>${this.isNewPromotion ? 'Create new project' : 'Edit project'}</h1>
                 </div>
                 <div class="promotions-form-panel">
                     ${this.loadingPromotion
@@ -292,7 +290,7 @@ class MasPromotionsEditor extends LitElement {
                     <div><h2>General Info</h2></div>
                     <div class="promotions-form-panel-content">
                         <div class="promotions-form-fields">
-                            <sp-field-label for="campaignTitle" required>Campaign Title</sp-field-label>
+                            <sp-field-label for="campaignTitle" required>Title</sp-field-label>
                             <sp-textfield
                                 id="campaignTitle"
                                 data-field="title"

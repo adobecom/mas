@@ -211,3 +211,5 @@ export const SURFACES = {
         name: 'sandbox',
     },
 };
+
+export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;

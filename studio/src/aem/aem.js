@@ -733,7 +733,6 @@ class AEM {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
                 Authorization: this.headers.Authorization,
-                pragma: 'no-cache',
                 'cache-control': 'no-cache',
                 'x-api-key': 'mas-studio',
             },

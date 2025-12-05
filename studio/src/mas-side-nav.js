@@ -107,7 +107,11 @@ class MasSideNav extends LitElement {
 
     get isLocalizationEnabled() {
         const surface = this.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
-        return [SURFACES.ACOM.name, SURFACES.EXPRESS.name].includes(surface);
+        const isEnabled = [SURFACES.ACOM.name, SURFACES.EXPRESS.name].includes(surface);
+        if (!isEnabled && Store.page.get() === PAGE_NAMES.LOCALIZATION) {
+            Store.page.set(PAGE_NAMES.CONTENT);
+        }
+        return isEnabled;
     }
 
     async saveFragment() {

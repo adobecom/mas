@@ -72,6 +72,7 @@ export class MasRepository extends LitElement {
             search: null,
             recentlyUpdated: null,
             placeholders: null,
+            translations: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -133,6 +134,9 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
+                break;
+            case PAGE_NAMES.LOCALIZATION:
+                this.loadTranslations();
                 break;
         }
     }
@@ -655,6 +659,30 @@ export class MasRepository extends LitElement {
         }
 
         return indexFragment;
+    }
+
+    getTranslationsPath() {
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        return `${ROOT_PATH}/${surface}/translations`;
+    }
+
+    async loadTranslations() {
+        try {
+            const translationsPath = this.getTranslationsPath();
+            if (this.#abortControllers.translations) this.#abortControllers.translations.abort();
+            this.#abortControllers.translations = new AbortController();
+            Store.translations.list.loading.set(true);
+            const fragments = await this.searchFragmentList(
+                { path: translationsPath },
+                50,
+                this.#abortControllers.translations,
+            );
+            Store.translations.list.data.set(fragments);
+        } catch (error) {
+            this.processError(error, 'Could not load translations.');
+        } finally {
+            Store.translations.list.loading.set(false);
+        }
     }
 
     /**

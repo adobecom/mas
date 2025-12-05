@@ -56,6 +56,13 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    translations: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+        localizationProjectId: new ReactiveStore(null),
+    },
 };
 
 // #region Validators

@@ -5,6 +5,13 @@ export const styles = css`
         padding: 32px;
     }
 
+    .localization-loading-container {
+        position: absolute;
+        right: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
+
     .localization-header {
         display: flex;
         justify-content: space-between;

@@ -1085,7 +1085,9 @@ class RteField extends LitElement {
 
     #handleTransaction(transaction) {
         try {
-            const oldState = this.editorView.state;
+            const oldState = this.editorView?.state;
+            if (!oldState) return;
+            
             const newState = oldState.apply(transaction);
             if (!newState) return;
 
@@ -1109,7 +1111,11 @@ class RteField extends LitElement {
                 }
             }
         } catch (error) {
-            console.error('Error handling transaction:', error);
+            // Silently handle transaction errors that can occur during editor cleanup
+            // These are typically harmless and occur when the editor is being destroyed
+            if (error.message && !error.message.includes('matchesNode')) {
+                console.error('Error handling transaction:', error);
+            }
         }
     }
 

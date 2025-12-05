@@ -162,7 +162,7 @@ class MasPromotions extends LitElement {
         const filteredPromotions = this.promotionsData;
 
         const columns = [
-            { key: 'title', label: 'Campaign' },
+            { key: 'title', label: 'Promotion' },
             {
                 key: 'timeline',
                 label: 'Timeline',
@@ -212,15 +212,10 @@ class MasPromotions extends LitElement {
         return html`
             <div class="promotions-container">
                 <div class="promotions-header">
-                    <sp-search
-                        size="m"
-                        placeholder="Search by campaign or status"
-                        @input=${this.handleSearch}
-                        value=${this.searchQuery}
-                    ></sp-search>
+                    <sp-search size="m" placeholder="Search"></sp-search>
                     <sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
                         <sp-icon-add slot="icon"></sp-icon-add>
-                        Create Campaign
+                        Create project
                     </sp-button>
                 </div>
 

@@ -1,8 +1,6 @@
 import { runTests } from '@web/test-runner-mocha';
 import chaiAsPromised from '@esm-bundle/chai-as-promised';
 import chai, { expect } from '@esm-bundle/chai';
-import '/__wds-outside-root__/1/node_modules/@adobecom/milo/libs/features/spectrum-web-components/dist/theme.js';
-import '/__wds-outside-root__/1/node_modules/@adobecom/milo/libs/features/spectrum-web-components/dist/button.js';
 
 import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
@@ -80,7 +78,7 @@ runTests(async () => {
 
     describe('aem-fragment', () => {
         let aemMock;
-        let spTheme = document.querySelector('sp-theme');
+        const spTheme = document.querySelector('sp-theme');
         beforeEach(async () => {
             [, aemMock] = await mockFetch(withWcs, withAem);
             cache.clear();
@@ -256,7 +254,7 @@ runTests(async () => {
             it('merch-card fails when aem-fragment contains incorrect merch data', async () => {
                 const [, , , , , cardWithWrongOsis] =
                     getTemplateContent('cards');
-                let masErrorTriggered = oneEvent(
+                const masErrorTriggered = oneEvent(
                     cardWithWrongOsis,
                     EVENT_MAS_ERROR,
                 ).then(() => true);

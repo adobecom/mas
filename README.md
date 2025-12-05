@@ -30,14 +30,6 @@ npm run build
 npm run studio
 ```
 
-To test your local changes from Milo run in milo root:
-
-```
-aem up --port 6456
-```
-
-and access studio at http://localhost:3000/studio.html?milolibs=local
-
 to test gallery:
 
 1. shut down npm run studio if you were running it.

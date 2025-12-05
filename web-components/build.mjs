@@ -78,11 +78,13 @@ async function buildLitComponent(name) {
         ...defaults,
         entryPoints: [`./src/${name}.js`],
         external: ['lit'],
-        metafile: true,
+        metafile: false,
         outfile: `${outfolder}/${name}.js`,
         plugins: [rewriteImportsToLibsFolder()],
     });
-    writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
+    if (metafile) {
+        writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
+    }
 }
 
 function rewriteImportsToLibsFolder() {

@@ -38,6 +38,7 @@ export class MerchSidenavList extends LitElement {
             padding: var(--merch-sidenav-list-title-padding);
             line-height: var(--merch-sidenav-list-title-line-height);
             margin: 0;
+            text-transform: uppercase;
         }
 
         .right {

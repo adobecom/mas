@@ -145,7 +145,7 @@ export class MerchCardCollection extends LitElement {
     updated(changedProperties) {
         // cards are not added yet.
         if (!this.querySelector('merch-card')) return;
-        let lastScrollTop =
+        const lastScrollTop =
             window.scrollY || document.documentElement.scrollTop;
 
         const children = [...this.children].filter(
@@ -176,7 +176,7 @@ export class MerchCardCollection extends LitElement {
             this.hasMore = result.length > pageSize;
             result = result.filter(([, index]) => index < pageSize);
         }
-        let reduced = new Map(result.reverse());
+        const reduced = new Map(result.reverse());
         for (const card of reduced.keys()) {
             this.prepend(card);
         }
@@ -390,6 +390,7 @@ export class MerchCardCollection extends LitElement {
 
             function traverseReferencesTree(root, references) {
                 for (const reference of references) {
+                    if (reference.fieldName === 'variations') continue;
                     if (reference.fieldName === 'cards') {
                         if (
                             payload.cards.findIndex(
@@ -525,7 +526,7 @@ export class MerchCardCollection extends LitElement {
             }
 
             let nmbOfColumns = '';
-            let variant = normalizeVariant(cards[0]?.fields?.variant);
+            const variant = normalizeVariant(cards[0]?.fields?.variant);
             this.variant = variant;
             if (
                 variant === 'plans' &&

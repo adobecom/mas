@@ -47,6 +47,10 @@
             }
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
         </script>
+        <script type="module">
+            // Initialize Spectrum Web Components debug object
+            window.__swc = { warn: () => {} };
+        </script>
         <script src="studio/src/maslib.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 

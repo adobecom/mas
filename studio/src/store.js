@@ -2,6 +2,8 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED 
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 
+let editorContextInstance = null;
+
 // Store definition with default values - no URL parsing here
 const Store = {
     fragments: {
@@ -19,7 +21,12 @@ const Store = {
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
-        editorContext: new EditorContextStore(null),
+        get editorContext() {
+            if (!editorContextInstance) {
+                editorContextInstance = new EditorContextStore(null);
+            }
+            return editorContextInstance;
+        },
     },
     operation: new ReactiveStore(),
     editor: {

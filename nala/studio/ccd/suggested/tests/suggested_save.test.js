@@ -47,6 +47,11 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             const clonedCardOne = await studio.getCard(data.clonedCardOneID);
             const clonedCardTwo = await studio.getCard(data.clonedCardTwoID);
 
+            await expect(await studio.fragmentsTable).toBeVisible();
+            await studio.fragmentsTable.click();
+
+            await page.waitForTimeout(2000);
+
             await clonedCardOne.dblclick();
             await studio.deleteCard(data.clonedCardOneID);
             await expect(await clonedCardOne).not.toBeVisible();
@@ -181,7 +186,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Edit mnemonic field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();

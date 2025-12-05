@@ -77,6 +77,10 @@ export const styles = css`
         transform: translate(-50%, -50%);
     }
 
+    sp-progress-circle.loading-indicator {
+        top: -60px;
+    }
+
     mas-locale-picker {
         width: 150px;
         border: 1px solid var(--spectrum-gray-700);
@@ -116,6 +120,10 @@ export const styles = css`
     .placeholders-table sp-table-cell:last-child {
         max-width: 100px;
         justify-content: flex-end;
+    }
+
+    .placeholders-table sp-table-head-cell.align-right {
+        text-align: right;
     }
 
     .placeholders-table sp-table-cell {

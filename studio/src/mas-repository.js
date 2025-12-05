@@ -2,7 +2,8 @@ import { LitElement, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import Store, { editFragment } from './store.js';
+import Store from './store.js';
+import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
@@ -21,7 +22,6 @@ import {
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
-    LOCALE_DEFAULT,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
@@ -50,6 +50,35 @@ export async function getFromFragmentCache(fragmentId) {
     return fragmentCache.get(fragmentId);
 }
 
+export async function prepopulateFragmentCache(fragmentId, previewFragment) {
+    if (!previewFragment) return;
+    await initFragmentCache();
+
+    fragmentCache.remove(fragmentId);
+
+    const normalizedFields = previewFragment.fields.map((field) => {
+        if (field.name === 'size' && field.values && field.values.length > 0) {
+            return {
+                ...field,
+                values: field.values.map((v) => (typeof v === 'string' ? v.toLowerCase() : v)),
+            };
+        }
+        return field;
+    });
+
+    const cacheData = {
+        id: previewFragment.id,
+        fields: normalizedFields,
+        tags: previewFragment.tags || [],
+        settings: {},
+        priceLiterals: {},
+        dictionary: {},
+        placeholders: {},
+    };
+
+    fragmentCache.add(cacheData);
+}
+
 function isUUID(str) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(str);
@@ -73,6 +102,8 @@ export class MasRepository extends LitElement {
             recentlyUpdated: null,
             placeholders: null,
         };
+        this.dictionaryCache = new Map();
+        this.inflightDictionaryRequest = null;
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
@@ -95,6 +126,15 @@ export class MasRepository extends LitElement {
         super.connectedCallback();
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
         this.aem = new AEM(this.bucket, this.baseUrl);
+
+        // Invalidate dictionary cache when filters or search path change
+        Store.filters.subscribe(() => {
+            this.dictionaryCache.clear();
+        });
+        Store.search.subscribe(() => {
+            this.dictionaryCache.clear();
+        });
+
         this.loadFolders();
         this.style.display = 'none';
     }
@@ -131,6 +171,9 @@ export class MasRepository extends LitElement {
                 this.loadRecentlyUpdatedFragments();
                 this.loadPreviewPlaceholders();
                 break;
+            case PAGE_NAMES.FRAGMENT_EDITOR:
+                this.loadPreviewPlaceholders();
+                break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
                 break;
@@ -151,7 +194,6 @@ export class MasRepository extends LitElement {
                     ...prev,
                     path: folders.at(0),
                 }));
-            Store.fragments.list.data.set([]);
         } catch (error) {
             Store.fragments.list.loading.set(false);
             Store.fragments.list.firstPageLoaded.set(false);
@@ -193,12 +235,25 @@ export class MasRepository extends LitElement {
         if (this.page.value !== PAGE_NAMES.CONTENT) return;
         if (!Store.profile.value) return;
 
-        Store.fragments.list.loading.set(true);
-        Store.fragments.list.firstPageLoaded.set(false);
-
         const path = this.search.value.path;
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
+
+        const currentPath = dataStore.getMeta('path');
+        const currentQuery = dataStore.getMeta('query');
+        const currentLocale = dataStore.getMeta('locale');
+        const currentData = dataStore.get();
+        const locale = this.filters.value.locale;
+
+        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
+            Store.fragments.list.loading.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            return;
+        }
+
+        Store.fragments.list.loading.set(true);
+        Store.fragments.list.firstPageLoaded.set(false);
+
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
         let tags = [];
@@ -252,7 +307,6 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.firstPageLoaded.set(true);
                     return;
                 }
-                dataStore.set([]);
                 const fragmentData = await this.aem.sites.cf.fragments.getById(
                     localSearch.query,
                     this.#abortControllers.search,
@@ -275,9 +329,6 @@ export class MasRepository extends LitElement {
                     }
                 }
             } else {
-                Store.fragments.list.loading.set(true);
-                Store.fragments.list.firstPageLoaded.set(false);
-                dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const fragmentStores = [];
                 // Extract surface from path for corrector
@@ -298,6 +349,7 @@ export class MasRepository extends LitElement {
 
             dataStore.setMeta('path', path);
             dataStore.setMeta('query', query);
+            dataStore.setMeta('locale', locale);
             dataStore.setMeta('tags', tags);
 
             this.#abortControllers.search = null;
@@ -397,21 +449,79 @@ export class MasRepository extends LitElement {
     }
 
     async loadPreviewPlaceholders() {
+        if (!this.search.value.path) return;
+
+        const cacheKey = `${this.filters.value.locale}_${this.search.value.path}`;
+
+        // Return cached result if available
+        if (this.dictionaryCache.has(cacheKey)) {
+            Store.placeholders.preview.set(this.dictionaryCache.get(cacheKey));
+            return;
+        }
+
+        // Return existing promise if same cache key is already in-flight
+        if (this.inflightDictionaryRequest?.cacheKey === cacheKey) {
+            return this.inflightDictionaryRequest.promise;
+        }
+
+        // Abort previous placeholder fetch if still running with different cache key
+        if (this.#abortControllers.placeholders) {
+            this.#abortControllers.placeholders.abort();
+        }
+        this.#abortControllers.placeholders = new AbortController();
+
         try {
-            const context = {
-                preview: {
-                    url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
-                },
-                locale: this.filters.value.locale,
-                surface: this.search.value.path,
-            };
-            const result = await getDictionary(context);
-            Store.placeholders.preview.set(result);
+            const promise = this.fetchDictionary(this.#abortControllers.placeholders);
+            this.inflightDictionaryRequest = { promise, cacheKey };
+            const result = await promise;
+
+            // Verify cache key hasn't changed during fetch (prevents stale data)
+            const currentKey = `${this.filters.value.locale}_${this.search.value.path}`;
+            if (currentKey === cacheKey) {
+                // If result is empty and locale isn't en_US, try fallback
+                if ((!result || Object.keys(result).length === 0) && this.filters.value.locale !== 'en_US') {
+                    const fallbackContext = {
+                        preview: {
+                            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                        },
+                        locale: 'en_US',
+                        surface: this.search.value.path,
+                        signal: this.#abortControllers.placeholders?.signal,
+                    };
+
+                    const fallbackResult = await getDictionary(fallbackContext);
+                    this.dictionaryCache.set(cacheKey, fallbackResult);
+                    Store.placeholders.preview.set(fallbackResult);
+                } else {
+                    this.dictionaryCache.set(cacheKey, result);
+                    Store.placeholders.preview.set(result);
+                }
+            }
         } catch (error) {
+            if (error.name === 'AbortError') return; // Silent abort during navigation
             this.processError(error, 'Could not load preview placeholders.');
         } finally {
+            this.inflightDictionaryRequest = null;
+            this.#abortControllers.placeholders = null;
             Store.placeholders.list.loading.set(false);
         }
+    }
+
+    async fetchDictionary(abortController) {
+        const context = {
+            preview: {
+                url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+            },
+            locale: this.filters.value.locale,
+            surface: this.search.value.path,
+        };
+
+        // Pass abort signal if available (fragment-client may support it)
+        if (abortController) {
+            context.signal = abortController.signal;
+        }
+
+        return await getDictionary(context);
     }
 
     getDictionaryPath() {
@@ -777,21 +887,16 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            if ((updatedTitle && updatedTitle !== result.title) || tags.length) {
-                if (updatedTitle) result.title = updatedTitle;
-                if (tags.length) {
-                    result.fields.forEach((field) => {
-                        if (field.name === 'tags') {
-                            field.values = tags;
-                        }
-                        if (field.name === 'originalId') {
-                            field.values = [result.id];
-                        }
-                        if (osi && field.name === 'osi') {
-                            field.values = [osi];
-                        }
-                    });
+            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            if (needsSave) {
+                if (updatedTitle && updatedTitle !== result.title) {
+                    result.title = updatedTitle;
                 }
+                result.fields.forEach((field) => {
+                    if (osi && field.name === 'osi') {
+                        field.values = [osi];
+                    }
+                });
                 savedResult = await this.aem.sites.cf.fragments.save(result);
             }
             if (tags.length) {
@@ -805,8 +910,10 @@ export class MasRepository extends LitElement {
             const newFragment = await this.#addToCache(savedResult);
 
             const sourceStore = generateFragmentStore(newFragment);
+            sourceStore.get().hasChanges = false;
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
-            editFragment(sourceStore);
+            this.skipVariationDetection = true;
+            await router.navigateToFragmentEditor(newFragment.id);
 
             this.operation.set();
             Events.fragmentAdded.emit(newFragment.id);
@@ -933,6 +1040,83 @@ export class MasRepository extends LitElement {
     async bulkDeleteFragments(fragments, options) {
         const promises = fragments.map((fragment) => this.deleteFragment(fragment, options));
         return Promise.all(promises);
+    }
+
+    /**
+     * Deletes a fragment and all its locale variations
+     * @param {Fragment} fragment - The parent fragment to delete
+     * @returns {Promise<{success: boolean, failedVariations: string[]}>}
+     */
+    async deleteFragmentWithVariations(fragment) {
+        let variations = fragment.getVariations();
+        const failedVariations = [];
+
+        if (variations.length === 0) {
+            const foundVariations = await this.aem.sites.cf.fragments.findVariationsByName(fragment);
+            variations = foundVariations.map((v) => v.path);
+        }
+
+        if (variations.length > 0) {
+            showToast(`Deleting fragment and ${variations.length} variation(s)...`);
+
+            try {
+                const latestParent = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
+                if (latestParent) {
+                    const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+                    if (variationsField && variationsField.values?.length > 0) {
+                        variationsField.values = [];
+                        await this.aem.sites.cf.fragments.save(latestParent);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to clear parent variations field:', error);
+            }
+
+            for (const variationPath of variations) {
+                try {
+                    await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
+                } catch (error) {
+                    console.error(`Failed to delete variation ${variationPath}:`, error);
+                    failedVariations.push(variationPath);
+                }
+            }
+        }
+
+        let success = false;
+        if (variations.length > 0) {
+            try {
+                await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
+                success = true;
+            } catch (error) {
+                console.error(`Failed to force delete parent fragment:`, error);
+            }
+        } else {
+            success = await this.deleteFragment(fragment, {
+                startToast: true,
+                endToast: false,
+            });
+            if (!success) {
+                console.warn('Regular delete failed, trying force delete');
+                try {
+                    await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
+                    success = true;
+                } catch (forceError) {
+                    console.error('Force delete also failed:', forceError);
+                }
+            }
+        }
+
+        if (success) {
+            if (failedVariations.length > 0) {
+                showToast(`Fragment deleted but ${failedVariations.length} variation(s) failed to delete`, 'warning');
+            } else if (variations.length > 0) {
+                showToast('Fragment and all variations successfully deleted.', 'positive');
+            } else {
+                showToast('Fragment successfully deleted.', 'positive');
+            }
+        }
+
+        return { success, failedVariations };
     }
 
     async createPlaceholder(placeholder) {
@@ -1100,23 +1284,6 @@ export class MasRepository extends LitElement {
         applyCorrectorToFragment(latest, surface);
 
         store.refreshFrom(latest);
-        if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {
-            // originalId allows to keep track of the relation between en_US fragment and the current one if in different locales
-            const originalId = store.get().getOriginalIdField();
-            if (this.filters.value.locale === LOCALE_DEFAULT) {
-                originalId.values = [latest.id];
-            } else {
-                const enUsPath = latest.path.replace(this.filters.value.locale, LOCALE_DEFAULT);
-                try {
-                    const sourceFragment = await this.aem.sites.cf.fragments.getByPath(enUsPath);
-                    if (sourceFragment) {
-                        originalId.values = [sourceFragment.id];
-                    }
-                } catch (error) {
-                    //not all fragments have en_US version, so we can ignore this error
-                }
-            }
-        }
         this.#addToCache(store.get());
         store.setLoading(false);
     }

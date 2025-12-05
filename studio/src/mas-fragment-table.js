@@ -6,6 +6,8 @@ import Store, { editFragment } from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
+import router from './router.js';
+import './mas-variation-dialog.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
@@ -14,6 +16,7 @@ class MasFragmentTable extends LitElement {
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
         toggleExpand: { type: Function, attribute: false },
+        showVariationDialog: { state: true },
     };
 
     constructor() {
@@ -21,6 +24,7 @@ class MasFragmentTable extends LitElement {
         this.offerData = null;
         this.expanded = false;
         this.nested = false;
+        this.showVariationDialog = false;
     }
 
     #reactiveControllers = new ReactiveController(this);
@@ -97,7 +101,19 @@ class MasFragmentTable extends LitElement {
 
     handleCreateVariation(event) {
         event.stopPropagation();
-        // TODO: Implement create variation logic
+        this.showVariationDialog = true;
+    }
+
+    handleVariationDialogCancel() {
+        this.showVariationDialog = false;
+    }
+
+    handleFragmentCopied(event) {
+        this.showVariationDialog = false;
+        const { fragment } = event.detail;
+        if (fragment?.id) {
+            router.navigateToFragmentEditor(fragment.id);
+        }
     }
 
     handleEditFragment(event) {
@@ -128,6 +144,14 @@ class MasFragmentTable extends LitElement {
     render() {
         const data = this.fragmentStore.value;
         return html`
+            ${this.showVariationDialog
+                ? html`<mas-variation-dialog
+                      .fragment=${data}
+                      .isVariation=${false}
+                      @cancel=${this.handleVariationDialogCancel}
+                      @fragment-copied=${this.handleFragmentCopied}
+                  ></mas-variation-dialog>`
+                : ''}
             <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
                 ${this.nested
                     ? ''
@@ -176,7 +200,7 @@ class MasFragmentTable extends LitElement {
                         </sp-menu-item>
                     </sp-action-menu>
                 </sp-table-cell>
-                ${data.model.path === CARD_MODEL_PATH
+                ${data.model?.path === CARD_MODEL_PATH
                     ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
                           ><sp-icon-preview label="Preview item"></sp-icon-preview
                       ></sp-table-cell>`

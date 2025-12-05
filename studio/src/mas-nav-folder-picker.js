@@ -36,14 +36,14 @@ export class MasNavFolderPicker extends LitElement {
         :host([disabled]) sp-action-menu {
             cursor: not-allowed;
             pointer-events: none;
-            opacity: 1 !important;
-            filter: none !important;
+            opacity: 0.4;
+            filter: none;
             color: var(--spectrum-gray-900, #1e1e1e);
         }
 
         :host([disabled]) sp-action-menu [slot='icon'] {
-            color: var(--spectrum-gray-900, #1e1e1e) !important;
-            opacity: 1 !important;
+            color: var(--spectrum-gray-900, #1e1e1e);
+            opacity: 0.4;
         }
 
         :host([disabled]) .folder-label {

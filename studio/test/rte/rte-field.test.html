@@ -121,6 +121,7 @@
                         let span = firstStyledElement();
                         expect(span.className).to.equal('heading-m');
 
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
                         rte.handleStylingAction('heading-xxs');
                         await delay(100);
 

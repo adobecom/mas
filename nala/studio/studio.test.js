@@ -152,7 +152,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -188,7 +188,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-3: Validate fields rendering', async () => {
-            await expect(await editor.authorPath).toBeVisible();
+            // await expect(await editor.authorPath).toBeVisible(); // removed with the new design but might be back
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
             await expect(await editor.size).toBeVisible();
@@ -196,7 +196,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).not.toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -237,7 +237,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -295,7 +295,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.backgroundImage).not.toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();

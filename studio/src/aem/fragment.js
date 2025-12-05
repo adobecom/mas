@@ -41,7 +41,7 @@ export class Fragment {
     }
 
     get statusVariant() {
-        return this.status.toLowerCase();
+        return this.status?.toLowerCase();
     }
 
     getTagTitle(id) {
@@ -91,8 +91,14 @@ export class Fragment {
         return this.fields.find((field) => field.name === fieldName)?.values?.[index];
     }
 
-    getOriginalIdField() {
-        return this.fields.find((field) => field.name === 'originalId');
+    getVariations() {
+        const variationsField = this.fields.find((field) => field.name === 'variations');
+        return variationsField?.values || [];
+    }
+
+    hasVariations() {
+        const variations = this.getVariations();
+        return variations.length > 0;
     }
 
     updateField(fieldName, value) {
@@ -120,6 +126,65 @@ export class Fragment {
         return change;
     }
 
+    getEffectiveFieldValue(fieldName, parentFragment, isVariation, index = 0) {
+        const ownValue = this.getFieldValue(fieldName, index);
+        if (ownValue !== undefined && ownValue !== null && ownValue !== '') {
+            return ownValue;
+        }
+        if (!parentFragment || !isVariation) {
+            return ownValue;
+        }
+        return parentFragment.getFieldValue(fieldName, index);
+    }
+
+    getEffectiveFieldValues(fieldName, parentFragment, isVariation) {
+        const ownField = this.getField(fieldName);
+        if (ownField && ownField.values && ownField.values.length > 0) {
+            return ownField.values;
+        }
+        if (!parentFragment || !isVariation) {
+            return ownField?.values || [];
+        }
+        const parentField = parentFragment.getField(fieldName);
+        return parentField?.values || [];
+    }
+
+    getFieldState(fieldName, parentFragment, isVariation) {
+        if (!isVariation || !parentFragment) {
+            return 'no-parent';
+        }
+        const ownField = this.getField(fieldName);
+        if (!ownField || !ownField.values || ownField.values.length === 0) {
+            return 'inherited';
+        }
+        const parentField = parentFragment.getField(fieldName);
+        if (!parentField || !parentField.values) {
+            return 'overridden';
+        }
+        const areEqual =
+            ownField.values.length === parentField.values.length &&
+            ownField.values.every((v, i) => v === parentField.values[i]);
+        return areEqual ? 'same-as-parent' : 'overridden';
+    }
+
+    isFieldOverridden(fieldName, isVariation) {
+        if (!isVariation) {
+            return false;
+        }
+        const field = this.getField(fieldName);
+        return field && field.values && field.values.length > 0;
+    }
+
+    resetFieldToParent(fieldName) {
+        const fieldIndex = this.fields.findIndex((field) => field.name === fieldName);
+        if (fieldIndex !== -1) {
+            this.fields.splice(fieldIndex, 1);
+            this.hasChanges = true;
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Lists all locale variations of the fragment. Other name: regional variations.
      * @returns {Fragment[]}
@@ -138,7 +203,6 @@ export class Fragment {
                 return false;
             }
             const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
-            // Match if surface and fragmentPath are identical, but locale is different
             return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
         });
     }

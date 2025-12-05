@@ -43,10 +43,15 @@ describe('Mnemonic field', () => {
     it('should open modal when edit button is clicked', async () => {
         const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
 
-        const editButton = el.shadowRoot.querySelector('.edit-button');
-        expect(editButton).to.exist;
+        const actionMenu = el.shadowRoot.querySelector('sp-action-menu');
+        expect(actionMenu).to.exist;
 
-        editButton.click();
+        actionMenu.click();
+        await el.updateComplete;
+
+        const editMenuItem = actionMenu.querySelector('sp-menu-item');
+        expect(editMenuItem).to.exist;
+        editMenuItem.click();
         await el.updateComplete;
 
         expect(el.modalOpen).to.be.true;

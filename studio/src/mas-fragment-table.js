@@ -1,23 +1,38 @@
 import { LitElement, html } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { generateCodeToUse, getService, getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './utils.js';
-import Store from './store.js';
+import { generateCodeToUse, getService, showToast } from './utils.js';
+import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
+import Store, { editFragment } from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';
+import { MasRepository } from './mas-repository.js';
+import router from './router.js';
+import './mas-variation-dialog.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
-        customRender: { type: Function, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
+        expanded: { type: Boolean, attribute: false },
+        nested: { type: Boolean, attribute: false },
+        toggleExpand: { type: Function, attribute: false },
+        showVariationDialog: { state: true },
     };
 
     constructor() {
         super();
         this.offerData = null;
+        this.expanded = false;
+        this.nested = false;
+        this.showVariationDialog = false;
     }
 
     #reactiveControllers = new ReactiveController(this);
+
+    /** @type {MasRepository} */
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
 
     createRenderRoot() {
         return this;
@@ -30,7 +45,7 @@ class MasFragmentTable extends LitElement {
 
     getFragmentName(data) {
         const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
-        const fragmentParts = getFragmentPartsToUse(data, Store.search.get().path).fragmentParts;
+        const fragmentParts = getFragmentPartsToUse(Store, data).fragmentParts;
         return `${webComponentName}: ${fragmentParts}`;
     }
 
@@ -76,22 +91,122 @@ class MasFragmentTable extends LitElement {
         openPreview(this.fragmentStore.value.id, { left: 'min(300px, 15%)' });
     }
 
+    handleActionsClick(event) {
+        event.stopPropagation();
+        const actionMenu = event.currentTarget.querySelector('sp-action-menu');
+        if (actionMenu) {
+            actionMenu.open = !actionMenu.open;
+        }
+    }
+
+    handleCreateVariation(event) {
+        event.stopPropagation();
+        this.showVariationDialog = true;
+    }
+
+    handleVariationDialogCancel() {
+        this.showVariationDialog = false;
+    }
+
+    handleFragmentCopied(event) {
+        this.showVariationDialog = false;
+        const { fragment } = event.detail;
+        if (fragment?.id) {
+            router.navigateToFragmentEditor(fragment.id);
+        }
+    }
+
+    handleEditFragment(event) {
+        event.stopPropagation();
+        editFragment(this.fragmentStore, event.clientX);
+    }
+
+    getTruncatedOfferId() {
+        const offerId = this.offerData?.offerId;
+        if (!offerId || offerId.length <= 5) return offerId;
+        return `...${offerId.slice(-5)}`;
+    }
+
+    async copyOfferIdToClipboard(e) {
+        e.stopPropagation();
+        const offerId = this.offerData?.offerId;
+        if (!offerId) return;
+
+        try {
+            await navigator.clipboard.writeText(offerId);
+            showToast('Offer ID copied to clipboard', 'positive');
+        } catch (err) {
+            console.error('Failed to copy offer ID:', err);
+            showToast('Failed to copy Offer ID', 'negative');
+        }
+    }
+
     render() {
         const data = this.fragmentStore.value;
-        return html`<sp-table-row value="${data.id}"
-            ><sp-table-cell class="name"> ${this.icon} ${this.getFragmentName(data)} </sp-table-cell>
-            <sp-table-cell class="title">${data.title}</sp-table-cell>
-            <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
-            <sp-table-cell class="price">${this.price}</sp-table-cell>
-            <sp-table-cell class="offer-id" title=${this.offerData?.offerId}>${this.offerData?.offerId} </sp-table-cell>
-            ${this.customRender?.(data)}
-            <sp-table-cell class="status ${data.status?.toLowerCase()}-cell">${data.status}</sp-table-cell>
-            ${data.model.path === CARD_MODEL_PATH
-                ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
-                      ><sp-icon-preview size="m" label="Preview item"></sp-icon-preview
-                  ></sp-table-cell>`
-                : html`<sp-table-cell class="preview"></sp-table-cell>`}</sp-table-row
-        >`;
+        return html`
+            ${this.showVariationDialog
+                ? html`<mas-variation-dialog
+                      .fragment=${data}
+                      .isVariation=${false}
+                      @cancel=${this.handleVariationDialogCancel}
+                      @fragment-copied=${this.handleFragmentCopied}
+                  ></mas-variation-dialog>`
+                : ''}
+            <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
+                ${this.nested
+                    ? ''
+                    : html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
+                          <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
+                              ${this.expanded
+                                  ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                                  : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
+                          </button>
+                      </sp-table-cell>`}
+                <sp-table-cell class="name">
+                    ${this.nested ? html`${data.locale}` : html`${this.icon} ${this.getFragmentName(data)}`}
+                </sp-table-cell>
+                <sp-table-cell class="title">${data.title}</sp-table-cell>
+                <sp-table-cell class="offer-id">
+                    <span class="offer-id-text" title=${this.offerData?.offerId}> ${this.getTruncatedOfferId()} </span>
+                    ${this.offerData?.offerId
+                        ? html`<button
+                              class="copy-icon-button"
+                              aria-label="Copy Offer ID to clipboard"
+                              @click=${this.copyOfferIdToClipboard}
+                          >
+                              <sp-icon-copy class="copy-icon"></sp-icon-copy>
+                          </button>`
+                        : ''}
+                </sp-table-cell>
+                <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
+                <sp-table-cell class="last-modified-by">${data.modified?.by}</sp-table-cell>
+                <sp-table-cell class="price">${this.price}</sp-table-cell>
+                <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
+                    ><div class="status-dot"></div>
+                    <span class="status-text">${data.status}</span></sp-table-cell
+                >
+                <sp-table-cell class="actions">
+                    <sp-action-menu placement="bottom-end" quiet>
+                        <sp-icon-more slot="icon"></sp-icon-more>
+                        ${!this.nested
+                            ? html`<sp-menu-item @click=${this.handleCreateVariation}>
+                                  <sp-icon-user-group slot="icon"></sp-icon-user-group>
+                                  Create variation
+                              </sp-menu-item>`
+                            : ''}
+                        <sp-menu-item @click=${this.handleEditFragment}>
+                            <sp-icon-edit slot="icon"></sp-icon-edit>
+                            Edit fragment
+                        </sp-menu-item>
+                    </sp-action-menu>
+                </sp-table-cell>
+                ${data.model.path === CARD_MODEL_PATH
+                    ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
+                          ><sp-icon-preview label="Preview item"></sp-icon-preview
+                      ></sp-table-cell>`
+                    : html`<sp-table-cell class="preview"></sp-table-cell>`}
+            </sp-table-row>
+        `;
     }
 }
 

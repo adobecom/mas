@@ -16,6 +16,8 @@ export default class EditorPage {
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
+        this.borderColor = this.panel.locator('sp-picker#border-color');
+        this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.mnemonicEditMenu = this.panel.locator('mas-mnemonic-field sp-action-menu').first();
         this.mnemonicEditButton = this.mnemonicEditMenu.locator('sp-menu sp-menu-item:has-text("Edit")');
         this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
@@ -33,8 +35,6 @@ export default class EditorPage {
         this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
         this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
         this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
-        this.borderColor = this.panel.locator('sp-picker#border-color');
-        this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.OSI = this.panel.locator('osi-field#osi');
         this.OSIButton = this.panel.locator('#offerSelectorToolButtonOSI');
         this.tags = this.panel.locator('aem-tag-picker-field[label="Tags"]');

@@ -1,3 +1,4 @@
+import { PATH_TOKENS } from '../constants.js';
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -46,6 +47,11 @@ export class Fragment {
     getTagTitle(id) {
         const tags = this.tags.filter((tag) => tag.id.includes(id));
         return tags[0]?.title;
+    }
+
+    get locale() {
+        const match = this.path.match(PATH_TOKENS);
+        return match?.groups?.parsedLocale || '';
     }
 
     refreshFrom(fragmentData) {
@@ -177,5 +183,27 @@ export class Fragment {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Lists all locale variations of the fragment. Other name: regional variations.
+     * @returns {Fragment[]}
+     */
+    listLocaleVariations() {
+        const currentMatch = this.path.match(PATH_TOKENS);
+        if (!currentMatch?.groups) {
+            return [];
+        }
+
+        const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
+
+        return this.references?.filter((reference) => {
+            const refMatch = reference.path.match(PATH_TOKENS);
+            if (!refMatch?.groups) {
+                return false;
+            }
+            const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
+            return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
+        });
     }
 }

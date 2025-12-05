@@ -990,7 +990,8 @@ class AEM {
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
-                ...this.headers,
+                Authorization: this.headers.Authorization,
+                'cache-control': 'no-cache',
                 'x-api-key': 'mas-studio',
             },
             body: JSON.stringify(payload),

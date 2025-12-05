@@ -213,6 +213,7 @@ export const VARIANT_CAPABILITIES = {
         helpText: 'Drag a card here to set as default',
     },
 };
+export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 
 export const VARIATION_TYPES = {
     LOCALE: 'Locale',

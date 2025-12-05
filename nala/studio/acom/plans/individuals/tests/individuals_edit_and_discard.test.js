@@ -572,13 +572,18 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 'text-decoration-line',
                 'line-through',
             );
-            await (await editor.prices.locator(editor.regularPrice)).dblclick();
+            await (await editor.prices.locator(editor.regularPrice)).click();
+            await (await editor.prices.locator(editor.OSTButton)).click();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.price).toContainText(data.price.original);
             await expect(await ost.price).not.toContainText(data.price.updated);
             await expect(await ost.price).toContainText(data.strikethroughPrice.original);
             await expect(await ost.price).not.toContainText(data.strikethroughPrice.updated);
             await expect(await ost.pricePromoStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+            await expect(await ost.promoLabel).toContainText(data.promo);
+            await expect(await ost.promoField).toHaveValue(data.promo);
 
             await expect(await ost.priceUse).toBeVisible();
             await expect(await ost.unitCheckbox).toBeVisible();
@@ -1285,12 +1290,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 data.cta.original.workflowStep,
             );
 
-            await (await editor.CTA).dblclick();
+            await (await editor.CTA).click();
+            await (await editor.footer.locator(editor.OSTButton)).click();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.workflowMenu).toBeVisible();
             await expect(await ost.ctaTextMenu).toBeEnabled();
             await expect(await ost.checkoutLink).toBeVisible();
             await expect(await ost.checkoutLinkUse).toBeVisible();
+            await expect(await ost.promoField).toBeVisible();
+            await expect(await ost.promoLabel).toBeVisible();
+            await expect(await ost.promoLabel).toContainText(data.cta.promo);
+            await expect(await ost.promoField).toHaveValue(data.cta.promo);
             await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.original.workflowStep);
             await expect(async () => {
                 await ost.ctaTextMenu.click();

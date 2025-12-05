@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { Fragment } from './aem/fragment.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { EditorContextStore } from './reactivity/editor-context-store.js';
+import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
@@ -294,7 +294,7 @@ export default class MasFragmentEditor extends LitElement {
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
     reactiveController = new ReactiveController(this);
-    editorContextStore = new EditorContextStore(null);
+    editorContextStore = Store.fragmentEditor.editorContext;
 
     discardPromiseResolver;
     titleClone = '';
@@ -358,7 +358,7 @@ export default class MasFragmentEditor extends LitElement {
         super.disconnectedCallback();
         Store.fragmentEditor.fragmentId.unsubscribe(this.handleFragmentIdChange);
         if (this.previewLazyLoadTimer) {
-            clearTimeout(this.previewLazyLoadTimer);
+            cancelAnimationFrame(this.previewLazyLoadTimer);
             this.previewLazyLoadTimer = null;
         }
     }
@@ -388,15 +388,15 @@ export default class MasFragmentEditor extends LitElement {
 
     startLazyPreviewLoading() {
         if (this.previewLazyLoadTimer) {
-            clearTimeout(this.previewLazyLoadTimer);
+            cancelAnimationFrame(this.previewLazyLoadTimer);
         }
         this.previewLazyLoaded = false;
-        this.previewLazyLoadTimer = setTimeout(() => {
+        this.previewLazyLoadTimer = requestAnimationFrame(() => {
             this.previewLazyLoaded = true;
             if (this.contextLoaded && !this.editorContextStore.isVariation(this.fragmentId)) {
                 this.fragmentStore?.previewStore?.resolveFragment();
             }
-        }, 300);
+        });
     }
 
     get previewSkeleton() {
@@ -451,8 +451,9 @@ export default class MasFragmentEditor extends LitElement {
             const variantMapping = getFragmentMapping(variant);
             const allowedSizes = variantMapping?.size || [];
             const sizeLower = size.toLowerCase();
+            const allowedSizesLower = allowedSizes.map((s) => s.toLowerCase());
 
-            if (allowedSizes.includes(sizeLower)) {
+            if (allowedSizesLower.includes(sizeLower)) {
                 attrs.size = sizeLower;
             }
         }
@@ -565,6 +566,7 @@ export default class MasFragmentEditor extends LitElement {
                 existingStore.previewStore.resolved = false;
                 existingStore.previewStore.holdResolution = true;
             }
+            existingStore.get().hasChanges = false;
             this.repository.refreshFragment(existingStore).then(() => {
                 this.dispatchFragmentLoaded();
             });
@@ -596,9 +598,13 @@ export default class MasFragmentEditor extends LitElement {
         const fragmentPath = this.fragment?.path;
         this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath).then(async () => {
             this.contextLoaded = true;
+            const skipVariation = this.repository?.skipVariationDetection;
+            if (this.repository?.skipVariationDetection) {
+                this.repository.skipVariationDetection = false;
+            }
             const isVariation = this.editorContextStore.isVariation(fragmentId);
 
-            if (isVariation) {
+            if (isVariation && !skipVariation) {
                 const parentFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
                 if (parentFragment) {
                     this.localeDefaultFragment = new Fragment(parentFragment);
@@ -608,6 +614,10 @@ export default class MasFragmentEditor extends LitElement {
                 }
             } else {
                 this.fragmentStore?.previewStore?.releaseHold?.();
+            }
+
+            if (this.fragmentStore?.get()) {
+                this.fragmentStore.get().hasChanges = false;
             }
 
             this.localeDefaultFragmentLoading = false;
@@ -772,10 +782,8 @@ export default class MasFragmentEditor extends LitElement {
                     );
                 }
                 await this.repository.deleteFragment(this.fragment);
-            } else if (this.variationsToDelete.length > 0) {
-                await this.repository.deleteFragmentWithVariations(this.fragment);
             } else {
-                await this.repository.deleteFragment(this.fragment);
+                await this.repository.deleteFragmentWithVariations(this.fragment);
             }
             Store.viewMode.set('default');
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
@@ -816,10 +824,10 @@ export default class MasFragmentEditor extends LitElement {
             this.cloneInProgress = true;
             await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
             this.cancelClone();
-            this.cloneInProgress = false;
         } catch (error) {
-            this.cloneInProgress = false;
             console.error('Error cloning fragment:', error);
+        } finally {
+            this.cloneInProgress = false;
         }
     }
 
@@ -1196,40 +1204,8 @@ export default class MasFragmentEditor extends LitElement {
         const localeCode = this.extractLocaleFromPath(this.fragment.path);
         const localeInfo = this.getLocaleInfo(localeCode);
 
-        // Pre-populate AemFragment cache with preview data
-        const AemFragment = customElements.get('aem-fragment');
         const previewFragment = this.fragmentStore?.previewStore?.value;
-
-        if (AemFragment?.cache && previewFragment) {
-            // Remove old cache entry
-            AemFragment.cache.remove(this.fragment.id);
-
-            // Normalize field values for hydration compatibility
-            const normalizedFields = previewFragment.fields.map((field) => {
-                // Normalize size values to lowercase to match hydration expectations
-                if (field.name === 'size' && field.values && field.values.length > 0) {
-                    return {
-                        ...field,
-                        values: field.values.map((v) => (typeof v === 'string' ? v.toLowerCase() : v)),
-                    };
-                }
-                return field;
-            });
-
-            // Create a cache-compatible data structure
-            const cacheData = {
-                id: previewFragment.id,
-                fields: normalizedFields,
-                tags: previewFragment.tags || [],
-                settings: {},
-                priceLiterals: {},
-                dictionary: {},
-                placeholders: {},
-            };
-
-            // Add preview data to cache
-            AemFragment.cache.add(cacheData);
-        }
+        prepopulateFragmentCache(this.fragment.id, previewFragment);
 
         return html`
             <div id="preview-column">
@@ -1245,7 +1221,7 @@ export default class MasFragmentEditor extends LitElement {
                           </div>
                       `
                     : nothing}
-                <div class="preview-content columns">
+                <div class="preview-content columns mas-fragment">
                     <merch-card
                         variant=${attrs.variant || nothing}
                         size=${attrs.size || nothing}

@@ -714,7 +714,10 @@ class RteField extends LitElement {
                 parseDOM: [
                     {
                         tag: '.icon-button',
-                        getAttrs: this.#collectDataAttributes,
+                        getAttrs: (dom) => ({
+                            class: dom.getAttribute('class'),
+                            title: dom.getAttribute('data-tooltip') || dom.getAttribute('title'),
+                        }),
                     },
                 ],
                 toDOM: this.#createIconElement.bind(this),
@@ -990,7 +993,7 @@ class RteField extends LitElement {
     }
 
     #createIconElement(node) {
-        const tooltipText = node.content.content[0]?.text.trim() || node.attrs.title;
+        const tooltipText = node.attrs.title || node.content.content[0]?.text.trim();
 
         const icon = document.createElement('span');
         icon.setAttribute('class', 'icon-button');
@@ -1247,7 +1250,7 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        const node = state.schema.nodes.icon.create({}, state.schema.text(tooltip || ' '));
+        const node = state.schema.nodes.icon.create({ title: tooltip || '' });
         const tr = state.tr.insert(selection.from, node);
         dispatch(tr);
 

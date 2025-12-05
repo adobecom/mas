@@ -4,7 +4,6 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { EditorContextStore } from './reactivity/editor-context-store.js';
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -121,7 +120,7 @@ export default class EditorPanel extends LitElement {
     page = Store.page;
 
     reactiveController = new ReactiveController(this);
-    editorContextStore = new EditorContextStore(null);
+    editorContextStore = Store.fragmentEditor.editorContext;
 
     #discardPromiseResolver;
 
@@ -369,11 +368,7 @@ export default class EditorPanel extends LitElement {
     async confirmDelete() {
         this.showDeleteDialog = false;
         try {
-            if (this.variationsToDelete.length > 0) {
-                await this.repository.deleteFragmentWithVariations(this.fragment);
-            } else {
-                await this.repository.deleteFragment(this.fragment);
-            }
+            await this.repository.deleteFragment(this.fragment);
             await this.closeEditor();
         } catch (error) {
             console.error('Error deleting fragment:', error);
@@ -394,11 +389,11 @@ export default class EditorPanel extends LitElement {
             this.cloneInProgress = true;
             await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
             this.cancelClone();
-            this.cloneInProgress = false;
             await this.closeEditor();
         } catch (error) {
-            this.cloneInProgress = false;
             console.error('Error cloning fragment:', error);
+        } finally {
+            this.cloneInProgress = false;
         }
     }
 

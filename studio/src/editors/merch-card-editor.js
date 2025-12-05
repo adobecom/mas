@@ -14,6 +14,7 @@ import '../fields/addon-field.js';
 import Store from '../store.js';
 import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -50,6 +51,7 @@ class MerchCardEditor extends LitElement {
     availableBackgroundColors = [];
     quantitySelectorValues = '';
     lastMnemonicState = null;
+    reactiveController = new ReactiveController(this, []);
 
     constructor() {
         super();
@@ -111,7 +113,7 @@ class MerchCardEditor extends LitElement {
                               this.resetFieldToParent(fieldName);
                           }}
                       >
-                          ↩ Overridden. Click to restore parent value.
+                          ↩ Overridden. Click to restore.
                       </a>`
                     : nothing}
             </div>
@@ -147,7 +149,8 @@ class MerchCardEditor extends LitElement {
     }
 
     willUpdate(changedProperties) {
-        if (changedProperties.has('fragmentStore')) {
+        if (changedProperties.has('fragmentStore') && this.fragmentStore) {
+            this.reactiveController.updateStores([this.fragmentStore]);
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
             this.#updateAvailableColors();
@@ -601,42 +604,44 @@ class MerchCardEditor extends LitElement {
                     ?disabled=${this.disabled}
                     >Show quantity selector</sp-checkbox
                 >
-                <div class="two-column-grid">
-                    <sp-field-group id="quantitySelectorTitle">
-                        <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
+                <div id="quantitySelector" style="display: ${this.quantitySelectorDisplayed ? 'block' : 'none'};">
+                    <div class="two-column-grid">
+                        <sp-field-group id="quantitySelectorTitle">
+                            <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
+                            <sp-textfield
+                                id="title-quantity"
+                                data-field="titleQuantity"
+                                value="${this.quantityTitle}"
+                                @input="${this.#updateQuantityValues}"
+                                ?disabled=${this.disabled}
+                            ></sp-textfield>
+                        </sp-field-group>
+                        <sp-field-group id="quantitySelectorStart">
+                            <sp-field-label for="start-quantity">Start quantity</sp-field-label>
+                            <sp-textfield
+                                id="start-quantity"
+                                data-field="startQuantity"
+                                pattern="[0-9]*"
+                                value="${this.quantityStart}"
+                                @input="${this.#updateQuantityValues}"
+                                ?disabled=${this.disabled}
+                                ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
+                            >
+                        </sp-field-group>
+                    </div>
+                    <sp-field-group id="quantitySelectorStep">
+                        <sp-field-label for="step-quantity">Step</sp-field-label>
                         <sp-textfield
-                            id="title-quantity"
-                            data-field="titleQuantity"
-                            value="${this.quantityTitle}"
-                            @input="${this.#updateQuantityValues}"
-                            ?disabled=${this.disabled}
-                        ></sp-textfield>
-                    </sp-field-group>
-                    <sp-field-group id="quantitySelectorStart">
-                        <sp-field-label for="start-quantity">Start quantity</sp-field-label>
-                        <sp-textfield
-                            id="start-quantity"
-                            data-field="startQuantity"
+                            id="step-quantity"
+                            data-field="stepQuantity"
                             pattern="[0-9]*"
-                            value="${this.quantityStart}"
+                            value="${this.quantityStep}"
                             @input="${this.#updateQuantityValues}"
                             ?disabled=${this.disabled}
                             ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
                         >
                     </sp-field-group>
                 </div>
-                <sp-field-group id="quantitySelectorStep">
-                    <sp-field-label for="step-quantity">Step</sp-field-label>
-                    <sp-textfield
-                        id="step-quantity"
-                        data-field="stepQuantity"
-                        pattern="[0-9]*"
-                        value="${this.quantityStep}"
-                        @input="${this.#updateQuantityValues}"
-                        ?disabled=${this.disabled}
-                        ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
-                    >
-                </sp-field-group>
             </sp-field-group>
             <div class="two-column-grid">
                 <sp-field-group class="toggle" id="backgroundImage">

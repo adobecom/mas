@@ -40,7 +40,7 @@ export class PreviewFragmentStore extends FragmentStore {
            only use replaceFrom/refreshFrom to keep the object reference, 
            rather than (in this case) "super.set(value)"
         */
-        this.value.replaceFrom(value, true);
+        this.value.replaceFrom(value, false);
         this.resolveFragment();
     }
 

@@ -33,7 +33,11 @@ export class Router extends EventTarget {
         return async () => {
             if (Store.page.value === value) return;
             const fragmentEditor = document.querySelector('mas-fragment-editor');
-            const confirmed = !Store.editor.hasChanges || (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
+            const isInitializing = fragmentEditor?.initializingFragment ?? false;
+            const confirmed =
+                isInitializing ||
+                !Store.editor.hasChanges ||
+                (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
             if (confirmed) {
                 if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
                     Store.fragmentEditor.fragmentId.set(null);
@@ -85,7 +89,9 @@ export class Router extends EventTarget {
             if (!confirmed) return;
         }
 
+        Store.fragments.inEdit.set();
         Store.fragmentEditor.fragmentId.set(fragmentId);
+        Store.search.set((prev) => ({ ...prev, query: undefined }));
         Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
         Store.viewMode.set('editing');
     }
@@ -227,13 +233,20 @@ export class Router extends EventTarget {
 
         if (this.currentParams.get('page') === PAGE_NAMES.FRAGMENT_EDITOR) {
             Store.viewMode.set('editing');
+            if (this.currentParams.has('query')) {
+                this.currentParams.delete('query');
+                Store.search.set((prev) => ({ ...prev, query: undefined }));
+                this.updateHistory();
+            }
         }
 
         window.addEventListener('hashchange', async (event) => {
-            const shouldCheckUnsavedChanges = Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
+            const fragmentEditor = document.querySelector('mas-fragment-editor');
+            const isInitializing = fragmentEditor?.initializingFragment ?? false;
+            const shouldCheckUnsavedChanges =
+                !isInitializing && Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
 
             if (shouldCheckUnsavedChanges) {
-                const fragmentEditor = document.querySelector('mas-fragment-editor');
                 const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
                 if (!confirmed) {
                     event.preventDefault();
@@ -262,6 +275,11 @@ export class Router extends EventTarget {
 
             if (page === PAGE_NAMES.FRAGMENT_EDITOR) {
                 Store.viewMode.set('editing');
+                if (this.currentParams.has('query')) {
+                    this.currentParams.delete('query');
+                    Store.search.set((prev) => ({ ...prev, query: undefined }));
+                    this.updateHistory();
+                }
             } else if (Store.viewMode.value === 'editing') {
                 Store.viewMode.set('default');
             }

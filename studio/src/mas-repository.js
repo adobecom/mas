@@ -50,6 +50,35 @@ export async function getFromFragmentCache(fragmentId) {
     return fragmentCache.get(fragmentId);
 }
 
+export async function prepopulateFragmentCache(fragmentId, previewFragment) {
+    if (!previewFragment) return;
+    await initFragmentCache();
+
+    fragmentCache.remove(fragmentId);
+
+    const normalizedFields = previewFragment.fields.map((field) => {
+        if (field.name === 'size' && field.values && field.values.length > 0) {
+            return {
+                ...field,
+                values: field.values.map((v) => (typeof v === 'string' ? v.toLowerCase() : v)),
+            };
+        }
+        return field;
+    });
+
+    const cacheData = {
+        id: previewFragment.id,
+        fields: normalizedFields,
+        tags: previewFragment.tags || [],
+        settings: {},
+        priceLiterals: {},
+        dictionary: {},
+        placeholders: {},
+    };
+
+    fragmentCache.add(cacheData);
+}
+
 function isUUID(str) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(str);
@@ -881,7 +910,9 @@ export class MasRepository extends LitElement {
             const newFragment = await this.#addToCache(savedResult);
 
             const sourceStore = generateFragmentStore(newFragment);
+            sourceStore.get().hasChanges = false;
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
+            this.skipVariationDetection = true;
             await router.navigateToFragmentEditor(newFragment.id);
 
             this.operation.set();
@@ -1017,52 +1048,71 @@ export class MasRepository extends LitElement {
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
      */
     async deleteFragmentWithVariations(fragment) {
-        const variations = fragment.getVariations();
+        let variations = fragment.getVariations();
         const failedVariations = [];
+
+        if (variations.length === 0) {
+            const foundVariations = await this.aem.sites.cf.fragments.findVariationsByName(fragment);
+            variations = foundVariations.map((v) => v.path);
+        }
 
         if (variations.length > 0) {
             showToast(`Deleting fragment and ${variations.length} variation(s)...`);
 
+            try {
+                const latestParent = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
+                if (latestParent) {
+                    const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+                    if (variationsField && variationsField.values?.length > 0) {
+                        variationsField.values = [];
+                        await this.aem.sites.cf.fragments.save(latestParent);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to clear parent variations field:', error);
+            }
+
             for (const variationPath of variations) {
                 try {
-                    const variationData = await this.aem.sites.cf.fragments.getByPath(variationPath);
-                    if (variationData) {
-                        const variationFragment = new Fragment(variationData);
-                        await this.deleteFragment(variationFragment, { startToast: false, endToast: false });
-                    }
+                    await this.aem.sites.cf.fragments.forceDelete({ path: variationPath });
                 } catch (error) {
                     console.error(`Failed to delete variation ${variationPath}:`, error);
                     failedVariations.push(variationPath);
                 }
             }
+        }
 
-            const successfullyDeleted = variations.filter((v) => !failedVariations.includes(v));
-            if (successfullyDeleted.length > 0) {
+        let success = false;
+        if (variations.length > 0) {
+            try {
+                await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
+                success = true;
+            } catch (error) {
+                console.error(`Failed to force delete parent fragment:`, error);
+            }
+        } else {
+            success = await this.deleteFragment(fragment, {
+                startToast: true,
+                endToast: false,
+            });
+            if (!success) {
+                console.warn('Regular delete failed, trying force delete');
                 try {
-                    const latestParent = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
-                    if (latestParent) {
-                        const variationsField = latestParent.fields.find((f) => f.name === 'variations');
-                        if (variationsField) {
-                            variationsField.values = failedVariations;
-                        }
-                        await this.aem.sites.cf.fragments.save(latestParent);
-                    }
-                } catch (error) {
-                    console.error('Failed to update parent variations field:', error);
+                    await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
+                    success = true;
+                } catch (forceError) {
+                    console.error('Force delete also failed:', forceError);
                 }
             }
         }
-
-        const success = await this.deleteFragment(fragment, {
-            startToast: variations.length === 0,
-            endToast: false,
-        });
 
         if (success) {
             if (failedVariations.length > 0) {
                 showToast(`Fragment deleted but ${failedVariations.length} variation(s) failed to delete`, 'warning');
             } else if (variations.length > 0) {
                 showToast('Fragment and all variations successfully deleted.', 'positive');
+            } else {
+                showToast('Fragment successfully deleted.', 'positive');
             }
         }
 

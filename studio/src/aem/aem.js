@@ -509,6 +509,40 @@ class AEM {
     }
 
     /**
+     * Force delete a fragment using Sling POST servlet.
+     * This bypasses CF API reference validation and deletes directly from JCR.
+     * Use with caution - this can leave orphaned references.
+     * @param {Object} fragment - Fragment with path property
+     * @returns {Promise<Response>}
+     */
+    async forceDeleteFragment(fragment) {
+        if (!fragment?.path) {
+            throw new Error('Fragment path is required for force delete');
+        }
+
+        const csrfToken = await this.getCsrfToken();
+        const formData = new FormData();
+        formData.append(':operation', 'delete');
+
+        const response = await fetch(`${this.baseUrl}${fragment.path}`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'CSRF-Token': csrfToken,
+            },
+            body: formData,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Force delete failed: ${response.status} ${errorText}`);
+        }
+        return response;
+    }
+
+    /**
      * Validates that a fragment has the required properties for copying
      * @param {Object} fragment - The fragment to validate
      * @throws {Error} If fragment is invalid
@@ -858,6 +892,68 @@ class AEM {
         return this.saveFragment({ ...latestParent, fields: updatedFields });
     }
 
+    /**
+     * Finds all locale variations of a fragment by searching for fragments with the same name
+     * across different locale folders in the same repository.
+     * @param {Object} fragment - The parent fragment to find variations for
+     * @returns {Promise<Array<{id: string, path: string}>>} Array of variation fragment info
+     */
+    async findVariationsByName(fragment) {
+        const pathParts = fragment.path.split('/');
+        const fragmentName = pathParts.pop();
+        const localeIndex = pathParts.findIndex((part) => /^[a-z]{2}_[A-Z]{2}$/.test(part));
+
+        if (localeIndex === -1) {
+            return [];
+        }
+
+        const repoPath = pathParts.slice(0, localeIndex).join('/');
+
+        const searchQuery = {
+            filter: {
+                path: repoPath,
+                fullText: {
+                    text: fragmentName,
+                    queryMode: 'EXACT_WORDS',
+                },
+            },
+        };
+
+        const params = new URLSearchParams({
+            query: JSON.stringify(searchQuery),
+        });
+
+        const variations = [];
+        let cursor;
+
+        do {
+            if (cursor) {
+                params.set('cursor', cursor);
+            }
+
+            const response = await fetch(`${this.cfSearchUrl}?${params.toString()}`, {
+                headers: this.headers,
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to search for variations: ${response.status}`);
+                return [];
+            }
+
+            const result = await response.json();
+            cursor = result.cursor;
+
+            for (const item of result.items || []) {
+                const itemName = item.path.split('/').pop();
+                if (itemName === fragmentName && item.id !== fragment.id) {
+                    variations.push({ id: item.id, path: item.path });
+                }
+            }
+        } while (cursor);
+
+        return variations;
+    }
+
     async listFolders(path) {
         const name = path?.replace(/^\/content\/dam/, '');
         const response = await fetch(
@@ -1129,6 +1225,10 @@ class AEM {
                  */
                 delete: this.deleteFragment.bind(this),
                 /**
+                 * @see AEM#forceDeleteFragment
+                 */
+                forceDelete: this.forceDeleteFragment.bind(this),
+                /**
                  * @see AEM#getFragmentVersions
                  */
                 getVersions: this.getFragmentVersions.bind(this),
@@ -1160,6 +1260,10 @@ class AEM {
                  * @see AEM#removeFromParentVariations
                  */
                 removeFromParentVariations: this.removeFromParentVariations.bind(this),
+                /**
+                 * @see AEM#findVariationsByName
+                 */
+                findVariationsByName: this.findVariationsByName.bind(this),
             },
         },
     };

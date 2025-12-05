@@ -20,11 +20,25 @@ export class VersionRepository {
             const fragment = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
 
             // Create a "current version" from the live fragment
+            // Handle different formats of modified date (could be string, object with 'at' property, or undefined)
+            let modifiedDate;
+            if (fragment.modified) {
+                if (typeof fragment.modified === 'object' && fragment.modified.at) {
+                    modifiedDate = fragment.modified.at;
+                } else if (typeof fragment.modified === 'string') {
+                    modifiedDate = fragment.modified;
+                } else {
+                    modifiedDate = new Date().toISOString();
+                }
+            } else {
+                modifiedDate = new Date().toISOString();
+            }
+
             const currentVersion = {
                 id: 'current',
                 version: 'Current',
-                created: fragment.modified || new Date().toISOString(),
-                createdBy: fragment.modifiedBy || 'System',
+                created: modifiedDate,
+                createdBy: fragment.modifiedBy || fragment.modified?.by || 'System',
                 isCurrent: true,
             };
 

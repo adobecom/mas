@@ -614,7 +614,16 @@ class VersionPage extends LitElement {
     }
 
     formatVersionDate(dateString) {
+        if (!dateString) return 'Unknown date';
+
         const date = new Date(dateString);
+
+        // Check if date is invalid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date string:', dateString);
+            return 'Invalid date';
+        }
+
         const day = date.getDate();
         const month = date.toLocaleDateString('en', { month: 'short' });
         const year = date.getFullYear();

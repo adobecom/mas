@@ -2,7 +2,7 @@ import { LitElement, html } from 'lit';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import { styles } from './mas-fragment-variations.css.js';
-import { editFragment } from './store.js';
+import router from './router.js';
 
 const styleElement = document.createElement('style');
 styleElement.textContent = styles;
@@ -32,8 +32,11 @@ class MasFragmentVariations extends LitElement {
         return this.variations && Array.isArray(this.variations) && this.variations.length > 0;
     }
 
-    handleEdit(fragmentStore, event) {
-        editFragment(fragmentStore, event.clientX);
+    async handleEdit(fragmentStore) {
+        const fragment = fragmentStore.value;
+        if (fragment?.id) {
+            await router.navigateToFragmentEditor(fragment.id);
+        }
     }
 
     renderVariations() {

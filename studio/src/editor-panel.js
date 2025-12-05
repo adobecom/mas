@@ -76,6 +76,7 @@ export default class EditorPanel extends LitElement {
         localeDefaultFragment: { type: Object, state: true },
         localeDefaultFragmentLoading: { type: Boolean, state: true },
         variationsToDelete: { type: Array, state: true },
+        position: { type: String, state: true },
     };
 
     static styles = css`
@@ -141,6 +142,7 @@ export default class EditorPanel extends LitElement {
         this.localeDefaultFragment = null;
         this.localeDefaultFragmentLoading = false;
         this.variationsToDelete = [];
+        this.updatePosition('right');
 
         this.handleClose = this.handleClose.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -191,6 +193,7 @@ export default class EditorPanel extends LitElement {
         this.style.setProperty('--editor-left', position === 'left' ? '0' : 'inherit');
         this.style.setProperty('--editor-right', position === 'right' ? '0' : 'inherit');
         this.setAttribute('position', position);
+        this.position = position;
     }
 
     needsMask(fragment) {
@@ -589,16 +592,18 @@ export default class EditorPanel extends LitElement {
         return html`
             <div id="editor-toolbar">
                 <sp-action-group aria-label="Fragment actions" role="group" size="l" compact emphasized quiet>
-                    <sp-action-button
-                        label="Move left"
-                        title="Move left"
-                        value="left"
-                        id="move-left"
-                        @click="${() => this.updatePosition('left')}"
-                    >
-                        <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
-                        <sp-tooltip self-managed placement="bottom">Move left</sp-tooltip>
-                    </sp-action-button>
+                    ${this.position === 'right'
+                        ? html`<sp-action-button
+                              label="Move left"
+                              title="Move left"
+                              value="left"
+                              id="move-left"
+                              @click="${() => this.updatePosition('left')}"
+                          >
+                              <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
+                              <sp-tooltip self-managed placement="bottom">Move left</sp-tooltip>
+                          </sp-action-button>`
+                        : nothing}
                     <version-history
                         .versions="${this.fragmentVersions}"
                         .selectedVersion="${this.selectedVersion}"
@@ -673,16 +678,18 @@ export default class EditorPanel extends LitElement {
                         <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
                         <sp-tooltip self-managed placement="bottom">Close (Esc)</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button
-                        label="Move right"
-                        title="Move right"
-                        value="right"
-                        id="move-right"
-                        @click="${() => this.updatePosition('right')}"
-                    >
-                        <sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>
-                        <sp-tooltip self-managed placement="bottom">Move right</sp-tooltip>
-                    </sp-action-button>
+                    ${this.position === 'left'
+                        ? html`<sp-action-button
+                              label="Move right"
+                              title="Move right"
+                              value="right"
+                              id="move-right"
+                              @click="${() => this.updatePosition('right')}"
+                          >
+                              <sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>
+                              <sp-tooltip self-managed placement="bottom">Move right</sp-tooltip>
+                          </sp-action-button>`
+                        : nothing}
                 </sp-action-group>
             </div>
         `;

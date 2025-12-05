@@ -108,7 +108,7 @@ export const CSS = `
     merch-card[variant="ah-try-buy-widget"] [slot="image"] {
       display: none;
     }
-    
+
     merch-card[variant="ah-try-buy-widget"][size='single'] [slot="image"] {
       display: flex;
       width: 199px;
@@ -127,12 +127,12 @@ export const CSS = `
 
     .spectrum--dark merch-card[variant="ah-try-buy-widget"][background-color='gray'],
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"][background-color='gray'] {
-      --merch-card-ah-try-buy-widget-gray-background: rgb(27, 27, 27);
+      --merch-card-ah-try-buy-widget-gray-background: rgb(34, 34, 34);
     }
 
     .spectrum--dark merch-card[variant="ah-try-buy-widget"],
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"] {
-      --consonant-merch-card-background-color:rgb(17, 17, 17);
+      --consonant-merch-card-background-color:rgb(34, 34, 34);
       --consonant-merch-card-heading-xxxs-color:rgb(242, 242, 242);
       --consonant-merch-card-body-xxs-color:rgb(219, 219, 219);
     }

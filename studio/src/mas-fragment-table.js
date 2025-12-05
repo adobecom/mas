@@ -200,7 +200,7 @@ class MasFragmentTable extends LitElement {
                         </sp-menu-item>
                     </sp-action-menu>
                 </sp-table-cell>
-                ${data.model.path === CARD_MODEL_PATH
+                ${data.model?.path === CARD_MODEL_PATH
                     ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
                           ><sp-icon-preview label="Preview item"></sp-icon-preview
                       ></sp-table-cell>`

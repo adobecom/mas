@@ -963,8 +963,8 @@ class AEM {
                 headers: this.headers,
             },
         ).catch((error) => console.error('Error:', error));
-        if (!response.ok) {
-            throw new Error(`Failed to list folders: ${response.status} ${response.statusText}`);
+        if (!response?.ok) {
+            throw new Error(`Failed to list folders: ${response?.status} ${response?.statusText}`);
         }
         const result = await response.json();
         return {
@@ -1028,8 +1028,8 @@ class AEM {
                 headers: this.headers,
             },
         ).catch((error) => console.error('Error:', error));
-        if (!response.ok) {
-            throw new Error(`Failed to list tags: ${response.status} ${response.statusText}`);
+        if (!response?.ok) {
+            throw new Error(`Failed to list tags: ${response?.status} ${response?.statusText}`);
         }
         return response.json();
     }

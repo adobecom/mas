@@ -115,21 +115,15 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handeTagsChange = (event) => {
-        console.log('handeTagsChange:', event);
         const tags = event.target.getAttribute('value');
         const newTags = tags ? tags.split(',') : [];
-        console.log('tags:', tags);
         this.fragmentStore.updateField('tags', newTags);
     };
 
     #handleCloseAddSurfacesDialog = (event) => {
-        console.log('handleCloseAddSurfacesDialog:', event);
-
         // Get the table element and its selected rows
         const table = event.target.querySelector('#surfaces-table');
         const selectedSurfaces = table?.selected || [];
-
-        console.log('selectedSurfaces:', selectedSurfaces);
 
         // Update the fragment with the selected surfaces
         if (selectedSurfaces.length > 0) {
@@ -142,7 +136,6 @@ class MasPromotionsEditor extends LitElement {
 
     #handleSurfaceDelete = (event) => {
         const deletedSurface = event.target.attributes.getNamedItem('value').value;
-        console.log(`deletedSurface`, deletedSurface);
         const surfaces = this.fragment.fields.find((field) => field.name === 'surfaces')?.values || [];
         this.fragmentStore.updateField(
             'surfaces',
@@ -151,7 +144,6 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handleFragmentUpdate({ target, detail, values }) {
-        console.log('handleFragmentUpdate');
         const fieldName = target.dataset.field;
         let value = values;
         if (!value) {
@@ -169,8 +161,6 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleCreatePromotion() {
-        console.log('handleCreatePromotion');
-
         if (!this.#validateRequiredFields(this.fragment)) {
             showToast('Please fill in all required fields', 'negative');
             return;
@@ -197,8 +187,6 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleUpdatePromotion() {
-        console.log('handleUpdatePromotion:', this.fragment);
-
         if (!this.#validateRequiredFields(this.fragment)) {
             showToast('Please fill in all required fields', 'negative');
             return;
@@ -208,7 +196,6 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleCancel() {
-        console.log('handleCancel');
         if (this.fragment?.hasChanges) {
             const confirmed = await this.#showDialog(
                 'Unsaved Changes',
@@ -398,7 +385,6 @@ class MasPromotionsEditor extends LitElement {
 
     renderAddSurfacesDialog() {
         const surfaces = this.fragment?.fields.find((field) => field.name === 'surfaces')?.values || [];
-        console.log('surfaces:', surfaces);
         return html`
             <sp-dialog-wrapper
                 slot="click-content"

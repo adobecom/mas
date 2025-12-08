@@ -35,7 +35,7 @@ let fragmentCache;
 export function getDamPath(path) {
     if (!path) return ROOT_PATH;
     if (path.startsWith(ROOT_PATH)) return path;
-    return ROOT_PATH + '/' + path;
+    return `${ROOT_PATH}/${path}`;
 }
 
 export async function initFragmentCache() {

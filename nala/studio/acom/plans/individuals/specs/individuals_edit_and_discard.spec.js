@@ -131,6 +131,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
+                promo: 'UMRM2MUSPr501YOC',
                 price: {
                     original: 'US$17.24/mo',
                     updated: 'US$17.24/moper license',

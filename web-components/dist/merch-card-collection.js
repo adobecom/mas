@@ -1538,7 +1538,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 :root {
     --consonant-merch-card-plans-v2-font-family-regular: 'Adobe Clean', 'adobe-clean', sans-serif;
     --consonant-merch-card-plans-v2-font-family: 'Adobe Clean Display', 'adobe-clean-display', 'Adobe Clean', 'adobe-clean', sans-serif;
-    --consonant-merch-card-plans-v2-width: 385px;
+    --consonant-merch-card-plans-v2-width: 276px;
     --consonant-merch-card-plans-v2-height: auto;
     --consonant-merch-card-plans-v2-icon-size: 41.5px;
     --consonant-merch-card-plans-v2-border-color: #E9E9E9;
@@ -1582,6 +1582,10 @@ merch-card[variant="plans-v2"] .spacer {
 /* Keep "What you get" section white in dark mode */
 .dark merch-card[variant="plans-v2"] merch-whats-included {
     background-color: #FFFFFF;
+}
+
+.dark merch-card[variant="plans-v2"] [slot="body-xs"] .spectrum-Link.spectrum-Link--primary {
+    color: #FFFFFF;
 }
 
 .dark merch-card[variant="plans-v2"] merch-whats-included h4,
@@ -1637,7 +1641,7 @@ merch-card[variant="plans-v2"] span.price-unit-type {
 
 merch-card[variant="plans-v2"] span.price-unit-type {
     display: inline;
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 900;
     line-height: 110%;
 }
@@ -1718,7 +1722,7 @@ merch-card[variant="plans-v2"] [slot="icons"] img {
 }
 
 merch-card[variant="plans-v2"] [slot="heading-xs"] {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 900;
     font-family: var(--consonant-merch-card-plans-v2-font-family);
     line-height: 1.1;
@@ -1756,6 +1760,14 @@ merch-card[variant="plans-v2"][size="wide"] [slot="subtitle"] {
     line-height: 1.1;
 }
 
+merch-card[variant="plans-v2"] [slot="heading-m"] span.price, merch-card[variant="plans-v2"] [slot="heading-m"] p {
+    font-size: 20px;
+    font-weight: 900;
+    font-family: var(--consonant-merch-card-plans-v2-font-family);
+    color: var(--spectrum-gray-800, #2C2C2C);
+    line-height: 1.1;
+}
+
 /* Mobile-specific wide card subtitle styles */
 @media ${$} {
     merch-card[variant="plans-v2"][size="wide"] [slot="subtitle"] {
@@ -1763,6 +1775,11 @@ merch-card[variant="plans-v2"][size="wide"] [slot="subtitle"] {
         font-weight: 900;
         line-height: 1.1;
         letter-spacing: 0px;
+    }
+
+    merch-card[variant="plans-v2"] span.price-unit-type,
+    merch-card[variant="plans-v2"] [slot="heading-m"] span.price, merch-card[variant="plans-v2"] [slot="heading-m"] p {
+        font-size: 28px;
     }
 }
 
@@ -1772,14 +1789,6 @@ merch-card[variant="plans-v2"] [slot="heading-m"] {
     gap: 4px;
     margin-bottom: 8px;
     color: inherit;
-}
-
-merch-card[variant="plans-v2"] [slot="heading-m"] span.price, merch-card[variant="plans-v2"] [slot="heading-m"] p {
-    font-size: 28px;
-    font-weight: 900;
-    font-family: var(--consonant-merch-card-plans-v2-font-family);
-    color: var(--spectrum-gray-800, #2C2C2C);
-    line-height: 1.1;
 }
 
 merch-card[variant="plans-v2"] [slot="heading-m"] span.price.price-strikethrough,
@@ -1986,7 +1995,7 @@ merch-card[variant="plans-v2"] .help-text {
 
 @media screen and ${I}, ${P}, ${re} {
     :root {
-        --consonant-merch-card-plans-v2-width: 385px;
+        --consonant-merch-card-plans-v2-width: 276px;
     }
 }
 collection-container.plans:has(merch-card[variant="plans-v2"]) {
@@ -2136,11 +2145,15 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 /* Desktop */
 @media screen and ${P} {
     :root {
-        --consonant-merch-card-plans-v2-width: 385px;
+        --consonant-merch-card-plans-v2-width: 276px;
     }
 
-    merch-card-collection.plans:is(.three-merch-cards, .four-merch-cards):has(merch-card[variant="plans-v2"]) {
+    merch-card-collection.plans:is(.three-merch-cards):has(merch-card[variant="plans-v2"]) {
         grid-template-columns: repeat(3, var(--consonant-merch-card-plans-v2-width));
+    }
+
+    merch-card-collection.plans:is(.four-merch-cards):has(merch-card[variant="plans-v2"]) {
+        grid-template-columns: repeat(4 , var(--consonant-merch-card-plans-v2-width));
     }
 
     merch-card-collection-header.plans {
@@ -2230,7 +2243,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
             box-sizing: border-box;
             --consonant-merch-card-plans-v2-font-family: 'adobe-clean-display',
                 'Adobe Clean', sans-serif;
-            --merch-card-plans-v2-min-width: 244px;
+            --merch-card-plans-v2-min-width: 220px;
             --merch-card-plans-v2-padding: 24px 24px;
             --merch-color-green-promo: #05834e;
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23505050' viewBox='0 0 12 15'%3E%3Cpath d='M11.5 6H11V5A5 5 0 1 0 1 5v1H.5a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5ZM3 5a3 3 0 1 1 6 0v1H3Zm4 6.111V12.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1.389a1.5 1.5 0 1 1 2 0Z'/%3E%3C/svg%3E");
@@ -2253,10 +2266,11 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
             flex: 0 0 auto;
             gap: 12px;
             min-height: var(--merch-card-plans-v2-body-min-height, auto);
+            width: 220px;
         }
 
         :host([variant='plans-v2'][size]) .body {
-            max-width: none;
+            width: auto;
         }
 
         :host([variant='plans-v2']) footer {
@@ -2522,6 +2536,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
             border-bottom-right-radius: var(
                 --consonant-merch-card-plans-v2-border-radius
             );
+            width: 226px;
         }
 
         :host([variant='plans-v2'])
@@ -2719,6 +2734,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 
             :host([variant='plans-v2']) .short-description-content {
                 padding: 0 16px;
+                width: auto !important;
             }
 
             :host([variant='plans-v2']) .short-description-content.expanded {
@@ -2727,6 +2743,11 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 
             :host([variant='plans-v2'][size='wide']) .body {
                 padding: 16px;
+                width: auto;
+            }
+
+            :host([variant='plans-v2']) .body {
+                width: auto;
             }
         }
 

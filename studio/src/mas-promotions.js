@@ -78,7 +78,7 @@ class MasPromotions extends LitElement {
         this.promotionsData = Store.promotions?.list?.data?.get() || [];
 
         Store.promotions.list.loading.set(true);
-        await this.loadPromotions(true);
+        await this.loadPromotions();
     }
 
     disconnectedCallback() {
@@ -268,7 +268,7 @@ class MasPromotions extends LitElement {
 
     renderActionCell(promotion) {
         return html`
-            <sp-table-cell class="action-cell">
+            <sp-table-cell>
                 <sp-action-menu size="m">
                     ${html`
                         <sp-menu-item @click="${() => this.#handleEditPromotion(promotion)}">

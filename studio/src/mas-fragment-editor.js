@@ -297,6 +297,7 @@ export default class MasFragmentEditor extends LitElement {
     editorContextStore = Store.fragmentEditor.editorContext;
 
     discardPromiseResolver;
+    #pendingDiscardPromise = null;
     titleClone = '';
     tagsClone = [];
     osiClone = null;
@@ -723,10 +724,14 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     promptDiscardChanges() {
-        return new Promise((resolve) => {
+        if (this.#pendingDiscardPromise) {
+            return this.#pendingDiscardPromise;
+        }
+        this.#pendingDiscardPromise = new Promise((resolve) => {
             this.discardPromiseResolver = resolve;
             this.showDiscardDialog = true;
         });
+        return this.#pendingDiscardPromise;
     }
 
     discardConfirmed() {
@@ -736,6 +741,7 @@ export default class MasFragmentEditor extends LitElement {
             this.discardPromiseResolver(true);
             this.discardPromiseResolver = null;
         }
+        this.#pendingDiscardPromise = null;
     }
 
     cancelDiscard() {
@@ -744,6 +750,7 @@ export default class MasFragmentEditor extends LitElement {
             this.discardPromiseResolver(false);
             this.discardPromiseResolver = null;
         }
+        this.#pendingDiscardPromise = null;
     }
 
     updateCloneFragmentInternal(event) {

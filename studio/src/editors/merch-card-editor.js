@@ -68,20 +68,24 @@ class MerchCardEditor extends LitElement {
         return this;
     }
 
+    get effectiveIsVariation() {
+        return this.isVariation && this.localeDefaultFragment !== null;
+    }
+
     getEffectiveFieldValue(fieldName, index = 0) {
-        return this.fragment.getEffectiveFieldValue(fieldName, this.localeDefaultFragment, this.isVariation, index);
+        return this.fragment.getEffectiveFieldValue(fieldName, this.localeDefaultFragment, this.effectiveIsVariation, index);
     }
 
     getEffectiveFieldValues(fieldName) {
-        return this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.isVariation);
+        return this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
     }
 
     isFieldOverridden(fieldName) {
-        return this.fragment.isFieldOverridden(fieldName, this.isVariation);
+        return this.fragment.isFieldOverridden(fieldName, this.effectiveIsVariation);
     }
 
     getFieldState(fieldName) {
-        return this.fragment.getFieldState(fieldName, this.localeDefaultFragment, this.isVariation);
+        return this.fragment.getFieldState(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
     }
 
     async resetFieldToParent(fieldName) {
@@ -155,12 +159,14 @@ class MerchCardEditor extends LitElement {
             this.#updateAvailableSizes();
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
+            this.toggleFields();
+        }
+        if (changedProperties.has('localeDefaultFragment')) {
+            this.toggleFields();
         }
     }
 
-    firstUpdated() {
-        this.toggleFields();
-    }
+    firstUpdated() {}
 
     get whatsIncludedElement() {
         const whatsIncludedHtml = this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '';

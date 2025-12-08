@@ -87,13 +87,17 @@ export class PreviewFragmentStore extends FragmentStore {
         return this.#resolving;
     }
 
-    releaseHold() {
+    releaseHold(immediate = true) {
         this.holdResolution = false;
-        this.resolveFragment();
+        this.resolveFragment(immediate);
     }
 
-    resolveFragment() {
+    resolveFragment(immediate = false) {
         clearTimeout(this.#resolveDebounceTimer);
+        if (immediate) {
+            this.#doResolveFragment();
+            return;
+        }
         this.#resolveDebounceTimer = setTimeout(() => {
             this.#doResolveFragment();
         }, 150);

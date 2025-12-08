@@ -288,6 +288,7 @@ export default class MasFragmentEditor extends LitElement {
         versionsLoading: { type: Boolean, state: true },
         contextLoaded: { type: Boolean, state: true },
         initializingFragment: { type: Boolean, state: true },
+        initializationComplete: { type: Boolean, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -321,6 +322,7 @@ export default class MasFragmentEditor extends LitElement {
         this.versionsLoading = false;
         this.contextLoaded = false;
         this.initializingFragment = false;
+        this.initializationComplete = false;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -338,6 +340,10 @@ export default class MasFragmentEditor extends LitElement {
         return html`<style>
             ${MasFragmentEditor.styles.cssText}
         </style>`;
+    }
+
+    get isLoading() {
+        return this.initializingFragment || !this.initializationComplete;
     }
 
     connectedCallback() {
@@ -395,7 +401,7 @@ export default class MasFragmentEditor extends LitElement {
         this.previewLazyLoadTimer = requestAnimationFrame(() => {
             this.previewLazyLoaded = true;
             if (this.contextLoaded && !this.editorContextStore.isVariation(this.fragmentId)) {
-                this.fragmentStore?.previewStore?.resolveFragment();
+                this.fragmentStore?.previewStore?.resolveFragment(true);
             }
         });
     }
@@ -558,6 +564,7 @@ export default class MasFragmentEditor extends LitElement {
         this.previewLazyLoaded = false;
         this.previewResolved = false;
         this.contextLoaded = false;
+        this.initializationComplete = false;
 
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
         let fragmentStore;
@@ -621,6 +628,7 @@ export default class MasFragmentEditor extends LitElement {
                 this.fragmentStore.get().hasChanges = false;
             }
 
+            this.initializationComplete = true;
             this.localeDefaultFragmentLoading = false;
             this.requestUpdate();
         });

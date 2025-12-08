@@ -155,8 +155,9 @@ class MasStudio extends LitElement {
         }
 
         const handleBackToBreadcrumb = async () => {
-            if (Store.editor.hasChanges) {
-                const fragmentEditor = document.querySelector('mas-fragment-editor');
+            const fragmentEditor = document.querySelector('mas-fragment-editor');
+            const isLoading = fragmentEditor?.isLoading ?? false;
+            if (!isLoading && Store.editor.hasChanges) {
                 const confirmed = await fragmentEditor?.promptDiscardChanges();
                 if (!confirmed) return;
             }

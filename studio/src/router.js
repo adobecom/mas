@@ -33,11 +33,9 @@ export class Router extends EventTarget {
         return async () => {
             if (Store.page.value === value) return;
             const fragmentEditor = document.querySelector('mas-fragment-editor');
-            const isInitializing = fragmentEditor?.initializingFragment ?? false;
+            const isLoading = fragmentEditor?.isLoading ?? false;
             const confirmed =
-                isInitializing ||
-                !Store.editor.hasChanges ||
-                (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
+                isLoading || !Store.editor.hasChanges || (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
             if (confirmed) {
                 if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
                     Store.fragmentEditor.fragmentId.set(null);
@@ -242,9 +240,9 @@ export class Router extends EventTarget {
 
         window.addEventListener('hashchange', async (event) => {
             const fragmentEditor = document.querySelector('mas-fragment-editor');
-            const isInitializing = fragmentEditor?.initializingFragment ?? false;
+            const isLoading = fragmentEditor?.isLoading ?? false;
             const shouldCheckUnsavedChanges =
-                !isInitializing && Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
+                !isLoading && Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
 
             if (shouldCheckUnsavedChanges) {
                 const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;

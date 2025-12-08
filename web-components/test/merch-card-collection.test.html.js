@@ -9,7 +9,6 @@ import { pushState } from '../src/deeplink.js';
 import {
     appendMiloStyles,
     delay,
-    oneEvent,
     toggleDesktop,
     toggleLargeDesktop,
     toggleMobile,
@@ -311,17 +310,33 @@ runTests(async () => {
             expect(showMoreButton.isConnected).to.be.false;
         });
     });
+    describe('merch-card-collection plans features', () => {
+        it('handles wide card minification on small desktop', async () => {
+            await toggleDesktop();
+            [merchCards, render] = prepareTemplate('plansWideReflow', false);
+            render();
+            await merchCards.checkReady();
+            const sidenav = document.querySelector('merch-sidenav');
+            merchCards.attachSidenav(sidenav, false);
+            await delay(100);
+            const secondCard = merchCards.querySelector(
+                'merch-card:nth-child(2)',
+            );
+            expect(secondCard.getAttribute('data-size')).to.equal('wide');
+        });
+    });
 
     describe('merch-card-collection override feature', () => {
         let collectionElement;
 
         beforeEach(async () => {
             document.location.hash = '';
-            [collectionElement, render] = prepareTemplate('override', false);
         });
 
         it('should hydrate from child aem-fragment, with overriden ids', async () => {
+            [collectionElement, render] = prepareTemplate('override', false);
             render();
+
             const aemFragment = customElements.get('aem-fragment');
             await collectionElement.checkReady();
             const fragment1 = collectionElement.querySelector(
@@ -351,23 +366,24 @@ runTests(async () => {
             aemFragment.cache.clear();
         });
 
-        describe('merch-card-collection plans features', () => {
-            it('handles wide card minification on small desktop', async () => {
-                await toggleDesktop();
-                [merchCards, render] = prepareTemplate(
-                    'plansWideReflow',
-                    false,
-                );
-                render();
-                await merchCards.checkReady();
-                const sidenav = document.querySelector('merch-sidenav');
-                merchCards.attachSidenav(sidenav, false);
-                await delay(100);
-                const secondCard = merchCards.querySelector(
-                    'merch-card:nth-child(2)',
-                );
-                expect(secondCard.getAttribute('data-size')).to.equal('wide');
-            });
+        it('should hydrate from child aem-fragment, with overriden child collection', async () => {
+            const fragment = document.createElement('aem-fragment');
+            fragment.setAttribute('fragment', 'cafe-babe');
+            document.body.appendChild(fragment);
+            await delay(100);
+            [collectionElement, render] = prepareTemplate(
+                'override-child',
+                false,
+            );
+            render();
+            const aemFragment = customElements.get('aem-fragment');
+            await collectionElement.checkReady();
+            expect(
+                collectionElement.querySelector(
+                    'merch-card[id="bebecafebabe"]',
+                ),
+            ).to.exist;
+            aemFragment.cache.clear();
         });
     });
 });

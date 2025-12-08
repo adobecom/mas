@@ -113,6 +113,16 @@ class MnemonicField extends LitElement {
         );
     }
 
+    #handleMenuChange(event) {
+        event.stopPropagation();
+        const value = event.target.value;
+        if (value === 'edit') {
+            this.#handleEditClick();
+        } else if (value === 'delete') {
+            this.#handleDeleteClick();
+        }
+    }
+
     #handleModalSave(event) {
         const { icon, alt, link } = event.detail;
         this.icon = icon;
@@ -175,14 +185,14 @@ class MnemonicField extends LitElement {
                     <div class="value">${this.#getDisplayText(this.#getIconName(), 'No icon selected')}</div>
                 </div>
 
-                <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end">
+                <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>
                     <sp-icon-more slot="icon"></sp-icon-more>
                     <sp-menu>
-                        <sp-menu-item @click=${this.#handleEditClick}>
+                        <sp-menu-item value="edit">
                             <sp-icon-edit slot="icon"></sp-icon-edit>
                             Edit
                         </sp-menu-item>
-                        <sp-menu-item @click=${this.#handleDeleteClick}>
+                        <sp-menu-item value="delete">
                             <sp-icon-delete slot="icon"></sp-icon-delete>
                             Delete
                         </sp-menu-item>

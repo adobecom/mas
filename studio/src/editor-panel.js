@@ -124,6 +124,7 @@ export default class EditorPanel extends LitElement {
     editorContextStore = Store.fragmentEditor.editorContext;
 
     #discardPromiseResolver;
+    #pendingDiscardPromise = null;
 
     constructor() {
         super();
@@ -133,6 +134,7 @@ export default class EditorPanel extends LitElement {
         this.cloneInProgress = false;
         this.showEditor = true;
         this.#discardPromiseResolver = null;
+        this.#pendingDiscardPromise = null;
         this.titleClone = '';
         this.tagsClone = [];
         this.osiClone = null;
@@ -421,12 +423,17 @@ export default class EditorPanel extends LitElement {
      * Prompts the user to confirm discarding changes.
      * Returns a Promise that resolves with true if the user confirms,
      * or false if the user cancels.
+     * Uses a guard to prevent multiple concurrent dialog prompts.
      */
     promptDiscardChanges() {
-        return new Promise((resolve) => {
+        if (this.#pendingDiscardPromise) {
+            return this.#pendingDiscardPromise;
+        }
+        this.#pendingDiscardPromise = new Promise((resolve) => {
             this.#discardPromiseResolver = resolve;
             this.showDiscardDialog = true;
         });
+        return this.#pendingDiscardPromise;
     }
 
     /**
@@ -439,6 +446,7 @@ export default class EditorPanel extends LitElement {
             this.#discardPromiseResolver(true);
             this.#discardPromiseResolver = null;
         }
+        this.#pendingDiscardPromise = null;
     }
 
     /**
@@ -450,6 +458,7 @@ export default class EditorPanel extends LitElement {
             this.#discardPromiseResolver(false);
             this.#discardPromiseResolver = null;
         }
+        this.#pendingDiscardPromise = null;
     }
 
     saveFragment() {

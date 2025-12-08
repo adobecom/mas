@@ -301,8 +301,8 @@ export class MasRepository extends LitElement {
             if (isUUID(this.search.value.query)) {
                 // Check if the fragment with this UUID is already the only one in the store
                 const [currentFragment] = dataStore.get() ?? [];
-                if (currentFragment?.value.id === this.search.value.query) {
-                    // Skip search if we already have exactly this fragment)
+                if (currentFragment?.value.id === this.search.value.query && dataStore.get()?.length === 1) {
+                    // Skip search if we already have exactly this fragment
                     Store.fragments.list.loading.set(false);
                     Store.fragments.list.firstPageLoaded.set(true);
                     return;
@@ -311,20 +311,20 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
-                if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
-                    // Apply corrector transformer before caching
-                    const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
+                if (fragmentData && fragmentData.path.indexOf(ROOT_PATH) === 0) {
+                    const fragmentFolderPath = fragmentData.path.substring(ROOT_PATH.length + 1);
+                    const fragmentFolder = fragmentFolderPath.split('/')[0];
+                    const surface = fragmentFolder?.toLowerCase();
                     applyCorrectorToFragment(fragmentData, surface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
                     dataStore.set([sourceStore]);
 
-                    const folderPath = fragmentData.path.substring(fragmentData.path.indexOf(damPath) + damPath.length + 1);
-                    const folderName = folderPath.substring(0, folderPath.indexOf('/'));
-                    if (Store.folders.data.get().includes(folderName)) {
+                    // Update the search path to the fragment's folder
+                    if (Store.folders.data.get().includes(fragmentFolder)) {
                         Store.search.set((prev) => ({
                             ...prev,
-                            path: folderName,
+                            path: fragmentFolder,
                         }));
                     }
                 }

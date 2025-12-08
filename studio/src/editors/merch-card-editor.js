@@ -51,7 +51,7 @@ class MerchCardEditor extends LitElement {
     availableBackgroundColors = [];
     quantitySelectorValues = '';
     lastMnemonicState = null;
-    reactiveController = new ReactiveController(this, []);
+    reactiveController = null;
 
     constructor() {
         super();
@@ -61,6 +61,7 @@ class MerchCardEditor extends LitElement {
         this.localeDefaultFragment = null;
         this.isVariation = false;
         this.lastMnemonicState = null;
+        this.reactiveController = new ReactiveController(this, [], this.toggleFields);
     }
 
     createRenderRoot() {
@@ -151,12 +152,14 @@ class MerchCardEditor extends LitElement {
     willUpdate(changedProperties) {
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.reactiveController.updateStores([this.fragmentStore]);
-            this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
-            this.toggleFields();
         }
+    }
+
+    firstUpdated() {
+        this.toggleFields();
     }
 
     get whatsIncludedElement() {
@@ -289,16 +292,15 @@ class MerchCardEditor extends LitElement {
 
     updated(changedProperties) {
         super.updated(changedProperties);
-        if (changedProperties.has('fragmentStore')) {
-            this.toggleFields();
-        }
     }
 
     async toggleFields() {
         if (!this.fragment) return;
+        await customElements.whenDefined('merch-card');
         this.#updateCurrentVariantMapping();
         const variant = this.currentVariantMapping;
         if (!variant) return;
+
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
             field.style.display = 'none';
         });

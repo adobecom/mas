@@ -42,7 +42,7 @@ export class SourceFragmentStore extends FragmentStore {
     discardChanges() {
         this.value.discardChanges();
         this.notify();
-        this.previewStore.discardChanges();
+        this.previewStore.refreshFrom(structuredClone(this.value));
     }
 
     resetFieldToParent(fieldName, parentValues = []) {

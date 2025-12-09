@@ -198,12 +198,12 @@ class MasPromotionsEditor extends LitElement {
     async #handleCancel() {
         if (this.fragment?.hasChanges) {
             const confirmed = await this.#showDialog(
-                'Unsaved Changes',
-                'You have unsaved changes. Are you sure you want to cancel?',
+                'Confirm Discard',
+                'Are you sure you want to discard changes? This action cannot be undone.',
                 {
-                    confirmText: 'Yes',
+                    confirmText: 'Discard',
                     cancelText: 'Cancel',
-                    variant: 'negative',
+                    variant: 'confirmation',
                 },
             );
             if (!confirmed) return;
@@ -428,7 +428,7 @@ class MasPromotionsEditor extends LitElement {
                     open
                     underlay
                     id="promotion-unsaved-changes-dialog"
-                    .heading=${title}
+                    .headline=${title}
                     .variant=${variant || 'negative'}
                     .confirmLabel=${confirmText}
                     .cancelLabel=${cancelText}

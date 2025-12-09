@@ -52,25 +52,29 @@ class MasMultifield extends LitElement {
      * @type {HTMLElement}
      */
     #template;
+    #boundHandlers;
 
     constructor() {
         super();
         this.draggingIndex = -1;
         this.min = 0;
         this.buttonLabel = 'Add';
+        this.#boundHandlers = {
+            deleteField: this.#handleDeleteField.bind(this),
+        };
     }
 
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener('delete-field', this.#handleDeleteField);
+        this.addEventListener('delete-field', this.#boundHandlers.deleteField);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.removeEventListener('delete-field', this.#handleDeleteField);
+        this.removeEventListener('delete-field', this.#boundHandlers.deleteField);
     }
 
-    #handleDeleteField = (event) => {
+    #handleDeleteField(event) {
         event.stopPropagation();
         const path = event.composedPath();
         const fieldWrapper = path.find((el) => el.classList?.contains('field-wrapper'));
@@ -80,7 +84,7 @@ class MasMultifield extends LitElement {
                 this.removeField(index);
             }
         }
-    };
+    }
 
     initValue() {
         // auto assign ids.

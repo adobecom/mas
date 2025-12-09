@@ -804,6 +804,7 @@ export default class MasFragmentEditor extends LitElement {
                 await this.repository.deleteFragmentWithVariations(this.fragment);
             }
             showToast('Fragment successfully deleted.', 'positive');
+            Store.fragments.inEdit.set(null);
             Store.viewMode.set('default');
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
         } catch (error) {

@@ -8,6 +8,7 @@ export class Router extends EventTarget {
         this.location = location;
         this.updateHistory = debounce(this.updateHistory.bind(this), 50);
         this.linkedStores = [];
+        this.isNavigating = false;
     }
 
     updateHistory() {
@@ -32,22 +33,29 @@ export class Router extends EventTarget {
     navigateToPage(value) {
         return async () => {
             if (Store.page.value === value) return;
-            const fragmentEditor = document.querySelector('mas-fragment-editor');
-            const isLoading = fragmentEditor?.isLoading ?? false;
-            const confirmed =
-                isLoading || !Store.editor.hasChanges || (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
-            if (confirmed) {
-                if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
-                    Store.fragmentEditor.fragmentId.set(null);
+            this.isNavigating = true;
+            try {
+                const fragmentEditor = document.querySelector('mas-fragment-editor');
+                const isLoading = fragmentEditor?.isLoading ?? false;
+                const confirmed =
+                    isLoading ||
+                    !Store.editor.hasChanges ||
+                    (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
+                if (confirmed) {
+                    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
+                        Store.fragmentEditor.fragmentId.set(null);
+                    }
+                    Store.fragments.inEdit.set();
+                    if (value !== PAGE_NAMES.CONTENT) {
+                        Store.fragments.list.data.set([]);
+                        Store.search.set((prev) => ({ ...prev, query: undefined }));
+                        Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+                    }
+                    Store.viewMode.set('default');
+                    Store.page.set(value);
                 }
-                Store.fragments.inEdit.set();
-                if (value !== PAGE_NAMES.CONTENT) {
-                    Store.fragments.list.data.set([]);
-                    Store.search.set((prev) => ({ ...prev, query: undefined }));
-                    Store.filters.set((prev) => ({ ...prev, tags: undefined }));
-                }
-                Store.viewMode.set('default');
-                Store.page.set(value);
+            } finally {
+                this.isNavigating = false;
             }
         };
     }
@@ -62,36 +70,41 @@ export class Router extends EventTarget {
             return;
         }
 
-        // Check if this is a collection to use editor-panel instead
-        const fragmentList = Store.fragments.list.data.get();
-        const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);
+        this.isNavigating = true;
+        try {
+            // Check if this is a collection to use editor-panel instead
+            const fragmentList = Store.fragments.list.data.get();
+            const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);
 
-        if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
-            // Use editor-panel for collections
-            const editorPanel = document.querySelector('editor-panel');
-            if (editorPanel) {
-                if (Store.editor.hasChanges) {
-                    const confirmed = await editorPanel.promptDiscardChanges();
-                    if (!confirmed) return;
+            if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
+                // Use editor-panel for collections
+                const editorPanel = document.querySelector('editor-panel');
+                if (editorPanel) {
+                    if (Store.editor.hasChanges) {
+                        const confirmed = await editorPanel.promptDiscardChanges();
+                        if (!confirmed) return;
+                    }
+                    await editorPanel.editFragment(fragmentStore);
+                    Store.viewMode.set('editing');
+                    return;
                 }
-                await editorPanel.editFragment(fragmentStore);
-                Store.viewMode.set('editing');
-                return;
             }
-        }
 
-        // Default: use full-page fragment editor for regular cards
-        if (Store.editor.hasChanges) {
-            const fragmentEditor = document.querySelector('mas-fragment-editor');
-            const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
-            if (!confirmed) return;
-        }
+            // Default: use full-page fragment editor for regular cards
+            if (Store.editor.hasChanges) {
+                const fragmentEditor = document.querySelector('mas-fragment-editor');
+                const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
+                if (!confirmed) return;
+            }
 
-        Store.fragments.inEdit.set();
-        Store.fragmentEditor.fragmentId.set(fragmentId);
-        Store.search.set((prev) => ({ ...prev, query: undefined }));
-        Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
-        Store.viewMode.set('editing');
+            Store.fragments.inEdit.set();
+            Store.fragmentEditor.fragmentId.set(fragmentId);
+            Store.search.set((prev) => ({ ...prev, query: undefined }));
+            Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
+            Store.viewMode.set('editing');
+        } finally {
+            this.isNavigating = false;
+        }
     }
 
     /**
@@ -239,17 +252,19 @@ export class Router extends EventTarget {
         }
 
         window.addEventListener('hashchange', async (event) => {
-            const fragmentEditor = document.querySelector('mas-fragment-editor');
-            const isLoading = fragmentEditor?.isLoading ?? false;
-            const shouldCheckUnsavedChanges =
-                !isLoading && Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
+            if (!this.isNavigating) {
+                const fragmentEditor = document.querySelector('mas-fragment-editor');
+                const isLoading = fragmentEditor?.isLoading ?? false;
+                const shouldCheckUnsavedChanges =
+                    !isLoading && Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
 
-            if (shouldCheckUnsavedChanges) {
-                const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
-                if (!confirmed) {
-                    event.preventDefault();
-                    this.location.hash = this.previousHash;
-                    return;
+                if (shouldCheckUnsavedChanges) {
+                    const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
+                    if (!confirmed) {
+                        event.preventDefault();
+                        this.location.hash = this.previousHash;
+                        return;
+                    }
                 }
             }
 

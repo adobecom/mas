@@ -110,18 +110,10 @@ export class MasVariationDialog extends LitElement {
     }
 
     async loadExistingVariations() {
-        if (!this.repository?.aem || !this.fragment?.id) return;
+        if (!this.repository || !this.fragment?.id) return;
 
         try {
-            const parentFragment = await this.repository.aem.sites.cf.fragments.getById(this.fragment.id);
-            if (!parentFragment) return;
-
-            const variationsField = parentFragment.fields?.find((f) => f.name === 'variations');
-            const variationPaths = variationsField?.values || [];
-
-            const existingLocales = variationPaths.map((path) => extractLocaleFromPath(path)).filter(Boolean);
-
-            this.existingVariationLocales = existingLocales;
+            this.existingVariationLocales = await this.repository.getExistingVariationLocales(this.fragment.id);
         } catch (err) {
             console.error('Failed to load existing variations:', err);
         }
@@ -179,28 +171,15 @@ export class MasVariationDialog extends LitElement {
             return;
         }
 
-        if (this.isVariation) {
-            this.error = 'Cannot create a variation from another variation. Please use the default locale fragment.';
-            showToast(this.error, 'negative');
-            return;
-        }
-
         try {
             this.loading = true;
             showToast('Creating variation...');
 
-            const parentFragment = await this.repository.aem.sites.cf.fragments.getById(this.fragment.id);
-            if (!parentFragment) {
-                throw new Error('Failed to fetch parent fragment');
-            }
-
-            const variationFragment = await this.repository.createEmptyVariation(parentFragment, this.selectedLocale);
-
-            if (!variationFragment) {
-                throw new Error('Failed to create variation');
-            }
-
-            await this.repository.updateParentVariations(parentFragment, variationFragment.path);
+            const variationFragment = await this.repository.createVariation(
+                this.fragment.id,
+                this.selectedLocale,
+                this.isVariation,
+            );
 
             showToast('Variation created successfully', 'positive');
 

@@ -7,7 +7,7 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { debounce, looseEquals, showToast, UserFriendlyError } from './utils.js';
+import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath } from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -1251,6 +1251,36 @@ export class MasRepository extends LitElement {
         });
 
         return this.aem.sites.cf.fragments.pollUpdatedFragment(latestParent);
+    }
+
+    async getExistingVariationLocales(fragmentId) {
+        const fragment = await this.aem.sites.cf.fragments.getById(fragmentId);
+        if (!fragment) return [];
+
+        const variationsField = fragment.fields?.find((f) => f.name === 'variations');
+        const variationPaths = variationsField?.values || [];
+
+        return variationPaths.map((path) => extractLocaleFromPath(path)).filter(Boolean);
+    }
+
+    async createVariation(fragmentId, targetLocale, isVariation = false) {
+        if (isVariation) {
+            throw new Error('Cannot create a variation from another variation. Please use the default locale fragment.');
+        }
+
+        const parentFragment = await this.aem.sites.cf.fragments.getById(fragmentId);
+        if (!parentFragment) {
+            throw new Error('Failed to fetch parent fragment');
+        }
+
+        const variationFragment = await this.createEmptyVariation(parentFragment, targetLocale);
+        if (!variationFragment) {
+            throw new Error('Failed to create variation');
+        }
+
+        await this.updateParentVariations(parentFragment, variationFragment.path);
+
+        return variationFragment;
     }
 
     async createPlaceholder(placeholder) {

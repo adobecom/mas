@@ -51,7 +51,6 @@ class MasSideNav extends LitElement {
     viewMode = new StoreController(this, Store.viewMode);
     editorHasChanges = false;
     fragmentStoreSubscription = null;
-    editorContextSubscription = null;
 
     connectedCallback() {
         super.connectedCallback();
@@ -59,10 +58,6 @@ class MasSideNav extends LitElement {
 
         const fragmentStoreHandler = () => {
             this.updateEditorChangesState();
-            this.requestUpdate();
-        };
-
-        const editorContextHandler = () => {
             this.requestUpdate();
         };
 
@@ -74,23 +69,9 @@ class MasSideNav extends LitElement {
                 }
             }
 
-            if (this.editorContextSubscription) {
-                const oldEditorContext = this.fragmentEditor?.editorContextStore;
-                if (oldEditorContext) {
-                    oldEditorContext.unsubscribe(this.editorContextSubscription);
-                }
-                this.editorContextSubscription = null;
-            }
-
             if (fragmentStore) {
                 this.fragmentStoreSubscription = fragmentStoreHandler;
                 fragmentStore.subscribe(this.fragmentStoreSubscription);
-
-                const editorContextStore = this.fragmentEditor?.editorContextStore;
-                if (editorContextStore) {
-                    this.editorContextSubscription = editorContextHandler;
-                    editorContextStore.subscribe(this.editorContextSubscription);
-                }
             }
 
             this.updateEditorChangesState();
@@ -105,12 +86,6 @@ class MasSideNav extends LitElement {
                 const store = Store.fragments.inEdit.get();
                 if (store) {
                     store.unsubscribe(this.fragmentStoreSubscription);
-                }
-            }
-            if (this.editorContextSubscription) {
-                const editorContextStore = this.fragmentEditor?.editorContextStore;
-                if (editorContextStore) {
-                    editorContextStore.unsubscribe(this.editorContextSubscription);
                 }
             }
         };

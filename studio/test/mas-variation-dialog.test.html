@@ -58,24 +58,26 @@
             runTests(async () => {
                 describe('mas-variation-dialog custom element', async () => {
                     let dialog;
-                    let mockAem;
+                    let mockRepository;
 
                     beforeEach(async () => {
-                        mockAem = {
-                            sites: {
-                                cf: {
-                                    fragments: {
-                                        getById: stub().resolves(mockParentFragment),
-                                        createEmptyVariation: stub().resolves(mockCreatedVariation),
-                                        updateParentVariations: stub().resolves(),
+                        mockRepository = {
+                            aem: {
+                                sites: {
+                                    cf: {
+                                        fragments: {
+                                            getById: stub().resolves(mockParentFragment),
+                                        },
                                     },
                                 },
                             },
+                            createEmptyVariation: stub().resolves(mockCreatedVariation),
+                            updateParentVariations: stub().resolves(),
                         };
 
                         dialog = document.querySelector('mas-variation-dialog');
                         dialog.fragment = { ...mockFragment };
-                        dialog.aem = mockAem;
+                        dialog.repository = mockRepository;
                         dialog.existingVariationLocales = ['en_AU'];
                         await dialog.updateComplete;
                     });
@@ -83,7 +85,7 @@
                     afterEach(() => {
                         if (dialog) {
                             dialog.fragment = null;
-                            dialog.aem = null;
+                            dialog.repository = null;
                             dialog.existingVariationLocales = [];
                             dialog.selectedLocale = '';
                             dialog.loading = false;
@@ -211,15 +213,15 @@
                             expect(dialog.error).to.equal('Please select a locale');
                         });
 
-                        it('should show error when AEM not available', async () => {
+                        it('should show error when repository not available', async () => {
                             dialog.selectedLocale = 'en_CA';
-                            dialog.aem = null;
+                            dialog.repository = null;
                             await dialog.updateComplete;
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
-                            expect(dialog.error).to.equal('AEM instance not available');
+                            expect(dialog.error).to.equal('Repository not available');
                         });
 
                         it('should disable submit button when loading', async () => {
@@ -258,15 +260,15 @@
                             await submitPromise;
                         });
 
-                        it('should call AEM methods in correct order', async () => {
+                        it('should call repository methods in correct order', async () => {
                             dialog.selectedLocale = 'en_CA';
                             await dialog.updateComplete;
 
                             await dialog.handleSubmit();
 
-                            expect(mockAem.sites.cf.fragments.getById.calledOnce).to.be.true;
-                            expect(mockAem.sites.cf.fragments.createEmptyVariation.calledOnce).to.be.true;
-                            expect(mockAem.sites.cf.fragments.updateParentVariations.calledOnce).to.be.true;
+                            expect(mockRepository.aem.sites.cf.fragments.getById.calledOnce).to.be.true;
+                            expect(mockRepository.createEmptyVariation.calledOnce).to.be.true;
+                            expect(mockRepository.updateParentVariations.calledOnce).to.be.true;
                         });
 
                         it('should dispatch fragment-copied event on success', async () => {
@@ -282,7 +284,7 @@
                         });
 
                         it('should show error on submission failure', async () => {
-                            mockAem.sites.cf.fragments.getById.rejects(new Error('Network error'));
+                            mockRepository.aem.sites.cf.fragments.getById.rejects(new Error('Network error'));
                             dialog.selectedLocale = 'en_CA';
                             await dialog.updateComplete;
 

@@ -1119,6 +1119,140 @@ export class MasRepository extends LitElement {
         return { success, failedVariations };
     }
 
+    /**
+     * Creates an empty variation fragment for the given parent fragment in a target locale.
+     * @param {Object} parentFragment - The parent fragment to create a variation from
+     * @param {string} targetLocale - The target locale for the variation (e.g., 'en_GB')
+     * @returns {Promise<Object>} The created variation fragment
+     */
+    async createEmptyVariation(parentFragment, targetLocale) {
+        if (!parentFragment?.path || !parentFragment?.model?.id) {
+            throw new Error('Invalid parent fragment');
+        }
+
+        const parentPath = parentFragment.path;
+        const pathParts = parentPath.split('/');
+        const fragmentName = pathParts.pop();
+
+        const sourceLocaleIndex = pathParts.findIndex((part) => /^[a-z]{2}_[A-Z]{2}$/.test(part));
+        if (sourceLocaleIndex === -1) {
+            throw new Error('Could not determine source locale from parent path');
+        }
+
+        pathParts[sourceLocaleIndex] = targetLocale;
+        const targetFolder = pathParts.join('/');
+
+        await this.aem.sites.cf.fragments.ensureFolderExists(targetFolder);
+
+        const targetPath = `${targetFolder}/${fragmentName}`;
+        const existingFragment = await this.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        if (existingFragment) {
+            throw new Error(`A variation already exists at ${targetPath}`);
+        }
+
+        const newFragment = await this.aem.sites.cf.fragments.create({
+            title: parentFragment.title,
+            description: parentFragment.description,
+            modelId: parentFragment.model.id,
+            parentPath: targetFolder,
+            name: fragmentName,
+            fields: [],
+        });
+
+        if (parentFragment.tags?.length) {
+            await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, parentFragment.tags);
+        }
+
+        return this.aem.sites.cf.fragments.pollCreatedFragment(newFragment);
+    }
+
+    /**
+     * Updates the parent fragment's variations field to include a new variation path.
+     * @param {Object} parentFragment - The parent fragment to update
+     * @param {string} variationPath - The path of the variation to add
+     * @returns {Promise<Object>} The updated parent fragment
+     */
+    async updateParentVariations(parentFragment, variationPath) {
+        const variationsField = parentFragment.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+
+        if (currentVariations.includes(variationPath)) {
+            return parentFragment;
+        }
+
+        const updatedVariations = [...currentVariations, variationPath];
+
+        const latestParent = await this.aem.sites.cf.fragments.getWithEtag(parentFragment.id);
+        if (!latestParent) {
+            throw new Error('Failed to retrieve parent fragment for update');
+        }
+
+        const updatedFields = latestParent.fields.map((field) => {
+            if (field.name === 'variations') {
+                return { ...field, values: updatedVariations };
+            }
+            return field;
+        });
+
+        if (!variationsField) {
+            updatedFields.push({
+                name: 'variations',
+                type: 'content-fragment',
+                multiple: true,
+                values: updatedVariations,
+            });
+        }
+
+        await this.aem.sites.cf.fragments.save({
+            id: parentFragment.id,
+            title: latestParent.title,
+            description: latestParent.description,
+            fields: updatedFields,
+            etag: latestParent.etag,
+        });
+
+        return this.aem.sites.cf.fragments.pollUpdatedFragment(latestParent);
+    }
+
+    /**
+     * Removes a variation path from the parent fragment's variations field.
+     * @param {Object} parentFragment - The parent fragment to update
+     * @param {string} variationPath - The path of the variation to remove
+     * @returns {Promise<Object>} The updated parent fragment
+     */
+    async removeFromParentVariations(parentFragment, variationPath) {
+        const latestParent = await this.aem.sites.cf.fragments.getWithEtag(parentFragment.id);
+        if (!latestParent) {
+            throw new Error('Failed to retrieve parent fragment for update');
+        }
+
+        const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+
+        if (!currentVariations.includes(variationPath)) {
+            return latestParent;
+        }
+
+        const updatedVariations = currentVariations.filter((v) => v !== variationPath);
+
+        const updatedFields = latestParent.fields.map((field) => {
+            if (field.name === 'variations') {
+                return { ...field, values: updatedVariations };
+            }
+            return field;
+        });
+
+        await this.aem.sites.cf.fragments.save({
+            id: parentFragment.id,
+            title: latestParent.title,
+            description: latestParent.description,
+            fields: updatedFields,
+            etag: latestParent.etag,
+        });
+
+        return this.aem.sites.cf.fragments.pollUpdatedFragment(latestParent);
+    }
+
     async createPlaceholder(placeholder) {
         try {
             const folderPath = this.search.value.path;

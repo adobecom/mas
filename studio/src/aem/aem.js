@@ -1250,17 +1250,21 @@ class AEM {
                  */
                 copyToFolder: this.copyToFolder.bind(this),
                 /**
-                 * @see AEM#createEmptyVariation
+                 * @see AEM#ensureFolderExists
                  */
-                createEmptyVariation: this.createEmptyVariation.bind(this),
+                ensureFolderExists: this.ensureFolderExists.bind(this),
                 /**
-                 * @see AEM#updateParentVariations
+                 * @see AEM#copyFragmentTags
                  */
-                updateParentVariations: this.updateParentVariations.bind(this),
+                copyFragmentTags: this.copyFragmentTags.bind(this),
                 /**
-                 * @see AEM#removeFromParentVariations
+                 * @see AEM#pollCreatedFragment
                  */
-                removeFromParentVariations: this.removeFromParentVariations.bind(this),
+                pollCreatedFragment: this.pollCreatedFragment.bind(this),
+                /**
+                 * @see AEM#pollUpdatedFragment
+                 */
+                pollUpdatedFragment: this.pollUpdatedFragment.bind(this),
                 /**
                  * @see AEM#findVariationsByName
                  */

@@ -793,10 +793,7 @@ export default class MasFragmentEditor extends LitElement {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
                 if (localeDefaultFragment) {
-                    await this.repository.aem.sites.cf.fragments.removeFromParentVariations(
-                        localeDefaultFragment,
-                        this.fragment.path,
-                    );
+                    await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
                 }
                 await this.repository.deleteFragment(this.fragment);
             } else {

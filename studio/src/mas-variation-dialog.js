@@ -88,7 +88,7 @@ export class MasVariationDialog extends LitElement {
         this.selectedLocale = '';
         this.loading = false;
         this.error = null;
-        this.aem = null;
+        this.repository = null;
         this.existingVariationLocales = [];
 
         this.handleSubmit = this.handleSubmit.bind(this);
@@ -100,7 +100,7 @@ export class MasVariationDialog extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
-        this.aem = document.querySelector('mas-repository')?.aem;
+        this.repository = document.querySelector('mas-repository');
         this.loadExistingVariations();
     }
 
@@ -110,10 +110,10 @@ export class MasVariationDialog extends LitElement {
     }
 
     async loadExistingVariations() {
-        if (!this.aem || !this.fragment?.id) return;
+        if (!this.repository?.aem || !this.fragment?.id) return;
 
         try {
-            const parentFragment = await this.aem.sites.cf.fragments.getById(this.fragment.id);
+            const parentFragment = await this.repository.aem.sites.cf.fragments.getById(this.fragment.id);
             if (!parentFragment) return;
 
             const variationsField = parentFragment.fields?.find((f) => f.name === 'variations');
@@ -174,8 +174,8 @@ export class MasVariationDialog extends LitElement {
             return;
         }
 
-        if (!this.aem) {
-            this.error = 'AEM instance not available';
+        if (!this.repository) {
+            this.error = 'Repository not available';
             return;
         }
 
@@ -189,21 +189,18 @@ export class MasVariationDialog extends LitElement {
             this.loading = true;
             showToast('Creating variation...');
 
-            const parentFragment = await this.aem.sites.cf.fragments.getById(this.fragment.id);
+            const parentFragment = await this.repository.aem.sites.cf.fragments.getById(this.fragment.id);
             if (!parentFragment) {
                 throw new Error('Failed to fetch parent fragment');
             }
 
-            const variationFragment = await this.aem.sites.cf.fragments.createEmptyVariation(
-                parentFragment,
-                this.selectedLocale,
-            );
+            const variationFragment = await this.repository.createEmptyVariation(parentFragment, this.selectedLocale);
 
             if (!variationFragment) {
                 throw new Error('Failed to create variation');
             }
 
-            await this.aem.sites.cf.fragments.updateParentVariations(parentFragment, variationFragment.path);
+            await this.repository.updateParentVariations(parentFragment, variationFragment.path);
 
             showToast('Variation created successfully', 'positive');
 

@@ -4,7 +4,7 @@ export default class PlaceholdersPage {
 
         // Header elements
         // this.localePicker = page.locator('mas-nav sp-button:has-text("en_US")');
-        this.localePicker = page.locator('mas-nav-locale-picker sp-action-menu');
+        this.localePicker = page.locator('mas-locale-picker sp-action-menu');
 
         this.createButton = page.locator('sp-button.create-button');
         this.searchInput = page.getByRole('searchbox', { name: 'Search' });

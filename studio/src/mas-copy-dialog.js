@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { EVENT_KEYDOWN, LOCALES } from './constants.js';
+import { EVENT_KEYDOWN } from './constants.js';
 import { showToast } from './utils.js';
 
 const ERROR_TYPES = {
@@ -345,19 +345,10 @@ export class MasCopyDialog extends LitElement {
                 >
                     <div class="form-field">
                         <sp-field-label for="locale-picker">Select Locale</sp-field-label>
-                        <sp-picker
-                            id="locale-picker"
-                            value=${this.selectedLocale}
-                            @change=${(e) => (this.selectedLocale = e.target.value)}
-                        >
-                            ${LOCALES.map(
-                                (locale) => html`
-                                    <sp-menu-item value="${locale.code}" ?selected="${locale.code === this.selectedLocale}">
-                                        ${locale.flag} ${locale.name} (${locale.code})
-                                    </sp-menu-item>
-                                `,
-                            )}
-                        </sp-picker>
+                        <mas-locale-picker
+                            locale=${this.selectedLocale}
+                            @locale-change=${(e) => (this.selectedLocale = e.detail.locale)}
+                        ></mas-locale-picker>
                     </div>
 
                     <div class="form-field">

@@ -77,12 +77,6 @@ export const styles = css`
         transform: translate(-50%, -50%);
     }
 
-    mas-locale-picker {
-        width: 150px;
-        border: 1px solid var(--spectrum-gray-700);
-        border-radius: 4px;
-    }
-
     .placeholders-table {
         width: 100%;
         border-collapse: separate;
@@ -378,11 +372,6 @@ export const styles = css`
         width: 100%;
         min-width: 0;
         box-sizing: border-box;
-    }
-
-    .form-field mas-locale-picker {
-        border: none;
-        background: none;
     }
 
     .form-field .rte-container {

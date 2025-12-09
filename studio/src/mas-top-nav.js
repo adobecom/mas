@@ -1,11 +1,10 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_PUBLISHED, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
 import Store from './store.js';
-import { getService } from './utils.js';
 import StoreController from './reactivity/store-controller.js';
 import './mas-nav-folder-picker.js';
-import './filters/mas-nav-locale-picker.js';
+import './mas-locale-picker.js';
 
 class MasTopNav extends LitElement {
     page = new StoreController(this, Store.page);
@@ -134,7 +133,13 @@ class MasTopNav extends LitElement {
                     ${this.shouldShowPickers
                         ? html`
                               <mas-nav-folder-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-folder-picker>
-                              <mas-nav-locale-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-locale-picker>
+                              <mas-locale-picker
+                                  @locale-changed=${(e) => {
+                                      Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
+                                  }}
+                                  ?disabled=${this.isFragmentEditorPage}
+                              >
+                              </mas-locale-picker>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

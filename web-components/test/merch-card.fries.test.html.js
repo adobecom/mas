@@ -40,10 +40,10 @@ runTests(async () => {
 
         it('should apply border-color attribute correctly', async () => {
             expect(
-                merchCard.style
-                    .getPropertyValue('--consonant-merch-card-border-color')
-                    .trim(),
-            ).to.contain('--spectrum-gray-300');
+                merchCard.style.getPropertyValue(
+                    '--consonant-merch-card-border-color',
+                ),
+            ).to.equal('var(--spectrum-gray-300)');
         });
 
         it('should apply background-color attribute correctly', async () => {

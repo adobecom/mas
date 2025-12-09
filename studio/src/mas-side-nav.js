@@ -80,8 +80,14 @@ class MasSideNav extends LitElement {
 
         Store.fragments.inEdit.subscribe(parentStoreHandler);
 
+        const editorContextHandler = () => {
+            this.requestUpdate();
+        };
+        Store.fragmentEditor.editorContext.subscribe(editorContextHandler);
+
         this.unsubscribe = () => {
             Store.fragments.inEdit.unsubscribe(parentStoreHandler);
+            Store.fragmentEditor.editorContext.unsubscribe(editorContextHandler);
             if (this.fragmentStoreSubscription) {
                 const store = Store.fragments.inEdit.get();
                 if (store) {

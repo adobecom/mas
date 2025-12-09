@@ -20,7 +20,7 @@ export const features = [
             iconUrl: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '1',
@@ -47,7 +47,7 @@ export const features = [
             ctaDaaLL: 'buy-now-2',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '2',
@@ -62,7 +62,7 @@ export const features = [
             iconUrl: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '3',
@@ -79,7 +79,7 @@ export const features = [
             iconUrl: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '4',
@@ -99,7 +99,7 @@ export const features = [
             background: 'media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '5',
@@ -116,7 +116,7 @@ export const features = [
             iconUrl: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '6',
@@ -135,7 +135,7 @@ export const features = [
             iconUrl: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '7',
@@ -152,7 +152,7 @@ export const features = [
             iconUrl: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     // SLICE CARDS - SINGLE WIDTH
     {
@@ -172,7 +172,7 @@ export const features = [
             ctaAnalyticsId: 'buy-now',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
     },
     {
         tcid: '9',
@@ -188,7 +188,7 @@ export const features = [
             iconLink2: 'https://www.adobe.com/products/photoshop-lightroom.html',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
     },
     {
         tcid: '10',
@@ -205,7 +205,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
     },
     {
         tcid: '11',
@@ -222,7 +222,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
     },
     {
         tcid: '12',
@@ -238,7 +238,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
     },
     {
         tcid: '13',
@@ -254,7 +254,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
     },
     // SLICE CARDS - WIDE (DOUBLE) WIDTH
     {
@@ -277,7 +277,7 @@ export const features = [
             ctaDaaLL: 'register-now-2',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
     },
     {
         tcid: '15',
@@ -295,7 +295,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
     },
     {
         tcid: '16',
@@ -312,7 +312,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
     },
     {
         tcid: '17',
@@ -330,7 +330,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
     },
     {
         tcid: '18',
@@ -348,7 +348,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-wide @commerce @smoke @regression @milo',
     },
     {
         tcid: '19',
@@ -363,7 +363,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
     },
     {
         tcid: '20',
@@ -380,7 +380,7 @@ export const features = [
             iconUrl: '',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '21',
@@ -388,7 +388,7 @@ export const features = [
         path: DOCS_GALLERY_PATH.CCD.US,
         data: { id: 'bdf40d06-5914-4f1f-aa10-77c5676fe671' },
         browserParams: '?theme=darkest',
-        tags: '@mas-ccd @slice-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @slice-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '22',
@@ -404,7 +404,7 @@ export const features = [
             iconLink2: 'https://www.adobe.com/products/photoshop-lightroom.html',
         },
         browserParams: '&theme=darkest',
-        tags: '@mas-ccd @ccd-loc @slice-card @slice-single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @ccd-loc @slice-card @slice-single @commerce @smoke @regression @milo',
     },
     {
         tcid: '23',
@@ -421,7 +421,7 @@ export const features = [
             // iconLink: '',
         },
         browserParams: '&theme=darkest',
-        tags: '@mas-ccd @ccd-loc @slice-card @slice-wide @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @ccd-loc @slice-card @slice-wide @commerce @smoke @regression @milo',
     },
     {
         tcid: '24',
@@ -439,7 +439,7 @@ export const features = [
             iconUrl: '',
         },
         browserParams: '&theme=darkest',
-        tags: '@mas-ccd @ccd-loc @suggested-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @ccd-loc @suggested-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '25',
@@ -450,6 +450,6 @@ export const features = [
             loc_id: '090938c3-f355-4f33-bdd1-f70868e6f220',
         },
         browserParams: '&api_key=wcms-commerce-ims-ro-user-milo&locale=fr_FR',
-        tags: '@mas-ccd @payload @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-ccd @payload @commerce @smoke @regression @milo',
     },
 ];

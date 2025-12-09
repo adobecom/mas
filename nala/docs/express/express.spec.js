@@ -18,7 +18,7 @@ export const features = [
             cta: 'Get Adobe Express Free',
             variant: 'simplified-pricing-express',
         },
-        tags: '@express @express-card @free @simplified @commerce @smoke @regression @milo',
+        tags: '@mas-docs @express @express-card @free @simplified @commerce @smoke @regression @milo',
     },
     {
         tcid: '1',
@@ -35,7 +35,7 @@ export const features = [
             variant: 'simplified-pricing-express',
             gradientBorder: false,
         },
-        tags: '@express @express-card @premium @simplified @commerce @smoke @regression @milo',
+        tags: '@mas-docs @express @express-card @premium @simplified @commerce @smoke @regression @milo',
     },
     {
         tcid: '2',
@@ -54,7 +54,7 @@ export const features = [
             variant: 'simplified-pricing-express',
             gradientBorder: true,
         },
-        tags: '@express @express-card @firefly-pro @simplified @commerce @smoke @regression @milo',
+        tags: '@mas-docs @express @express-card @firefly-pro @simplified @commerce @smoke @regression @milo',
     },
 
     // Full Pricing Express Cards
@@ -86,7 +86,7 @@ export const features = [
             },
             compareLink: 'Compare all features',
         },
-        tags: '@full-pricing-express @express-card @free @commerce @smoke @regression @milo',
+        tags: '@mas-docs @full-pricing-express @express-card @free @commerce @smoke @regression @milo',
     },
     {
         tcid: '4',
@@ -120,7 +120,7 @@ export const features = [
             },
             compareLink: 'Compare all features',
         },
-        tags: '@full-pricing-express @express-card @premium @commerce @smoke @regression @milo',
+        tags: '@mas-docs @full-pricing-express @express-card @premium @commerce @smoke @regression @milo',
     },
     {
         tcid: '5',
@@ -154,6 +154,6 @@ export const features = [
             },
             compareLink: 'Compare all features',
         },
-        tags: '@full-pricing-express @express-card @pro @commerce @smoke @regression @milo',
+        tags: '@mas-docs @full-pricing-express @express-card @pro @commerce @smoke @regression @milo',
     },
 ];

@@ -17,7 +17,7 @@ export const features = [
             size: 'triple',
             offerid: '01A09572A72A7D7F848721DE4D3C73FA',
         },
-        tags: '@adobehome @ah-try-buy-widget @triple @commerce @smoke @regression @milo',
+        tags: '@mas-docs @adobehome @ah-try-buy-widget @triple @commerce @smoke @regression @milo',
     },
     {
         tcid: '1',
@@ -32,7 +32,7 @@ export const features = [
             size: 'double',
             offerid: '30404A88D89A328584307175B8B27616',
         },
-        tags: '@adobehome @ah-try-buy-widget @double @commerce @smoke @regression @milo',
+        tags: '@mas-docs @adobehome @ah-try-buy-widget @double @commerce @smoke @regression @milo',
     },
     {
         tcid: '2',
@@ -47,7 +47,7 @@ export const features = [
             size: 'single',
             offerid: '01A09572A72A7D7F848721DE4D3C73FA',
         },
-        tags: '@adobehome @ah-try-buy-widget @single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @adobehome @ah-try-buy-widget @single @commerce @smoke @regression @milo',
     },
     {
         tcid: '3',
@@ -62,7 +62,7 @@ export const features = [
             size: 'triple',
             offerid: 'B256F077BCC09CF934478DA36E52478B',
         },
-        tags: '@adobehome @ah-try-buy-widget @single @commerce @smoke @regression @milo',
+        tags: '@mas-docs @adobehome @ah-try-buy-widget @single @commerce @smoke @regression @milo',
     },
     {
         tcid: '4',
@@ -81,6 +81,6 @@ export const features = [
                 color: 'fuchsia',
             },
         },
-        tags: '@adobehome @ah-try-buy-widget @double @badge @commerce @smoke @regression @milo',
+        tags: '@mas-docs @adobehome @ah-try-buy-widget @double @badge @commerce @smoke @regression @milo',
     },
 ];

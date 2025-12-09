@@ -6,6 +6,6 @@ export const features = [
         tcid: '0',
         name: '@MAS-CCD-benchmark',
         path: '/web-components/docs/benchmarks.html?adjust=true',
-        tags: '@mas-ccd @merch-benchmark-ccd-cards @mas-benchmark @commerce @smoke @regression @milo @nopr',
+        tags: '@mas-docs @mas-ccd @merch-benchmark-ccd-cards @mas-benchmark @commerce @smoke @regression @milo @nopr',
     },
 ];

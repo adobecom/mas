@@ -22,7 +22,7 @@ export const features = [
             stockCheckboxLabel: 'Add a 30-day free trial of Adobe Stock.*',
         },
         browserParams: '?theme=darkest',
-        tags: '@mas-acom @mas-plans-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '1',
@@ -30,7 +30,7 @@ export const features = [
         path: DOCS_GALLERY_PATH.PLANS,
         data: { id: '8373b5c2-69e6-4e9c-befc-b424dd33469b' },
         browserParams: '?theme=darkest',
-        tags: '@mas-acom @mas-plans-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo',
     },
     {
         tcid: '2',
@@ -38,6 +38,6 @@ export const features = [
         path: DOCS_GALLERY_PATH.PLANS,
         data: { id: 'dfc2eede-7e88-4ed3-b96c-f5214472dfcf' },
         browserParams: '?theme=darkest',
-        tags: '@mas-acom @mas-plans-card @commerce @smoke @regression @milo',
+        tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo',
     },
 ];

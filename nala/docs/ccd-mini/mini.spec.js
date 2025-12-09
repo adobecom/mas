@@ -32,7 +32,7 @@ export const features = [
                 href: 'https://www.adobe.com/products/catalog.html',
             },
         },
-        tags: '@mas @ccd-mini @commerce @smoke @regression @milo',
+        tags: '@mas-docs @ccd-mini @commerce @smoke @regression @milo',
     },
     {
         tcid: '2',
@@ -63,7 +63,7 @@ export const features = [
                 href: 'https://commerce.adobe.com/store/segmentation?apc=UMRM2MUSPr501YOC&cli=adobe_com&ctx=fp&co=US&lang=en&ms=COM&ot=BASE&cs=INDIVIDUAL&pa=ppro_direct_individual',
             },
         },
-        tags: '@mas @ccd-mini @commerce @smoke @regression @milo',
+        tags: '@mas-docs @ccd-mini @commerce @smoke @regression @milo',
     },
     {
         tcid: '3',
@@ -95,7 +95,7 @@ export const features = [
                 href: 'https://www.adobe.com/products/catalog.html',
             },
         },
-        tags: '@mas @ccd-mini @commerce @smoke @regression @milo',
+        tags: '@mas-docs @ccd-mini @commerce @smoke @regression @milo',
     },
     {
         tcid: '4',
@@ -128,6 +128,6 @@ export const features = [
                 href: 'https://commerce.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=FR&lang=fr&ms=COM&ot=BASE&cs=INDIVIDUAL&pa=phsp_direct_individual',
             },
         },
-        tags: '@mas @ccd-mini @commerce @smoke @regression @milo',
+        tags: '@mas-docs @ccd-mini @commerce @smoke @regression @milo',
     },
 ];

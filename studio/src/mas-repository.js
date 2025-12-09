@@ -778,15 +778,16 @@ export class MasRepository extends LitElement {
     /**
      * Unified method to save a fragment (regular or dictionary)
      * @param {FragmentStore} fragmentStore - The fragment to save
+     * @param {boolean} withToast - Whether to show toast notifications
      * @returns {Promise<Object>} The saved fragment
      */
-    async saveFragment(fragmentStore) {
-        showToast('Saving fragment...');
+    async saveFragment(fragmentStore, withToast = true) {
+        if (withToast) showToast('Saving fragment...');
         const fragmentToSave = fragmentStore.get();
         const tags = fragmentToSave.getField('tags')?.values || [];
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
         if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi') && !hasOfferlessTag) {
-            showToast('Please select offer', 'negative');
+            if (withToast) showToast('Please select offer', 'negative');
             return false;
         }
         this.operation.set(OPERATIONS.SAVE);
@@ -794,7 +795,7 @@ export class MasRepository extends LitElement {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
             fragmentStore.refreshFrom(savedFragment);
-            showToast('Fragment successfully saved.', 'positive');
+            if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {
             this.processError(error, 'Failed to save fragment.');

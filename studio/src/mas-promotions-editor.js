@@ -179,11 +179,17 @@ class MasPromotionsEditor extends LitElement {
             })),
         };
 
-        const newPromotion = await this.repository.createFragment(fragmentPayload);
-
-        if (newPromotion) {
-            this.isCreated = true;
+        showToast('Creating project...');
+        try {
+            const newPromotion = await this.repository.createFragment(fragmentPayload, false);
+            if (newPromotion) {
+                this.isCreated = true;
+            }
+        } catch (error) {
+            showToast('Failed to create project.', 'negative');
+            return;
         }
+        showToast('Project successfully created.', 'positive');
     }
 
     async #handleUpdatePromotion() {
@@ -192,7 +198,14 @@ class MasPromotionsEditor extends LitElement {
             return;
         }
         this.fragment.updateFieldInternal('title', this.fragment.getFieldValue('title'));
-        await this.repository.saveFragment(this.fragmentStore);
+        showToast('Saving project...');
+        try {
+            await this.repository.saveFragment(this.fragmentStore, false);
+        } catch (error) {
+            showToast('Failed to save project.', 'negative');
+            return;
+        }
+        showToast('Project successfully saved.', 'positive');
     }
 
     async #handleCancel() {
@@ -258,7 +271,9 @@ class MasPromotionsEditor extends LitElement {
             <div class="promotions-form-breadcrumb">
                 <sp-breadcrumbs>
                     <sp-breadcrumb-item slot="root" href="/studio.html#page=promotions">Promotions</sp-breadcrumb-item>
-                    <sp-breadcrumb-item value="trend">Create new project</sp-breadcrumb-item>
+                    <sp-breadcrumb-item value="trend"
+                        >${this.isNewPromotion ? 'Create new project' : 'Edit project'}</sp-breadcrumb-item
+                    >
                 </sp-breadcrumbs>
             </div>
             ${this.renderConfirmDialog()}

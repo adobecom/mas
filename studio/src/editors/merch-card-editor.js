@@ -34,6 +34,7 @@ class MerchCardEditor extends LitElement {
         updateFragment: { type: Function },
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
+        fieldsReady: { type: Boolean, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -61,7 +62,8 @@ class MerchCardEditor extends LitElement {
         this.localeDefaultFragment = null;
         this.isVariation = false;
         this.lastMnemonicState = null;
-        this.reactiveController = new ReactiveController(this, [], this.toggleFields);
+        this.fieldsReady = false;
+        this.reactiveController = new ReactiveController(this, []);
     }
 
     createRenderRoot() {
@@ -155,14 +157,16 @@ class MerchCardEditor extends LitElement {
 
     willUpdate(changedProperties) {
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
+            this.fieldsReady = false;
             this.reactiveController.updateStores([this.fragmentStore]);
+            this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
-            this.toggleFields();
         }
         if (changedProperties.has('localeDefaultFragment')) {
-            this.toggleFields();
+            this.fieldsReady = false;
+            this.#updateCurrentVariantMapping();
         }
     }
 
@@ -298,14 +302,26 @@ class MerchCardEditor extends LitElement {
 
     updated(changedProperties) {
         super.updated(changedProperties);
+        if (!this.fieldsReady && this.fragment) {
+            requestAnimationFrame(() => this.toggleFields());
+        }
     }
 
     async toggleFields() {
-        if (!this.fragment) return;
+        if (!this.fragment) {
+            return;
+        }
+        const variantValue = this.fragment.variant;
+        if (!variantValue) {
+            return;
+        }
         await customElements.whenDefined('merch-card');
         this.#updateCurrentVariantMapping();
         const variant = this.currentVariantMapping;
-        if (!variant) return;
+        if (!variant) {
+            this.fieldsReady = true;
+            return;
+        }
 
         this.querySelectorAll('sp-field-group.toggle').forEach((field) => {
             field.style.display = 'none';
@@ -340,6 +356,7 @@ class MerchCardEditor extends LitElement {
         }
 
         this.toggleSectionHeadings();
+        this.fieldsReady = true;
     }
 
     toggleSectionHeadings() {
@@ -358,11 +375,67 @@ class MerchCardEditor extends LitElement {
         });
     }
 
+    renderSkeleton() {
+        return html`
+            <style>
+                .editor-skeleton {
+                    padding: 24px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                .skeleton-element {
+                    background: linear-gradient(
+                        90deg,
+                        var(--spectrum-gray-200) 25%,
+                        var(--spectrum-gray-100) 50%,
+                        var(--spectrum-gray-200) 75%
+                    );
+                    background-size: 200% 100%;
+                    animation: shimmer 1.5s infinite;
+                    border-radius: 4px;
+                }
+                @keyframes shimmer {
+                    0% {
+                        background-position: 200% 0;
+                    }
+                    100% {
+                        background-position: -200% 0;
+                    }
+                }
+                .skeleton-section-title {
+                    height: 20px;
+                    width: 120px;
+                }
+                .skeleton-field {
+                    height: 40px;
+                    width: 100%;
+                }
+                .skeleton-field-short {
+                    height: 40px;
+                    width: 60%;
+                }
+            </style>
+            <div class="editor-skeleton">
+                <div class="skeleton-element skeleton-section-title"></div>
+                <div class="skeleton-element skeleton-field"></div>
+                <div class="skeleton-element skeleton-field-short"></div>
+                <div class="skeleton-element skeleton-section-title"></div>
+                <div class="skeleton-element skeleton-field"></div>
+                <div class="skeleton-element skeleton-field"></div>
+                <div class="skeleton-element skeleton-section-title"></div>
+                <div class="skeleton-element skeleton-field-short"></div>
+            </div>
+        `;
+    }
+
     render() {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         const form = this.getFormWithInheritance();
+        const skeletonDisplay = this.fieldsReady ? 'none' : 'block';
+        const formDisplay = this.fieldsReady ? 'block' : 'none';
         return html`
             <style>
                 .field-reset-link {
@@ -437,414 +510,423 @@ class MerchCardEditor extends LitElement {
                     text-overflow: ellipsis;
                     min-width: 0;
                 }
+                .editor-skeleton-wrapper {
+                    display: var(--skeleton-display, none);
+                }
+                .editor-form-container {
+                    display: var(--form-display, block);
+                }
             </style>
-            <div class="section-title">General info</div>
-            <div class="two-column-grid">
-                <sp-field-group id="variant">
-                    <sp-field-label for="card-variant">Template</sp-field-label>
-                    <variant-picker
-                        id="card-variant"
-                        ?show-all="false"
-                        data-field="variant"
-                        default-value="${form.variant.values[0]}"
-                        @change="${this.#handleVariantChange}"
-                    ></variant-picker>
-                </sp-field-group>
-                <sp-field-group class="toggle" id="cardName">
-                    <sp-field-label for="card-name">Card name</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter card name"
-                        id="card-name"
-                        data-field="cardName"
-                        value="${form.cardName.values[0]}"
-                        @input="${this.#handleFragmentUpdate}"
-                    ></sp-textfield>
-                </sp-field-group>
-                <sp-field-group id="fragment-title-group">
-                    <sp-field-label for="fragment-title">Fragment title</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter fragment title"
-                        id="fragment-title"
-                        value="${this.fragment.title}"
-                        @input="${this.#handleFragmentTitleUpdate}"
-                    ></sp-textfield>
-                </sp-field-group>
-                <sp-field-group id="fragment-description-group">
-                    <sp-field-label for="fragment-description">Fragment description</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter fragment description"
-                        id="fragment-description"
-                        value="${this.fragment.description}"
-                        @input="${this.#handleFragmentDescriptionUpdate}"
-                    ></sp-textfield>
-                </sp-field-group>
-            </div>
-            <sp-field-group class="toggle" id="title">
-                <sp-field-label for="card-title">Title</sp-field-label>
-                <rte-field
-                    id="card-title"
-                    inline
-                    link
-                    mnemonic
-                    data-field="cardTitle"
-                    .osi=${form.osi.values[0]}
-                    .value=${form.cardTitle.values[0] || ''}
-                    @change="${this.#handleFragmentUpdate}"
-                ></rte-field>
-                ${this.renderOverrideIndicator('cardTitle')}
-            </sp-field-group>
-            <div class="two-column-grid">
-                <sp-field-group class="toggle" id="subtitle">
-                    <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter card subtitle"
-                        id="card-subtitle"
-                        data-field="subtitle"
-                        value="${form.subtitle.values[0]}"
-                        @input="${this.#handleFragmentUpdate}"
-                    ></sp-textfield>
-                    ${this.renderOverrideIndicator('subtitle')}
-                </sp-field-group>
-                <sp-field-group class="toggle" id="size">
-                    <sp-field-label for="card-size">Size</sp-field-label>
-                    <sp-picker
-                        id="card-size"
-                        data-field="size"
-                        value="${form.size.values[0] || 'Default'}"
-                        data-default-value="Default"
+            <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
+            <div class="editor-form-container" style="--form-display: ${formDisplay}">
+                <div class="section-title">General info</div>
+                <div class="two-column-grid">
+                    <sp-field-group id="variant">
+                        <sp-field-label for="card-variant">Template</sp-field-label>
+                        <variant-picker
+                            id="card-variant"
+                            ?show-all="false"
+                            data-field="variant"
+                            default-value="${form.variant.values[0]}"
+                            @change="${this.#handleVariantChange}"
+                        ></variant-picker>
+                    </sp-field-group>
+                    <sp-field-group class="toggle" id="cardName">
+                        <sp-field-label for="card-name">Card name</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter card name"
+                            id="card-name"
+                            data-field="cardName"
+                            value="${form.cardName.values[0]}"
+                            @input="${this.#handleFragmentUpdate}"
+                        ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group id="fragment-title-group">
+                        <sp-field-label for="fragment-title">Fragment title</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter fragment title"
+                            id="fragment-title"
+                            value="${this.fragment.title}"
+                            @input="${this.#handleFragmentTitleUpdate}"
+                        ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group id="fragment-description-group">
+                        <sp-field-label for="fragment-description">Fragment description</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter fragment description"
+                            id="fragment-description"
+                            value="${this.fragment.description}"
+                            @input="${this.#handleFragmentDescriptionUpdate}"
+                        ></sp-textfield>
+                    </sp-field-group>
+                </div>
+                <sp-field-group class="toggle" id="title">
+                    <sp-field-label for="card-title">Title</sp-field-label>
+                    <rte-field
+                        id="card-title"
+                        inline
+                        link
+                        mnemonic
+                        data-field="cardTitle"
+                        .osi=${form.osi.values[0]}
+                        .value=${form.cardTitle.values[0] || ''}
                         @change="${this.#handleFragmentUpdate}"
+                    ></rte-field>
+                    ${this.renderOverrideIndicator('cardTitle')}
+                </sp-field-group>
+                <div class="two-column-grid">
+                    <sp-field-group class="toggle" id="subtitle">
+                        <sp-field-label for="card-subtitle">Subtitle</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter card subtitle"
+                            id="card-subtitle"
+                            data-field="subtitle"
+                            value="${form.subtitle.values[0]}"
+                            @input="${this.#handleFragmentUpdate}"
+                        ></sp-textfield>
+                        ${this.renderOverrideIndicator('subtitle')}
+                    </sp-field-group>
+                    <sp-field-group class="toggle" id="size">
+                        <sp-field-label for="card-size">Size</sp-field-label>
+                        <sp-picker
+                            id="card-size"
+                            data-field="size"
+                            value="${form.size.values[0] || 'Default'}"
+                            data-default-value="Default"
+                            @change="${this.#handleFragmentUpdate}"
+                        >
+                            ${(this.availableSizes || []).map(
+                                (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
+                            )}
+                        </sp-picker>
+                    </sp-field-group>
+                </div>
+                <sp-field-group id="tags">
+                    <sp-field-label for="tags-field">Tags</sp-field-label>
+                    <aem-tag-picker-field
+                        id="tags-field"
+                        label="Tags"
+                        namespace="/content/cq:tags/mas"
+                        multiple
+                        class="tags-spacing"
+                        value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
+                        @change=${this.#handeTagsChange}
+                    ></aem-tag-picker-field>
+                </sp-field-group>
+                <div class="section-title">Visuals</div>
+                <sp-field-group class="toggle" id="mnemonics">
+                    <mas-multifield
+                        id="mnemonics"
+                        button-label="Visual"
+                        .value="${this.mnemonics}"
+                        @change="${this.#updateMnemonics}"
+                        @input="${this.#updateMnemonics}"
                     >
-                        ${(this.availableSizes || []).map(
-                            (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
-                        )}
-                    </sp-picker>
+                        <template>
+                            <mas-mnemonic-field></mas-mnemonic-field>
+                        </template>
+                    </mas-multifield>
                 </sp-field-group>
-            </div>
-            <sp-field-group id="tags">
-                <sp-field-label for="tags-field">Tags</sp-field-label>
-                <aem-tag-picker-field
-                    id="tags-field"
-                    label="Tags"
-                    namespace="/content/cq:tags/mas"
-                    multiple
-                    class="tags-spacing"
-                    value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
-                    @change=${this.#handeTagsChange}
-                ></aem-tag-picker-field>
-            </sp-field-group>
-            <div class="section-title">Visuals</div>
-            <sp-field-group class="toggle" id="mnemonics">
-                <mas-multifield
-                    id="mnemonics"
-                    button-label="Visual"
-                    .value="${this.mnemonics}"
-                    @change="${this.#updateMnemonics}"
-                    @input="${this.#updateMnemonics}"
-                >
-                    <template>
-                        <mas-mnemonic-field></mas-mnemonic-field>
-                    </template>
-                </mas-multifield>
-            </sp-field-group>
-            <div class="two-column-grid">
-                <sp-field-group class="toggle" id="badge">
-                    <sp-field-label for="card-badge">Badge</sp-field-label>
+                <div class="two-column-grid">
+                    <sp-field-group class="toggle" id="badge">
+                        <sp-field-label for="card-badge">Badge</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter badge text"
+                            id="card-badge"
+                            data-field="badge"
+                            value="${this.badge.text}"
+                            @input="${this.#updateBadgeText}"
+                        ></sp-textfield>
+                        ${this.renderOverrideIndicator('badge')}
+                    </sp-field-group>
+                    <sp-field-group class="toggle" id="trialBadge">
+                        <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter badge text"
+                            id="card-trial-badge"
+                            data-field="trialBadge"
+                            value="${this.trialBadge.text}"
+                            @input="${this.#updateTrialBadgeText}"
+                        ></sp-textfield>
+                        ${this.renderOverrideIndicator('trialBadge')}
+                    </sp-field-group>
+                </div>
+                ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}
+                <div class="two-column-grid">
+                    ${this.#renderColorPicker(
+                        'border-color',
+                        'Border Color',
+                        this.availableBorderColors,
+                        form.borderColor?.values[0],
+                        'borderColor',
+                    )}
+                    ${this.#backgroundColorSelection(
+                        this.availableBackgroundColors,
+                        form.backgroundColor?.values[0],
+                        'backgroundColor',
+                    )}
+                </div>
+                <div class="section-title">What's included</div>
+                <sp-field-group class="toggle" id="whatsIncluded">
                     <sp-textfield
-                        placeholder="Enter badge text"
-                        id="card-badge"
-                        data-field="badge"
-                        value="${this.badge.text}"
-                        @input="${this.#updateBadgeText}"
+                        id="whatsIncludedLabel"
+                        placeholder="Enter the label text"
+                        value="${this.whatsIncluded.label}"
+                        @input="${this.#updateWhatsIncluded}"
                     ></sp-textfield>
-                    ${this.renderOverrideIndicator('badge')}
+                    <mas-multifield
+                        .value="${this.whatsIncluded.values}"
+                        @change="${this.#updateWhatsIncluded}"
+                        @input="${this.#updateWhatsIncluded}"
+                    >
+                        <template>
+                            <mas-included-field></mas-included-field>
+                        </template>
+                    </mas-multifield>
                 </sp-field-group>
-                <sp-field-group class="toggle" id="trialBadge">
-                    <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter badge text"
-                        id="card-trial-badge"
-                        data-field="trialBadge"
-                        value="${this.trialBadge.text}"
-                        @input="${this.#updateTrialBadgeText}"
-                    ></sp-textfield>
-                    ${this.renderOverrideIndicator('trialBadge')}
-                </sp-field-group>
-            </div>
-            ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}
-            <div class="two-column-grid">
-                ${this.#renderColorPicker(
-                    'border-color',
-                    'Border Color',
-                    this.availableBorderColors,
-                    form.borderColor?.values[0],
-                    'borderColor',
-                )}
-                ${this.#backgroundColorSelection(
-                    this.availableBackgroundColors,
-                    form.backgroundColor?.values[0],
-                    'backgroundColor',
-                )}
-            </div>
-            <div class="section-title">What's included</div>
-            <sp-field-group class="toggle" id="whatsIncluded">
-                <sp-textfield
-                    id="whatsIncludedLabel"
-                    placeholder="Enter the label text"
-                    value="${this.whatsIncluded.label}"
-                    @input="${this.#updateWhatsIncluded}"
-                ></sp-textfield>
-                <mas-multifield
-                    .value="${this.whatsIncluded.values}"
-                    @change="${this.#updateWhatsIncluded}"
-                    @input="${this.#updateWhatsIncluded}"
-                >
-                    <template>
-                        <mas-included-field></mas-included-field>
-                    </template>
-                </mas-multifield>
-            </sp-field-group>
-            <sp-field-group class="toggle" id="quantitySelect">
-                <sp-checkbox
-                    size="m"
-                    value="${this.quantitySelectorDisplayed}"
-                    .checked="${this.quantitySelectorDisplayed}"
-                    @change="${this.#showQuantityFields}"
-                    ?disabled=${this.disabled}
-                    >Show quantity selector</sp-checkbox
-                >
-                <div id="quantitySelector" style="display: ${this.quantitySelectorDisplayed ? 'block' : 'none'};">
-                    <div class="two-column-grid">
-                        <sp-field-group id="quantitySelectorTitle">
-                            <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
+                <sp-field-group class="toggle" id="quantitySelect">
+                    <sp-checkbox
+                        size="m"
+                        value="${this.quantitySelectorDisplayed}"
+                        .checked="${this.quantitySelectorDisplayed}"
+                        @change="${this.#showQuantityFields}"
+                        ?disabled=${this.disabled}
+                        >Show quantity selector</sp-checkbox
+                    >
+                    <div id="quantitySelector" style="display: ${this.quantitySelectorDisplayed ? 'block' : 'none'};">
+                        <div class="two-column-grid">
+                            <sp-field-group id="quantitySelectorTitle">
+                                <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
+                                <sp-textfield
+                                    id="title-quantity"
+                                    data-field="titleQuantity"
+                                    value="${this.quantityTitle}"
+                                    @input="${this.#updateQuantityValues}"
+                                    ?disabled=${this.disabled}
+                                ></sp-textfield>
+                            </sp-field-group>
+                            <sp-field-group id="quantitySelectorStart">
+                                <sp-field-label for="start-quantity">Start quantity</sp-field-label>
+                                <sp-textfield
+                                    id="start-quantity"
+                                    data-field="startQuantity"
+                                    pattern="[0-9]*"
+                                    value="${this.quantityStart}"
+                                    @input="${this.#updateQuantityValues}"
+                                    ?disabled=${this.disabled}
+                                    ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
+                                >
+                            </sp-field-group>
+                        </div>
+                        <sp-field-group id="quantitySelectorStep">
+                            <sp-field-label for="step-quantity">Step</sp-field-label>
                             <sp-textfield
-                                id="title-quantity"
-                                data-field="titleQuantity"
-                                value="${this.quantityTitle}"
-                                @input="${this.#updateQuantityValues}"
-                                ?disabled=${this.disabled}
-                            ></sp-textfield>
-                        </sp-field-group>
-                        <sp-field-group id="quantitySelectorStart">
-                            <sp-field-label for="start-quantity">Start quantity</sp-field-label>
-                            <sp-textfield
-                                id="start-quantity"
-                                data-field="startQuantity"
+                                id="step-quantity"
+                                data-field="stepQuantity"
                                 pattern="[0-9]*"
-                                value="${this.quantityStart}"
+                                value="${this.quantityStep}"
                                 @input="${this.#updateQuantityValues}"
                                 ?disabled=${this.disabled}
                                 ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
                             >
                         </sp-field-group>
                     </div>
-                    <sp-field-group id="quantitySelectorStep">
-                        <sp-field-label for="step-quantity">Step</sp-field-label>
+                </sp-field-group>
+                <div class="two-column-grid">
+                    <sp-field-group class="toggle" id="backgroundImage">
+                        <sp-field-label for="background-image">Background Image</sp-field-label>
                         <sp-textfield
-                            id="step-quantity"
-                            data-field="stepQuantity"
-                            pattern="[0-9]*"
-                            value="${this.quantityStep}"
-                            @input="${this.#updateQuantityValues}"
-                            ?disabled=${this.disabled}
-                            ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
-                        >
+                            placeholder="Enter background image URL"
+                            id="background-image"
+                            data-field="backgroundImage"
+                            value="${form.backgroundImage.values[0]}"
+                            @input="${this.#handleFragmentUpdate}"
+                        ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group class="toggle" id="backgroundImageAltText">
+                        <sp-field-label for="background-image-alt-text">Background Image Alt Text</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter background image Alt Text"
+                            id="background-image-alt-text"
+                            data-field="backgroundImageAltText"
+                            value="${form.backgroundImageAltText.values[0]}"
+                            @input="${this.#handleFragmentUpdate}"
+                        ></sp-textfield>
                     </sp-field-group>
                 </div>
-            </sp-field-group>
-            <div class="two-column-grid">
-                <sp-field-group class="toggle" id="backgroundImage">
-                    <sp-field-label for="background-image">Background Image</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter background image URL"
-                        id="background-image"
-                        data-field="backgroundImage"
-                        value="${form.backgroundImage.values[0]}"
-                        @input="${this.#handleFragmentUpdate}"
-                    ></sp-textfield>
+                <div class="section-title">Price and Promo</div>
+                <sp-field-group class="toggle" id="prices">
+                    <sp-field-label for="prices">Product price</sp-field-label>
+                    <rte-field
+                        id="prices"
+                        styling
+                        link
+                        mnemonic
+                        multiline
+                        data-field="prices"
+                        .osi=${form.osi.values[0]}
+                        .value=${form.prices.values[0] || ''}
+                        default-link-style="primary-outline"
+                        @change="${this.#handleFragmentUpdate}"
+                    ></rte-field>
+                    ${this.renderOverrideIndicator('prices')}
                 </sp-field-group>
-                <sp-field-group class="toggle" id="backgroundImageAltText">
-                    <sp-field-label for="background-image-alt-text">Background Image Alt Text</sp-field-label>
+                <div class="two-column-grid">
+                    <sp-field-group id="promoCode">
+                        <sp-field-label for="promo-code">Promo Code</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter promo code"
+                            id="promo-code"
+                            data-field="promoCode"
+                            value="${form.promoCode?.values[0]}"
+                            @input="${this.#handleFragmentUpdate}"
+                            ?disabled=${this.disabled}
+                        ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group class="toggle" id="addonConfirmation">
+                        <sp-field-label for="addon-confirmation">Addon Confirmation</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter addon confirmation text"
+                            id="addon-confirmation"
+                            data-field="addonConfirmation"
+                            value="${form.addonConfirmation?.values[0]}"
+                            @input="${this.#handleFragmentUpdate}"
+                            ?disabled=${this.disabled}
+                        ></sp-textfield>
+                    </sp-field-group>
+                </div>
+                <sp-field-group class="toggle" id="promoText">
+                    <sp-field-label for="promo-text">Promo Text</sp-field-label>
                     <sp-textfield
-                        placeholder="Enter background image Alt Text"
-                        id="background-image-alt-text"
-                        data-field="backgroundImageAltText"
-                        value="${form.backgroundImageAltText.values[0]}"
-                        @input="${this.#handleFragmentUpdate}"
-                    ></sp-textfield>
-                </sp-field-group>
-            </div>
-            <div class="section-title">Price and Promo</div>
-            <sp-field-group class="toggle" id="prices">
-                <sp-field-label for="prices">Product price</sp-field-label>
-                <rte-field
-                    id="prices"
-                    styling
-                    link
-                    mnemonic
-                    multiline
-                    data-field="prices"
-                    .osi=${form.osi.values[0]}
-                    .value=${form.prices.values[0] || ''}
-                    default-link-style="primary-outline"
-                    @change="${this.#handleFragmentUpdate}"
-                ></rte-field>
-                ${this.renderOverrideIndicator('prices')}
-            </sp-field-group>
-            <div class="two-column-grid">
-                <sp-field-group id="promoCode">
-                    <sp-field-label for="promo-code">Promo Code</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter promo code"
-                        id="promo-code"
-                        data-field="promoCode"
-                        value="${form.promoCode?.values[0]}"
+                        placeholder="Enter promo text"
+                        id="promo-text"
+                        data-field="promoText"
+                        value="${form.promoText?.values[0]}"
                         @input="${this.#handleFragmentUpdate}"
                         ?disabled=${this.disabled}
                     ></sp-textfield>
                 </sp-field-group>
-                <sp-field-group class="toggle" id="addonConfirmation">
-                    <sp-field-label for="addon-confirmation">Addon Confirmation</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter addon confirmation text"
-                        id="addon-confirmation"
-                        data-field="addonConfirmation"
-                        value="${form.addonConfirmation?.values[0]}"
+                <sp-field-group>
+                    <sp-field-label for="osi">OSI Search</sp-field-label>
+                    <osi-field
+                        id="osi"
+                        data-field="osi"
+                        .value=${form.osi.values[0]}
                         @input="${this.#handleFragmentUpdate}"
-                        ?disabled=${this.disabled}
+                        @change="${this.#handleFragmentUpdate}"
+                    ></osi-field>
+                </sp-field-group>
+                <sp-field-group id="perUnitLabel" class="toggle">
+                    <sp-divider></sp-divider>
+                    <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
+                    <sp-textfield
+                        id="per-unit-label"
+                        placeholder="Enter per unit label"
+                        data-field="perUnitLabel"
+                        class="full-width"
+                        value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
+                        @input="${this.#handlePerUnitLabelUpdate}"
                     ></sp-textfield>
                 </sp-field-group>
-            </div>
-            <sp-field-group class="toggle" id="promoText">
-                <sp-field-label for="promo-text">Promo Text</sp-field-label>
-                <sp-textfield
-                    placeholder="Enter promo text"
-                    id="promo-text"
-                    data-field="promoText"
-                    value="${form.promoText?.values[0]}"
-                    @input="${this.#handleFragmentUpdate}"
-                    ?disabled=${this.disabled}
-                ></sp-textfield>
-            </sp-field-group>
-            <sp-field-group>
-                <sp-field-label for="osi">OSI Search</sp-field-label>
-                <osi-field
-                    id="osi"
-                    data-field="osi"
-                    .value=${form.osi.values[0]}
-                    @input="${this.#handleFragmentUpdate}"
-                    @change="${this.#handleFragmentUpdate}"
-                ></osi-field>
-            </sp-field-group>
-            <sp-field-group id="perUnitLabel" class="toggle">
-                <sp-divider></sp-divider>
-                <sp-field-label for="per-unit-label">Per Unit Label</sp-field-label>
-                <sp-textfield
-                    id="per-unit-label"
-                    placeholder="Enter per unit label"
-                    data-field="perUnitLabel"
-                    class="full-width"
-                    value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
-                    @input="${this.#handlePerUnitLabelUpdate}"
-                ></sp-textfield>
-            </sp-field-group>
-            <div class="section-title">Product details</div>
-            <sp-field-group class="toggle" id="description">
-                <sp-field-label for="description">Product description</sp-field-label>
-                <rte-field
-                    id="description"
-                    styling
-                    link
-                    upt-link
-                    list
-                    mnemonic
-                    divider
-                    .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
-                    data-field="description"
-                    .osi=${form.osi.values[0]}
-                    .value=${form.description.values[0] || ''}
-                    default-link-style="secondary-link"
-                    @change="${this.#handleFragmentUpdate}"
-                ></rte-field>
-                ${this.renderOverrideIndicator('description')}
-            </sp-field-group>
-            <sp-field-group class="toggle" id="shortDescription">
-                <sp-field-label for="shortDescription">Short Description</sp-field-label>
-                <rte-field
-                    id="shortDescription"
-                    styling
-                    link
-                    upt-link
-                    list
-                    mnemonic
-                    data-field="shortDescription"
-                    .osi=${form.osi.values[0]}
-                    .value=${form.shortDescription?.values[0] || ''}
-                    default-link-style="secondary-link"
-                    @change="${this.#handleFragmentUpdate}"
-                ></rte-field>
-                ${this.renderOverrideIndicator('shortDescription')}
-            </sp-field-group>
-            <sp-field-group class="toggle" id="callout">
-                <sp-field-label for="callout"> Callout text </sp-field-label>
-                <rte-field
-                    id="callout"
-                    link
-                    icon
-                    data-field="callout"
-                    .osi=${form.osi.values[0]}
-                    .value=${form.callout?.values[0] || ''}
-                    default-link-style="secondary-link"
-                    @change="${this.#handleFragmentUpdate}"
-                    ?readonly=${this.disabled}
-                ></rte-field>
-            </sp-field-group>
-            <div class="section-title">Footer</div>
-            <sp-field-group class="toggle" id="ctas">
-                <rte-field
-                    id="ctas"
-                    link
-                    inline
-                    data-field="ctas"
-                    .osi=${form.osi.values[0]}
-                    .value=${form.ctas.values[0] || ''}
-                    default-link-style="primary-outline"
-                    @change="${this.#handleFragmentUpdate}"
-                ></rte-field>
-                ${this.renderOverrideIndicator('ctas')}
-            </sp-field-group>
-            <div class="section-title">Options and settings</div>
-            <div class="two-column-grid">
-                <sp-field-group id="secureLabel" class="toggle">
-                    <secure-text-field
-                        id="secure-text-field"
-                        label="Secure Transaction Label"
-                        data-field="showSecureLabel"
-                        value="${form.showSecureLabel?.values[0]}"
+                <div class="section-title">Product details</div>
+                <sp-field-group class="toggle" id="description">
+                    <sp-field-label for="description">Product description</sp-field-label>
+                    <rte-field
+                        id="description"
+                        styling
+                        link
+                        upt-link
+                        list
+                        mnemonic
+                        divider
+                        .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
+                        data-field="description"
+                        .osi=${form.osi.values[0]}
+                        .value=${form.description.values[0] || ''}
+                        default-link-style="secondary-link"
                         @change="${this.#handleFragmentUpdate}"
-                    >
-                    </secure-text-field>
+                    ></rte-field>
+                    ${this.renderOverrideIndicator('description')}
                 </sp-field-group>
-                <sp-field-group id="planType" class="toggle">
-                    <mas-plan-type-field
-                        id="plan-type-field"
-                        label="Plan Type text"
-                        data-field="showPlanType"
-                        value="${form.showPlanType?.values[0]}"
+                <sp-field-group class="toggle" id="shortDescription">
+                    <sp-field-label for="shortDescription">Short Description</sp-field-label>
+                    <rte-field
+                        id="shortDescription"
+                        styling
+                        link
+                        upt-link
+                        list
+                        mnemonic
+                        data-field="shortDescription"
+                        .osi=${form.osi.values[0]}
+                        .value=${form.shortDescription?.values[0] || ''}
+                        default-link-style="secondary-link"
                         @change="${this.#handleFragmentUpdate}"
+                    ></rte-field>
+                    ${this.renderOverrideIndicator('shortDescription')}
+                </sp-field-group>
+                <sp-field-group class="toggle" id="callout">
+                    <sp-field-label for="callout"> Callout text </sp-field-label>
+                    <rte-field
+                        id="callout"
+                        link
+                        icon
+                        data-field="callout"
+                        .osi=${form.osi.values[0]}
+                        .value=${form.callout?.values[0] || ''}
+                        default-link-style="secondary-link"
+                        @change="${this.#handleFragmentUpdate}"
+                        ?readonly=${this.disabled}
+                    ></rte-field>
+                </sp-field-group>
+                <div class="section-title">Footer</div>
+                <sp-field-group class="toggle" id="ctas">
+                    <rte-field
+                        id="ctas"
+                        link
+                        inline
+                        data-field="ctas"
+                        .osi=${form.osi.values[0]}
+                        .value=${form.ctas.values[0] || ''}
+                        default-link-style="primary-outline"
+                        @change="${this.#handleFragmentUpdate}"
+                    ></rte-field>
+                    ${this.renderOverrideIndicator('ctas')}
+                </sp-field-group>
+                <div class="section-title">Options and settings</div>
+                <div class="two-column-grid">
+                    <sp-field-group id="secureLabel" class="toggle">
+                        <secure-text-field
+                            id="secure-text-field"
+                            label="Secure Transaction Label"
+                            data-field="showSecureLabel"
+                            value="${form.showSecureLabel?.values[0]}"
+                            @change="${this.#handleFragmentUpdate}"
+                        >
+                        </secure-text-field>
+                    </sp-field-group>
+                    <sp-field-group id="planType" class="toggle">
+                        <mas-plan-type-field
+                            id="plan-type-field"
+                            label="Plan Type text"
+                            data-field="showPlanType"
+                            value="${form.showPlanType?.values[0]}"
+                            @change="${this.#handleFragmentUpdate}"
+                        >
+                        </mas-plan-type-field>
+                    </sp-field-group>
+                </div>
+                <sp-field-group id="addon" class="toggle">
+                    <mas-addon-field
+                        id="addon-field"
+                        label="Addon"
+                        data-field="addon"
+                        .value="${form.addon?.values[0]}"
+                        @change="${this.updateFragment}"
                     >
-                    </mas-plan-type-field>
+                    </mas-addon-field>
                 </sp-field-group>
             </div>
-            <sp-field-group id="addon" class="toggle">
-                <mas-addon-field
-                    id="addon-field"
-                    label="Addon"
-                    data-field="addon"
-                    .value="${form.addon?.values[0]}"
-                    @change="${this.updateFragment}"
-                >
-                </mas-addon-field>
-            </sp-field-group>
         `;
     }
 
@@ -1012,7 +1094,8 @@ class MerchCardEditor extends LitElement {
             this.currentVariantMapping = null;
             return;
         }
-        this.currentVariantMapping = getFragmentMapping(this.fragment.variant);
+        const variant = this.getEffectiveFieldValue('variant');
+        this.currentVariantMapping = getFragmentMapping(variant);
     }
 
     async #updateAvailableSizes() {

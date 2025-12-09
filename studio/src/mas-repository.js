@@ -1330,24 +1330,21 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Populates the store with addon placeholders by filtering fragments that start with 'addon-'
+     * Populates the store with addon placeholders by filtering for keys that start with 'addon-'
+     * Uses the preview dictionary (loaded via odinpreview) instead of slow AEM search
      */
     async loadAddonPlaceholders() {
         if (Store.placeholders.addons.data.get().length > 1) return;
         Store.placeholders.addons.loading.set(true);
         try {
-            const options = {
-                path: `${this.parentPath}/dictionary`,
-            };
-            const fragments = await this.searchFragmentList(options);
-            const addonFragments = [];
-            for await (const item of fragments) {
-                const key = item.fields.find((field) => field.name === 'key')?.values[0];
-                if (/^addon-/.test(key)) {
-                    addonFragments.push({ value: key, itemText: key });
-                }
+            await this.loadPreviewPlaceholders();
+            const dictionary = Store.placeholders.preview.get();
+            if (dictionary) {
+                const addonFragments = Object.keys(dictionary)
+                    .filter((key) => /^addon-/.test(key))
+                    .map((key) => ({ value: key, itemText: key }));
+                Store.placeholders.addons.data.set((prev) => [...prev, ...addonFragments]);
             }
-            Store.placeholders.addons.data.set((prev) => [...prev, ...addonFragments]);
         } catch (error) {
             this.processError(error, 'Could not load addon placeholders.');
         } finally {

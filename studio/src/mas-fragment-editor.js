@@ -601,7 +601,7 @@ export default class MasFragmentEditor extends LitElement {
         this.requestUpdate();
         this.startLazyPreviewLoading();
 
-        this.repository.loadPreviewPlaceholders().catch(() => {});
+        const placeholdersPromise = this.repository.loadPreviewPlaceholders().catch(() => null);
 
         const fragmentPath = this.fragment?.path;
         this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath).then(async () => {
@@ -627,6 +627,8 @@ export default class MasFragmentEditor extends LitElement {
             if (this.fragmentStore?.get()) {
                 this.fragmentStore.get().hasChanges = false;
             }
+
+            await placeholdersPromise;
 
             this.initializationComplete = true;
             this.localeDefaultFragmentLoading = false;

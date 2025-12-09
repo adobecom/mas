@@ -23,7 +23,7 @@ export class PreviewFragmentStore extends FragmentStore {
 
         this.placeholderUnsubscribe = Store.placeholders.preview.subscribe(() => {
             if (!this.resolved && Store.placeholders.preview.value) {
-                this.resolveFragment();
+                this.resolveFragment(true);
             }
         });
 
@@ -123,13 +123,13 @@ export class PreviewFragmentStore extends FragmentStore {
 
         if (this.isCollection || !Store.placeholders.preview.value) {
             this.resolved = true;
-            this.refreshAemFragment();
+            this.refreshAemFragment(true);
             return;
         }
 
         if (!Store.search.value.path) {
             this.resolved = true;
-            this.refreshAemFragment();
+            this.refreshAemFragment(true);
             return;
         }
 
@@ -138,7 +138,7 @@ export class PreviewFragmentStore extends FragmentStore {
             .then((result) => {
                 if (result) {
                     this.replaceFrom(result);
-                    this.refreshAemFragment();
+                    this.refreshAemFragment(true);
                     this.resolved = true;
                 }
             })
@@ -190,9 +190,10 @@ export class PreviewFragmentStore extends FragmentStore {
         }
     }
 
-    refreshAemFragment() {
+    refreshAemFragment(immediate = false) {
         clearTimeout(this.#refreshDebounceTimer);
-        this.#refreshDebounceTimer = setTimeout(() => {
+
+        const doRefresh = () => {
             this.populateGlobalCache();
             const aemFragments = document.querySelectorAll(`aem-fragment[fragment="${this.value.id}"]`);
             aemFragments.forEach((aemFragment) => {
@@ -209,7 +210,13 @@ export class PreviewFragmentStore extends FragmentStore {
                     }),
                 );
             }
-        }, 100);
+        };
+
+        if (immediate) {
+            doRefresh();
+            return;
+        }
+        this.#refreshDebounceTimer = setTimeout(doRefresh, 100);
     }
 
     /**

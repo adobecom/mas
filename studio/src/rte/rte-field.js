@@ -570,6 +570,7 @@ class RteField extends LitElement {
     #editorSchema;
     editorView;
     #value = null;
+    #isInternalUpdate = false;
     #serializer;
     #stylingMarksData;
 
@@ -619,7 +620,7 @@ class RteField extends LitElement {
     set value(newValue) {
         const oldValue = this.#value;
         this.#value = newValue;
-        if (oldValue !== newValue && this.editorView) {
+        if (oldValue !== newValue && this.editorView && !this.#isInternalUpdate) {
             this.updateContent(newValue);
         }
         this.requestUpdate('value', oldValue);
@@ -1149,7 +1150,9 @@ class RteField extends LitElement {
                 // skip change event during initialization
                 const isFirstChange = this.value === null;
                 if (value !== this.value) {
+                    this.#isInternalUpdate = true;
                     this.value = value === '<p></p>' ? '' : value;
+                    this.#isInternalUpdate = false;
                     if (isFirstChange) return;
                     this.dispatchEvent(
                         new CustomEvent('change', {

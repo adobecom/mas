@@ -11,9 +11,9 @@ export const styles = css`
     }
 
     .promotions-form-panel {
-        border-radius: 8px;
+        border-radius: 16px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--spectrum-gray-200);
+        border: 1px solid var(--spectrum-gray-300);
         padding: 6px 24px 24px 24px;
         position: relative;
     }

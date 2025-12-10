@@ -35,7 +35,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Change variant and save card', async () => {
@@ -71,7 +72,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit size field', async () => {
@@ -106,7 +108,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit title field', async () => {
@@ -324,7 +327,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit price field', async () => {
@@ -364,7 +368,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Toggle quantity selector', async () => {
@@ -398,7 +403,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Open link edit form and make all CTA edits', async () => {
@@ -498,7 +504,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit description field', async () => {
@@ -542,7 +549,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Validate original icon', async () => {

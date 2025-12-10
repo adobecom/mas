@@ -34,7 +34,8 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit title field', async () => {
@@ -116,7 +117,8 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit price and save card', async () => {
@@ -157,7 +159,8 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA and save card', async () => {

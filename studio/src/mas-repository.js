@@ -70,10 +70,10 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
         id: previewFragment.id,
         fields: normalizedFields,
         tags: previewFragment.tags || [],
-        settings: {},
-        priceLiterals: {},
-        dictionary: {},
-        placeholders: {},
+        settings: previewFragment.settings || {},
+        priceLiterals: previewFragment.priceLiterals || {},
+        dictionary: previewFragment.dictionary || {},
+        placeholders: previewFragment.placeholders || {},
     };
 
     fragmentCache.add(cacheData);

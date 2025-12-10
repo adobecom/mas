@@ -168,7 +168,7 @@ export class MasCreateDialog extends LitElement {
         const sourceStore = generateFragmentStore(fragment);
         sourceStore.new = true;
         const currentList = Store.fragments.list.data.get() ?? [];
-        Store.fragments.list.data.set([...currentList, sourceStore]);
+        Store.fragments.list.data.set([sourceStore, ...currentList]);
         this.close();
         await router.navigateToFragmentEditor(fragment.id);
     }

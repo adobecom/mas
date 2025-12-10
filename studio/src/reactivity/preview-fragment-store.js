@@ -110,6 +110,9 @@ export class PreviewFragmentStore extends FragmentStore {
 
         if (!this.value) {
             console.warn('[PreviewFragmentStore] Cannot resolve: no fragment value');
+            this.resolved = true;
+            this.refreshAemFragment(true);
+            this.notify();
             return;
         }
 
@@ -118,18 +121,23 @@ export class PreviewFragmentStore extends FragmentStore {
                 fragmentId: this.value?.id,
                 hasModel: !!this.value?.model,
             });
+            this.resolved = true;
+            this.refreshAemFragment(true);
+            this.notify();
             return;
         }
 
         if (this.isCollection || !Store.placeholders.preview.value) {
             this.resolved = true;
             this.refreshAemFragment(true);
+            this.notify();
             return;
         }
 
         if (!Store.search.value.path) {
             this.resolved = true;
             this.refreshAemFragment(true);
+            this.notify();
             return;
         }
 
@@ -139,7 +147,6 @@ export class PreviewFragmentStore extends FragmentStore {
                 if (result) {
                     this.replaceFrom(result);
                     this.refreshAemFragment(true);
-                    this.resolved = true;
                 }
             })
             .catch((error) => {
@@ -147,6 +154,11 @@ export class PreviewFragmentStore extends FragmentStore {
             })
             .finally(() => {
                 this.#resolving = false;
+                if (!this.resolved) {
+                    this.resolved = true;
+                    this.refreshAemFragment(true);
+                    this.notify();
+                }
             });
     }
 
@@ -172,6 +184,27 @@ export class PreviewFragmentStore extends FragmentStore {
             field.values = field.multiple ? resolvedField : [resolvedField];
         }
         result.fields = originalFields;
+
+        const essentialProps = [
+            'path',
+            'id',
+            'etag',
+            'model',
+            'title',
+            'description',
+            'status',
+            'created',
+            'modified',
+            'published',
+            'tags',
+            'references',
+        ];
+        for (const prop of essentialProps) {
+            if (this.value[prop] !== undefined && result[prop] === undefined) {
+                result[prop] = this.value[prop];
+            }
+        }
+
         return result;
     }
 

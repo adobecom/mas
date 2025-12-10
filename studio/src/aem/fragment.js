@@ -126,6 +126,7 @@ export class Fragment {
         } else if (encodedValues.length > 0 && encodedValues.some((v) => v !== '')) {
             this.fields.push({
                 name: fieldName,
+                type: 'text',
                 values: encodedValues,
             });
             this.hasChanges = true;

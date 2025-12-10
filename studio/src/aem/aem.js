@@ -228,6 +228,11 @@ class AEM {
 
         const { title, description, fields } = fragment;
 
+        const fieldsWithType = fields.map((field) => ({
+            ...field,
+            type: field.type || 'text',
+        }));
+
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
@@ -238,7 +243,7 @@ class AEM {
             body: JSON.stringify({
                 title,
                 description,
-                fields,
+                fields: fieldsWithType,
             }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);

@@ -39,13 +39,21 @@ export class EditorContextStore extends ReactiveStore {
         this.expectedDefaultLocale = null;
 
         try {
-            if (!Store.search.value.path) {
+            let surface = Store.search.value.path;
+            if (!surface && fragmentPath) {
+                const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/([^/]+)\//);
+                if (pathMatch) {
+                    surface = pathMatch[1];
+                }
+            }
+
+            if (!surface) {
                 return { status: 0, body: null };
             }
 
             const options = {
                 locale: Store.filters.value.locale,
-                surface: Store.search.value.path,
+                surface,
             };
             const result = await previewFragmentForEditor(fragmentId, options);
 

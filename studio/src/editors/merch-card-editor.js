@@ -313,6 +313,7 @@ class MerchCardEditor extends LitElement {
         }
         const variantValue = this.fragment.variant;
         if (!variantValue) {
+            this.fieldsReady = true;
             return;
         }
         await customElements.whenDefined('merch-card');
@@ -540,6 +541,7 @@ class MerchCardEditor extends LitElement {
                             value="${form.cardName.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                         ></sp-textfield>
+                        ${this.renderOverrideIndicator('cardName')}
                     </sp-field-group>
                     <sp-field-group id="fragment-title-group">
                         <sp-field-label for="fragment-title">Fragment title</sp-field-label>
@@ -599,6 +601,7 @@ class MerchCardEditor extends LitElement {
                                 (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
                             )}
                         </sp-picker>
+                        ${this.renderOverrideIndicator('size')}
                     </sp-field-group>
                 </div>
                 <sp-field-group id="tags">
@@ -626,6 +629,7 @@ class MerchCardEditor extends LitElement {
                             <mas-mnemonic-field></mas-mnemonic-field>
                         </template>
                     </mas-multifield>
+                    ${this.renderOverrideIndicator('mnemonics')}
                 </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="badge">
@@ -683,6 +687,7 @@ class MerchCardEditor extends LitElement {
                             <mas-included-field></mas-included-field>
                         </template>
                     </mas-multifield>
+                    ${this.renderOverrideIndicator('whatsIncluded')}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="quantitySelect">
                     <sp-checkbox
@@ -704,6 +709,7 @@ class MerchCardEditor extends LitElement {
                                     @input="${this.#updateQuantityValues}"
                                     ?disabled=${this.disabled}
                                 ></sp-textfield>
+                                ${this.renderOverrideIndicator('titleQuantity')}
                             </sp-field-group>
                             <sp-field-group id="quantitySelectorStart">
                                 <sp-field-label for="start-quantity">Start quantity</sp-field-label>
@@ -716,6 +722,7 @@ class MerchCardEditor extends LitElement {
                                     ?disabled=${this.disabled}
                                     ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
                                 >
+                                ${this.renderOverrideIndicator('startQuantity')}
                             </sp-field-group>
                         </div>
                         <sp-field-group id="quantitySelectorStep">
@@ -729,6 +736,7 @@ class MerchCardEditor extends LitElement {
                                 ?disabled=${this.disabled}
                                 ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
                             >
+                            ${this.renderOverrideIndicator('stepQuantity')}
                         </sp-field-group>
                     </div>
                 </sp-field-group>
@@ -742,6 +750,7 @@ class MerchCardEditor extends LitElement {
                             value="${form.backgroundImage.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                         ></sp-textfield>
+                        ${this.renderOverrideIndicator('backgroundImage')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="backgroundImageAltText">
                         <sp-field-label for="background-image-alt-text">Background Image Alt Text</sp-field-label>
@@ -752,6 +761,7 @@ class MerchCardEditor extends LitElement {
                             value="${form.backgroundImageAltText.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                         ></sp-textfield>
+                        ${this.renderOverrideIndicator('backgroundImageAltText')}
                     </sp-field-group>
                 </div>
                 <div class="section-title">Price and Promo</div>
@@ -782,6 +792,7 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentUpdate}"
                             ?disabled=${this.disabled}
                         ></sp-textfield>
+                        ${this.renderOverrideIndicator('promoCode')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="addonConfirmation">
                         <sp-field-label for="addon-confirmation">Addon Confirmation</sp-field-label>
@@ -793,6 +804,7 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentUpdate}"
                             ?disabled=${this.disabled}
                         ></sp-textfield>
+                        ${this.renderOverrideIndicator('addonConfirmation')}
                     </sp-field-group>
                 </div>
                 <sp-field-group class="toggle" id="promoText">
@@ -805,6 +817,7 @@ class MerchCardEditor extends LitElement {
                         @input="${this.#handleFragmentUpdate}"
                         ?disabled=${this.disabled}
                     ></sp-textfield>
+                    ${this.renderOverrideIndicator('promoText')}
                 </sp-field-group>
                 <sp-field-group>
                     <sp-field-label for="osi">OSI Search</sp-field-label>
@@ -815,6 +828,7 @@ class MerchCardEditor extends LitElement {
                         @input="${this.#handleFragmentUpdate}"
                         @change="${this.#handleFragmentUpdate}"
                     ></osi-field>
+                    ${this.renderOverrideIndicator('osi')}
                 </sp-field-group>
                 <sp-field-group id="perUnitLabel" class="toggle">
                     <sp-divider></sp-divider>
@@ -827,6 +841,7 @@ class MerchCardEditor extends LitElement {
                         value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
                         @input="${this.#handlePerUnitLabelUpdate}"
                     ></sp-textfield>
+                    ${this.renderOverrideIndicator('perUnitLabel')}
                 </sp-field-group>
                 <div class="section-title">Product details</div>
                 <sp-field-group class="toggle" id="description">
@@ -878,6 +893,7 @@ class MerchCardEditor extends LitElement {
                         @change="${this.#handleFragmentUpdate}"
                         ?readonly=${this.disabled}
                     ></rte-field>
+                    ${this.renderOverrideIndicator('callout')}
                 </sp-field-group>
                 <div class="section-title">Footer</div>
                 <sp-field-group class="toggle" id="ctas">
@@ -904,6 +920,7 @@ class MerchCardEditor extends LitElement {
                             @change="${this.#handleFragmentUpdate}"
                         >
                         </secure-text-field>
+                        ${this.renderOverrideIndicator('showSecureLabel')}
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
                         <mas-plan-type-field
@@ -914,6 +931,7 @@ class MerchCardEditor extends LitElement {
                             @change="${this.#handleFragmentUpdate}"
                         >
                         </mas-plan-type-field>
+                        ${this.renderOverrideIndicator('showPlanType')}
                     </sp-field-group>
                 </div>
                 <sp-field-group id="addon" class="toggle">
@@ -925,6 +943,7 @@ class MerchCardEditor extends LitElement {
                         @change="${this.updateFragment}"
                     >
                     </mas-addon-field>
+                    ${this.renderOverrideIndicator('addon')}
                 </sp-field-group>
             </div>
         `;
@@ -948,13 +967,11 @@ class MerchCardEditor extends LitElement {
     }
 
     #handleFragmentTitleUpdate(e) {
-        this.fragment.title = e.target.value;
-        this.updateFragment();
+        this.fragmentStore.updateFieldInternal('title', e.target.value);
     }
 
     #handleFragmentDescriptionUpdate(e) {
-        this.fragment.description = e.target.value;
-        this.updateFragment();
+        this.fragmentStore.updateFieldInternal('description', e.target.value);
     }
 
     createIncludedElement(label, values) {
@@ -1562,6 +1579,7 @@ class MerchCardEditor extends LitElement {
                         `,
                     )}
                 </sp-picker>
+                ${this.renderOverrideIndicator(dataField)}
             </sp-field-group>
         `;
     }
@@ -1619,6 +1637,7 @@ class MerchCardEditor extends LitElement {
                             `,
                         )}
                 </sp-picker>
+                ${this.renderOverrideIndicator(dataField)}
             </sp-field-group>
         `;
     }

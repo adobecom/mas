@@ -84,20 +84,12 @@ class MnemonicField extends LitElement {
         this.modalOpen = false;
     }
 
-    get iconElement() {
-        return this.shadowRoot.getElementById('icon');
-    }
-
-    get altElement() {
-        return this.shadowRoot.getElementById('alt');
-    }
-
-    get linkElement() {
-        return this.shadowRoot.getElementById('link');
-    }
-
     #handleEditClick() {
         this.modalOpen = true;
+    }
+
+    openModal() {
+        this.#handleEditClick();
     }
 
     #handleModalClose() {
@@ -128,7 +120,6 @@ class MnemonicField extends LitElement {
         this.icon = icon;
         this.alt = alt;
         this.link = link;
-
         this.modalOpen = false;
 
         this.dispatchEvent(
@@ -205,7 +196,7 @@ class MnemonicField extends LitElement {
                 .icon=${this.icon}
                 .alt=${this.alt}
                 .link=${this.link}
-                @close=${this.#handleModalClose}
+                @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>
         `;

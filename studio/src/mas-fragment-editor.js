@@ -603,7 +603,7 @@ export default class MasFragmentEditor extends LitElement {
 
         const placeholdersPromise = this.repository.loadPreviewPlaceholders().catch(() => null);
 
-        const fragmentPath = this.fragment?.path;
+        const fragmentPath = fragmentStore?.get()?.path;
         this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath).then(async () => {
             this.contextLoaded = true;
             const skipVariation = this.repository?.skipVariationDetection;

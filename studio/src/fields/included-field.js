@@ -116,7 +116,6 @@ class IncludedField extends LitElement {
         this.icon = icon;
         this.alt = alt;
         this.link = link;
-
         this.modalOpen = false;
 
         this.dispatchEvent(
@@ -193,7 +192,7 @@ class IncludedField extends LitElement {
                 .icon=${this.icon}
                 .alt=${this.alt}
                 .link=${this.link}
-                @close=${this.#handleModalClose}
+                @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>
         `;

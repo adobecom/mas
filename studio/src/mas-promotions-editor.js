@@ -4,6 +4,7 @@ import { MasRepository } from './mas-repository.js';
 import './aem/aem-tag-picker-field.js';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 import styles from './mas-promotions-editor-css.js';
 import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID } from './constants.js';
 import { normalizeKey, showToast } from './utils.js';
@@ -58,7 +59,6 @@ class MasPromotionsEditor extends LitElement {
         } else {
             this.isNewPromotion = true;
             const newPromotion = this.#initializeNewPromotion();
-            const { FragmentStore } = await import('./reactivity/fragment-store.js');
             this.fragmentStore = new FragmentStore(newPromotion);
         }
 
@@ -89,7 +89,6 @@ class MasPromotionsEditor extends LitElement {
                 const promotion = new Promotion(fragment);
 
                 // Create a new FragmentStore and set it in the store
-                const { FragmentStore } = await import('./reactivity/fragment-store.js');
                 const fragmentStore = new FragmentStore(promotion);
                 Store.promotions.inEdit.set(fragmentStore);
             }
@@ -185,11 +184,22 @@ class MasPromotionsEditor extends LitElement {
             if (newPromotion) {
                 this.isCreated = true;
             }
+
+            showToast('Project successfully created.', 'positive');
+
+            Store.promotions.inEdit.set(new FragmentStore(newPromotion));
+            Store.promotions.promotionId.set(newPromotion.id);
+
+            this.isNewPromotion = false;
+
+            // Reconnect the StoreController to the new FragmentStore instance
+            this.storeController.hostDisconnected();
+            this.storeController = new StoreController(this, this.fragmentStore);
+            this.storeController.hostConnected();
         } catch (error) {
             showToast('Failed to create project.', 'negative');
             return;
         }
-        showToast('Project successfully created.', 'positive');
     }
 
     async #handleUpdatePromotion() {

@@ -312,7 +312,7 @@ class MasPromotions extends LitElement {
                     open
                     underlay
                     id="promotion-delete-confirm-dialog"
-                    .heading=${title}
+                    .headline=${title}
                     .variant=${variant || 'negative'}
                     .confirmLabel=${confirmText}
                     .cancelLabel=${cancelText}
@@ -350,12 +350,12 @@ class MasPromotions extends LitElement {
             return;
         }
         const confirmed = await this.#showDialog(
-            'Delete Promotion Campaign',
-            `Are you sure you want to delete the promotion "${promotion.get().title}"? This action cannot be undone.`,
+            'Confirm Delete',
+            `Are you sure you want to delete the promotion project "${promotion.get().title}"? This action cannot be undone.`,
             {
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
-                variant: 'negative',
+                variant: 'confirmation',
             },
         );
         if (!confirmed) return;

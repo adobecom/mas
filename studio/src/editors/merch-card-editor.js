@@ -127,6 +127,43 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
+    isSectionOverridden(fieldNames) {
+        if (!this.isVariation || !this.localeDefaultFragment) {
+            return false;
+        }
+        return fieldNames.some((fieldName) => this.getFieldState(fieldName) === 'overridden');
+    }
+
+    async resetSectionToParent(fieldNames) {
+        for (const fieldName of fieldNames) {
+            if (this.getFieldState(fieldName) === 'overridden') {
+                await this.resetFieldToParent(fieldName);
+            }
+        }
+    }
+
+    renderSectionOverrideIndicator(fieldNames) {
+        if (!this.isVariation || !this.localeDefaultFragment) {
+            return nothing;
+        }
+        const isOverridden = this.isSectionOverridden(fieldNames);
+        return html`
+            <div class="field-reset-link">
+                ${isOverridden
+                    ? html`<a
+                          href="javascript:void(0)"
+                          @click=${(e) => {
+                              e.preventDefault();
+                              this.resetSectionToParent(fieldNames);
+                          }}
+                      >
+                          ↩ Overridden. Click to restore.
+                      </a>`
+                    : nothing}
+            </div>
+        `;
+    }
+
     getFormWithInheritance() {
         const allFieldNames = new Set();
         this.fragment.fields.forEach((f) => allFieldNames.add(f.name));
@@ -617,6 +654,15 @@ class MerchCardEditor extends LitElement {
                     ></aem-tag-picker-field>
                 </sp-field-group>
                 <div class="section-title">Visuals</div>
+                ${this.renderSectionOverrideIndicator([
+                    'mnemonicIcon',
+                    'mnemonicAlt',
+                    'mnemonicLink',
+                    'badge',
+                    'trialBadge',
+                    'borderColor',
+                    'backgroundColor',
+                ])}
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield
                         id="mnemonics"
@@ -671,6 +717,7 @@ class MerchCardEditor extends LitElement {
                     )}
                 </div>
                 <div class="section-title">What's included</div>
+                ${this.renderSectionOverrideIndicator(['whatsIncluded'])}
                 <sp-field-group class="toggle" id="whatsIncluded">
                     <sp-textfield
                         id="whatsIncludedLabel"
@@ -689,6 +736,8 @@ class MerchCardEditor extends LitElement {
                     </mas-multifield>
                     ${this.renderOverrideIndicator('whatsIncluded')}
                 </sp-field-group>
+                <div class="section-title">Quantity selection</div>
+                ${this.renderSectionOverrideIndicator(['titleQuantity', 'startQuantity', 'stepQuantity'])}
                 <sp-field-group class="toggle" id="quantitySelect">
                     <sp-checkbox
                         size="m"

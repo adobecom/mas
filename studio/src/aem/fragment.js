@@ -103,25 +103,35 @@ export class Fragment {
 
     updateField(fieldName, value) {
         let change = false;
-        this.fields
-            .filter((field) => field.name === fieldName)
-            .forEach((field) => {
-                //handles encoding of values for characters like ✓
-                const encodedValues = value.map((v) => {
-                    if (typeof v === 'string') {
-                        return v.normalize('NFC');
-                    }
-                    return v;
-                });
-                if (
-                    field.values.length === encodedValues.length &&
-                    field.values.every((v, index) => v === encodedValues[index])
-                )
-                    return;
-                field.values = encodedValues;
-                this.hasChanges = true;
-                change = true;
+        const encodedValues = value.map((v) => {
+            if (typeof v === 'string') {
+                return v.normalize('NFC');
+            }
+            return v;
+        });
+
+        const existingField = this.fields.find((field) => field.name === fieldName);
+
+        if (existingField) {
+            if (
+                existingField.values.length === encodedValues.length &&
+                existingField.values.every((v, index) => v === encodedValues[index])
+            ) {
+                if (fieldName === 'tags') this.newTags = value;
+                return change;
+            }
+            existingField.values = encodedValues;
+            this.hasChanges = true;
+            change = true;
+        } else if (encodedValues.length > 0 && encodedValues.some((v) => v !== '')) {
+            this.fields.push({
+                name: fieldName,
+                values: encodedValues,
             });
+            this.hasChanges = true;
+            change = true;
+        }
+
         if (fieldName === 'tags') this.newTags = value;
         return change;
     }

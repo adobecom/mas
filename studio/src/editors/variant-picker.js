@@ -1,4 +1,5 @@
 import { html, LitElement, css } from 'lit';
+import { SURFACES } from '../constants.js';
 
 export const VARIANT_NAMES = {
     ALL: 'all',
@@ -18,73 +19,61 @@ export const VARIANT_NAMES = {
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
-export const SURFACES = {
-    ACOM: 'acom',
-    ADOBE_HOME: 'adobe-home',
-    CCD: 'ccd',
-    COMMERCE: 'commerce',
-    DOCS: 'docs',
-    EXPRESS: 'express',
-    MAS: 'mas',
-    NALA: 'nala',
-    PROMOTIONS: 'promotions',
-    SANDBOX: 'sandbox',
-};
 export const VARIANTS = [
     { label: 'All', value: VARIANT_NAMES.ALL, surface: 'all' },
-    { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surface: SURFACES.ACOM },
-    { label: 'Plans', value: VARIANT_NAMES.PLANS, surface: SURFACES.ACOM },
+    { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surface: SURFACES.ACOM.name },
+    { label: 'Plans', value: VARIANT_NAMES.PLANS, surface: SURFACES.ACOM.name },
     {
         label: 'Plans v2',
         value: VARIANT_NAMES.PLANS_V2,
-        surface: 'acom',
+        surface: SURFACES.ACOM.name,
     },
     {
         label: 'Plans Students',
         value: VARIANT_NAMES.PLANS_STUDENTS,
-        surface: SURFACES.ACOM,
+        surface: SURFACES.ACOM.name,
     },
     {
         label: 'Plans Education',
         value: VARIANT_NAMES.PLANS_EDUCATION,
-        surface: SURFACES.ACOM,
+        surface: SURFACES.ACOM.name,
     },
-    { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: SURFACES.CCD },
+    { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: SURFACES.CCD.name },
     {
         label: 'Special offers',
         value: VARIANT_NAMES.SPECIAL_OFFERS,
-        surface: SURFACES.ACOM,
+        surface: SURFACES.ACOM.name,
     },
-    { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surface: SURFACES.CCD },
+    { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surface: SURFACES.CCD.name },
     {
         label: 'Try Buy Widget',
         value: VARIANT_NAMES.TRY_BUY_WIDGET,
-        surface: SURFACES.ADOBE_HOME,
+        surface: SURFACES.ADOBE_HOME.name,
     },
     {
         label: 'Promoted Plans',
         value: VARIANT_NAMES.PROMOTED_PLANS,
-        surface: SURFACES.ADOBE_HOME,
+        surface: SURFACES.ADOBE_HOME.name,
     },
     {
         label: 'Fries',
         value: VARIANT_NAMES.FRIES,
-        surface: SURFACES.COMMERCE,
+        surface: SURFACES.COMMERCE.name,
     },
     {
         label: 'Simplified pricing Express',
         value: VARIANT_NAMES.SIMPLIFIED_PRICING_EXPRESS,
-        surface: SURFACES.EXPRESS,
+        surface: SURFACES.EXPRESS.name,
     },
     {
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
-        surface: SURFACES.CCD,
+        surface: SURFACES.CCD.name,
     },
     {
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
-        surface: SURFACES.EXPRESS,
+        surface: SURFACES.EXPRESS.name,
     },
 ];
 

@@ -69,6 +69,22 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    promotions: {
+        list: {
+            loading: new ReactiveStore(true),
+            data: new ReactiveStore([]),
+            filter: new ReactiveStore('scheduled'),
+            filterOptions: new ReactiveStore([
+                { value: 'all', label: 'All' },
+                { value: 'active', label: 'Active' },
+                { value: 'scheduled', label: 'Scheduled' },
+                { value: 'expired', label: 'Expired' },
+                { value: 'archived', label: 'Archived' },
+            ]),
+        },
+        inEdit: new ReactiveStore(null),
+        promotionId: new ReactiveStore(null),
+    },
 };
 
 // #region Validators
@@ -97,7 +113,14 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS, PAGE_NAMES.FRAGMENT_EDITOR];
+    const validPages = [
+        PAGE_NAMES.WELCOME,
+        PAGE_NAMES.CONTENT,
+        PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.FRAGMENT_EDITOR,
+        PAGE_NAMES.PROMOTIONS,
+        PAGE_NAMES.PROMOTIONS_EDITOR,
+    ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 

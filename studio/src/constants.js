@@ -171,6 +171,8 @@ export const PAGE_NAMES = {
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
     FRAGMENT_EDITOR: 'fragment-editor',
+    PROMOTIONS: 'promotions',
+    PROMOTIONS_EDITOR: 'promotions-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -181,6 +183,8 @@ export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 export const ROOT_PATH = '/content/dam/mas';
 export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
 export const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
+
+export const PROMOTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3Byb21vdGlvbg==';
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
@@ -217,4 +221,35 @@ export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedL
 
 export const VARIATION_TYPES = {
     LOCALE: 'Locale',
+};
+
+export const SURFACES = {
+    ACOM: {
+        label: 'Adobe.com',
+        name: 'acom',
+    },
+    ADOBE_HOME: {
+        label: 'Adobe Home',
+        name: 'adobe-home',
+    },
+    CCD: {
+        label: 'CCD',
+        name: 'ccd',
+    },
+    COMMERCE: {
+        label: 'Commerce',
+        name: 'commerce',
+    },
+    EXPRESS: {
+        label: 'Express',
+        name: 'express',
+    },
+    NALA: {
+        label: 'Nala',
+        name: 'nala',
+    },
+    SANDBOX: {
+        label: 'Sandbox',
+        name: 'sandbox',
+    },
 };

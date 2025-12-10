@@ -26,9 +26,10 @@ import {
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 
-import { SURFACES } from './editors/variant-picker.js';
+import { SURFACES } from './constants.js';
 import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
+import { Promotion } from './aem/promotion.js';
 
 let fragmentCache;
 
@@ -101,6 +102,7 @@ export class MasRepository extends LitElement {
             search: null,
             recentlyUpdated: null,
             placeholders: null,
+            promotions: null,
         };
         this.dictionaryCache = new Map();
         this.inflightDictionaryRequest = null;
@@ -176,6 +178,9 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
+                break;
+            case PAGE_NAMES.PROMOTIONS:
+                this.loadPromotions();
                 break;
         }
     }
@@ -524,6 +529,32 @@ export class MasRepository extends LitElement {
         return await getDictionary(context);
     }
 
+    async loadPromotions() {
+        try {
+            const promotionsPath = this.getPromotionsPath();
+
+            const searchOptions = {
+                path: promotionsPath,
+                sort: [{ on: 'created', order: 'ASC' }],
+            };
+
+            if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
+            this.#abortControllers.promotions = new AbortController();
+
+            Store.promotions.list.loading.set(true);
+
+            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
+
+            const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
+
+            Store.promotions.list.data.set(promotions);
+        } catch (error) {
+            this.processError(error, 'Could not load promotions.');
+        } finally {
+            Store.promotions.list.loading.set(false);
+        }
+    }
+
     getDictionaryPath() {
         return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
     }
@@ -736,8 +767,8 @@ export class MasRepository extends LitElement {
         }
 
         // 3. Check ACOM language fallback (ACOM surface, fallback locale or current locale)
-        if (!parentReference && surfaceRoot !== SURFACES.ACOM && acomFallbackLocale) {
-            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM, acomFallbackLocale);
+        if (!parentReference && surfaceRoot !== SURFACES.ACOM.name && acomFallbackLocale) {
+            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM.name, acomFallbackLocale);
             if (acomFallbackPath) {
                 try {
                     const acomIndex = await this.ensureDictionaryIndex(acomFallbackPath, visited);
@@ -765,6 +796,10 @@ export class MasRepository extends LitElement {
         }
 
         return indexFragment;
+    }
+
+    getPromotionsPath() {
+        return `${ROOT_PATH}/promotions`;
     }
 
     /**
@@ -853,15 +888,16 @@ export class MasRepository extends LitElement {
     /**
      * Unified method to save a fragment (regular or dictionary)
      * @param {FragmentStore} fragmentStore - The fragment to save
+     * @param {boolean} withToast - Whether to show toast notifications
      * @returns {Promise<Object>} The saved fragment
      */
-    async saveFragment(fragmentStore) {
-        showToast('Saving fragment...');
+    async saveFragment(fragmentStore, withToast = true) {
+        if (withToast) showToast('Saving fragment...');
         const fragmentToSave = fragmentStore.get();
         const tags = fragmentToSave.getField('tags')?.values || [];
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
         if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi') && !hasOfferlessTag) {
-            showToast('Please select offer', 'negative');
+            if (withToast) showToast('Please select offer', 'negative');
             return false;
         }
         this.operation.set(OPERATIONS.SAVE);
@@ -869,7 +905,7 @@ export class MasRepository extends LitElement {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
             fragmentStore.refreshFrom(savedFragment);
-            showToast('Fragment successfully saved.', 'positive');
+            if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {
             this.processError(error, 'Failed to save fragment.');

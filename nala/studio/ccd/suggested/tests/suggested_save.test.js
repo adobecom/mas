@@ -58,6 +58,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await studio.deleteCard(data.clonedCardOneID);
             await expect(await clonedCardOne).not.toBeVisible();
 
+            await expect(await clonedCardTwo).toBeVisible();
             await clonedCardTwo.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCardTwo).toBeVisible();

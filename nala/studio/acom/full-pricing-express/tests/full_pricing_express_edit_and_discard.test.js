@@ -156,6 +156,7 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.footer).toContainText(data.ctaText.original);
+            await editor.CTA.scrollIntoViewIfNeeded();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkText).toBeVisible();

@@ -41,6 +41,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-3: Edit a field and save', async () => {
+            await editor.size.scrollIntoViewIfNeeded();
             await editor.size.click();
             await page.getByRole('option', { name: 'triple' }).click();
             await studio.saveCard();

@@ -159,6 +159,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-7: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
+            await editor.size.scrollIntoViewIfNeeded();
             await editor.size.click();
             await page.getByRole('option', { name: 'default' }).click();
         });

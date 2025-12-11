@@ -716,9 +716,9 @@ class MerchCardEditor extends LitElement {
                         'backgroundColor',
                     )}
                 </div>
-                <div class="section-title">What's included</div>
-                ${this.renderSectionOverrideIndicator(['whatsIncluded'])}
                 <sp-field-group class="toggle" id="whatsIncluded">
+                    <div class="section-title">What's included</div>
+                    ${this.renderSectionOverrideIndicator(['whatsIncluded'])}
                     <sp-textfield
                         id="whatsIncludedLabel"
                         placeholder="Enter the label text"

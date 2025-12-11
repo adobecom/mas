@@ -13,6 +13,7 @@ import {
     formatFieldValue,
     getFieldLabel,
     getFieldVisible,
+    getFieldHidden,
 } from './utils/version-transformer.js';
 
 class VersionPage extends LitElement {
@@ -32,7 +33,7 @@ class VersionPage extends LitElement {
     static FIELD_CONFIG = {
         // Fragment-level fields (metadata - not visible on card)
         title: { label: 'Fragment Title', isArray: false, visible: false },
-        description: { label: 'Fragment Description', isArray: false, visible: false },
+        description: { label: 'Description', isArray: false, visible: true },
         locReady: { label: 'Send to translation', isArray: false, visible: false },
         tags: { label: 'Tags', isArray: true, visible: false },
         // Merch Card configuration fields (not visible on card)
@@ -87,6 +88,8 @@ class VersionPage extends LitElement {
         quantityTitle: { label: 'Quantity selector title', isArray: false, visible: true },
         startQuantity: { label: 'Start quantity', isArray: false, visible: true },
         stepQuantity: { label: 'Step', isArray: false, visible: true },
+        borderColor: { label: 'Border Color', isArray: false, visible: true },
+        originalId: { label: 'Original ID', isArray: false, visible: true, hidden: true },
     };
 
     static styles = css`
@@ -373,7 +376,6 @@ class VersionPage extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 4px;
-            max-width: 274px;
             padding-inline-start: 18px;
             margin-block-start: 8px;
         }
@@ -736,7 +738,7 @@ class VersionPage extends LitElement {
 
         const differences =
             className === 'selected' && this.fragment && fragmentData ? calculateDifferences(this.fragment, fragmentData) : [];
-
+        console.log('differences', differences);
         return html`
             <div class="preview-column ${className}">
                 <div class="preview-column-header">
@@ -803,16 +805,18 @@ class VersionPage extends LitElement {
                                             ><strong>Changed Fields:</strong></sp-detail
                                         >
                                         <ul class="changed-fields-list">
-                                            ${differences.map(
-                                                (diff) => html`
-                                                    <li>
-                                                        <sp-detail size="s" class="changed-field-detail">
-                                                            ${getFieldLabel(diff.field)}${getFieldVisible(diff.field)
-                                                                ? ''
-                                                                : `: ${formatFieldValue(diff.selectedValue)}`}
-                                                        </sp-detail>
-                                                    </li>
-                                                `,
+                                            ${differences.map((diff) =>
+                                                getFieldHidden(diff.field)
+                                                    ? nothing
+                                                    : html`
+                                                          <li>
+                                                              <sp-detail size="s" class="changed-field-detail">
+                                                                  ${getFieldLabel(diff.field)}${getFieldVisible(diff.field)
+                                                                      ? ''
+                                                                      : `: ${formatFieldValue(diff.selectedValue)}`}
+                                                              </sp-detail>
+                                                          </li>
+                                                      `,
                                             )}
                                         </ul>
                                     `

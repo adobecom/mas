@@ -189,3 +189,10 @@ export function getFieldVisible(fieldName) {
     }
     return FIELD_CONFIG[fieldName]?.visible || false;
 }
+
+export function getFieldHidden(fieldName) {
+    if (!FIELD_CONFIG) {
+        return false;
+    }
+    return FIELD_CONFIG[fieldName]?.hidden || false;
+}

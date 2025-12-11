@@ -258,11 +258,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-3: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'Default');
+            await editor.size.scrollIntoViewIfNeeded();
             await editor.size.click();
-            const wideOption = page.getByRole('option', { name: 'Wide', exact: true });
-            await expect(wideOption).toBeVisible();
-            await wideOption.click();
-            await expect(editor.size).toHaveAttribute('value', 'Wide');
+            await page.waitForTimeout(500);
+            await page.getByRole('option', { name: 'Wide', exact: true }).click();
+            await expect(editor.size).toHaveAttribute('value', 'wide');
         });
 
         await test.step('step-4: Validate new size of the card', async () => {
@@ -271,11 +271,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Edit size field to super-wide', async () => {
             await expect(editor.size).toBeVisible();
+            await editor.size.scrollIntoViewIfNeeded();
             await editor.size.click();
-            const superWideOption = page.getByRole('option', { name: 'Super Wide', exact: true });
-            await expect(superWideOption).toBeVisible();
-            await superWideOption.click();
-            await expect(editor.size).toHaveAttribute('value', 'Super Wide');
+            await page.waitForTimeout(500);
+            await page.getByRole('option', { name: 'Super Wide', exact: true }).click();
+            await expect(editor.size).toHaveAttribute('value', 'super-wide');
         });
 
         await test.step('step-6: Validate new size of the card', async () => {

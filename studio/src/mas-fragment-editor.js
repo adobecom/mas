@@ -624,6 +624,13 @@ export default class MasFragmentEditor extends LitElement {
                 this.fragmentStore?.previewStore?.releaseHold?.();
             }
 
+            if (isVariation) {
+                const fragmentLocale = this.extractLocaleFromPath(fragmentStore?.get()?.path);
+                if (fragmentLocale) {
+                    Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
+                }
+            }
+
             if (this.fragmentStore?.get()) {
                 this.fragmentStore.get().hasChanges = false;
             }

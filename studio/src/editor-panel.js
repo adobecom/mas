@@ -246,6 +246,10 @@ export default class EditorPanel extends LitElement {
             await this.editorContextStore.loadFragmentContext(fragmentId);
             if (this.editorContextStore.isVariation(fragmentId)) {
                 await this.fetchLocaleDefaultFragment();
+                const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
+                if (fragmentLocale) {
+                    Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
+                }
             }
         } catch (error) {
             console.error('Failed to load fragment context:', error);

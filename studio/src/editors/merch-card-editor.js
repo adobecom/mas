@@ -736,9 +736,9 @@ class MerchCardEditor extends LitElement {
                     </mas-multifield>
                     ${this.renderOverrideIndicator('whatsIncluded')}
                 </sp-field-group>
-                <div class="section-title">Quantity selection</div>
-                ${this.renderSectionOverrideIndicator(['titleQuantity', 'startQuantity', 'stepQuantity'])}
                 <sp-field-group class="toggle" id="quantitySelect">
+                    <div class="section-title">Quantity selection</div>
+                    ${this.renderSectionOverrideIndicator(['titleQuantity', 'startQuantity', 'stepQuantity'])}
                     <sp-checkbox
                         size="m"
                         value="${this.quantitySelectorDisplayed}"

@@ -165,16 +165,25 @@ export class Fragment {
             return 'no-parent';
         }
         const ownField = this.getField(fieldName);
-        if (!ownField || !ownField.values || ownField.values.length === 0) {
+        const parentField = parentFragment.getField(fieldName);
+
+        const ownValues = ownField?.values || [];
+        const parentValues = parentField?.values || [];
+
+        const isEffectivelyEmpty = (values) =>
+            values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
+
+        const ownIsEmpty = isEffectivelyEmpty(ownValues);
+        const parentIsEmpty = isEffectivelyEmpty(parentValues);
+
+        if (ownIsEmpty && parentIsEmpty) {
             return 'inherited';
         }
-        const parentField = parentFragment.getField(fieldName);
-        if (!parentField || !parentField.values) {
-            return 'overridden';
+        if (ownIsEmpty) {
+            return 'inherited';
         }
-        const areEqual =
-            ownField.values.length === parentField.values.length &&
-            ownField.values.every((v, i) => v === parentField.values[i]);
+
+        const areEqual = ownValues.length === parentValues.length && ownValues.every((v, i) => v === parentValues[i]);
         return areEqual ? 'same-as-parent' : 'overridden';
     }
 

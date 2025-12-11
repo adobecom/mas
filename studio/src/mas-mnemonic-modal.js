@@ -201,6 +201,9 @@ class MasMnemonicModal extends LitElement {
             }
         }
         this.selectedProductId = null;
+        if (this.icon) {
+            this.selectedTab = 'url';
+        }
     }
 
     #handleTabChange(e) {

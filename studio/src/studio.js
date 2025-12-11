@@ -19,11 +19,9 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
-import './mas-recently-updated.js';
-import './editors/merch-card-editor.js';
-import './editors/merch-card-collection-editor.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
+import './version-page.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
@@ -136,6 +134,11 @@ class MasStudio extends LitElement {
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
+    get versionPage() {
+        if (this.page.value !== PAGE_NAMES.VERSION) return nothing;
+        return html`<version-page></version-page>`;
+    }
+
     get promotions() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS) return nothing;
         return html`<mas-promotions></mas-promotions>`;
@@ -186,6 +189,7 @@ class MasStudio extends LitElement {
                 ${this.masJsReady
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.promotions} ${this.promotionsEditor}
+                          ${this.versionPage}
                       </div>`
                     : nothing}
             </div>

@@ -247,8 +247,10 @@ export default class EditorPanel extends LitElement {
             if (this.editorContextStore.isVariation(fragmentId)) {
                 await this.fetchLocaleDefaultFragment();
                 const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
-                if (fragmentLocale) {
+                if (fragmentLocale && fragmentLocale !== Store.filters.value.locale) {
                     Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
+                    await this.repository.loadPreviewPlaceholders();
+                    this.fragmentStore?.resolvePreviewFragment?.();
                 }
             }
         } catch (error) {

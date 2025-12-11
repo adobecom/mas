@@ -166,6 +166,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-11: Edit badge color', async () => {
             await expect(await editor.badgeColor).toBeVisible();
             await editor.badgeColor.click();
+            await expect(await editor.badgeColor.locator('sp-menu-item').first()).toBeVisible();
             await page.getByRole('option', { name: data.badgeColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
@@ -173,6 +174,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-12: Edit badge border color', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
             await editor.badgeBorderColor.click();
+            await expect(await editor.badgeBorderColor.locator('sp-menu-item').first()).toBeVisible();
             await page.getByRole('option', { name: data.badgeBorderColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });
@@ -180,6 +182,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-13: Edit card border color', async () => {
             await expect(await editor.borderColor).toBeVisible();
             await editor.borderColor.click();
+            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
             await page.getByRole('option', { name: data.borderColor.name, exact: true }).click();
             await page.waitForTimeout(2000);
         });

@@ -40,6 +40,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         await test.step('step-3: Change to Transparent border', async () => {
             await expect(await editor.borderColor).toBeVisible();
             await editor.borderColor.click();
+            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
             await page.getByRole('option', { name: data.border.updated.color }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();

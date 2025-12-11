@@ -18,7 +18,7 @@ export default class EditorPage {
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
         this.borderColor = this.panel.locator('sp-picker#border-color');
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
-        this.mnemonicEditMenu = this.panel.locator('mas-mnemonic-field sp-action-menu').first();
+        this.mnemonicEditMenu = this.panel.locator('mas-multifield mas-mnemonic-field sp-action-menu').first();
         this.mnemonicEditButton = this.mnemonicEditMenu.locator('sp-menu sp-menu-item:has-text("Edit")');
         this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
         this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');

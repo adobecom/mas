@@ -113,42 +113,44 @@ export default class EditorPage {
         // If an element locator is provided, scope the search to that element
         // Otherwise, use the default mnemonicEditMenu
         const mnemonicEditMenu = elementLocator
-            ? await elementLocator.locator(this.mnemonicEditMenu)
-            : await this.mnemonicEditMenu;
+            ? elementLocator.locator('mas-multifield sp-action-menu').first()
+            : this.mnemonicEditMenu;
 
-        await expect(await mnemonicEditMenu).toBeVisible();
+        await expect(mnemonicEditMenu).toBeVisible();
         await mnemonicEditMenu.click();
 
-        const editButton = await mnemonicEditMenu.locator(this.mnemonicEditButton);
-        await expect(await editButton).toBeVisible();
+        const editButton = mnemonicEditMenu.locator('sp-menu sp-menu-item:has-text("Edit")');
+        await expect(editButton).toBeVisible();
         await editButton.click();
-        await expect(await this.page.locator('mas-mnemonic-modal[open] sp-dialog')).toBeVisible();
+        await expect(this.page.locator('mas-mnemonic-modal[open] sp-dialog')).toBeVisible();
     }
 
     async selectProductIcon(productName) {
         await this.mnemonicProductTab.click();
-        const iconItem = await this.page.locator(`mas-mnemonic-modal[open] .icon-item:has-text("${productName}")`);
-        await iconItem.toBeVisible();
+        const iconItem = this.page.locator(`mas-mnemonic-modal[open] .icon-item:has-text("${productName}")`);
+        await expect(iconItem).toBeVisible();
         await iconItem.click();
     }
 
     async setMnemonicURL(url, alt = '', link = '') {
         await this.mnemonicUrlTab.click();
-        const iconField = await this.page.locator('mas-mnemonic-modal[open] #url-icon');
-        await iconField.toBeVisible();
+        const iconField = this.page.locator('mas-mnemonic-modal[open] #url-icon');
+        await expect(iconField).toBeVisible();
         await iconField.evaluate((el, value) => {
             el.value = value;
             el.dispatchEvent(new Event('input', { bubbles: true }));
         }, url);
         if (alt) {
-            const altField = await this.page.locator('mas-mnemonic-modal[open] #url-alt');
+            const altField = this.page.locator('mas-mnemonic-modal[open] #url-alt');
+            await expect(altField).toBeVisible();
             await altField.evaluate((el, value) => {
                 el.value = value;
                 el.dispatchEvent(new Event('input', { bubbles: true }));
             }, alt);
         }
         if (link) {
-            const linkField = await this.page.locator('mas-mnemonic-modal[open] #url-link');
+            const linkField = this.page.locator('mas-mnemonic-modal[open] #url-link');
+            await expect(linkField).toBeVisible();
             await linkField.evaluate((el, value) => {
                 el.value = value;
                 el.dispatchEvent(new Event('input', { bubbles: true }));

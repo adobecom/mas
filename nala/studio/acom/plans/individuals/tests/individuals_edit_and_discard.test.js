@@ -259,8 +259,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.size).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'Default');
             await editor.size.click();
-            await page.getByRole('option', { name: 'Wide', exact: true }).click();
-            await page.waitForTimeout(2000);
+            const wideOption = page.getByRole('option', { name: 'Wide', exact: true });
+            await expect(wideOption).toBeVisible();
+            await wideOption.click();
+            await expect(editor.size).toHaveAttribute('value', 'Wide');
         });
 
         await test.step('step-4: Validate new size of the card', async () => {
@@ -268,9 +270,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Edit size field to super-wide', async () => {
+            await expect(editor.size).toBeVisible();
             await editor.size.click();
-            await page.getByRole('option', { name: 'Super Wide', exact: true }).click();
-            await page.waitForTimeout(2000);
+            const superWideOption = page.getByRole('option', { name: 'Super Wide', exact: true });
+            await expect(superWideOption).toBeVisible();
+            await superWideOption.click();
+            await expect(editor.size).toHaveAttribute('value', 'Super Wide');
         });
 
         await test.step('step-6: Validate new size of the card', async () => {
@@ -282,10 +287,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-8: Verify there is no changes of the card', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
-            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('size', 'super-wide');
-            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('size', 'wide');
+            const card = studio.getCard(data.cardid);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variant', 'plans');
+            await expect(card).not.toHaveAttribute('size', 'super-wide');
+            await expect(card).not.toHaveAttribute('size', 'wide');
         });
     });
 
@@ -480,8 +486,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.calloutRTE).toBeVisible();
             await expect(await editor.calloutRTE).toContainText(data.calloutText.original);
             await editor.calloutRTE.click();
+            await expect(editor.calloutRTE).toBeVisible();
             await editor.calloutRTE.fill('');
-            await page.waitForTimeout(1000);
+            await expect(editor.calloutRTE).toHaveText('');
         });
 
         await test.step('step-4: Validate callout field is removed', async () => {
@@ -494,6 +501,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Validate callout field updated', async () => {
             await expect(await editor.calloutRTE).toContainText(data.calloutText.updated);
+            await expect(await individuals.cardCallout).toBeVisible();
             await expect(await individuals.cardCallout).toContainText(data.calloutText.updated);
         });
 
@@ -502,6 +510,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-8: Validate callout field not updated', async () => {
+            await expect(await individuals.cardCallout).toBeVisible();
             await expect(await individuals.cardCallout).toContainText(data.calloutText.original);
         });
     });

@@ -718,6 +718,10 @@ export default class MasFragmentEditor extends LitElement {
 
     async navigateToLocaleDefaultFragment() {
         if (!this.localeDefaultFragment) return;
+        const parentLocale = this.extractLocaleFromPath(this.localeDefaultFragment.path);
+        if (parentLocale) {
+            Store.filters.set((prev) => ({ ...prev, locale: parentLocale }));
+        }
         await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
 

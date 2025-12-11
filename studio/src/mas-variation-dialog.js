@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { EVENT_KEYDOWN, LOCALES } from './constants.js';
 import { showToast, extractLocaleFromPath } from './utils.js';
+import Store from './store.js';
 
 export class MasVariationDialog extends LitElement {
     static properties = {
@@ -182,6 +183,8 @@ export class MasVariationDialog extends LitElement {
             );
 
             showToast('Variation created successfully', 'positive');
+
+            Store.filters.set((prev) => ({ ...prev, locale: this.selectedLocale }));
 
             this.dispatchEvent(
                 new CustomEvent('fragment-copied', {

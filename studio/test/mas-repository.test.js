@@ -1,8 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH } from '../src/constants.js';
-import { SURFACES } from '../src/editors/variant-picker.js';
+import { ROOT_PATH, SURFACES } from '../src/constants.js';
 
 describe('MasRepository dictionary helpers', () => {
     let sandbox;
@@ -50,14 +49,14 @@ describe('MasRepository dictionary helpers', () => {
     describe('parseDictionaryPath', () => {
         it('extracts locale and surface path for a valid dictionary path', () => {
             const repository = createRepository();
-            const dictionaryPath = `${ROOT_PATH}/${SURFACES.ACOM}/surface/segment/en_US/dictionary`;
+            const dictionaryPath = `${ROOT_PATH}/${SURFACES.ACOM.name}/surface/segment/en_US/dictionary`;
 
             const result = repository.parseDictionaryPath(dictionaryPath);
 
             expect(result).to.deep.equal({
                 locale: 'en_US',
-                surfacePath: `${SURFACES.ACOM}/surface/segment`,
-                surfaceRoot: SURFACES.ACOM,
+                surfacePath: `${SURFACES.ACOM.name}/surface/segment`,
+                surfaceRoot: SURFACES.ACOM.name,
             });
         });
 
@@ -72,14 +71,14 @@ describe('MasRepository dictionary helpers', () => {
         it('builds folder path and handles edge cases', () => {
             const repository = createRepository();
 
-            expect(repository.getDictionaryFolderPath(`${SURFACES.ACOM}/surface`, 'fr_FR')).to.equal(
-                `${ROOT_PATH}/${SURFACES.ACOM}/surface/fr_FR/dictionary`,
+            expect(repository.getDictionaryFolderPath(`${SURFACES.ACOM.name}/surface`, 'fr_FR')).to.equal(
+                `${ROOT_PATH}/${SURFACES.ACOM.name}/surface/fr_FR/dictionary`,
             );
-            expect(repository.getDictionaryFolderPath(`/${SURFACES.ACOM}/`, 'en_US')).to.equal(
-                `${ROOT_PATH}/${SURFACES.ACOM}/en_US/dictionary`,
+            expect(repository.getDictionaryFolderPath(`/${SURFACES.ACOM.name}/`, 'en_US')).to.equal(
+                `${ROOT_PATH}/${SURFACES.ACOM.name}/en_US/dictionary`,
             );
             expect(repository.getDictionaryFolderPath('', 'en_US')).to.equal(`${ROOT_PATH}/en_US/dictionary`);
-            expect(repository.getDictionaryFolderPath(SURFACES.ACOM, null)).to.be.null;
+            expect(repository.getDictionaryFolderPath(SURFACES.ACOM.name, null)).to.be.null;
         });
     });
 
@@ -261,8 +260,8 @@ describe('MasRepository dictionary helpers', () => {
         // (e.g., acom/surface/fr_FR), it should use that as the parent reference.
         it('creates a missing index using a same-surface fallback locale', async () => {
             const repository = createRepository();
-            const dictionaryPath = dictPath(`${SURFACES.ACOM}/surface`, 'fr_CA');
-            const fallbackDictPath = dictPath(`${SURFACES.ACOM}/surface`, 'fr_FR');
+            const dictionaryPath = dictPath(`${SURFACES.ACOM.name}/surface`, 'fr_CA');
+            const fallbackDictPath = dictPath(`${SURFACES.ACOM.name}/surface`, 'fr_FR');
             const fallbackIndex = createFragment({ id: 'fallback', path: indexPath(fallbackDictPath) });
             const createdIndex = createFragment({ id: 'new-index', path: indexPath(dictionaryPath) });
             const parentPath = dictionaryPath.replace(/\/dictionary$/, '');
@@ -296,9 +295,9 @@ describe('MasRepository dictionary helpers', () => {
         // fallback locale, it should use the ACOM fallback (acom/fr_FR) as parent. Then ccd/fr_CA uses ccd/fr_FR.
         it('recursively creates surface fallback when missing, then uses ACOM fallback for it', async () => {
             const repository = createRepository();
-            const dictionaryPath = dictPath(SURFACES.CCD, 'fr_CA');
-            const fallbackDictPath = dictPath(SURFACES.CCD, 'fr_FR');
-            const acomDictPath = dictPath(SURFACES.ACOM, 'fr_FR');
+            const dictionaryPath = dictPath(SURFACES.CCD.name, 'fr_CA');
+            const fallbackDictPath = dictPath(SURFACES.CCD.name, 'fr_FR');
+            const acomDictPath = dictPath(SURFACES.ACOM.name, 'fr_FR');
             const acomIndex = createFragment({ id: 'acom-index', path: indexPath(acomDictPath) });
             const createdFallbackIndex = createFragment({ id: 'fallback-index', path: indexPath(fallbackDictPath) });
             const createdIndex = createFragment({ id: 'ccd-index', path: indexPath(dictionaryPath) });
@@ -345,7 +344,7 @@ describe('MasRepository dictionary helpers', () => {
         // immediately without checking folders or creating anything. This is the happy path optimization.
         it('returns existing index without touching folders when parent reference is present', async () => {
             const repository = createRepository();
-            const dictionaryPath = dictPath(`${SURFACES.ACOM}/surface`, 'en_US');
+            const dictionaryPath = dictPath(`${SURFACES.ACOM.name}/surface`, 'en_US');
             const existingIndex = createFragment({
                 id: 'existing',
                 path: indexPath(dictionaryPath),
@@ -379,10 +378,10 @@ describe('MasRepository dictionary helpers', () => {
         // This ensures the complete fallback chain is properly linked.
         it('repairs missing parent references up to ACOM without publishing', async () => {
             const repository = createRepository();
-            const surfacePath = SURFACES.CCD;
+            const surfacePath = SURFACES.CCD.name;
             const dictionaryPath = dictPath(surfacePath, 'fr_LU');
             const fallbackDictPath = dictPath(surfacePath, 'fr_FR');
-            const acomDictPath = dictPath(SURFACES.ACOM, 'fr_FR');
+            const acomDictPath = dictPath(SURFACES.ACOM.name, 'fr_FR');
 
             const frLuIndex = createFragment({ id: 'fr_LU', path: indexPath(dictionaryPath) });
             const frFrIndex = createFragment({ id: 'fr_FR', path: indexPath(fallbackDictPath) });

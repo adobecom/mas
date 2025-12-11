@@ -145,7 +145,7 @@ export class MerchCardCollection extends LitElement {
     updated(changedProperties) {
         // cards are not added yet.
         if (!this.querySelector('merch-card')) return;
-        let lastScrollTop =
+        const lastScrollTop =
             window.scrollY || document.documentElement.scrollTop;
 
         const children = [...this.children].filter(
@@ -176,7 +176,7 @@ export class MerchCardCollection extends LitElement {
             this.hasMore = result.length > pageSize;
             result = result.filter(([, index]) => index < pageSize);
         }
-        let reduced = new Map(result.reverse());
+        const reduced = new Map(result.reverse());
         for (const card of reduced.keys()) {
             this.prepend(card);
         }
@@ -340,7 +340,7 @@ export class MerchCardCollection extends LitElement {
         });
         const self = this;
 
-        function normalizePayload(fragment, overrideMap) {
+        function prepareSideNavSettings(fragment) {
             // Support both checkboxGroups (direct format) and tagFilters (parsed format)
             let tagFilters;
             if (fragment.fields?.checkboxGroups) {
@@ -372,7 +372,7 @@ export class MerchCardCollection extends LitElement {
                 ];
             }
 
-            const sidenavSettings = {
+            return {
                 searchText: fragment.fields?.searchText,
                 tagFilters: tagFilters,
                 linksTitle: fragment.fields?.linksTitle,
@@ -380,16 +380,19 @@ export class MerchCardCollection extends LitElement {
                 linkText: fragment.fields?.linkText,
                 linkIcon: fragment.fields?.linkIcon,
             };
+        }
 
+        function normalizePayload(fragment, overrideMap) {
             const payload = {
                 cards: [],
                 hierarchy: [],
                 placeholders: fragment.placeholders,
-                sidenavSettings: sidenavSettings,
+                sidenavSettings: prepareSideNavSettings(fragment),
             };
 
             function traverseReferencesTree(root, references) {
                 for (const reference of references) {
+                    if (reference.fieldName === 'variations') continue;
                     if (reference.fieldName === 'cards') {
                         if (
                             payload.cards.findIndex(
@@ -402,8 +405,23 @@ export class MerchCardCollection extends LitElement {
                         );
                         continue;
                     }
-                    const value =
+                    let value =
                         fragment.references[reference.identifier]?.value;
+                    let tree = reference.referencesTree;
+                    const overrideId = overrideMap[reference.identifier];
+                    if (overrideId) {
+                        const data = document.querySelector(
+                            `aem-fragment[fragment="${overrideId}"]`,
+                        )?.rawData;
+                        if (data?.fields) {
+                            value = data;
+                            tree = data.referencesTree;
+                            fragment.references = {
+                                ...fragment.references,
+                                ...data.references,
+                            };
+                        }
+                    }
                     if (!value?.fields) continue;
                     const { fields } = value;
                     const collection = {
@@ -424,10 +442,7 @@ export class MerchCardCollection extends LitElement {
                             fields.defaultchild;
                     }
                     root.push(collection);
-                    traverseReferencesTree(
-                        collection.collections,
-                        reference.referencesTree,
-                    );
+                    traverseReferencesTree(collection.collections, tree);
                 }
             }
             traverseReferencesTree(payload.hierarchy, fragment.referencesTree);
@@ -525,7 +540,7 @@ export class MerchCardCollection extends LitElement {
             }
 
             let nmbOfColumns = '';
-            let variant = normalizeVariant(cards[0]?.fields?.variant);
+            const variant = normalizeVariant(cards[0]?.fields?.variant);
             this.variant = variant;
             if (
                 variant === 'plans' &&
@@ -1061,5 +1076,3 @@ customElements.define(
     'merch-card-collection-header',
     MerchCardCollectionHeader,
 );
-
-// #endregion

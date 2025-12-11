@@ -83,7 +83,7 @@ class MerchCardEditor extends LitElement {
     }
 
     isFieldOverridden(fieldName) {
-        return this.fragment.isFieldOverridden(fieldName, this.effectiveIsVariation);
+        return this.fragment.isFieldOverridden(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
     }
 
     getFieldState(fieldName) {
@@ -95,6 +95,7 @@ class MerchCardEditor extends LitElement {
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
         const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         if (success) {
+            showToast('Field restored to parent value', 'positive');
             await this.updateComplete;
             const rteField = this.querySelector(`rte-field[data-field="${fieldName}"]`);
             if (rteField && parentValues.length > 0) {

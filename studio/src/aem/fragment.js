@@ -183,16 +183,26 @@ export class Fragment {
             return 'inherited';
         }
 
-        const areEqual = ownValues.length === parentValues.length && ownValues.every((v, i) => v === parentValues[i]);
+        const normalizeForComparison = (v) => {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'string') {
+                return v
+                    .normalize('NFC')
+                    .trim()
+                    .replace(/\s+role="[^"]*"/g, '')
+                    .replace(/\s+aria-level="[^"]*"/g, '');
+            }
+            return String(v);
+        };
+
+        const areEqual =
+            ownValues.length === parentValues.length &&
+            ownValues.every((v, i) => normalizeForComparison(v) === normalizeForComparison(parentValues[i]));
         return areEqual ? 'same-as-parent' : 'overridden';
     }
 
-    isFieldOverridden(fieldName, isVariation) {
-        if (!isVariation) {
-            return false;
-        }
-        const field = this.getField(fieldName);
-        return field && field.values && field.values.length > 0;
+    isFieldOverridden(fieldName, parentFragment, isVariation) {
+        return this.getFieldState(fieldName, parentFragment, isVariation) === 'overridden';
     }
 
     resetFieldToParent(fieldName) {

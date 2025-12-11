@@ -35,8 +35,17 @@ class MasFragmentVariations extends LitElement {
     async handleEdit(fragmentStore) {
         const fragment = fragmentStore.value;
         if (fragment?.id) {
-            await router.navigateToFragmentEditor(fragment.id);
+            const locale = this.extractLocaleFromPath(fragment.path);
+            await router.navigateToFragmentEditor(fragment.id, { locale });
         }
+    }
+
+    extractLocaleFromPath(path) {
+        if (!path) return null;
+        const parts = path.split('/');
+        const masIndex = parts.indexOf('mas');
+        if (masIndex === -1) return null;
+        return parts[masIndex + 2] || null;
     }
 
     renderVariations() {

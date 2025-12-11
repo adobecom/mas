@@ -63,15 +63,24 @@ export class Router extends EventTarget {
     /**
      * Navigate to the fragment editor
      * @param {string} fragmentId - The fragment ID to edit
+     * @param {Object} options - Navigation options
+     * @param {string} options.locale - Optional locale to set before navigation
      */
-    async navigateToFragmentEditor(fragmentId) {
+    async navigateToFragmentEditor(fragmentId, options = {}) {
         if (!fragmentId) {
             console.error('Fragment ID is required for navigation');
             return;
         }
 
+        const { locale } = options;
+
         this.isNavigating = true;
         try {
+            // Set locale BEFORE setting page to include it in the first URL change
+            if (locale && locale !== Store.filters.value.locale) {
+                Store.filters.set((prev) => ({ ...prev, locale }));
+            }
+
             // Check if this is a collection to use editor-panel instead
             const fragmentList = Store.fragments.list.data.get();
             const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);

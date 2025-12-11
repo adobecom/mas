@@ -122,9 +122,9 @@ class MasMultifield extends LitElement {
             const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
             const lastField = fields[fields.length - 1];
             if (lastField) {
-                const mnemonicField = lastField.querySelector('mas-mnemonic-field');
-                if (mnemonicField?.openModal) {
-                    mnemonicField.openModal();
+                const field = lastField.firstElementChild;
+                if (field?.openModal) {
+                    field.openModal();
                 }
             }
         });

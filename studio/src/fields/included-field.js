@@ -88,6 +88,10 @@ class IncludedField extends LitElement {
         this.modalOpen = true;
     }
 
+    openModal() {
+        this.#handleEditClick();
+    }
+
     #handleModalClose() {
         this.modalOpen = false;
     }

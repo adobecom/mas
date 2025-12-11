@@ -338,10 +338,13 @@ class MerchCardEditor extends LitElement {
         if (element) element.style.display = show ? 'block' : 'none';
     }
 
-    updated(changedProperties) {
+    async updated(changedProperties) {
         super.updated(changedProperties);
         if (!this.fieldsReady && this.fragment) {
-            requestAnimationFrame(() => this.toggleFields());
+            await this.updateComplete;
+            void this.offsetHeight;
+            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+            this.toggleFields();
         }
     }
 

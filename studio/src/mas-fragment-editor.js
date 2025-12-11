@@ -721,6 +721,9 @@ export default class MasFragmentEditor extends LitElement {
             }
         });
 
+        fragmentStore.value.initialValue = structuredClone(fragmentStore.value);
+        fragmentStore.value.hasChanges = false;
+
         this.previewLazyLoaded = true;
         fragmentStore.previewStore.releaseHold?.();
     }

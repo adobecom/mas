@@ -859,12 +859,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-5: Add icon to whats included', async () => {
             await expect(await editor.whatsIncludedAddIcon).toBeVisible();
             await editor.whatsIncludedAddIcon.click();
-
-            await expect(await editor.whatsIncludedIconURL).toBeVisible();
-            await expect(await editor.whatsIncludedIconLabel).toBeVisible();
-
-            await editor.whatsIncludedIconURL.fill(data.whatsIncluded.iconURL);
-            await editor.whatsIncludedIconLabel.fill(data.whatsIncluded.iconLabel);
+            await editor.openMnemonicModal(editor.whatsIncluded);
+            await editor.mnemonicUrlTab.click();
+            await expect(await editor.mnemonicUrlIconInput).toBeVisible();
+            await expect(await editor.mnemonicUrlAltInput).toBeVisible();
+            await editor.mnemonicUrlIconInput.fill(data.whatsIncluded.iconURL);
+            await editor.mnemonicUrlAltInput.fill(data.whatsIncluded.iconLabel);
+            await editor.saveMnemonicModal();
         });
 
         await test.step('step-6: Validate icon added to whats included', async () => {
@@ -885,8 +886,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-9: Remove whats included icon', async () => {
-            await expect(await editor.whatsIncludedIconRemoveButton).toBeVisible();
-            await editor.whatsIncludedIconRemoveButton.click();
+            await expect(await editor.whatsIncluded.locator(editor.mnemonicEditMenu)).toBeVisible();
+            await editor.whatsIncluded.locator(editor.mnemonicEditMenu).click();
+            await expect(await editor.whatsIncluded.locator(editor.mnemonicDeleteButton)).toBeVisible();
+            await editor.whatsIncluded.locator(editor.mnemonicDeleteButton).click();
         });
 
         await test.step('step-10: Validate whats included field is removed', async () => {

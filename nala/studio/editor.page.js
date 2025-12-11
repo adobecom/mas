@@ -18,8 +18,9 @@ export default class EditorPage {
         this.cardBorderColor = this.panel.locator('sp-picker#border-color');
         this.borderColor = this.panel.locator('sp-picker#border-color');
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
-        this.mnemonicEditMenu = this.panel.locator('mas-multifield mas-mnemonic-field sp-action-menu').first();
-        this.mnemonicEditButton = this.mnemonicEditMenu.locator('sp-menu sp-menu-item:has-text("Edit")');
+        this.mnemonicEditMenu = page.locator('mas-multifield sp-action-menu').first();
+        this.mnemonicEditButton = page.locator('sp-menu sp-menu-item:has-text("Edit")');
+        this.mnemonicDeleteButton = page.locator('sp-menu sp-menu-item:has-text("Delete")');
         this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
         this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');
         this.mnemonicUrlIconInput = page.locator('mas-mnemonic-modal[open] #url-icon >> input');
@@ -47,6 +48,7 @@ export default class EditorPage {
         this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelectorTitle #title-quantity input');
         this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelectorStart #start-quantity input');
         this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
+        this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-icon-add');
         this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
@@ -107,39 +109,46 @@ export default class EditorPage {
         return this.linkVariant.locator(link);
     }
 
-    async openMnemonicModal() {
-        await expect(await this.mnemonicEditMenu).toBeVisible();
-        await this.mnemonicEditMenu.click();
-        const editButton = this.mnemonicEditButton;
-        await editButton.waitFor({ state: 'visible' });
+    async openMnemonicModal(elementLocator = null) {
+        // If an element locator is provided, scope the search to that element
+        // Otherwise, use the default mnemonicEditMenu
+        const mnemonicEditMenu = elementLocator
+            ? await elementLocator.locator(this.mnemonicEditMenu)
+            : await this.mnemonicEditMenu;
+
+        await expect(await mnemonicEditMenu).toBeVisible();
+        await mnemonicEditMenu.click();
+
+        const editButton = await mnemonicEditMenu.locator(this.mnemonicEditButton);
+        await expect(await editButton).toBeVisible();
         await editButton.click();
-        await this.page.locator('mas-mnemonic-modal[open] sp-dialog').waitFor({ state: 'attached' });
+        await expect(await this.page.locator('mas-mnemonic-modal[open] sp-dialog')).toBeVisible();
     }
 
     async selectProductIcon(productName) {
         await this.mnemonicProductTab.click();
-        const iconItem = this.page.locator(`mas-mnemonic-modal[open] .icon-item:has-text("${productName}")`);
-        await iconItem.waitFor({ state: 'visible' });
+        const iconItem = await this.page.locator(`mas-mnemonic-modal[open] .icon-item:has-text("${productName}")`);
+        await iconItem.toBeVisible();
         await iconItem.click();
     }
 
     async setMnemonicURL(url, alt = '', link = '') {
         await this.mnemonicUrlTab.click();
-        const iconField = this.page.locator('mas-mnemonic-modal[open] #url-icon');
-        await iconField.waitFor({ state: 'visible' });
+        const iconField = await this.page.locator('mas-mnemonic-modal[open] #url-icon');
+        await iconField.toBeVisible();
         await iconField.evaluate((el, value) => {
             el.value = value;
             el.dispatchEvent(new Event('input', { bubbles: true }));
         }, url);
         if (alt) {
-            const altField = this.page.locator('mas-mnemonic-modal[open] #url-alt');
+            const altField = await this.page.locator('mas-mnemonic-modal[open] #url-alt');
             await altField.evaluate((el, value) => {
                 el.value = value;
                 el.dispatchEvent(new Event('input', { bubbles: true }));
             }, alt);
         }
         if (link) {
-            const linkField = this.page.locator('mas-mnemonic-modal[open] #url-link');
+            const linkField = await this.page.locator('mas-mnemonic-modal[open] #url-link');
             await linkField.evaluate((el, value) => {
                 el.value = value;
                 el.dispatchEvent(new Event('input', { bubbles: true }));

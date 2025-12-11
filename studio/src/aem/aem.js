@@ -450,6 +450,42 @@ class AEM {
     }
 
     /**
+     * Publish multiple fragments in a single request
+     * @param {Array<Object>} fragments - Array of fragment objects
+     * @param {Array<string>} publishReferencesWithStatus - Statuses to include references for
+     * @returns {Promise<void>}
+     */
+    async publishFragments(fragments, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
+        if (!fragments || fragments.length === 0) {
+            throw new Error('No fragments provided to publish');
+        }
+
+        // Use the first fragment's etag for the If-Match header
+        const etag = fragments[0].etag;
+        const paths = fragments.map((fragment) => fragment.path);
+
+        const response = await fetch(this.cfPublishUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'If-Match': etag,
+                ...this.headers,
+            },
+            body: JSON.stringify({
+                paths,
+                filterReferencesByStatus: publishReferencesWithStatus,
+                workflowModelId: '/var/workflow/models/scheduled_activation_with_references',
+            }),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to publish fragments: ${response.status} ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
+    /**
      * Delete a fragment
      * @param {Object} fragment
      * @returns {Promise<void>}
@@ -696,7 +732,8 @@ class AEM {
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
-                ...this.headers,
+                Authorization: this.headers.Authorization,
+                'cache-control': 'no-cache',
                 'x-api-key': 'mas-studio',
             },
             body: JSON.stringify(payload),
@@ -922,6 +959,10 @@ class AEM {
                  * @see AEM#publishFragment
                  */
                 publish: this.publishFragment.bind(this),
+                /**
+                 * @see AEM#publishFragments
+                 */
+                publishFragments: this.publishFragments.bind(this),
                 /**
                  * @see AEM#deleteFragment
                  */

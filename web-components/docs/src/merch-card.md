@@ -79,7 +79,7 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 ### With static content (dynamic pricing)
 
 ```html {.demo .light}
-<merch-card id="static" variant="plans" badge-color="#EDCC2D" badge-background-color="#000000"" badge-text=" Best value">
+<merch-card id="static" variant="plans" badge-color="#EDCC2D" badge-background-color="#000000" badge-text="Best value">
   <merch-icon slot="icons" size="l" src="https://www.adobe.com/content/dam/shared/images/product-icons/svg/creative-cloud.svg" alt="Creative Cloud All Apps"></merch-icon>
   <h4 slot="heading-xs">Creative Cloud All Apps</h4>
   <h3 slot="heading-m">

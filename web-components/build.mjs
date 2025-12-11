@@ -70,6 +70,7 @@ Promise.all([
     buildLitComponent('merch-stock'),
     buildLitComponent('merch-whats-included'),
     buildLitComponent('merch-mnemonic-list'),
+    buildLitComponent('mas-mnemonic'),
 ]).catch(() => process.exit(1));
 
 async function buildLitComponent(name) {
@@ -77,11 +78,13 @@ async function buildLitComponent(name) {
         ...defaults,
         entryPoints: [`./src/${name}.js`],
         external: ['lit'],
-        metafile: true,
+        metafile: false,
         outfile: `${outfolder}/${name}.js`,
         plugins: [rewriteImportsToLibsFolder()],
     });
-    writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
+    if (metafile) {
+        writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
+    }
 }
 
 function rewriteImportsToLibsFolder() {
@@ -90,7 +93,7 @@ function rewriteImportsToLibsFolder() {
         setup(build) {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, () => {
                 return {
-                    path: '../../deps/lit-all.min.js',
+                    path: './lit-all.min.js',
                     external: true,
                 };
             });

@@ -28,7 +28,7 @@ export function normalizeVariant(variant) {
 export function appendSlot(fieldName, fields, el, mapping) {
     const config = mapping[fieldName];
     if (fields[fieldName] && config) {
-        const attributes = { slot: config?.slot };
+        const attributes = { slot: config?.slot, ...config?.attributes };
         let content = fields[fieldName];
 
         // Handle maxCount if specified in the config
@@ -79,8 +79,8 @@ export function processMnemonics(fields, merchCard, mnemonicsConfig) {
     });
 
     const slotIcons = merchCard.shadowRoot.querySelector('slot[name="icons"]');
-    if (!mnemonics?.length && slotIcons) {
-        slotIcons.remove();
+    if (slotIcons) {
+        slotIcons.style.display = mnemonics?.length ? null : 'none';
     }
 }
 
@@ -164,12 +164,6 @@ export function processSize(fields, merchCard, sizeConfig) {
     }
 }
 
-export function processStyle(fields, merchCard, styleConfig) {
-    if (styleConfig?.includes(fields.style)) {
-        merchCard.setAttribute('data-style', fields.style);
-    }
-}
-
 export function processCardName(fields, merchCard) {
     if (fields.cardName) {
         merchCard.setAttribute('name', fields.cardName);
@@ -177,6 +171,9 @@ export function processCardName(fields, merchCard) {
 }
 
 export function processTitle(fields, merchCard, titleConfig) {
+    if (fields.cardTitle) {
+        fields.cardTitle = processMnemonicElements(fields.cardTitle);
+    }
     appendSlot('cardTitle', fields, merchCard, { cardTitle: titleConfig });
 }
 
@@ -227,6 +224,8 @@ export function processBorderColor(fields, merchCard, variantMapping) {
         const isGradient =
             specialValue?.includes('gradient') ||
             /-gradient/.test(fields.borderColor);
+        // Check if it's a spectrum color that needs attribute-based styling
+        const isSpectrumColor = /^spectrum-.*-plans$/.test(fields.borderColor);
 
         if (isGradient) {
             // For gradients, set both attributes needed for CSS selectors
@@ -248,6 +247,15 @@ export function processBorderColor(fields, merchCard, variantMapping) {
 
             merchCard.setAttribute('border-color', borderColorKey);
             merchCard.style.removeProperty(customBorderColor);
+        } else if (isSpectrumColor) {
+            // For spectrum colors (like spectrum-red-700-plans), set both attribute and CSS variable
+            // Attribute enables CSS selectors like :host([border-color='spectrum-red-700-plans']) for drop-shadow
+            // CSS variable is still needed for border color rendering
+            merchCard.setAttribute('border-color', fields.borderColor);
+            merchCard.style.setProperty(
+                customBorderColor,
+                `var(--${fields.borderColor})`,
+            );
         } else {
             // For regular colors, use CSS variable
             merchCard.style.setProperty(
@@ -391,16 +399,29 @@ function processDescriptionLinks(merchCard, aemFragmentMapping) {
 }
 
 export function processDescription(fields, merchCard, mapping) {
-    // Process tooltips in description field
     if (fields.description) {
         fields.description = processMnemonicElements(fields.description);
     }
     if (fields.promoText) {
         fields.promoText = processMnemonicElements(fields.promoText);
     }
+    if (fields.shortDescription) {
+        fields.shortDescription = processMnemonicElements(
+            fields.shortDescription,
+        );
+    }
 
     appendSlot('promoText', fields, merchCard, mapping);
     appendSlot('description', fields, merchCard, mapping);
+    appendSlot('shortDescription', fields, merchCard, mapping);
+
+    if (fields.shortDescription) {
+        merchCard.setAttribute('action-menu', 'true');
+        if (!fields.actionMenuLabel) {
+            merchCard.setAttribute('action-menu-label', 'More options');
+        }
+    }
+
     processDescriptionLinks(merchCard, mapping);
     appendSlot('callout', fields, merchCard, mapping);
     appendSlot('quantitySelect', fields, merchCard, mapping);
@@ -409,7 +430,7 @@ export function processDescription(fields, merchCard, mapping) {
 
 export function processAddon(fields, merchCard, mapping) {
     if (!mapping.addon) return;
-    let addonField = fields.addon?.replace(/[{}]/g, '');
+    const addonField = fields.addon?.replace(/[{}]/g, '');
     if (!addonField) return;
     if (/disabled/.test(addonField)) return;
     const addon = createTag('merch-addon', { slot: 'addon' }, addonField);
@@ -451,7 +472,7 @@ export function getTruncatedTextData(text, limit, withSuffix = true) {
                 ? 1
                 : limit - TEXT_TRUNCATE_SUFFIX.length
             : limit;
-        let openTags = [];
+        const openTags = [];
 
         for (const char of _text) {
             index++;
@@ -491,7 +512,7 @@ export function getTruncatedTextData(text, limit, withSuffix = true) {
                 trimmedText += `</${tag}>`;
             }
         }
-        let truncatedText = `${trimmedText}${withSuffix ? TEXT_TRUNCATE_SUFFIX : ''}`;
+        const truncatedText = `${trimmedText}${withSuffix ? TEXT_TRUNCATE_SUFFIX : ''}`;
         return [truncatedText, cleanText];
     } catch (error) {
         // Fallback to original text without truncation
@@ -711,7 +732,6 @@ export function cleanup(merchCard) {
         'badge-text',
         'gradient-border',
         'size',
-        'data-style',
         ANALYTICS_SECTION_ATTR,
     ];
     attributesToRemove.forEach((attr) => merchCard.removeAttribute(attr));
@@ -762,7 +782,6 @@ export async function hydrate(fragment, merchCard) {
     processBadge(fields, merchCard, mapping);
     processTrialBadge(fields, merchCard, mapping);
     processSize(fields, merchCard, mapping.size);
-    processStyle(fields, merchCard, mapping.allowedStyles);
     processCardName(fields, merchCard);
     processTitle(fields, merchCard, mapping.title);
     processSubtitle(fields, merchCard, mapping);

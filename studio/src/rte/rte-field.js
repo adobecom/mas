@@ -745,10 +745,10 @@ class RteField extends LitElement {
 
                             if (!triggerIcon) return false;
 
-                            let textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
-                            let textFromAriaLabel = triggerIcon.getAttribute('aria-label');
+                            const textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
+                            const textFromAriaLabel = triggerIcon.getAttribute('aria-label');
 
-                            let parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
+                            const parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
 
                             return {
                                 src: triggerIcon.getAttribute('src'),
@@ -1085,8 +1085,10 @@ class RteField extends LitElement {
 
     #handleTransaction(transaction) {
         try {
-            const oldState = this.editorView.state;
-            let newState = oldState.apply(transaction);
+            const oldState = this.editorView?.state;
+            if (!oldState) return;
+
+            const newState = oldState.apply(transaction);
             if (!newState) return;
 
             this.#updateSelection(newState);
@@ -1109,7 +1111,11 @@ class RteField extends LitElement {
                 }
             }
         } catch (error) {
-            console.error('Error handling transaction:', error);
+            // Silently handle transaction errors that can occur during editor cleanup
+            // These are typically harmless and occur when the editor is being destroyed
+            if (error.message && !error.message.includes('matchesNode')) {
+                console.error('Error handling transaction:', error);
+            }
         }
     }
 
@@ -1329,7 +1335,7 @@ class RteField extends LitElement {
             item.classList.remove('is-selected');
         });
 
-        let { state } = this.editorView;
+        const { state } = this.editorView;
         const {
             selection: { from, to },
         } = state;
@@ -1351,7 +1357,7 @@ class RteField extends LitElement {
     }
 
     handleStylingAction(stylingType) {
-        let { state, dispatch } = this.editorView;
+        const { state, dispatch } = this.editorView;
         const {
             selection: { from, to },
         } = state;
@@ -1378,7 +1384,7 @@ class RteField extends LitElement {
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
-            let { $from } = state.selection;
+            const { $from } = state.selection;
 
             let isInList = false;
             const listItemNode = this.#editorSchema.nodes.list_item;
@@ -1450,11 +1456,19 @@ class RteField extends LitElement {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         if (!element && this.osi) {
-            element = document.createElement('span');
-            element.setAttribute('data-wcs-osi', this.osi);
-            element.isInlinePrice = true;
+            element = this.selectedMerchLink;
+            if (!element) {
+                element = document.createElement('span');
+                element.setAttribute('data-wcs-osi', this.osi);
+                element.isInlinePrice = true;
+            }
         }
+
         openOfferSelectorTool(this, element);
+    }
+
+    get selectedMerchLink() {
+        return this.shadowRoot.querySelector('.ProseMirror-selectednode[data-wcs-osi]');
     }
 
     get #linkEditorButton() {

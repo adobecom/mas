@@ -4,19 +4,41 @@
  */
 
 // Import the modules
-import { logError } from './tmp/utils/log.js';
-import { transformer as corrector } from './tmp/transformers/corrector.js';
-import { transformer as fetchFragment } from './tmp/transformers/fetchFragment.js';
-import { getDictionary, transformer as replace } from './tmp/transformers/replace.js';
-import { transformer as settings } from './tmp/transformers/settings.js';
-import { transformer as customize, LOCALE_DEFAULTS } from './tmp/transformers/customize.js';
-import { transformer as promotions } from './tmp/transformers/promotions.js';
+import { logError } from '../../io/www/src/fragment/utils/log.js';
+import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
+import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
+import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
+import { getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
+import { transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
+import { transformer as customize, LOCALE_DEFAULTS } from '../../io/www/src/fragment/transformers/customize.js';
+import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
+
+class LocaleStorageState {
+    constructor() {        
+    }
+
+    async get(key) {
+        return new Promise((resolve) => {
+            resolve({
+                value: window.localStorage.getItem(key),
+            });
+        });
+    }
+
+    async put(key, value) {
+        return new Promise((resolve) => {
+            window.localStorage.setItem(key, value);
+            resolve();
+        });
+    }
+}
 
 async function previewFragment(id, options) {
     const {
         locale = 'en_US',
+        country,
         preview = {
             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
         },
@@ -25,6 +47,7 @@ async function previewFragment(id, options) {
         id,
         status: 200,
         preview,
+        state: new LocaleStorageState(),
         requestId: 'preview',
         networkConfig: {
             mainTimeout: 15000,
@@ -34,7 +57,10 @@ async function previewFragment(id, options) {
         api_key: 'n/a',
         locale,
     };
-    const initPromises = {};
+    const initPromises = {};    
+    const cachedMetadata = await getRequestMetadata(context);
+    const metadataContext = extractContextFromMetadata(cachedMetadata);
+    context = { ...context, ...metadataContext };
     context.fragmentsIds = context.fragmentsIds || {};
     for (const transformer of PIPELINE) {
         if (transformer.init) {
@@ -59,6 +85,8 @@ async function previewFragment(id, options) {
     }
     if (context.status != 200) {
         logError(context.message, context);
+    } else {
+        await storeRequestMetadata(context, cachedMetadata, 'nohash');
     }
     return context.body;
 }
@@ -75,7 +103,8 @@ async function previewStudioFragment(body, options) {
     } = options;
     let context = {
         body,
-        status: 200,
+        state: new LocaleStorageState(),
+        status: 200,        
         preview,
         requestId: 'preview',
         networkConfig: {

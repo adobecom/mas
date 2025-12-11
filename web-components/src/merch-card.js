@@ -25,11 +25,11 @@ import {
     SELECTOR_MAS_CHECKOUT_LINK,
     SELECTOR_MAS_ELEMENT,
     SELECTOR_MAS_INLINE_PRICE,
-    SELECTOR_MAS_SP_BUTTON,
     MARK_START_SUFFIX,
     MARK_DURATION_SUFFIX,
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
+    FF_DEFAULTS,
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
@@ -42,12 +42,20 @@ const MERCH_CARD_LOAD_TIMEOUT = 20000;
 
 const MARK_MERCH_CARD_PREFIX = 'merch-card:';
 
+const VARIANTS_WITH_HEIGHT_SYNC = [
+    'full-pricing-express',
+    'simplified-pricing-express',
+];
+
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
     if (!card) return options;
     if (card.priceLiterals) {
         options.literals ??= {};
         Object.assign(options.literals, card.priceLiterals);
+    }
+    if (card.aemFragment) {
+        options[FF_DEFAULTS] = true;
     }
     card.variantLayout?.priceOptionsProvider?.(element, options);
 }
@@ -57,6 +65,14 @@ function registerPriceOptionsProvider(masCommerceService) {
     masCommerceService.providers.price(priceOptionsProvider);
 }
 
+const intersectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+        if (entry.target.clientHeight === 0) return;
+        intersectionObserver.unobserve(entry.target);
+        entry.target.requestUpdate();
+    });
+});
+
 let idCounter = 0;
 
 export class MerchCard extends LitElement {
@@ -65,7 +81,6 @@ export class MerchCard extends LitElement {
         name: { type: String, attribute: 'name', reflect: true },
         variant: { type: String, reflect: true },
         size: { type: String, attribute: 'size', reflect: true },
-        cardStyle: { type: String, attribute: 'data-style', reflect: true },
         badgeColor: { type: String, attribute: 'badge-color', reflect: true },
         borderColor: { type: String, attribute: 'border-color', reflect: true },
         backgroundColor: {
@@ -204,6 +219,7 @@ export class MerchCard extends LitElement {
 
     willUpdate(changedProperties) {
         if (changedProperties.has('variant') || !this.variantLayout) {
+            this.variantLayout?.disconnectedCallbackHook();
             this.variantLayout = getVariantLayout(this);
             this.variantLayout?.connectedCallbackHook();
         }
@@ -258,6 +274,7 @@ export class MerchCard extends LitElement {
                 'ccd-suggested',
                 'ah-promoted-plans',
                 'simplified-pricing-express',
+                'full-pricing-express',
             ].includes(this.variant)
         ) {
             return `1px solid ${
@@ -471,6 +488,10 @@ export class MerchCard extends LitElement {
         this.addEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
         this.addEventListener('change', this.changeHandler);
 
+        if (this.variantLayout) {
+            this.variantLayout.connectedCallbackHook();
+        }
+
         if (!this.aemFragment) {
             setTimeout(() => this.checkReady(), 0);
         }
@@ -527,7 +548,7 @@ export class MerchCard extends LitElement {
         let fragmentId = aemFragment?.getAttribute('fragment');
         fragmentId = `[${fragmentId}]`;
         const detail = {
-            ...this.aemFragment?.fetchInfo,
+            ...this.aemFragment.fetchInfo,
             ...this.#service.duration,
             ...details,
             message: error,
@@ -548,6 +569,9 @@ export class MerchCard extends LitElement {
         if (!this.isConnected) return;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
+            if (VARIANTS_WITH_HEIGHT_SYNC.includes(this.variantLayout)) {
+                intersectionObserver.observe(this);
+            }
             this.#hydrationPromise = undefined;
         }
         if (this.variantLayoutPromise) {

@@ -257,9 +257,7 @@
                             await dialog.handleSubmit();
 
                             expect(mockRepository.createVariation.calledOnce).to.be.true;
-                            expect(
-                                mockRepository.createVariation.calledWith(mockFragment.id, 'en_CA', false),
-                            ).to.be.true;
+                            expect(mockRepository.createVariation.calledWith(mockFragment.id, 'en_CA', false)).to.be.true;
                         });
 
                         it('should dispatch fragment-copied event on success', async () => {

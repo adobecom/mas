@@ -167,3 +167,18 @@ Store.placeholders.preview.subscribe(() => {
         }
     }
 });
+
+Store.filters.subscribe(() => {
+    const regionLocale = Store.search.value.region;
+    if (!regionLocale) return;
+    const currentLocale = Store.filters.value.locale;
+    const main = currentLocale.split('_')[0];
+    const region = regionLocale.split('_')[0];
+    if (region !== main) {
+        // If region language doesn't match filter language, reset filter language
+        Store.search.set((prev) => ({
+            ...prev,
+            region: undefined,
+        }));
+    }
+});

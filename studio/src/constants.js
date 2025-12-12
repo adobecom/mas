@@ -58,8 +58,6 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 export const EVENT_OST_SELECT = 'ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 
-export const ALL_SURFACES = 'all';
-
 export const OPERATIONS = {
     CREATE: 'create',
     DELETE: 'delete',

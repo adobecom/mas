@@ -10,7 +10,6 @@ import './mas-content.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
-import './filters/locale-picker.js';
 import './fields/user-picker.js';
 import './mas-recently-updated.js';
 import './editors/merch-card-editor.js';

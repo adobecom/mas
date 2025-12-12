@@ -415,7 +415,7 @@ export class MasRepository extends LitElement {
     }
 
     getDictionaryPath() {
-        return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+        return `${ROOT_PATH}/${this.search.value.path}/${this.search.value.region || this.filters.value.locale}/dictionary`;
     }
 
     parseDictionaryPath(dictionaryPath) {

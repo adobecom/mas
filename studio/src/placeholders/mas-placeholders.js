@@ -96,7 +96,7 @@ class MasPlaceholders extends LitElement {
     }
 
     get locale() {
-        return Store.filters.get().locale;
+        return Store.search.value.region || Store.filters.value.locale || '';
     }
 
     get loading() {
@@ -291,12 +291,15 @@ class MasPlaceholders extends LitElement {
                 <div class="placeholders-header">
                     <div class="header-left">
                         <mas-locale-picker
+                            surface=${Store.search.value.path}
+                            locale=${this.locale}
                             @locale-changed=${(event) =>
-                                Store.filters.set((prev) => ({
+                                Store.search.set((prev) => ({
                                     ...prev,
-                                    locale: event.detail.locale,
+                                    region: event.detail.locale,
                                 }))}
-                            .value=${this.locale}
+                            mode="region"
+                            search-placeholder="Search region"
                         ></mas-locale-picker>
                     </div>
                     <sp-button variant="primary" @click=${this.toggleCreationModal} class="create-button">
@@ -324,7 +327,7 @@ class MasPlaceholders extends LitElement {
                 <div class="placeholders-content">${this.loadingIndicator()}${this.renderTable()}</div>
 
                 ${this.showCreationModal
-                    ? html`<mas-placeholders-creation-modal
+                    ? html`<mas-placeholders-creation-modal                            
                           .onClose=${this.toggleCreationModal}
                           @save=${this.onSave}
                       ></mas-placeholders-creation-modal>`

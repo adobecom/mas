@@ -134,10 +134,12 @@ class MasTopNav extends LitElement {
                         ? html`
                               <mas-nav-folder-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-folder-picker>
                               <mas-locale-picker
+                                  displayMode="strong"
                                   @locale-changed=${(e) => {
                                       Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
                                   }}
                                   ?disabled=${this.isFragmentEditorPage}
+                                  surface=${Store.search.value.path}
                               >
                               </mas-locale-picker>
                               <div class="divider"></div>

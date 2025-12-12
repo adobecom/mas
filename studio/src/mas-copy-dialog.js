@@ -346,6 +346,7 @@ export class MasCopyDialog extends LitElement {
                     <div class="form-field">
                         <sp-field-label for="locale-picker">Select Locale</sp-field-label>
                         <mas-locale-picker
+                            id="locale-picker"
                             locale=${this.selectedLocale}
                             @locale-change=${(e) => (this.selectedLocale = e.detail.locale)}
                         ></mas-locale-picker>

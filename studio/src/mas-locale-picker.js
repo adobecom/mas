@@ -1,6 +1,10 @@
 import { html, css, LitElement } from 'lit';
+import Store from './store.js';
 
 const defaultLocalesCache = {};
+const regionLocalesCache = {};
+
+const ALL_SURFACES = 'all';
 
 const LOCALES = [
     { code: 'ar_AE', lang: 'ar', flag: '🇦🇪', name: 'United Arab Emirates', region: ['acom'] },
@@ -41,7 +45,7 @@ const LOCALES = [
     { code: 'en_US', lang: 'en', flag: '🇺🇸', name: 'United States', default: ALL_SURFACES },
     { code: 'en_VN', lang: 'en', flag: '🇻🇳', name: 'Vietnam (English)', region: ['acom'] },
     { code: 'en_ZA', lang: 'en', flag: '🇿🇦', name: 'South Africa', region: ['acom'] },
-    { code: 'en_GB', lang: 'en', flag: '🇬🇧', name: 'United Kingdom', region: ['acom'] },
+    { code: 'en_GB', lang: 'en', flag: '🇬🇧', name: 'United Kingdom', region: ['acom', 'sandbox'] },
     { code: 'es_AR', lang: 'es', flag: '🇦🇷', name: 'Argentina', region: ['acom'] },
     { code: 'es_CL', lang: 'es', flag: '🇨🇱', name: 'Chile', region: ['acom'] },
     { code: 'es_CO', lang: 'es', flag: '🇨🇴', name: 'Colombia', region: ['acom'] },
@@ -133,16 +137,17 @@ const LANG_TO_LANGUAGE = {
 export class MasLocalePicker extends LitElement {
     static properties = {
         disabled: { type: Boolean },
-        lang: { type: String },
-        locale: { type: String },
+        displayMode: { type: String }, // can be 'strong' or 'light' which is default
+        locale: { type: String, reflect: true },
         mode: { type: String }, //can be 'region' or 'language'
         searchEnabled: { type: Boolean },
+        searchPlaceholder: { type: String },
         searchQuery: { type: String, state: true },
         surface: { type: String },
     };
 
     static styles = css`
-        :host {
+        :host(.strong) {
             --mod-actionbutton-min-width: auto;
             --mod-actionbutton-background-color-default: var(--spectrum-gray-800, #292929);
             --mod-actionbutton-background-color-hover: var(--spectrum-gray-900, #1e1e1e);
@@ -161,10 +166,20 @@ export class MasLocalePicker extends LitElement {
             --spectrum-actionbutton-min-width: auto;
         }
 
-        .locale-picker-wrapper {
+        .strong [slot='label'].locale-label {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            color: var(--spectrum-gray-50, #ffffff);
+            font-weight: 700;
+            font-size: 14px;
+            font-family: 'Adobe Clean', sans-serif;
+        }
+
+        .strong sp-menu-item .locale-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         :host([disabled]) sp-action-menu {
@@ -193,56 +208,62 @@ export class MasLocalePicker extends LitElement {
             color: var(--spectrum-gray-900, #1e1e1e) !important;
         }
 
-        sp-action-menu [slot='icon'] {
-            order: 2;
-            margin-left: auto;
-            color: var(--spectrum-gray-50, #ffffff);
-        }
-
-        [slot='label'].locale-label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--spectrum-gray-50, #ffffff);
-            font-weight: 700;
-            font-size: 14px;
-            font-family: 'Adobe Clean', sans-serif;
-        }
-
-        sp-menu-item .locale-label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
         .flag {
             font-size: 18px;
             line-height: 1;
         }
 
+        sp-menu {
+            padding-top: 20px;
+        }
+
         sp-search {
-            padding: 20px 0 10px 15%;
-            width: 75%;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            padding-bottom: 12px;
+            width: 80%;
         }
 
-        #textfield sp-search::part(input) {
-            border-radius: 12px;
-            border-color: var(--spectrum-gray-600, #5a5a5a);
-            border-width: 2px;
-        }
-
-        sp-menu-item {
-            display: flex;
-            align-items: center;
+        sp-search {
+            --mod-search-border-radius: 16px;
+            --mod-search-border-width: 2px;
+            --mod-search-border-color-default: var(--spectrum-gray-400, #a9a9a9ff);
         }
     `;
-
-    filters = new StoreController(this, Store.filters);
 
     constructor() {
         super();
         this.searchQuery = '';
         this.searchEnabled = true;
+    }
+
+    get lang() {
+        return this.locale.split('_')[0];
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.displayMode ??= 'default';
+        this.locale ??= 'en_US';
+        this.mode ??= 'language';
+        this.searchPlaceholder ??= 'Search language';
+        this.surface ??= 'nala';
+        if (this.displayMode === 'strong') {
+            this.classList.add('strong');
+        }
+        this.searchSubscriptions = Store.filters.subscribe(() => {
+            this.locale = Store.filters.value.locale;
+            this.render();
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+
+        if (this.searchSubscriptions) {
+            this.searchSubscriptions.unsubscribe();
+        }
     }
 
     handleLocaleChange(locale) {
@@ -265,22 +286,34 @@ export class MasLocalePicker extends LitElement {
         e.stopPropagation();
     }
 
+    isDefaultLocale(locale, surface) {
+        if (!locale) {
+            return false;
+        }
+        return locale.default === ALL_SURFACES || locale.default?.indexOf(surface) > -1;
+    }
+
     getDefaultLocales(surface) {
         if (!defaultLocalesCache[surface]) {
-            defaultLocalesCache[surface] = LOCALES.filter(
-                (locale) => locale?.default === ALL_SURFACES || locale?.default?.indexOf(surface) > -1,
-            );
+            defaultLocalesCache[surface] = LOCALES.filter((locale) => this.isDefaultLocale(locale, surface));
         }
         return defaultLocalesCache[surface];
     }
 
-    regionLocalesCache = {};
+    isRegionLocale(locale, surface, language) {
+        if (!locale) {
+            return false;
+        }
+        return (
+            locale.lang === language &&
+            (locale.region === ALL_SURFACES || locale.region?.indexOf(surface) > -1 || this.isDefaultLocale(locale, surface))
+        );
+    }
 
     getRegionLocales(surface, language) {
         if (!regionLocalesCache[`${surface}-${language}`]) {
-            regionLocalesCache[`${surface}-${language}`] = LOCALES.filter(
-                (locale) =>
-                    locale?.lang === language && (locale?.region === ALL_SURFACES || locale?.region?.indexOf(surface) > -1),
+            regionLocalesCache[`${surface}-${language}`] = LOCALES.filter((locale) =>
+                this.isRegionLocale(locale, surface, language),
             );
         }
         return regionLocalesCache[`${surface}-${language}`];
@@ -296,10 +329,10 @@ export class MasLocalePicker extends LitElement {
 
     getFilteredLocales() {
         if (!this.searchEnabled || !this.searchQuery) {
-            return getLocales();
+            return this.getLocales();
         }
 
-        return getLocales().filter(({ code, name, lang }) => {
+        return this.getLocales().filter(({ code, name, lang }) => {
             const searchLower = this.searchQuery;
             const languageName = LANG_TO_LANGUAGE[lang] || '';
             return (
@@ -311,47 +344,49 @@ export class MasLocalePicker extends LitElement {
     }
 
     get currentLocale() {
-        return this.locale || 'en_US';
+        const code = this.locale || 'en_US';
+        return LOCALES.find((loc) => loc.code === code);
     }
 
     get searchField() {
         return this.searchEnabled
             ? html` <sp-search
                   size="m"
-                  placeholder="Search language"
+                  placeholder="${this.searchPlaceholder}"
                   @input=${this.handleSearchInput}
                   .value=${this.searchQuery}
               ></sp-search>`
             : null;
     }
 
+    renderMenuItem(locale) {
+        const { code, flag, lang, name } = locale;
+        return html`
+            <sp-menu-item .value=${code} ?selected=${this.locale === code} @click=${() => this.handleLocaleChange(code)}>
+                <div class="locale-label">
+                    <span class="flag">${flag}</span>
+                    ${this.mode === 'region'
+                        ? html`<span>${name}</span>`
+                        : html`<span>${LANG_TO_LANGUAGE[lang]} (${code.substring(3)})</span>`}
+                </div>
+            </sp-menu-item>
+        `;
+    }
+
     render() {
         const currentLocale = this.currentLocale;
-
         return html`
             <div class="locale-picker-wrapper">
                 <sp-action-menu size="m" value=${currentLocale.code} ?disabled=${this.disabled}>
                     <sp-icon-chevron-down dir="ltr" class="chevron" slot="icon"></sp-icon-chevron-down>
+                    ${this.displayMode === 'strong'
+                        ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
+                        : ''}
                     <span slot="label" class="locale-label">
-                        <sp-icon-globe-grid class="icon-globe"></sp-icon-globe-grid>
                         <span>${currentLocale.lang.toUpperCase()} (${currentLocale.code.substring(3)})</span>
                     </span>
                     <sp-menu size="m">
-                        ${this.searchField}
-                        ${this.getFilteredLocales().map(({ code, flag, name, lang }) => {
-                            return html`
-                                <sp-menu-item
-                                    .value=${code}
-                                    ?selected=${this.locale === code}
-                                    @click=${() => this.handleLocaleChange(code)}
-                                >
-                                    <div class="locale-label">
-                                        <span class="flag">${flag}</span>
-                                        <span>${LANG_TO_LANGUAGE[lang]} (${code.substring(3)})</span>
-                                    </div>
-                                </sp-menu-item>
-                            `;
-                        })}
+                        ${this.searchField} ${this.getFilteredLocales().map((locale) => this.renderMenuItem(locale))}
                     </sp-menu>
                 </sp-action-menu>
             </div>

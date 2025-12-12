@@ -72,7 +72,7 @@ class MasPlaceholdersItem extends LitElement {
     }
 
     get locale() {
-        return Store.filters.get().locale;
+        return Store.search.value.region;
     }
 
     // #region Handlers

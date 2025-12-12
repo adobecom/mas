@@ -41,6 +41,15 @@ export default class MerchBadge extends LitElement {
             'var(--consonant-merch-card-body-xs-font-size)',
         );
         this.textContent = '';
+
+        const card = this.closest('merch-card');
+        const size = card?.getAttribute('size');
+        const offset =
+            card?.querySelectorAll(':scope > merch-icon').length || 0;
+        this.style.setProperty('--merch-badge-offset', offset);
+        this.style.setProperty('--merch-badge-with-offset', offset ? 1 : 0);
+        this.style.setProperty('--merch-badge-card-size', size ? 2 : 1);
+
         super.connectedCallback();
     }
 

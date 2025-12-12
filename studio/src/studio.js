@@ -7,6 +7,8 @@ import './mas-top-nav.js';
 import './mas-side-nav.js';
 import './mas-toolbar.js';
 import './mas-content.js';
+import './mas-promotions.js';
+import './mas-promotions-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
@@ -133,6 +135,16 @@ class MasStudio extends LitElement {
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
+    get promotions() {
+        if (this.page.value !== PAGE_NAMES.PROMOTIONS) return nothing;
+        return html`<mas-promotions></mas-promotions>`;
+    }
+
+    get promotionsEditor() {
+        if (this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR) return nothing;
+        return html`<mas-promotions-editor></mas-promotions-editor>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -171,7 +183,9 @@ class MasStudio extends LitElement {
             <div class="studio-content">
                 <mas-side-nav></mas-side-nav>
                 ${this.masJsReady
-                    ? html`<div class="main-container">${this.splashScreen} ${this.content} ${this.placeholders}</div>`
+                    ? html`<div class="main-container">
+                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.promotions} ${this.promotionsEditor}
+                      </div>`
                     : nothing}
             </div>
             <editor-panel></editor-panel>

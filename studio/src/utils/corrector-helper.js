@@ -1,5 +1,5 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
-import { fixFieldsDataExtraOptions, shouldApplyCorrector } from '../../libs/tmp/transformers/corrector.js';
+import { fixFieldsDataExtraOptions, shouldApplyCorrector } from '../../../io/www/src/fragment/transformers/corrector.js';
 
 /**
  * Applies corrector transformer logic to fragment data

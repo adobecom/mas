@@ -72,6 +72,12 @@ const Store = {
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
     },
+    translationProjects: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+    },
 };
 
 // #region Validators
@@ -106,6 +112,8 @@ function pageValidator(value) {
         PAGE_NAMES.PLACEHOLDERS,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,
+        PAGE_NAMES.LOCALIZATION,
+        PAGE_NAMES.LOCALIZATION_EDITOR,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

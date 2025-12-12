@@ -22,14 +22,14 @@ import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
     LOCALE_DEFAULT,
+    SURFACES,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-
-import { SURFACES } from './constants.js';
 import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
+import { TranslationProject } from './localization/translation-project.js';
 
 let fragmentCache;
 
@@ -74,6 +74,7 @@ export class MasRepository extends LitElement {
             recentlyUpdated: null,
             placeholders: null,
             promotions: null,
+            translations: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -138,6 +139,9 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.PROMOTIONS:
                 this.loadPromotions();
+                break;
+            case PAGE_NAMES.LOCALIZATION:
+                this.loadTranslationProjects();
                 break;
         }
     }
@@ -445,6 +449,10 @@ export class MasRepository extends LitElement {
         }
     }
 
+    getPromotionsPath() {
+        return `${ROOT_PATH}/promotions`;
+    }
+
     getDictionaryPath() {
         return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
     }
@@ -688,10 +696,31 @@ export class MasRepository extends LitElement {
         return indexFragment;
     }
 
-    getPromotionsPath() {
-        return `${ROOT_PATH}/promotions`;
+    getTranslationsPath() {
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        return surface ? `${ROOT_PATH}/${surface}/translations` : null;
     }
 
+    async loadTranslationProjects() {
+        try {
+            const translationsPath = this.getTranslationsPath();
+            if (!translationsPath) return;
+            if (this.#abortControllers.translations) this.#abortControllers.translations.abort();
+            this.#abortControllers.translations = new AbortController();
+            Store.translationProjects.list.loading.set(true);
+            const fragments = await this.searchFragmentList(
+                { path: translationsPath },
+                50,
+                this.#abortControllers.translations,
+            );
+            const translationProjects = fragments.map((fragment) => new FragmentStore(new TranslationProject(fragment)));
+            Store.translationProjects.list.data.set(translationProjects);
+        } catch (error) {
+            this.processError(error, 'Could not load translation projects.');
+        } finally {
+            Store.translationProjects.list.loading.set(false);
+        }
+    }
     /**
      * Helper method to create fragment fields from data object
      * @param {Object} data - The data object containing field values

@@ -9,6 +9,8 @@ import './mas-toolbar.js';
 import './mas-content.js';
 import './mas-promotions.js';
 import './mas-promotions-editor.js';
+import './mas-localization.js';
+import './mas-localization-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
@@ -146,6 +148,16 @@ class MasStudio extends LitElement {
         return html`<mas-promotions-editor></mas-promotions-editor>`;
     }
 
+    get localization() {
+        if (this.page.value !== PAGE_NAMES.LOCALIZATION) return nothing;
+        return html`<mas-localization></mas-localization>`;
+    }
+
+    get localizationEditor() {
+        if (this.page.value !== PAGE_NAMES.LOCALIZATION_EDITOR) return nothing;
+        return html`<mas-localization-editor></mas-localization-editor>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -186,6 +198,7 @@ class MasStudio extends LitElement {
                 ${this.masJsReady
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.promotions} ${this.promotionsEditor}
+                          ${this.localization} ${this.localizationEditor}
                       </div>`
                     : nothing}
             </div>

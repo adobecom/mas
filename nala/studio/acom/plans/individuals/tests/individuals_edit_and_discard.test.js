@@ -487,7 +487,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await editor.calloutRTE.click();
             await expect(editor.calloutRTE).toBeVisible();
             await editor.calloutRTE.fill('');
-            await page.waitForTimeout(500);
+            await page.waitForTimeout(1000);
             await expect(editor.calloutRTE).toHaveText('');
         });
 
@@ -497,7 +497,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-5: Enter new value in the callout field', async () => {
             await editor.calloutRTE.fill(data.calloutText.updated);
-            await page.waitForTimeout(500);
+            await page.waitForTimeout(1000);
         });
 
         await test.step('step-6: Validate callout field updated', async () => {

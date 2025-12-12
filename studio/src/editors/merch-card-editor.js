@@ -661,7 +661,7 @@ class MerchCardEditor extends LitElement {
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield
                         id="mnemonics"
-                        button-label="Add Visual"
+                        button-label="Add visual"
                         .value="${this.mnemonics}"
                         @change="${this.#updateMnemonics}"
                         @input="${this.#updateMnemonics}"

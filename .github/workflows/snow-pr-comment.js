@@ -1,6 +1,6 @@
 // Run from the root of the project for local testing: node --env-file=.env .github/workflows/pr-reminders.js
-const { getLocalConfigs } = require('./helpers.js');
-const fs = require('fs');
+import { getLocalConfigs } from './helpers.js';
+import fs from 'fs';
 const SNOW_TRANSACTION_ID_COMMENT = "SNOW Change Request Transaction ID";
 
 const main = async ({ github = getLocalConfigs().github, context = getLocalConfigs().context, transaction_id = process.env.TRANSACTION_ID }) => {
@@ -67,4 +67,4 @@ const main = async ({ github = getLocalConfigs().github, context = getLocalConfi
   }
 };
 
-module.exports = main;
+export default main;

@@ -11,8 +11,8 @@ CMR_RETRIEVAL_ERROR = "CMR ID Retrieval Operation failed..."
 POST_FAILURE_MESSAGE = "POST failed with response code: "
 #Non-prod
 IMS_URL = 'https://ims-na1-stg1.adobelogin.com/ims/token'
-SERVICENOW_CMR_URL = 'https://ipaasapi-qa.adobe-services.com/change_management/changes'
-SERVICENOW_GET_CMR_URL = 'https://ipaasapi-qa.adobe-services.com/change_management/transactions/'
+SERVICENOW_CMR_URL = 'https://ipaasapi-stage.adobe-services.com/change_management/changes'
+SERVICENOW_GET_CMR_URL = 'https://ipaasapi-stage.adobe-services.com/change_management/transactions/'
 #Prod
 #IMS_URL = 'https://ims-na1.adobelogin.com/ims/token'
 #SERVICENOW_CMR_URL = 'https://ipaasapi.adobe-services.com/change_management/changes'

@@ -85,6 +85,7 @@ export class EditorContextStore extends ReactiveStore {
                     this.isVariationByPath = true;
                     this.expectedDefaultLocale = pathDetection.defaultLocale;
                     this.fetchParentByPath(fragmentPath, pathDetection.defaultLocale, pathDetection.pathLocale);
+                    this.notify();
                 }
             }
 

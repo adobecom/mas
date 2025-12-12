@@ -1,0 +1,313 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>mas-variation-dialog test page</title>
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../../style.css" />
+        <style>
+            body {
+                margin: 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background-color: white;
+            }
+
+            main {
+                width: 100%;
+                padding: 0 100px;
+            }
+
+            sp-theme {
+                display: contents;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { stub, spy } from 'sinon';
+
+            import '../libs/swc.js';
+            import '../src/mas-variation-dialog.js';
+            import { EVENT_KEYDOWN } from '../src/constants.js';
+            import { delay, oneEvent } from './utils.js';
+
+            const mockFragment = {
+                id: 'test-fragment-id',
+                path: '/content/dam/mas/commerce/en_US/test-fragment',
+                fields: [{ name: 'variations', values: ['/content/dam/mas/commerce/en_AU/test-fragment'] }],
+            };
+
+            const mockParentFragment = {
+                id: 'test-fragment-id',
+                path: '/content/dam/mas/commerce/en_US/test-fragment',
+                fields: [{ name: 'variations', values: ['/content/dam/mas/commerce/en_AU/test-fragment'] }],
+            };
+
+            const mockCreatedVariation = {
+                id: 'new-variation-id',
+                path: '/content/dam/mas/commerce/en_CA/test-fragment',
+            };
+
+            runTests(async () => {
+                describe('mas-variation-dialog custom element', async () => {
+                    let dialog;
+                    let mockRepository;
+
+                    beforeEach(async () => {
+                        mockRepository = {
+                            createVariation: stub().resolves(mockCreatedVariation),
+                        };
+
+                        dialog = document.querySelector('mas-variation-dialog');
+                        dialog.fragment = { ...mockFragment };
+                        dialog.repository = mockRepository;
+                        dialog.existingVariationLocales = ['en_AU'];
+                        await dialog.updateComplete;
+                    });
+
+                    afterEach(() => {
+                        if (dialog) {
+                            dialog.fragment = null;
+                            dialog.repository = null;
+                            dialog.existingVariationLocales = [];
+                            dialog.selectedLocale = '';
+                            dialog.loading = false;
+                            dialog.error = null;
+                        }
+                    });
+
+                    describe('Rendering', () => {
+                        it('should render dialog with correct header', async () => {
+                            const header = dialog.shadowRoot.querySelector('.dialog-header');
+                            expect(header).to.exist;
+                            expect(header.textContent).to.equal('Set a variation type');
+                        });
+
+                        it('should render variation type picker as disabled', async () => {
+                            const typePicker = dialog.shadowRoot.querySelector('sp-picker[disabled]');
+                            expect(typePicker).to.exist;
+                            expect(typePicker.value).to.equal('regional');
+                        });
+
+                        it('should render locale picker', async () => {
+                            const localePicker = dialog.shadowRoot.querySelectorAll('sp-picker')[1];
+                            expect(localePicker).to.exist;
+                        });
+
+                        it('should render cancel and create buttons', async () => {
+                            const buttons = dialog.shadowRoot.querySelectorAll('sp-button');
+                            expect(buttons.length).to.equal(2);
+                            expect(buttons[0].textContent.trim()).to.equal('Cancel');
+                            expect(buttons[1].textContent.trim()).to.equal('Create variation');
+                        });
+                    });
+
+                    describe('Locale Filtering', () => {
+                        it('should filter locales to same language only', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/en_US/test' };
+                            await dialog.updateComplete;
+
+                            const availableLocales = dialog.availableTargetLocales;
+                            const allEnglish = availableLocales.every((l) => l.code.startsWith('en_'));
+                            expect(allEnglish).to.be.true;
+                        });
+
+                        it('should not include source locale in available options', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/en_US/test' };
+                            await dialog.updateComplete;
+
+                            const availableLocales = dialog.availableTargetLocales;
+                            const hasSourceLocale = availableLocales.some((l) => l.code === 'en_US');
+                            expect(hasSourceLocale).to.be.false;
+                        });
+
+                        it('should disable existing variation locales', async () => {
+                            dialog.existingVariationLocales = ['en_AU'];
+                            await dialog.updateComplete;
+
+                            const availableLocales = dialog.availableTargetLocales;
+                            const enAU = availableLocales.find((l) => l.code === 'en_AU');
+                            expect(enAU?.disabled).to.be.true;
+                        });
+
+                        it('should return first available locale', async () => {
+                            dialog.existingVariationLocales = [];
+                            await dialog.updateComplete;
+
+                            const firstAvailable = dialog.firstAvailableLocale;
+                            expect(firstAvailable).to.be.a('string');
+                            expect(firstAvailable.length).to.be.greaterThan(0);
+                        });
+                    });
+
+                    describe('Event Handling', () => {
+                        it('should close on Escape key press', async () => {
+                            const cancelPromise = oneEvent(dialog, 'cancel');
+
+                            document.dispatchEvent(new KeyboardEvent(EVENT_KEYDOWN, { key: 'Escape' }));
+
+                            const event = await cancelPromise;
+                            expect(event).to.exist;
+                            expect(event.type).to.equal('cancel');
+                        });
+
+                        it('should close on backdrop click', async () => {
+                            const cancelPromise = oneEvent(dialog, 'cancel');
+                            const backdrop = dialog.shadowRoot.querySelector('.dialog-backdrop');
+
+                            backdrop.click();
+
+                            const event = await cancelPromise;
+                            expect(event).to.exist;
+                        });
+
+                        it('should not close on dialog container click', async () => {
+                            let cancelFired = false;
+                            dialog.addEventListener('cancel', () => {
+                                cancelFired = true;
+                            });
+
+                            const container = dialog.shadowRoot.querySelector('.dialog-container');
+                            container.click();
+                            await delay(50);
+
+                            expect(cancelFired).to.be.false;
+                        });
+
+                        it('should dispatch cancel event when cancel button clicked', async () => {
+                            const cancelPromise = oneEvent(dialog, 'cancel');
+                            const cancelButton = dialog.shadowRoot.querySelector('sp-button[variant="secondary"]');
+
+                            cancelButton.click();
+
+                            const event = await cancelPromise;
+                            expect(event).to.exist;
+                        });
+                    });
+
+                    describe('Form Validation', () => {
+                        it('should show error when no locale selected', async () => {
+                            dialog.selectedLocale = '';
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+                            await dialog.updateComplete;
+
+                            expect(dialog.error).to.equal('Please select a locale');
+                        });
+
+                        it('should show error when repository not available', async () => {
+                            dialog.selectedLocale = 'en_CA';
+                            dialog.repository = null;
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+                            await dialog.updateComplete;
+
+                            expect(dialog.error).to.equal('Repository not available');
+                        });
+
+                        it('should disable submit button when loading', async () => {
+                            dialog.loading = true;
+                            await dialog.updateComplete;
+
+                            const submitButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
+                            expect(submitButton.disabled).to.be.true;
+                        });
+
+                        it('should disable submit button when no locale selected', async () => {
+                            dialog.selectedLocale = '';
+                            await dialog.updateComplete;
+
+                            const submitButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
+                            expect(submitButton.disabled).to.be.true;
+                        });
+
+                        it('should enable submit button when locale selected and not loading', async () => {
+                            dialog.selectedLocale = 'en_CA';
+                            dialog.loading = false;
+                            await dialog.updateComplete;
+
+                            expect(dialog.canSubmit).to.be.true;
+                        });
+                    });
+
+                    describe('Submission', () => {
+                        it('should set loading state during submission', async () => {
+                            dialog.selectedLocale = 'en_CA';
+                            await dialog.updateComplete;
+
+                            const submitPromise = dialog.handleSubmit();
+                            expect(dialog.loading).to.be.true;
+
+                            await submitPromise;
+                        });
+
+                        it('should call createVariation with correct arguments', async () => {
+                            dialog.selectedLocale = 'en_CA';
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(mockRepository.createVariation.calledOnce).to.be.true;
+                            expect(mockRepository.createVariation.calledWith(mockFragment.id, 'en_CA', false)).to.be.true;
+                        });
+
+                        it('should dispatch fragment-copied event on success', async () => {
+                            dialog.selectedLocale = 'en_CA';
+                            await dialog.updateComplete;
+
+                            const eventPromise = oneEvent(dialog, 'fragment-copied');
+                            await dialog.handleSubmit();
+
+                            const event = await eventPromise;
+                            expect(event).to.exist;
+                            expect(event.detail.fragment).to.deep.equal(mockCreatedVariation);
+                        });
+
+                        it('should show error on submission failure', async () => {
+                            mockRepository.createVariation.rejects(new Error('Network error'));
+                            dialog.selectedLocale = 'en_CA';
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+                            await dialog.updateComplete;
+
+                            expect(dialog.error).to.include('Network error');
+                            expect(dialog.loading).to.be.false;
+                        });
+                    });
+
+                    describe('Source Locale', () => {
+                        it('should extract source locale from fragment path', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/fr_FR/test' };
+                            await dialog.updateComplete;
+
+                            expect(dialog.sourceLocale).to.equal('fr_FR');
+                        });
+
+                        it('should return null for invalid path', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/invalid/path' };
+                            await dialog.updateComplete;
+
+                            expect(dialog.sourceLocale).to.be.null;
+                        });
+                    });
+                });
+            });
+        </script>
+        <main>
+            <sp-theme system="spectrum-two" color="light" scale="medium">
+                <mas-variation-dialog></mas-variation-dialog>
+            </sp-theme>
+        </main>
+    </body>
+</html>

@@ -3,6 +3,7 @@
     <head>
         <script type="module">
             window.process = { env: {} };
+            window.__swc = { warn: () => {} };
         </script>
         <title>mas-create-dialog test page</title>
         <meta name="nofollow-links" content="on" />
@@ -75,17 +76,15 @@
                         // Fill in the form
                         const titleField = dialog.shadowRoot.querySelector('#fragment-title');
 
-                        // Get the dialog wrapper
-                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
-
                         // Set title
                         titleField.value = 'Test Merch Card';
                         titleField.dispatchEvent(new Event('input', { bubbles: true }));
 
                         await dialog.updateComplete;
 
-                        // Submit the form by triggering the confirm event directly on dialog wrapper
-                        dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
+                        // Submit the form by clicking the Create button
+                        const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
+                        createButton.click();
                         await dialog.updateComplete;
 
                         // Verify fetch was called with correct parameters
@@ -109,17 +108,15 @@
                         // Fill in the form
                         const titleField = dialog.shadowRoot.querySelector('#fragment-title');
 
-                        // Get the dialog wrapper
-                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
-
                         // Set title
                         titleField.value = 'Test Merch Card';
                         titleField.dispatchEvent(new Event('input', { bubbles: true }));
 
                         await dialog.updateComplete;
 
-                        // Submit the form by triggering the confirm event directly on dialog wrapper
-                        dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
+                        // Submit the form by clicking the Create button
+                        const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
+                        createButton.click();
                         await dialog.updateComplete;
 
                         // Verify fetch was called with correct parameters

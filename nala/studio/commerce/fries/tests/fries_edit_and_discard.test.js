@@ -17,9 +17,10 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             const card = await studio.getCard(data.cardid);
-            await expect(card).toBeVisible({ timeout: 10000 });
+            await expect(await card).toBeVisible({ timeout: 10000 });
             await card.dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await card).toBeVisible();
         });
 
         await test.step('step-3: Edit title field', async () => {
@@ -59,6 +60,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit description field', async () => {
@@ -98,10 +100,10 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();
@@ -139,6 +141,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit price field', async () => {
@@ -195,6 +198,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA label', async () => {
@@ -247,6 +251,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Validate original icon', async () => {
@@ -254,7 +259,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-4: Select product icon from icon picker', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();

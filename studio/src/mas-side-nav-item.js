@@ -20,12 +20,17 @@ class MasSideNavItem extends LitElement {
             color: var(--spectrum-gray-800, #292929);
             text-align: center;
             min-height: 52px;
+            width: 68px;
             box-sizing: border-box;
             cursor: pointer;
             transition:
                 background-color 0.2s ease,
                 color 0.2s ease;
             user-select: none;
+        }
+
+        :host(:hover:not([disabled])) {
+            background-color: rgba(0, 0, 0, 0.04);
         }
 
         :host([disabled]) {

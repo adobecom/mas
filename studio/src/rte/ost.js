@@ -12,13 +12,18 @@ if (!ostRoot) {
 
 const ostDefaultSettings = () => {
     const masCommerceService = document.querySelector('mas-commerce-service');
-    let { displayOldPrice, displayPerUnit, displayPlanType, displayRecurrence, displayTax, isPerpetual, checkoutWorkflowStep } =
-        masCommerceService.settings;
-    if (!masCommerceService.featureFlags['mas-ff-defaults']) {
-        displayOldPrice = true;
-    }
-    return {
+    const {
         displayOldPrice,
+        displayPerUnit,
+        displayPlanType,
+        displayRecurrence,
+        displayTax,
+        isPerpetual,
+        checkoutWorkflowStep,
+    } = masCommerceService.settings;
+    const effectiveDisplayOldPrice = masCommerceService.featureFlags['mas-ff-defaults'] ? displayOldPrice : true;
+    return {
+        displayOldPrice: effectiveDisplayOldPrice,
         displayPerUnit,
         displayPlanType,
         displayRecurrence,
@@ -231,7 +236,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 },
             },
             rootElement: ostRoot,
-            zIndex: 20,
+            zIndex: 2000,
             aosAccessToken,
             landscape,
             searchParameters,

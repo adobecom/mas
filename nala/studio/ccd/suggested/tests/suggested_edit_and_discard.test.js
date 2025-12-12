@@ -32,6 +32,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit card variant', async () => {
@@ -49,7 +50,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).not.toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -73,6 +74,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
         });
     });
@@ -93,6 +95,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit title field', async () => {
@@ -134,6 +137,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit eyebrow field', async () => {
@@ -175,6 +179,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit description field', async () => {
@@ -216,10 +221,10 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();
@@ -258,6 +263,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit background URL field', async () => {
@@ -299,6 +305,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit price field', async () => {
@@ -354,6 +361,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA in OST', async () => {
@@ -430,6 +438,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA label', async () => {
@@ -464,7 +473,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
     });
 
-    // @studio-suggested-edit-discard-price-promo - Validate edit price promo for suggested card in mas studio
+    // @studio-suggested-edit-discard-promo-price - Validate edit price promo for suggested card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
         const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
@@ -480,6 +489,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit promo field', async () => {
@@ -554,6 +564,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA promo field', async () => {
@@ -639,6 +650,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit card variant', async () => {
@@ -656,7 +668,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -703,6 +715,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Choose OSI in OST', async () => {
@@ -751,6 +764,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Change OSI in OST', async () => {
@@ -796,6 +810,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi.original);
             await expect(await editor.OSI).not.toContainText(data.osi.updated);
             await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.productCodeTag}`));
@@ -827,6 +842,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
@@ -879,6 +895,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA checkout params', async () => {
@@ -934,6 +951,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit analytics IDs', async () => {
@@ -985,6 +1003,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Validate original icon', async () => {
@@ -992,7 +1011,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Select product icon from icon picker', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();

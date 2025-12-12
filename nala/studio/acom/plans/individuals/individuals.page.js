@@ -22,7 +22,7 @@ export default class ACOMPlansIndividualsPage {
         this.cardQuantitySelector = page.locator('merch-quantity-select');
         this.cardWhatsIncluded = page.locator('div[slot="whats-included"]');
         this.cardWhatsIncludedLabel = page.locator('merch-whats-included div[slot="heading"]');
-        this.cardWhatsIncludedIcon = page.locator('merch-whats-included merch-icon');
+        this.cardWhatsIncludedIcon = page.locator('merch-whats-included div[slot="content"] merch-icon');
         this.cardWhatsIncludedIconLabel = page.locator('merch-whats-included p[slot="description"]');
 
         // Plans individual card properties:

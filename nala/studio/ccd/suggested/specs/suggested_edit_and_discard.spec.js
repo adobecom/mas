@@ -137,7 +137,7 @@ export default {
         },
         {
             tcid: '9',
-            name: '@studio-suggested-edit-discard-price-promo',
+            name: '@studio-suggested-edit-discard-promo-price',
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',

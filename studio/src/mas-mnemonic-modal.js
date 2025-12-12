@@ -167,21 +167,17 @@ class MasMnemonicModal extends LitElement {
         this.link = '';
         this.selectedTab = 'product-icon';
         this.selectedProductId = null;
+    }
 
-        this.addEventListener('change', (e) => {
-            e.stopImmediatePropagation();
-        });
+    connectedCallback() {
+        super.connectedCallback();
+        this.#initializeFromIcon();
     }
 
     #storeOriginalValues() {
         this.#originalIcon = this.icon;
         this.#originalAlt = this.alt;
         this.#originalLink = this.link;
-    }
-
-    connectedCallback() {
-        super.connectedCallback();
-        this.#initializeFromIcon();
     }
 
     updated(changedProperties) {
@@ -205,9 +201,13 @@ class MasMnemonicModal extends LitElement {
             }
         }
         this.selectedProductId = null;
+        if (this.icon) {
+            this.selectedTab = 'url';
+        }
     }
 
     #handleTabChange(e) {
+        if (e.target.nodeName !== 'SP-TABS') return;
         this.selectedTab = e.currentTarget.selected;
 
         if (this.selectedTab === 'product-icon') {
@@ -235,7 +235,7 @@ class MasMnemonicModal extends LitElement {
 
     #handleClose() {
         this.open = false;
-        this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
+        this.dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
     }
 
     #handleCancel() {
@@ -308,9 +308,7 @@ class MasMnemonicModal extends LitElement {
                         id="product-alt"
                         placeholder="Descriptive text for accessibility"
                         value="${this.alt}"
-                        @input=${(e) => {
-                            this.alt = e.target.value;
-                        }}
+                        @input=${(e) => (this.alt = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -320,9 +318,7 @@ class MasMnemonicModal extends LitElement {
                         id="product-link"
                         placeholder="https://example.com"
                         value="${this.link}"
-                        @input=${(e) => {
-                            this.link = e.target.value;
-                        }}
+                        @input=${(e) => (this.link = e.target.value)}
                     ></sp-textfield>
                 </div>
             </div>
@@ -339,9 +335,7 @@ class MasMnemonicModal extends LitElement {
                         required
                         placeholder="https://example.com/icon.svg"
                         value="${this.icon}"
-                        @input=${(e) => {
-                            this.icon = e.target.value;
-                        }}
+                        @input=${(e) => (this.icon = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -351,9 +345,7 @@ class MasMnemonicModal extends LitElement {
                         id="url-alt"
                         placeholder="Descriptive text for accessibility"
                         value="${this.alt}"
-                        @input=${(e) => {
-                            this.alt = e.target.value;
-                        }}
+                        @input=${(e) => (this.alt = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -363,9 +355,7 @@ class MasMnemonicModal extends LitElement {
                         id="url-link"
                         placeholder="https://example.com"
                         value="${this.link}"
-                        @input=${(e) => {
-                            this.link = e.target.value;
-                        }}
+                        @input=${(e) => (this.link = e.target.value)}
                     ></sp-textfield>
                 </div>
             </div>
@@ -376,26 +366,28 @@ class MasMnemonicModal extends LitElement {
         const isEditing = !!this.icon;
 
         return html`
-            <sp-underlay ?open=${this.open}></sp-underlay>
-            <sp-dialog @close=${this.#handleClose}>
-                <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Mnemonic Icon</h2>
+            <div @input=${(e) => e.stopPropagation()} @change=${(e) => e.stopPropagation()}>
+                <sp-underlay ?open=${this.open}></sp-underlay>
+                <sp-dialog>
+                    <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Mnemonic Icon</h2>
 
-                <form @submit=${this.#handleSubmit}>
-                    <sp-tabs selected="${this.selectedTab}" @change=${this.#handleTabChange}>
-                        <sp-tab value="product-icon">Product Icon</sp-tab>
-                        <sp-tab value="url">URL</sp-tab>
-                        <sp-tab-panel value="product-icon"> ${this.productIconTab} </sp-tab-panel>
-                        <sp-tab-panel value="url"> ${this.urlTab} </sp-tab-panel>
-                    </sp-tabs>
-                </form>
+                    <form @submit=${this.#handleSubmit}>
+                        <sp-tabs selected="${this.selectedTab}" @change=${this.#handleTabChange}>
+                            <sp-tab value="product-icon">Product Icon</sp-tab>
+                            <sp-tab value="url">URL</sp-tab>
+                            <sp-tab-panel value="product-icon"> ${this.productIconTab} </sp-tab-panel>
+                            <sp-tab-panel value="url"> ${this.urlTab} </sp-tab-panel>
+                        </sp-tabs>
+                    </form>
 
-                <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.#handleCancel} type="button">
-                    Cancel
-                </sp-button>
-                <sp-button slot="button" variant="accent" @click=${this.#handleSubmit}>
-                    ${isEditing ? 'Update' : 'Add'} Icon
-                </sp-button>
-            </sp-dialog>
+                    <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.#handleCancel} type="button">
+                        Cancel
+                    </sp-button>
+                    <sp-button slot="button" variant="accent" @click=${this.#handleSubmit}>
+                        ${isEditing ? 'Update' : 'Add'} Icon
+                    </sp-button>
+                </sp-dialog>
+            </div>
         `;
     }
 }

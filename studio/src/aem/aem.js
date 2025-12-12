@@ -228,6 +228,11 @@ class AEM {
 
         const { title, description, fields } = fragment;
 
+        const fieldsWithType = fields.map((field) => ({
+            ...field,
+            type: field.type || 'text',
+        }));
+
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
@@ -238,7 +243,7 @@ class AEM {
             body: JSON.stringify({
                 title,
                 description,
-                fields,
+                fields: fieldsWithType,
             }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
@@ -339,7 +344,7 @@ class AEM {
      */
     async copyFragmentClassic(fragment) {
         const csrfToken = await this.getCsrfToken();
-        let parentPath = fragment.path.split('/').slice(0, -1).join('/');
+        const parentPath = fragment.path.split('/').slice(0, -1).join('/');
         const formData = new FormData();
         formData.append('cmd', 'copyPage');
         formData.append('srcPath', fragment.path);
@@ -372,6 +377,7 @@ class AEM {
         let newFragment = await this.getFragmentByPath(newPath);
         if (newFragment) {
             newFragment = await this.sites.cf.fragments.getById(newFragment.id);
+            newFragment = await this.clearVariationsField(newFragment);
         }
         return newFragment;
     }
@@ -508,6 +514,40 @@ class AEM {
     }
 
     /**
+     * Force delete a fragment using Sling POST servlet.
+     * This bypasses CF API reference validation and deletes directly from JCR.
+     * Use with caution - this can leave orphaned references.
+     * @param {Object} fragment - Fragment with path property
+     * @returns {Promise<Response>}
+     */
+    async forceDeleteFragment(fragment) {
+        if (!fragment?.path) {
+            throw new Error('Fragment path is required for force delete');
+        }
+
+        const csrfToken = await this.getCsrfToken();
+        const formData = new FormData();
+        formData.append(':operation', 'delete');
+
+        const response = await fetch(`${this.baseUrl}${fragment.path}`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'CSRF-Token': csrfToken,
+            },
+            body: formData,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Force delete failed: ${response.status} ${errorText}`);
+        }
+        return response;
+    }
+
+    /**
      * Validates that a fragment has the required properties for copying
      * @param {Object} fragment - The fragment to validate
      * @throws {Error} If fragment is invalid
@@ -609,7 +649,7 @@ class AEM {
      * @returns {Promise<Object>} The newly created fragment
      */
     async createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
-        const fields = fullFragment.fields.filter((field) => field.name !== 'originalId');
+        const fieldsWithoutVariations = fullFragment.fields.filter((field) => field.name !== 'variations');
 
         const copyData = {
             title: fullFragment.title,
@@ -617,7 +657,7 @@ class AEM {
             modelId: fullFragment.model.id,
             parentPath: targetPath,
             name,
-            fields,
+            fields: fieldsWithoutVariations,
         };
 
         const response = await fetch(this.cfFragmentsUrl, {
@@ -653,6 +693,16 @@ class AEM {
         } catch {
             // Silent fail - tags are not critical
         }
+    }
+
+    async clearVariationsField(fragment) {
+        const variationsField = fragment.fields.find((f) => f.name === 'variations');
+        if (variationsField && variationsField.values?.length > 0) {
+            variationsField.values = [];
+            await this.sites.cf.fragments.save(fragment);
+            return this.sites.cf.fragments.getById(fragment.id);
+        }
+        return fragment;
     }
 
     /**
@@ -696,6 +746,219 @@ class AEM {
         }
     }
 
+    /**
+     * Creates an empty variation fragment in the target locale folder.
+     * The variation starts with no content fields - it inherits from parent at runtime.
+     * @param {Object} parentFragment - The parent fragment to create a variation from
+     * @param {string} targetLocale - Target locale for the variation (e.g., 'en_GB')
+     * @returns {Promise<Object>} The newly created empty variation fragment
+     */
+    async createEmptyVariation(parentFragment, targetLocale) {
+        this.validateFragmentForCopy(parentFragment);
+
+        const parentPath = parentFragment.path;
+        const pathParts = parentPath.split('/');
+        const fragmentName = pathParts.pop();
+
+        const sourceLocaleIndex = pathParts.findIndex((part) => /^[a-z]{2}_[A-Z]{2}$/.test(part));
+        if (sourceLocaleIndex === -1) {
+            throw new Error('Could not determine source locale from parent path');
+        }
+
+        pathParts[sourceLocaleIndex] = targetLocale;
+        const targetFolder = pathParts.join('/');
+
+        await this.ensureFolderExists(targetFolder);
+
+        // Check if variation already exists - fail if it does
+        const targetPath = `${targetFolder}/${fragmentName}`;
+        const existingFragment = await this.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        if (existingFragment) {
+            throw new Error(`A variation already exists at ${targetPath}`);
+        }
+
+        const variationData = {
+            title: parentFragment.title,
+            description: parentFragment.description,
+            modelId: parentFragment.model.id,
+            parentPath: targetFolder,
+            name: fragmentName,
+            fields: [],
+        };
+
+        const response = await fetch(this.cfFragmentsUrl, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(variationData),
+        }).catch((err) => {
+            throw new Error(`Network error: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Failed to create variation: ${response.status} ${errorText}`);
+        }
+
+        const newFragment = await this.getFragment(response);
+        await this.wait(COPY_WAIT_TIME);
+
+        if (parentFragment.tags?.length) {
+            await this.copyFragmentTags(newFragment, parentFragment.tags);
+        }
+
+        return this.pollCreatedFragment(newFragment);
+    }
+
+    /**
+     * Updates the parent fragment's variations field to include a new variation path.
+     * @param {Object} parentFragment - The parent fragment to update
+     * @param {string} variationPath - The path of the variation to add
+     * @returns {Promise<Object>} The updated parent fragment
+     */
+    async updateParentVariations(parentFragment, variationPath) {
+        const variationsField = parentFragment.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+
+        if (currentVariations.includes(variationPath)) {
+            return parentFragment;
+        }
+
+        const updatedVariations = [...currentVariations, variationPath];
+
+        const latestParent = await this.getFragmentWithEtag(parentFragment.id);
+        if (!latestParent) {
+            throw new Error('Failed to retrieve parent fragment for update');
+        }
+
+        const updatedFields = latestParent.fields.map((field) => {
+            if (field.name === 'variations') {
+                return { ...field, values: updatedVariations };
+            }
+            return field;
+        });
+
+        if (!variationsField) {
+            updatedFields.push({
+                name: 'variations',
+                type: 'content-fragment',
+                multiple: true,
+                values: updatedVariations,
+            });
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${parentFragment.id}`, {
+            method: 'PUT',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+                'If-Match': latestParent.etag,
+            },
+            body: JSON.stringify({
+                title: latestParent.title,
+                description: latestParent.description,
+                fields: updatedFields,
+            }),
+        }).catch((err) => {
+            throw new Error(`Network error: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to update parent variations: ${response.status} ${response.statusText}`);
+        }
+
+        return this.pollUpdatedFragment(latestParent);
+    }
+
+    async removeFromParentVariations(parentFragment, variationPath) {
+        const latestParent = await this.getFragmentWithEtag(parentFragment.id);
+        if (!latestParent) {
+            throw new Error('Failed to retrieve parent fragment for update');
+        }
+
+        const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+
+        if (!currentVariations.includes(variationPath)) {
+            return latestParent;
+        }
+
+        const updatedVariations = currentVariations.filter((v) => v !== variationPath);
+
+        const updatedFields = latestParent.fields.map((field) => {
+            if (field.name === 'variations') {
+                return { ...field, values: updatedVariations };
+            }
+            return field;
+        });
+
+        return this.saveFragment({ ...latestParent, fields: updatedFields });
+    }
+
+    /**
+     * Finds all locale variations of a fragment by searching for fragments with the same name
+     * across different locale folders in the same repository.
+     * @param {Object} fragment - The parent fragment to find variations for
+     * @returns {Promise<Array<{id: string, path: string}>>} Array of variation fragment info
+     */
+    async findVariationsByName(fragment) {
+        const pathParts = fragment.path.split('/');
+        const fragmentName = pathParts.pop();
+        const localeIndex = pathParts.findIndex((part) => /^[a-z]{2}_[A-Z]{2}$/.test(part));
+
+        if (localeIndex === -1) {
+            return [];
+        }
+
+        const repoPath = pathParts.slice(0, localeIndex).join('/');
+
+        const searchQuery = {
+            filter: {
+                path: repoPath,
+                fullText: {
+                    text: fragmentName,
+                    queryMode: 'EXACT_WORDS',
+                },
+            },
+        };
+
+        const params = new URLSearchParams({
+            query: JSON.stringify(searchQuery),
+        });
+
+        const variations = [];
+        let cursor;
+
+        do {
+            if (cursor) {
+                params.set('cursor', cursor);
+            }
+
+            const response = await fetch(`${this.cfSearchUrl}?${params.toString()}`, {
+                headers: this.headers,
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to search for variations: ${response.status}`);
+                return [];
+            }
+
+            const result = await response.json();
+            cursor = result.cursor;
+
+            for (const item of result.items || []) {
+                const itemName = item.path.split('/').pop();
+                if (itemName === fragmentName && item.id !== fragment.id) {
+                    variations.push({ id: item.id, path: item.path });
+                }
+            }
+        } while (cursor);
+
+        return variations;
+    }
+
     async listFolders(path) {
         const name = path?.replace(/^\/content\/dam/, '');
         const response = await fetch(
@@ -705,8 +968,8 @@ class AEM {
                 headers: this.headers,
             },
         ).catch((error) => console.error('Error:', error));
-        if (!response.ok) {
-            throw new Error(`Failed to list folders: ${response.status} ${response.statusText}`);
+        if (!response?.ok) {
+            throw new Error(`Failed to list folders: ${response?.status} ${response?.statusText}`);
         }
         const result = await response.json();
         return {
@@ -770,8 +1033,8 @@ class AEM {
                 headers: this.headers,
             },
         ).catch((error) => console.error('Error:', error));
-        if (!response.ok) {
-            throw new Error(`Failed to list tags: ${response.status} ${response.statusText}`);
+        if (!response?.ok) {
+            throw new Error(`Failed to list tags: ${response?.status} ${response?.statusText}`);
         }
         return response.json();
     }
@@ -968,6 +1231,10 @@ class AEM {
                  */
                 delete: this.deleteFragment.bind(this),
                 /**
+                 * @see AEM#forceDeleteFragment
+                 */
+                forceDelete: this.forceDeleteFragment.bind(this),
+                /**
                  * @see AEM#getFragmentVersions
                  */
                 getVersions: this.getFragmentVersions.bind(this),
@@ -987,6 +1254,26 @@ class AEM {
                  * @see AEM#copyToFolder
                  */
                 copyToFolder: this.copyToFolder.bind(this),
+                /**
+                 * @see AEM#ensureFolderExists
+                 */
+                ensureFolderExists: this.ensureFolderExists.bind(this),
+                /**
+                 * @see AEM#copyFragmentTags
+                 */
+                copyFragmentTags: this.copyFragmentTags.bind(this),
+                /**
+                 * @see AEM#pollCreatedFragment
+                 */
+                pollCreatedFragment: this.pollCreatedFragment.bind(this),
+                /**
+                 * @see AEM#pollUpdatedFragment
+                 */
+                pollUpdatedFragment: this.pollUpdatedFragment.bind(this),
+                /**
+                 * @see AEM#findVariationsByName
+                 */
+                findVariationsByName: this.findVariationsByName.bind(this),
             },
         },
     };

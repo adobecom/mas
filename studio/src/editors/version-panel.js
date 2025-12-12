@@ -13,6 +13,7 @@ class VersionHistoryButton extends LitElement {
         editComment: { type: String, state: true },
         fragmentId: { type: String, attribute: true },
         repository: { type: Object, attribute: false },
+        hideButton: { type: Boolean, attribute: 'hide-button' },
     };
 
     static styles = css`
@@ -632,16 +633,19 @@ class VersionHistoryButton extends LitElement {
 
     render() {
         return html`
-            <sp-action-button
-                label="Version History"
-                title="View version history"
-                ?disabled="${this.disabled || this.loading}"
-                @click="${this.togglePanel}"
-            >
-                <sp-icon-history slot="icon"></sp-icon-history>
-                <sp-tooltip self-managed placement="bottom">Version History</sp-tooltip>
-            </sp-action-button>
-
+            ${this.hideButton
+                ? nothing
+                : html`
+                      <sp-action-button
+                          label="Version History"
+                          title="View version history"
+                          ?disabled="${this.disabled || this.loading}"
+                          @click="${this.togglePanel}"
+                      >
+                          <sp-icon-history slot="icon"></sp-icon-history>
+                          <sp-tooltip self-managed placement="bottom">Version History</sp-tooltip>
+                      </sp-action-button>
+                  `}
             ${this.showPanel
                 ? html`
                       <div class="version-history-panel">

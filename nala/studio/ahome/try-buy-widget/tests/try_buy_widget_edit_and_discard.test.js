@@ -31,6 +31,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Enter long string in title field', async () => {
@@ -73,12 +74,15 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit background color field', async () => {
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundColor).toHaveAttribute('value', data.color.original);
+            await editor.backgroundColor.scrollIntoViewIfNeeded();
             await editor.backgroundColor.click();
+            await expect(await editor.backgroundColor.locator('sp-menu-item').first()).toBeVisible();
             await page.getByRole('option', { name: data.color.updated }).click();
             await page.waitForTimeout(2000);
         });
@@ -112,11 +116,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit border color field', async () => {
             await expect(await editor.borderColor).toBeVisible();
+            await editor.borderColor.scrollIntoViewIfNeeded();
             await editor.borderColor.click();
+            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
             await page.getByRole('option', { name: data.color.updated }).click();
             await page.waitForTimeout(2000);
         });
@@ -156,6 +163,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit description field', async () => {
@@ -197,10 +205,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();
@@ -239,6 +247,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Remove background URL field', async () => {
@@ -293,6 +302,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit price field', async () => {
@@ -347,6 +357,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA field', async () => {
@@ -421,6 +432,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'triple');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit card variant', async () => {
@@ -438,7 +450,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.borderColor).not.toBeVisible();
             await expect(await editor.backgroundColor).not.toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -483,6 +495,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'triple');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit card variant', async () => {
@@ -500,7 +513,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.borderColor).not.toBeVisible();
             await expect(await editor.backgroundColor).not.toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -546,6 +559,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Change OSI in OST', async () => {
@@ -608,6 +622,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi.original);
             await expect(await editor.OSI).not.toContainText(data.osi.updated);
             await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.productCode}`));
@@ -636,6 +651,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
@@ -688,6 +704,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA checkout params', async () => {
@@ -703,6 +720,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .join('&');
             await editor.checkoutParameters.fill(checkoutParamsString);
             await editor.linkSave.click();
+            await page.waitForTimeout(1000);
         });
 
         await test.step('step-4: Validate edited CTA on the card', async () => {
@@ -742,6 +760,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit analytics IDs', async () => {
@@ -793,6 +812,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Validate original icon', async () => {
@@ -800,7 +820,6 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Select product icon from icon picker', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();

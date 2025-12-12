@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
-import { editFragment } from './store.js';
+import router from './router.js';
+import Store from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
@@ -9,9 +10,71 @@ export class MasCreateDialog extends LitElement {
     static properties = {
         type: { type: String, reflect: true },
         title: { state: true },
+        loading: { state: true },
     };
 
     static styles = css`
+        :host {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 999;
+            display: block;
+        }
+
+        .dialog-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dialog-container {
+            background: var(--spectrum-white);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            padding: 24px;
+            min-width: 400px;
+            z-index: 1000;
+            position: relative;
+        }
+
+        .dialog-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--spectrum-gray-200);
+        }
+
+        .dialog-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
         .form-field {
             margin-bottom: var(calc(var(--swc-scale-factor) * 32px));
         }
@@ -25,11 +88,6 @@ export class MasCreateDialog extends LitElement {
         sp-textfield {
             width: 100%;
         }
-
-        sp-dialog-wrapper {
-            background: var(--spectrum-white);
-            border-radius: 16px;
-        }
     `;
 
     constructor() {
@@ -38,12 +96,13 @@ export class MasCreateDialog extends LitElement {
         this.title = '';
         this.osi = '';
         this.tags = [];
+        this.loading = false;
 
-        // Bind methods to ensure correct 'this' context
         this.handleTitleChange = this.handleTitleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.close = this.close.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleBackdropClick = this.handleBackdropClick.bind(this);
     }
 
     connectedCallback() {
@@ -59,22 +118,15 @@ export class MasCreateDialog extends LitElement {
     }
 
     handleKeyDown(event) {
-        if (event.key === 'Escape' && this.dialog?.open) {
+        if (event.key === 'Escape' && !this.loading) {
             this.close();
         }
     }
 
-    get dialog() {
-        return this.shadowRoot.querySelector('sp-dialog-wrapper');
-    }
-
-    updated() {
-        this.open();
-    }
-
-    async open() {
-        await this.updateComplete;
-        this.dialog.open = true;
+    handleBackdropClick(event) {
+        if (event.target.classList.contains('dialog-backdrop')) {
+            this.close();
+        }
     }
 
     /**
@@ -115,8 +167,10 @@ export class MasCreateDialog extends LitElement {
         const fragment = await masRepository.createFragment(fragmentData);
         const sourceStore = generateFragmentStore(fragment);
         sourceStore.new = true;
-        editFragment(sourceStore, 0);
+        const currentList = Store.fragments.list.data.get() ?? [];
+        Store.fragments.list.data.set([sourceStore, ...currentList]);
         this.close();
+        await router.navigateToFragmentEditor(fragment.id);
     }
 
     async tryToCreateFragment(masRepository, fragmentData) {
@@ -145,7 +199,6 @@ export class MasCreateDialog extends LitElement {
             event.preventDefault();
         }
 
-        // Validate form
         if (!this.title) {
             return;
         }
@@ -155,13 +208,13 @@ export class MasCreateDialog extends LitElement {
             return;
         }
 
-        // Get the model ID based on the selected type
+        this.loading = true;
+
         const modelId =
             this.type === 'merch-card'
                 ? TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']
                 : TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
 
-        // Create fragment data
         const fragmentData = {
             modelId,
             title: this.title,
@@ -184,9 +237,9 @@ export class MasCreateDialog extends LitElement {
     }
 
     close() {
-        // Reset form
         this.title = '';
         this.osi = '';
+        this.loading = false;
         this.dispatchEvent(new CustomEvent('close'));
     }
 
@@ -196,47 +249,52 @@ export class MasCreateDialog extends LitElement {
     }
 
     render() {
-        return html`
-            <sp-dialog-wrapper
-                type="modal"
-                headline=${this.dialogTitle}
-                underlay
-                size="m"
-                confirm-label="Create"
-                cancel-label="Cancel"
-                @close=${this.close}
-                @confirm=${this.handleSubmit}
-                @cancel=${this.close}
-            >
-                <div class="dialog-content">
-                    <form @submit=${this.handleSubmit}>
-                        <div class="form-field">
-                            <sp-field-label for="fragment-title" required>Internal title</sp-field-label>
-                            <sp-textfield
-                                id="fragment-title"
-                                placeholder="Enter internal fragment title"
-                                value=${this.title}
-                                @input=${(e) => this.handleTitleChange(e.target.value)}
-                                required
-                            ></sp-textfield>
-                        </div>
-                        ${this.type === 'merch-card'
-                            ? html`
-                                  <div class="form-field">
-                                      <sp-field-label for="osi" required>OSI Search</sp-field-label>
-                                      <osi-field id="osi" data-field="osi"></osi-field>
-                                  </div>
-                                  <aem-tag-picker-field
-                                      label="Tags"
-                                      namespace="/content/cq:tags/mas"
-                                      multiple
-                                      @change=${this.#handeTagsChange}
-                                  ></aem-tag-picker-field>
-                              `
-                            : nothing}
-                    </form>
+        if (this.loading) {
+            return html`
+                <div class="loading-overlay">
+                    <sp-progress-circle indeterminate size="l"></sp-progress-circle>
                 </div>
-            </sp-dialog-wrapper>
+            `;
+        }
+
+        return html`
+            <div class="dialog-backdrop" @click=${this.handleBackdropClick}>
+                <div class="dialog-container" @click=${(e) => e.stopPropagation()}>
+                    <div class="dialog-header">${this.dialogTitle}</div>
+                    <div class="dialog-content">
+                        <form @submit=${this.handleSubmit}>
+                            <div class="form-field">
+                                <sp-field-label for="fragment-title" required>Internal title</sp-field-label>
+                                <sp-textfield
+                                    id="fragment-title"
+                                    placeholder="Enter internal fragment title"
+                                    value=${this.title}
+                                    @input=${(e) => this.handleTitleChange(e.target.value)}
+                                    required
+                                ></sp-textfield>
+                            </div>
+                            ${this.type === 'merch-card'
+                                ? html`
+                                      <div class="form-field">
+                                          <sp-field-label for="osi" required>OSI Search</sp-field-label>
+                                          <osi-field id="osi" data-field="osi"></osi-field>
+                                      </div>
+                                      <aem-tag-picker-field
+                                          label="Tags"
+                                          namespace="/content/cq:tags/mas"
+                                          multiple
+                                          @change=${this.#handeTagsChange}
+                                      ></aem-tag-picker-field>
+                                  `
+                                : nothing}
+                        </form>
+                    </div>
+                    <div class="dialog-footer">
+                        <sp-button variant="secondary" @click=${this.close}>Cancel</sp-button>
+                        <sp-button variant="accent" @click=${this.handleSubmit}>Create</sp-button>
+                    </div>
+                </div>
+            </div>
         `;
     }
 }

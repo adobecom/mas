@@ -98,10 +98,6 @@ export class RteLinkEditor extends LitElement {
         this.open = true;
         this.linkType = null;
         this.analyticsId = '';
-        this.addEventListener('change', (e) => {
-            // changes in the dialog should not propagate to outside
-            e.stopImmediatePropagation();
-        });
     }
 
     get #checkoutParametersField() {
@@ -145,13 +141,7 @@ export class RteLinkEditor extends LitElement {
         const options = this.#isCheckoutLink ? Object.keys(CHECKOUT_CTA_TEXTS) : [...ANALYTICS_LINK_IDS];
         options.push('');
         return html` <sp-field-label for="analyticsId">Analytics Id</sp-field-label>
-            <sp-picker
-                id="analyticsId"
-                .value=${this.analyticsId}
-                @change=${(e) => {
-                    this.analyticsId = e.target.value;
-                }}
-            >
+            <sp-picker id="analyticsId" .value=${this.analyticsId} @change=${(e) => (this.analyticsId = e.target.value)}>
                 <sp-menu> ${options.map((option) => html`<sp-menu-item value="${option}">${option}</sp-menu-item>`)} </sp-menu>
             </sp-picker>`;
     }
@@ -256,7 +246,7 @@ export class RteLinkEditor extends LitElement {
     }
 
     get #editor() {
-        return html`<sp-dialog close=${this.#handleClose}>
+        return html`<sp-dialog>
             <h2 slot="heading">Insert/Edit ${this.headingLinkLabel}</h2>
             <sp-tabs id="linkTypeNav" selected="${this.linkType}" @change=${this.#handleTypeChange}>
                 <sp-tab label="Web" value="web"></sp-tab>

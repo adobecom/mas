@@ -869,7 +869,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-5: Add icon to whats included', async () => {
             await expect(await editor.whatsIncludedAddIcon).toBeVisible();
             await editor.whatsIncludedAddIcon.click();
-            await editor.openMnemonicModal(editor.whatsIncluded);
+            await expect(await editor.mnemonicUrlTab).toBeVisible();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.mnemonicUrlIconInput).toBeVisible();
             await expect(await editor.mnemonicUrlAltInput).toBeVisible();
@@ -1378,6 +1378,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 .click();
             await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.updated.workflowStep);
             await ost.checkoutLinkUse.click();
+            await page.waitForTimeout(1000);
         });
 
         await test.step('step-4: Validate edited CTA in Editor panel', async () => {

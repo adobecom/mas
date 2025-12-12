@@ -720,6 +720,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 .join('&');
             await editor.checkoutParameters.fill(checkoutParamsString);
             await editor.linkSave.click();
+            await page.waitForTimeout(1000);
         });
 
         await test.step('step-4: Validate edited CTA on the card', async () => {

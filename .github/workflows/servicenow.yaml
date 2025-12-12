@@ -40,7 +40,7 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      snow_instance_id: ${{ steps.set-instance-id.outputs.instance_id }}
+      changed_path: ${{ steps.set-instance-id.outputs.changed_path }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -71,14 +71,14 @@ jobs:
           
           # Set SNOW Instance ID based on which paths changed
           if [[ "$IO_CHANGED" == "true" && "$STUDIO_CHANGED" == "true" ]]; then
-            echo "instance_id=$SNOW_INSTANCE_ID_IO, $SNOW_INSTANCE_ID_STUDIO" >> $GITHUB_OUTPUT
-            echo "Setting instance_id to both: $SNOW_INSTANCE_ID_IO, $SNOW_INSTANCE_ID_STUDIO"
+            echo "changed_path=both" >> $GITHUB_OUTPUT
+            echo "Setting changed_path to both (IO and Studio)"
           elif [[ "$IO_CHANGED" == "true" ]]; then
-            echo "instance_id=$SNOW_INSTANCE_ID_IO" >> $GITHUB_OUTPUT
-            echo "Setting instance_id to IO: $SNOW_INSTANCE_ID_IO"
+            echo "changed_path=io" >> $GITHUB_OUTPUT
+            echo "Setting changed_path to io"
           elif [[ "$STUDIO_CHANGED" == "true" ]]; then
-            echo "instance_id=$SNOW_INSTANCE_ID_STUDIO" >> $GITHUB_OUTPUT
-            echo "Setting instance_id to Studio: $SNOW_INSTANCE_ID_STUDIO"
+            echo "changed_path=studio" >> $GITHUB_OUTPUT
+            echo "Setting changed_path to studio"
           else
             echo "::error::ERROR: Workflow was triggered but no changes detected in io/ or studio/ paths. This should not happen given the path filters in the workflow trigger."
             exit 1
@@ -90,7 +90,12 @@ jobs:
     if:  ${{ (github.event.pull_request.merged == true || github.event.pull_request.state == 'open') }}
     runs-on: ubuntu-latest
     env:
-      SNOW_INSTANCE_ID: ${{ needs.detect-changes.outputs.snow_instance_id }}
+      SNOW_INSTANCE_ID: ${{ 
+        needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.SNOW_INSTANCE_ID_IO, secrets.SNOW_INSTANCE_ID_STUDIO) ||
+        needs.detect-changes.outputs.changed_path == 'io' && secrets.SNOW_INSTANCE_ID_IO ||
+        needs.detect-changes.outputs.changed_path == 'studio' && secrets.SNOW_INSTANCE_ID_STUDIO ||
+        '' 
+      }}
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683

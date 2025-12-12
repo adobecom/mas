@@ -378,15 +378,6 @@ class MerchCardEditor extends LitElement {
             const borderField = this.querySelector('sp-field-group.toggle#border-color');
             if (borderField) borderField.style.display = 'block';
         }
-        if (variant.borderColor || variant.badge?.tag) {
-            this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
-            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
-        } else {
-            this.availableBorderColors = [];
-            this.availableBadgeColors = [];
-        }
-        this.availableColors = variant?.allowedColors || [];
-
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
 
@@ -670,7 +661,7 @@ class MerchCardEditor extends LitElement {
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield
                         id="mnemonics"
-                        button-label="Visual"
+                        button-label="Add Visual"
                         .value="${this.mnemonics}"
                         @change="${this.#updateMnemonics}"
                         @input="${this.#updateMnemonics}"
@@ -730,6 +721,7 @@ class MerchCardEditor extends LitElement {
                         @input="${this.#updateWhatsIncluded}"
                     ></sp-textfield>
                     <mas-multifield
+                        button-label="Add application"
                         .value="${this.whatsIncluded.values}"
                         @change="${this.#updateWhatsIncluded}"
                         @input="${this.#updateWhatsIncluded}"
@@ -1198,9 +1190,19 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) return;
         if (!this.currentVariantMapping) {
             this.availableColors = [];
+            this.availableBorderColors = [];
+            this.availableBadgeColors = [];
             return;
         }
-        this.availableColors = this.currentVariantMapping?.allowedColors || [];
+        const variant = this.currentVariantMapping;
+        this.availableColors = variant?.allowedColors || [];
+        if (variant.borderColor || variant.badge?.tag) {
+            this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
+            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
+        } else {
+            this.availableBorderColors = [];
+            this.availableBadgeColors = [];
+        }
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
     }

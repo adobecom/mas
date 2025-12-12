@@ -205,6 +205,8 @@ class MerchCardEditor extends LitElement {
         if (changedProperties.has('localeDefaultFragment')) {
             this.fieldsReady = false;
             this.#updateCurrentVariantMapping();
+            this.#updateAvailableColors();
+            this.#updateBackgroundColors();
         }
     }
 

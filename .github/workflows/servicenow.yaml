@@ -89,13 +89,6 @@ jobs:
     # Only run this workflow on pull requests that have been newly opened
     if:  ${{ (github.event.pull_request.merged == true || github.event.pull_request.state == 'open') }}
     runs-on: ubuntu-latest
-    env:
-      SNOW_INSTANCE_ID: ${{ 
-        needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.SNOW_INSTANCE_ID_IO, secrets.SNOW_INSTANCE_ID_STUDIO) ||
-        needs.detect-changes.outputs.changed_path == 'io' && secrets.SNOW_INSTANCE_ID_IO ||
-        needs.detect-changes.outputs.changed_path == 'studio' && secrets.SNOW_INSTANCE_ID_STUDIO ||
-        '' 
-      }}
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -123,6 +116,7 @@ jobs:
       id: create-close-cmr-step
       env:
         RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
+        SNOW_INSTANCE_ID: ${{ needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.SNOW_INSTANCE_ID_IO, secrets.SNOW_INSTANCE_ID_STUDIO) || needs.detect-changes.outputs.changed_path == 'io' && secrets.SNOW_INSTANCE_ID_IO || secrets.SNOW_INSTANCE_ID_STUDIO }}
       run: |
         python ./.github/workflows/servicenow.py
 

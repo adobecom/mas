@@ -53,6 +53,7 @@ class MasSideNav extends LitElement {
     editorHasChanges = false;
     variationDataLoading = false;
     fragmentStoreSubscription = null;
+    variationLoadingTimeout = null;
 
     connectedCallback() {
         super.connectedCallback();
@@ -73,10 +74,15 @@ class MasSideNav extends LitElement {
 
             if (fragmentStore) {
                 this.variationDataLoading = true;
+                this.setupVariationLoadingTimeout();
                 this.fragmentStoreSubscription = fragmentStoreHandler;
                 fragmentStore.subscribe(this.fragmentStoreSubscription);
             } else {
                 this.variationDataLoading = false;
+                if (this.variationLoadingTimeout) {
+                    clearTimeout(this.variationLoadingTimeout);
+                    this.variationLoadingTimeout = null;
+                }
             }
 
             this.updateEditorChangesState();
@@ -86,6 +92,10 @@ class MasSideNav extends LitElement {
         Store.fragments.inEdit.subscribe(parentStoreHandler);
 
         const editorContextHandler = () => {
+            if (this.variationLoadingTimeout) {
+                clearTimeout(this.variationLoadingTimeout);
+                this.variationLoadingTimeout = null;
+            }
             this.updateVariationLoadingState();
         };
         Store.fragmentEditor.editorContext.subscribe(editorContextHandler);
@@ -105,6 +115,10 @@ class MasSideNav extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         if (this.unsubscribe) this.unsubscribe();
+        if (this.variationLoadingTimeout) {
+            clearTimeout(this.variationLoadingTimeout);
+            this.variationLoadingTimeout = null;
+        }
     }
 
     updateEditorChangesState() {
@@ -112,6 +126,11 @@ class MasSideNav extends LitElement {
     }
 
     async updateVariationLoadingState() {
+        if (this.variationLoadingTimeout) {
+            clearTimeout(this.variationLoadingTimeout);
+            this.variationLoadingTimeout = null;
+        }
+
         const editorContextStore = Store.fragmentEditor.editorContext;
         const fragmentId = this.fragmentEditor?.fragment?.id;
 
@@ -127,6 +146,16 @@ class MasSideNav extends LitElement {
 
         this.variationDataLoading = false;
         this.requestUpdate();
+    }
+
+    setupVariationLoadingTimeout() {
+        this.variationLoadingTimeout = setTimeout(() => {
+            if (this.variationDataLoading) {
+                console.warn('Variation data loading timeout - forcing buttons to enable');
+                this.variationDataLoading = false;
+                this.requestUpdate();
+            }
+        }, 10000);
     }
 
     get fragmentEditor() {

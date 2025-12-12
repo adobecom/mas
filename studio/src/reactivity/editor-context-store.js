@@ -38,6 +38,8 @@ export class EditorContextStore extends ReactiveStore {
         this.isVariationByPath = false;
         this.expectedDefaultLocale = null;
 
+        let notified = false;
+
         try {
             let surface = Store.search.value.path;
             if (!surface && fragmentPath) {
@@ -48,6 +50,7 @@ export class EditorContextStore extends ReactiveStore {
             }
 
             if (!surface) {
+                this.notify();
                 return { status: 0, body: null };
             }
 
@@ -70,13 +73,22 @@ export class EditorContextStore extends ReactiveStore {
                                 this.localeDefaultFragment = data;
                                 return data;
                             })
-                            .catch((err) => {
+                            .catch(() => {
                                 console.debug('Locale default fragment not found:', this.defaultLocaleId);
                                 return null;
                             });
                     }
                 }
                 this.notify();
+                notified = true;
+            } else {
+                console.debug(`Fragment context fetch returned status ${result.status}`, {
+                    fragmentId,
+                    message: result.message,
+                });
+                this.set(null);
+                this.notify();
+                notified = true;
             }
 
             if (!this.defaultLocaleId && fragmentPath) {
@@ -85,13 +97,28 @@ export class EditorContextStore extends ReactiveStore {
                     this.isVariationByPath = true;
                     this.expectedDefaultLocale = pathDetection.defaultLocale;
                     this.fetchParentByPath(fragmentPath, pathDetection.defaultLocale, pathDetection.pathLocale);
-                    this.notify();
+                    if (!notified) {
+                        this.notify();
+                        notified = true;
+                    }
                 }
             }
 
             return result;
+        } catch (error) {
+            console.debug('Fragment context fetch failed:', error.message, { fragmentId });
+            this.set(null);
+            if (!notified) {
+                this.notify();
+                notified = true;
+            }
+            return { status: 0, body: null, error: error.message };
         } finally {
             this.loading = false;
+            if (!notified) {
+                console.warn('EditorContextStore.loadFragmentContext completed without notifying subscribers');
+                this.notify();
+            }
         }
     }
 
@@ -106,7 +133,7 @@ export class EditorContextStore extends ReactiveStore {
                 this.defaultLocaleId = data?.id;
                 return data;
             })
-            .catch((err) => {
+            .catch(() => {
                 console.debug('Locale default fragment not found by path:', parentPath);
                 return null;
             });

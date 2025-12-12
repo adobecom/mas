@@ -651,15 +651,7 @@ class MerchCardEditor extends LitElement {
                     ></aem-tag-picker-field>
                 </sp-field-group>
                 <div class="section-title">Visuals</div>
-                ${this.renderSectionOverrideIndicator([
-                    'mnemonicIcon',
-                    'mnemonicAlt',
-                    'mnemonicLink',
-                    'badge',
-                    'trialBadge',
-                    'borderColor',
-                    'backgroundColor',
-                ])}
+                ${this.renderSectionOverrideIndicator(['mnemonics'])}
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield
                         id="mnemonics"
@@ -684,7 +676,7 @@ class MerchCardEditor extends LitElement {
                             value="${this.badge.text}"
                             @input="${this.#updateBadgeText}"
                         ></sp-textfield>
-                        ${this.renderOverrideIndicator('badge')}
+                        ${this.renderBadgeComponentOverrideIndicator('badge', 'text')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="trialBadge">
                         <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
@@ -695,7 +687,7 @@ class MerchCardEditor extends LitElement {
                             value="${this.trialBadge.text}"
                             @input="${this.#updateTrialBadgeText}"
                         ></sp-textfield>
-                        ${this.renderOverrideIndicator('trialBadge')}
+                        ${this.renderBadgeComponentOverrideIndicator('trialBadge', 'text')}
                     </sp-field-group>
                 </div>
                 ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}
@@ -1321,6 +1313,88 @@ class MerchCardEditor extends LitElement {
         };
     }
 
+    #parseBadgeHtml(html) {
+        if (!html) return { text: '', bgColor: '', borderColor: '' };
+        if (html.startsWith('<merch-badge')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const el = doc.querySelector('merch-badge');
+            return {
+                text: el?.textContent?.trim() || '',
+                bgColor: el?.getAttribute('background-color')?.toLowerCase() || '',
+                borderColor: el?.getAttribute('border-color')?.toLowerCase() || '',
+            };
+        }
+        return { text: html.trim(), bgColor: '', borderColor: '' };
+    }
+
+    getBadgeComponentState(fieldName, component) {
+        if (!this.isVariation || !this.localeDefaultFragment) {
+            return 'no-parent';
+        }
+
+        const ownHtml = this.getEffectiveFieldValue(fieldName, 0) || '';
+        const parentHtml = this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '';
+
+        const ownParsed = this.#parseBadgeHtml(ownHtml);
+        const parentParsed = this.#parseBadgeHtml(parentHtml);
+
+        const ownValue = ownParsed[component];
+        const parentValue = parentParsed[component];
+
+        if (!ownValue && !parentValue) return 'inherited';
+        if (!ownValue) return 'inherited';
+        if (ownValue === parentValue) return 'inherited';
+        return 'overridden';
+    }
+
+    renderBadgeComponentOverrideIndicator(fieldName, component) {
+        if (this.isVariation && !this.localeDefaultFragment) {
+            return nothing;
+        }
+        const state = this.getBadgeComponentState(fieldName, component);
+        const isOverridden = state === 'overridden';
+        return html`
+            <div class="field-reset-link">
+                ${isOverridden
+                    ? html`<a
+                          href="javascript:void(0)"
+                          @click=${(e) => {
+                              e.preventDefault();
+                              this.resetBadgeComponentToParent(fieldName, component);
+                          }}
+                      >
+                          ↩ Overridden. Click to restore.
+                      </a>`
+                    : nothing}
+            </div>
+        `;
+    }
+
+    async resetBadgeComponentToParent(fieldName, component) {
+        const parentHtml = this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '';
+        const parentParsed = this.#parseBadgeHtml(parentHtml);
+
+        if (fieldName === 'badge') {
+            if (component === 'text') {
+                this.#updateBadge(parentParsed.text, this.badge.bgColor, this.badge.borderColor);
+            } else if (component === 'bgColor') {
+                this.#updateBadge(this.badge.text, parentParsed.bgColor, this.badge.borderColor);
+            } else if (component === 'borderColor') {
+                this.#updateBadge(this.badge.text, this.badge.bgColor, parentParsed.borderColor);
+            }
+        } else if (fieldName === 'trialBadge') {
+            if (component === 'text') {
+                this.#updateTrialBadge(parentParsed.text, this.trialBadge.bgColor, this.trialBadge.borderColor);
+            } else if (component === 'bgColor') {
+                this.#updateTrialBadge(this.trialBadge.text, parentParsed.bgColor, this.trialBadge.borderColor);
+            } else if (component === 'borderColor') {
+                this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, parentParsed.borderColor);
+            }
+        }
+        showToast('Field restored to parent value', 'positive');
+    }
+
     #createBadgeElement(text, bgColor, borderColor) {
         if (!text) return;
 
@@ -1652,7 +1726,12 @@ class MerchCardEditor extends LitElement {
                         `,
                     )}
                 </sp-picker>
-                ${this.renderOverrideIndicator(dataField)}
+                ${isBadgeColor || isBadgeBorderColor
+                    ? this.renderBadgeComponentOverrideIndicator(
+                          dataField === 'badgeColor' || dataField === 'badgeBorderColor' ? 'badge' : 'trialBadge',
+                          isBadgeBorderColor ? 'borderColor' : 'bgColor',
+                      )
+                    : this.renderOverrideIndicator(dataField)}
             </sp-field-group>
         `;
     }

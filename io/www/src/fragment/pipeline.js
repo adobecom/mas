@@ -1,16 +1,17 @@
-'use strict';
-
-import { createTimeoutPromise, log, logDebug, logError, mark, measureTiming, getJsonFromState } from './common.js';
+import { createTimeoutPromise, mark, measureTiming, getJsonFromState } from './utils/common.js';
+import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from './utils/cache.js';
+import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
 import stateLib from '@adobe/aio-lib-state';
 
-import { transformer as fetchFragment } from './fetch.js';
-import { transformer as corrector } from './corrector.js';
-import { transformer as replace } from './replace.js';
-import { transformer as settings } from './settings.js';
-import { transformer as translate } from './translate.js';
-import { transformer as wcs } from './wcs.js';
+import { transformer as fetchFragment } from './transformers/fetchFragment.js';
+import { transformer as corrector } from './transformers/corrector.js';
+import { transformer as replace } from './transformers/replace.js';
+import { transformer as promotions } from './transformers/promotions.js';
+import { transformer as settings } from './transformers/settings.js';
+import { transformer as customize } from './transformers/customize.js';
+import { transformer as wcs } from './transformers/wcs.js';
 
 let cachedConfiguration = null;
 let configurationTimestamp = null;
@@ -20,7 +21,7 @@ function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
-const PIPELINE = [fetchFragment, translate, settings, replace, wcs, corrector];
+const PIPELINE = [fetchFragment, promotions, customize, settings, replace, wcs, corrector];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -29,11 +30,13 @@ const RESPONSE_HEADERS = {
 };
 
 async function main(params) {
-    const requestId = params.__ow_headers?.['x-request-id'] || 'mas-' + Date.now();
+    const requestId = params.__ow_headers?.['x-request-id'] || `mas-${performance.now()}`;
     const region = process.env.__OW_REGION || 'unknown';
     const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
-        Accept: 'application/json',
+        Accept: 'application/json, */*',
+        'Accept-Encoding': 'gzip, deflate',
+        'User-Agent': 'Mozilla/5.0 (compatible; mas-io-Pipeline/1.0)',
         'X-Request-ID': requestId,
     };
     let context = {
@@ -61,7 +64,7 @@ async function main(params) {
             configuration = result.json;
             cachedConfiguration = configuration;
             configurationTimestamp = now;
-            logDebug('Configuration cache empty, fetched from state', context);
+            logDebug(() => 'Configuration cache empty, fetched from state', context);
         } else if (cacheExpired) {
             try {
                 const configTimeout = cachedConfiguration.networkConfig?.configTimeout || 200;
@@ -72,16 +75,16 @@ async function main(params) {
                 configuration = result.json;
                 cachedConfiguration = configuration;
                 configurationTimestamp = now;
-                logDebug('Configuration cache expired, refreshed from state', context);
+                logDebug(() => 'Configuration cache expired, refreshed from state', context);
             } catch (error) {
                 if (error.isTimeout) {
                     configuration = cachedConfiguration;
-                    logDebug('Configuration refresh timed out, using stale cache', context);
+                    logDebug(() => 'Configuration refresh timed out, using stale cache', context);
                 }
             }
         } else {
             configuration = cachedConfiguration;
-            logDebug('Using cached configuration', context);
+            logDebug(() => 'Using cached configuration', context);
         }
         context = configuration ? { ...context, ...configuration } : context;
         const maxAge = context.networkConfig?.cacheMaxAge || 300;
@@ -123,7 +126,7 @@ async function main(params) {
         'Cache-Control': cacheControl,
     };
     returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
-    logDebug(() => 'full response: ' + JSON.stringify(returnValue), context);
+    logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
     const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
     const measures = context.measures
@@ -139,27 +142,31 @@ async function main(params) {
 
 async function mainProcess(context) {
     const originalContext = context;
-    const requestKey = `req-${context.id}-${context.locale}`;
-    const { json: cachedMetadata, str: cachedMetadataStr } = await getJsonFromState(requestKey, context);
-    if (cachedMetadata) {
-        log(`found cached metadata for ${requestKey} -> ${cachedMetadataStr}`, context);
-        const { translatedId, dictionaryId } = cachedMetadata;
-        context = { ...context, translatedId, dictionaryId };
-    }
 
+    const cachedMetadata = await getRequestMetadata(context);
+    const metadataContext = extractContextFromMetadata(cachedMetadata);
+    context = { ...context, ...metadataContext };
     // Initialize all transformers that have an init function
     // those requests are done in parallel and results stored in context.promises
+    const initPromises = {};
+    context.fragmentsIds = context.fragmentsIds || {};
     for (const transformer of PIPELINE) {
         if (transformer.init) {
             //we fork context to avoid init to override any context property
-            const initContext = structuredClone(context);
+            const initContext = {
+                ...structuredClone(context),
+                promises: initPromises,
+                fragmentsIds: context.fragmentsIds,
+            };
             initContext.loggedTransformer = `${transformer.name}-init`;
-            context.promises = context.promises || {};
-            context.promises[transformer.name] = transformer.init(initContext);
+            initPromises[transformer.name] = transformer.init(initContext);
         }
     }
+    context.status = 200;
+    context.promises = initPromises;
 
     for (const transformer of PIPELINE) {
+        logDebug(() => `starting transformer ${transformer.name}`, context);
         /* c8 ignore next 5*/
         if (originalContext.timedOut) {
             context.status = 504;
@@ -184,24 +191,8 @@ async function mainProcess(context) {
     if (context.status == 200) {
         responseBody = JSON.stringify(context.body, null, 0);
         logDebug(() => `response body: ${responseBody}`, context);
-        // Calculate hash of response body
         const hash = calculateHash(responseBody);
-        const updated = !cachedMetadata?.hash || cachedMetadata.hash !== hash;
-        let lastModified = new Date(Date.now());
-        if (updated) {
-            const metadata = JSON.stringify({
-                hash,
-                lastModified: lastModified.toUTCString(),
-                translatedId: context.translatedId,
-                dictionaryId: context.dictionaryId,
-            });
-            log(`updating cache for ${requestKey} -> ${metadata}`, context);
-            mark(context, 'req-state-put');
-            await context.state.put(requestKey, metadata);
-            measureTiming(context, 'req-state-put');
-        } else if (cachedMetadata?.lastModified) {
-            lastModified = new Date(cachedMetadata.lastModified);
-        }
+        const { lastModified } = await storeRequestMetadata(context, cachedMetadata, hash);
         // Check If-Modified-Since header
         const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
         if (ifModifiedSince) {

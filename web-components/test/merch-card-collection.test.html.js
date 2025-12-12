@@ -9,6 +9,7 @@ import { pushState } from '../src/deeplink.js';
 import {
     appendMiloStyles,
     delay,
+    toggleDesktop,
     toggleLargeDesktop,
     toggleMobile,
 } from './utils.js';
@@ -168,6 +169,42 @@ runTests(async () => {
             expect(visibleCards().length).to.equal(0);
             expect(header.resultSlotName).to.equal('noSearchResultsMobileText');
         });
+
+        it('should have touch-friendly search input on mobile', async () => {
+            await renderWithSidenav();
+            const searchInput =
+                header.shadowRoot.querySelector('#search sp-search');
+            expect(searchInput).to.exist;
+            const styles = window.getComputedStyle(searchInput);
+            const minHeight = parseInt(styles.minHeight);
+            expect(minHeight).to.be.at.least(44); // Minimum touch target size
+        });
+
+        it('should have proper mobile grid layout with search, filter, and sort', async () => {
+            await renderWithSidenav();
+            const headerElement = header.shadowRoot.querySelector('#header');
+            expect(headerElement).to.exist;
+            const styles = window.getComputedStyle(headerElement);
+            expect(styles.display).to.equal('grid');
+            // Verify search is visible on mobile
+            const searchElement = header.shadowRoot.querySelector('#search');
+            const filterElement = header.shadowRoot.querySelector('#filter');
+            const sortElement = header.shadowRoot.querySelector('#sort');
+            expect(searchElement).to.exist;
+            expect(filterElement).to.exist;
+            expect(sortElement).to.exist;
+        });
+
+        it('should have accessible aria-label on search input', async () => {
+            await renderWithSidenav();
+            const searchInput =
+                header.shadowRoot.querySelector('#search sp-search');
+            expect(searchInput).to.exist;
+            expect(searchInput.hasAttribute('aria-label')).to.be.true;
+            const ariaLabel = searchInput.getAttribute('aria-label');
+            expect(ariaLabel).to.be.a('string');
+            expect(ariaLabel.length).to.be.greaterThan(0);
+        });
     });
 
     describe('merch-card-collection web component on desktop', () => {
@@ -184,7 +221,7 @@ runTests(async () => {
             document.location.hash = '';
             render();
             await delay(100);
-            expect(visibleCards().length).to.equal(92);
+            expect(visibleCards().length).to.equal(93);
         });
 
         it('observes/applies deep link parameters', async () => {
@@ -256,6 +293,37 @@ runTests(async () => {
                 'all:4:wide,cloud:2:wide,subcategory:1:wide',
             );
         });
+
+        it('should display show more CTA and load more cards upon click', async () => {
+            render();
+            await collectionElement.checkReady();
+            await delay(100);
+            expect(visibleCards().length).to.equal(27);
+            const showMoreButton =
+                collectionElement.shadowRoot.querySelector('#footer sp-button');
+            expect(showMoreButton.isConnected).to.be.true;
+            showMoreButton.click();
+            await delay(100);
+            showMoreButton.click();
+            await delay(100);
+            expect(visibleCards().length).to.equal(28);
+            expect(showMoreButton.isConnected).to.be.false;
+        });
+    });
+    describe('merch-card-collection plans features', () => {
+        it('handles wide card minification on small desktop', async () => {
+            await toggleDesktop();
+            [merchCards, render] = prepareTemplate('plansWideReflow', false);
+            render();
+            await merchCards.checkReady();
+            const sidenav = document.querySelector('merch-sidenav');
+            merchCards.attachSidenav(sidenav, false);
+            await delay(100);
+            const secondCard = merchCards.querySelector(
+                'merch-card:nth-child(2)',
+            );
+            expect(secondCard.getAttribute('data-size')).to.equal('wide');
+        });
     });
 
     describe('merch-card-collection override feature', () => {
@@ -263,11 +331,12 @@ runTests(async () => {
 
         beforeEach(async () => {
             document.location.hash = '';
-            [collectionElement, render] = prepareTemplate('override', false);
         });
 
         it('should hydrate from child aem-fragment, with overriden ids', async () => {
+            [collectionElement, render] = prepareTemplate('override', false);
             render();
+
             const aemFragment = customElements.get('aem-fragment');
             await collectionElement.checkReady();
             const fragment1 = collectionElement.querySelector(
@@ -294,6 +363,26 @@ runTests(async () => {
                     'merch-card > aem-fragment[fragment="e58f8f75-b882-409a-9ff8-8826b36a8368"]',
                 ),
             ).to.not.exist;
+            aemFragment.cache.clear();
+        });
+
+        it('should hydrate from child aem-fragment, with overriden child collection', async () => {
+            const fragment = document.createElement('aem-fragment');
+            fragment.setAttribute('fragment', 'cafe-babe');
+            document.body.appendChild(fragment);
+            await delay(100);
+            [collectionElement, render] = prepareTemplate(
+                'override-child',
+                false,
+            );
+            render();
+            const aemFragment = customElements.get('aem-fragment');
+            await collectionElement.checkReady();
+            expect(
+                collectionElement.querySelector(
+                    'merch-card[id="bebecafebabe"]',
+                ),
+            ).to.exist;
             aemFragment.cache.clear();
         });
     });

@@ -380,6 +380,10 @@ export class AemFragment extends HTMLElement {
         return this.#data;
     }
 
+    get rawData() {
+        return this.#rawData;
+    }
+
     transformAuthorData() {
         const {
             fields,

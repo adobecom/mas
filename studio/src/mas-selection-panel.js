@@ -16,6 +16,7 @@ class MasSelectionPanel extends LitElement {
     static properties = {
         open: { type: Boolean, attribute: true },
         selectionStore: { type: Object, attribute: false },
+        repository: { type: Object, attribute: false },
         onDuplicate: { type: Function, attribute: false },
         onDelete: { type: Function, attribute: false },
         onPublish: { type: Function, attribute: false },
@@ -28,6 +29,7 @@ class MasSelectionPanel extends LitElement {
 
         this.open = false;
         this.selectionStore = null;
+        this.repository = null;
         this.onDuplicate = null;
         this.onDelete = null;
         this.onPublish = null;
@@ -85,8 +87,32 @@ class MasSelectionPanel extends LitElement {
         this.onCopyToFolder(fragment);
     }
 
-    handlePublish(event) {
-        this.onPublish(this.selection, event);
+    async handlePublish(event) {
+        if (!this.repository) {
+            console.error('Repository not found');
+            return;
+        }
+
+        const selection = this.selection;
+        if (!selection || selection.length === 0) return;
+
+        // Extract fragment IDs from selection (selection can be IDs or fragment objects)
+        const fragmentIds = selection
+            .map((item) => {
+                if (typeof item === 'string') return item;
+                if (item?.id) return item.id;
+                if (item?.get?.()?.id) return item.get().id;
+                return null;
+            })
+            .filter(Boolean);
+
+        if (fragmentIds.length === 0) return;
+
+        const success = await this.repository.bulkPublishFragments(fragmentIds);
+        if (success) {
+            // Clear selection after successful publish
+            this.selectionStore.set([]);
+        }
     }
 
     handleUnpublish(event) {
@@ -121,7 +147,7 @@ class MasSelectionPanel extends LitElement {
                 : nothing}
             ${count > 0
                 ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>
-                      <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>
+                      <sp-icon-delete slot="icon"></sp-icon-delete>
                       <sp-tooltip self-managed placement="top">Delete</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
@@ -129,10 +155,10 @@ class MasSelectionPanel extends LitElement {
                 ? html`<sp-action-button
                       slot="buttons"
                       label="Publish"
-                      ?disabled=${!this.onPublish}
+                      ?disabled=${!this.repository}
                       @click=${this.handlePublish}
                   >
-                      <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
+                      <sp-icon-publish slot="icon"></sp-icon-publish>
                       <sp-tooltip self-managed placement="top">Publish</sp-tooltip>
                   </sp-action-button>`
                 : nothing}

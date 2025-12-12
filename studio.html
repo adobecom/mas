@@ -10,11 +10,12 @@
         <script type="importmap">
             {
                 "imports": {
-                    "lit": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
-                    "lit/directives/unsafe-html.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
-                    "lit/directives/style-map.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
-                    "lit/directives/class-map.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
-                    "lit/directives/repeat.js": "https://cdn.jsdelivr.net/gh/lit/dist@2.8.0/all/lit-all.min.js",
+                    "lit": "/web-components/dist/lit-all.min.js",
+                    "lit/directives/unsafe-html.js": "/web-components/dist/lit-all.min.js",
+                    "lit/directives/style-map.js": "/web-components/dist/lit-all.min.js",
+                    "lit/directives/class-map.js": "/web-components/dist/lit-all.min.js",
+                    "lit/directives/repeat.js": "/web-components/dist/lit-all.min.js",
+                    "lit/directives/until.js": "/web-components/dist/lit-all.min.js",
                     "prosemirror-state": "/studio/libs/prosemirror.js",
                     "prosemirror-model": "/studio/libs/prosemirror.js",
                     "prosemirror-view": "/studio/libs/prosemirror.js",
@@ -46,7 +47,7 @@
             }
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
         </script>
-        <script src="studio/src/maslib.js" type="module"></script>
+        <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 
         <!-- OST -->
@@ -105,7 +106,7 @@
     <body class="spectrum spectrum--medium spectrum--light">
         <mas-commerce-service></mas-commerce-service>
         <main>
-            <sp-theme color="light" scale="medium"> </sp-theme>
+            <sp-theme system="spectrum-two" color="light" scale="medium"> </sp-theme>
         </main>
     </body>
 </html>

@@ -1,1900 +1,512 @@
 window.masPriceLiterals = {
-    total: 38,
-    offset: 0,
-    limit: 38,
-    data: [
+    "total": 38,
+    "offset": 0,
+    "limit": 38,
+    "data": [
         {
-            lang: 'ar',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/الشهر} YEAR {/العام} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {كل شهر} YEAR {كل عام} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {لكل ترخيص} other {}}',
-            perUnitAriaLabel: '{perUnit, select, LICENSE {لكل ترخيص} other {}}',
-            freeLabel: 'مجانًا',
-            freeAriaLabel: 'مجانًا',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel:
-                'أو بدلاً من ذلك بقيمة {alternativePrice}',
-            strikethroughAriaLabel: 'بشكل منتظم بقيمة {strikethroughPrice}',
+            "lang": "ar",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/الشهر} YEAR {/العام} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {كل شهر} YEAR {كل عام} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {لكل ترخيص} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {لكل ترخيص} other {}}",
+            "freeLabel": "مجانًا",
+            "freeAriaLabel": "مجانًا",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "أو بدلاً من ذلك بقيمة {alternativePrice}",
+            "strikethroughAriaLabel": "بشكل منتظم بقيمة {strikethroughPrice}"
         },
         {
-            lang: 'bg',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/мес.} YEAR {/год.} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {на месец} YEAR {на година} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {на лиценз} other {}}',
-            perUnitAriaLabel: '{perUnit, select, LICENSE {на лиценз} other {}}',
-            freeLabel: 'Безплатно',
-            freeAriaLabel: 'Безплатно',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Алтернативно на {alternativePrice}',
-            strikethroughAriaLabel: 'Редовно на {strikethroughPrice}',
+            "lang": "bg",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/мес.} YEAR {/год.} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {на месец} YEAR {на година} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {на лиценз} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {на лиценз} other {}}",
+            "freeLabel": "Безплатно",
+            "freeAriaLabel": "Безплатно",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Алтернативно на {alternativePrice}",
+            "strikethroughAriaLabel": "Редовно на {strikethroughPrice}"
         },
         {
-            lang: 'cs',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/měsíc} YEAR {/rok} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {za měsíc} YEAR {za rok} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {za licenci} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {za licenci} other {}}',
-            freeLabel: 'Zdarma',
-            freeAriaLabel: 'Zdarma',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {bez daně ze zboží a služeb} VAT {bez DPH} TAX {bez daně} IVA {bez IVA} SST {bez SST} KDV {bez KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {včetně daně ze zboží a služeb} VAT {včetně DPH} TAX {včetně daně} IVA {včetně IVA} SST {včetně SST} KDV {včetně KDV} other {}}',
-            alternativePriceAriaLabel: 'Případně za {alternativePrice}',
-            strikethroughAriaLabel: 'Pravidelně za {strikethroughPrice}',
+            "lang": "cs",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/měsíc} YEAR {/rok} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {za měsíc} YEAR {za rok} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {za licenci} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {za licenci} other {}}",
+            "freeLabel": "Zdarma",
+            "freeAriaLabel": "Zdarma",
+            "taxExclusiveLabel": "{taxTerm, select, GST {bez daně ze zboží a služeb} VAT {bez DPH} TAX {bez daně} IVA {bez IVA} SST {bez SST} KDV {bez KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {včetně daně ze zboží a služeb} VAT {včetně DPH} TAX {včetně daně} IVA {včetně IVA} SST {včetně SST} KDV {včetně KDV} other {}}",
+            "alternativePriceAriaLabel": "Případně za {alternativePrice}",
+            "strikethroughAriaLabel": "Pravidelně za {strikethroughPrice}"
         },
         {
-            lang: 'da',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/md} YEAR {/år} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {pr. måned} YEAR {pr. år} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {pr. licens} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {pr. licens} other {}}',
-            freeLabel: 'Gratis',
-            freeAriaLabel: 'Gratis',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {ekskl. GST} VAT {ekskl. moms} TAX {ekskl. skat} IVA {ekskl. IVA} SST {ekskl. SST} KDV {ekskl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {inkl. GST} VAT {inkl. moms} TAX {inkl. skat} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Alternativt til {alternativePrice}',
-            strikethroughAriaLabel: 'Normalpris {strikethroughPrice}',
+            "lang": "da",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/md} YEAR {/år} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {pr. måned} YEAR {pr. år} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {pr. licens} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {pr. licens} other {}}",
+            "freeLabel": "Gratis",
+            "freeAriaLabel": "Gratis",
+            "taxExclusiveLabel": "{taxTerm, select, GST {ekskl. GST} VAT {ekskl. moms} TAX {ekskl. skat} IVA {ekskl. IVA} SST {ekskl. SST} KDV {ekskl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. moms} TAX {inkl. skat} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Alternativt til {alternativePrice}",
+            "strikethroughAriaLabel": "Normalpris {strikethroughPrice}"
         },
         {
-            lang: 'de',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/Monat} YEAR {/Jahr} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {pro Monat} YEAR {pro Jahr} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {pro Lizenz} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {pro Lizenz} other {}}',
-            freeLabel: 'Kostenlos',
-            freeAriaLabel: 'Kostenlos',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {zzgl. GST} VAT {zzgl. MwSt.} TAX {zzgl. Steuern} IVA {zzgl. IVA} SST {zzgl. SST} KDV {zzgl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {inkl. GST} VAT {inkl. MwSt.} TAX {inkl. Steuern} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Alternativ: {alternativePrice}',
-            strikethroughAriaLabel: 'Regulär: {strikethroughPrice}',
+            "lang": "de",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/Monat} YEAR {/Jahr} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {pro Monat} YEAR {pro Jahr} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {pro Lizenz} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {pro Lizenz} other {}}",
+            "freeLabel": "Kostenlos",
+            "freeAriaLabel": "Kostenlos",
+            "taxExclusiveLabel": "{taxTerm, select, GST {zzgl. GST} VAT {zzgl. MwSt.} TAX {zzgl. Steuern} IVA {zzgl. IVA} SST {zzgl. SST} KDV {zzgl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. MwSt.} TAX {inkl. Steuern} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Alternativ: {alternativePrice}",
+            "strikethroughAriaLabel": "Regulär: {strikethroughPrice}"
         },
         {
-            lang: 'en',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {per license} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {per license} other {}}',
-            freeLabel: 'Free',
-            freeAriaLabel: 'Free',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Alternatively at {alternativePrice}',
-            strikethroughAriaLabel: 'Regularly at {strikethroughPrice}',
+            "lang": "en",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {per license} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {per license} other {}}",
+            "freeLabel": "Free",
+            "freeAriaLabel": "Free",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Alternatively at {alternativePrice}",
+            "strikethroughAriaLabel": "Regularly at {strikethroughPrice}"
         },
         {
-            lang: 'et',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {kuus} YEAR {aastas} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {kuus} YEAR {aastas} other {}}',
-            perUnitLabel:
-                '{perUnit, select, LICENSE {litsentsi kohta} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {litsentsi kohta} other {}}',
-            freeLabel: 'Tasuta',
-            freeAriaLabel: 'Tasuta',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel:
-                'Teise võimalusena hinnaga {alternativePrice}',
-            strikethroughAriaLabel: 'Tavahind {strikethroughPrice}',
+            "lang": "et",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {kuus} YEAR {aastas} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {kuus} YEAR {aastas} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {litsentsi kohta} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {litsentsi kohta} other {}}",
+            "freeLabel": "Tasuta",
+            "freeAriaLabel": "Tasuta",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Teise võimalusena hinnaga {alternativePrice}",
+            "strikethroughAriaLabel": "Tavahind {strikethroughPrice}"
         },
         {
-            lang: 'fi',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/kk} YEAR {/v} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {kuukausittain} YEAR {vuosittain} other {}}',
-            perUnitLabel:
-                '{perUnit, select, LICENSE {käyttöoikeutta kohti} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {käyttöoikeutta kohti} other {}}',
-            freeLabel: 'Maksuton',
-            freeAriaLabel: 'Maksuton',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {ilman GST:tä} VAT {ilman ALV:tä} TAX {ilman veroja} IVA {ilman IVA:ta} SST {ilman SST:tä} KDV {ilman KDV:tä} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {sis. GST:n} VAT {sis. ALV:n} TAX {sis. verot} IVA {sis. IVA:n} SST {sis. SST:n} KDV {sis. KDV:n} other {}}',
-            alternativePriceAriaLabel:
-                'Vaihtoehtoisesti hintaan {alternativePrice}',
-            strikethroughAriaLabel:
-                'Säännöllisesti hintaan {strikethroughPrice}',
+            "lang": "fi",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/kk} YEAR {/v} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {kuukausittain} YEAR {vuosittain} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {käyttöoikeutta kohti} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {käyttöoikeutta kohti} other {}}",
+            "freeLabel": "Maksuton",
+            "freeAriaLabel": "Maksuton",
+            "taxExclusiveLabel": "{taxTerm, select, GST {ilman GST:tä} VAT {ilman ALV:tä} TAX {ilman veroja} IVA {ilman IVA:ta} SST {ilman SST:tä} KDV {ilman KDV:tä} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {sis. GST:n} VAT {sis. ALV:n} TAX {sis. verot} IVA {sis. IVA:n} SST {sis. SST:n} KDV {sis. KDV:n} other {}}",
+            "alternativePriceAriaLabel": "Vaihtoehtoisesti hintaan {alternativePrice}",
+            "strikethroughAriaLabel": "Säännöllisesti hintaan {strikethroughPrice}"
         },
         {
-            lang: 'fr',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mois} YEAR {/an} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {par mois} YEAR {par an} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {par licence} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {par licence} other {}}',
-            freeLabel: 'Gratuit',
-            freeAriaLabel: 'Gratuit',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {hors TPS} VAT {hors TVA} TAX {hors taxes} IVA {hors IVA} SST {hors SST} KDV {hors KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {TPS comprise} VAT {TVA comprise} TAX {taxes comprises} IVA {IVA comprise} SST {SST comprise} KDV {KDV comprise} other {}}',
-            alternativePriceAriaLabel: 'Autre prix {alternativePrice}',
-            strikethroughAriaLabel: 'Prix habituel {strikethroughPrice}',
+            "lang": "fr",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mois} YEAR {/an} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {par mois} YEAR {par an} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {par licence} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {par licence} other {}}",
+            "freeLabel": "Gratuit",
+            "freeAriaLabel": "Gratuit",
+            "taxExclusiveLabel": "{taxTerm, select, GST {hors TPS} VAT {hors TVA} TAX {hors taxes} IVA {hors IVA} SST {hors SST} KDV {hors KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {TPS comprise} VAT {TVA comprise} TAX {taxes comprises} IVA {IVA comprise} SST {SST comprise} KDV {KDV comprise} other {}}",
+            "alternativePriceAriaLabel": "Autre prix {alternativePrice}",
+            "strikethroughAriaLabel": "Prix habituel {strikethroughPrice}"
         },
         {
-            lang: 'he',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/חודש} YEAR {/שנה} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {לחודש} YEAR {לשנה} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {לרישיון} other {}}',
-            perUnitAriaLabel: '{perUnit, select, LICENSE {לרישיון} other {}}',
-            freeLabel: 'חינם',
-            freeAriaLabel: 'חינם',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'לחלופין ב-{alternativePrice}',
-            strikethroughAriaLabel: 'באופן קבוע ב-{strikethroughPrice}',
+            "lang": "he",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/חודש} YEAR {/שנה} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {לחודש} YEAR {לשנה} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {לרישיון} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {לרישיון} other {}}",
+            "freeLabel": "חינם",
+            "freeAriaLabel": "חינם",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "לחלופין ב-{alternativePrice}",
+            "strikethroughAriaLabel": "באופן קבוע ב-{strikethroughPrice}"
         },
         {
-            lang: 'hu',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/hó} YEAR {/év} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {havonta} YEAR {évente} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {licencenként} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {licencenként} other {}}',
-            freeLabel: 'Ingyenes',
-            freeAriaLabel: 'Ingyenes',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Másik lehetőség: {alternativePrice}',
-            strikethroughAriaLabel: 'Általában {strikethroughPrice} áron',
+            "lang": "hu",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/hó} YEAR {/év} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {havonta} YEAR {évente} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {licencenként} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {licencenként} other {}}",
+            "freeLabel": "Ingyenes",
+            "freeAriaLabel": "Ingyenes",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Másik lehetőség: {alternativePrice}",
+            "strikethroughAriaLabel": "Általában {strikethroughPrice} áron"
         },
         {
-            lang: 'it',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mese} YEAR {/anno} other {}}',
-            recurrenceAriaLabel:
-                "{recurrenceTerm, select, MONTH {al mese} YEAR {all'anno} other {}}",
-            perUnitLabel: '{perUnit, select, LICENSE {per licenza} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {per licenza} other {}}',
-            freeLabel: 'Gratuito',
-            freeAriaLabel: 'Gratuito',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {escl. GST} VAT {escl. IVA.} TAX {escl. imposte} IVA {escl. IVA} SST {escl. SST} KDV {escl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. IVA} TAX {incl. imposte} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'In alternativa a {alternativePrice}',
-            strikethroughAriaLabel: 'Regolarmente a {strikethroughPrice}',
+            "lang": "it",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mese} YEAR {/anno} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {al mese} YEAR {all'anno} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {per licenza} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {per licenza} other {}}",
+            "freeLabel": "Gratuito",
+            "freeAriaLabel": "Gratuito",
+            "taxExclusiveLabel": "{taxTerm, select, GST {escl. GST} VAT {escl. IVA.} TAX {escl. imposte} IVA {escl. IVA} SST {escl. SST} KDV {escl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. IVA} TAX {incl. imposte} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "In alternativa a {alternativePrice}",
+            "strikethroughAriaLabel": "Regolarmente a {strikethroughPrice}"
         },
         {
-            lang: 'ja',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/月} YEAR {/年} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {毎月} YEAR {毎年} other {}}',
-            perUnitLabel:
-                '{perUnit, select, LICENSE {ライセンスごと} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {ライセンスごと} other {}}',
-            freeLabel: '無料',
-            freeAriaLabel: '無料',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {GST 別} VAT {VAT 別} TAX {税別} IVA {IVA 別} SST {SST 別} KDV {KDV 別} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {GST 込} VAT {VAT 込} TAX {税込} IVA {IVA 込} SST {SST 込} KDV {KDV 込} other {}}',
-            alternativePriceAriaLabel: '特別価格 : {alternativePrice}',
-            strikethroughAriaLabel: '通常価格 : {strikethroughPrice}',
+            "lang": "ja",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/月} YEAR {/年} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {毎月} YEAR {毎年} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {ライセンスごと} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {ライセンスごと} other {}}",
+            "freeLabel": "無料",
+            "freeAriaLabel": "無料",
+            "taxExclusiveLabel": "{taxTerm, select, GST {GST 別} VAT {VAT 別} TAX {税別} IVA {IVA 別} SST {SST 別} KDV {KDV 別} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {GST 込} VAT {VAT 込} TAX {税込} IVA {IVA 込} SST {SST 込} KDV {KDV 込} other {}}",
+            "alternativePriceAriaLabel": "特別価格 : {alternativePrice}",
+            "strikethroughAriaLabel": "通常価格 : {strikethroughPrice}"
         },
         {
-            lang: 'ko',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/월} YEAR {/년} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {월간} YEAR {연간} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {라이선스당} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {라이선스당} other {}}',
-            freeLabel: '무료',
-            freeAriaLabel: '무료',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {GST 제외} VAT {VAT 제외} TAX {세금 제외} IVA {IVA 제외} SST {SST 제외} KDV {KDV 제외} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {GST 포함} VAT {VAT 포함} TAX {세금 포함} IVA {IVA 포함} SST {SST 포함} KDV {KDV 포함} other {}}',
-            alternativePriceAriaLabel: '또는 {alternativePrice}에',
-            strikethroughAriaLabel: '또는 {alternativePrice}에',
+            "lang": "ko",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/월} YEAR {/년} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {월간} YEAR {연간} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {라이선스당} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {라이선스당} other {}}",
+            "freeLabel": "무료",
+            "freeAriaLabel": "무료",
+            "taxExclusiveLabel": "{taxTerm, select, GST {GST 제외} VAT {VAT 제외} TAX {세금 제외} IVA {IVA 제외} SST {SST 제외} KDV {KDV 제외} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {GST 포함} VAT {VAT 포함} TAX {세금 포함} IVA {IVA 포함} SST {SST 포함} KDV {KDV 포함} other {}}",
+            "alternativePriceAriaLabel": "또는 {alternativePrice}에",
+            "strikethroughAriaLabel": "또는 {alternativePrice}에"
         },
         {
-            lang: 'lt',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH { per mėn.} YEAR { per metus} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per mėn.} YEAR {per metus} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {už licenciją} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {už licenciją} other {}}',
-            freeLabel: 'Nemokamai',
-            freeAriaLabel: 'Nemokamai',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Arba už {alternativePrice}',
-            strikethroughAriaLabel: 'Normaliai už {strikethroughPrice}',
+            "lang": "lt",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH { per mėn.} YEAR { per metus} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per mėn.} YEAR {per metus} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {už licenciją} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {už licenciją} other {}}",
+            "freeLabel": "Nemokamai",
+            "freeAriaLabel": "Nemokamai",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Arba už {alternativePrice}",
+            "strikethroughAriaLabel": "Normaliai už {strikethroughPrice}"
         },
         {
-            lang: 'lv',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {mēnesī} YEAR {gadā} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {mēnesī} YEAR {gadā} other {}}',
-            perUnitLabel:
-                '{perUnit, select, LICENSE {vienai licencei} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {vienai licencei} other {}}',
-            freeLabel: 'Bezmaksas',
-            freeAriaLabel: 'Bezmaksas',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Alternatīvi par {alternativePrice}',
-            strikethroughAriaLabel: 'Regulāri par {strikethroughPrice}',
+            "lang": "lv",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {mēnesī} YEAR {gadā} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {mēnesī} YEAR {gadā} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {vienai licencei} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {vienai licencei} other {}}",
+            "freeLabel": "Bezmaksas",
+            "freeAriaLabel": "Bezmaksas",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Alternatīvi par {alternativePrice}",
+            "strikethroughAriaLabel": "Regulāri par {strikethroughPrice}"
         },
         {
-            lang: 'nb',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mnd.} YEAR {/år} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per måned} YEAR {per år} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {per lisens} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {per lisens} other {}}',
-            freeLabel: 'Fri',
-            freeAriaLabel: 'Fri',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {ekskl. GST} VAT {ekskl. moms} TAX {ekskl. avgift} IVA {ekskl. IVA} SST {ekskl. SST} KDV {ekskl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {inkl. GST} VAT {inkl. moms} TAX {inkl. avgift} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Alternativt til {alternativePrice}',
-            strikethroughAriaLabel: 'Regelmessig til {strikethroughPrice}',
+            "lang": "nb",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mnd.} YEAR {/år} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per måned} YEAR {per år} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {per lisens} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {per lisens} other {}}",
+            "freeLabel": "Fri",
+            "freeAriaLabel": "Fri",
+            "taxExclusiveLabel": "{taxTerm, select, GST {ekskl. GST} VAT {ekskl. moms} TAX {ekskl. avgift} IVA {ekskl. IVA} SST {ekskl. SST} KDV {ekskl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. moms} TAX {inkl. avgift} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Alternativt til {alternativePrice}",
+            "strikethroughAriaLabel": "Regelmessig til {strikethroughPrice}"
         },
         {
-            lang: 'nl',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mnd} YEAR {/jr} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per maand} YEAR {per jaar} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {per licentie} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {per licentie} other {}}',
-            freeLabel: 'Gratis',
-            freeAriaLabel: 'Gratis',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. btw} TAX {excl. belasting} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. btw} TAX {incl. belasting} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Nu {alternativePrice}',
-            strikethroughAriaLabel: 'Normaal {strikethroughPrice}',
+            "lang": "nl",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mnd} YEAR {/jr} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per maand} YEAR {per jaar} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {per licentie} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {per licentie} other {}}",
+            "freeLabel": "Gratis",
+            "freeAriaLabel": "Gratis",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. btw} TAX {excl. belasting} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. btw} TAX {incl. belasting} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Nu {alternativePrice}",
+            "strikethroughAriaLabel": "Normaal {strikethroughPrice}"
         },
         {
-            lang: 'pl',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH { / mies.} YEAR { / rok} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH { / miesiąc} YEAR { / rok} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {za licencję} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {za licencję} other {}}',
-            freeLabel: 'Bezpłatne',
-            freeAriaLabel: 'Bezpłatne',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {bez GST} VAT {bez VAT} TAX {netto} IVA {bez IVA} SST {bez SST} KDV {bez KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {z GST} VAT {z VAT} TAX {brutto} IVA {z IVA} SST {z SST} KDV {z KDV} other {}}',
-            alternativePriceAriaLabel: 'Lub za {alternativePrice}',
-            strikethroughAriaLabel: 'Cena zwykła: {strikethroughPrice}',
+            "lang": "pl",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH { / mies.} YEAR { / rok} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH { / miesiąc} YEAR { / rok} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {za licencję} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {za licencję} other {}}",
+            "freeLabel": "Bezpłatne",
+            "freeAriaLabel": "Bezpłatne",
+            "taxExclusiveLabel": "{taxTerm, select, GST {bez GST} VAT {bez VAT} TAX {netto} IVA {bez IVA} SST {bez SST} KDV {bez KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {z GST} VAT {z VAT} TAX {brutto} IVA {z IVA} SST {z SST} KDV {z KDV} other {}}",
+            "alternativePriceAriaLabel": "Lub za {alternativePrice}",
+            "strikethroughAriaLabel": "Cena zwykła: {strikethroughPrice}"
         },
         {
-            lang: 'pt',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mês} YEAR {/ano} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {por mês} YEAR {por ano} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {por licença} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {por licença} other {}}',
-            freeLabel: 'Gratuito',
-            freeAriaLabel: 'Gratuito',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {ICMS não incluso} VAT {IVA não incluso} TAX {impostos não inclusos} IVA {IVA não incluso} SST { SST não incluso} KDV {KDV não incluso} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {ICMS incluso} VAT {IVA incluso} TAX {impostos inclusos} IVA {IVA incluso} SST {SST incluso} KDV {KDV incluso} other {}}',
-            alternativePriceAriaLabel: 'Ou a {alternativePrice}',
-            strikethroughAriaLabel: 'Preço normal: {strikethroughPrice}',
+            "lang": "pt",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mês} YEAR {/ano} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {por mês} YEAR {por ano} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {por licença} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {por licença} other {}}",
+            "freeLabel": "Gratuito",
+            "freeAriaLabel": "Gratuito",
+            "taxExclusiveLabel": "{taxTerm, select, GST {ICMS não incluso} VAT {IVA não incluso} TAX {impostos não inclusos} IVA {IVA não incluso} SST { SST não incluso} KDV {KDV não incluso} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {ICMS incluso} VAT {IVA incluso} TAX {impostos inclusos} IVA {IVA incluso} SST {SST incluso} KDV {KDV incluso} other {}}",
+            "alternativePriceAriaLabel": "Ou a {alternativePrice}",
+            "strikethroughAriaLabel": "Preço normal: {strikethroughPrice}"
         },
         {
-            lang: 'ro',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/lună} YEAR {/an} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {pe lună} YEAR {pe an} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {pe licență} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {pe licență} other {}}',
-            freeLabel: 'Gratuit',
-            freeAriaLabel: 'Gratuit',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Alternativ, la {alternativePrice}',
-            strikethroughAriaLabel: 'În mod normal, la {strikethroughPrice}',
+            "lang": "ro",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/lună} YEAR {/an} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {pe lună} YEAR {pe an} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {pe licență} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {pe licență} other {}}",
+            "freeLabel": "Gratuit",
+            "freeAriaLabel": "Gratuit",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Alternativ, la {alternativePrice}",
+            "strikethroughAriaLabel": "În mod normal, la {strikethroughPrice}"
         },
         {
-            lang: 'ru',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/мес.} YEAR {/г.} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {в месяц} YEAR {в год} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {за лицензию} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {за лицензию} other {}}',
-            freeLabel: 'Бесплатно',
-            freeAriaLabel: 'Бесплатно',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {искл. налог на товары и услуги} VAT {искл. НДС} TAX {искл. налог} IVA {искл. ИВА} SST {искл. SST} KDV {искл. КДВ} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {вкл. налог на товары и услуги} VAT {вкл. НДС} TAX {вкл. налог} IVA {вкл. ИВА} SST {вкл. SST} KDV {вкл. КДВ} other {}}',
-            alternativePriceAriaLabel:
-                'Альтернативный вариант за {alternativePrice}',
-            strikethroughAriaLabel: 'Регулярно по цене {strikethroughPrice}',
+            "lang": "ru",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/мес.} YEAR {/г.} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {в месяц} YEAR {в год} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {за лицензию} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {за лицензию} other {}}",
+            "freeLabel": "Бесплатно",
+            "freeAriaLabel": "Бесплатно",
+            "taxExclusiveLabel": "{taxTerm, select, GST {искл. налог на товары и услуги} VAT {искл. НДС} TAX {искл. налог} IVA {искл. ИВА} SST {искл. SST} KDV {искл. КДВ} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {вкл. налог на товары и услуги} VAT {вкл. НДС} TAX {вкл. налог} IVA {вкл. ИВА} SST {вкл. SST} KDV {вкл. КДВ} other {}}",
+            "alternativePriceAriaLabel": "Альтернативный вариант за {alternativePrice}",
+            "strikethroughAriaLabel": "Регулярно по цене {strikethroughPrice}"
         },
         {
-            lang: 'sk',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mesiac} YEAR {/rok} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {za mesiac} YEAR {za rok} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {za licenciu} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {za licenciu} other {}}',
-            freeLabel: 'Zadarmo',
-            freeAriaLabel: 'Zadarmo',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Prípadne za {alternativePrice}',
-            strikethroughAriaLabel: 'Pravidelne za {strikethroughPrice}',
+            "lang": "sk",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mesiac} YEAR {/rok} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {za mesiac} YEAR {za rok} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {za licenciu} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {za licenciu} other {}}",
+            "freeLabel": "Zadarmo",
+            "freeAriaLabel": "Zadarmo",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Prípadne za {alternativePrice}",
+            "strikethroughAriaLabel": "Pravidelne za {strikethroughPrice}"
         },
         {
-            lang: 'sl',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mesec} YEAR {/leto} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {na mesec} YEAR {na leto} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {na licenco} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {na licenco} other {}}',
-            freeLabel: 'Brezplačno',
-            freeAriaLabel: 'Brezplačno',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Druga možnost je: {alternativePrice}',
-            strikethroughAriaLabel: 'Redno po {strikethroughPrice}',
+            "lang": "sl",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mesec} YEAR {/leto} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {na mesec} YEAR {na leto} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {na licenco} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {na licenco} other {}}",
+            "freeLabel": "Brezplačno",
+            "freeAriaLabel": "Brezplačno",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Druga možnost je: {alternativePrice}",
+            "strikethroughAriaLabel": "Redno po {strikethroughPrice}"
         },
         {
-            lang: 'sv',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mån} YEAR {/år} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per månad} YEAR {per år} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {per licens} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {per licens} other {}}',
-            freeLabel: 'Kostnadsfritt',
-            freeAriaLabel: 'Kostnadsfritt',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {exkl. GST} VAT {exkl. moms} TAX {exkl. skatt} IVA {exkl. IVA} SST {exkl. SST} KDV {exkl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {inkl. GST} VAT {inkl. moms} TAX {inkl. skatt} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}',
-            alternativePriceAriaLabel: 'Alternativt för {alternativePrice}',
-            strikethroughAriaLabel: 'Normalpris {strikethroughPrice}',
+            "lang": "sv",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mån} YEAR {/år} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per månad} YEAR {per år} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {per licens} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {per licens} other {}}",
+            "freeLabel": "Kostnadsfritt",
+            "freeAriaLabel": "Kostnadsfritt",
+            "taxExclusiveLabel": "{taxTerm, select, GST {exkl. GST} VAT {exkl. moms} TAX {exkl. skatt} IVA {exkl. IVA} SST {exkl. SST} KDV {exkl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. moms} TAX {inkl. skatt} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
+            "alternativePriceAriaLabel": "Alternativt för {alternativePrice}",
+            "strikethroughAriaLabel": "Normalpris {strikethroughPrice}"
         },
         {
-            lang: 'tr',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/ay} YEAR {/yıl} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {(aylık)} YEAR {(yıllık)} other {}}',
-            perUnitLabel:
-                '{perUnit, select, LICENSE {(lisans başına)} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {(lisans başına)} other {}}',
-            freeLabel: 'Ücretsiz',
-            freeAriaLabel: 'Ücretsiz',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {GST hariç} VAT {KDV hariç} TAX {vergi hariç} IVA {IVA hariç} SST {SST hariç} KDV {KDV hariç} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {GST dahil} VAT {KDV dahil} TAX {vergi dahil} IVA {IVA dahil} SST {SST dahil} KDV {KDV dahil} other {}}',
-            alternativePriceAriaLabel: 'Ya da {alternativePrice}',
-            strikethroughAriaLabel: 'Standart fiyat: {strikethroughPrice}',
+            "lang": "tr",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/ay} YEAR {/yıl} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {(aylık)} YEAR {(yıllık)} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {(lisans başına)} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {(lisans başına)} other {}}",
+            "freeLabel": "Ücretsiz",
+            "freeAriaLabel": "Ücretsiz",
+            "taxExclusiveLabel": "{taxTerm, select, GST {GST hariç} VAT {KDV hariç} TAX {vergi hariç} IVA {IVA hariç} SST {SST hariç} KDV {KDV hariç} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {GST dahil} VAT {KDV dahil} TAX {vergi dahil} IVA {IVA dahil} SST {SST dahil} KDV {KDV dahil} other {}}",
+            "alternativePriceAriaLabel": "Ya da {alternativePrice}",
+            "strikethroughAriaLabel": "Standart fiyat: {strikethroughPrice}"
         },
         {
-            lang: 'uk',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/міс.} YEAR {/рік} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {на місяць} YEAR {на рік} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {за ліцензію} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {за ліцензію} other {}}',
-            freeLabel: 'Безкоштовно',
-            freeAriaLabel: 'Безкоштовно',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {без GST} VAT {без ПДВ} TAX {без податку} IVA {без IVA} SST {без SST} KDV {без KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {разом із GST} VAT {разом із ПДВ} TAX {разом із податком} IVA {разом з IVA} SST {разом із SST} KDV {разом із KDV} other {}}',
-            alternativePriceAriaLabel: 'Або за {alternativePrice}',
-            strikethroughAriaLabel: 'Звичайна ціна {strikethroughPrice}',
+            "lang": "uk",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/міс.} YEAR {/рік} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {на місяць} YEAR {на рік} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {за ліцензію} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {за ліцензію} other {}}",
+            "freeLabel": "Безкоштовно",
+            "freeAriaLabel": "Безкоштовно",
+            "taxExclusiveLabel": "{taxTerm, select, GST {без GST} VAT {без ПДВ} TAX {без податку} IVA {без IVA} SST {без SST} KDV {без KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {разом із GST} VAT {разом із ПДВ} TAX {разом із податком} IVA {разом з IVA} SST {разом із SST} KDV {разом із KDV} other {}}",
+            "alternativePriceAriaLabel": "Або за {alternativePrice}",
+            "strikethroughAriaLabel": "Звичайна ціна {strikethroughPrice}"
         },
         {
-            lang: 'zh-hans',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/月} YEAR {/年} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {每月} YEAR {每年} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {每个许可证} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {每个许可证} other {}}',
-            freeLabel: '免费',
-            freeAriaLabel: '免费',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-            alternativePriceAriaLabel: '或定价 {alternativePrice}',
-            strikethroughAriaLabel: '正常价 {strikethroughPrice}',
+            "lang": "zh-hans",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/月} YEAR {/年} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {每月} YEAR {每年} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {每个许可证} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {每个许可证} other {}}",
+            "freeLabel": "免费",
+            "freeAriaLabel": "免费",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "alternativePriceAriaLabel": "或定价 {alternativePrice}",
+            "strikethroughAriaLabel": "正常价 {strikethroughPrice}"
         },
         {
-            lang: 'zh-hant',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/月} YEAR {/年} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {每月} YEAR {每年} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {每個授權} other {}}',
-            perUnitAriaLabel: '{perUnit, select, LICENSE {每個授權} other {}}',
-            freeLabel: '免費',
-            freeAriaLabel: '免費',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {不含 GST} VAT {不含 VAT} TAX {不含稅} IVA {不含 IVA} SST {不含 SST} KDV {不含 KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {含 GST} VAT {含 VAT} TAX {含稅} IVA {含 IVA} SST {含 SST} KDV {含 KDV} other {}}',
-            alternativePriceAriaLabel: '或者在 {alternativePrice}',
-            strikethroughAriaLabel: '標準價格為 {strikethroughPrice}',
+            "lang": "zh-hant",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/月} YEAR {/年} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {每月} YEAR {每年} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {每個授權} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {每個授權} other {}}",
+            "freeLabel": "免費",
+            "freeAriaLabel": "免費",
+            "taxExclusiveLabel": "{taxTerm, select, GST {不含 GST} VAT {不含 VAT} TAX {不含稅} IVA {不含 IVA} SST {不含 SST} KDV {不含 KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {含 GST} VAT {含 VAT} TAX {含稅} IVA {含 IVA} SST {含 SST} KDV {含 KDV} other {}}",
+            "alternativePriceAriaLabel": "或者在 {alternativePrice}",
+            "strikethroughAriaLabel": "標準價格為 {strikethroughPrice}"
         },
         {
-            lang: 'es',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/mes} YEAR {/año} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {al mes} YEAR {al año} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {por licencia} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {por licencia} other {}}',
-            freeLabel: 'Gratuito',
-            freeAriaLabel: 'Gratuito',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {GST no incluido} VAT {IVA no incluido} TAX {Impuestos no incluidos} IVA {IVA no incluido} SST {SST no incluido} KDV {KDV no incluido} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {GST incluido} VAT {IVA incluido} TAX {Impuestos incluidos} IVA {IVA incluido} SST {SST incluido} KDV {KDV incluido} other {}}',
-            alternativePriceAriaLabel:
-                'Alternativamente por {alternativePrice}',
-            strikethroughAriaLabel: 'Normalmente a {strikethroughPrice}',
+            "lang": "es",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/mes} YEAR {/año} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {al mes} YEAR {al año} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {por licencia} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {por licencia} other {}}",
+            "freeLabel": "Gratuito",
+            "freeAriaLabel": "Gratuito",
+            "taxExclusiveLabel": "{taxTerm, select, GST {GST no incluido} VAT {IVA no incluido} TAX {Impuestos no incluidos} IVA {IVA no incluido} SST {SST no incluido} KDV {KDV no incluido} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {GST incluido} VAT {IVA incluido} TAX {Impuestos incluidos} IVA {IVA incluido} SST {SST incluido} KDV {KDV incluido} other {}}",
+            "alternativePriceAriaLabel": "Alternativamente por {alternativePrice}",
+            "strikethroughAriaLabel": "Normalmente a {strikethroughPrice}"
         },
         {
-            lang: 'in',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/bulan} YEAR {/tahun} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per bulan} YEAR {per tahun} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {per lisensi} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {per lisensi} other {}}',
-            freeLabel: 'Gratis',
-            freeAriaLabel: 'Gratis',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {tidak termasuk PBJ} VAT {tidak termasuk PPN} TAX {tidak termasuk pajak} IVA {tidak termasuk IVA} SST {tidak termasuk SST} KDV {tidak termasuk KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {termasuk PBJ} VAT {termasuk PPN} TAX {termasuk pajak} IVA {termasuk IVA} SST {termasuk SST} KDV {termasuk KDV} other {}}',
-            alternativePriceAriaLabel: 'Atau seharga {alternativePrice}',
-            strikethroughAriaLabel: 'Normalnya seharga {strikethroughPrice}',
+            "lang": "in",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/bulan} YEAR {/tahun} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per bulan} YEAR {per tahun} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {per lisensi} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {per lisensi} other {}}",
+            "freeLabel": "Gratis",
+            "freeAriaLabel": "Gratis",
+            "taxExclusiveLabel": "{taxTerm, select, GST {tidak termasuk PBJ} VAT {tidak termasuk PPN} TAX {tidak termasuk pajak} IVA {tidak termasuk IVA} SST {tidak termasuk SST} KDV {tidak termasuk KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {termasuk PBJ} VAT {termasuk PPN} TAX {termasuk pajak} IVA {termasuk IVA} SST {termasuk SST} KDV {termasuk KDV} other {}}",
+            "alternativePriceAriaLabel": "Atau seharga {alternativePrice}",
+            "strikethroughAriaLabel": "Normalnya seharga {strikethroughPrice}"
         },
         {
-            lang: 'vi',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/tháng} YEAR {/năm} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {mỗi tháng} YEAR {mỗi năm} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {mỗi giấy phép} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {mỗi giấy phép} other {}}',
-            freeLabel: 'Miễn phí',
-            freeAriaLabel: 'Miễn phí',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {chưa bao gồm thuế hàng hóa và dịch vụ} VAT {chưa bao gồm thuế GTGT} TAX {chưa bao gồm thuế} IVA {chưa bao gồm IVA} SST {chưa bao gồm SST} KDV {chưa bao gồm KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {(đã bao gồm thuế hàng hóa và dịch vụ)} VAT {(đã bao gồm thuế GTGT)} TAX {(đã bao gồm thuế)} IVA {(đã bao gồm IVA)} SST {(đã bao gồm SST)} KDV {(đã bao gồm KDV)} other {}}',
-            alternativePriceAriaLabel: 'Giá ưu đãi {alternativePrice}',
-            strikethroughAriaLabel: 'Giá thông thường {strikethroughPrice}',
+            "lang": "vi",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/tháng} YEAR {/năm} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {mỗi tháng} YEAR {mỗi năm} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {mỗi giấy phép} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {mỗi giấy phép} other {}}",
+            "freeLabel": "Miễn phí",
+            "freeAriaLabel": "Miễn phí",
+            "taxExclusiveLabel": "{taxTerm, select, GST {chưa bao gồm thuế hàng hóa và dịch vụ} VAT {chưa bao gồm thuế GTGT} TAX {chưa bao gồm thuế} IVA {chưa bao gồm IVA} SST {chưa bao gồm SST} KDV {chưa bao gồm KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {(đã bao gồm thuế hàng hóa và dịch vụ)} VAT {(đã bao gồm thuế GTGT)} TAX {(đã bao gồm thuế)} IVA {(đã bao gồm IVA)} SST {(đã bao gồm SST)} KDV {(đã bao gồm KDV)} other {}}",
+            "alternativePriceAriaLabel": "Giá ưu đãi {alternativePrice}",
+            "strikethroughAriaLabel": "Giá thông thường {strikethroughPrice}"
         },
         {
-            lang: 'th',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/เดือน} YEAR {/ปี} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {ต่อเดือน} YEAR {ต่อปี} other {}}',
-            perUnitLabel:
-                '{perUnit, select, LICENSE {ต่อสิทธิ์การใช้งาน} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {ต่อสิทธิ์การใช้งาน} other {}}',
-            freeLabel: 'ฟรี',
-            freeAriaLabel: 'ฟรี',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {ไม่รวมภาษี GST} VAT {ไม่รวม VAT} TAX {ไม่รวมภาษี} IVA {ไม่รวม IVA} SST {ไม่รวม SST} KDV {ไม่รวม KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {รวมภาษี GST} VAT {รวม VAT} TAX {รวมภาษี} IVA {รวม IVA} SST {รวม SST} KDV {รวม KDV} other {}}',
-            alternativePriceAriaLabel: 'ราคาพิเศษ {alternativePrice}',
-            strikethroughAriaLabel: 'ราคาปกติ {strikethroughPrice}',
+            "lang": "th",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/เดือน} YEAR {/ปี} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {ต่อเดือน} YEAR {ต่อปี} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {ต่อสิทธิ์การใช้งาน} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {ต่อสิทธิ์การใช้งาน} other {}}",
+            "freeLabel": "ฟรี",
+            "freeAriaLabel": "ฟรี",
+            "taxExclusiveLabel": "{taxTerm, select, GST {ไม่รวมภาษี GST} VAT {ไม่รวม VAT} TAX {ไม่รวมภาษี} IVA {ไม่รวม IVA} SST {ไม่รวม SST} KDV {ไม่รวม KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {รวมภาษี GST} VAT {รวม VAT} TAX {รวมภาษี} IVA {รวม IVA} SST {รวม SST} KDV {รวม KDV} other {}}",
+            "alternativePriceAriaLabel": "ราคาพิเศษ {alternativePrice}",
+            "strikethroughAriaLabel": "ราคาปกติ {strikethroughPrice}"
         },
         {
-            lang: 'el',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/μήνα} YEAR {/έτος} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {κάθε μήνα} YEAR {ανά έτος} other {}}',
-            perUnitLabel:
-                '{perUnit, select, LICENSE {ανά άδεια χρήσης} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {ανά άδεια χρήσης} other {}}',
-            freeLabel: 'Δωρεάν',
-            freeAriaLabel: 'Δωρεάν',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {(μη συμπεριλαμβανομένου GST)} VAT {(μη συμπεριλαμβανομένου ΦΠΑ)} TAX {(μη συμπεριλαμβανομένου φόρο)} IVA {(μη συμπεριλαμβανομένου IVA)} SST {(μη συμπεριλαμβανομένου SST)} KDV {(μη συμπεριλαμβανομένου KDV)} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {(συμπεριλαμβανομένου του GST)} VAT {(συμπεριλαμβανομένου ΦΠΑ)} TAX {(συμπεριλαμβανομένου του φόρου)} IVA {(συμπεριλαμβανομένου του IVA)} SST {(συμπεριλαμβανομένου του SST)} KDV {(συμπεριλαμβανομένου του KDV)} other {}}',
-            alternativePriceAriaLabel: 'Διαφορετικά, {alternativePrice}',
-            strikethroughAriaLabel: 'Κανονική τιμή {strikethroughPrice}',
+            "lang": "el",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/μήνα} YEAR {/έτος} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {κάθε μήνα} YEAR {ανά έτος} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {ανά άδεια χρήσης} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {ανά άδεια χρήσης} other {}}",
+            "freeLabel": "Δωρεάν",
+            "freeAriaLabel": "Δωρεάν",
+            "taxExclusiveLabel": "{taxTerm, select, GST {(μη συμπεριλαμβανομένου GST)} VAT {(μη συμπεριλαμβανομένου ΦΠΑ)} TAX {(μη συμπεριλαμβανομένου φόρο)} IVA {(μη συμπεριλαμβανομένου IVA)} SST {(μη συμπεριλαμβανομένου SST)} KDV {(μη συμπεριλαμβανομένου KDV)} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {(συμπεριλαμβανομένου του GST)} VAT {(συμπεριλαμβανομένου ΦΠΑ)} TAX {(συμπεριλαμβανομένου του φόρου)} IVA {(συμπεριλαμβανομένου του IVA)} SST {(συμπεριλαμβανομένου του SST)} KDV {(συμπεριλαμβανομένου του KDV)} other {}}",
+            "alternativePriceAriaLabel": "Διαφορετικά, {alternativePrice}",
+            "strikethroughAriaLabel": "Κανονική τιμή {strikethroughPrice}"
         },
         {
-            lang: 'fil',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/buwan} YEAR {/taon} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per buwan} YEAR {per taon} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {kada lisensya} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {kada lisensya} other {}}',
-            freeLabel: 'Libre',
-            freeAriaLabel: 'Libre',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {hindi kasama ang GST} VAT {hindi kasama ang VAT} TAX {hindi kasama ang Buwis} IVA {hindi kasama ang IVA} SST {hindi kasama ang SST} KDV {hindi kasama ang KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {kasama ang GST} VAT {kasama ang VAT} TAX {kasama ang Buwis} IVA {kasama ang IVA} SST {kasama ang SST} KDV {kasama ang KDV} other {}}',
-            alternativePriceAriaLabel:
-                'Alternatibong nasa halagang {alternativePrice}',
-            strikethroughAriaLabel:
-                'Regular na nasa halagang {strikethroughPrice}',
+            "lang": "fil",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/buwan} YEAR {/taon} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per buwan} YEAR {per taon} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {kada lisensya} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {kada lisensya} other {}}",
+            "freeLabel": "Libre",
+            "freeAriaLabel": "Libre",
+            "taxExclusiveLabel": "{taxTerm, select, GST {hindi kasama ang GST} VAT {hindi kasama ang VAT} TAX {hindi kasama ang Buwis} IVA {hindi kasama ang IVA} SST {hindi kasama ang SST} KDV {hindi kasama ang KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {kasama ang GST} VAT {kasama ang VAT} TAX {kasama ang Buwis} IVA {kasama ang IVA} SST {kasama ang SST} KDV {kasama ang KDV} other {}}",
+            "alternativePriceAriaLabel": "Alternatibong nasa halagang {alternativePrice}",
+            "strikethroughAriaLabel": "Regular na nasa halagang {strikethroughPrice}"
         },
         {
-            lang: 'ms',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/bulan} YEAR {/tahun} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per bulan} YEAR {per tahun} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {setiap lesen} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {setiap lesen} other {}}',
-            freeLabel: 'Percuma',
-            freeAriaLabel: 'Percuma',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {kecuali GST} VAT {kecuali VAT} TAX {kecuali Cukai} IVA {kecuali IVA} SST {kecuali SST} KDV {kecuali KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {termasuk GST} VAT {termasuk VAT} TAX {termasuk Cukai} IVA {termasuk IVA} SST {termasuk SST} KDV {termasuk KDV} other {}}',
-            alternativePriceAriaLabel:
-                'Secara alternatif pada {alternativePrice}',
-            strikethroughAriaLabel: 'Biasanya pada {strikethroughPrice}',
+            "lang": "ms",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/bulan} YEAR {/tahun} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per bulan} YEAR {per tahun} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {setiap lesen} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {setiap lesen} other {}}",
+            "freeLabel": "Percuma",
+            "freeAriaLabel": "Percuma",
+            "taxExclusiveLabel": "{taxTerm, select, GST {kecuali GST} VAT {kecuali VAT} TAX {kecuali Cukai} IVA {kecuali IVA} SST {kecuali SST} KDV {kecuali KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {termasuk GST} VAT {termasuk VAT} TAX {termasuk Cukai} IVA {termasuk IVA} SST {termasuk SST} KDV {termasuk KDV} other {}}",
+            "alternativePriceAriaLabel": "Secara alternatif pada {alternativePrice}",
+            "strikethroughAriaLabel": "Biasanya pada {strikethroughPrice}"
         },
         {
-            lang: 'hi',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/माह} YEAR {/वर्ष} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {per माह} YEAR {per वर्ष} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {प्रति लाइसेंस} other {}}',
-            perUnitAriaLabel:
-                '{perUnit, select, LICENSE {प्रति लाइसेंस} other {}}',
-            freeLabel: 'फ़्री',
-            freeAriaLabel: 'फ़्री',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {GST अतिरिक्त} VAT {VAT अतिरिक्त} TAX {कर अतिरिक्त} IVA {IVA अतिरिक्त} SST {SST अतिरिक्त} KDV {KDV अतिरिक्त} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {GST सहित} VAT {VAT सहित} TAX {कर सहित} IVA {IVA सहित} SST {SST सहित} KDV {KDV सहित} other {}}',
-            alternativePriceAriaLabel:
-                'वैकल्पिक रूप से इस पर {alternativePrice}',
-            strikethroughAriaLabel: 'नियमित रूप से इस पर {strikethroughPrice}',
+            "lang": "hi",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/माह} YEAR {/वर्ष} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {per माह} YEAR {per वर्ष} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {प्रति लाइसेंस} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {प्रति लाइसेंस} other {}}",
+            "freeLabel": "फ़्री",
+            "freeAriaLabel": "फ़्री",
+            "taxExclusiveLabel": "{taxTerm, select, GST {GST अतिरिक्त} VAT {VAT अतिरिक्त} TAX {कर अतिरिक्त} IVA {IVA अतिरिक्त} SST {SST अतिरिक्त} KDV {KDV अतिरिक्त} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {GST सहित} VAT {VAT सहित} TAX {कर सहित} IVA {IVA सहित} SST {SST सहित} KDV {KDV सहित} other {}}",
+            "alternativePriceAriaLabel": "वैकल्पिक रूप से इस पर {alternativePrice}",
+            "strikethroughAriaLabel": "नियमित रूप से इस पर {strikethroughPrice}"
         },
         {
-            lang: 'iw',
-            recurrenceLabel:
-                '{recurrenceTerm, select, MONTH {/חודש} YEAR {/שנה} other {}}',
-            recurrenceAriaLabel:
-                '{recurrenceTerm, select, MONTH {לחודש} YEAR {לשנה} other {}}',
-            perUnitLabel: '{perUnit, select, LICENSE {לרישיון} other {}}',
-            perUnitAriaLabel: '{perUnit, select, LICENSE {לרישיון} other {}}',
-            freeLabel: 'חינם',
-            freeAriaLabel: 'חינם',
-            taxExclusiveLabel:
-                '{taxTerm, select, GST {ללא GST} VAT {ללא מע"מ} TAX {ללא מס} IVA {ללא IVA} SST {ללא SST} KDV {ללא KDV} other {}}',
-            taxInclusiveLabel:
-                '{taxTerm, select, GST {כולל GST} VAT {כולל מע"מ} TAX {כולל מס} IVA {כולל IVA} SST {כולל SST} KDV {כולל KDV} other {}}',
-            alternativePriceAriaLabel: 'לחלופין ב-{alternativePrice}',
-            strikethroughAriaLabel: 'באופן קבוע ב-{strikethroughPrice}',
-        },
+            "lang": "iw",
+            "recurrenceLabel": "{recurrenceTerm, select, MONTH {/חודש} YEAR {/שנה} other {}}",
+            "recurrenceAriaLabel": "{recurrenceTerm, select, MONTH {לחודש} YEAR {לשנה} other {}}",
+            "perUnitLabel": "{perUnit, select, LICENSE {לרישיון} other {}}",
+            "perUnitAriaLabel": "{perUnit, select, LICENSE {לרישיון} other {}}",
+            "freeLabel": "חינם",
+            "freeAriaLabel": "חינם",
+            "taxExclusiveLabel": "{taxTerm, select, GST {ללא GST} VAT {ללא מע\"מ} TAX {ללא מס} IVA {ללא IVA} SST {ללא SST} KDV {ללא KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {כולל GST} VAT {כולל מע\"מ} TAX {כולל מס} IVA {כולל IVA} SST {כולל SST} KDV {כולל KDV} other {}}",
+            "alternativePriceAriaLabel": "לחלופין ב-{alternativePrice}",
+            "strikethroughAriaLabel": "באופן קבוע ב-{strikethroughPrice}"
+        }
     ],
-    ':type': 'sheet',
-}.data;
-var Oo = Object.defineProperty;
-var Mo = (e) => {
-    throw TypeError(e);
-};
-var jc = (e, t, r) =>
-    t in e
-        ? Oo(e, t, { enumerable: !0, configurable: !0, writable: !0, value: r })
-        : (e[t] = r);
-var Ye = (e, t) => () => (e && (t = e((e = 0))), t);
-var No = (e, t) => {
-    for (var r in t) Oo(e, r, { get: t[r], enumerable: !0 });
-};
-var u = (e, t, r) => jc(e, typeof t != 'symbol' ? t + '' : t, r),
-    Fi = (e, t, r) => t.has(e) || Mo('Cannot ' + r);
-var h = (e, t, r) => (
-        Fi(e, t, 'read from private field'), r ? r.call(e) : t.get(e)
-    ),
-    E = (e, t, r) =>
-        t.has(e)
-            ? Mo('Cannot add the same private member more than once')
-            : t instanceof WeakSet
-              ? t.add(e)
-              : t.set(e, r),
-    v = (e, t, r, i) => (
-        Fi(e, t, 'write to private field'), i ? i.call(e, r) : t.set(e, r), r
-    ),
-    Q = (e, t, r) => (Fi(e, t, 'access private method'), r);
-var Io = (e, t, r, i) => ({
-    set _(n) {
-        v(e, t, n, r);
-    },
-    get _() {
-        return h(e, t, i);
-    },
-});
-var fi,
-    gi,
-    Kn,
-    Ts,
-    Ar,
-    Ve,
-    y,
-    Qn,
-    xi,
-    Zn = Ye(() => {
-        (fi = window),
-            (gi =
-                fi.ShadowRoot &&
-                (fi.ShadyCSS === void 0 || fi.ShadyCSS.nativeShadow) &&
-                'adoptedStyleSheets' in Document.prototype &&
-                'replace' in CSSStyleSheet.prototype),
-            (Kn = Symbol()),
-            (Ts = new WeakMap()),
-            (Ar = class {
-                constructor(t, r, i) {
-                    if (((this._$cssResult$ = !0), i !== Kn))
-                        throw Error(
-                            'CSSResult is not constructable. Use `unsafeCSS` or `css` instead.',
-                        );
-                    (this.cssText = t), (this.t = r);
-                }
-                get styleSheet() {
-                    let t = this.o,
-                        r = this.t;
-                    if (gi && t === void 0) {
-                        let i = r !== void 0 && r.length === 1;
-                        i && (t = Ts.get(r)),
-                            t === void 0 &&
-                                ((this.o = t = new CSSStyleSheet()).replaceSync(
-                                    this.cssText,
-                                ),
-                                i && Ts.set(r, t));
-                    }
-                    return t;
-                }
-                toString() {
-                    return this.cssText;
-                }
-            }),
-            (Ve = (e) => new Ar(typeof e == 'string' ? e : e + '', void 0, Kn)),
-            (y = (e, ...t) => {
-                let r =
-                    e.length === 1
-                        ? e[0]
-                        : t.reduce(
-                              (i, n, o) =>
-                                  i +
-                                  ((a) => {
-                                      if (a._$cssResult$ === !0)
-                                          return a.cssText;
-                                      if (typeof a == 'number') return a;
-                                      throw Error(
-                                          "Value passed to 'css' function must be a 'css' function result: " +
-                                              a +
-                                              ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.",
-                                      );
-                                  })(n) +
-                                  e[o + 1],
-                              e[0],
-                          );
-                return new Ar(r, e, Kn);
-            }),
-            (Qn = (e, t) => {
-                gi
-                    ? (e.adoptedStyleSheets = t.map((r) =>
-                          r instanceof CSSStyleSheet ? r : r.styleSheet,
-                      ))
-                    : t.forEach((r) => {
-                          let i = document.createElement('style'),
-                              n = fi.litNonce;
-                          n !== void 0 && i.setAttribute('nonce', n),
-                              (i.textContent = r.cssText),
-                              e.appendChild(i);
-                      });
-            }),
-            (xi = gi
-                ? (e) => e
-                : (e) =>
-                      e instanceof CSSStyleSheet
-                          ? ((t) => {
-                                let r = '';
-                                for (let i of t.cssRules) r += i.cssText;
-                                return Ve(r);
-                            })(e)
-                          : e);
-    });
-var Jn,
-    bi,
-    Cs,
-    Zd,
-    ks,
-    to,
-    Ps,
-    eo,
-    ro,
-    Ne,
-    vi = Ye(() => {
-        Zn();
-        Zn();
-        (bi = window),
-            (Cs = bi.trustedTypes),
-            (Zd = Cs ? Cs.emptyScript : ''),
-            (ks = bi.reactiveElementPolyfillSupport),
-            (to = {
-                toAttribute(e, t) {
-                    switch (t) {
-                        case Boolean:
-                            e = e ? Zd : null;
-                            break;
-                        case Object:
-                        case Array:
-                            e = e == null ? e : JSON.stringify(e);
-                    }
-                    return e;
-                },
-                fromAttribute(e, t) {
-                    let r = e;
-                    switch (t) {
-                        case Boolean:
-                            r = e !== null;
-                            break;
-                        case Number:
-                            r = e === null ? null : Number(e);
-                            break;
-                        case Object:
-                        case Array:
-                            try {
-                                r = JSON.parse(e);
-                            } catch {
-                                r = null;
-                            }
-                    }
-                    return r;
-                },
-            }),
-            (Ps = (e, t) => t !== e && (t == t || e == e)),
-            (eo = {
-                attribute: !0,
-                type: String,
-                converter: to,
-                reflect: !1,
-                hasChanged: Ps,
-            }),
-            (ro = 'finalized'),
-            (Ne = class extends HTMLElement {
-                constructor() {
-                    super(),
-                        (this._$Ei = new Map()),
-                        (this.isUpdatePending = !1),
-                        (this.hasUpdated = !1),
-                        (this._$El = null),
-                        this._$Eu();
-                }
-                static addInitializer(t) {
-                    var r;
-                    this.finalize(),
-                        ((r = this.h) !== null && r !== void 0
-                            ? r
-                            : (this.h = [])
-                        ).push(t);
-                }
-                static get observedAttributes() {
-                    this.finalize();
-                    let t = [];
-                    return (
-                        this.elementProperties.forEach((r, i) => {
-                            let n = this._$Ep(i, r);
-                            n !== void 0 && (this._$Ev.set(n, i), t.push(n));
-                        }),
-                        t
-                    );
-                }
-                static createProperty(t, r = eo) {
-                    if (
-                        (r.state && (r.attribute = !1),
-                        this.finalize(),
-                        this.elementProperties.set(t, r),
-                        !r.noAccessor && !this.prototype.hasOwnProperty(t))
-                    ) {
-                        let i = typeof t == 'symbol' ? Symbol() : '__' + t,
-                            n = this.getPropertyDescriptor(t, i, r);
-                        n !== void 0 &&
-                            Object.defineProperty(this.prototype, t, n);
-                    }
-                }
-                static getPropertyDescriptor(t, r, i) {
-                    return {
-                        get() {
-                            return this[r];
-                        },
-                        set(n) {
-                            let o = this[t];
-                            (this[r] = n), this.requestUpdate(t, o, i);
-                        },
-                        configurable: !0,
-                        enumerable: !0,
-                    };
-                }
-                static getPropertyOptions(t) {
-                    return this.elementProperties.get(t) || eo;
-                }
-                static finalize() {
-                    if (this.hasOwnProperty(ro)) return !1;
-                    this[ro] = !0;
-                    let t = Object.getPrototypeOf(this);
-                    if (
-                        (t.finalize(),
-                        t.h !== void 0 && (this.h = [...t.h]),
-                        (this.elementProperties = new Map(t.elementProperties)),
-                        (this._$Ev = new Map()),
-                        this.hasOwnProperty('properties'))
-                    ) {
-                        let r = this.properties,
-                            i = [
-                                ...Object.getOwnPropertyNames(r),
-                                ...Object.getOwnPropertySymbols(r),
-                            ];
-                        for (let n of i) this.createProperty(n, r[n]);
-                    }
-                    return (
-                        (this.elementStyles = this.finalizeStyles(this.styles)),
-                        !0
-                    );
-                }
-                static finalizeStyles(t) {
-                    let r = [];
-                    if (Array.isArray(t)) {
-                        let i = new Set(t.flat(1 / 0).reverse());
-                        for (let n of i) r.unshift(xi(n));
-                    } else t !== void 0 && r.push(xi(t));
-                    return r;
-                }
-                static _$Ep(t, r) {
-                    let i = r.attribute;
-                    return i === !1
-                        ? void 0
-                        : typeof i == 'string'
-                          ? i
-                          : typeof t == 'string'
-                            ? t.toLowerCase()
-                            : void 0;
-                }
-                _$Eu() {
-                    var t;
-                    (this._$E_ = new Promise((r) => (this.enableUpdating = r))),
-                        (this._$AL = new Map()),
-                        this._$Eg(),
-                        this.requestUpdate(),
-                        (t = this.constructor.h) === null ||
-                            t === void 0 ||
-                            t.forEach((r) => r(this));
-                }
-                addController(t) {
-                    var r, i;
-                    ((r = this._$ES) !== null && r !== void 0
-                        ? r
-                        : (this._$ES = [])
-                    ).push(t),
-                        this.renderRoot !== void 0 &&
-                            this.isConnected &&
-                            ((i = t.hostConnected) === null ||
-                                i === void 0 ||
-                                i.call(t));
-                }
-                removeController(t) {
-                    var r;
-                    (r = this._$ES) === null ||
-                        r === void 0 ||
-                        r.splice(this._$ES.indexOf(t) >>> 0, 1);
-                }
-                _$Eg() {
-                    this.constructor.elementProperties.forEach((t, r) => {
-                        this.hasOwnProperty(r) &&
-                            (this._$Ei.set(r, this[r]), delete this[r]);
-                    });
-                }
-                createRenderRoot() {
-                    var t;
-                    let r =
-                        (t = this.shadowRoot) !== null && t !== void 0
-                            ? t
-                            : this.attachShadow(
-                                  this.constructor.shadowRootOptions,
-                              );
-                    return Qn(r, this.constructor.elementStyles), r;
-                }
-                connectedCallback() {
-                    var t;
-                    this.renderRoot === void 0 &&
-                        (this.renderRoot = this.createRenderRoot()),
-                        this.enableUpdating(!0),
-                        (t = this._$ES) === null ||
-                            t === void 0 ||
-                            t.forEach((r) => {
-                                var i;
-                                return (i = r.hostConnected) === null ||
-                                    i === void 0
-                                    ? void 0
-                                    : i.call(r);
-                            });
-                }
-                enableUpdating(t) {}
-                disconnectedCallback() {
-                    var t;
-                    (t = this._$ES) === null ||
-                        t === void 0 ||
-                        t.forEach((r) => {
-                            var i;
-                            return (i = r.hostDisconnected) === null ||
-                                i === void 0
-                                ? void 0
-                                : i.call(r);
-                        });
-                }
-                attributeChangedCallback(t, r, i) {
-                    this._$AK(t, i);
-                }
-                _$EO(t, r, i = eo) {
-                    var n;
-                    let o = this.constructor._$Ep(t, i);
-                    if (o !== void 0 && i.reflect === !0) {
-                        let a = (
-                            ((n = i.converter) === null || n === void 0
-                                ? void 0
-                                : n.toAttribute) !== void 0
-                                ? i.converter
-                                : to
-                        ).toAttribute(r, i.type);
-                        (this._$El = t),
-                            a == null
-                                ? this.removeAttribute(o)
-                                : this.setAttribute(o, a),
-                            (this._$El = null);
-                    }
-                }
-                _$AK(t, r) {
-                    var i;
-                    let n = this.constructor,
-                        o = n._$Ev.get(t);
-                    if (o !== void 0 && this._$El !== o) {
-                        let a = n.getPropertyOptions(o),
-                            s =
-                                typeof a.converter == 'function'
-                                    ? { fromAttribute: a.converter }
-                                    : ((i = a.converter) === null ||
-                                        i === void 0
-                                            ? void 0
-                                            : i.fromAttribute) !== void 0
-                                      ? a.converter
-                                      : to;
-                        (this._$El = o),
-                            (this[o] = s.fromAttribute(r, a.type)),
-                            (this._$El = null);
-                    }
-                }
-                requestUpdate(t, r, i) {
-                    let n = !0;
-                    t !== void 0 &&
-                        ((
-                            (i = i || this.constructor.getPropertyOptions(t))
-                                .hasChanged || Ps
-                        )(this[t], r)
-                            ? (this._$AL.has(t) || this._$AL.set(t, r),
-                              i.reflect === !0 &&
-                                  this._$El !== t &&
-                                  (this._$EC === void 0 &&
-                                      (this._$EC = new Map()),
-                                  this._$EC.set(t, i)))
-                            : (n = !1)),
-                        !this.isUpdatePending && n && (this._$E_ = this._$Ej());
-                }
-                async _$Ej() {
-                    this.isUpdatePending = !0;
-                    try {
-                        await this._$E_;
-                    } catch (r) {
-                        Promise.reject(r);
-                    }
-                    let t = this.scheduleUpdate();
-                    return t != null && (await t), !this.isUpdatePending;
-                }
-                scheduleUpdate() {
-                    return this.performUpdate();
-                }
-                performUpdate() {
-                    var t;
-                    if (!this.isUpdatePending) return;
-                    this.hasUpdated,
-                        this._$Ei &&
-                            (this._$Ei.forEach((n, o) => (this[o] = n)),
-                            (this._$Ei = void 0));
-                    let r = !1,
-                        i = this._$AL;
-                    try {
-                        (r = this.shouldUpdate(i)),
-                            r
-                                ? (this.willUpdate(i),
-                                  (t = this._$ES) === null ||
-                                      t === void 0 ||
-                                      t.forEach((n) => {
-                                          var o;
-                                          return (o = n.hostUpdate) === null ||
-                                              o === void 0
-                                              ? void 0
-                                              : o.call(n);
-                                      }),
-                                  this.update(i))
-                                : this._$Ek();
-                    } catch (n) {
-                        throw ((r = !1), this._$Ek(), n);
-                    }
-                    r && this._$AE(i);
-                }
-                willUpdate(t) {}
-                _$AE(t) {
-                    var r;
-                    (r = this._$ES) === null ||
-                        r === void 0 ||
-                        r.forEach((i) => {
-                            var n;
-                            return (n = i.hostUpdated) === null || n === void 0
-                                ? void 0
-                                : n.call(i);
-                        }),
-                        this.hasUpdated ||
-                            ((this.hasUpdated = !0), this.firstUpdated(t)),
-                        this.updated(t);
-                }
-                _$Ek() {
-                    (this._$AL = new Map()), (this.isUpdatePending = !1);
-                }
-                get updateComplete() {
-                    return this.getUpdateComplete();
-                }
-                getUpdateComplete() {
-                    return this._$E_;
-                }
-                shouldUpdate(t) {
-                    return !0;
-                }
-                update(t) {
-                    this._$EC !== void 0 &&
-                        (this._$EC.forEach((r, i) => this._$EO(i, this[i], r)),
-                        (this._$EC = void 0)),
-                        this._$Ek();
-                }
-                updated(t) {}
-                firstUpdated(t) {}
-            });
-        (Ne[ro] = !0),
-            (Ne.elementProperties = new Map()),
-            (Ne.elementStyles = []),
-            (Ne.shadowRootOptions = { mode: 'open' }),
-            ks?.({ ReactiveElement: Ne }),
-            ((Jn = bi.reactiveElementVersions) !== null && Jn !== void 0
-                ? Jn
-                : (bi.reactiveElementVersions = [])
-            ).push('1.6.3');
-    });
-function zs(e, t) {
-    if (!Array.isArray(e) || !e.hasOwnProperty('raw'))
-        throw Error('invalid template strings array');
-    return Ls !== void 0 ? Ls.createHTML(t) : t;
+    ":type": "sheet"
 }
-function Rt(e, t, r = e, i) {
-    var n, o, a, s;
-    if (t === ht) return t;
-    let c =
-            i !== void 0
-                ? (n = r._$Co) === null || n === void 0
-                    ? void 0
-                    : n[i]
-                : r._$Cl,
-        l = Tr(t) ? void 0 : t._$litDirective$;
-    return (
-        c?.constructor !== l &&
-            ((o = c?._$AO) === null || o === void 0 || o.call(c, !1),
-            l === void 0 ? (c = void 0) : ((c = new l(e)), c._$AT(e, r, i)),
-            i !== void 0
-                ? (((a = (s = r)._$Co) !== null && a !== void 0
-                      ? a
-                      : (s._$Co = []))[i] = c)
-                : (r._$Cl = c)),
-        c !== void 0 && (t = Rt(e, c._$AS(e, t.values), c, i)),
-        t
-    );
-}
-var io,
-    yi,
-    Lt,
-    Ls,
-    oo,
-    je,
-    Hs,
-    Jd,
-    dt,
-    _r,
-    Tr,
-    Ds,
-    eh,
-    no,
-    Sr,
-    Rs,
-    Os,
-    ct,
-    Ms,
-    Ns,
-    Bs,
-    Us,
-    g,
-    hf,
-    ht,
-    N,
-    Is,
-    lt,
-    th,
-    Cr,
-    ao,
-    kr,
-    Ot,
-    so,
-    rh,
-    co,
-    lo,
-    ho,
-    $s,
-    Fs,
-    Ei = Ye(() => {
-        (yi = window),
-            (Lt = yi.trustedTypes),
-            (Ls = Lt
-                ? Lt.createPolicy('lit-html', { createHTML: (e) => e })
-                : void 0),
-            (oo = '$lit$'),
-            (je = `lit$${(Math.random() + '').slice(9)}$`),
-            (Hs = '?' + je),
-            (Jd = `<${Hs}>`),
-            (dt = document),
-            (_r = () => dt.createComment('')),
-            (Tr = (e) =>
-                e === null || (typeof e != 'object' && typeof e != 'function')),
-            (Ds = Array.isArray),
-            (eh = (e) => Ds(e) || typeof e?.[Symbol.iterator] == 'function'),
-            (no = `[ 	
-\f\r]`),
-            (Sr = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g),
-            (Rs = /-->/g),
-            (Os = />/g),
-            (ct = RegExp(
-                `>|${no}(?:([^\\s"'>=/]+)(${no}*=${no}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`,
-                'g',
-            )),
-            (Ms = /'/g),
-            (Ns = /"/g),
-            (Bs = /^(?:script|style|textarea|title)$/i),
-            (Us =
-                (e) =>
-                (t, ...r) => ({ _$litType$: e, strings: t, values: r })),
-            (g = Us(1)),
-            (hf = Us(2)),
-            (ht = Symbol.for('lit-noChange')),
-            (N = Symbol.for('lit-nothing')),
-            (Is = new WeakMap()),
-            (lt = dt.createTreeWalker(dt, 129, null, !1));
-        (th = (e, t) => {
-            let r = e.length - 1,
-                i = [],
-                n,
-                o = t === 2 ? '<svg>' : '',
-                a = Sr;
-            for (let s = 0; s < r; s++) {
-                let c = e[s],
-                    l,
-                    d,
-                    p = -1,
-                    f = 0;
-                for (
-                    ;
-                    f < c.length &&
-                    ((a.lastIndex = f), (d = a.exec(c)), d !== null);
-
-                )
-                    (f = a.lastIndex),
-                        a === Sr
-                            ? d[1] === '!--'
-                                ? (a = Rs)
-                                : d[1] !== void 0
-                                  ? (a = Os)
-                                  : d[2] !== void 0
-                                    ? (Bs.test(d[2]) &&
-                                          (n = RegExp('</' + d[2], 'g')),
-                                      (a = ct))
-                                    : d[3] !== void 0 && (a = ct)
-                            : a === ct
-                              ? d[0] === '>'
-                                  ? ((a = n ?? Sr), (p = -1))
-                                  : d[1] === void 0
-                                    ? (p = -2)
-                                    : ((p = a.lastIndex - d[2].length),
-                                      (l = d[1]),
-                                      (a =
-                                          d[3] === void 0
-                                              ? ct
-                                              : d[3] === '"'
-                                                ? Ns
-                                                : Ms))
-                              : a === Ns || a === Ms
-                                ? (a = ct)
-                                : a === Rs || a === Os
-                                  ? (a = Sr)
-                                  : ((a = ct), (n = void 0));
-                let m = a === ct && e[s + 1].startsWith('/>') ? ' ' : '';
-                o +=
-                    a === Sr
-                        ? c + Jd
-                        : p >= 0
-                          ? (i.push(l),
-                            c.slice(0, p) + oo + c.slice(p) + je + m)
-                          : c + je + (p === -2 ? (i.push(void 0), s) : m);
-            }
-            return [zs(e, o + (e[r] || '<?>') + (t === 2 ? '</svg>' : '')), i];
-        }),
-            (Cr = class e {
-                constructor({ strings: t, _$litType$: r }, i) {
-                    let n;
-                    this.parts = [];
-                    let o = 0,
-                        a = 0,
-                        s = t.length - 1,
-                        c = this.parts,
-                        [l, d] = th(t, r);
-                    if (
-                        ((this.el = e.createElement(l, i)),
-                        (lt.currentNode = this.el.content),
-                        r === 2)
-                    ) {
-                        let p = this.el.content,
-                            f = p.firstChild;
-                        f.remove(), p.append(...f.childNodes);
-                    }
-                    for (; (n = lt.nextNode()) !== null && c.length < s; ) {
-                        if (n.nodeType === 1) {
-                            if (n.hasAttributes()) {
-                                let p = [];
-                                for (let f of n.getAttributeNames())
-                                    if (f.endsWith(oo) || f.startsWith(je)) {
-                                        let m = d[a++];
-                                        if ((p.push(f), m !== void 0)) {
-                                            let b = n
-                                                    .getAttribute(
-                                                        m.toLowerCase() + oo,
-                                                    )
-                                                    .split(je),
-                                                x = /([.?@])?(.*)/.exec(m);
-                                            c.push({
-                                                type: 1,
-                                                index: o,
-                                                name: x[2],
-                                                strings: b,
-                                                ctor:
-                                                    x[1] === '.'
-                                                        ? so
-                                                        : x[1] === '?'
-                                                          ? co
-                                                          : x[1] === '@'
-                                                            ? lo
-                                                            : Ot,
-                                            });
-                                        } else c.push({ type: 6, index: o });
-                                    }
-                                for (let f of p) n.removeAttribute(f);
-                            }
-                            if (Bs.test(n.tagName)) {
-                                let p = n.textContent.split(je),
-                                    f = p.length - 1;
-                                if (f > 0) {
-                                    n.textContent = Lt ? Lt.emptyScript : '';
-                                    for (let m = 0; m < f; m++)
-                                        n.append(p[m], _r()),
-                                            lt.nextNode(),
-                                            c.push({ type: 2, index: ++o });
-                                    n.append(p[f], _r());
-                                }
-                            }
-                        } else if (n.nodeType === 8)
-                            if (n.data === Hs) c.push({ type: 2, index: o });
-                            else {
-                                let p = -1;
-                                for (; (p = n.data.indexOf(je, p + 1)) !== -1; )
-                                    c.push({ type: 7, index: o }),
-                                        (p += je.length - 1);
-                            }
-                        o++;
-                    }
-                }
-                static createElement(t, r) {
-                    let i = dt.createElement('template');
-                    return (i.innerHTML = t), i;
-                }
-            });
-        (ao = class {
-            constructor(t, r) {
-                (this._$AV = []),
-                    (this._$AN = void 0),
-                    (this._$AD = t),
-                    (this._$AM = r);
-            }
-            get parentNode() {
-                return this._$AM.parentNode;
-            }
-            get _$AU() {
-                return this._$AM._$AU;
-            }
-            u(t) {
-                var r;
-                let {
-                        el: { content: i },
-                        parts: n,
-                    } = this._$AD,
-                    o = (
-                        (r = t?.creationScope) !== null && r !== void 0 ? r : dt
-                    ).importNode(i, !0);
-                lt.currentNode = o;
-                let a = lt.nextNode(),
-                    s = 0,
-                    c = 0,
-                    l = n[0];
-                for (; l !== void 0; ) {
-                    if (s === l.index) {
-                        let d;
-                        l.type === 2
-                            ? (d = new kr(a, a.nextSibling, this, t))
-                            : l.type === 1
-                              ? (d = new l.ctor(a, l.name, l.strings, this, t))
-                              : l.type === 6 && (d = new ho(a, this, t)),
-                            this._$AV.push(d),
-                            (l = n[++c]);
-                    }
-                    s !== l?.index && ((a = lt.nextNode()), s++);
-                }
-                return (lt.currentNode = dt), o;
-            }
-            v(t) {
-                let r = 0;
-                for (let i of this._$AV)
-                    i !== void 0 &&
-                        (i.strings !== void 0
-                            ? (i._$AI(t, i, r), (r += i.strings.length - 2))
-                            : i._$AI(t[r])),
-                        r++;
-            }
-        }),
-            (kr = class e {
-                constructor(t, r, i, n) {
-                    var o;
-                    (this.type = 2),
-                        (this._$AH = N),
-                        (this._$AN = void 0),
-                        (this._$AA = t),
-                        (this._$AB = r),
-                        (this._$AM = i),
-                        (this.options = n),
-                        (this._$Cp =
-                            (o = n?.isConnected) === null || o === void 0 || o);
-                }
-                get _$AU() {
-                    var t, r;
-                    return (r =
-                        (t = this._$AM) === null || t === void 0
-                            ? void 0
-                            : t._$AU) !== null && r !== void 0
-                        ? r
-                        : this._$Cp;
-                }
-                get parentNode() {
-                    let t = this._$AA.parentNode,
-                        r = this._$AM;
-                    return (
-                        r !== void 0 &&
-                            t?.nodeType === 11 &&
-                            (t = r.parentNode),
-                        t
-                    );
-                }
-                get startNode() {
-                    return this._$AA;
-                }
-                get endNode() {
-                    return this._$AB;
-                }
-                _$AI(t, r = this) {
-                    (t = Rt(this, t, r)),
-                        Tr(t)
-                            ? t === N || t == null || t === ''
-                                ? (this._$AH !== N && this._$AR(),
-                                  (this._$AH = N))
-                                : t !== this._$AH && t !== ht && this._(t)
-                            : t._$litType$ !== void 0
-                              ? this.g(t)
-                              : t.nodeType !== void 0
-                                ? this.$(t)
-                                : eh(t)
-                                  ? this.T(t)
-                                  : this._(t);
-                }
-                k(t) {
-                    return this._$AA.parentNode.insertBefore(t, this._$AB);
-                }
-                $(t) {
-                    this._$AH !== t && (this._$AR(), (this._$AH = this.k(t)));
-                }
-                _(t) {
-                    this._$AH !== N && Tr(this._$AH)
-                        ? (this._$AA.nextSibling.data = t)
-                        : this.$(dt.createTextNode(t)),
-                        (this._$AH = t);
-                }
-                g(t) {
-                    var r;
-                    let { values: i, _$litType$: n } = t,
-                        o =
-                            typeof n == 'number'
-                                ? this._$AC(t)
-                                : (n.el === void 0 &&
-                                      (n.el = Cr.createElement(
-                                          zs(n.h, n.h[0]),
-                                          this.options,
-                                      )),
-                                  n);
-                    if (
-                        ((r = this._$AH) === null || r === void 0
-                            ? void 0
-                            : r._$AD) === o
-                    )
-                        this._$AH.v(i);
-                    else {
-                        let a = new ao(o, this),
-                            s = a.u(this.options);
-                        a.v(i), this.$(s), (this._$AH = a);
-                    }
-                }
-                _$AC(t) {
-                    let r = Is.get(t.strings);
-                    return (
-                        r === void 0 && Is.set(t.strings, (r = new Cr(t))), r
-                    );
-                }
-                T(t) {
-                    Ds(this._$AH) || ((this._$AH = []), this._$AR());
-                    let r = this._$AH,
-                        i,
-                        n = 0;
-                    for (let o of t)
-                        n === r.length
-                            ? r.push(
-                                  (i = new e(
-                                      this.k(_r()),
-                                      this.k(_r()),
-                                      this,
-                                      this.options,
-                                  )),
-                              )
-                            : (i = r[n]),
-                            i._$AI(o),
-                            n++;
-                    n < r.length &&
-                        (this._$AR(i && i._$AB.nextSibling, n), (r.length = n));
-                }
-                _$AR(t = this._$AA.nextSibling, r) {
-                    var i;
-                    for (
-                        (i = this._$AP) === null ||
-                        i === void 0 ||
-                        i.call(this, !1, !0, r);
-                        t && t !== this._$AB;
-
-                    ) {
-                        let n = t.nextSibling;
-                        t.remove(), (t = n);
-                    }
-                }
-                setConnected(t) {
-                    var r;
-                    this._$AM === void 0 &&
-                        ((this._$Cp = t),
-                        (r = this._$AP) === null ||
-                            r === void 0 ||
-                            r.call(this, t));
-                }
-            }),
-            (Ot = class {
-                constructor(t, r, i, n, o) {
-                    (this.type = 1),
-                        (this._$AH = N),
-                        (this._$AN = void 0),
-                        (this.element = t),
-                        (this.name = r),
-                        (this._$AM = n),
-                        (this.options = o),
-                        i.length > 2 || i[0] !== '' || i[1] !== ''
-                            ? ((this._$AH = Array(i.length - 1).fill(
-                                  new String(),
-                              )),
-                              (this.strings = i))
-                            : (this._$AH = N);
-                }
-                get tagName() {
-                    return this.element.tagName;
-                }
-                get _$AU() {
-                    return this._$AM._$AU;
-                }
-                _$AI(t, r = this, i, n) {
-                    let o = this.strings,
-                        a = !1;
-                    if (o === void 0)
-                        (t = Rt(this, t, r, 0)),
-                            (a = !Tr(t) || (t !== this._$AH && t !== ht)),
-                            a && (this._$AH = t);
-                    else {
-                        let s = t,
-                            c,
-                            l;
-                        for (t = o[0], c = 0; c < o.length - 1; c++)
-                            (l = Rt(this, s[i + c], r, c)),
-                                l === ht && (l = this._$AH[c]),
-                                a || (a = !Tr(l) || l !== this._$AH[c]),
-                                l === N
-                                    ? (t = N)
-                                    : t !== N && (t += (l ?? '') + o[c + 1]),
-                                (this._$AH[c] = l);
-                    }
-                    a && !n && this.j(t);
-                }
-                j(t) {
-                    t === N
-                        ? this.element.removeAttribute(this.name)
-                        : this.element.setAttribute(this.name, t ?? '');
-                }
-            }),
-            (so = class extends Ot {
-                constructor() {
-                    super(...arguments), (this.type = 3);
-                }
-                j(t) {
-                    this.element[this.name] = t === N ? void 0 : t;
-                }
-            }),
-            (rh = Lt ? Lt.emptyScript : ''),
-            (co = class extends Ot {
-                constructor() {
-                    super(...arguments), (this.type = 4);
-                }
-                j(t) {
-                    t && t !== N
-                        ? this.element.setAttribute(this.name, rh)
-                        : this.element.removeAttribute(this.name);
-                }
-            }),
-            (lo = class extends Ot {
-                constructor(t, r, i, n, o) {
-                    super(t, r, i, n, o), (this.type = 5);
-                }
-                _$AI(t, r = this) {
-                    var i;
-                    if (
-                        (t =
-                            (i = Rt(this, t, r, 0)) !== null && i !== void 0
-                                ? i
-                                : N) === ht
-                    )
-                        return;
-                    let n = this._$AH,
-                        o =
-                            (t === N && n !== N) ||
-                            t.capture !== n.capture ||
-                            t.once !== n.once ||
-                            t.passive !== n.passive,
-                        a = t !== N && (n === N || o);
-                    o && this.element.removeEventListener(this.name, this, n),
-                        a && this.element.addEventListener(this.name, this, t),
-                        (this._$AH = t);
-                }
-                handleEvent(t) {
-                    var r, i;
-                    typeof this._$AH == 'function'
-                        ? this._$AH.call(
-                              (i =
-                                  (r = this.options) === null || r === void 0
-                                      ? void 0
-                                      : r.host) !== null && i !== void 0
-                                  ? i
-                                  : this.element,
-                              t,
-                          )
-                        : this._$AH.handleEvent(t);
-                }
-            }),
-            (ho = class {
-                constructor(t, r, i) {
-                    (this.element = t),
-                        (this.type = 6),
-                        (this._$AN = void 0),
-                        (this._$AM = r),
-                        (this.options = i);
-                }
-                get _$AU() {
-                    return this._$AM._$AU;
-                }
-                _$AI(t) {
-                    Rt(this, t);
-                }
-            }),
-            ($s = yi.litHtmlPolyfillSupport);
-        $s?.(Cr, kr),
-            ((io = yi.litHtmlVersions) !== null && io !== void 0
-                ? io
-                : (yi.litHtmlVersions = [])
-            ).push('2.8.0');
-        Fs = (e, t, r) => {
-            var i, n;
-            let o = (i = r?.renderBefore) !== null && i !== void 0 ? i : t,
-                a = o._$litPart$;
-            if (a === void 0) {
-                let s =
-                    (n = r?.renderBefore) !== null && n !== void 0 ? n : null;
-                o._$litPart$ = a = new kr(
-                    t.insertBefore(_r(), s),
-                    s,
-                    void 0,
-                    r ?? {},
-                );
-            }
-            return a._$AI(e), a;
-        };
-    });
-var po,
-    mo,
-    $,
-    Gs,
-    Vs = Ye(() => {
-        vi();
-        vi();
-        Ei();
-        Ei();
-        $ = class extends Ne {
-            constructor() {
-                super(...arguments),
-                    (this.renderOptions = { host: this }),
-                    (this._$Do = void 0);
-            }
-            createRenderRoot() {
-                var t, r;
-                let i = super.createRenderRoot();
-                return (
-                    ((t = (r = this.renderOptions).renderBefore) !== null &&
-                        t !== void 0) ||
-                        (r.renderBefore = i.firstChild),
-                    i
-                );
-            }
-            update(t) {
-                let r = this.render();
-                this.hasUpdated ||
-                    (this.renderOptions.isConnected = this.isConnected),
-                    super.update(t),
-                    (this._$Do = Fs(r, this.renderRoot, this.renderOptions));
-            }
-            connectedCallback() {
-                var t;
-                super.connectedCallback(),
-                    (t = this._$Do) === null ||
-                        t === void 0 ||
-                        t.setConnected(!0);
-            }
-            disconnectedCallback() {
-                var t;
-                super.disconnectedCallback(),
-                    (t = this._$Do) === null ||
-                        t === void 0 ||
-                        t.setConnected(!1);
-            }
-            render() {
-                return ht;
-            }
-        };
-        ($.finalized = !0),
-            ($._$litElement$ = !0),
-            (po = globalThis.litElementHydrateSupport) === null ||
-                po === void 0 ||
-                po.call(globalThis, { LitElement: $ });
-        Gs = globalThis.litElementPolyfillSupport;
-        Gs?.({ LitElement: $ });
-        ((mo = globalThis.litElementVersions) !== null && mo !== void 0
-            ? mo
-            : (globalThis.litElementVersions = [])
-        ).push('3.3.3');
-    });
-var js = Ye(() => {});
-var R = Ye(() => {
-    vi();
-    Ei();
-    Vs();
-    js();
-});
-var uo = {};
-No(uo, { default: () => pt });
-function ih() {
-    return (
-        customElements.get('sp-tooltip') !== void 0 &&
-        customElements.get('overlay-trigger') !== void 0 &&
-        document.querySelector('sp-theme') !== null
-    );
-}
-var pt,
-    Ti = Ye(() => {
-        R();
-        pt = class extends $ {
-            constructor() {
-                super(),
-                    (this.content = ''),
-                    (this.placement = 'top'),
-                    (this.variant = 'info'),
-                    (this.size = 'xs');
-            }
-            get effectiveContent() {
-                return (
-                    this.tooltipText || this.mnemonicText || this.content || ''
-                );
-            }
-            get effectivePlacement() {
-                return (
-                    this.tooltipPlacement ||
-                    this.mnemonicPlacement ||
-                    this.placement ||
-                    'top'
-                );
-            }
-            renderIcon() {
-                return this.src
-                    ? g`<merch-icon
+.data;
+var Da=Object.defineProperty;var za=e=>{throw TypeError(e)};var el=(e,t,r)=>t in e?Da(e,t,{enumerable:!0,configurable:!0,writable:!0,value:r}):e[t]=r;var Qe=(e,t)=>()=>(e&&(t=e(e=0)),t);var $a=(e,t)=>{for(var r in t)Da(e,r,{get:t[r],enumerable:!0})};var m=(e,t,r)=>el(e,typeof t!="symbol"?t+"":t,r),Vi=(e,t,r)=>t.has(e)||za("Cannot "+r);var h=(e,t,r)=>(Vi(e,t,"read from private field"),r?r.call(e):t.get(e)),E=(e,t,r)=>t.has(e)?za("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,r),y=(e,t,r,i)=>(Vi(e,t,"write to private field"),i?i.call(e,r):t.set(e,r),r),te=(e,t,r)=>(Vi(e,t,"access private method"),r);var Ha=(e,t,r,i)=>({set _(n){y(e,t,n,r)},get _(){return h(e,t,i)}});var Si,_i,Jn,Ls,Lr,Ae,b,ea,Ti,ta=Qe(()=>{Si=window,_i=Si.ShadowRoot&&(Si.ShadyCSS===void 0||Si.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,Jn=Symbol(),Ls=new WeakMap,Lr=class{constructor(t,r,i){if(this._$cssResult$=!0,i!==Jn)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=r}get styleSheet(){let t=this.o,r=this.t;if(_i&&t===void 0){let i=r!==void 0&&r.length===1;i&&(t=Ls.get(r)),t===void 0&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&Ls.set(r,t))}return t}toString(){return this.cssText}},Ae=e=>new Lr(typeof e=="string"?e:e+"",void 0,Jn),b=(e,...t)=>{let r=e.length===1?e[0]:t.reduce((i,n,a)=>i+(o=>{if(o._$cssResult$===!0)return o.cssText;if(typeof o=="number")return o;throw Error("Value passed to 'css' function must be a 'css' function result: "+o+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(n)+e[a+1],e[0]);return new Lr(r,e,Jn)},ea=(e,t)=>{_i?e.adoptedStyleSheets=t.map(r=>r instanceof CSSStyleSheet?r:r.styleSheet):t.forEach(r=>{let i=document.createElement("style"),n=Si.litNonce;n!==void 0&&i.setAttribute("nonce",n),i.textContent=r.cssText,e.appendChild(i)})},Ti=_i?e=>e:e=>e instanceof CSSStyleSheet?(t=>{let r="";for(let i of t.cssRules)r+=i.cssText;return Ae(r)})(e):e});var ra,Ci,Rs,lh,Ms,na,Os,ia,aa,$e,ki=Qe(()=>{ta();ta();Ci=window,Rs=Ci.trustedTypes,lh=Rs?Rs.emptyScript:"",Ms=Ci.reactiveElementPolyfillSupport,na={toAttribute(e,t){switch(t){case Boolean:e=e?lh:null;break;case Object:case Array:e=e==null?e:JSON.stringify(e)}return e},fromAttribute(e,t){let r=e;switch(t){case Boolean:r=e!==null;break;case Number:r=e===null?null:Number(e);break;case Object:case Array:try{r=JSON.parse(e)}catch{r=null}}return r}},Os=(e,t)=>t!==e&&(t==t||e==e),ia={attribute:!0,type:String,converter:na,reflect:!1,hasChanged:Os},aa="finalized",$e=class extends HTMLElement{constructor(){super(),this._$Ei=new Map,this.isUpdatePending=!1,this.hasUpdated=!1,this._$El=null,this._$Eu()}static addInitializer(t){var r;this.finalize(),((r=this.h)!==null&&r!==void 0?r:this.h=[]).push(t)}static get observedAttributes(){this.finalize();let t=[];return this.elementProperties.forEach((r,i)=>{let n=this._$Ep(i,r);n!==void 0&&(this._$Ev.set(n,i),t.push(n))}),t}static createProperty(t,r=ia){if(r.state&&(r.attribute=!1),this.finalize(),this.elementProperties.set(t,r),!r.noAccessor&&!this.prototype.hasOwnProperty(t)){let i=typeof t=="symbol"?Symbol():"__"+t,n=this.getPropertyDescriptor(t,i,r);n!==void 0&&Object.defineProperty(this.prototype,t,n)}}static getPropertyDescriptor(t,r,i){return{get(){return this[r]},set(n){let a=this[t];this[r]=n,this.requestUpdate(t,a,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)||ia}static finalize(){if(this.hasOwnProperty(aa))return!1;this[aa]=!0;let t=Object.getPrototypeOf(this);if(t.finalize(),t.h!==void 0&&(this.h=[...t.h]),this.elementProperties=new Map(t.elementProperties),this._$Ev=new Map,this.hasOwnProperty("properties")){let r=this.properties,i=[...Object.getOwnPropertyNames(r),...Object.getOwnPropertySymbols(r)];for(let n of i)this.createProperty(n,r[n])}return this.elementStyles=this.finalizeStyles(this.styles),!0}static finalizeStyles(t){let r=[];if(Array.isArray(t)){let i=new Set(t.flat(1/0).reverse());for(let n of i)r.unshift(Ti(n))}else t!==void 0&&r.push(Ti(t));return r}static _$Ep(t,r){let i=r.attribute;return i===!1?void 0:typeof i=="string"?i:typeof t=="string"?t.toLowerCase():void 0}_$Eu(){var t;this._$E_=new Promise(r=>this.enableUpdating=r),this._$AL=new Map,this._$Eg(),this.requestUpdate(),(t=this.constructor.h)===null||t===void 0||t.forEach(r=>r(this))}addController(t){var r,i;((r=this._$ES)!==null&&r!==void 0?r:this._$ES=[]).push(t),this.renderRoot!==void 0&&this.isConnected&&((i=t.hostConnected)===null||i===void 0||i.call(t))}removeController(t){var r;(r=this._$ES)===null||r===void 0||r.splice(this._$ES.indexOf(t)>>>0,1)}_$Eg(){this.constructor.elementProperties.forEach((t,r)=>{this.hasOwnProperty(r)&&(this._$Ei.set(r,this[r]),delete this[r])})}createRenderRoot(){var t;let r=(t=this.shadowRoot)!==null&&t!==void 0?t:this.attachShadow(this.constructor.shadowRootOptions);return ea(r,this.constructor.elementStyles),r}connectedCallback(){var t;this.renderRoot===void 0&&(this.renderRoot=this.createRenderRoot()),this.enableUpdating(!0),(t=this._$ES)===null||t===void 0||t.forEach(r=>{var i;return(i=r.hostConnected)===null||i===void 0?void 0:i.call(r)})}enableUpdating(t){}disconnectedCallback(){var t;(t=this._$ES)===null||t===void 0||t.forEach(r=>{var i;return(i=r.hostDisconnected)===null||i===void 0?void 0:i.call(r)})}attributeChangedCallback(t,r,i){this._$AK(t,i)}_$EO(t,r,i=ia){var n;let a=this.constructor._$Ep(t,i);if(a!==void 0&&i.reflect===!0){let o=(((n=i.converter)===null||n===void 0?void 0:n.toAttribute)!==void 0?i.converter:na).toAttribute(r,i.type);this._$El=t,o==null?this.removeAttribute(a):this.setAttribute(a,o),this._$El=null}}_$AK(t,r){var i;let n=this.constructor,a=n._$Ev.get(t);if(a!==void 0&&this._$El!==a){let o=n.getPropertyOptions(a),s=typeof o.converter=="function"?{fromAttribute:o.converter}:((i=o.converter)===null||i===void 0?void 0:i.fromAttribute)!==void 0?o.converter:na;this._$El=a,this[a]=s.fromAttribute(r,o.type),this._$El=null}}requestUpdate(t,r,i){let n=!0;t!==void 0&&(((i=i||this.constructor.getPropertyOptions(t)).hasChanged||Os)(this[t],r)?(this._$AL.has(t)||this._$AL.set(t,r),i.reflect===!0&&this._$El!==t&&(this._$EC===void 0&&(this._$EC=new Map),this._$EC.set(t,i))):n=!1),!this.isUpdatePending&&n&&(this._$E_=this._$Ej())}async _$Ej(){this.isUpdatePending=!0;try{await this._$E_}catch(r){Promise.reject(r)}let t=this.scheduleUpdate();return t!=null&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){var t;if(!this.isUpdatePending)return;this.hasUpdated,this._$Ei&&(this._$Ei.forEach((n,a)=>this[a]=n),this._$Ei=void 0);let r=!1,i=this._$AL;try{r=this.shouldUpdate(i),r?(this.willUpdate(i),(t=this._$ES)===null||t===void 0||t.forEach(n=>{var a;return(a=n.hostUpdate)===null||a===void 0?void 0:a.call(n)}),this.update(i)):this._$Ek()}catch(n){throw r=!1,this._$Ek(),n}r&&this._$AE(i)}willUpdate(t){}_$AE(t){var r;(r=this._$ES)===null||r===void 0||r.forEach(i=>{var n;return(n=i.hostUpdated)===null||n===void 0?void 0:n.call(i)}),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$Ek(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$E_}shouldUpdate(t){return!0}update(t){this._$EC!==void 0&&(this._$EC.forEach((r,i)=>this._$EO(i,this[i],r)),this._$EC=void 0),this._$Ek()}updated(t){}firstUpdated(t){}};$e[aa]=!0,$e.elementProperties=new Map,$e.elementStyles=[],$e.shadowRootOptions={mode:"open"},Ms?.({ReactiveElement:$e}),((ra=Ci.reactiveElementVersions)!==null&&ra!==void 0?ra:Ci.reactiveElementVersions=[]).push("1.6.3")});function Vs(e,t){if(!Array.isArray(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return Ns!==void 0?Ns.createHTML(t):t}function It(e,t,r=e,i){var n,a,o,s;if(t===ft)return t;let c=i!==void 0?(n=r._$Co)===null||n===void 0?void 0:n[i]:r._$Cl,l=Or(t)?void 0:t._$litDirective$;return c?.constructor!==l&&((a=c?._$AO)===null||a===void 0||a.call(c,!1),l===void 0?c=void 0:(c=new l(e),c._$AT(e,r,i)),i!==void 0?((o=(s=r)._$Co)!==null&&o!==void 0?o:s._$Co=[])[i]=c:r._$Cl=c),c!==void 0&&(t=It(e,c._$AS(e,t.values),c,i)),t}var oa,Pi,Nt,Ns,ca,We,Us,dh,gt,Mr,Or,Fs,hh,sa,Rr,Is,Ds,mt,zs,$s,Gs,qs,f,Sg,ft,L,Hs,ut,ph,Nr,la,Ir,Dt,da,mh,ha,pa,ma,Bs,js,Li=Qe(()=>{Pi=window,Nt=Pi.trustedTypes,Ns=Nt?Nt.createPolicy("lit-html",{createHTML:e=>e}):void 0,ca="$lit$",We=`lit$${(Math.random()+"").slice(9)}$`,Us="?"+We,dh=`<${Us}>`,gt=document,Mr=()=>gt.createComment(""),Or=e=>e===null||typeof e!="object"&&typeof e!="function",Fs=Array.isArray,hh=e=>Fs(e)||typeof e?.[Symbol.iterator]=="function",sa=`[ 	
+\f\r]`,Rr=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,Is=/-->/g,Ds=/>/g,mt=RegExp(`>|${sa}(?:([^\\s"'>=/]+)(${sa}*=${sa}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`,"g"),zs=/'/g,$s=/"/g,Gs=/^(?:script|style|textarea|title)$/i,qs=e=>(t,...r)=>({_$litType$:e,strings:t,values:r}),f=qs(1),Sg=qs(2),ft=Symbol.for("lit-noChange"),L=Symbol.for("lit-nothing"),Hs=new WeakMap,ut=gt.createTreeWalker(gt,129,null,!1);ph=(e,t)=>{let r=e.length-1,i=[],n,a=t===2?"<svg>":"",o=Rr;for(let s=0;s<r;s++){let c=e[s],l,d,p=-1,u=0;for(;u<c.length&&(o.lastIndex=u,d=o.exec(c),d!==null);)u=o.lastIndex,o===Rr?d[1]==="!--"?o=Is:d[1]!==void 0?o=Ds:d[2]!==void 0?(Gs.test(d[2])&&(n=RegExp("</"+d[2],"g")),o=mt):d[3]!==void 0&&(o=mt):o===mt?d[0]===">"?(o=n??Rr,p=-1):d[1]===void 0?p=-2:(p=o.lastIndex-d[2].length,l=d[1],o=d[3]===void 0?mt:d[3]==='"'?$s:zs):o===$s||o===zs?o=mt:o===Is||o===Ds?o=Rr:(o=mt,n=void 0);let g=o===mt&&e[s+1].startsWith("/>")?" ":"";a+=o===Rr?c+dh:p>=0?(i.push(l),c.slice(0,p)+ca+c.slice(p)+We+g):c+We+(p===-2?(i.push(void 0),s):g)}return[Vs(e,a+(e[r]||"<?>")+(t===2?"</svg>":"")),i]},Nr=class e{constructor({strings:t,_$litType$:r},i){let n;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,d]=ph(t,r);if(this.el=e.createElement(l,i),ut.currentNode=this.el.content,r===2){let p=this.el.content,u=p.firstChild;u.remove(),p.append(...u.childNodes)}for(;(n=ut.nextNode())!==null&&c.length<s;){if(n.nodeType===1){if(n.hasAttributes()){let p=[];for(let u of n.getAttributeNames())if(u.endsWith(ca)||u.startsWith(We)){let g=d[o++];if(p.push(u),g!==void 0){let x=n.getAttribute(g.toLowerCase()+ca).split(We),v=/([.?@])?(.*)/.exec(g);c.push({type:1,index:a,name:v[2],strings:x,ctor:v[1]==="."?da:v[1]==="?"?ha:v[1]==="@"?pa:Dt})}else c.push({type:6,index:a})}for(let u of p)n.removeAttribute(u)}if(Gs.test(n.tagName)){let p=n.textContent.split(We),u=p.length-1;if(u>0){n.textContent=Nt?Nt.emptyScript:"";for(let g=0;g<u;g++)n.append(p[g],Mr()),ut.nextNode(),c.push({type:2,index:++a});n.append(p[u],Mr())}}}else if(n.nodeType===8)if(n.data===Us)c.push({type:2,index:a});else{let p=-1;for(;(p=n.data.indexOf(We,p+1))!==-1;)c.push({type:7,index:a}),p+=We.length-1}a++}}static createElement(t,r){let i=gt.createElement("template");return i.innerHTML=t,i}};la=class{constructor(t,r){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=r}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){var r;let{el:{content:i},parts:n}=this._$AD,a=((r=t?.creationScope)!==null&&r!==void 0?r:gt).importNode(i,!0);ut.currentNode=a;let o=ut.nextNode(),s=0,c=0,l=n[0];for(;l!==void 0;){if(s===l.index){let d;l.type===2?d=new Ir(o,o.nextSibling,this,t):l.type===1?d=new l.ctor(o,l.name,l.strings,this,t):l.type===6&&(d=new ma(o,this,t)),this._$AV.push(d),l=n[++c]}s!==l?.index&&(o=ut.nextNode(),s++)}return ut.currentNode=gt,a}v(t){let r=0;for(let i of this._$AV)i!==void 0&&(i.strings!==void 0?(i._$AI(t,i,r),r+=i.strings.length-2):i._$AI(t[r])),r++}},Ir=class e{constructor(t,r,i,n){var a;this.type=2,this._$AH=L,this._$AN=void 0,this._$AA=t,this._$AB=r,this._$AM=i,this.options=n,this._$Cp=(a=n?.isConnected)===null||a===void 0||a}get _$AU(){var t,r;return(r=(t=this._$AM)===null||t===void 0?void 0:t._$AU)!==null&&r!==void 0?r:this._$Cp}get parentNode(){let t=this._$AA.parentNode,r=this._$AM;return r!==void 0&&t?.nodeType===11&&(t=r.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,r=this){t=It(this,t,r),Or(t)?t===L||t==null||t===""?(this._$AH!==L&&this._$AR(),this._$AH=L):t!==this._$AH&&t!==ft&&this._(t):t._$litType$!==void 0?this.g(t):t.nodeType!==void 0?this.$(t):hh(t)?this.T(t):this._(t)}k(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}$(t){this._$AH!==t&&(this._$AR(),this._$AH=this.k(t))}_(t){this._$AH!==L&&Or(this._$AH)?this._$AA.nextSibling.data=t:this.$(gt.createTextNode(t)),this._$AH=t}g(t){var r;let{values:i,_$litType$:n}=t,a=typeof n=="number"?this._$AC(t):(n.el===void 0&&(n.el=Nr.createElement(Vs(n.h,n.h[0]),this.options)),n);if(((r=this._$AH)===null||r===void 0?void 0:r._$AD)===a)this._$AH.v(i);else{let o=new la(a,this),s=o.u(this.options);o.v(i),this.$(s),this._$AH=o}}_$AC(t){let r=Hs.get(t.strings);return r===void 0&&Hs.set(t.strings,r=new Nr(t)),r}T(t){Fs(this._$AH)||(this._$AH=[],this._$AR());let r=this._$AH,i,n=0;for(let a of t)n===r.length?r.push(i=new e(this.k(Mr()),this.k(Mr()),this,this.options)):i=r[n],i._$AI(a),n++;n<r.length&&(this._$AR(i&&i._$AB.nextSibling,n),r.length=n)}_$AR(t=this._$AA.nextSibling,r){var i;for((i=this._$AP)===null||i===void 0||i.call(this,!1,!0,r);t&&t!==this._$AB;){let n=t.nextSibling;t.remove(),t=n}}setConnected(t){var r;this._$AM===void 0&&(this._$Cp=t,(r=this._$AP)===null||r===void 0||r.call(this,t))}},Dt=class{constructor(t,r,i,n,a){this.type=1,this._$AH=L,this._$AN=void 0,this.element=t,this.name=r,this._$AM=n,this.options=a,i.length>2||i[0]!==""||i[1]!==""?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=L}get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}_$AI(t,r=this,i,n){let a=this.strings,o=!1;if(a===void 0)t=It(this,t,r,0),o=!Or(t)||t!==this._$AH&&t!==ft,o&&(this._$AH=t);else{let s=t,c,l;for(t=a[0],c=0;c<a.length-1;c++)l=It(this,s[i+c],r,c),l===ft&&(l=this._$AH[c]),o||(o=!Or(l)||l!==this._$AH[c]),l===L?t=L:t!==L&&(t+=(l??"")+a[c+1]),this._$AH[c]=l}o&&!n&&this.j(t)}j(t){t===L?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}},da=class extends Dt{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===L?void 0:t}},mh=Nt?Nt.emptyScript:"",ha=class extends Dt{constructor(){super(...arguments),this.type=4}j(t){t&&t!==L?this.element.setAttribute(this.name,mh):this.element.removeAttribute(this.name)}},pa=class extends Dt{constructor(t,r,i,n,a){super(t,r,i,n,a),this.type=5}_$AI(t,r=this){var i;if((t=(i=It(this,t,r,0))!==null&&i!==void 0?i:L)===ft)return;let n=this._$AH,a=t===L&&n!==L||t.capture!==n.capture||t.once!==n.once||t.passive!==n.passive,o=t!==L&&(n===L||a);a&&this.element.removeEventListener(this.name,this,n),o&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){var r,i;typeof this._$AH=="function"?this._$AH.call((i=(r=this.options)===null||r===void 0?void 0:r.host)!==null&&i!==void 0?i:this.element,t):this._$AH.handleEvent(t)}},ma=class{constructor(t,r,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=r,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){It(this,t)}},Bs=Pi.litHtmlPolyfillSupport;Bs?.(Nr,Ir),((oa=Pi.litHtmlVersions)!==null&&oa!==void 0?oa:Pi.litHtmlVersions=[]).push("2.8.0");js=(e,t,r)=>{var i,n;let a=(i=r?.renderBefore)!==null&&i!==void 0?i:t,o=a._$litPart$;if(o===void 0){let s=(n=r?.renderBefore)!==null&&n!==void 0?n:null;a._$litPart$=o=new Ir(t.insertBefore(Mr(),s),s,void 0,r??{})}return o._$AI(e),o}});var ua,ga,$,Ws,Ys=Qe(()=>{ki();ki();Li();Li();$=class extends $e{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){var t,r;let i=super.createRenderRoot();return(t=(r=this.renderOptions).renderBefore)!==null&&t!==void 0||(r.renderBefore=i.firstChild),i}update(t){let r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=js(r,this.renderRoot,this.renderOptions)}connectedCallback(){var t;super.connectedCallback(),(t=this._$Do)===null||t===void 0||t.setConnected(!0)}disconnectedCallback(){var t;super.disconnectedCallback(),(t=this._$Do)===null||t===void 0||t.setConnected(!1)}render(){return ft}};$.finalized=!0,$._$litElement$=!0,(ua=globalThis.litElementHydrateSupport)===null||ua===void 0||ua.call(globalThis,{LitElement:$});Ws=globalThis.litElementPolyfillSupport;Ws?.({LitElement:$});((ga=globalThis.litElementVersions)!==null&&ga!==void 0?ga:globalThis.litElementVersions=[]).push("3.3.3")});var Xs=Qe(()=>{});var R=Qe(()=>{ki();Li();Ys();Xs()});var fa={};$a(fa,{default:()=>xt});function uh(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var xt,Ri=Qe(()=>{R();xt=class extends ${constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs"}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?f`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`
-                    : g`<slot></slot>`;
-            }
-            render() {
-                let t = this.effectiveContent,
-                    r = this.effectivePlacement;
-                return t
-                    ? ih()
-                        ? g`
+        ></merch-icon>`:f`<slot></slot>`}render(){let t=this.effectiveContent,r=this.effectivePlacement;return t?uh()?f`
                 <overlay-trigger placement="${r}">
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
@@ -1904,8 +516,7 @@ var pt,
                         ${t}
                     </sp-tooltip>
                 </overlay-trigger>
-            `
-                        : g`
+            `:f`
                 <span
                     class="css-tooltip ${r}"
                     data-tooltip="${t}"
@@ -1915,28 +526,7 @@ var pt,
                 >
                     ${this.renderIcon()}
                 </span>
-            `
-                    : this.renderIcon();
-            }
-        };
-        u(pt, 'properties', {
-            content: { type: String },
-            placement: { type: String },
-            variant: { type: String },
-            src: { type: String },
-            size: { type: String },
-            tooltipText: { type: String, attribute: 'tooltip-text' },
-            tooltipPlacement: { type: String, attribute: 'tooltip-placement' },
-            mnemonicText: { type: String, attribute: 'mnemonic-text' },
-            mnemonicPlacement: {
-                type: String,
-                attribute: 'mnemonic-placement',
-            },
-        }),
-            u(
-                pt,
-                'styles',
-                y`
+            `:this.renderIcon()}};m(xt,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"}}),m(xt,"styles",b`
         :host {
             display: contents;
             overflow: visible;
@@ -2046,5342 +636,10 @@ var pt,
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `,
-            );
-        customElements.define('mas-mnemonic', pt);
-    });
-var Xe = {
-        clientId: 'merch-at-scale',
-        delimiter: '\xB6',
-        ignoredProperties: ['analytics', 'literals', 'element'],
-        serializableTypes: ['Array', 'Object'],
-        sampleRate: 1,
-        tags: 'acom',
-        isProdDomain: !1,
-    },
-    $o = 1e3;
-function qc(e) {
-    return e instanceof Error || typeof e?.originatingRequest == 'string';
-}
-function Ho(e) {
-    if (e == null) return;
-    let t = typeof e;
-    if (t === 'function') return e.name ? `function ${e.name}` : 'function';
-    if (t === 'object') {
-        if (e instanceof Error) return e.message;
-        if (typeof e.originatingRequest == 'string') {
-            let { message: i, originatingRequest: n, status: o } = e;
-            return [i, o, n].filter(Boolean).join(' ');
-        }
-        let r =
-            e[Symbol.toStringTag] ?? Object.getPrototypeOf(e).constructor.name;
-        if (!Xe.serializableTypes.includes(r)) return r;
-    }
-    return e;
-}
-function Wc(e, t) {
-    if (!Xe.ignoredProperties.includes(e)) return Ho(t);
-}
-var Gi = {
-    append(e) {
-        if (e.level !== 'error') return;
-        let { message: t, params: r } = e,
-            i = [],
-            n = [],
-            o = t;
-        r.forEach((l) => {
-            l != null && (qc(l) ? i : n).push(l);
-        }),
-            i.length && (o += ' ' + i.map(Ho).join(' '));
-        let { pathname: a, search: s } = window.location,
-            c = `${Xe.delimiter}page=${a}${s}`;
-        c.length > $o && (c = `${c.slice(0, $o)}<trunc>`),
-            (o += c),
-            n.length &&
-                ((o += `${Xe.delimiter}facts=`), (o += JSON.stringify(n, Wc))),
-            window.lana?.log(o, Xe);
-    },
-};
-function Gr(e) {
-    Object.assign(
-        Xe,
-        Object.fromEntries(
-            Object.entries(e).filter(
-                ([t, r]) =>
-                    t in Xe &&
-                    r !== '' &&
-                    r !== null &&
-                    r !== void 0 &&
-                    !Number.isNaN(r),
-            ),
-        ),
-    );
-}
-var ln = {};
-No(ln, {
-    CLASS_NAME_FAILED: () => Yi,
-    CLASS_NAME_HIDDEN: () => Xc,
-    CLASS_NAME_PENDING: () => Xi,
-    CLASS_NAME_RESOLVED: () => Ki,
-    CheckoutWorkflow: () => Bo,
-    CheckoutWorkflowStep: () => ee,
-    Commitment: () => Ke,
-    ERROR_MESSAGE_BAD_REQUEST: () => Qi,
-    ERROR_MESSAGE_MISSING_LITERALS_URL: () => al,
-    ERROR_MESSAGE_OFFER_NOT_FOUND: () => Zi,
-    EVENT_AEM_ERROR: () => Ze,
-    EVENT_AEM_LOAD: () => Qe,
-    EVENT_MAS_ERROR: () => Wi,
-    EVENT_MAS_READY: () => qi,
-    EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE: () => jr,
-    EVENT_MERCH_CARD_ACTION_MENU_TOGGLE: () => Vi,
-    EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED: () => rl,
-    EVENT_MERCH_CARD_COLLECTION_SHOWMORE: () => nl,
-    EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED: () => il,
-    EVENT_MERCH_CARD_COLLECTION_SORT: () => tl,
-    EVENT_MERCH_CARD_QUANTITY_CHANGE: () => wt,
-    EVENT_MERCH_OFFER_READY: () => Et,
-    EVENT_MERCH_OFFER_SELECT_READY: () => ir,
-    EVENT_MERCH_QUANTITY_SELECTOR_CHANGE: () => ke,
-    EVENT_MERCH_SEARCH_CHANGE: () => el,
-    EVENT_MERCH_SIDENAV_SELECT: () => ol,
-    EVENT_MERCH_STOCK_CHANGE: () => Zc,
-    EVENT_MERCH_STORAGE_CHANGE: () => Jc,
-    EVENT_OFFER_SELECTED: () => ji,
-    EVENT_TYPE_FAILED: () => Ji,
-    EVENT_TYPE_READY: () => Vr,
-    EVENT_TYPE_RESOLVED: () => At,
-    Env: () => we,
-    FF_DEFAULTS: () => Ue,
-    HEADER_X_REQUEST_ID: () => nr,
-    LOG_NAMESPACE: () => en,
-    Landscape: () => Be,
-    MARK_DURATION_SUFFIX: () => tt,
-    MARK_START_SUFFIX: () => et,
-    MODAL_TYPE_3_IN_1: () => Je,
-    NAMESPACE: () => Yc,
-    PARAM_AOS_API_KEY: () => sl,
-    PARAM_ENV: () => rn,
-    PARAM_LANDSCAPE: () => nn,
-    PARAM_MAS_PREVIEW: () => tn,
-    PARAM_WCS_API_KEY: () => cl,
-    PROVIDER_ENVIRONMENT: () => sn,
-    SELECTOR_MAS_CHECKOUT_LINK: () => ue,
-    SELECTOR_MAS_ELEMENT: () => rr,
-    SELECTOR_MAS_INLINE_PRICE: () => z,
-    SELECTOR_MAS_SP_BUTTON: () => Qc,
-    SELECTOR_MAS_UPT_LINK: () => Do,
-    SORT_ORDER: () => pl,
-    STATE_FAILED: () => fe,
-    STATE_PENDING: () => De,
-    STATE_RESOLVED: () => Pe,
-    TAG_NAME_SERVICE: () => Kc,
-    TEMPLATE_PRICE: () => ll,
-    TEMPLATE_PRICE_ANNUAL: () => hl,
-    TEMPLATE_PRICE_LEGAL: () => cn,
-    TEMPLATE_PRICE_STRIKETHROUGH: () => dl,
-    Term: () => he,
-    WCS_PROD_URL: () => on,
-    WCS_STAGE_URL: () => an,
-});
-var Ke = Object.freeze({
-        MONTH: 'MONTH',
-        YEAR: 'YEAR',
-        TWO_YEARS: 'TWO_YEARS',
-        THREE_YEARS: 'THREE_YEARS',
-        PERPETUAL: 'PERPETUAL',
-        TERM_LICENSE: 'TERM_LICENSE',
-        ACCESS_PASS: 'ACCESS_PASS',
-        THREE_MONTHS: 'THREE_MONTHS',
-        SIX_MONTHS: 'SIX_MONTHS',
-    }),
-    he = Object.freeze({
-        ANNUAL: 'ANNUAL',
-        MONTHLY: 'MONTHLY',
-        TWO_YEARS: 'TWO_YEARS',
-        THREE_YEARS: 'THREE_YEARS',
-        P1D: 'P1D',
-        P1Y: 'P1Y',
-        P3Y: 'P3Y',
-        P10Y: 'P10Y',
-        P15Y: 'P15Y',
-        P3D: 'P3D',
-        P7D: 'P7D',
-        P30D: 'P30D',
-        HALF_YEARLY: 'HALF_YEARLY',
-        QUARTERLY: 'QUARTERLY',
-    }),
-    Yc = 'merch',
-    Xc = 'hidden',
-    Vr = 'wcms:commerce:ready',
-    Kc = 'mas-commerce-service',
-    z = 'span[is="inline-price"][data-wcs-osi]',
-    ue =
-        'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]',
-    Qc = 'sp-button[data-wcs-osi]',
-    Do = 'a[is="upt-link"]',
-    rr = `${z},${ue},${Do}`,
-    Et = 'merch-offer:ready',
-    ir = 'merch-offer-select:ready',
-    Vi = 'merch-card:action-menu-toggle',
-    ji = 'merch-offer:selected',
-    Zc = 'merch-stock:change',
-    Jc = 'merch-storage:change',
-    ke = 'merch-quantity-selector:change',
-    wt = 'merch-card-quantity:change',
-    jr = 'merch-modal:addon-and-quantity-update',
-    el = 'merch-search:change',
-    tl = 'merch-card-collection:sort',
-    rl = 'merch-card-collection:literals-changed',
-    il = 'merch-card-collection:sidenav-attached',
-    nl = 'merch-card-collection:showmore',
-    ol = 'merch-sidenav:select',
-    Qe = 'aem:load',
-    Ze = 'aem:error',
-    qi = 'mas:ready',
-    Wi = 'mas:error',
-    Yi = 'placeholder-failed',
-    Xi = 'placeholder-pending',
-    Ki = 'placeholder-resolved',
-    Qi = 'Bad WCS request',
-    Zi = 'Commerce offer not found',
-    al = 'Literals URL not provided',
-    Ji = 'mas:failed',
-    At = 'mas:resolved',
-    en = 'mas/commerce',
-    tn = 'mas.preview',
-    rn = 'commerce.env',
-    nn = 'commerce.landscape',
-    sl = 'commerce.aosKey',
-    cl = 'commerce.wcsKey',
-    on = 'https://www.adobe.com/web_commerce_artifact',
-    an = 'https://www.stage.adobe.com/web_commerce_artifact_stage',
-    fe = 'failed',
-    De = 'pending',
-    Pe = 'resolved',
-    Be = { DRAFT: 'DRAFT', PUBLISHED: 'PUBLISHED' },
-    nr = 'X-Request-Id',
-    ee = Object.freeze({
-        SEGMENTATION: 'segmentation',
-        BUNDLE: 'bundle',
-        COMMITMENT: 'commitment',
-        RECOMMENDATION: 'recommendation',
-        EMAIL: 'email',
-        PAYMENT: 'payment',
-        CHANGE_PLAN_TEAM_PLANS: 'change-plan/team-upgrade/plans',
-        CHANGE_PLAN_TEAM_PAYMENT: 'change-plan/team-upgrade/payment',
-    }),
-    Bo = 'UCv3',
-    we = Object.freeze({
-        STAGE: 'STAGE',
-        PRODUCTION: 'PRODUCTION',
-        LOCAL: 'LOCAL',
-    }),
-    sn = { PRODUCTION: 'PRODUCTION' },
-    Je = { TWP: 'twp', D2P: 'd2p', CRM: 'crm' },
-    et = ':start',
-    tt = ':duration',
-    ll = 'price',
-    dl = 'price-strikethrough',
-    hl = 'annual',
-    cn = 'legal',
-    Ue = 'mas-ff-defaults',
-    pl = { alphabetical: 'alphabetical', authored: 'authored' };
-var Uo = 'tacocat.js';
-var dn = (e, t) =>
-        String(e ?? '').toLowerCase() == String(t ?? '').toLowerCase(),
-    zo = (e) =>
-        `${e ?? ''}`.replace(
-            /[&<>'"]/g,
-            (t) =>
-                ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;',
-                })[t] ?? t,
-        ) ?? '';
-function D(
-    e,
-    t = {},
-    { metadata: r = !0, search: i = !0, storage: n = !0 } = {},
-) {
-    let o;
-    if (i && o == null) {
-        let a = new URLSearchParams(window.location.search),
-            s = St(i) ? i : e;
-        o = a.get(s);
-    }
-    if (n && o == null) {
-        let a = St(n) ? n : e;
-        o = window.sessionStorage.getItem(a) ?? window.localStorage.getItem(a);
-    }
-    if (r && o == null) {
-        let a = ul(St(r) ? r : e);
-        o = document.documentElement.querySelector(
-            `meta[name="${a}"]`,
-        )?.content;
-    }
-    return o ?? t[e];
-}
-var ml = (e) => typeof e == 'boolean',
-    qr = (e) => typeof e == 'function',
-    Wr = (e) => typeof e == 'number',
-    Fo = (e) => e != null && typeof e == 'object';
-var St = (e) => typeof e == 'string',
-    Go = (e) => St(e) && e,
-    or = (e) => Wr(e) && Number.isFinite(e) && e > 0;
-function Yr(e, t = (r) => r == null || r === '') {
-    return (
-        e != null &&
-            Object.entries(e).forEach(([r, i]) => {
-                t(i) && delete e[r];
-            }),
-        e
-    );
-}
-function A(e, t) {
-    if (ml(e)) return e;
-    let r = String(e);
-    return r === '1' || r === 'true' ? !0 : r === '0' || r === 'false' ? !1 : t;
-}
-function ar(e, t, r) {
-    let i = Object.values(t);
-    return i.find((n) => dn(n, e)) ?? r ?? i[0];
-}
-function ul(e = '') {
-    return String(e)
-        .replace(
-            /(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,
-            (t, r, i) => `${r}-${i}`,
-        )
-        .replace(/\W+/gu, '-')
-        .toLowerCase();
-}
-function Vo(e, t = 1) {
-    return (
-        Wr(e) || (e = Number.parseInt(e, 10)),
-        !Number.isNaN(e) && e > 0 && Number.isFinite(e) ? e : t
-    );
-}
-var fl = Date.now(),
-    hn = () => `(+${Date.now() - fl}ms)`,
-    Xr = new Set(),
-    gl = A(D('tacocat.debug', {}, { metadata: !1 }), !1);
-function jo(e) {
-    let t = `[${Uo}/${e}]`,
-        r = (a, s, ...c) => (a ? !0 : (n(s, ...c), !1)),
-        i = gl
-            ? (a, ...s) => {
-                  console.debug(`${t} ${a}`, ...s, hn());
-              }
-            : () => {},
-        n = (a, ...s) => {
-            let c = `${t} ${a}`;
-            Xr.forEach(([l]) => l(c, ...s));
-        };
-    return {
-        assert: r,
-        debug: i,
-        error: n,
-        warn: (a, ...s) => {
-            let c = `${t} ${a}`;
-            Xr.forEach(([, l]) => l(c, ...s));
-        },
-    };
-}
-function xl(e, t) {
-    let r = [e, t];
-    return (
-        Xr.add(r),
-        () => {
-            Xr.delete(r);
-        }
-    );
-}
-xl(
-    (e, ...t) => {
-        console.error(e, ...t, hn());
-    },
-    (e, ...t) => {
-        console.warn(e, ...t, hn());
-    },
-);
-var bl = 'no promo',
-    qo = 'promo-tag',
-    vl = 'yellow',
-    yl = 'neutral',
-    El = (e, t, r) => {
-        let i = (o) => o || bl,
-            n = r ? ` (was "${i(t)}")` : '';
-        return `${i(e)}${n}`;
-    },
-    wl = 'cancel-context',
-    Kr = (e, t) => {
-        let r = e === wl,
-            i = !r && e?.length > 0,
-            n = (i || r) && ((t && t != e) || (!t && !r)),
-            o = (n && i) || (!n && !!t),
-            a = o ? e || t : void 0;
-        return {
-            effectivePromoCode: a,
-            overridenPromoCode: e,
-            className: o ? qo : `${qo} no-promo`,
-            text: El(a, t, n),
-            variant: o ? vl : yl,
-            isOverriden: n,
-        };
-    };
-var pn;
-(function (e) {
-    (e.BASE = 'BASE'), (e.TRIAL = 'TRIAL'), (e.PROMOTION = 'PROMOTION');
-})(pn || (pn = {}));
-var se;
-(function (e) {
-    (e.MONTH = 'MONTH'),
-        (e.YEAR = 'YEAR'),
-        (e.TWO_YEARS = 'TWO_YEARS'),
-        (e.THREE_YEARS = 'THREE_YEARS'),
-        (e.PERPETUAL = 'PERPETUAL'),
-        (e.TERM_LICENSE = 'TERM_LICENSE'),
-        (e.ACCESS_PASS = 'ACCESS_PASS'),
-        (e.THREE_MONTHS = 'THREE_MONTHS'),
-        (e.SIX_MONTHS = 'SIX_MONTHS');
-})(se || (se = {}));
-var pe;
-(function (e) {
-    (e.ANNUAL = 'ANNUAL'),
-        (e.MONTHLY = 'MONTHLY'),
-        (e.TWO_YEARS = 'TWO_YEARS'),
-        (e.THREE_YEARS = 'THREE_YEARS'),
-        (e.P1D = 'P1D'),
-        (e.P1Y = 'P1Y'),
-        (e.P3Y = 'P3Y'),
-        (e.P10Y = 'P10Y'),
-        (e.P15Y = 'P15Y'),
-        (e.P3D = 'P3D'),
-        (e.P7D = 'P7D'),
-        (e.P30D = 'P30D'),
-        (e.HALF_YEARLY = 'HALF_YEARLY'),
-        (e.QUARTERLY = 'QUARTERLY');
-})(pe || (pe = {}));
-var mn;
-(function (e) {
-    (e.INDIVIDUAL = 'INDIVIDUAL'),
-        (e.TEAM = 'TEAM'),
-        (e.ENTERPRISE = 'ENTERPRISE');
-})(mn || (mn = {}));
-var un;
-(function (e) {
-    (e.COM = 'COM'), (e.EDU = 'EDU'), (e.GOV = 'GOV');
-})(un || (un = {}));
-var fn;
-(function (e) {
-    (e.DIRECT = 'DIRECT'), (e.INDIRECT = 'INDIRECT');
-})(fn || (fn = {}));
-var gn;
-(function (e) {
-    (e.ENTERPRISE_PRODUCT = 'ENTERPRISE_PRODUCT'),
-        (e.ETLA = 'ETLA'),
-        (e.RETAIL = 'RETAIL'),
-        (e.VIP = 'VIP'),
-        (e.VIPMP = 'VIPMP'),
-        (e.FREE = 'FREE');
-})(gn || (gn = {}));
-var xn = 'ABM',
-    bn = 'PUF',
-    vn = 'M2M',
-    yn = 'PERPETUAL',
-    En = 'P3Y',
-    Al = 'TAX_INCLUSIVE_DETAILS',
-    Sl = 'TAX_EXCLUSIVE',
-    Wo = { ABM: xn, PUF: bn, M2M: vn, PERPETUAL: yn, P3Y: En },
-    Zh = {
-        [xn]: { commitment: se.YEAR, term: pe.MONTHLY },
-        [bn]: { commitment: se.YEAR, term: pe.ANNUAL },
-        [vn]: { commitment: se.MONTH, term: pe.MONTHLY },
-        [yn]: { commitment: se.PERPETUAL, term: void 0 },
-        [En]: { commitment: se.THREE_MONTHS, term: pe.P3Y },
-    },
-    Yo = 'Value is not an offer',
-    sr = (e) => {
-        if (typeof e != 'object') return Yo;
-        let { commitment: t, term: r } = e,
-            i = _l(t, r);
-        return { ...e, planType: i };
-    };
-var _l = (e, t) => {
-    switch (e) {
-        case void 0:
-            return Yo;
-        case '':
-            return '';
-        case se.YEAR:
-            return t === pe.MONTHLY ? xn : t === pe.ANNUAL ? bn : '';
-        case se.MONTH:
-            return t === pe.MONTHLY ? vn : '';
-        case se.PERPETUAL:
-            return yn;
-        case se.TERM_LICENSE:
-            return t === pe.P3Y ? En : '';
-        default:
-            return '';
-    }
-};
-function Xo(e) {
-    let { priceDetails: t } = e,
-        {
-            price: r,
-            priceWithoutDiscount: i,
-            priceWithoutTax: n,
-            priceWithoutDiscountAndTax: o,
-            taxDisplay: a,
-        } = t;
-    if (a !== Al) return e;
-    let s = {
-        ...e,
-        priceDetails: {
-            ...t,
-            price: n ?? r,
-            priceWithoutDiscount: o ?? i,
-            taxDisplay: Sl,
-        },
-    };
-    return (
-        s.offerType === 'TRIAL' &&
-            s.priceDetails.price === 0 &&
-            (s.priceDetails.price = s.priceDetails.priceWithoutDiscount),
-        s
-    );
-}
-var Tl = 'mas-commerce-service',
-    Cl = {
-        requestId: nr,
-        etag: 'Etag',
-        lastModified: 'Last-Modified',
-        serverTiming: 'server-timing',
-    };
-function cr(e, { country: t, forceTaxExclusive: r }) {
-    let i;
-    if (e.length < 2) i = e;
-    else {
-        let n = t === 'GB' ? 'EN' : 'MULT';
-        e.sort((o, a) => (o.language === n ? -1 : a.language === n ? 1 : 0)),
-            e.sort((o, a) =>
-                !o.term && a.term ? -1 : o.term && !a.term ? 1 : 0,
-            ),
-            (i = [e[0]]);
-    }
-    return r && (i = i.map(Xo)), i;
-}
-var Qr = (e) => window.setTimeout(e);
-function _t(e, t = 1) {
-    if (e == null) return [t];
-    let r = (Array.isArray(e) ? e : String(e).split(',')).map(Vo).filter(or);
-    return r.length || (r = [t]), r;
-}
-function Zr(e) {
-    return e == null
-        ? []
-        : (Array.isArray(e) ? e : String(e).split(',')).filter(Go);
-}
-function re() {
-    return document.getElementsByTagName(Tl)?.[0];
-}
-function Jr(e) {
-    let t = {};
-    if (!e?.headers) return t;
-    let r = e.headers;
-    for (let [i, n] of Object.entries(Cl)) {
-        let o = r.get(n);
-        o &&
-            ((o = o.replace(/[,;]/g, '|')),
-            (o = o.replace(/[| ]+/g, '|')),
-            (t[i] = o));
-    }
-    return t;
-}
-var Ko = { LOCAL: 'local', PROD: 'prod', STAGE: 'stage' },
-    wn = { DEBUG: 'debug', ERROR: 'error', INFO: 'info', WARN: 'warn' },
-    An = new Set(),
-    Sn = new Set(),
-    Qo = new Map(),
-    Zo = {
-        append({ level: e, message: t, params: r, timestamp: i, source: n }) {
-            console[e](`${i}ms [${n}] %c${t}`, 'font-weight: bold;', ...r);
-        },
-    },
-    Jo = { filter: ({ level: e }) => e !== wn.DEBUG },
-    kl = { filter: () => !1 };
-function Pl(e, t, r, i, n) {
-    return {
-        level: e,
-        message: t,
-        namespace: r,
-        get params() {
-            return (
-                i.length === 1 &&
-                    qr(i[0]) &&
-                    ((i = i[0]()), Array.isArray(i) || (i = [i])),
-                i
-            );
-        },
-        source: n,
-        timestamp: performance.now().toFixed(3),
-    };
-}
-function Ll(e) {
-    [...Sn].every((t) => t(e)) && An.forEach((t) => t(e));
-}
-function ea(e) {
-    let t = (Qo.get(e) ?? 0) + 1;
-    Qo.set(e, t);
-    let r = `${e} #${t}`,
-        i = {
-            id: r,
-            namespace: e,
-            module: (n) => ea(`${i.namespace}/${n}`),
-            updateConfig: Gr,
-        };
-    return (
-        Object.values(wn).forEach((n) => {
-            i[n] = (o, ...a) => Ll(Pl(n, o, e, a, r));
-        }),
-        Object.seal(i)
-    );
-}
-function ei(...e) {
-    e.forEach((t) => {
-        let { append: r, filter: i } = t;
-        qr(i) && Sn.add(i), qr(r) && An.add(r);
-    });
-}
-function Rl(e = {}) {
-    let { name: t } = e,
-        r = A(D('commerce.debug', { search: !0, storage: !0 }), t === Ko.LOCAL);
-    return ei(r ? Zo : Jo), t === Ko.PROD && ei(Gi), ce;
-}
-function Ol() {
-    An.clear(), Sn.clear();
-}
-var ce = {
-    ...ea(en),
-    Level: wn,
-    Plugins: {
-        consoleAppender: Zo,
-        debugFilter: Jo,
-        quietFilter: kl,
-        lanaAppender: Gi,
-    },
-    init: Rl,
-    reset: Ol,
-    use: ei,
-};
-var Le = class e extends Error {
-    constructor(t, r, i) {
-        if ((super(t, { cause: i }), (this.name = 'MasError'), r.response)) {
-            let n = r.response.headers?.get(nr);
-            n && (r.requestId = n),
-                r.response.status &&
-                    ((r.status = r.response.status),
-                    (r.statusText = r.response.statusText)),
-                r.response.url && (r.url = r.response.url);
-        }
-        delete r.response,
-            (this.context = r),
-            Error.captureStackTrace && Error.captureStackTrace(this, e);
-    }
-    toString() {
-        let t = Object.entries(this.context || {})
-                .map(([i, n]) => `${i}: ${JSON.stringify(n)}`)
-                .join(', '),
-            r = `${this.name}: ${this.message}`;
-        return (
-            t && (r += ` (${t})`),
-            this.cause &&
-                (r += `
-Caused by: ${this.cause}`),
-            r
-        );
-    }
-};
-var Ml = { [fe]: Yi, [De]: Xi, [Pe]: Ki },
-    Nl = { [fe]: Ji, [Pe]: At },
-    lr,
-    ze = class {
-        constructor(t) {
-            E(this, lr);
-            u(this, 'changes', new Map());
-            u(this, 'connected', !1);
-            u(this, 'error');
-            u(this, 'log');
-            u(this, 'options');
-            u(this, 'promises', []);
-            u(this, 'state', De);
-            u(this, 'timer', null);
-            u(this, 'value');
-            u(this, 'version', 0);
-            u(this, 'wrapperElement');
-            (this.wrapperElement = t), (this.log = ce.module('mas-element'));
-        }
-        update() {
-            [fe, De, Pe].forEach((t) => {
-                this.wrapperElement.classList.toggle(Ml[t], t === this.state);
-            });
-        }
-        notify() {
-            (this.state === Pe || this.state === fe) &&
-                (this.state === Pe
-                    ? this.promises.forEach(({ resolve: r }) =>
-                          r(this.wrapperElement),
-                      )
-                    : this.state === fe &&
-                      this.promises.forEach(({ reject: r }) => r(this.error)),
-                (this.promises = []));
-            let t = this.error;
-            this.error instanceof Le &&
-                (t = { message: this.error.message, ...this.error.context }),
-                this.wrapperElement.dispatchEvent(
-                    new CustomEvent(Nl[this.state], { bubbles: !0, detail: t }),
-                );
-        }
-        attributeChangedCallback(t, r, i) {
-            this.changes.set(t, i), this.requestUpdate();
-        }
-        connectedCallback() {
-            v(this, lr, re()), this.requestUpdate(!0);
-        }
-        disconnectedCallback() {
-            this.connected &&
-                ((this.connected = !1),
-                this.log?.debug('Disconnected:', {
-                    element: this.wrapperElement,
-                }));
-        }
-        onceSettled() {
-            let { error: t, promises: r, state: i } = this;
-            return Pe === i
-                ? Promise.resolve(this.wrapperElement)
-                : fe === i
-                  ? Promise.reject(t)
-                  : new Promise((n, o) => {
-                        r.push({ resolve: n, reject: o });
-                    });
-        }
-        toggleResolved(t, r, i) {
-            return t !== this.version
-                ? !1
-                : (i !== void 0 && (this.options = i),
-                  (this.state = Pe),
-                  (this.value = r),
-                  this.update(),
-                  this.log?.debug('Resolved:', {
-                      element: this.wrapperElement,
-                      value: r,
-                  }),
-                  Qr(() => this.notify()),
-                  !0);
-        }
-        toggleFailed(t, r, i) {
-            if (t !== this.version) return !1;
-            i !== void 0 && (this.options = i),
-                (this.error = r),
-                (this.state = fe),
-                this.update();
-            let n = this.wrapperElement.getAttribute('is');
-            return (
-                this.log?.error(`${n}: Failed to render: ${r.message}`, {
-                    element: this.wrapperElement,
-                    ...r.context,
-                    ...h(this, lr)?.duration,
-                }),
-                Qr(() => this.notify()),
-                !0
-            );
-        }
-        togglePending(t) {
-            return (
-                this.version++,
-                t && (this.options = t),
-                (this.state = De),
-                this.update(),
-                this.log?.debug('Pending:', {
-                    osi: this.wrapperElement?.options?.wcsOsi,
-                }),
-                this.version
-            );
-        }
-        requestUpdate(t = !1) {
-            if (!this.wrapperElement.isConnected || !re() || this.timer) return;
-            let { error: r, options: i, state: n, value: o, version: a } = this;
-            (this.state = De),
-                (this.timer = Qr(async () => {
-                    this.timer = null;
-                    let s = null;
-                    if (
-                        (this.changes.size &&
-                            ((s = Object.fromEntries(this.changes.entries())),
-                            this.changes.clear()),
-                        this.connected
-                            ? this.log?.debug('Updated:', {
-                                  element: this.wrapperElement,
-                                  changes: s,
-                              })
-                            : ((this.connected = !0),
-                              this.log?.debug('Connected:', {
-                                  element: this.wrapperElement,
-                                  changes: s,
-                              })),
-                        s || t)
-                    )
-                        try {
-                            (await this.wrapperElement.render?.()) === !1 &&
-                                this.state === De &&
-                                this.version === a &&
-                                ((this.state = n),
-                                (this.error = r),
-                                (this.value = o),
-                                this.update(),
-                                this.notify());
-                        } catch (c) {
-                            this.toggleFailed(this.version, c, i);
-                        }
-                }));
-        }
-    };
-lr = new WeakMap();
-function ta(e = {}) {
-    return (
-        Object.entries(e).forEach(([t, r]) => {
-            (r == null || r === '' || r?.length === 0) && delete e[t];
-        }),
-        e
-    );
-}
-function ti(e, t = {}) {
-    let { tag: r, is: i } = e,
-        n = document.createElement(r, { is: i });
-    return n.setAttribute('is', i), Object.assign(n.dataset, ta(t)), n;
-}
-function ra(e, t = {}) {
-    return e instanceof HTMLElement
-        ? (Object.assign(e.dataset, ta(t)), e)
-        : null;
-}
-var ia = 'download',
-    na = 'upgrade',
-    oa = { e: 'EDU', t: 'TEAM' };
-function ri(e, t = {}, r = '') {
-    let i = re();
-    if (!i) return null;
-    let {
-            checkoutMarketSegment: n,
-            checkoutWorkflow: o,
-            checkoutWorkflowStep: a,
-            entitlement: s,
-            upgrade: c,
-            modal: l,
-            perpetual: d,
-            promotionCode: p,
-            quantity: f,
-            wcsOsi: m,
-            extraOptions: b,
-            analyticsId: x,
-        } = i.collectCheckoutOptions(t),
-        S = ti(e, {
-            checkoutMarketSegment: n,
-            checkoutWorkflow: o,
-            checkoutWorkflowStep: a,
-            entitlement: s,
-            upgrade: c,
-            modal: l,
-            perpetual: d,
-            promotionCode: p,
-            quantity: f,
-            wcsOsi: m,
-            extraOptions: b,
-            analyticsId: x,
-        });
-    return (
-        r && (S.innerHTML = `<span style="pointer-events: none;">${r}</span>`),
-        S
-    );
-}
-function ii(e) {
-    return class extends e {
-        constructor() {
-            super(...arguments);
-            u(this, 'checkoutActionHandler');
-            u(this, 'masElement', new ze(this));
-        }
-        attributeChangedCallback(i, n, o) {
-            this.masElement.attributeChangedCallback(i, n, o);
-        }
-        connectedCallback() {
-            this.masElement.connectedCallback(),
-                this.addEventListener('click', this.clickHandler);
-        }
-        disconnectedCallback() {
-            this.masElement.disconnectedCallback(),
-                this.removeEventListener('click', this.clickHandler);
-        }
-        onceSettled() {
-            return this.masElement.onceSettled();
-        }
-        get value() {
-            return this.masElement.value;
-        }
-        get options() {
-            return this.masElement.options;
-        }
-        get marketSegment() {
-            let i = this.options?.ms ?? this.value?.[0].marketSegments?.[0];
-            return oa[i] ?? i;
-        }
-        get customerSegment() {
-            let i = this.options?.cs ?? this.value?.[0]?.customerSegment;
-            return oa[i] ?? i;
-        }
-        get is3in1Modal() {
-            return Object.values(Je).includes(this.getAttribute('data-modal'));
-        }
-        get isOpen3in1Modal() {
-            let i = document.querySelector('meta[name=mas-ff-3in1]');
-            return this.is3in1Modal && (!i || i.content !== 'off');
-        }
-        requestUpdate(i = !1) {
-            return this.masElement.requestUpdate(i);
-        }
-        static get observedAttributes() {
-            return [
-                'data-checkout-workflow',
-                'data-checkout-workflow-step',
-                'data-extra-options',
-                'data-ims-country',
-                'data-perpetual',
-                'data-promotion-code',
-                'data-quantity',
-                'data-template',
-                'data-wcs-osi',
-                'data-entitlement',
-                'data-upgrade',
-                'data-modal',
-            ];
-        }
-        async render(i = {}) {
-            let n = re();
-            if (!n) return !1;
-            this.dataset.imsCountry ||
-                n.imsCountryPromise.then((p) => {
-                    p && (this.dataset.imsCountry = p);
-                }),
-                (i.imsCountry = null);
-            let o = n.collectCheckoutOptions(i, this);
-            if (!o.wcsOsi.length) return !1;
-            let a;
-            try {
-                a = JSON.parse(o.extraOptions ?? '{}');
-            } catch (p) {
-                this.masElement.log?.error(
-                    'cannot parse exta checkout options',
-                    p,
-                );
-            }
-            let s = this.masElement.togglePending(o);
-            this.setCheckoutUrl('');
-            let c = n.resolveOfferSelectors(o),
-                l = await Promise.all(c);
-            (l = l.map((p) => cr(p, o))),
-                (o.country = this.dataset.imsCountry || o.country);
-            let d = await n.buildCheckoutAction?.(
-                l.flat(),
-                { ...a, ...o },
-                this,
-            );
-            return this.renderOffers(l.flat(), o, {}, d, s);
-        }
-        renderOffers(i, n, o = {}, a = void 0, s = void 0) {
-            let c = re();
-            if (!c) return !1;
-            if (
-                ((n = {
-                    ...JSON.parse(this.dataset.extraOptions ?? '{}'),
-                    ...n,
-                    ...o,
-                }),
-                s ?? (s = this.masElement.togglePending(n)),
-                this.checkoutActionHandler &&
-                    (this.checkoutActionHandler = void 0),
-                a)
-            ) {
-                this.classList.remove(ia, na),
-                    this.masElement.toggleResolved(s, i, n);
-                let { url: d, text: p, className: f, handler: m } = a;
-                d && this.setCheckoutUrl(d),
-                    p && (this.firstElementChild.innerHTML = p),
-                    f && this.classList.add(...f.split(' ')),
-                    m &&
-                        (this.setCheckoutUrl('#'),
-                        (this.checkoutActionHandler = m.bind(this)));
-            }
-            if (i.length) {
-                if (this.masElement.toggleResolved(s, i, n)) {
-                    if (
-                        !this.classList.contains(ia) &&
-                        !this.classList.contains(na)
-                    ) {
-                        let d = c.buildCheckoutURL(i, n);
-                        this.setCheckoutUrl(n.modal === 'true' ? '#' : d);
-                    }
-                    return !0;
-                }
-            } else {
-                let d = new Error(`Not provided: ${n?.wcsOsi ?? '-'}`);
-                if (this.masElement.toggleFailed(s, d, n))
-                    return this.setCheckoutUrl('#'), !0;
-            }
-        }
-        setCheckoutUrl() {}
-        clickHandler(i) {}
-        updateOptions(i = {}) {
-            let n = re();
-            if (!n) return !1;
-            let {
-                checkoutMarketSegment: o,
-                checkoutWorkflow: a,
-                checkoutWorkflowStep: s,
-                entitlement: c,
-                upgrade: l,
-                modal: d,
-                perpetual: p,
-                promotionCode: f,
-                quantity: m,
-                wcsOsi: b,
-            } = n.collectCheckoutOptions(i);
-            return (
-                ra(this, {
-                    checkoutMarketSegment: o,
-                    checkoutWorkflow: a,
-                    checkoutWorkflowStep: s,
-                    entitlement: c,
-                    upgrade: l,
-                    modal: d,
-                    perpetual: p,
-                    promotionCode: f,
-                    quantity: m,
-                    wcsOsi: b,
-                }),
-                !0
-            );
-        }
-    };
-}
-var dr = class dr extends ii(HTMLAnchorElement) {
-    static createCheckoutLink(t = {}, r = '') {
-        return ri(dr, t, r);
-    }
-    setCheckoutUrl(t) {
-        this.setAttribute('href', t);
-    }
-    get isCheckoutLink() {
-        return !0;
-    }
-    clickHandler(t) {
-        if (this.checkoutActionHandler) {
-            this.checkoutActionHandler?.(t);
-            return;
-        }
-    }
-};
-u(dr, 'is', 'checkout-link'), u(dr, 'tag', 'a');
-var Re = dr;
-window.customElements.get(Re.is) ||
-    window.customElements.define(Re.is, Re, { extends: Re.tag });
-var Il = 'p_draft_landscape',
-    $l = '/store/',
-    Hl = new Map([
-        ['countrySpecific', 'cs'],
-        ['customerSegment', 'cs'],
-        ['quantity', 'q'],
-        ['authCode', 'code'],
-        ['checkoutPromoCode', 'apc'],
-        ['rurl', 'rUrl'],
-        ['curl', 'cUrl'],
-        ['ctxrturl', 'ctxRtUrl'],
-        ['country', 'co'],
-        ['language', 'lang'],
-        ['clientId', 'cli'],
-        ['context', 'ctx'],
-        ['productArrangementCode', 'pa'],
-        ['addonProductArrangementCode', 'ao'],
-        ['offerType', 'ot'],
-        ['marketSegment', 'ms'],
-    ]),
-    _n = new Set([
-        'af',
-        'ai',
-        'ao',
-        'apc',
-        'appctxid',
-        'cli',
-        'co',
-        'cs',
-        'csm',
-        'ctx',
-        'ctxRtUrl',
-        'DCWATC',
-        'dp',
-        'fr',
-        'gsp',
-        'ijt',
-        'lang',
-        'lo',
-        'mal',
-        'ms',
-        'mv',
-        'mv2',
-        'nglwfdata',
-        'ot',
-        'otac',
-        'pa',
-        'pcid',
-        'promoid',
-        'q',
-        'rf',
-        'sc',
-        'scl',
-        'sdid',
-        'sid',
-        'spint',
-        'svar',
-        'th',
-        'thm',
-        'trackingid',
-        'usid',
-        'workflowid',
-        'context.guid',
-        'so.ca',
-        'so.su',
-        'so.tr',
-        'so.va',
-    ]),
-    Dl = ['env', 'workflowStep', 'clientId', 'country'],
-    aa = (e) => Hl.get(e) ?? e;
-function Tn(e, t, r) {
-    for (let [i, n] of Object.entries(e)) {
-        let o = aa(i);
-        n != null && r.has(o) && t.set(o, n);
-    }
-}
-function Bl(e) {
-    switch (e) {
-        case sn.PRODUCTION:
-            return 'https://commerce.adobe.com';
-        default:
-            return 'https://commerce-stg.adobe.com';
-    }
-}
-function Ul(e, t) {
-    for (let r in e) {
-        let i = e[r];
-        for (let [n, o] of Object.entries(i)) {
-            if (o == null) continue;
-            let a = aa(n);
-            t.set(`items[${r}][${a}]`, o);
-        }
-    }
-}
-function zl({ url: e, modal: t, is3in1: r }) {
-    if (!r || !e?.searchParams) return e;
-    e.searchParams.set('rtc', 't'), e.searchParams.set('lo', 'sl');
-    let i = e.searchParams.get('af');
-    return (
-        e.searchParams.set(
-            'af',
-            [i, 'uc_new_user_iframe', 'uc_new_system_close']
-                .filter(Boolean)
-                .join(','),
-        ),
-        e.searchParams.get('cli') !== 'doc_cloud' &&
-            e.searchParams.set('cli', t === Je.CRM ? 'creative' : 'mini_plans'),
-        e
-    );
-}
-function sa(e) {
-    Fl(e);
-    let {
-            env: t,
-            items: r,
-            workflowStep: i,
-            marketSegment: n,
-            customerSegment: o,
-            offerType: a,
-            productArrangementCode: s,
-            landscape: c,
-            modal: l,
-            is3in1: d,
-            preselectPlan: p,
-            ...f
-        } = e,
-        m = new URL(Bl(t));
-    if (
-        ((m.pathname = `${$l}${i}`),
-        i !== ee.SEGMENTATION &&
-            i !== ee.CHANGE_PLAN_TEAM_PLANS &&
-            Ul(r, m.searchParams),
-        Tn({ ...f }, m.searchParams, _n),
-        c === Be.DRAFT && Tn({ af: Il }, m.searchParams, _n),
-        i === ee.SEGMENTATION)
-    ) {
-        let b = {
-            marketSegment: n,
-            offerType: a,
-            customerSegment: o,
-            productArrangementCode: s,
-            quantity: r?.[0]?.quantity,
-            addonProductArrangementCode: s
-                ? r?.find((x) => x.productArrangementCode !== s)
-                      ?.productArrangementCode
-                : r?.[1]?.productArrangementCode,
-        };
-        p?.toLowerCase() === 'edu'
-            ? m.searchParams.set('ms', 'EDU')
-            : p?.toLowerCase() === 'team' && m.searchParams.set('cs', 'TEAM'),
-            Tn(b, m.searchParams, _n),
-            m.searchParams.get('ot') === 'PROMOTION' &&
-                m.searchParams.delete('ot'),
-            (m = zl({ url: m, modal: l, is3in1: d }));
-    }
-    return m.toString();
-}
-function Fl(e) {
-    for (let t of Dl)
-        if (!e[t])
-            throw new Error(
-                'Argument "checkoutData" is not valid, missing: ' + t,
-            );
-    if (
-        e.workflowStep !== ee.SEGMENTATION &&
-        e.workflowStep !== ee.CHANGE_PLAN_TEAM_PLANS &&
-        !e.items
-    )
-        throw new Error('Argument "checkoutData" is not valid, missing: items');
-    return !0;
-}
-var L = Object.freeze({
-    checkoutClientId: 'adobe_com',
-    checkoutWorkflowStep: ee.EMAIL,
-    country: 'US',
-    displayOldPrice: !1,
-    displayPerUnit: !1,
-    displayRecurrence: !0,
-    displayTax: !1,
-    displayPlanType: !1,
-    env: we.PRODUCTION,
-    forceTaxExclusive: !1,
-    language: 'en',
-    entitlement: !1,
-    extraOptions: {},
-    modal: !1,
-    promotionCode: '',
-    quantity: 1,
-    alternativePrice: !1,
-    wcsApiKey: 'wcms-commerce-ims-ro-user-milo',
-    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
-    landscape: Be.PUBLISHED,
-});
-function ca({ settings: e, providers: t }) {
-    function r(o, a) {
-        let {
-                checkoutClientId: s,
-                checkoutWorkflowStep: c,
-                country: l,
-                language: d,
-                promotionCode: p,
-                quantity: f,
-                preselectPlan: m,
-                env: b,
-            } = e,
-            x = {
-                checkoutClientId: s,
-                checkoutWorkflowStep: c,
-                country: l,
-                language: d,
-                promotionCode: p,
-                quantity: f,
-                preselectPlan: m,
-                env: b,
-            };
-        if (a) for (let bt of t.checkout) bt(a, x);
-        let {
-                checkoutMarketSegment: S,
-                checkoutWorkflowStep: O = c,
-                imsCountry: P,
-                country: C = P ?? l,
-                language: M = d,
-                quantity: I = f,
-                entitlement: F,
-                upgrade: W,
-                modal: te,
-                perpetual: V,
-                promotionCode: H = p,
-                wcsOsi: Z,
-                extraOptions: de,
-                ...He
-            } = Object.assign(x, a?.dataset ?? {}, o ?? {}),
-            Ee = ar(O, ee, L.checkoutWorkflowStep);
-        return (
-            (x = Yr({
-                ...He,
-                extraOptions: de,
-                checkoutClientId: s,
-                checkoutMarketSegment: S,
-                country: C,
-                quantity: _t(I, L.quantity),
-                checkoutWorkflowStep: Ee,
-                language: M,
-                entitlement: A(F),
-                upgrade: A(W),
-                modal: te,
-                perpetual: A(V),
-                promotionCode: Kr(H).effectivePromoCode,
-                wcsOsi: Zr(Z),
-                preselectPlan: m,
-            })),
-            x
-        );
-    }
-    function i(o, a) {
-        if (!Array.isArray(o) || !o.length || !a) return '';
-        let { env: s, landscape: c } = e,
-            {
-                checkoutClientId: l,
-                checkoutMarketSegment: d,
-                checkoutWorkflowStep: p,
-                country: f,
-                promotionCode: m,
-                quantity: b,
-                preselectPlan: x,
-                ms: S,
-                cs: O,
-                ...P
-            } = r(a),
-            C = document.querySelector('meta[name=mas-ff-3in1]'),
-            M =
-                Object.values(Je).includes(a.modal) &&
-                (!C || C.content !== 'off'),
-            I = window.frameElement || M ? 'if' : 'fp',
-            [
-                {
-                    productArrangementCode: F,
-                    marketSegments: [W],
-                    customerSegment: te,
-                    offerType: V,
-                },
-            ] = o,
-            H = S ?? W ?? d,
-            Z = O ?? te;
-        x?.toLowerCase() === 'edu'
-            ? (H = 'EDU')
-            : x?.toLowerCase() === 'team' && (Z = 'TEAM');
-        let de = {
-                is3in1: M,
-                checkoutPromoCode: m,
-                clientId: l,
-                context: I,
-                country: f,
-                env: s,
-                items: [],
-                marketSegment: H,
-                customerSegment: Z,
-                offerType: V,
-                productArrangementCode: F,
-                workflowStep: p,
-                landscape: c,
-                ...P,
-            },
-            He = b[0] > 1 ? b[0] : void 0;
-        if (o.length === 1) {
-            let { offerId: Ee } = o[0];
-            de.items.push({ id: Ee, quantity: He });
-        } else
-            de.items.push(
-                ...o.map(({ offerId: Ee, productArrangementCode: bt }) => ({
-                    id: Ee,
-                    quantity: He,
-                    ...(M ? { productArrangementCode: bt } : {}),
-                })),
-            );
-        return sa(de);
-    }
-    let { createCheckoutLink: n } = Re;
-    return {
-        CheckoutLink: Re,
-        CheckoutWorkflowStep: ee,
-        buildCheckoutURL: i,
-        collectCheckoutOptions: r,
-        createCheckoutLink: n,
-    };
-}
-function Gl({ interval: e = 200, maxAttempts: t = 25 } = {}) {
-    let r = ce.module('ims');
-    return new Promise((i) => {
-        r.debug('Waing for IMS to be ready');
-        let n = 0;
-        function o() {
-            window.adobeIMS?.initialized
-                ? i()
-                : ++n > t
-                  ? (r.debug('Timeout'), i())
-                  : setTimeout(o, e);
-        }
-        o();
-    });
-}
-function Vl(e) {
-    return e.then(() => window.adobeIMS?.isSignedInUser() ?? !1);
-}
-function jl(e) {
-    let t = ce.module('ims');
-    return e.then((r) =>
-        r
-            ? window.adobeIMS.getProfile().then(
-                  ({ countryCode: i }) => (t.debug('Got user country:', i), i),
-                  (i) => {
-                      t.error('Unable to get user country:', i);
-                  },
-              )
-            : null,
-    );
-}
-function la({}) {
-    let e = Gl(),
-        t = Vl(e),
-        r = jl(t);
-    return { imsReadyPromise: e, imsSignedInPromise: t, imsCountryPromise: r };
-}
-var da = window.masPriceLiterals;
-function ha(e) {
-    if (Array.isArray(da)) {
-        let t = (i) => da.find((n) => dn(n.lang, i)),
-            r = t(e.language) ?? t(L.language);
-        if (r) return Object.freeze(r);
-    }
-    return {};
-}
-var Cn = function (e, t) {
-    return (
-        (Cn =
-            Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array &&
-                function (r, i) {
-                    r.__proto__ = i;
-                }) ||
-            function (r, i) {
-                for (var n in i)
-                    Object.prototype.hasOwnProperty.call(i, n) && (r[n] = i[n]);
-            }),
-        Cn(e, t)
-    );
-};
-function hr(e, t) {
-    if (typeof t != 'function' && t !== null)
-        throw new TypeError(
-            'Class extends value ' +
-                String(t) +
-                ' is not a constructor or null',
-        );
-    Cn(e, t);
-    function r() {
-        this.constructor = e;
-    }
-    e.prototype =
-        t === null ? Object.create(t) : ((r.prototype = t.prototype), new r());
-}
-var _ = function () {
-    return (
-        (_ =
-            Object.assign ||
-            function (t) {
-                for (var r, i = 1, n = arguments.length; i < n; i++) {
-                    r = arguments[i];
-                    for (var o in r)
-                        Object.prototype.hasOwnProperty.call(r, o) &&
-                            (t[o] = r[o]);
-                }
-                return t;
-            }),
-        _.apply(this, arguments)
-    );
-};
-function ni(e, t, r) {
-    if (r || arguments.length === 2)
-        for (var i = 0, n = t.length, o; i < n; i++)
-            (o || !(i in t)) &&
-                (o || (o = Array.prototype.slice.call(t, 0, i)), (o[i] = t[i]));
-    return e.concat(o || Array.prototype.slice.call(t));
-}
-var w;
-(function (e) {
-    (e[(e.EXPECT_ARGUMENT_CLOSING_BRACE = 1)] =
-        'EXPECT_ARGUMENT_CLOSING_BRACE'),
-        (e[(e.EMPTY_ARGUMENT = 2)] = 'EMPTY_ARGUMENT'),
-        (e[(e.MALFORMED_ARGUMENT = 3)] = 'MALFORMED_ARGUMENT'),
-        (e[(e.EXPECT_ARGUMENT_TYPE = 4)] = 'EXPECT_ARGUMENT_TYPE'),
-        (e[(e.INVALID_ARGUMENT_TYPE = 5)] = 'INVALID_ARGUMENT_TYPE'),
-        (e[(e.EXPECT_ARGUMENT_STYLE = 6)] = 'EXPECT_ARGUMENT_STYLE'),
-        (e[(e.INVALID_NUMBER_SKELETON = 7)] = 'INVALID_NUMBER_SKELETON'),
-        (e[(e.INVALID_DATE_TIME_SKELETON = 8)] = 'INVALID_DATE_TIME_SKELETON'),
-        (e[(e.EXPECT_NUMBER_SKELETON = 9)] = 'EXPECT_NUMBER_SKELETON'),
-        (e[(e.EXPECT_DATE_TIME_SKELETON = 10)] = 'EXPECT_DATE_TIME_SKELETON'),
-        (e[(e.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE = 11)] =
-            'UNCLOSED_QUOTE_IN_ARGUMENT_STYLE'),
-        (e[(e.EXPECT_SELECT_ARGUMENT_OPTIONS = 12)] =
-            'EXPECT_SELECT_ARGUMENT_OPTIONS'),
-        (e[(e.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE = 13)] =
-            'EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE'),
-        (e[(e.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE = 14)] =
-            'INVALID_PLURAL_ARGUMENT_OFFSET_VALUE'),
-        (e[(e.EXPECT_SELECT_ARGUMENT_SELECTOR = 15)] =
-            'EXPECT_SELECT_ARGUMENT_SELECTOR'),
-        (e[(e.EXPECT_PLURAL_ARGUMENT_SELECTOR = 16)] =
-            'EXPECT_PLURAL_ARGUMENT_SELECTOR'),
-        (e[(e.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT = 17)] =
-            'EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT'),
-        (e[(e.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT = 18)] =
-            'EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT'),
-        (e[(e.INVALID_PLURAL_ARGUMENT_SELECTOR = 19)] =
-            'INVALID_PLURAL_ARGUMENT_SELECTOR'),
-        (e[(e.DUPLICATE_PLURAL_ARGUMENT_SELECTOR = 20)] =
-            'DUPLICATE_PLURAL_ARGUMENT_SELECTOR'),
-        (e[(e.DUPLICATE_SELECT_ARGUMENT_SELECTOR = 21)] =
-            'DUPLICATE_SELECT_ARGUMENT_SELECTOR'),
-        (e[(e.MISSING_OTHER_CLAUSE = 22)] = 'MISSING_OTHER_CLAUSE'),
-        (e[(e.INVALID_TAG = 23)] = 'INVALID_TAG'),
-        (e[(e.INVALID_TAG_NAME = 25)] = 'INVALID_TAG_NAME'),
-        (e[(e.UNMATCHED_CLOSING_TAG = 26)] = 'UNMATCHED_CLOSING_TAG'),
-        (e[(e.UNCLOSED_TAG = 27)] = 'UNCLOSED_TAG');
-})(w || (w = {}));
-var B;
-(function (e) {
-    (e[(e.literal = 0)] = 'literal'),
-        (e[(e.argument = 1)] = 'argument'),
-        (e[(e.number = 2)] = 'number'),
-        (e[(e.date = 3)] = 'date'),
-        (e[(e.time = 4)] = 'time'),
-        (e[(e.select = 5)] = 'select'),
-        (e[(e.plural = 6)] = 'plural'),
-        (e[(e.pound = 7)] = 'pound'),
-        (e[(e.tag = 8)] = 'tag');
-})(B || (B = {}));
-var rt;
-(function (e) {
-    (e[(e.number = 0)] = 'number'), (e[(e.dateTime = 1)] = 'dateTime');
-})(rt || (rt = {}));
-function kn(e) {
-    return e.type === B.literal;
-}
-function pa(e) {
-    return e.type === B.argument;
-}
-function oi(e) {
-    return e.type === B.number;
-}
-function ai(e) {
-    return e.type === B.date;
-}
-function si(e) {
-    return e.type === B.time;
-}
-function ci(e) {
-    return e.type === B.select;
-}
-function li(e) {
-    return e.type === B.plural;
-}
-function ma(e) {
-    return e.type === B.pound;
-}
-function di(e) {
-    return e.type === B.tag;
-}
-function hi(e) {
-    return !!(e && typeof e == 'object' && e.type === rt.number);
-}
-function pr(e) {
-    return !!(e && typeof e == 'object' && e.type === rt.dateTime);
-}
-var Pn = /[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;
-var ql =
-    /(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;
-function ua(e) {
-    var t = {};
-    return (
-        e.replace(ql, function (r) {
-            var i = r.length;
-            switch (r[0]) {
-                case 'G':
-                    t.era = i === 4 ? 'long' : i === 5 ? 'narrow' : 'short';
-                    break;
-                case 'y':
-                    t.year = i === 2 ? '2-digit' : 'numeric';
-                    break;
-                case 'Y':
-                case 'u':
-                case 'U':
-                case 'r':
-                    throw new RangeError(
-                        '`Y/u/U/r` (year) patterns are not supported, use `y` instead',
-                    );
-                case 'q':
-                case 'Q':
-                    throw new RangeError(
-                        '`q/Q` (quarter) patterns are not supported',
-                    );
-                case 'M':
-                case 'L':
-                    t.month = ['numeric', '2-digit', 'short', 'long', 'narrow'][
-                        i - 1
-                    ];
-                    break;
-                case 'w':
-                case 'W':
-                    throw new RangeError(
-                        '`w/W` (week) patterns are not supported',
-                    );
-                case 'd':
-                    t.day = ['numeric', '2-digit'][i - 1];
-                    break;
-                case 'D':
-                case 'F':
-                case 'g':
-                    throw new RangeError(
-                        '`D/F/g` (day) patterns are not supported, use `d` instead',
-                    );
-                case 'E':
-                    t.weekday =
-                        i === 4 ? 'short' : i === 5 ? 'narrow' : 'short';
-                    break;
-                case 'e':
-                    if (i < 4)
-                        throw new RangeError(
-                            '`e..eee` (weekday) patterns are not supported',
-                        );
-                    t.weekday = ['short', 'long', 'narrow', 'short'][i - 4];
-                    break;
-                case 'c':
-                    if (i < 4)
-                        throw new RangeError(
-                            '`c..ccc` (weekday) patterns are not supported',
-                        );
-                    t.weekday = ['short', 'long', 'narrow', 'short'][i - 4];
-                    break;
-                case 'a':
-                    t.hour12 = !0;
-                    break;
-                case 'b':
-                case 'B':
-                    throw new RangeError(
-                        '`b/B` (period) patterns are not supported, use `a` instead',
-                    );
-                case 'h':
-                    (t.hourCycle = 'h12'),
-                        (t.hour = ['numeric', '2-digit'][i - 1]);
-                    break;
-                case 'H':
-                    (t.hourCycle = 'h23'),
-                        (t.hour = ['numeric', '2-digit'][i - 1]);
-                    break;
-                case 'K':
-                    (t.hourCycle = 'h11'),
-                        (t.hour = ['numeric', '2-digit'][i - 1]);
-                    break;
-                case 'k':
-                    (t.hourCycle = 'h24'),
-                        (t.hour = ['numeric', '2-digit'][i - 1]);
-                    break;
-                case 'j':
-                case 'J':
-                case 'C':
-                    throw new RangeError(
-                        '`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead',
-                    );
-                case 'm':
-                    t.minute = ['numeric', '2-digit'][i - 1];
-                    break;
-                case 's':
-                    t.second = ['numeric', '2-digit'][i - 1];
-                    break;
-                case 'S':
-                case 'A':
-                    throw new RangeError(
-                        '`S/A` (second) patterns are not supported, use `s` instead',
-                    );
-                case 'z':
-                    t.timeZoneName = i < 4 ? 'short' : 'long';
-                    break;
-                case 'Z':
-                case 'O':
-                case 'v':
-                case 'V':
-                case 'X':
-                case 'x':
-                    throw new RangeError(
-                        '`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead',
-                    );
-            }
-            return '';
-        }),
-        t
-    );
-}
-var fa = /[\t-\r \x85\u200E\u200F\u2028\u2029]/i;
-function va(e) {
-    if (e.length === 0) throw new Error('Number skeleton cannot be empty');
-    for (
-        var t = e.split(fa).filter(function (f) {
-                return f.length > 0;
-            }),
-            r = [],
-            i = 0,
-            n = t;
-        i < n.length;
-        i++
-    ) {
-        var o = n[i],
-            a = o.split('/');
-        if (a.length === 0) throw new Error('Invalid number skeleton');
-        for (var s = a[0], c = a.slice(1), l = 0, d = c; l < d.length; l++) {
-            var p = d[l];
-            if (p.length === 0) throw new Error('Invalid number skeleton');
-        }
-        r.push({ stem: s, options: c });
-    }
-    return r;
-}
-function Wl(e) {
-    return e.replace(/^(.*?)-/, '');
-}
-var ga = /^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,
-    ya = /^(@+)?(\+|#+)?[rs]?$/g,
-    Yl = /(\*)(0+)|(#+)(0+)|(0+)/g,
-    Ea = /^(0+)$/;
-function xa(e) {
-    var t = {};
-    return (
-        e[e.length - 1] === 'r'
-            ? (t.roundingPriority = 'morePrecision')
-            : e[e.length - 1] === 's' && (t.roundingPriority = 'lessPrecision'),
-        e.replace(ya, function (r, i, n) {
-            return (
-                typeof n != 'string'
-                    ? ((t.minimumSignificantDigits = i.length),
-                      (t.maximumSignificantDigits = i.length))
-                    : n === '+'
-                      ? (t.minimumSignificantDigits = i.length)
-                      : i[0] === '#'
-                        ? (t.maximumSignificantDigits = i.length)
-                        : ((t.minimumSignificantDigits = i.length),
-                          (t.maximumSignificantDigits =
-                              i.length +
-                              (typeof n == 'string' ? n.length : 0))),
-                ''
-            );
-        }),
-        t
-    );
-}
-function wa(e) {
-    switch (e) {
-        case 'sign-auto':
-            return { signDisplay: 'auto' };
-        case 'sign-accounting':
-        case '()':
-            return { currencySign: 'accounting' };
-        case 'sign-always':
-        case '+!':
-            return { signDisplay: 'always' };
-        case 'sign-accounting-always':
-        case '()!':
-            return { signDisplay: 'always', currencySign: 'accounting' };
-        case 'sign-except-zero':
-        case '+?':
-            return { signDisplay: 'exceptZero' };
-        case 'sign-accounting-except-zero':
-        case '()?':
-            return { signDisplay: 'exceptZero', currencySign: 'accounting' };
-        case 'sign-never':
-        case '+_':
-            return { signDisplay: 'never' };
-    }
-}
-function Xl(e) {
-    var t;
-    if (
-        (e[0] === 'E' && e[1] === 'E'
-            ? ((t = { notation: 'engineering' }), (e = e.slice(2)))
-            : e[0] === 'E' &&
-              ((t = { notation: 'scientific' }), (e = e.slice(1))),
-        t)
-    ) {
-        var r = e.slice(0, 2);
-        if (
-            (r === '+!'
-                ? ((t.signDisplay = 'always'), (e = e.slice(2)))
-                : r === '+?' &&
-                  ((t.signDisplay = 'exceptZero'), (e = e.slice(2))),
-            !Ea.test(e))
-        )
-            throw new Error('Malformed concise eng/scientific notation');
-        t.minimumIntegerDigits = e.length;
-    }
-    return t;
-}
-function ba(e) {
-    var t = {},
-        r = wa(e);
-    return r || t;
-}
-function Aa(e) {
-    for (var t = {}, r = 0, i = e; r < i.length; r++) {
-        var n = i[r];
-        switch (n.stem) {
-            case 'percent':
-            case '%':
-                t.style = 'percent';
-                continue;
-            case '%x100':
-                (t.style = 'percent'), (t.scale = 100);
-                continue;
-            case 'currency':
-                (t.style = 'currency'), (t.currency = n.options[0]);
-                continue;
-            case 'group-off':
-            case ',_':
-                t.useGrouping = !1;
-                continue;
-            case 'precision-integer':
-            case '.':
-                t.maximumFractionDigits = 0;
-                continue;
-            case 'measure-unit':
-            case 'unit':
-                (t.style = 'unit'), (t.unit = Wl(n.options[0]));
-                continue;
-            case 'compact-short':
-            case 'K':
-                (t.notation = 'compact'), (t.compactDisplay = 'short');
-                continue;
-            case 'compact-long':
-            case 'KK':
-                (t.notation = 'compact'), (t.compactDisplay = 'long');
-                continue;
-            case 'scientific':
-                t = _(
-                    _(_({}, t), { notation: 'scientific' }),
-                    n.options.reduce(function (c, l) {
-                        return _(_({}, c), ba(l));
-                    }, {}),
-                );
-                continue;
-            case 'engineering':
-                t = _(
-                    _(_({}, t), { notation: 'engineering' }),
-                    n.options.reduce(function (c, l) {
-                        return _(_({}, c), ba(l));
-                    }, {}),
-                );
-                continue;
-            case 'notation-simple':
-                t.notation = 'standard';
-                continue;
-            case 'unit-width-narrow':
-                (t.currencyDisplay = 'narrowSymbol'),
-                    (t.unitDisplay = 'narrow');
-                continue;
-            case 'unit-width-short':
-                (t.currencyDisplay = 'code'), (t.unitDisplay = 'short');
-                continue;
-            case 'unit-width-full-name':
-                (t.currencyDisplay = 'name'), (t.unitDisplay = 'long');
-                continue;
-            case 'unit-width-iso-code':
-                t.currencyDisplay = 'symbol';
-                continue;
-            case 'scale':
-                t.scale = parseFloat(n.options[0]);
-                continue;
-            case 'integer-width':
-                if (n.options.length > 1)
-                    throw new RangeError(
-                        'integer-width stems only accept a single optional option',
-                    );
-                n.options[0].replace(Yl, function (c, l, d, p, f, m) {
-                    if (l) t.minimumIntegerDigits = d.length;
-                    else {
-                        if (p && f)
-                            throw new Error(
-                                'We currently do not support maximum integer digits',
-                            );
-                        if (m)
-                            throw new Error(
-                                'We currently do not support exact integer digits',
-                            );
-                    }
-                    return '';
-                });
-                continue;
-        }
-        if (Ea.test(n.stem)) {
-            t.minimumIntegerDigits = n.stem.length;
-            continue;
-        }
-        if (ga.test(n.stem)) {
-            if (n.options.length > 1)
-                throw new RangeError(
-                    'Fraction-precision stems only accept a single optional option',
-                );
-            n.stem.replace(ga, function (c, l, d, p, f, m) {
-                return (
-                    d === '*'
-                        ? (t.minimumFractionDigits = l.length)
-                        : p && p[0] === '#'
-                          ? (t.maximumFractionDigits = p.length)
-                          : f && m
-                            ? ((t.minimumFractionDigits = f.length),
-                              (t.maximumFractionDigits = f.length + m.length))
-                            : ((t.minimumFractionDigits = l.length),
-                              (t.maximumFractionDigits = l.length)),
-                    ''
-                );
-            });
-            var o = n.options[0];
-            o === 'w'
-                ? (t = _(_({}, t), { trailingZeroDisplay: 'stripIfInteger' }))
-                : o && (t = _(_({}, t), xa(o)));
-            continue;
-        }
-        if (ya.test(n.stem)) {
-            t = _(_({}, t), xa(n.stem));
-            continue;
-        }
-        var a = wa(n.stem);
-        a && (t = _(_({}, t), a));
-        var s = Xl(n.stem);
-        s && (t = _(_({}, t), s));
-    }
-    return t;
-}
-var mr = {
-    AX: ['H'],
-    BQ: ['H'],
-    CP: ['H'],
-    CZ: ['H'],
-    DK: ['H'],
-    FI: ['H'],
-    ID: ['H'],
-    IS: ['H'],
-    ML: ['H'],
-    NE: ['H'],
-    RU: ['H'],
-    SE: ['H'],
-    SJ: ['H'],
-    SK: ['H'],
-    AS: ['h', 'H'],
-    BT: ['h', 'H'],
-    DJ: ['h', 'H'],
-    ER: ['h', 'H'],
-    GH: ['h', 'H'],
-    IN: ['h', 'H'],
-    LS: ['h', 'H'],
-    PG: ['h', 'H'],
-    PW: ['h', 'H'],
-    SO: ['h', 'H'],
-    TO: ['h', 'H'],
-    VU: ['h', 'H'],
-    WS: ['h', 'H'],
-    '001': ['H', 'h'],
-    AL: ['h', 'H', 'hB'],
-    TD: ['h', 'H', 'hB'],
-    'ca-ES': ['H', 'h', 'hB'],
-    CF: ['H', 'h', 'hB'],
-    CM: ['H', 'h', 'hB'],
-    'fr-CA': ['H', 'h', 'hB'],
-    'gl-ES': ['H', 'h', 'hB'],
-    'it-CH': ['H', 'h', 'hB'],
-    'it-IT': ['H', 'h', 'hB'],
-    LU: ['H', 'h', 'hB'],
-    NP: ['H', 'h', 'hB'],
-    PF: ['H', 'h', 'hB'],
-    SC: ['H', 'h', 'hB'],
-    SM: ['H', 'h', 'hB'],
-    SN: ['H', 'h', 'hB'],
-    TF: ['H', 'h', 'hB'],
-    VA: ['H', 'h', 'hB'],
-    CY: ['h', 'H', 'hb', 'hB'],
-    GR: ['h', 'H', 'hb', 'hB'],
-    CO: ['h', 'H', 'hB', 'hb'],
-    DO: ['h', 'H', 'hB', 'hb'],
-    KP: ['h', 'H', 'hB', 'hb'],
-    KR: ['h', 'H', 'hB', 'hb'],
-    NA: ['h', 'H', 'hB', 'hb'],
-    PA: ['h', 'H', 'hB', 'hb'],
-    PR: ['h', 'H', 'hB', 'hb'],
-    VE: ['h', 'H', 'hB', 'hb'],
-    AC: ['H', 'h', 'hb', 'hB'],
-    AI: ['H', 'h', 'hb', 'hB'],
-    BW: ['H', 'h', 'hb', 'hB'],
-    BZ: ['H', 'h', 'hb', 'hB'],
-    CC: ['H', 'h', 'hb', 'hB'],
-    CK: ['H', 'h', 'hb', 'hB'],
-    CX: ['H', 'h', 'hb', 'hB'],
-    DG: ['H', 'h', 'hb', 'hB'],
-    FK: ['H', 'h', 'hb', 'hB'],
-    GB: ['H', 'h', 'hb', 'hB'],
-    GG: ['H', 'h', 'hb', 'hB'],
-    GI: ['H', 'h', 'hb', 'hB'],
-    IE: ['H', 'h', 'hb', 'hB'],
-    IM: ['H', 'h', 'hb', 'hB'],
-    IO: ['H', 'h', 'hb', 'hB'],
-    JE: ['H', 'h', 'hb', 'hB'],
-    LT: ['H', 'h', 'hb', 'hB'],
-    MK: ['H', 'h', 'hb', 'hB'],
-    MN: ['H', 'h', 'hb', 'hB'],
-    MS: ['H', 'h', 'hb', 'hB'],
-    NF: ['H', 'h', 'hb', 'hB'],
-    NG: ['H', 'h', 'hb', 'hB'],
-    NR: ['H', 'h', 'hb', 'hB'],
-    NU: ['H', 'h', 'hb', 'hB'],
-    PN: ['H', 'h', 'hb', 'hB'],
-    SH: ['H', 'h', 'hb', 'hB'],
-    SX: ['H', 'h', 'hb', 'hB'],
-    TA: ['H', 'h', 'hb', 'hB'],
-    ZA: ['H', 'h', 'hb', 'hB'],
-    'af-ZA': ['H', 'h', 'hB', 'hb'],
-    AR: ['H', 'h', 'hB', 'hb'],
-    CL: ['H', 'h', 'hB', 'hb'],
-    CR: ['H', 'h', 'hB', 'hb'],
-    CU: ['H', 'h', 'hB', 'hb'],
-    EA: ['H', 'h', 'hB', 'hb'],
-    'es-BO': ['H', 'h', 'hB', 'hb'],
-    'es-BR': ['H', 'h', 'hB', 'hb'],
-    'es-EC': ['H', 'h', 'hB', 'hb'],
-    'es-ES': ['H', 'h', 'hB', 'hb'],
-    'es-GQ': ['H', 'h', 'hB', 'hb'],
-    'es-PE': ['H', 'h', 'hB', 'hb'],
-    GT: ['H', 'h', 'hB', 'hb'],
-    HN: ['H', 'h', 'hB', 'hb'],
-    IC: ['H', 'h', 'hB', 'hb'],
-    KG: ['H', 'h', 'hB', 'hb'],
-    KM: ['H', 'h', 'hB', 'hb'],
-    LK: ['H', 'h', 'hB', 'hb'],
-    MA: ['H', 'h', 'hB', 'hb'],
-    MX: ['H', 'h', 'hB', 'hb'],
-    NI: ['H', 'h', 'hB', 'hb'],
-    PY: ['H', 'h', 'hB', 'hb'],
-    SV: ['H', 'h', 'hB', 'hb'],
-    UY: ['H', 'h', 'hB', 'hb'],
-    JP: ['H', 'h', 'K'],
-    AD: ['H', 'hB'],
-    AM: ['H', 'hB'],
-    AO: ['H', 'hB'],
-    AT: ['H', 'hB'],
-    AW: ['H', 'hB'],
-    BE: ['H', 'hB'],
-    BF: ['H', 'hB'],
-    BJ: ['H', 'hB'],
-    BL: ['H', 'hB'],
-    BR: ['H', 'hB'],
-    CG: ['H', 'hB'],
-    CI: ['H', 'hB'],
-    CV: ['H', 'hB'],
-    DE: ['H', 'hB'],
-    EE: ['H', 'hB'],
-    FR: ['H', 'hB'],
-    GA: ['H', 'hB'],
-    GF: ['H', 'hB'],
-    GN: ['H', 'hB'],
-    GP: ['H', 'hB'],
-    GW: ['H', 'hB'],
-    HR: ['H', 'hB'],
-    IL: ['H', 'hB'],
-    IT: ['H', 'hB'],
-    KZ: ['H', 'hB'],
-    MC: ['H', 'hB'],
-    MD: ['H', 'hB'],
-    MF: ['H', 'hB'],
-    MQ: ['H', 'hB'],
-    MZ: ['H', 'hB'],
-    NC: ['H', 'hB'],
-    NL: ['H', 'hB'],
-    PM: ['H', 'hB'],
-    PT: ['H', 'hB'],
-    RE: ['H', 'hB'],
-    RO: ['H', 'hB'],
-    SI: ['H', 'hB'],
-    SR: ['H', 'hB'],
-    ST: ['H', 'hB'],
-    TG: ['H', 'hB'],
-    TR: ['H', 'hB'],
-    WF: ['H', 'hB'],
-    YT: ['H', 'hB'],
-    BD: ['h', 'hB', 'H'],
-    PK: ['h', 'hB', 'H'],
-    AZ: ['H', 'hB', 'h'],
-    BA: ['H', 'hB', 'h'],
-    BG: ['H', 'hB', 'h'],
-    CH: ['H', 'hB', 'h'],
-    GE: ['H', 'hB', 'h'],
-    LI: ['H', 'hB', 'h'],
-    ME: ['H', 'hB', 'h'],
-    RS: ['H', 'hB', 'h'],
-    UA: ['H', 'hB', 'h'],
-    UZ: ['H', 'hB', 'h'],
-    XK: ['H', 'hB', 'h'],
-    AG: ['h', 'hb', 'H', 'hB'],
-    AU: ['h', 'hb', 'H', 'hB'],
-    BB: ['h', 'hb', 'H', 'hB'],
-    BM: ['h', 'hb', 'H', 'hB'],
-    BS: ['h', 'hb', 'H', 'hB'],
-    CA: ['h', 'hb', 'H', 'hB'],
-    DM: ['h', 'hb', 'H', 'hB'],
-    'en-001': ['h', 'hb', 'H', 'hB'],
-    FJ: ['h', 'hb', 'H', 'hB'],
-    FM: ['h', 'hb', 'H', 'hB'],
-    GD: ['h', 'hb', 'H', 'hB'],
-    GM: ['h', 'hb', 'H', 'hB'],
-    GU: ['h', 'hb', 'H', 'hB'],
-    GY: ['h', 'hb', 'H', 'hB'],
-    JM: ['h', 'hb', 'H', 'hB'],
-    KI: ['h', 'hb', 'H', 'hB'],
-    KN: ['h', 'hb', 'H', 'hB'],
-    KY: ['h', 'hb', 'H', 'hB'],
-    LC: ['h', 'hb', 'H', 'hB'],
-    LR: ['h', 'hb', 'H', 'hB'],
-    MH: ['h', 'hb', 'H', 'hB'],
-    MP: ['h', 'hb', 'H', 'hB'],
-    MW: ['h', 'hb', 'H', 'hB'],
-    NZ: ['h', 'hb', 'H', 'hB'],
-    SB: ['h', 'hb', 'H', 'hB'],
-    SG: ['h', 'hb', 'H', 'hB'],
-    SL: ['h', 'hb', 'H', 'hB'],
-    SS: ['h', 'hb', 'H', 'hB'],
-    SZ: ['h', 'hb', 'H', 'hB'],
-    TC: ['h', 'hb', 'H', 'hB'],
-    TT: ['h', 'hb', 'H', 'hB'],
-    UM: ['h', 'hb', 'H', 'hB'],
-    US: ['h', 'hb', 'H', 'hB'],
-    VC: ['h', 'hb', 'H', 'hB'],
-    VG: ['h', 'hb', 'H', 'hB'],
-    VI: ['h', 'hb', 'H', 'hB'],
-    ZM: ['h', 'hb', 'H', 'hB'],
-    BO: ['H', 'hB', 'h', 'hb'],
-    EC: ['H', 'hB', 'h', 'hb'],
-    ES: ['H', 'hB', 'h', 'hb'],
-    GQ: ['H', 'hB', 'h', 'hb'],
-    PE: ['H', 'hB', 'h', 'hb'],
-    AE: ['h', 'hB', 'hb', 'H'],
-    'ar-001': ['h', 'hB', 'hb', 'H'],
-    BH: ['h', 'hB', 'hb', 'H'],
-    DZ: ['h', 'hB', 'hb', 'H'],
-    EG: ['h', 'hB', 'hb', 'H'],
-    EH: ['h', 'hB', 'hb', 'H'],
-    HK: ['h', 'hB', 'hb', 'H'],
-    IQ: ['h', 'hB', 'hb', 'H'],
-    JO: ['h', 'hB', 'hb', 'H'],
-    KW: ['h', 'hB', 'hb', 'H'],
-    LB: ['h', 'hB', 'hb', 'H'],
-    LY: ['h', 'hB', 'hb', 'H'],
-    MO: ['h', 'hB', 'hb', 'H'],
-    MR: ['h', 'hB', 'hb', 'H'],
-    OM: ['h', 'hB', 'hb', 'H'],
-    PH: ['h', 'hB', 'hb', 'H'],
-    PS: ['h', 'hB', 'hb', 'H'],
-    QA: ['h', 'hB', 'hb', 'H'],
-    SA: ['h', 'hB', 'hb', 'H'],
-    SD: ['h', 'hB', 'hb', 'H'],
-    SY: ['h', 'hB', 'hb', 'H'],
-    TN: ['h', 'hB', 'hb', 'H'],
-    YE: ['h', 'hB', 'hb', 'H'],
-    AF: ['H', 'hb', 'hB', 'h'],
-    LA: ['H', 'hb', 'hB', 'h'],
-    CN: ['H', 'hB', 'hb', 'h'],
-    LV: ['H', 'hB', 'hb', 'h'],
-    TL: ['H', 'hB', 'hb', 'h'],
-    'zu-ZA': ['H', 'hB', 'hb', 'h'],
-    CD: ['hB', 'H'],
-    IR: ['hB', 'H'],
-    'hi-IN': ['hB', 'h', 'H'],
-    'kn-IN': ['hB', 'h', 'H'],
-    'ml-IN': ['hB', 'h', 'H'],
-    'te-IN': ['hB', 'h', 'H'],
-    KH: ['hB', 'h', 'H', 'hb'],
-    'ta-IN': ['hB', 'h', 'hb', 'H'],
-    BN: ['hb', 'hB', 'h', 'H'],
-    MY: ['hb', 'hB', 'h', 'H'],
-    ET: ['hB', 'hb', 'h', 'H'],
-    'gu-IN': ['hB', 'hb', 'h', 'H'],
-    'mr-IN': ['hB', 'hb', 'h', 'H'],
-    'pa-IN': ['hB', 'hb', 'h', 'H'],
-    TW: ['hB', 'hb', 'h', 'H'],
-    KE: ['hB', 'hb', 'H', 'h'],
-    MM: ['hB', 'hb', 'H', 'h'],
-    TZ: ['hB', 'hb', 'H', 'h'],
-    UG: ['hB', 'hb', 'H', 'h'],
-};
-function Sa(e, t) {
-    for (var r = '', i = 0; i < e.length; i++) {
-        var n = e.charAt(i);
-        if (n === 'j') {
-            for (var o = 0; i + 1 < e.length && e.charAt(i + 1) === n; )
-                o++, i++;
-            var a = 1 + (o & 1),
-                s = o < 2 ? 1 : 3 + (o >> 1),
-                c = 'a',
-                l = Kl(t);
-            for ((l == 'H' || l == 'k') && (s = 0); s-- > 0; ) r += c;
-            for (; a-- > 0; ) r = l + r;
-        } else n === 'J' ? (r += 'H') : (r += n);
-    }
-    return r;
-}
-function Kl(e) {
-    var t = e.hourCycle;
-    if (
-        (t === void 0 &&
-            e.hourCycles &&
-            e.hourCycles.length &&
-            (t = e.hourCycles[0]),
-        t)
-    )
-        switch (t) {
-            case 'h24':
-                return 'k';
-            case 'h23':
-                return 'H';
-            case 'h12':
-                return 'h';
-            case 'h11':
-                return 'K';
-            default:
-                throw new Error('Invalid hourCycle');
-        }
-    var r = e.language,
-        i;
-    r !== 'root' && (i = e.maximize().region);
-    var n = mr[i || ''] || mr[r || ''] || mr[''.concat(r, '-001')] || mr['001'];
-    return n[0];
-}
-var Ln,
-    Ql = new RegExp('^'.concat(Pn.source, '*')),
-    Zl = new RegExp(''.concat(Pn.source, '*$'));
-function T(e, t) {
-    return { start: e, end: t };
-}
-var Jl = !!String.prototype.startsWith,
-    ed = !!String.fromCodePoint,
-    td = !!Object.fromEntries,
-    rd = !!String.prototype.codePointAt,
-    id = !!String.prototype.trimStart,
-    nd = !!String.prototype.trimEnd,
-    od = !!Number.isSafeInteger,
-    ad = od
-        ? Number.isSafeInteger
-        : function (e) {
-              return (
-                  typeof e == 'number' &&
-                  isFinite(e) &&
-                  Math.floor(e) === e &&
-                  Math.abs(e) <= 9007199254740991
-              );
-          },
-    On = !0;
-try {
-    (_a = Pa('([^\\p{White_Space}\\p{Pattern_Syntax}]*)', 'yu')),
-        (On =
-            ((Ln = _a.exec('a')) === null || Ln === void 0 ? void 0 : Ln[0]) ===
-            'a');
-} catch {
-    On = !1;
-}
-var _a,
-    Ta = Jl
-        ? function (t, r, i) {
-              return t.startsWith(r, i);
-          }
-        : function (t, r, i) {
-              return t.slice(i, i + r.length) === r;
-          },
-    Mn = ed
-        ? String.fromCodePoint
-        : function () {
-              for (var t = [], r = 0; r < arguments.length; r++)
-                  t[r] = arguments[r];
-              for (var i = '', n = t.length, o = 0, a; n > o; ) {
-                  if (((a = t[o++]), a > 1114111))
-                      throw RangeError(a + ' is not a valid code point');
-                  i +=
-                      a < 65536
-                          ? String.fromCharCode(a)
-                          : String.fromCharCode(
-                                ((a -= 65536) >> 10) + 55296,
-                                (a % 1024) + 56320,
-                            );
-              }
-              return i;
-          },
-    Ca = td
-        ? Object.fromEntries
-        : function (t) {
-              for (var r = {}, i = 0, n = t; i < n.length; i++) {
-                  var o = n[i],
-                      a = o[0],
-                      s = o[1];
-                  r[a] = s;
-              }
-              return r;
-          },
-    ka = rd
-        ? function (t, r) {
-              return t.codePointAt(r);
-          }
-        : function (t, r) {
-              var i = t.length;
-              if (!(r < 0 || r >= i)) {
-                  var n = t.charCodeAt(r),
-                      o;
-                  return n < 55296 ||
-                      n > 56319 ||
-                      r + 1 === i ||
-                      (o = t.charCodeAt(r + 1)) < 56320 ||
-                      o > 57343
-                      ? n
-                      : ((n - 55296) << 10) + (o - 56320) + 65536;
-              }
-          },
-    sd = id
-        ? function (t) {
-              return t.trimStart();
-          }
-        : function (t) {
-              return t.replace(Ql, '');
-          },
-    cd = nd
-        ? function (t) {
-              return t.trimEnd();
-          }
-        : function (t) {
-              return t.replace(Zl, '');
-          };
-function Pa(e, t) {
-    return new RegExp(e, t);
-}
-var Nn;
-On
-    ? ((Rn = Pa('([^\\p{White_Space}\\p{Pattern_Syntax}]*)', 'yu')),
-      (Nn = function (t, r) {
-          var i;
-          Rn.lastIndex = r;
-          var n = Rn.exec(t);
-          return (i = n[1]) !== null && i !== void 0 ? i : '';
-      }))
-    : (Nn = function (t, r) {
-          for (var i = []; ; ) {
-              var n = ka(t, r);
-              if (n === void 0 || Ra(n) || hd(n)) break;
-              i.push(n), (r += n >= 65536 ? 2 : 1);
-          }
-          return Mn.apply(void 0, i);
-      });
-var Rn,
-    La = (function () {
-        function e(t, r) {
-            r === void 0 && (r = {}),
-                (this.message = t),
-                (this.position = { offset: 0, line: 1, column: 1 }),
-                (this.ignoreTag = !!r.ignoreTag),
-                (this.locale = r.locale),
-                (this.requiresOtherClause = !!r.requiresOtherClause),
-                (this.shouldParseSkeletons = !!r.shouldParseSkeletons);
-        }
-        return (
-            (e.prototype.parse = function () {
-                if (this.offset() !== 0)
-                    throw Error('parser can only be used once');
-                return this.parseMessage(0, '', !1);
-            }),
-            (e.prototype.parseMessage = function (t, r, i) {
-                for (var n = []; !this.isEOF(); ) {
-                    var o = this.char();
-                    if (o === 123) {
-                        var a = this.parseArgument(t, i);
-                        if (a.err) return a;
-                        n.push(a.val);
-                    } else {
-                        if (o === 125 && t > 0) break;
-                        if (
-                            o === 35 &&
-                            (r === 'plural' || r === 'selectordinal')
-                        ) {
-                            var s = this.clonePosition();
-                            this.bump(),
-                                n.push({
-                                    type: B.pound,
-                                    location: T(s, this.clonePosition()),
-                                });
-                        } else if (
-                            o === 60 &&
-                            !this.ignoreTag &&
-                            this.peek() === 47
-                        ) {
-                            if (i) break;
-                            return this.error(
-                                w.UNMATCHED_CLOSING_TAG,
-                                T(this.clonePosition(), this.clonePosition()),
-                            );
-                        } else if (
-                            o === 60 &&
-                            !this.ignoreTag &&
-                            In(this.peek() || 0)
-                        ) {
-                            var a = this.parseTag(t, r);
-                            if (a.err) return a;
-                            n.push(a.val);
-                        } else {
-                            var a = this.parseLiteral(t, r);
-                            if (a.err) return a;
-                            n.push(a.val);
-                        }
-                    }
-                }
-                return { val: n, err: null };
-            }),
-            (e.prototype.parseTag = function (t, r) {
-                var i = this.clonePosition();
-                this.bump();
-                var n = this.parseTagName();
-                if ((this.bumpSpace(), this.bumpIf('/>')))
-                    return {
-                        val: {
-                            type: B.literal,
-                            value: '<'.concat(n, '/>'),
-                            location: T(i, this.clonePosition()),
-                        },
-                        err: null,
-                    };
-                if (this.bumpIf('>')) {
-                    var o = this.parseMessage(t + 1, r, !0);
-                    if (o.err) return o;
-                    var a = o.val,
-                        s = this.clonePosition();
-                    if (this.bumpIf('</')) {
-                        if (this.isEOF() || !In(this.char()))
-                            return this.error(
-                                w.INVALID_TAG,
-                                T(s, this.clonePosition()),
-                            );
-                        var c = this.clonePosition(),
-                            l = this.parseTagName();
-                        return n !== l
-                            ? this.error(
-                                  w.UNMATCHED_CLOSING_TAG,
-                                  T(c, this.clonePosition()),
-                              )
-                            : (this.bumpSpace(),
-                              this.bumpIf('>')
-                                  ? {
-                                        val: {
-                                            type: B.tag,
-                                            value: n,
-                                            children: a,
-                                            location: T(
-                                                i,
-                                                this.clonePosition(),
-                                            ),
-                                        },
-                                        err: null,
-                                    }
-                                  : this.error(
-                                        w.INVALID_TAG,
-                                        T(s, this.clonePosition()),
-                                    ));
-                    } else
-                        return this.error(
-                            w.UNCLOSED_TAG,
-                            T(i, this.clonePosition()),
-                        );
-                } else
-                    return this.error(
-                        w.INVALID_TAG,
-                        T(i, this.clonePosition()),
-                    );
-            }),
-            (e.prototype.parseTagName = function () {
-                var t = this.offset();
-                for (this.bump(); !this.isEOF() && dd(this.char()); )
-                    this.bump();
-                return this.message.slice(t, this.offset());
-            }),
-            (e.prototype.parseLiteral = function (t, r) {
-                for (var i = this.clonePosition(), n = ''; ; ) {
-                    var o = this.tryParseQuote(r);
-                    if (o) {
-                        n += o;
-                        continue;
-                    }
-                    var a = this.tryParseUnquoted(t, r);
-                    if (a) {
-                        n += a;
-                        continue;
-                    }
-                    var s = this.tryParseLeftAngleBracket();
-                    if (s) {
-                        n += s;
-                        continue;
-                    }
-                    break;
-                }
-                var c = T(i, this.clonePosition());
-                return {
-                    val: { type: B.literal, value: n, location: c },
-                    err: null,
-                };
-            }),
-            (e.prototype.tryParseLeftAngleBracket = function () {
-                return !this.isEOF() &&
-                    this.char() === 60 &&
-                    (this.ignoreTag || !ld(this.peek() || 0))
-                    ? (this.bump(), '<')
-                    : null;
-            }),
-            (e.prototype.tryParseQuote = function (t) {
-                if (this.isEOF() || this.char() !== 39) return null;
-                switch (this.peek()) {
-                    case 39:
-                        return this.bump(), this.bump(), "'";
-                    case 123:
-                    case 60:
-                    case 62:
-                    case 125:
-                        break;
-                    case 35:
-                        if (t === 'plural' || t === 'selectordinal') break;
-                        return null;
-                    default:
-                        return null;
-                }
-                this.bump();
-                var r = [this.char()];
-                for (this.bump(); !this.isEOF(); ) {
-                    var i = this.char();
-                    if (i === 39)
-                        if (this.peek() === 39) r.push(39), this.bump();
-                        else {
-                            this.bump();
-                            break;
-                        }
-                    else r.push(i);
-                    this.bump();
-                }
-                return Mn.apply(void 0, r);
-            }),
-            (e.prototype.tryParseUnquoted = function (t, r) {
-                if (this.isEOF()) return null;
-                var i = this.char();
-                return i === 60 ||
-                    i === 123 ||
-                    (i === 35 && (r === 'plural' || r === 'selectordinal')) ||
-                    (i === 125 && t > 0)
-                    ? null
-                    : (this.bump(), Mn(i));
-            }),
-            (e.prototype.parseArgument = function (t, r) {
-                var i = this.clonePosition();
-                if ((this.bump(), this.bumpSpace(), this.isEOF()))
-                    return this.error(
-                        w.EXPECT_ARGUMENT_CLOSING_BRACE,
-                        T(i, this.clonePosition()),
-                    );
-                if (this.char() === 125)
-                    return (
-                        this.bump(),
-                        this.error(w.EMPTY_ARGUMENT, T(i, this.clonePosition()))
-                    );
-                var n = this.parseIdentifierIfPossible().value;
-                if (!n)
-                    return this.error(
-                        w.MALFORMED_ARGUMENT,
-                        T(i, this.clonePosition()),
-                    );
-                if ((this.bumpSpace(), this.isEOF()))
-                    return this.error(
-                        w.EXPECT_ARGUMENT_CLOSING_BRACE,
-                        T(i, this.clonePosition()),
-                    );
-                switch (this.char()) {
-                    case 125:
-                        return (
-                            this.bump(),
-                            {
-                                val: {
-                                    type: B.argument,
-                                    value: n,
-                                    location: T(i, this.clonePosition()),
-                                },
-                                err: null,
-                            }
-                        );
-                    case 44:
-                        return (
-                            this.bump(),
-                            this.bumpSpace(),
-                            this.isEOF()
-                                ? this.error(
-                                      w.EXPECT_ARGUMENT_CLOSING_BRACE,
-                                      T(i, this.clonePosition()),
-                                  )
-                                : this.parseArgumentOptions(t, r, n, i)
-                        );
-                    default:
-                        return this.error(
-                            w.MALFORMED_ARGUMENT,
-                            T(i, this.clonePosition()),
-                        );
-                }
-            }),
-            (e.prototype.parseIdentifierIfPossible = function () {
-                var t = this.clonePosition(),
-                    r = this.offset(),
-                    i = Nn(this.message, r),
-                    n = r + i.length;
-                this.bumpTo(n);
-                var o = this.clonePosition(),
-                    a = T(t, o);
-                return { value: i, location: a };
-            }),
-            (e.prototype.parseArgumentOptions = function (t, r, i, n) {
-                var o,
-                    a = this.clonePosition(),
-                    s = this.parseIdentifierIfPossible().value,
-                    c = this.clonePosition();
-                switch (s) {
-                    case '':
-                        return this.error(w.EXPECT_ARGUMENT_TYPE, T(a, c));
-                    case 'number':
-                    case 'date':
-                    case 'time': {
-                        this.bumpSpace();
-                        var l = null;
-                        if (this.bumpIf(',')) {
-                            this.bumpSpace();
-                            var d = this.clonePosition(),
-                                p = this.parseSimpleArgStyleIfPossible();
-                            if (p.err) return p;
-                            var f = cd(p.val);
-                            if (f.length === 0)
-                                return this.error(
-                                    w.EXPECT_ARGUMENT_STYLE,
-                                    T(
-                                        this.clonePosition(),
-                                        this.clonePosition(),
-                                    ),
-                                );
-                            var m = T(d, this.clonePosition());
-                            l = { style: f, styleLocation: m };
-                        }
-                        var b = this.tryParseArgumentClose(n);
-                        if (b.err) return b;
-                        var x = T(n, this.clonePosition());
-                        if (l && Ta(l?.style, '::', 0)) {
-                            var S = sd(l.style.slice(2));
-                            if (s === 'number') {
-                                var p = this.parseNumberSkeletonFromString(
-                                    S,
-                                    l.styleLocation,
-                                );
-                                return p.err
-                                    ? p
-                                    : {
-                                          val: {
-                                              type: B.number,
-                                              value: i,
-                                              location: x,
-                                              style: p.val,
-                                          },
-                                          err: null,
-                                      };
-                            } else {
-                                if (S.length === 0)
-                                    return this.error(
-                                        w.EXPECT_DATE_TIME_SKELETON,
-                                        x,
-                                    );
-                                var O = S;
-                                this.locale && (O = Sa(S, this.locale));
-                                var f = {
-                                        type: rt.dateTime,
-                                        pattern: O,
-                                        location: l.styleLocation,
-                                        parsedOptions: this.shouldParseSkeletons
-                                            ? ua(O)
-                                            : {},
-                                    },
-                                    P = s === 'date' ? B.date : B.time;
-                                return {
-                                    val: {
-                                        type: P,
-                                        value: i,
-                                        location: x,
-                                        style: f,
-                                    },
-                                    err: null,
-                                };
-                            }
-                        }
-                        return {
-                            val: {
-                                type:
-                                    s === 'number'
-                                        ? B.number
-                                        : s === 'date'
-                                          ? B.date
-                                          : B.time,
-                                value: i,
-                                location: x,
-                                style:
-                                    (o = l?.style) !== null && o !== void 0
-                                        ? o
-                                        : null,
-                            },
-                            err: null,
-                        };
-                    }
-                    case 'plural':
-                    case 'selectordinal':
-                    case 'select': {
-                        var C = this.clonePosition();
-                        if ((this.bumpSpace(), !this.bumpIf(',')))
-                            return this.error(
-                                w.EXPECT_SELECT_ARGUMENT_OPTIONS,
-                                T(C, _({}, C)),
-                            );
-                        this.bumpSpace();
-                        var M = this.parseIdentifierIfPossible(),
-                            I = 0;
-                        if (s !== 'select' && M.value === 'offset') {
-                            if (!this.bumpIf(':'))
-                                return this.error(
-                                    w.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,
-                                    T(
-                                        this.clonePosition(),
-                                        this.clonePosition(),
-                                    ),
-                                );
-                            this.bumpSpace();
-                            var p = this.tryParseDecimalInteger(
-                                w.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,
-                                w.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE,
-                            );
-                            if (p.err) return p;
-                            this.bumpSpace(),
-                                (M = this.parseIdentifierIfPossible()),
-                                (I = p.val);
-                        }
-                        var F = this.tryParsePluralOrSelectOptions(t, s, r, M);
-                        if (F.err) return F;
-                        var b = this.tryParseArgumentClose(n);
-                        if (b.err) return b;
-                        var W = T(n, this.clonePosition());
-                        return s === 'select'
-                            ? {
-                                  val: {
-                                      type: B.select,
-                                      value: i,
-                                      options: Ca(F.val),
-                                      location: W,
-                                  },
-                                  err: null,
-                              }
-                            : {
-                                  val: {
-                                      type: B.plural,
-                                      value: i,
-                                      options: Ca(F.val),
-                                      offset: I,
-                                      pluralType:
-                                          s === 'plural'
-                                              ? 'cardinal'
-                                              : 'ordinal',
-                                      location: W,
-                                  },
-                                  err: null,
-                              };
-                    }
-                    default:
-                        return this.error(w.INVALID_ARGUMENT_TYPE, T(a, c));
-                }
-            }),
-            (e.prototype.tryParseArgumentClose = function (t) {
-                return this.isEOF() || this.char() !== 125
-                    ? this.error(
-                          w.EXPECT_ARGUMENT_CLOSING_BRACE,
-                          T(t, this.clonePosition()),
-                      )
-                    : (this.bump(), { val: !0, err: null });
-            }),
-            (e.prototype.parseSimpleArgStyleIfPossible = function () {
-                for (var t = 0, r = this.clonePosition(); !this.isEOF(); ) {
-                    var i = this.char();
-                    switch (i) {
-                        case 39: {
-                            this.bump();
-                            var n = this.clonePosition();
-                            if (!this.bumpUntil("'"))
-                                return this.error(
-                                    w.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE,
-                                    T(n, this.clonePosition()),
-                                );
-                            this.bump();
-                            break;
-                        }
-                        case 123: {
-                            (t += 1), this.bump();
-                            break;
-                        }
-                        case 125: {
-                            if (t > 0) t -= 1;
-                            else
-                                return {
-                                    val: this.message.slice(
-                                        r.offset,
-                                        this.offset(),
-                                    ),
-                                    err: null,
-                                };
-                            break;
-                        }
-                        default:
-                            this.bump();
-                            break;
-                    }
-                }
-                return {
-                    val: this.message.slice(r.offset, this.offset()),
-                    err: null,
-                };
-            }),
-            (e.prototype.parseNumberSkeletonFromString = function (t, r) {
-                var i = [];
-                try {
-                    i = va(t);
-                } catch {
-                    return this.error(w.INVALID_NUMBER_SKELETON, r);
-                }
-                return {
-                    val: {
-                        type: rt.number,
-                        tokens: i,
-                        location: r,
-                        parsedOptions: this.shouldParseSkeletons ? Aa(i) : {},
-                    },
-                    err: null,
-                };
-            }),
-            (e.prototype.tryParsePluralOrSelectOptions = function (t, r, i, n) {
-                for (
-                    var o,
-                        a = !1,
-                        s = [],
-                        c = new Set(),
-                        l = n.value,
-                        d = n.location;
-                    ;
-
-                ) {
-                    if (l.length === 0) {
-                        var p = this.clonePosition();
-                        if (r !== 'select' && this.bumpIf('=')) {
-                            var f = this.tryParseDecimalInteger(
-                                w.EXPECT_PLURAL_ARGUMENT_SELECTOR,
-                                w.INVALID_PLURAL_ARGUMENT_SELECTOR,
-                            );
-                            if (f.err) return f;
-                            (d = T(p, this.clonePosition())),
-                                (l = this.message.slice(
-                                    p.offset,
-                                    this.offset(),
-                                ));
-                        } else break;
-                    }
-                    if (c.has(l))
-                        return this.error(
-                            r === 'select'
-                                ? w.DUPLICATE_SELECT_ARGUMENT_SELECTOR
-                                : w.DUPLICATE_PLURAL_ARGUMENT_SELECTOR,
-                            d,
-                        );
-                    l === 'other' && (a = !0), this.bumpSpace();
-                    var m = this.clonePosition();
-                    if (!this.bumpIf('{'))
-                        return this.error(
-                            r === 'select'
-                                ? w.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT
-                                : w.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT,
-                            T(this.clonePosition(), this.clonePosition()),
-                        );
-                    var b = this.parseMessage(t + 1, r, i);
-                    if (b.err) return b;
-                    var x = this.tryParseArgumentClose(m);
-                    if (x.err) return x;
-                    s.push([
-                        l,
-                        { value: b.val, location: T(m, this.clonePosition()) },
-                    ]),
-                        c.add(l),
-                        this.bumpSpace(),
-                        (o = this.parseIdentifierIfPossible()),
-                        (l = o.value),
-                        (d = o.location);
-                }
-                return s.length === 0
-                    ? this.error(
-                          r === 'select'
-                              ? w.EXPECT_SELECT_ARGUMENT_SELECTOR
-                              : w.EXPECT_PLURAL_ARGUMENT_SELECTOR,
-                          T(this.clonePosition(), this.clonePosition()),
-                      )
-                    : this.requiresOtherClause && !a
-                      ? this.error(
-                            w.MISSING_OTHER_CLAUSE,
-                            T(this.clonePosition(), this.clonePosition()),
-                        )
-                      : { val: s, err: null };
-            }),
-            (e.prototype.tryParseDecimalInteger = function (t, r) {
-                var i = 1,
-                    n = this.clonePosition();
-                this.bumpIf('+') || (this.bumpIf('-') && (i = -1));
-                for (var o = !1, a = 0; !this.isEOF(); ) {
-                    var s = this.char();
-                    if (s >= 48 && s <= 57)
-                        (o = !0), (a = a * 10 + (s - 48)), this.bump();
-                    else break;
-                }
-                var c = T(n, this.clonePosition());
-                return o
-                    ? ((a *= i),
-                      ad(a) ? { val: a, err: null } : this.error(r, c))
-                    : this.error(t, c);
-            }),
-            (e.prototype.offset = function () {
-                return this.position.offset;
-            }),
-            (e.prototype.isEOF = function () {
-                return this.offset() === this.message.length;
-            }),
-            (e.prototype.clonePosition = function () {
-                return {
-                    offset: this.position.offset,
-                    line: this.position.line,
-                    column: this.position.column,
-                };
-            }),
-            (e.prototype.char = function () {
-                var t = this.position.offset;
-                if (t >= this.message.length) throw Error('out of bound');
-                var r = ka(this.message, t);
-                if (r === void 0)
-                    throw Error(
-                        'Offset '.concat(
-                            t,
-                            ' is at invalid UTF-16 code unit boundary',
-                        ),
-                    );
-                return r;
-            }),
-            (e.prototype.error = function (t, r) {
-                return {
-                    val: null,
-                    err: { kind: t, message: this.message, location: r },
-                };
-            }),
-            (e.prototype.bump = function () {
-                if (!this.isEOF()) {
-                    var t = this.char();
-                    t === 10
-                        ? ((this.position.line += 1),
-                          (this.position.column = 1),
-                          (this.position.offset += 1))
-                        : ((this.position.column += 1),
-                          (this.position.offset += t < 65536 ? 1 : 2));
-                }
-            }),
-            (e.prototype.bumpIf = function (t) {
-                if (Ta(this.message, t, this.offset())) {
-                    for (var r = 0; r < t.length; r++) this.bump();
-                    return !0;
-                }
-                return !1;
-            }),
-            (e.prototype.bumpUntil = function (t) {
-                var r = this.offset(),
-                    i = this.message.indexOf(t, r);
-                return i >= 0
-                    ? (this.bumpTo(i), !0)
-                    : (this.bumpTo(this.message.length), !1);
-            }),
-            (e.prototype.bumpTo = function (t) {
-                if (this.offset() > t)
-                    throw Error(
-                        'targetOffset '
-                            .concat(
-                                t,
-                                ' must be greater than or equal to the current offset ',
-                            )
-                            .concat(this.offset()),
-                    );
-                for (t = Math.min(t, this.message.length); ; ) {
-                    var r = this.offset();
-                    if (r === t) break;
-                    if (r > t)
-                        throw Error(
-                            'targetOffset '.concat(
-                                t,
-                                ' is at invalid UTF-16 code unit boundary',
-                            ),
-                        );
-                    if ((this.bump(), this.isEOF())) break;
-                }
-            }),
-            (e.prototype.bumpSpace = function () {
-                for (; !this.isEOF() && Ra(this.char()); ) this.bump();
-            }),
-            (e.prototype.peek = function () {
-                if (this.isEOF()) return null;
-                var t = this.char(),
-                    r = this.offset(),
-                    i = this.message.charCodeAt(r + (t >= 65536 ? 2 : 1));
-                return i ?? null;
-            }),
-            e
-        );
-    })();
-function In(e) {
-    return (e >= 97 && e <= 122) || (e >= 65 && e <= 90);
-}
-function ld(e) {
-    return In(e) || e === 47;
-}
-function dd(e) {
-    return (
-        e === 45 ||
-        e === 46 ||
-        (e >= 48 && e <= 57) ||
-        e === 95 ||
-        (e >= 97 && e <= 122) ||
-        (e >= 65 && e <= 90) ||
-        e == 183 ||
-        (e >= 192 && e <= 214) ||
-        (e >= 216 && e <= 246) ||
-        (e >= 248 && e <= 893) ||
-        (e >= 895 && e <= 8191) ||
-        (e >= 8204 && e <= 8205) ||
-        (e >= 8255 && e <= 8256) ||
-        (e >= 8304 && e <= 8591) ||
-        (e >= 11264 && e <= 12271) ||
-        (e >= 12289 && e <= 55295) ||
-        (e >= 63744 && e <= 64975) ||
-        (e >= 65008 && e <= 65533) ||
-        (e >= 65536 && e <= 983039)
-    );
-}
-function Ra(e) {
-    return (
-        (e >= 9 && e <= 13) ||
-        e === 32 ||
-        e === 133 ||
-        (e >= 8206 && e <= 8207) ||
-        e === 8232 ||
-        e === 8233
-    );
-}
-function hd(e) {
-    return (
-        (e >= 33 && e <= 35) ||
-        e === 36 ||
-        (e >= 37 && e <= 39) ||
-        e === 40 ||
-        e === 41 ||
-        e === 42 ||
-        e === 43 ||
-        e === 44 ||
-        e === 45 ||
-        (e >= 46 && e <= 47) ||
-        (e >= 58 && e <= 59) ||
-        (e >= 60 && e <= 62) ||
-        (e >= 63 && e <= 64) ||
-        e === 91 ||
-        e === 92 ||
-        e === 93 ||
-        e === 94 ||
-        e === 96 ||
-        e === 123 ||
-        e === 124 ||
-        e === 125 ||
-        e === 126 ||
-        e === 161 ||
-        (e >= 162 && e <= 165) ||
-        e === 166 ||
-        e === 167 ||
-        e === 169 ||
-        e === 171 ||
-        e === 172 ||
-        e === 174 ||
-        e === 176 ||
-        e === 177 ||
-        e === 182 ||
-        e === 187 ||
-        e === 191 ||
-        e === 215 ||
-        e === 247 ||
-        (e >= 8208 && e <= 8213) ||
-        (e >= 8214 && e <= 8215) ||
-        e === 8216 ||
-        e === 8217 ||
-        e === 8218 ||
-        (e >= 8219 && e <= 8220) ||
-        e === 8221 ||
-        e === 8222 ||
-        e === 8223 ||
-        (e >= 8224 && e <= 8231) ||
-        (e >= 8240 && e <= 8248) ||
-        e === 8249 ||
-        e === 8250 ||
-        (e >= 8251 && e <= 8254) ||
-        (e >= 8257 && e <= 8259) ||
-        e === 8260 ||
-        e === 8261 ||
-        e === 8262 ||
-        (e >= 8263 && e <= 8273) ||
-        e === 8274 ||
-        e === 8275 ||
-        (e >= 8277 && e <= 8286) ||
-        (e >= 8592 && e <= 8596) ||
-        (e >= 8597 && e <= 8601) ||
-        (e >= 8602 && e <= 8603) ||
-        (e >= 8604 && e <= 8607) ||
-        e === 8608 ||
-        (e >= 8609 && e <= 8610) ||
-        e === 8611 ||
-        (e >= 8612 && e <= 8613) ||
-        e === 8614 ||
-        (e >= 8615 && e <= 8621) ||
-        e === 8622 ||
-        (e >= 8623 && e <= 8653) ||
-        (e >= 8654 && e <= 8655) ||
-        (e >= 8656 && e <= 8657) ||
-        e === 8658 ||
-        e === 8659 ||
-        e === 8660 ||
-        (e >= 8661 && e <= 8691) ||
-        (e >= 8692 && e <= 8959) ||
-        (e >= 8960 && e <= 8967) ||
-        e === 8968 ||
-        e === 8969 ||
-        e === 8970 ||
-        e === 8971 ||
-        (e >= 8972 && e <= 8991) ||
-        (e >= 8992 && e <= 8993) ||
-        (e >= 8994 && e <= 9e3) ||
-        e === 9001 ||
-        e === 9002 ||
-        (e >= 9003 && e <= 9083) ||
-        e === 9084 ||
-        (e >= 9085 && e <= 9114) ||
-        (e >= 9115 && e <= 9139) ||
-        (e >= 9140 && e <= 9179) ||
-        (e >= 9180 && e <= 9185) ||
-        (e >= 9186 && e <= 9254) ||
-        (e >= 9255 && e <= 9279) ||
-        (e >= 9280 && e <= 9290) ||
-        (e >= 9291 && e <= 9311) ||
-        (e >= 9472 && e <= 9654) ||
-        e === 9655 ||
-        (e >= 9656 && e <= 9664) ||
-        e === 9665 ||
-        (e >= 9666 && e <= 9719) ||
-        (e >= 9720 && e <= 9727) ||
-        (e >= 9728 && e <= 9838) ||
-        e === 9839 ||
-        (e >= 9840 && e <= 10087) ||
-        e === 10088 ||
-        e === 10089 ||
-        e === 10090 ||
-        e === 10091 ||
-        e === 10092 ||
-        e === 10093 ||
-        e === 10094 ||
-        e === 10095 ||
-        e === 10096 ||
-        e === 10097 ||
-        e === 10098 ||
-        e === 10099 ||
-        e === 10100 ||
-        e === 10101 ||
-        (e >= 10132 && e <= 10175) ||
-        (e >= 10176 && e <= 10180) ||
-        e === 10181 ||
-        e === 10182 ||
-        (e >= 10183 && e <= 10213) ||
-        e === 10214 ||
-        e === 10215 ||
-        e === 10216 ||
-        e === 10217 ||
-        e === 10218 ||
-        e === 10219 ||
-        e === 10220 ||
-        e === 10221 ||
-        e === 10222 ||
-        e === 10223 ||
-        (e >= 10224 && e <= 10239) ||
-        (e >= 10240 && e <= 10495) ||
-        (e >= 10496 && e <= 10626) ||
-        e === 10627 ||
-        e === 10628 ||
-        e === 10629 ||
-        e === 10630 ||
-        e === 10631 ||
-        e === 10632 ||
-        e === 10633 ||
-        e === 10634 ||
-        e === 10635 ||
-        e === 10636 ||
-        e === 10637 ||
-        e === 10638 ||
-        e === 10639 ||
-        e === 10640 ||
-        e === 10641 ||
-        e === 10642 ||
-        e === 10643 ||
-        e === 10644 ||
-        e === 10645 ||
-        e === 10646 ||
-        e === 10647 ||
-        e === 10648 ||
-        (e >= 10649 && e <= 10711) ||
-        e === 10712 ||
-        e === 10713 ||
-        e === 10714 ||
-        e === 10715 ||
-        (e >= 10716 && e <= 10747) ||
-        e === 10748 ||
-        e === 10749 ||
-        (e >= 10750 && e <= 11007) ||
-        (e >= 11008 && e <= 11055) ||
-        (e >= 11056 && e <= 11076) ||
-        (e >= 11077 && e <= 11078) ||
-        (e >= 11079 && e <= 11084) ||
-        (e >= 11085 && e <= 11123) ||
-        (e >= 11124 && e <= 11125) ||
-        (e >= 11126 && e <= 11157) ||
-        e === 11158 ||
-        (e >= 11159 && e <= 11263) ||
-        (e >= 11776 && e <= 11777) ||
-        e === 11778 ||
-        e === 11779 ||
-        e === 11780 ||
-        e === 11781 ||
-        (e >= 11782 && e <= 11784) ||
-        e === 11785 ||
-        e === 11786 ||
-        e === 11787 ||
-        e === 11788 ||
-        e === 11789 ||
-        (e >= 11790 && e <= 11798) ||
-        e === 11799 ||
-        (e >= 11800 && e <= 11801) ||
-        e === 11802 ||
-        e === 11803 ||
-        e === 11804 ||
-        e === 11805 ||
-        (e >= 11806 && e <= 11807) ||
-        e === 11808 ||
-        e === 11809 ||
-        e === 11810 ||
-        e === 11811 ||
-        e === 11812 ||
-        e === 11813 ||
-        e === 11814 ||
-        e === 11815 ||
-        e === 11816 ||
-        e === 11817 ||
-        (e >= 11818 && e <= 11822) ||
-        e === 11823 ||
-        (e >= 11824 && e <= 11833) ||
-        (e >= 11834 && e <= 11835) ||
-        (e >= 11836 && e <= 11839) ||
-        e === 11840 ||
-        e === 11841 ||
-        e === 11842 ||
-        (e >= 11843 && e <= 11855) ||
-        (e >= 11856 && e <= 11857) ||
-        e === 11858 ||
-        (e >= 11859 && e <= 11903) ||
-        (e >= 12289 && e <= 12291) ||
-        e === 12296 ||
-        e === 12297 ||
-        e === 12298 ||
-        e === 12299 ||
-        e === 12300 ||
-        e === 12301 ||
-        e === 12302 ||
-        e === 12303 ||
-        e === 12304 ||
-        e === 12305 ||
-        (e >= 12306 && e <= 12307) ||
-        e === 12308 ||
-        e === 12309 ||
-        e === 12310 ||
-        e === 12311 ||
-        e === 12312 ||
-        e === 12313 ||
-        e === 12314 ||
-        e === 12315 ||
-        e === 12316 ||
-        e === 12317 ||
-        (e >= 12318 && e <= 12319) ||
-        e === 12320 ||
-        e === 12336 ||
-        e === 64830 ||
-        e === 64831 ||
-        (e >= 65093 && e <= 65094)
-    );
-}
-function $n(e) {
-    e.forEach(function (t) {
-        if ((delete t.location, ci(t) || li(t)))
-            for (var r in t.options)
-                delete t.options[r].location, $n(t.options[r].value);
-        else
-            (oi(t) && hi(t.style)) || ((ai(t) || si(t)) && pr(t.style))
-                ? delete t.style.location
-                : di(t) && $n(t.children);
-    });
-}
-function Oa(e, t) {
-    t === void 0 && (t = {}),
-        (t = _({ shouldParseSkeletons: !0, requiresOtherClause: !0 }, t));
-    var r = new La(e, t).parse();
-    if (r.err) {
-        var i = SyntaxError(w[r.err.kind]);
-        throw (
-            ((i.location = r.err.location),
-            (i.originalMessage = r.err.message),
-            i)
-        );
-    }
-    return t?.captureLocation || $n(r.val), r.val;
-}
-function ur(e, t) {
-    var r = t && t.cache ? t.cache : xd,
-        i = t && t.serializer ? t.serializer : gd,
-        n = t && t.strategy ? t.strategy : md;
-    return n(e, { cache: r, serializer: i });
-}
-function pd(e) {
-    return e == null || typeof e == 'number' || typeof e == 'boolean';
-}
-function Ma(e, t, r, i) {
-    var n = pd(i) ? i : r(i),
-        o = t.get(n);
-    return typeof o > 'u' && ((o = e.call(this, i)), t.set(n, o)), o;
-}
-function Na(e, t, r) {
-    var i = Array.prototype.slice.call(arguments, 3),
-        n = r(i),
-        o = t.get(n);
-    return typeof o > 'u' && ((o = e.apply(this, i)), t.set(n, o)), o;
-}
-function Hn(e, t, r, i, n) {
-    return r.bind(t, e, i, n);
-}
-function md(e, t) {
-    var r = e.length === 1 ? Ma : Na;
-    return Hn(e, this, r, t.cache.create(), t.serializer);
-}
-function ud(e, t) {
-    return Hn(e, this, Na, t.cache.create(), t.serializer);
-}
-function fd(e, t) {
-    return Hn(e, this, Ma, t.cache.create(), t.serializer);
-}
-var gd = function () {
-    return JSON.stringify(arguments);
-};
-function Dn() {
-    this.cache = Object.create(null);
-}
-Dn.prototype.get = function (e) {
-    return this.cache[e];
-};
-Dn.prototype.set = function (e, t) {
-    this.cache[e] = t;
-};
-var xd = {
-        create: function () {
-            return new Dn();
-        },
-    },
-    pi = { variadic: ud, monadic: fd };
-var it;
-(function (e) {
-    (e.MISSING_VALUE = 'MISSING_VALUE'),
-        (e.INVALID_VALUE = 'INVALID_VALUE'),
-        (e.MISSING_INTL_API = 'MISSING_INTL_API');
-})(it || (it = {}));
-var fr = (function (e) {
-    hr(t, e);
-    function t(r, i, n) {
-        var o = e.call(this, r) || this;
-        return (o.code = i), (o.originalMessage = n), o;
-    }
-    return (
-        (t.prototype.toString = function () {
-            return '[formatjs Error: '
-                .concat(this.code, '] ')
-                .concat(this.message);
-        }),
-        t
-    );
-})(Error);
-var Bn = (function (e) {
-    hr(t, e);
-    function t(r, i, n, o) {
-        return (
-            e.call(
-                this,
-                'Invalid values for "'
-                    .concat(r, '": "')
-                    .concat(i, '". Options are "')
-                    .concat(Object.keys(n).join('", "'), '"'),
-                it.INVALID_VALUE,
-                o,
-            ) || this
-        );
-    }
-    return t;
-})(fr);
-var Ia = (function (e) {
-    hr(t, e);
-    function t(r, i, n) {
-        return (
-            e.call(
-                this,
-                'Value for "'.concat(r, '" must be of type ').concat(i),
-                it.INVALID_VALUE,
-                n,
-            ) || this
-        );
-    }
-    return t;
-})(fr);
-var $a = (function (e) {
-    hr(t, e);
-    function t(r, i) {
-        return (
-            e.call(
-                this,
-                'The intl string context variable "'
-                    .concat(r, '" was not provided to the string "')
-                    .concat(i, '"'),
-                it.MISSING_VALUE,
-                i,
-            ) || this
-        );
-    }
-    return t;
-})(fr);
-var J;
-(function (e) {
-    (e[(e.literal = 0)] = 'literal'), (e[(e.object = 1)] = 'object');
-})(J || (J = {}));
-function bd(e) {
-    return e.length < 2
-        ? e
-        : e.reduce(function (t, r) {
-              var i = t[t.length - 1];
-              return (
-                  !i || i.type !== J.literal || r.type !== J.literal
-                      ? t.push(r)
-                      : (i.value += r.value),
-                  t
-              );
-          }, []);
-}
-function vd(e) {
-    return typeof e == 'function';
-}
-function gr(e, t, r, i, n, o, a) {
-    if (e.length === 1 && kn(e[0]))
-        return [{ type: J.literal, value: e[0].value }];
-    for (var s = [], c = 0, l = e; c < l.length; c++) {
-        var d = l[c];
-        if (kn(d)) {
-            s.push({ type: J.literal, value: d.value });
-            continue;
-        }
-        if (ma(d)) {
-            typeof o == 'number' &&
-                s.push({
-                    type: J.literal,
-                    value: r.getNumberFormat(t).format(o),
-                });
-            continue;
-        }
-        var p = d.value;
-        if (!(n && p in n)) throw new $a(p, a);
-        var f = n[p];
-        if (pa(d)) {
-            (!f || typeof f == 'string' || typeof f == 'number') &&
-                (f =
-                    typeof f == 'string' || typeof f == 'number'
-                        ? String(f)
-                        : ''),
-                s.push({
-                    type: typeof f == 'string' ? J.literal : J.object,
-                    value: f,
-                });
-            continue;
-        }
-        if (ai(d)) {
-            var m =
-                typeof d.style == 'string'
-                    ? i.date[d.style]
-                    : pr(d.style)
-                      ? d.style.parsedOptions
-                      : void 0;
-            s.push({
-                type: J.literal,
-                value: r.getDateTimeFormat(t, m).format(f),
-            });
-            continue;
-        }
-        if (si(d)) {
-            var m =
-                typeof d.style == 'string'
-                    ? i.time[d.style]
-                    : pr(d.style)
-                      ? d.style.parsedOptions
-                      : i.time.medium;
-            s.push({
-                type: J.literal,
-                value: r.getDateTimeFormat(t, m).format(f),
-            });
-            continue;
-        }
-        if (oi(d)) {
-            var m =
-                typeof d.style == 'string'
-                    ? i.number[d.style]
-                    : hi(d.style)
-                      ? d.style.parsedOptions
-                      : void 0;
-            m && m.scale && (f = f * (m.scale || 1)),
-                s.push({
-                    type: J.literal,
-                    value: r.getNumberFormat(t, m).format(f),
-                });
-            continue;
-        }
-        if (di(d)) {
-            var b = d.children,
-                x = d.value,
-                S = n[x];
-            if (!vd(S)) throw new Ia(x, 'function', a);
-            var O = gr(b, t, r, i, n, o),
-                P = S(
-                    O.map(function (I) {
-                        return I.value;
-                    }),
-                );
-            Array.isArray(P) || (P = [P]),
-                s.push.apply(
-                    s,
-                    P.map(function (I) {
-                        return {
-                            type: typeof I == 'string' ? J.literal : J.object,
-                            value: I,
-                        };
-                    }),
-                );
-        }
-        if (ci(d)) {
-            var C = d.options[f] || d.options.other;
-            if (!C) throw new Bn(d.value, f, Object.keys(d.options), a);
-            s.push.apply(s, gr(C.value, t, r, i, n));
-            continue;
-        }
-        if (li(d)) {
-            var C = d.options['='.concat(f)];
-            if (!C) {
-                if (!Intl.PluralRules)
-                    throw new fr(
-                        `Intl.PluralRules is not available in this environment.
+    `);customElements.define("mas-mnemonic",xt)});var Ze={clientId:"merch-at-scale",delimiter:"\xB6",ignoredProperties:["analytics","literals","element"],serializableTypes:["Array","Object"],sampleRate:1,tags:"acom",isProdDomain:!1},Ba=1e3;function tl(e){return e instanceof Error||typeof e?.originatingRequest=="string"}function Ua(e){if(e==null)return;let t=typeof e;if(t==="function")return e.name?`function ${e.name}`:"function";if(t==="object"){if(e instanceof Error)return e.message;if(typeof e.originatingRequest=="string"){let{message:i,originatingRequest:n,status:a}=e;return[i,a,n].filter(Boolean).join(" ")}let r=e[Symbol.toStringTag]??Object.getPrototypeOf(e).constructor.name;if(!Ze.serializableTypes.includes(r))return r}return e}function rl(e,t){if(!Ze.ignoredProperties.includes(e))return Ua(t)}var ji={append(e){if(e.level!=="error")return;let{message:t,params:r}=e,i=[],n=[],a=t;r.forEach(l=>{l!=null&&(tl(l)?i:n).push(l)}),i.length&&(a+=" "+i.map(Ua).join(" "));let{pathname:o,search:s}=window.location,c=`${Ze.delimiter}page=${o}${s}`;c.length>Ba&&(c=`${c.slice(0,Ba)}<trunc>`),a+=c,n.length&&(a+=`${Ze.delimiter}facts=`,a+=JSON.stringify(n,rl)),window.lana?.log(a,Ze)}};function Qr(e){Object.assign(Ze,Object.fromEntries(Object.entries(e).filter(([t,r])=>t in Ze&&r!==""&&r!==null&&r!==void 0&&!Number.isNaN(r))))}var pn={};$a(pn,{CLASS_NAME_FAILED:()=>Qi,CLASS_NAME_HIDDEN:()=>nl,CLASS_NAME_PENDING:()=>Zi,CLASS_NAME_RESOLVED:()=>Ji,CheckoutWorkflow:()=>Ga,CheckoutWorkflowStep:()=>oe,Commitment:()=>Je,ERROR_MESSAGE_BAD_REQUEST:()=>en,ERROR_MESSAGE_MISSING_LITERALS_URL:()=>ul,ERROR_MESSAGE_OFFER_NOT_FOUND:()=>tn,EVENT_AEM_ERROR:()=>rt,EVENT_AEM_LOAD:()=>tt,EVENT_MAS_ERROR:()=>Ki,EVENT_MAS_READY:()=>Xi,EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE:()=>Jr,EVENT_MERCH_CARD_ACTION_MENU_TOGGLE:()=>Wi,EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED:()=>et,EVENT_MERCH_CARD_COLLECTION_SHOWMORE:()=>pl,EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED:()=>hl,EVENT_MERCH_CARD_COLLECTION_SORT:()=>dl,EVENT_MERCH_CARD_QUANTITY_CHANGE:()=>Tt,EVENT_MERCH_OFFER_READY:()=>_t,EVENT_MERCH_OFFER_SELECT_READY:()=>lr,EVENT_MERCH_QUANTITY_SELECTOR_CHANGE:()=>ae,EVENT_MERCH_SEARCH_CHANGE:()=>ll,EVENT_MERCH_SIDENAV_SELECT:()=>ml,EVENT_MERCH_STOCK_CHANGE:()=>sl,EVENT_MERCH_STORAGE_CHANGE:()=>cl,EVENT_OFFER_SELECTED:()=>Yi,EVENT_TYPE_FAILED:()=>rn,EVENT_TYPE_READY:()=>Zr,EVENT_TYPE_RESOLVED:()=>Ct,Env:()=>Pe,FF_DEFAULTS:()=>we,HEADER_X_REQUEST_ID:()=>dr,LOG_NAMESPACE:()=>nn,Landscape:()=>Ge,MARK_DURATION_SUFFIX:()=>at,MARK_START_SUFFIX:()=>nt,MODAL_TYPE_3_IN_1:()=>it,NAMESPACE:()=>il,PARAM_AOS_API_KEY:()=>gl,PARAM_ENV:()=>on,PARAM_LANDSCAPE:()=>sn,PARAM_MAS_PREVIEW:()=>an,PARAM_WCS_API_KEY:()=>fl,PROVIDER_ENVIRONMENT:()=>dn,SELECTOR_MAS_CHECKOUT_LINK:()=>ye,SELECTOR_MAS_ELEMENT:()=>cr,SELECTOR_MAS_INLINE_PRICE:()=>H,SELECTOR_MAS_SP_BUTTON:()=>ol,SELECTOR_MAS_UPT_LINK:()=>Fa,SORT_ORDER:()=>yl,STATE_FAILED:()=>Ee,STATE_PENDING:()=>Fe,STATE_RESOLVED:()=>Oe,SUPPORTED_COUNTRIES:()=>hn,TAG_NAME_SERVICE:()=>al,TEMPLATE_PRICE:()=>xl,TEMPLATE_PRICE_ANNUAL:()=>bl,TEMPLATE_PRICE_LEGAL:()=>hr,TEMPLATE_PRICE_STRIKETHROUGH:()=>vl,Term:()=>fe,WCS_PROD_URL:()=>cn,WCS_STAGE_URL:()=>ln});var Je=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),fe=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"}),il="merch",nl="hidden",Zr="wcms:commerce:ready",al="mas-commerce-service",H='span[is="inline-price"][data-wcs-osi]',ye='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]',ol="sp-button[data-wcs-osi]",Fa='a[is="upt-link"]',cr=`${H},${ye},${Fa}`,_t="merch-offer:ready",lr="merch-offer-select:ready",Wi="merch-card:action-menu-toggle",Yi="merch-offer:selected",sl="merch-stock:change",cl="merch-storage:change",ae="merch-quantity-selector:change",Tt="merch-card-quantity:change",Jr="merch-modal:addon-and-quantity-update",ll="merch-search:change",dl="merch-card-collection:sort",et="merch-card-collection:literals-changed",hl="merch-card-collection:sidenav-attached",pl="merch-card-collection:showmore",ml="merch-sidenav:select",tt="aem:load",rt="aem:error",Xi="mas:ready",Ki="mas:error",Qi="placeholder-failed",Zi="placeholder-pending",Ji="placeholder-resolved",en="Bad WCS request",tn="Commerce offer not found",ul="Literals URL not provided",rn="mas:failed",Ct="mas:resolved",nn="mas/commerce",an="mas.preview",on="commerce.env",sn="commerce.landscape",gl="commerce.aosKey",fl="commerce.wcsKey",cn="https://www.adobe.com/web_commerce_artifact",ln="https://www.stage.adobe.com/web_commerce_artifact_stage",Ee="failed",Fe="pending",Oe="resolved",Ge={DRAFT:"DRAFT",PUBLISHED:"PUBLISHED"},dr="X-Request-Id",oe=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"}),Ga="UCv3",Pe=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"}),dn={PRODUCTION:"PRODUCTION"},it={TWP:"twp",D2P:"d2p",CRM:"crm"},nt=":start",at=":duration",xl="price",vl="price-strikethrough",bl="annual",hr="legal",we="mas-ff-defaults",yl={alphabetical:"alphabetical",authored:"authored"},hn=["AE","AM","AR","AT","AU","AZ","BB","BD","BE","BG","BH","BO","BR","BS","BY","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GB","GE","GH","GR","GT","HK","HN","HR","HU","ID","IE","IL","IN","IQ","IS","IT","JM","JO","JP","KE","KG","KR","KW","KZ","LA","LB","LK","LT","LU","LV","MA","MD","MO","MT","MU","MX","MY","NG","NI","NL","NO","NP","NZ","OM","PA","PE","PH","PK","PL","PR","PT","PY","QA","RO","RS","RU","SA","SE","SG","SI","SK","SV","TH","TJ","TM","TN","TR","TT","TW","TZ","UA","US","UY","UZ","VE","VN","YE","ZA"];var qa="tacocat.js";var mn=(e,t)=>String(e??"").toLowerCase()==String(t??"").toLowerCase(),Va=e=>`${e??""}`.replace(/[&<>'"]/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[t]??t)??"";function B(e,t={},{metadata:r=!0,search:i=!0,storage:n=!0}={}){let a;if(i&&a==null){let o=new URLSearchParams(window.location.search),s=kt(i)?i:e;a=o.get(s)}if(n&&a==null){let o=kt(n)?n:e;a=window.sessionStorage.getItem(o)??window.localStorage.getItem(o)}if(r&&a==null){let o=wl(kt(r)?r:e);a=document.documentElement.querySelector(`meta[name="${o}"]`)?.content}return a??t[e]}var El=e=>typeof e=="boolean",ei=e=>typeof e=="function",ti=e=>typeof e=="number",ja=e=>e!=null&&typeof e=="object";var kt=e=>typeof e=="string",Wa=e=>kt(e)&&e,pr=e=>ti(e)&&Number.isFinite(e)&&e>0;function ri(e,t=r=>r==null||r===""){return e!=null&&Object.entries(e).forEach(([r,i])=>{t(i)&&delete e[r]}),e}function _(e,t){if(El(e))return e;let r=String(e);return r==="1"||r==="true"?!0:r==="0"||r==="false"?!1:t}function mr(e,t,r){let i=Object.values(t);return i.find(n=>mn(n,e))??r??i[0]}function wl(e=""){return String(e).replace(/(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,(t,r,i)=>`${r}-${i}`).replace(/\W+/gu,"-").toLowerCase()}function Ya(e,t=1){return ti(e)||(e=Number.parseInt(e,10)),!Number.isNaN(e)&&e>0&&Number.isFinite(e)?e:t}var Al=Date.now(),un=()=>`(+${Date.now()-Al}ms)`,ii=new Set,Sl=_(B("tacocat.debug",{},{metadata:!1}),!1);function Xa(e){let t=`[${qa}/${e}]`,r=(o,s,...c)=>o?!0:(n(s,...c),!1),i=Sl?(o,...s)=>{console.debug(`${t} ${o}`,...s,un())}:()=>{},n=(o,...s)=>{let c=`${t} ${o}`;ii.forEach(([l])=>l(c,...s))};return{assert:r,debug:i,error:n,warn:(o,...s)=>{let c=`${t} ${o}`;ii.forEach(([,l])=>l(c,...s))}}}function _l(e,t){let r=[e,t];return ii.add(r),()=>{ii.delete(r)}}_l((e,...t)=>{console.error(e,...t,un())},(e,...t)=>{console.warn(e,...t,un())});var Tl="no promo",Ka="promo-tag",Cl="yellow",kl="neutral",Pl=(e,t,r)=>{let i=a=>a||Tl,n=r?` (was "${i(t)}")`:"";return`${i(e)}${n}`},Ll="cancel-context",ni=(e,t)=>{let r=e===Ll,i=!r&&e?.length>0,n=(i||r)&&(t&&t!=e||!t&&!r),a=n&&i||!n&&!!t,o=a?e||t:void 0;return{effectivePromoCode:o,overridenPromoCode:e,className:a?Ka:`${Ka} no-promo`,text:Pl(o,t,n),variant:a?Cl:kl,isOverriden:n}};var gn;(function(e){e.BASE="BASE",e.TRIAL="TRIAL",e.PROMOTION="PROMOTION"})(gn||(gn={}));var me;(function(e){e.MONTH="MONTH",e.YEAR="YEAR",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.PERPETUAL="PERPETUAL",e.TERM_LICENSE="TERM_LICENSE",e.ACCESS_PASS="ACCESS_PASS",e.THREE_MONTHS="THREE_MONTHS",e.SIX_MONTHS="SIX_MONTHS"})(me||(me={}));var xe;(function(e){e.ANNUAL="ANNUAL",e.MONTHLY="MONTHLY",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.P1D="P1D",e.P1Y="P1Y",e.P3Y="P3Y",e.P10Y="P10Y",e.P15Y="P15Y",e.P3D="P3D",e.P7D="P7D",e.P30D="P30D",e.HALF_YEARLY="HALF_YEARLY",e.QUARTERLY="QUARTERLY"})(xe||(xe={}));var fn;(function(e){e.INDIVIDUAL="INDIVIDUAL",e.TEAM="TEAM",e.ENTERPRISE="ENTERPRISE"})(fn||(fn={}));var xn;(function(e){e.COM="COM",e.EDU="EDU",e.GOV="GOV"})(xn||(xn={}));var vn;(function(e){e.DIRECT="DIRECT",e.INDIRECT="INDIRECT"})(vn||(vn={}));var bn;(function(e){e.ENTERPRISE_PRODUCT="ENTERPRISE_PRODUCT",e.ETLA="ETLA",e.RETAIL="RETAIL",e.VIP="VIP",e.VIPMP="VIPMP",e.FREE="FREE"})(bn||(bn={}));var yn="ABM",En="PUF",wn="M2M",An="PERPETUAL",Sn="P3Y",Rl="TAX_INCLUSIVE_DETAILS",Ml="TAX_EXCLUSIVE",Qa={ABM:yn,PUF:En,M2M:wn,PERPETUAL:An,P3Y:Sn},dp={[yn]:{commitment:me.YEAR,term:xe.MONTHLY},[En]:{commitment:me.YEAR,term:xe.ANNUAL},[wn]:{commitment:me.MONTH,term:xe.MONTHLY},[An]:{commitment:me.PERPETUAL,term:void 0},[Sn]:{commitment:me.THREE_MONTHS,term:xe.P3Y}},Za="Value is not an offer",ur=e=>{if(typeof e!="object")return Za;let{commitment:t,term:r}=e,i=Ol(t,r);return{...e,planType:i}};var Ol=(e,t)=>{switch(e){case void 0:return Za;case"":return"";case me.YEAR:return t===xe.MONTHLY?yn:t===xe.ANNUAL?En:"";case me.MONTH:return t===xe.MONTHLY?wn:"";case me.PERPETUAL:return An;case me.TERM_LICENSE:return t===xe.P3Y?Sn:"";default:return""}};function Ja(e){let{priceDetails:t}=e,{price:r,priceWithoutDiscount:i,priceWithoutTax:n,priceWithoutDiscountAndTax:a,taxDisplay:o}=t;if(o!==Rl)return e;let s={...e,priceDetails:{...t,price:n??r,priceWithoutDiscount:a??i,taxDisplay:Ml}};return s.offerType==="TRIAL"&&s.priceDetails.price===0&&(s.priceDetails.price=s.priceDetails.priceWithoutDiscount),s}var Nl="mas-commerce-service",Il={requestId:dr,etag:"Etag",lastModified:"Last-Modified",serverTiming:"server-timing"};function gr(e,{country:t,forceTaxExclusive:r}){let i;if(e.length<2)i=e;else{let n=t==="GB"?"EN":"MULT";e.sort((a,o)=>a.language===n?-1:o.language===n?1:0),e.sort((a,o)=>!a.term&&o.term?-1:a.term&&!o.term?1:0),i=[e[0]]}return r&&(i=i.map(Ja)),i}var ai=e=>window.setTimeout(e);function Pt(e,t=1){if(e==null)return[t];let r=(Array.isArray(e)?e:String(e).split(",")).map(Ya).filter(pr);return r.length||(r=[t]),r}function oi(e){return e==null?[]:(Array.isArray(e)?e:String(e).split(",")).filter(Wa)}function le(){return document.getElementsByTagName(Nl)?.[0]}function si(e){let t={};if(!e?.headers)return t;let r=e.headers;for(let[i,n]of Object.entries(Il)){let a=r.get(n);a&&(a=a.replace(/[,;]/g,"|"),a=a.replace(/[| ]+/g,"|"),t[i]=a)}return t}var eo={LOCAL:"local",PROD:"prod",STAGE:"stage"},_n={DEBUG:"debug",ERROR:"error",INFO:"info",WARN:"warn"},Tn=new Set,Cn=new Set,to=new Map,ro={append({level:e,message:t,params:r,timestamp:i,source:n}){console[e](`${i}ms [${n}] %c${t}`,"font-weight: bold;",...r)}},io={filter:({level:e})=>e!==_n.DEBUG},Dl={filter:()=>!1};function zl(e,t,r,i,n){return{level:e,message:t,namespace:r,get params(){return i.length===1&&ei(i[0])&&(i=i[0](),Array.isArray(i)||(i=[i])),i},source:n,timestamp:performance.now().toFixed(3)}}function $l(e){[...Cn].every(t=>t(e))&&Tn.forEach(t=>t(e))}function no(e){let t=(to.get(e)??0)+1;to.set(e,t);let r=`${e} #${t}`,i={id:r,namespace:e,module:n=>no(`${i.namespace}/${n}`),updateConfig:Qr};return Object.values(_n).forEach(n=>{i[n]=(a,...o)=>$l(zl(n,a,e,o,r))}),Object.seal(i)}function ci(...e){e.forEach(t=>{let{append:r,filter:i}=t;ei(i)&&Cn.add(i),ei(r)&&Tn.add(r)})}function Hl(e={}){let{name:t}=e,r=_(B("commerce.debug",{search:!0,storage:!0}),t===eo.LOCAL);return ci(r?ro:io),t===eo.PROD&&ci(ji),ue}function Bl(){Tn.clear(),Cn.clear()}var ue={...no(nn),Level:_n,Plugins:{consoleAppender:ro,debugFilter:io,quietFilter:Dl,lanaAppender:ji},init:Hl,reset:Bl,use:ci};var Ne=class e extends Error{constructor(t,r,i){if(super(t,{cause:i}),this.name="MasError",r.response){let n=r.response.headers?.get(dr);n&&(r.requestId=n),r.response.status&&(r.status=r.response.status,r.statusText=r.response.statusText),r.response.url&&(r.url=r.response.url)}delete r.response,this.context=r,Error.captureStackTrace&&Error.captureStackTrace(this,e)}toString(){let t=Object.entries(this.context||{}).map(([i,n])=>`${i}: ${JSON.stringify(n)}`).join(", "),r=`${this.name}: ${this.message}`;return t&&(r+=` (${t})`),this.cause&&(r+=`
+Caused by: ${this.cause}`),r}};var Ul={[Ee]:Qi,[Fe]:Zi,[Oe]:Ji},Fl={[Ee]:rn,[Oe]:Ct},fr,qe=class{constructor(t){E(this,fr);m(this,"changes",new Map);m(this,"connected",!1);m(this,"error");m(this,"log");m(this,"options");m(this,"promises",[]);m(this,"state",Fe);m(this,"timer",null);m(this,"value");m(this,"version",0);m(this,"wrapperElement");this.wrapperElement=t,this.log=ue.module("mas-element")}update(){[Ee,Fe,Oe].forEach(t=>{this.wrapperElement.classList.toggle(Ul[t],t===this.state)})}notify(){(this.state===Oe||this.state===Ee)&&(this.state===Oe?this.promises.forEach(({resolve:r})=>r(this.wrapperElement)):this.state===Ee&&this.promises.forEach(({reject:r})=>r(this.error)),this.promises=[]);let t=this.error;this.error instanceof Ne&&(t={message:this.error.message,...this.error.context}),this.wrapperElement.dispatchEvent(new CustomEvent(Fl[this.state],{bubbles:!0,detail:t}))}attributeChangedCallback(t,r,i){this.changes.set(t,i),this.requestUpdate()}connectedCallback(){y(this,fr,le()),this.requestUpdate(!0)}disconnectedCallback(){this.connected&&(this.connected=!1,this.log?.debug("Disconnected:",{element:this.wrapperElement}))}onceSettled(){let{error:t,promises:r,state:i}=this;return Oe===i?Promise.resolve(this.wrapperElement):Ee===i?Promise.reject(t):new Promise((n,a)=>{r.push({resolve:n,reject:a})})}toggleResolved(t,r,i){return t!==this.version?!1:(i!==void 0&&(this.options=i),this.state=Oe,this.value=r,this.update(),this.log?.debug("Resolved:",{element:this.wrapperElement,value:r}),ai(()=>this.notify()),!0)}toggleFailed(t,r,i){if(t!==this.version)return!1;i!==void 0&&(this.options=i),this.error=r,this.state=Ee,this.update();let n=this.wrapperElement.getAttribute("is");return this.log?.error(`${n}: Failed to render: ${r.message}`,{element:this.wrapperElement,...r.context,...h(this,fr)?.duration}),ai(()=>this.notify()),!0}togglePending(t){return this.version++,t&&(this.options=t),this.state=Fe,this.update(),this.log?.debug("Pending:",{osi:this.wrapperElement?.options?.wcsOsi}),this.version}requestUpdate(t=!1){if(!this.wrapperElement.isConnected||!le()||this.timer)return;let{error:r,options:i,state:n,value:a,version:o}=this;this.state=Fe,this.timer=ai(async()=>{this.timer=null;let s=null;if(this.changes.size&&(s=Object.fromEntries(this.changes.entries()),this.changes.clear()),this.connected?this.log?.debug("Updated:",{element:this.wrapperElement,changes:s}):(this.connected=!0,this.log?.debug("Connected:",{element:this.wrapperElement,changes:s})),s||t)try{await this.wrapperElement.render?.()===!1&&this.state===Fe&&this.version===o&&(this.state=n,this.error=r,this.value=a,this.update(),this.notify())}catch(c){this.toggleFailed(this.version,c,i)}})}};fr=new WeakMap;function ao(e={}){return Object.entries(e).forEach(([t,r])=>{(r==null||r===""||r?.length===0)&&delete e[t]}),e}function li(e,t={}){let{tag:r,is:i}=e,n=document.createElement(r,{is:i});return n.setAttribute("is",i),Object.assign(n.dataset,ao(t)),n}function oo(e,t={}){return e instanceof HTMLElement?(Object.assign(e.dataset,ao(t)),e):null}var Gl=/[0-9\-+#]/,ql=/[^\d\-+#]/g;function so(e){return e.search(Gl)}function Vl(e="#.##"){let t={},r=e.length,i=so(e);t.prefix=i>0?e.substring(0,i):"";let n=so(e.split("").reverse().join("")),a=r-n,o=e.substring(a,a+1),s=a+(o==="."||o===","?1:0);t.suffix=n>0?e.substring(s,r):"",t.mask=e.substring(i,s),t.maskHasNegativeSign=t.mask.charAt(0)==="-",t.maskHasPositiveSign=t.mask.charAt(0)==="+";let c=t.mask.match(ql);return t.decimal=c&&c[c.length-1]||".",t.separator=c&&c[1]&&c[0]||",",c=t.mask.split(t.decimal),t.integer=c[0],t.fraction=c[1],t}function jl(e,t,r){let i=!1,n={value:e};e<0&&(i=!0,n.value=-n.value),n.sign=i?"-":"",n.value=Number(n.value).toFixed(t.fraction&&t.fraction.length),n.value=Number(n.value).toString();let a=t.fraction&&t.fraction.lastIndexOf("0"),[o="0",s=""]=n.value.split(".");return(!s||s&&s.length<=a)&&(s=a<0?"":(+("0."+s)).toFixed(a+1).replace("0.","")),n.integer=o,n.fraction=s,Wl(n,t),(n.result==="0"||n.result==="")&&(i=!1,n.sign=""),!i&&t.maskHasPositiveSign?n.sign="+":i&&t.maskHasPositiveSign?n.sign="-":i&&(n.sign=r&&r.enforceMaskSign&&!t.maskHasNegativeSign?"":"-"),n}function Wl(e,t){e.result="";let r=t.integer.split(t.separator),i=r.join(""),n=i&&i.indexOf("0");if(n>-1)for(;e.integer.length<i.length-n;)e.integer="0"+e.integer;else Number(e.integer)===0&&(e.integer="");let a=r[1]&&r[r.length-1].length;if(a){let o=e.integer.length,s=o%a;for(let c=0;c<o;c++)e.result+=e.integer.charAt(c),!((c-s+1)%a)&&c<o-a&&(e.result+=t.separator)}else e.result=e.integer;return e.result+=t.fraction&&e.fraction?t.decimal+e.fraction:"",e}function Yl(e,t,r={}){if(!e||isNaN(Number(t)))return t;let i=Vl(e),n=jl(t,i,r);return i.prefix+n.sign+n.result+i.suffix}var co=Yl;var lo=".",Xl=",",po=/^\s+/,mo=/\s+$/,ho="&nbsp;",kn=e=>e*12,st=(e,t,r=1)=>{if(!e)return!1;let{start:i,end:n,displaySummary:{amount:a,duration:o,minProductQuantity:s=1,outcomeType:c}={}}=e;if(!(a&&o&&c)||r<s)return!1;let l=t?new Date(t):new Date;if(!i||!n)return!1;let d=new Date(i),p=new Date(n);return l>=d&&l<=p},ot={MONTH:"MONTH",YEAR:"YEAR"},Kl={[fe.ANNUAL]:12,[fe.MONTHLY]:1,[fe.THREE_YEARS]:36,[fe.TWO_YEARS]:24},Pn=(e,t)=>({accept:e,round:t}),Ql=[Pn(({divisor:e,price:t})=>t%e==0,({divisor:e,price:t})=>t/e),Pn(({usePrecision:e})=>e,({divisor:e,price:t})=>Math.round(t/e*100)/100),Pn(()=>!0,({divisor:e,price:t})=>Math.ceil(Math.floor(t*100/e)/100))],Ln={[Je.YEAR]:{[fe.MONTHLY]:ot.MONTH,[fe.ANNUAL]:ot.YEAR},[Je.MONTH]:{[fe.MONTHLY]:ot.MONTH}},Zl=(e,t)=>e.indexOf(`'${t}'`)===0,Jl=(e,t=!0)=>{let r=e.replace(/'.*?'/,"").trim(),i=go(r);return!!i?t||(r=r.replace(/[,\.]0+/,i)):r=r.replace(/\s?(#.*0)(?!\s)?/,"$&"+td(e)),r},ed=e=>{let t=rd(e),r=Zl(e,t),i=e.replace(/'.*?'/,""),n=po.test(i)||mo.test(i);return{currencySymbol:t,isCurrencyFirst:r,hasCurrencySpace:n}},uo=e=>e.replace(po,ho).replace(mo,ho),td=e=>e.match(/#(.?)#/)?.[1]===lo?Xl:lo,rd=e=>e.match(/'(.*?)'/)?.[1]??"",go=e=>e.match(/0(.?)0/)?.[1]??"";function Lt({formatString:e,price:t,usePrecision:r,isIndianPrice:i=!1},n,a=o=>o){let{currencySymbol:o,isCurrencyFirst:s,hasCurrencySpace:c}=ed(e),l=r?go(e):"",d=Jl(e,r),p=r?2:0,u=a(t,{currencySymbol:o}),g=i?u.toLocaleString("hi-IN",{minimumFractionDigits:p,maximumFractionDigits:p}):co(d,u),x=r?g.lastIndexOf(l):g.length,v=g.substring(0,x),A=g.substring(x+1);return{accessiblePrice:e.replace(/'.*?'/,"SYMBOL").replace(/#.*0/,g).replace(/SYMBOL/,o),currencySymbol:o,decimals:A,decimalsDelimiter:l,hasCurrencySpace:c,integer:v,isCurrencyFirst:s,recurrenceTerm:n}}var fo=e=>{let{commitment:t,term:r,usePrecision:i}=e,n=Kl[r]??1;return Lt(e,n>1?ot.MONTH:Ln[t]?.[r],a=>{let o={divisor:n,price:a,usePrecision:i},{round:s}=Ql.find(({accept:c})=>c(o));if(!s)throw new Error(`Missing rounding rule for: ${JSON.stringify(o)}`);return s(o)})},xo=({commitment:e,term:t,...r})=>Lt(r,Ln[e]?.[t]),vo=e=>{let{commitment:t,instant:r,price:i,originalPrice:n,priceWithoutDiscount:a,promotion:o,quantity:s=1,term:c}=e;if(t===Je.YEAR&&c===fe.MONTHLY){if(!o)return Lt(e,ot.YEAR,kn);let{displaySummary:{outcomeType:l,duration:d}={}}=o;switch(l){case"PERCENTAGE_DISCOUNT":if(st(o,r,s)){let p=parseInt(d.replace("P","").replace("M",""));if(isNaN(p))return kn(i);let u=n*p,g=a*(12-p),x=Math.round((u+g)*100)/100;return Lt({...e,price:x},ot.YEAR)}default:return Lt(e,ot.YEAR,()=>kn(a??i))}}return Lt(e,Ln[t]?.[c])};var bo="download",yo="upgrade",Eo={e:"EDU",t:"TEAM"};function di(e,t={},r=""){let i=le();if(!i)return null;let{checkoutMarketSegment:n,checkoutWorkflow:a,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:p,quantity:u,wcsOsi:g,extraOptions:x,analyticsId:v}=i.collectCheckoutOptions(t),A=li(e,{checkoutMarketSegment:n,checkoutWorkflow:a,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:p,quantity:u,wcsOsi:g,extraOptions:x,analyticsId:v});return r&&(A.innerHTML=`<span style="pointer-events: none;">${r}</span>`),A}function hi(e){return class extends e{constructor(){super(...arguments);m(this,"checkoutActionHandler");m(this,"masElement",new qe(this))}attributeChangedCallback(i,n,a){this.masElement.attributeChangedCallback(i,n,a)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.clickHandler)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.clickHandler)}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get marketSegment(){let i=this.options?.ms??this.value?.[0].marketSegments?.[0];return Eo[i]??i}get customerSegment(){let i=this.options?.cs??this.value?.[0]?.customerSegment;return Eo[i]??i}get is3in1Modal(){return Object.values(it).includes(this.getAttribute("data-modal"))}get isOpen3in1Modal(){let i=document.querySelector("meta[name=mas-ff-3in1]");return this.is3in1Modal&&(!i||i.content!=="off")}requestUpdate(i=!1){return this.masElement.requestUpdate(i)}static get observedAttributes(){return["data-checkout-workflow","data-checkout-workflow-step","data-extra-options","data-ims-country","data-perpetual","data-promotion-code","data-quantity","data-template","data-wcs-osi","data-entitlement","data-upgrade","data-modal"]}async render(i={}){let n=le();if(!n)return!1;this.dataset.imsCountry||n.imsCountryPromise.then(g=>{g&&(this.dataset.imsCountry=g)}),i.imsCountry=null;let a=n.collectCheckoutOptions(i,this);if(!a.wcsOsi.length)return!1;let o;try{o=JSON.parse(a.extraOptions??"{}")}catch(g){this.masElement.log?.error("cannot parse exta checkout options",g)}let s=this.masElement.togglePending(a);this.setCheckoutUrl("");let c=n.resolveOfferSelectors(a),l=await Promise.all(c);l=l.map(g=>gr(g,a));let d=l.flat().find(g=>g.promotion);!st(d?.promotion,d?.promotion?.displaySummary?.instant,a.quantity[0])&&a.promotionCode&&delete a.promotionCode,a.country=this.dataset.imsCountry||a.country;let u=await n.buildCheckoutAction?.(l.flat(),{...o,...a},this);return this.renderOffers(l.flat(),a,{},u,s)}renderOffers(i,n,a={},o=void 0,s=void 0){let c=le();if(!c)return!1;if(n={...JSON.parse(this.dataset.extraOptions??"{}"),...n,...a},s??(s=this.masElement.togglePending(n)),this.checkoutActionHandler&&(this.checkoutActionHandler=void 0),o){this.classList.remove(bo,yo),this.masElement.toggleResolved(s,i,n);let{url:d,text:p,className:u,handler:g}=o;d&&this.setCheckoutUrl(d),p&&(this.firstElementChild.innerHTML=p),u&&this.classList.add(...u.split(" ")),g&&(this.setCheckoutUrl("#"),this.checkoutActionHandler=g.bind(this))}if(i.length){if(this.masElement.toggleResolved(s,i,n)){if(!this.classList.contains(bo)&&!this.classList.contains(yo)){let d=c.buildCheckoutURL(i,n);this.setCheckoutUrl(n.modal==="true"?"#":d)}return!0}}else{let d=new Error(`Not provided: ${n?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(s,d,n))return this.setCheckoutUrl("#"),!0}}setCheckoutUrl(){}clickHandler(i){}updateOptions(i={}){let n=le();if(!n)return!1;let{checkoutMarketSegment:a,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:p,promotionCode:u,quantity:g,wcsOsi:x}=n.collectCheckoutOptions(i);return oo(this,{checkoutMarketSegment:a,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:p,promotionCode:u,quantity:g,wcsOsi:x}),!0}}}var xr=class xr extends hi(HTMLAnchorElement){static createCheckoutLink(t={},r=""){return di(xr,t,r)}setCheckoutUrl(t){this.setAttribute("href",t)}get isCheckoutLink(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}}};m(xr,"is","checkout-link"),m(xr,"tag","a");var Ie=xr;window.customElements.get(Ie.is)||window.customElements.define(Ie.is,Ie,{extends:Ie.tag});var id="p_draft_landscape",nd="/store/",ad=new Map([["countrySpecific","cs"],["customerSegment","cs"],["quantity","q"],["authCode","code"],["checkoutPromoCode","apc"],["rurl","rUrl"],["curl","cUrl"],["ctxrturl","ctxRtUrl"],["country","co"],["language","lang"],["clientId","cli"],["context","ctx"],["productArrangementCode","pa"],["addonProductArrangementCode","ao"],["offerType","ot"],["marketSegment","ms"]]),Rn=new Set(["af","ai","ao","apc","appctxid","cli","co","cs","csm","ctx","ctxRtUrl","DCWATC","dp","fr","gsp","ijt","lang","lo","mal","ms","mv","mv2","nglwfdata","ot","otac","pa","pcid","promoid","q","rf","sc","scl","sdid","sid","spint","svar","th","thm","trackingid","usid","workflowid","context.guid","so.ca","so.su","so.tr","so.va"]),od=["env","workflowStep","clientId","country"],wo=new Set(["gid","gtoken","notifauditid","cohortid","productname","sdid","attimer","gcsrc","gcprog","gcprogcat","gcpagetype"]),Ao=e=>ad.get(e)??e;function pi(e,t,r){for(let[i,n]of Object.entries(e)){let a=Ao(i);n!=null&&r.has(a)&&t.set(a,n)}}function sd(e){switch(e){case dn.PRODUCTION:return"https://commerce.adobe.com";default:return"https://commerce-stg.adobe.com"}}function cd(e,t){for(let r in e){let i=e[r];for(let[n,a]of Object.entries(i)){if(a==null)continue;let o=Ao(n);t.set(`items[${r}][${o}]`,a)}}}function ld({url:e,modal:t,is3in1:r}){if(!r||!e?.searchParams)return e;e.searchParams.set("rtc","t"),e.searchParams.set("lo","sl");let i=e.searchParams.get("af");return e.searchParams.set("af",[i,"uc_new_user_iframe","uc_new_system_close"].filter(Boolean).join(",")),e.searchParams.get("cli")!=="doc_cloud"&&e.searchParams.set("cli",t===it.CRM?"creative":"mini_plans"),e}function dd(e){let t=new URLSearchParams(window.location.search),r={};wo.forEach(i=>{let n=t.get(i);n!==null&&(r[i]=n)}),Object.keys(r).length>0&&pi(r,e.searchParams,wo)}function So(e){hd(e);let{env:t,items:r,workflowStep:i,marketSegment:n,customerSegment:a,offerType:o,productArrangementCode:s,landscape:c,modal:l,is3in1:d,preselectPlan:p,...u}=e,g=new URL(sd(t));if(g.pathname=`${nd}${i}`,i!==oe.SEGMENTATION&&i!==oe.CHANGE_PLAN_TEAM_PLANS&&cd(r,g.searchParams),pi({...u},g.searchParams,Rn),dd(g),c===Ge.DRAFT&&pi({af:id},g.searchParams,Rn),i===oe.SEGMENTATION){let x={marketSegment:n,offerType:o,customerSegment:a,productArrangementCode:s,quantity:r?.[0]?.quantity,addonProductArrangementCode:s?r?.find(v=>v.productArrangementCode!==s)?.productArrangementCode:r?.[1]?.productArrangementCode};p?.toLowerCase()==="edu"?g.searchParams.set("ms","EDU"):p?.toLowerCase()==="team"&&g.searchParams.set("cs","TEAM"),pi(x,g.searchParams,Rn),g.searchParams.get("ot")==="PROMOTION"&&g.searchParams.delete("ot"),g=ld({url:g,modal:l,is3in1:d})}return g.toString()}function hd(e){for(let t of od)if(!e[t])throw new Error(`Argument "checkoutData" is not valid, missing: ${t}`);if(e.workflowStep!==oe.SEGMENTATION&&e.workflowStep!==oe.CHANGE_PLAN_TEAM_PLANS&&!e.items)throw new Error('Argument "checkoutData" is not valid, missing: items');return!0}var P=Object.freeze({checkoutClientId:"adobe_com",checkoutWorkflowStep:oe.EMAIL,country:"US",displayOldPrice:!1,displayPerUnit:!1,displayRecurrence:!0,displayTax:!1,displayPlanType:!1,env:Pe.PRODUCTION,forceTaxExclusive:!1,language:"en",entitlement:!1,extraOptions:{},modal:!1,promotionCode:"",quantity:1,alternativePrice:!1,wcsApiKey:"wcms-commerce-ims-ro-user-milo",wcsURL:"https://www.adobe.com/web_commerce_artifact",landscape:Ge.PUBLISHED});function _o({settings:e,providers:t}){function r(a,o){let{checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:p,quantity:u,preselectPlan:g,env:x}=e,v={checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:p,quantity:u,preselectPlan:g,env:x};if(o)for(let Ue of t.checkout)Ue(o,v);let{checkoutMarketSegment:A,checkoutWorkflowStep:N=c,imsCountry:M,country:w=M??l,language:I=d,quantity:j=u,entitlement:G,upgrade:X,modal:Z,perpetual:ce,promotionCode:K=p,wcsOsi:W,extraOptions:z,...ge}=Object.assign(v,o?.dataset??{},a??{}),ke=mr(N,oe,P.checkoutWorkflowStep);return v=ri({...ge,extraOptions:z,checkoutClientId:s,checkoutMarketSegment:A,country:w,quantity:Pt(j,P.quantity),checkoutWorkflowStep:ke,language:I,entitlement:_(G),upgrade:_(X),modal:Z,perpetual:_(ce),promotionCode:ni(K).effectivePromoCode,wcsOsi:oi(W),preselectPlan:g}),v}function i(a,o){if(!Array.isArray(a)||!a.length||!o)return"";let{env:s,landscape:c}=e,{checkoutClientId:l,checkoutMarketSegment:d,checkoutWorkflowStep:p,country:u,promotionCode:g,quantity:x,preselectPlan:v,ms:A,cs:N,...M}=r(o),w=document.querySelector("meta[name=mas-ff-3in1]"),I=Object.values(it).includes(o.modal)&&(!w||w.content!=="off"),j=window.frameElement||I?"if":"fp",[{productArrangementCode:G,marketSegments:[X],customerSegment:Z,offerType:ce}]=a,K=A??X??d,W=N??Z;v?.toLowerCase()==="edu"?K="EDU":v?.toLowerCase()==="team"&&(W="TEAM");let z={is3in1:I,checkoutPromoCode:g,clientId:l,context:j,country:u,env:s,items:[],marketSegment:K,customerSegment:W,offerType:ce,productArrangementCode:G,workflowStep:p,landscape:c,...M},ge=x[0]>1?x[0]:void 0;if(a.length===1){let{offerId:ke}=a[0];z.items.push({id:ke,quantity:ge})}else z.items.push(...a.map(({offerId:ke,productArrangementCode:Ue})=>({id:ke,quantity:ge,...I?{productArrangementCode:Ue}:{}})));return So(z)}let{createCheckoutLink:n}=Ie;return{CheckoutLink:Ie,CheckoutWorkflowStep:oe,buildCheckoutURL:i,collectCheckoutOptions:r,createCheckoutLink:n}}function pd({interval:e=200,maxAttempts:t=25}={}){let r=ue.module("ims");return new Promise(i=>{r.debug("Waing for IMS to be ready");let n=0;function a(){window.adobeIMS?.initialized?i():++n>t?(r.debug("Timeout"),i()):setTimeout(a,e)}a()})}function md(e){return e.then(()=>window.adobeIMS?.isSignedInUser()??!1)}function ud(e){let t=ue.module("ims");return e.then(r=>r?window.adobeIMS.getProfile().then(({countryCode:i})=>(t.debug("Got user country:",i),i),i=>{t.error("Unable to get user country:",i)}):null)}function To({}){let e=pd(),t=md(e),r=ud(t);return{imsReadyPromise:e,imsSignedInPromise:t,imsCountryPromise:r}}var Co=window.masPriceLiterals;function ko(e){if(Array.isArray(Co)){let t=i=>Co.find(n=>mn(n.lang,i)),r=t(e.language)??t(P.language);if(r)return Object.freeze(r)}return{}}var Mn=function(e,t){return Mn=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(r,i){r.__proto__=i}||function(r,i){for(var n in i)Object.prototype.hasOwnProperty.call(i,n)&&(r[n]=i[n])},Mn(e,t)};function vr(e,t){if(typeof t!="function"&&t!==null)throw new TypeError("Class extends value "+String(t)+" is not a constructor or null");Mn(e,t);function r(){this.constructor=e}e.prototype=t===null?Object.create(t):(r.prototype=t.prototype,new r)}var C=function(){return C=Object.assign||function(t){for(var r,i=1,n=arguments.length;i<n;i++){r=arguments[i];for(var a in r)Object.prototype.hasOwnProperty.call(r,a)&&(t[a]=r[a])}return t},C.apply(this,arguments)};function mi(e,t,r){if(r||arguments.length===2)for(var i=0,n=t.length,a;i<n;i++)(a||!(i in t))&&(a||(a=Array.prototype.slice.call(t,0,i)),a[i]=t[i]);return e.concat(a||Array.prototype.slice.call(t))}var S;(function(e){e[e.EXPECT_ARGUMENT_CLOSING_BRACE=1]="EXPECT_ARGUMENT_CLOSING_BRACE",e[e.EMPTY_ARGUMENT=2]="EMPTY_ARGUMENT",e[e.MALFORMED_ARGUMENT=3]="MALFORMED_ARGUMENT",e[e.EXPECT_ARGUMENT_TYPE=4]="EXPECT_ARGUMENT_TYPE",e[e.INVALID_ARGUMENT_TYPE=5]="INVALID_ARGUMENT_TYPE",e[e.EXPECT_ARGUMENT_STYLE=6]="EXPECT_ARGUMENT_STYLE",e[e.INVALID_NUMBER_SKELETON=7]="INVALID_NUMBER_SKELETON",e[e.INVALID_DATE_TIME_SKELETON=8]="INVALID_DATE_TIME_SKELETON",e[e.EXPECT_NUMBER_SKELETON=9]="EXPECT_NUMBER_SKELETON",e[e.EXPECT_DATE_TIME_SKELETON=10]="EXPECT_DATE_TIME_SKELETON",e[e.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE=11]="UNCLOSED_QUOTE_IN_ARGUMENT_STYLE",e[e.EXPECT_SELECT_ARGUMENT_OPTIONS=12]="EXPECT_SELECT_ARGUMENT_OPTIONS",e[e.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE=13]="EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE=14]="INVALID_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR=15]="EXPECT_SELECT_ARGUMENT_SELECTOR",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR=16]="EXPECT_PLURAL_ARGUMENT_SELECTOR",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT=17]="EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT=18]="EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT",e[e.INVALID_PLURAL_ARGUMENT_SELECTOR=19]="INVALID_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_PLURAL_ARGUMENT_SELECTOR=20]="DUPLICATE_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_SELECT_ARGUMENT_SELECTOR=21]="DUPLICATE_SELECT_ARGUMENT_SELECTOR",e[e.MISSING_OTHER_CLAUSE=22]="MISSING_OTHER_CLAUSE",e[e.INVALID_TAG=23]="INVALID_TAG",e[e.INVALID_TAG_NAME=25]="INVALID_TAG_NAME",e[e.UNMATCHED_CLOSING_TAG=26]="UNMATCHED_CLOSING_TAG",e[e.UNCLOSED_TAG=27]="UNCLOSED_TAG"})(S||(S={}));var U;(function(e){e[e.literal=0]="literal",e[e.argument=1]="argument",e[e.number=2]="number",e[e.date=3]="date",e[e.time=4]="time",e[e.select=5]="select",e[e.plural=6]="plural",e[e.pound=7]="pound",e[e.tag=8]="tag"})(U||(U={}));var ct;(function(e){e[e.number=0]="number",e[e.dateTime=1]="dateTime"})(ct||(ct={}));function On(e){return e.type===U.literal}function Po(e){return e.type===U.argument}function ui(e){return e.type===U.number}function gi(e){return e.type===U.date}function fi(e){return e.type===U.time}function xi(e){return e.type===U.select}function vi(e){return e.type===U.plural}function Lo(e){return e.type===U.pound}function bi(e){return e.type===U.tag}function yi(e){return!!(e&&typeof e=="object"&&e.type===ct.number)}function br(e){return!!(e&&typeof e=="object"&&e.type===ct.dateTime)}var Nn=/[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;var gd=/(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;function Ro(e){var t={};return e.replace(gd,function(r){var i=r.length;switch(r[0]){case"G":t.era=i===4?"long":i===5?"narrow":"short";break;case"y":t.year=i===2?"2-digit":"numeric";break;case"Y":case"u":case"U":case"r":throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");case"q":case"Q":throw new RangeError("`q/Q` (quarter) patterns are not supported");case"M":case"L":t.month=["numeric","2-digit","short","long","narrow"][i-1];break;case"w":case"W":throw new RangeError("`w/W` (week) patterns are not supported");case"d":t.day=["numeric","2-digit"][i-1];break;case"D":case"F":case"g":throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");case"E":t.weekday=i===4?"short":i===5?"narrow":"short";break;case"e":if(i<4)throw new RangeError("`e..eee` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"c":if(i<4)throw new RangeError("`c..ccc` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"a":t.hour12=!0;break;case"b":case"B":throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");case"h":t.hourCycle="h12",t.hour=["numeric","2-digit"][i-1];break;case"H":t.hourCycle="h23",t.hour=["numeric","2-digit"][i-1];break;case"K":t.hourCycle="h11",t.hour=["numeric","2-digit"][i-1];break;case"k":t.hourCycle="h24",t.hour=["numeric","2-digit"][i-1];break;case"j":case"J":case"C":throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");case"m":t.minute=["numeric","2-digit"][i-1];break;case"s":t.second=["numeric","2-digit"][i-1];break;case"S":case"A":throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");case"z":t.timeZoneName=i<4?"short":"long";break;case"Z":case"O":case"v":case"V":case"X":case"x":throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead")}return""}),t}var Mo=/[\t-\r \x85\u200E\u200F\u2028\u2029]/i;function Do(e){if(e.length===0)throw new Error("Number skeleton cannot be empty");for(var t=e.split(Mo).filter(function(u){return u.length>0}),r=[],i=0,n=t;i<n.length;i++){var a=n[i],o=a.split("/");if(o.length===0)throw new Error("Invalid number skeleton");for(var s=o[0],c=o.slice(1),l=0,d=c;l<d.length;l++){var p=d[l];if(p.length===0)throw new Error("Invalid number skeleton")}r.push({stem:s,options:c})}return r}function fd(e){return e.replace(/^(.*?)-/,"")}var Oo=/^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,zo=/^(@+)?(\+|#+)?[rs]?$/g,xd=/(\*)(0+)|(#+)(0+)|(0+)/g,$o=/^(0+)$/;function No(e){var t={};return e[e.length-1]==="r"?t.roundingPriority="morePrecision":e[e.length-1]==="s"&&(t.roundingPriority="lessPrecision"),e.replace(zo,function(r,i,n){return typeof n!="string"?(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length):n==="+"?t.minimumSignificantDigits=i.length:i[0]==="#"?t.maximumSignificantDigits=i.length:(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length+(typeof n=="string"?n.length:0)),""}),t}function Ho(e){switch(e){case"sign-auto":return{signDisplay:"auto"};case"sign-accounting":case"()":return{currencySign:"accounting"};case"sign-always":case"+!":return{signDisplay:"always"};case"sign-accounting-always":case"()!":return{signDisplay:"always",currencySign:"accounting"};case"sign-except-zero":case"+?":return{signDisplay:"exceptZero"};case"sign-accounting-except-zero":case"()?":return{signDisplay:"exceptZero",currencySign:"accounting"};case"sign-never":case"+_":return{signDisplay:"never"}}}function vd(e){var t;if(e[0]==="E"&&e[1]==="E"?(t={notation:"engineering"},e=e.slice(2)):e[0]==="E"&&(t={notation:"scientific"},e=e.slice(1)),t){var r=e.slice(0,2);if(r==="+!"?(t.signDisplay="always",e=e.slice(2)):r==="+?"&&(t.signDisplay="exceptZero",e=e.slice(2)),!$o.test(e))throw new Error("Malformed concise eng/scientific notation");t.minimumIntegerDigits=e.length}return t}function Io(e){var t={},r=Ho(e);return r||t}function Bo(e){for(var t={},r=0,i=e;r<i.length;r++){var n=i[r];switch(n.stem){case"percent":case"%":t.style="percent";continue;case"%x100":t.style="percent",t.scale=100;continue;case"currency":t.style="currency",t.currency=n.options[0];continue;case"group-off":case",_":t.useGrouping=!1;continue;case"precision-integer":case".":t.maximumFractionDigits=0;continue;case"measure-unit":case"unit":t.style="unit",t.unit=fd(n.options[0]);continue;case"compact-short":case"K":t.notation="compact",t.compactDisplay="short";continue;case"compact-long":case"KK":t.notation="compact",t.compactDisplay="long";continue;case"scientific":t=C(C(C({},t),{notation:"scientific"}),n.options.reduce(function(c,l){return C(C({},c),Io(l))},{}));continue;case"engineering":t=C(C(C({},t),{notation:"engineering"}),n.options.reduce(function(c,l){return C(C({},c),Io(l))},{}));continue;case"notation-simple":t.notation="standard";continue;case"unit-width-narrow":t.currencyDisplay="narrowSymbol",t.unitDisplay="narrow";continue;case"unit-width-short":t.currencyDisplay="code",t.unitDisplay="short";continue;case"unit-width-full-name":t.currencyDisplay="name",t.unitDisplay="long";continue;case"unit-width-iso-code":t.currencyDisplay="symbol";continue;case"scale":t.scale=parseFloat(n.options[0]);continue;case"integer-width":if(n.options.length>1)throw new RangeError("integer-width stems only accept a single optional option");n.options[0].replace(xd,function(c,l,d,p,u,g){if(l)t.minimumIntegerDigits=d.length;else{if(p&&u)throw new Error("We currently do not support maximum integer digits");if(g)throw new Error("We currently do not support exact integer digits")}return""});continue}if($o.test(n.stem)){t.minimumIntegerDigits=n.stem.length;continue}if(Oo.test(n.stem)){if(n.options.length>1)throw new RangeError("Fraction-precision stems only accept a single optional option");n.stem.replace(Oo,function(c,l,d,p,u,g){return d==="*"?t.minimumFractionDigits=l.length:p&&p[0]==="#"?t.maximumFractionDigits=p.length:u&&g?(t.minimumFractionDigits=u.length,t.maximumFractionDigits=u.length+g.length):(t.minimumFractionDigits=l.length,t.maximumFractionDigits=l.length),""});var a=n.options[0];a==="w"?t=C(C({},t),{trailingZeroDisplay:"stripIfInteger"}):a&&(t=C(C({},t),No(a)));continue}if(zo.test(n.stem)){t=C(C({},t),No(n.stem));continue}var o=Ho(n.stem);o&&(t=C(C({},t),o));var s=vd(n.stem);s&&(t=C(C({},t),s))}return t}var yr={AX:["H"],BQ:["H"],CP:["H"],CZ:["H"],DK:["H"],FI:["H"],ID:["H"],IS:["H"],ML:["H"],NE:["H"],RU:["H"],SE:["H"],SJ:["H"],SK:["H"],AS:["h","H"],BT:["h","H"],DJ:["h","H"],ER:["h","H"],GH:["h","H"],IN:["h","H"],LS:["h","H"],PG:["h","H"],PW:["h","H"],SO:["h","H"],TO:["h","H"],VU:["h","H"],WS:["h","H"],"001":["H","h"],AL:["h","H","hB"],TD:["h","H","hB"],"ca-ES":["H","h","hB"],CF:["H","h","hB"],CM:["H","h","hB"],"fr-CA":["H","h","hB"],"gl-ES":["H","h","hB"],"it-CH":["H","h","hB"],"it-IT":["H","h","hB"],LU:["H","h","hB"],NP:["H","h","hB"],PF:["H","h","hB"],SC:["H","h","hB"],SM:["H","h","hB"],SN:["H","h","hB"],TF:["H","h","hB"],VA:["H","h","hB"],CY:["h","H","hb","hB"],GR:["h","H","hb","hB"],CO:["h","H","hB","hb"],DO:["h","H","hB","hb"],KP:["h","H","hB","hb"],KR:["h","H","hB","hb"],NA:["h","H","hB","hb"],PA:["h","H","hB","hb"],PR:["h","H","hB","hb"],VE:["h","H","hB","hb"],AC:["H","h","hb","hB"],AI:["H","h","hb","hB"],BW:["H","h","hb","hB"],BZ:["H","h","hb","hB"],CC:["H","h","hb","hB"],CK:["H","h","hb","hB"],CX:["H","h","hb","hB"],DG:["H","h","hb","hB"],FK:["H","h","hb","hB"],GB:["H","h","hb","hB"],GG:["H","h","hb","hB"],GI:["H","h","hb","hB"],IE:["H","h","hb","hB"],IM:["H","h","hb","hB"],IO:["H","h","hb","hB"],JE:["H","h","hb","hB"],LT:["H","h","hb","hB"],MK:["H","h","hb","hB"],MN:["H","h","hb","hB"],MS:["H","h","hb","hB"],NF:["H","h","hb","hB"],NG:["H","h","hb","hB"],NR:["H","h","hb","hB"],NU:["H","h","hb","hB"],PN:["H","h","hb","hB"],SH:["H","h","hb","hB"],SX:["H","h","hb","hB"],TA:["H","h","hb","hB"],ZA:["H","h","hb","hB"],"af-ZA":["H","h","hB","hb"],AR:["H","h","hB","hb"],CL:["H","h","hB","hb"],CR:["H","h","hB","hb"],CU:["H","h","hB","hb"],EA:["H","h","hB","hb"],"es-BO":["H","h","hB","hb"],"es-BR":["H","h","hB","hb"],"es-EC":["H","h","hB","hb"],"es-ES":["H","h","hB","hb"],"es-GQ":["H","h","hB","hb"],"es-PE":["H","h","hB","hb"],GT:["H","h","hB","hb"],HN:["H","h","hB","hb"],IC:["H","h","hB","hb"],KG:["H","h","hB","hb"],KM:["H","h","hB","hb"],LK:["H","h","hB","hb"],MA:["H","h","hB","hb"],MX:["H","h","hB","hb"],NI:["H","h","hB","hb"],PY:["H","h","hB","hb"],SV:["H","h","hB","hb"],UY:["H","h","hB","hb"],JP:["H","h","K"],AD:["H","hB"],AM:["H","hB"],AO:["H","hB"],AT:["H","hB"],AW:["H","hB"],BE:["H","hB"],BF:["H","hB"],BJ:["H","hB"],BL:["H","hB"],BR:["H","hB"],CG:["H","hB"],CI:["H","hB"],CV:["H","hB"],DE:["H","hB"],EE:["H","hB"],FR:["H","hB"],GA:["H","hB"],GF:["H","hB"],GN:["H","hB"],GP:["H","hB"],GW:["H","hB"],HR:["H","hB"],IL:["H","hB"],IT:["H","hB"],KZ:["H","hB"],MC:["H","hB"],MD:["H","hB"],MF:["H","hB"],MQ:["H","hB"],MZ:["H","hB"],NC:["H","hB"],NL:["H","hB"],PM:["H","hB"],PT:["H","hB"],RE:["H","hB"],RO:["H","hB"],SI:["H","hB"],SR:["H","hB"],ST:["H","hB"],TG:["H","hB"],TR:["H","hB"],WF:["H","hB"],YT:["H","hB"],BD:["h","hB","H"],PK:["h","hB","H"],AZ:["H","hB","h"],BA:["H","hB","h"],BG:["H","hB","h"],CH:["H","hB","h"],GE:["H","hB","h"],LI:["H","hB","h"],ME:["H","hB","h"],RS:["H","hB","h"],UA:["H","hB","h"],UZ:["H","hB","h"],XK:["H","hB","h"],AG:["h","hb","H","hB"],AU:["h","hb","H","hB"],BB:["h","hb","H","hB"],BM:["h","hb","H","hB"],BS:["h","hb","H","hB"],CA:["h","hb","H","hB"],DM:["h","hb","H","hB"],"en-001":["h","hb","H","hB"],FJ:["h","hb","H","hB"],FM:["h","hb","H","hB"],GD:["h","hb","H","hB"],GM:["h","hb","H","hB"],GU:["h","hb","H","hB"],GY:["h","hb","H","hB"],JM:["h","hb","H","hB"],KI:["h","hb","H","hB"],KN:["h","hb","H","hB"],KY:["h","hb","H","hB"],LC:["h","hb","H","hB"],LR:["h","hb","H","hB"],MH:["h","hb","H","hB"],MP:["h","hb","H","hB"],MW:["h","hb","H","hB"],NZ:["h","hb","H","hB"],SB:["h","hb","H","hB"],SG:["h","hb","H","hB"],SL:["h","hb","H","hB"],SS:["h","hb","H","hB"],SZ:["h","hb","H","hB"],TC:["h","hb","H","hB"],TT:["h","hb","H","hB"],UM:["h","hb","H","hB"],US:["h","hb","H","hB"],VC:["h","hb","H","hB"],VG:["h","hb","H","hB"],VI:["h","hb","H","hB"],ZM:["h","hb","H","hB"],BO:["H","hB","h","hb"],EC:["H","hB","h","hb"],ES:["H","hB","h","hb"],GQ:["H","hB","h","hb"],PE:["H","hB","h","hb"],AE:["h","hB","hb","H"],"ar-001":["h","hB","hb","H"],BH:["h","hB","hb","H"],DZ:["h","hB","hb","H"],EG:["h","hB","hb","H"],EH:["h","hB","hb","H"],HK:["h","hB","hb","H"],IQ:["h","hB","hb","H"],JO:["h","hB","hb","H"],KW:["h","hB","hb","H"],LB:["h","hB","hb","H"],LY:["h","hB","hb","H"],MO:["h","hB","hb","H"],MR:["h","hB","hb","H"],OM:["h","hB","hb","H"],PH:["h","hB","hb","H"],PS:["h","hB","hb","H"],QA:["h","hB","hb","H"],SA:["h","hB","hb","H"],SD:["h","hB","hb","H"],SY:["h","hB","hb","H"],TN:["h","hB","hb","H"],YE:["h","hB","hb","H"],AF:["H","hb","hB","h"],LA:["H","hb","hB","h"],CN:["H","hB","hb","h"],LV:["H","hB","hb","h"],TL:["H","hB","hb","h"],"zu-ZA":["H","hB","hb","h"],CD:["hB","H"],IR:["hB","H"],"hi-IN":["hB","h","H"],"kn-IN":["hB","h","H"],"ml-IN":["hB","h","H"],"te-IN":["hB","h","H"],KH:["hB","h","H","hb"],"ta-IN":["hB","h","hb","H"],BN:["hb","hB","h","H"],MY:["hb","hB","h","H"],ET:["hB","hb","h","H"],"gu-IN":["hB","hb","h","H"],"mr-IN":["hB","hb","h","H"],"pa-IN":["hB","hb","h","H"],TW:["hB","hb","h","H"],KE:["hB","hb","H","h"],MM:["hB","hb","H","h"],TZ:["hB","hb","H","h"],UG:["hB","hb","H","h"]};function Uo(e,t){for(var r="",i=0;i<e.length;i++){var n=e.charAt(i);if(n==="j"){for(var a=0;i+1<e.length&&e.charAt(i+1)===n;)a++,i++;var o=1+(a&1),s=a<2?1:3+(a>>1),c="a",l=bd(t);for((l=="H"||l=="k")&&(s=0);s-- >0;)r+=c;for(;o-- >0;)r=l+r}else n==="J"?r+="H":r+=n}return r}function bd(e){var t=e.hourCycle;if(t===void 0&&e.hourCycles&&e.hourCycles.length&&(t=e.hourCycles[0]),t)switch(t){case"h24":return"k";case"h23":return"H";case"h12":return"h";case"h11":return"K";default:throw new Error("Invalid hourCycle")}var r=e.language,i;r!=="root"&&(i=e.maximize().region);var n=yr[i||""]||yr[r||""]||yr["".concat(r,"-001")]||yr["001"];return n[0]}var In,yd=new RegExp("^".concat(Nn.source,"*")),Ed=new RegExp("".concat(Nn.source,"*$"));function k(e,t){return{start:e,end:t}}var wd=!!String.prototype.startsWith,Ad=!!String.fromCodePoint,Sd=!!Object.fromEntries,_d=!!String.prototype.codePointAt,Td=!!String.prototype.trimStart,Cd=!!String.prototype.trimEnd,kd=!!Number.isSafeInteger,Pd=kd?Number.isSafeInteger:function(e){return typeof e=="number"&&isFinite(e)&&Math.floor(e)===e&&Math.abs(e)<=9007199254740991},zn=!0;try{Fo=jo("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),zn=((In=Fo.exec("a"))===null||In===void 0?void 0:In[0])==="a"}catch{zn=!1}var Fo,Go=wd?function(t,r,i){return t.startsWith(r,i)}:function(t,r,i){return t.slice(i,i+r.length)===r},$n=Ad?String.fromCodePoint:function(){for(var t=[],r=0;r<arguments.length;r++)t[r]=arguments[r];for(var i="",n=t.length,a=0,o;n>a;){if(o=t[a++],o>1114111)throw RangeError(o+" is not a valid code point");i+=o<65536?String.fromCharCode(o):String.fromCharCode(((o-=65536)>>10)+55296,o%1024+56320)}return i},qo=Sd?Object.fromEntries:function(t){for(var r={},i=0,n=t;i<n.length;i++){var a=n[i],o=a[0],s=a[1];r[o]=s}return r},Vo=_d?function(t,r){return t.codePointAt(r)}:function(t,r){var i=t.length;if(!(r<0||r>=i)){var n=t.charCodeAt(r),a;return n<55296||n>56319||r+1===i||(a=t.charCodeAt(r+1))<56320||a>57343?n:(n-55296<<10)+(a-56320)+65536}},Ld=Td?function(t){return t.trimStart()}:function(t){return t.replace(yd,"")},Rd=Cd?function(t){return t.trimEnd()}:function(t){return t.replace(Ed,"")};function jo(e,t){return new RegExp(e,t)}var Hn;zn?(Dn=jo("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),Hn=function(t,r){var i;Dn.lastIndex=r;var n=Dn.exec(t);return(i=n[1])!==null&&i!==void 0?i:""}):Hn=function(t,r){for(var i=[];;){var n=Vo(t,r);if(n===void 0||Yo(n)||Nd(n))break;i.push(n),r+=n>=65536?2:1}return $n.apply(void 0,i)};var Dn,Wo=function(){function e(t,r){r===void 0&&(r={}),this.message=t,this.position={offset:0,line:1,column:1},this.ignoreTag=!!r.ignoreTag,this.locale=r.locale,this.requiresOtherClause=!!r.requiresOtherClause,this.shouldParseSkeletons=!!r.shouldParseSkeletons}return e.prototype.parse=function(){if(this.offset()!==0)throw Error("parser can only be used once");return this.parseMessage(0,"",!1)},e.prototype.parseMessage=function(t,r,i){for(var n=[];!this.isEOF();){var a=this.char();if(a===123){var o=this.parseArgument(t,i);if(o.err)return o;n.push(o.val)}else{if(a===125&&t>0)break;if(a===35&&(r==="plural"||r==="selectordinal")){var s=this.clonePosition();this.bump(),n.push({type:U.pound,location:k(s,this.clonePosition())})}else if(a===60&&!this.ignoreTag&&this.peek()===47){if(i)break;return this.error(S.UNMATCHED_CLOSING_TAG,k(this.clonePosition(),this.clonePosition()))}else if(a===60&&!this.ignoreTag&&Bn(this.peek()||0)){var o=this.parseTag(t,r);if(o.err)return o;n.push(o.val)}else{var o=this.parseLiteral(t,r);if(o.err)return o;n.push(o.val)}}}return{val:n,err:null}},e.prototype.parseTag=function(t,r){var i=this.clonePosition();this.bump();var n=this.parseTagName();if(this.bumpSpace(),this.bumpIf("/>"))return{val:{type:U.literal,value:"<".concat(n,"/>"),location:k(i,this.clonePosition())},err:null};if(this.bumpIf(">")){var a=this.parseMessage(t+1,r,!0);if(a.err)return a;var o=a.val,s=this.clonePosition();if(this.bumpIf("</")){if(this.isEOF()||!Bn(this.char()))return this.error(S.INVALID_TAG,k(s,this.clonePosition()));var c=this.clonePosition(),l=this.parseTagName();return n!==l?this.error(S.UNMATCHED_CLOSING_TAG,k(c,this.clonePosition())):(this.bumpSpace(),this.bumpIf(">")?{val:{type:U.tag,value:n,children:o,location:k(i,this.clonePosition())},err:null}:this.error(S.INVALID_TAG,k(s,this.clonePosition())))}else return this.error(S.UNCLOSED_TAG,k(i,this.clonePosition()))}else return this.error(S.INVALID_TAG,k(i,this.clonePosition()))},e.prototype.parseTagName=function(){var t=this.offset();for(this.bump();!this.isEOF()&&Od(this.char());)this.bump();return this.message.slice(t,this.offset())},e.prototype.parseLiteral=function(t,r){for(var i=this.clonePosition(),n="";;){var a=this.tryParseQuote(r);if(a){n+=a;continue}var o=this.tryParseUnquoted(t,r);if(o){n+=o;continue}var s=this.tryParseLeftAngleBracket();if(s){n+=s;continue}break}var c=k(i,this.clonePosition());return{val:{type:U.literal,value:n,location:c},err:null}},e.prototype.tryParseLeftAngleBracket=function(){return!this.isEOF()&&this.char()===60&&(this.ignoreTag||!Md(this.peek()||0))?(this.bump(),"<"):null},e.prototype.tryParseQuote=function(t){if(this.isEOF()||this.char()!==39)return null;switch(this.peek()){case 39:return this.bump(),this.bump(),"'";case 123:case 60:case 62:case 125:break;case 35:if(t==="plural"||t==="selectordinal")break;return null;default:return null}this.bump();var r=[this.char()];for(this.bump();!this.isEOF();){var i=this.char();if(i===39)if(this.peek()===39)r.push(39),this.bump();else{this.bump();break}else r.push(i);this.bump()}return $n.apply(void 0,r)},e.prototype.tryParseUnquoted=function(t,r){if(this.isEOF())return null;var i=this.char();return i===60||i===123||i===35&&(r==="plural"||r==="selectordinal")||i===125&&t>0?null:(this.bump(),$n(i))},e.prototype.parseArgument=function(t,r){var i=this.clonePosition();if(this.bump(),this.bumpSpace(),this.isEOF())return this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition()));if(this.char()===125)return this.bump(),this.error(S.EMPTY_ARGUMENT,k(i,this.clonePosition()));var n=this.parseIdentifierIfPossible().value;if(!n)return this.error(S.MALFORMED_ARGUMENT,k(i,this.clonePosition()));if(this.bumpSpace(),this.isEOF())return this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition()));switch(this.char()){case 125:return this.bump(),{val:{type:U.argument,value:n,location:k(i,this.clonePosition())},err:null};case 44:return this.bump(),this.bumpSpace(),this.isEOF()?this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition())):this.parseArgumentOptions(t,r,n,i);default:return this.error(S.MALFORMED_ARGUMENT,k(i,this.clonePosition()))}},e.prototype.parseIdentifierIfPossible=function(){var t=this.clonePosition(),r=this.offset(),i=Hn(this.message,r),n=r+i.length;this.bumpTo(n);var a=this.clonePosition(),o=k(t,a);return{value:i,location:o}},e.prototype.parseArgumentOptions=function(t,r,i,n){var a,o=this.clonePosition(),s=this.parseIdentifierIfPossible().value,c=this.clonePosition();switch(s){case"":return this.error(S.EXPECT_ARGUMENT_TYPE,k(o,c));case"number":case"date":case"time":{this.bumpSpace();var l=null;if(this.bumpIf(",")){this.bumpSpace();var d=this.clonePosition(),p=this.parseSimpleArgStyleIfPossible();if(p.err)return p;var u=Rd(p.val);if(u.length===0)return this.error(S.EXPECT_ARGUMENT_STYLE,k(this.clonePosition(),this.clonePosition()));var g=k(d,this.clonePosition());l={style:u,styleLocation:g}}var x=this.tryParseArgumentClose(n);if(x.err)return x;var v=k(n,this.clonePosition());if(l&&Go(l?.style,"::",0)){var A=Ld(l.style.slice(2));if(s==="number"){var p=this.parseNumberSkeletonFromString(A,l.styleLocation);return p.err?p:{val:{type:U.number,value:i,location:v,style:p.val},err:null}}else{if(A.length===0)return this.error(S.EXPECT_DATE_TIME_SKELETON,v);var N=A;this.locale&&(N=Uo(A,this.locale));var u={type:ct.dateTime,pattern:N,location:l.styleLocation,parsedOptions:this.shouldParseSkeletons?Ro(N):{}},M=s==="date"?U.date:U.time;return{val:{type:M,value:i,location:v,style:u},err:null}}}return{val:{type:s==="number"?U.number:s==="date"?U.date:U.time,value:i,location:v,style:(a=l?.style)!==null&&a!==void 0?a:null},err:null}}case"plural":case"selectordinal":case"select":{var w=this.clonePosition();if(this.bumpSpace(),!this.bumpIf(","))return this.error(S.EXPECT_SELECT_ARGUMENT_OPTIONS,k(w,C({},w)));this.bumpSpace();var I=this.parseIdentifierIfPossible(),j=0;if(s!=="select"&&I.value==="offset"){if(!this.bumpIf(":"))return this.error(S.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,k(this.clonePosition(),this.clonePosition()));this.bumpSpace();var p=this.tryParseDecimalInteger(S.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,S.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);if(p.err)return p;this.bumpSpace(),I=this.parseIdentifierIfPossible(),j=p.val}var G=this.tryParsePluralOrSelectOptions(t,s,r,I);if(G.err)return G;var x=this.tryParseArgumentClose(n);if(x.err)return x;var X=k(n,this.clonePosition());return s==="select"?{val:{type:U.select,value:i,options:qo(G.val),location:X},err:null}:{val:{type:U.plural,value:i,options:qo(G.val),offset:j,pluralType:s==="plural"?"cardinal":"ordinal",location:X},err:null}}default:return this.error(S.INVALID_ARGUMENT_TYPE,k(o,c))}},e.prototype.tryParseArgumentClose=function(t){return this.isEOF()||this.char()!==125?this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(t,this.clonePosition())):(this.bump(),{val:!0,err:null})},e.prototype.parseSimpleArgStyleIfPossible=function(){for(var t=0,r=this.clonePosition();!this.isEOF();){var i=this.char();switch(i){case 39:{this.bump();var n=this.clonePosition();if(!this.bumpUntil("'"))return this.error(S.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE,k(n,this.clonePosition()));this.bump();break}case 123:{t+=1,this.bump();break}case 125:{if(t>0)t-=1;else return{val:this.message.slice(r.offset,this.offset()),err:null};break}default:this.bump();break}}return{val:this.message.slice(r.offset,this.offset()),err:null}},e.prototype.parseNumberSkeletonFromString=function(t,r){var i=[];try{i=Do(t)}catch{return this.error(S.INVALID_NUMBER_SKELETON,r)}return{val:{type:ct.number,tokens:i,location:r,parsedOptions:this.shouldParseSkeletons?Bo(i):{}},err:null}},e.prototype.tryParsePluralOrSelectOptions=function(t,r,i,n){for(var a,o=!1,s=[],c=new Set,l=n.value,d=n.location;;){if(l.length===0){var p=this.clonePosition();if(r!=="select"&&this.bumpIf("=")){var u=this.tryParseDecimalInteger(S.EXPECT_PLURAL_ARGUMENT_SELECTOR,S.INVALID_PLURAL_ARGUMENT_SELECTOR);if(u.err)return u;d=k(p,this.clonePosition()),l=this.message.slice(p.offset,this.offset())}else break}if(c.has(l))return this.error(r==="select"?S.DUPLICATE_SELECT_ARGUMENT_SELECTOR:S.DUPLICATE_PLURAL_ARGUMENT_SELECTOR,d);l==="other"&&(o=!0),this.bumpSpace();var g=this.clonePosition();if(!this.bumpIf("{"))return this.error(r==="select"?S.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT:S.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT,k(this.clonePosition(),this.clonePosition()));var x=this.parseMessage(t+1,r,i);if(x.err)return x;var v=this.tryParseArgumentClose(g);if(v.err)return v;s.push([l,{value:x.val,location:k(g,this.clonePosition())}]),c.add(l),this.bumpSpace(),a=this.parseIdentifierIfPossible(),l=a.value,d=a.location}return s.length===0?this.error(r==="select"?S.EXPECT_SELECT_ARGUMENT_SELECTOR:S.EXPECT_PLURAL_ARGUMENT_SELECTOR,k(this.clonePosition(),this.clonePosition())):this.requiresOtherClause&&!o?this.error(S.MISSING_OTHER_CLAUSE,k(this.clonePosition(),this.clonePosition())):{val:s,err:null}},e.prototype.tryParseDecimalInteger=function(t,r){var i=1,n=this.clonePosition();this.bumpIf("+")||this.bumpIf("-")&&(i=-1);for(var a=!1,o=0;!this.isEOF();){var s=this.char();if(s>=48&&s<=57)a=!0,o=o*10+(s-48),this.bump();else break}var c=k(n,this.clonePosition());return a?(o*=i,Pd(o)?{val:o,err:null}:this.error(r,c)):this.error(t,c)},e.prototype.offset=function(){return this.position.offset},e.prototype.isEOF=function(){return this.offset()===this.message.length},e.prototype.clonePosition=function(){return{offset:this.position.offset,line:this.position.line,column:this.position.column}},e.prototype.char=function(){var t=this.position.offset;if(t>=this.message.length)throw Error("out of bound");var r=Vo(this.message,t);if(r===void 0)throw Error("Offset ".concat(t," is at invalid UTF-16 code unit boundary"));return r},e.prototype.error=function(t,r){return{val:null,err:{kind:t,message:this.message,location:r}}},e.prototype.bump=function(){if(!this.isEOF()){var t=this.char();t===10?(this.position.line+=1,this.position.column=1,this.position.offset+=1):(this.position.column+=1,this.position.offset+=t<65536?1:2)}},e.prototype.bumpIf=function(t){if(Go(this.message,t,this.offset())){for(var r=0;r<t.length;r++)this.bump();return!0}return!1},e.prototype.bumpUntil=function(t){var r=this.offset(),i=this.message.indexOf(t,r);return i>=0?(this.bumpTo(i),!0):(this.bumpTo(this.message.length),!1)},e.prototype.bumpTo=function(t){if(this.offset()>t)throw Error("targetOffset ".concat(t," must be greater than or equal to the current offset ").concat(this.offset()));for(t=Math.min(t,this.message.length);;){var r=this.offset();if(r===t)break;if(r>t)throw Error("targetOffset ".concat(t," is at invalid UTF-16 code unit boundary"));if(this.bump(),this.isEOF())break}},e.prototype.bumpSpace=function(){for(;!this.isEOF()&&Yo(this.char());)this.bump()},e.prototype.peek=function(){if(this.isEOF())return null;var t=this.char(),r=this.offset(),i=this.message.charCodeAt(r+(t>=65536?2:1));return i??null},e}();function Bn(e){return e>=97&&e<=122||e>=65&&e<=90}function Md(e){return Bn(e)||e===47}function Od(e){return e===45||e===46||e>=48&&e<=57||e===95||e>=97&&e<=122||e>=65&&e<=90||e==183||e>=192&&e<=214||e>=216&&e<=246||e>=248&&e<=893||e>=895&&e<=8191||e>=8204&&e<=8205||e>=8255&&e<=8256||e>=8304&&e<=8591||e>=11264&&e<=12271||e>=12289&&e<=55295||e>=63744&&e<=64975||e>=65008&&e<=65533||e>=65536&&e<=983039}function Yo(e){return e>=9&&e<=13||e===32||e===133||e>=8206&&e<=8207||e===8232||e===8233}function Nd(e){return e>=33&&e<=35||e===36||e>=37&&e<=39||e===40||e===41||e===42||e===43||e===44||e===45||e>=46&&e<=47||e>=58&&e<=59||e>=60&&e<=62||e>=63&&e<=64||e===91||e===92||e===93||e===94||e===96||e===123||e===124||e===125||e===126||e===161||e>=162&&e<=165||e===166||e===167||e===169||e===171||e===172||e===174||e===176||e===177||e===182||e===187||e===191||e===215||e===247||e>=8208&&e<=8213||e>=8214&&e<=8215||e===8216||e===8217||e===8218||e>=8219&&e<=8220||e===8221||e===8222||e===8223||e>=8224&&e<=8231||e>=8240&&e<=8248||e===8249||e===8250||e>=8251&&e<=8254||e>=8257&&e<=8259||e===8260||e===8261||e===8262||e>=8263&&e<=8273||e===8274||e===8275||e>=8277&&e<=8286||e>=8592&&e<=8596||e>=8597&&e<=8601||e>=8602&&e<=8603||e>=8604&&e<=8607||e===8608||e>=8609&&e<=8610||e===8611||e>=8612&&e<=8613||e===8614||e>=8615&&e<=8621||e===8622||e>=8623&&e<=8653||e>=8654&&e<=8655||e>=8656&&e<=8657||e===8658||e===8659||e===8660||e>=8661&&e<=8691||e>=8692&&e<=8959||e>=8960&&e<=8967||e===8968||e===8969||e===8970||e===8971||e>=8972&&e<=8991||e>=8992&&e<=8993||e>=8994&&e<=9e3||e===9001||e===9002||e>=9003&&e<=9083||e===9084||e>=9085&&e<=9114||e>=9115&&e<=9139||e>=9140&&e<=9179||e>=9180&&e<=9185||e>=9186&&e<=9254||e>=9255&&e<=9279||e>=9280&&e<=9290||e>=9291&&e<=9311||e>=9472&&e<=9654||e===9655||e>=9656&&e<=9664||e===9665||e>=9666&&e<=9719||e>=9720&&e<=9727||e>=9728&&e<=9838||e===9839||e>=9840&&e<=10087||e===10088||e===10089||e===10090||e===10091||e===10092||e===10093||e===10094||e===10095||e===10096||e===10097||e===10098||e===10099||e===10100||e===10101||e>=10132&&e<=10175||e>=10176&&e<=10180||e===10181||e===10182||e>=10183&&e<=10213||e===10214||e===10215||e===10216||e===10217||e===10218||e===10219||e===10220||e===10221||e===10222||e===10223||e>=10224&&e<=10239||e>=10240&&e<=10495||e>=10496&&e<=10626||e===10627||e===10628||e===10629||e===10630||e===10631||e===10632||e===10633||e===10634||e===10635||e===10636||e===10637||e===10638||e===10639||e===10640||e===10641||e===10642||e===10643||e===10644||e===10645||e===10646||e===10647||e===10648||e>=10649&&e<=10711||e===10712||e===10713||e===10714||e===10715||e>=10716&&e<=10747||e===10748||e===10749||e>=10750&&e<=11007||e>=11008&&e<=11055||e>=11056&&e<=11076||e>=11077&&e<=11078||e>=11079&&e<=11084||e>=11085&&e<=11123||e>=11124&&e<=11125||e>=11126&&e<=11157||e===11158||e>=11159&&e<=11263||e>=11776&&e<=11777||e===11778||e===11779||e===11780||e===11781||e>=11782&&e<=11784||e===11785||e===11786||e===11787||e===11788||e===11789||e>=11790&&e<=11798||e===11799||e>=11800&&e<=11801||e===11802||e===11803||e===11804||e===11805||e>=11806&&e<=11807||e===11808||e===11809||e===11810||e===11811||e===11812||e===11813||e===11814||e===11815||e===11816||e===11817||e>=11818&&e<=11822||e===11823||e>=11824&&e<=11833||e>=11834&&e<=11835||e>=11836&&e<=11839||e===11840||e===11841||e===11842||e>=11843&&e<=11855||e>=11856&&e<=11857||e===11858||e>=11859&&e<=11903||e>=12289&&e<=12291||e===12296||e===12297||e===12298||e===12299||e===12300||e===12301||e===12302||e===12303||e===12304||e===12305||e>=12306&&e<=12307||e===12308||e===12309||e===12310||e===12311||e===12312||e===12313||e===12314||e===12315||e===12316||e===12317||e>=12318&&e<=12319||e===12320||e===12336||e===64830||e===64831||e>=65093&&e<=65094}function Un(e){e.forEach(function(t){if(delete t.location,xi(t)||vi(t))for(var r in t.options)delete t.options[r].location,Un(t.options[r].value);else ui(t)&&yi(t.style)||(gi(t)||fi(t))&&br(t.style)?delete t.style.location:bi(t)&&Un(t.children)})}function Xo(e,t){t===void 0&&(t={}),t=C({shouldParseSkeletons:!0,requiresOtherClause:!0},t);var r=new Wo(e,t).parse();if(r.err){var i=SyntaxError(S[r.err.kind]);throw i.location=r.err.location,i.originalMessage=r.err.message,i}return t?.captureLocation||Un(r.val),r.val}function Er(e,t){var r=t&&t.cache?t.cache:Bd,i=t&&t.serializer?t.serializer:Hd,n=t&&t.strategy?t.strategy:Dd;return n(e,{cache:r,serializer:i})}function Id(e){return e==null||typeof e=="number"||typeof e=="boolean"}function Ko(e,t,r,i){var n=Id(i)?i:r(i),a=t.get(n);return typeof a>"u"&&(a=e.call(this,i),t.set(n,a)),a}function Qo(e,t,r){var i=Array.prototype.slice.call(arguments,3),n=r(i),a=t.get(n);return typeof a>"u"&&(a=e.apply(this,i),t.set(n,a)),a}function Fn(e,t,r,i,n){return r.bind(t,e,i,n)}function Dd(e,t){var r=e.length===1?Ko:Qo;return Fn(e,this,r,t.cache.create(),t.serializer)}function zd(e,t){return Fn(e,this,Qo,t.cache.create(),t.serializer)}function $d(e,t){return Fn(e,this,Ko,t.cache.create(),t.serializer)}var Hd=function(){return JSON.stringify(arguments)};function Gn(){this.cache=Object.create(null)}Gn.prototype.get=function(e){return this.cache[e]};Gn.prototype.set=function(e,t){this.cache[e]=t};var Bd={create:function(){return new Gn}},Ei={variadic:zd,monadic:$d};var lt;(function(e){e.MISSING_VALUE="MISSING_VALUE",e.INVALID_VALUE="INVALID_VALUE",e.MISSING_INTL_API="MISSING_INTL_API"})(lt||(lt={}));var wr=function(e){vr(t,e);function t(r,i,n){var a=e.call(this,r)||this;return a.code=i,a.originalMessage=n,a}return t.prototype.toString=function(){return"[formatjs Error: ".concat(this.code,"] ").concat(this.message)},t}(Error);var qn=function(e){vr(t,e);function t(r,i,n,a){return e.call(this,'Invalid values for "'.concat(r,'": "').concat(i,'". Options are "').concat(Object.keys(n).join('", "'),'"'),lt.INVALID_VALUE,a)||this}return t}(wr);var Zo=function(e){vr(t,e);function t(r,i,n){return e.call(this,'Value for "'.concat(r,'" must be of type ').concat(i),lt.INVALID_VALUE,n)||this}return t}(wr);var Jo=function(e){vr(t,e);function t(r,i){return e.call(this,'The intl string context variable "'.concat(r,'" was not provided to the string "').concat(i,'"'),lt.MISSING_VALUE,i)||this}return t}(wr);var re;(function(e){e[e.literal=0]="literal",e[e.object=1]="object"})(re||(re={}));function Ud(e){return e.length<2?e:e.reduce(function(t,r){var i=t[t.length-1];return!i||i.type!==re.literal||r.type!==re.literal?t.push(r):i.value+=r.value,t},[])}function Fd(e){return typeof e=="function"}function Ar(e,t,r,i,n,a,o){if(e.length===1&&On(e[0]))return[{type:re.literal,value:e[0].value}];for(var s=[],c=0,l=e;c<l.length;c++){var d=l[c];if(On(d)){s.push({type:re.literal,value:d.value});continue}if(Lo(d)){typeof a=="number"&&s.push({type:re.literal,value:r.getNumberFormat(t).format(a)});continue}var p=d.value;if(!(n&&p in n))throw new Jo(p,o);var u=n[p];if(Po(d)){(!u||typeof u=="string"||typeof u=="number")&&(u=typeof u=="string"||typeof u=="number"?String(u):""),s.push({type:typeof u=="string"?re.literal:re.object,value:u});continue}if(gi(d)){var g=typeof d.style=="string"?i.date[d.style]:br(d.style)?d.style.parsedOptions:void 0;s.push({type:re.literal,value:r.getDateTimeFormat(t,g).format(u)});continue}if(fi(d)){var g=typeof d.style=="string"?i.time[d.style]:br(d.style)?d.style.parsedOptions:i.time.medium;s.push({type:re.literal,value:r.getDateTimeFormat(t,g).format(u)});continue}if(ui(d)){var g=typeof d.style=="string"?i.number[d.style]:yi(d.style)?d.style.parsedOptions:void 0;g&&g.scale&&(u=u*(g.scale||1)),s.push({type:re.literal,value:r.getNumberFormat(t,g).format(u)});continue}if(bi(d)){var x=d.children,v=d.value,A=n[v];if(!Fd(A))throw new Zo(v,"function",o);var N=Ar(x,t,r,i,n,a),M=A(N.map(function(j){return j.value}));Array.isArray(M)||(M=[M]),s.push.apply(s,M.map(function(j){return{type:typeof j=="string"?re.literal:re.object,value:j}}))}if(xi(d)){var w=d.options[u]||d.options.other;if(!w)throw new qn(d.value,u,Object.keys(d.options),o);s.push.apply(s,Ar(w.value,t,r,i,n));continue}if(vi(d)){var w=d.options["=".concat(u)];if(!w){if(!Intl.PluralRules)throw new wr(`Intl.PluralRules is not available in this environment.
 Try polyfilling it using "@formatjs/intl-pluralrules"
-`,
-                        it.MISSING_INTL_API,
-                        a,
-                    );
-                var M = r
-                    .getPluralRules(t, { type: d.pluralType })
-                    .select(f - (d.offset || 0));
-                C = d.options[M] || d.options.other;
-            }
-            if (!C) throw new Bn(d.value, f, Object.keys(d.options), a);
-            s.push.apply(s, gr(C.value, t, r, i, n, f - (d.offset || 0)));
-            continue;
-        }
-    }
-    return bd(s);
-}
-function yd(e, t) {
-    return t
-        ? _(
-              _(_({}, e || {}), t || {}),
-              Object.keys(e).reduce(function (r, i) {
-                  return (r[i] = _(_({}, e[i]), t[i] || {})), r;
-              }, {}),
-          )
-        : e;
-}
-function Ed(e, t) {
-    return t
-        ? Object.keys(e).reduce(
-              function (r, i) {
-                  return (r[i] = yd(e[i], t[i])), r;
-              },
-              _({}, e),
-          )
-        : e;
-}
-function Un(e) {
-    return {
-        create: function () {
-            return {
-                get: function (t) {
-                    return e[t];
-                },
-                set: function (t, r) {
-                    e[t] = r;
-                },
-            };
-        },
-    };
-}
-function wd(e) {
-    return (
-        e === void 0 && (e = { number: {}, dateTime: {}, pluralRules: {} }),
-        {
-            getNumberFormat: ur(
-                function () {
-                    for (var t, r = [], i = 0; i < arguments.length; i++)
-                        r[i] = arguments[i];
-                    return new ((t = Intl.NumberFormat).bind.apply(
-                        t,
-                        ni([void 0], r, !1),
-                    ))();
-                },
-                { cache: Un(e.number), strategy: pi.variadic },
-            ),
-            getDateTimeFormat: ur(
-                function () {
-                    for (var t, r = [], i = 0; i < arguments.length; i++)
-                        r[i] = arguments[i];
-                    return new ((t = Intl.DateTimeFormat).bind.apply(
-                        t,
-                        ni([void 0], r, !1),
-                    ))();
-                },
-                { cache: Un(e.dateTime), strategy: pi.variadic },
-            ),
-            getPluralRules: ur(
-                function () {
-                    for (var t, r = [], i = 0; i < arguments.length; i++)
-                        r[i] = arguments[i];
-                    return new ((t = Intl.PluralRules).bind.apply(
-                        t,
-                        ni([void 0], r, !1),
-                    ))();
-                },
-                { cache: Un(e.pluralRules), strategy: pi.variadic },
-            ),
-        }
-    );
-}
-var Ha = (function () {
-    function e(t, r, i, n) {
-        var o = this;
-        if (
-            (r === void 0 && (r = e.defaultLocale),
-            (this.formatterCache = {
-                number: {},
-                dateTime: {},
-                pluralRules: {},
-            }),
-            (this.format = function (a) {
-                var s = o.formatToParts(a);
-                if (s.length === 1) return s[0].value;
-                var c = s.reduce(function (l, d) {
-                    return (
-                        !l.length ||
-                        d.type !== J.literal ||
-                        typeof l[l.length - 1] != 'string'
-                            ? l.push(d.value)
-                            : (l[l.length - 1] += d.value),
-                        l
-                    );
-                }, []);
-                return c.length <= 1 ? c[0] || '' : c;
-            }),
-            (this.formatToParts = function (a) {
-                return gr(
-                    o.ast,
-                    o.locales,
-                    o.formatters,
-                    o.formats,
-                    a,
-                    void 0,
-                    o.message,
-                );
-            }),
-            (this.resolvedOptions = function () {
-                return { locale: o.resolvedLocale.toString() };
-            }),
-            (this.getAst = function () {
-                return o.ast;
-            }),
-            (this.locales = r),
-            (this.resolvedLocale = e.resolveLocale(r)),
-            typeof t == 'string')
-        ) {
-            if (((this.message = t), !e.__parse))
-                throw new TypeError(
-                    'IntlMessageFormat.__parse must be set to process `message` of type `string`',
-                );
-            this.ast = e.__parse(t, {
-                ignoreTag: n?.ignoreTag,
-                locale: this.resolvedLocale,
-            });
-        } else this.ast = t;
-        if (!Array.isArray(this.ast))
-            throw new TypeError(
-                'A message must be provided as a String or AST.',
-            );
-        (this.formats = Ed(e.formats, i)),
-            (this.formatters = (n && n.formatters) || wd(this.formatterCache));
-    }
-    return (
-        Object.defineProperty(e, 'defaultLocale', {
-            get: function () {
-                return (
-                    e.memoizedDefaultLocale ||
-                        (e.memoizedDefaultLocale =
-                            new Intl.NumberFormat().resolvedOptions().locale),
-                    e.memoizedDefaultLocale
-                );
-            },
-            enumerable: !1,
-            configurable: !0,
-        }),
-        (e.memoizedDefaultLocale = null),
-        (e.resolveLocale = function (t) {
-            var r = Intl.NumberFormat.supportedLocalesOf(t);
-            return r.length > 0
-                ? new Intl.Locale(r[0])
-                : new Intl.Locale(typeof t == 'string' ? t : t[0]);
-        }),
-        (e.__parse = Oa),
-        (e.formats = {
-            number: {
-                integer: { maximumFractionDigits: 0 },
-                currency: { style: 'currency' },
-                percent: { style: 'percent' },
-            },
-            date: {
-                short: { month: 'numeric', day: 'numeric', year: '2-digit' },
-                medium: { month: 'short', day: 'numeric', year: 'numeric' },
-                long: { month: 'long', day: 'numeric', year: 'numeric' },
-                full: {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                },
-            },
-            time: {
-                short: { hour: 'numeric', minute: 'numeric' },
-                medium: {
-                    hour: 'numeric',
-                    minute: 'numeric',
-                    second: 'numeric',
-                },
-                long: {
-                    hour: 'numeric',
-                    minute: 'numeric',
-                    second: 'numeric',
-                    timeZoneName: 'short',
-                },
-                full: {
-                    hour: 'numeric',
-                    minute: 'numeric',
-                    second: 'numeric',
-                    timeZoneName: 'short',
-                },
-            },
-        }),
-        e
-    );
-})();
-var Da = Ha;
-var Ad = /[0-9\-+#]/,
-    Sd = /[^\d\-+#]/g;
-function Ba(e) {
-    return e.search(Ad);
-}
-function _d(e = '#.##') {
-    let t = {},
-        r = e.length,
-        i = Ba(e);
-    t.prefix = i > 0 ? e.substring(0, i) : '';
-    let n = Ba(e.split('').reverse().join('')),
-        o = r - n,
-        a = e.substring(o, o + 1),
-        s = o + (a === '.' || a === ',' ? 1 : 0);
-    (t.suffix = n > 0 ? e.substring(s, r) : ''),
-        (t.mask = e.substring(i, s)),
-        (t.maskHasNegativeSign = t.mask.charAt(0) === '-'),
-        (t.maskHasPositiveSign = t.mask.charAt(0) === '+');
-    let c = t.mask.match(Sd);
-    return (
-        (t.decimal = (c && c[c.length - 1]) || '.'),
-        (t.separator = (c && c[1] && c[0]) || ','),
-        (c = t.mask.split(t.decimal)),
-        (t.integer = c[0]),
-        (t.fraction = c[1]),
-        t
-    );
-}
-function Td(e, t, r) {
-    let i = !1,
-        n = { value: e };
-    e < 0 && ((i = !0), (n.value = -n.value)),
-        (n.sign = i ? '-' : ''),
-        (n.value = Number(n.value).toFixed(t.fraction && t.fraction.length)),
-        (n.value = Number(n.value).toString());
-    let o = t.fraction && t.fraction.lastIndexOf('0'),
-        [a = '0', s = ''] = n.value.split('.');
-    return (
-        (!s || (s && s.length <= o)) &&
-            (s = o < 0 ? '' : (+('0.' + s)).toFixed(o + 1).replace('0.', '')),
-        (n.integer = a),
-        (n.fraction = s),
-        Cd(n, t),
-        (n.result === '0' || n.result === '') && ((i = !1), (n.sign = '')),
-        !i && t.maskHasPositiveSign
-            ? (n.sign = '+')
-            : i && t.maskHasPositiveSign
-              ? (n.sign = '-')
-              : i &&
-                (n.sign =
-                    r && r.enforceMaskSign && !t.maskHasNegativeSign
-                        ? ''
-                        : '-'),
-        n
-    );
-}
-function Cd(e, t) {
-    e.result = '';
-    let r = t.integer.split(t.separator),
-        i = r.join(''),
-        n = i && i.indexOf('0');
-    if (n > -1)
-        for (; e.integer.length < i.length - n; ) e.integer = '0' + e.integer;
-    else Number(e.integer) === 0 && (e.integer = '');
-    let o = r[1] && r[r.length - 1].length;
-    if (o) {
-        let a = e.integer.length,
-            s = a % o;
-        for (let c = 0; c < a; c++)
-            (e.result += e.integer.charAt(c)),
-                !((c - s + 1) % o) && c < a - o && (e.result += t.separator);
-    } else e.result = e.integer;
-    return (
-        (e.result += t.fraction && e.fraction ? t.decimal + e.fraction : ''), e
-    );
-}
-function kd(e, t, r = {}) {
-    if (!e || isNaN(Number(t))) return t;
-    let i = _d(e),
-        n = Td(t, i, r);
-    return i.prefix + n.sign + n.result + i.suffix;
-}
-var Ua = kd;
-var za = '.',
-    Pd = ',',
-    Ga = /^\s+/,
-    Va = /\s+$/,
-    Fa = '&nbsp;',
-    zn = (e) => e * 12,
-    ja = (e, t) => {
-        let {
-            start: r,
-            end: i,
-            displaySummary: {
-                amount: n,
-                duration: o,
-                minProductQuantity: a,
-                outcomeType: s,
-            } = {},
-        } = e;
-        if (!(n && o && s && a)) return !1;
-        let c = t ? new Date(t) : new Date();
-        if (!r || !i) return !1;
-        let l = new Date(r),
-            d = new Date(i);
-        return c >= l && c <= d;
-    },
-    nt = { MONTH: 'MONTH', YEAR: 'YEAR' },
-    Ld = {
-        [he.ANNUAL]: 12,
-        [he.MONTHLY]: 1,
-        [he.THREE_YEARS]: 36,
-        [he.TWO_YEARS]: 24,
-    },
-    Fn = (e, t) => ({ accept: e, round: t }),
-    Rd = [
-        Fn(
-            ({ divisor: e, price: t }) => t % e == 0,
-            ({ divisor: e, price: t }) => t / e,
-        ),
-        Fn(
-            ({ usePrecision: e }) => e,
-            ({ divisor: e, price: t }) => Math.round((t / e) * 100) / 100,
-        ),
-        Fn(
-            () => !0,
-            ({ divisor: e, price: t }) =>
-                Math.ceil(Math.floor((t * 100) / e) / 100),
-        ),
-    ],
-    Gn = {
-        [Ke.YEAR]: { [he.MONTHLY]: nt.MONTH, [he.ANNUAL]: nt.YEAR },
-        [Ke.MONTH]: { [he.MONTHLY]: nt.MONTH },
-    },
-    Od = (e, t) => e.indexOf(`'${t}'`) === 0,
-    Md = (e, t = !0) => {
-        let r = e.replace(/'.*?'/, '').trim(),
-            i = Wa(r);
-        return (
-            !!i
-                ? t || (r = r.replace(/[,\.]0+/, i))
-                : (r = r.replace(/\s?(#.*0)(?!\s)?/, '$&' + Id(e))),
-            r
-        );
-    },
-    Nd = (e) => {
-        let t = $d(e),
-            r = Od(e, t),
-            i = e.replace(/'.*?'/, ''),
-            n = Ga.test(i) || Va.test(i);
-        return { currencySymbol: t, isCurrencyFirst: r, hasCurrencySpace: n };
-    },
-    qa = (e) => e.replace(Ga, Fa).replace(Va, Fa),
-    Id = (e) => (e.match(/#(.?)#/)?.[1] === za ? Pd : za),
-    $d = (e) => e.match(/'(.*?)'/)?.[1] ?? '',
-    Wa = (e) => e.match(/0(.?)0/)?.[1] ?? '';
-function Tt(
-    { formatString: e, price: t, usePrecision: r, isIndianPrice: i = !1 },
-    n,
-    o = (a) => a,
-) {
-    let { currencySymbol: a, isCurrencyFirst: s, hasCurrencySpace: c } = Nd(e),
-        l = r ? Wa(e) : '',
-        d = Md(e, r),
-        p = r ? 2 : 0,
-        f = o(t, { currencySymbol: a }),
-        m = i
-            ? f.toLocaleString('hi-IN', {
-                  minimumFractionDigits: p,
-                  maximumFractionDigits: p,
-              })
-            : Ua(d, f),
-        b = r ? m.lastIndexOf(l) : m.length,
-        x = m.substring(0, b),
-        S = m.substring(b + 1);
-    return {
-        accessiblePrice: e
-            .replace(/'.*?'/, 'SYMBOL')
-            .replace(/#.*0/, m)
-            .replace(/SYMBOL/, a),
-        currencySymbol: a,
-        decimals: S,
-        decimalsDelimiter: l,
-        hasCurrencySpace: c,
-        integer: x,
-        isCurrencyFirst: s,
-        recurrenceTerm: n,
-    };
-}
-var Ya = (e) => {
-        let { commitment: t, term: r, usePrecision: i } = e,
-            n = Ld[r] ?? 1;
-        return Tt(e, n > 1 ? nt.MONTH : Gn[t]?.[r], (o) => {
-            let a = { divisor: n, price: o, usePrecision: i },
-                { round: s } = Rd.find(({ accept: c }) => c(a));
-            if (!s)
-                throw new Error(
-                    `Missing rounding rule for: ${JSON.stringify(a)}`,
-                );
-            return s(a);
-        });
-    },
-    Xa = ({ commitment: e, term: t, ...r }) => Tt(r, Gn[e]?.[t]),
-    Ka = (e) => {
-        let {
-            commitment: t,
-            instant: r,
-            price: i,
-            originalPrice: n,
-            priceWithoutDiscount: o,
-            promotion: a,
-            quantity: s = 1,
-            term: c,
-        } = e;
-        if (t === Ke.YEAR && c === he.MONTHLY) {
-            if (!a) return Tt(e, nt.YEAR, zn);
-            let {
-                displaySummary: {
-                    outcomeType: l,
-                    duration: d,
-                    minProductQuantity: p = 1,
-                } = {},
-            } = a;
-            switch (l) {
-                case 'PERCENTAGE_DISCOUNT':
-                    if (s >= p && ja(a, r)) {
-                        let f = parseInt(d.replace('P', '').replace('M', ''));
-                        if (isNaN(f)) return zn(i);
-                        let m = s * n * f,
-                            b = s * o * (12 - f),
-                            x = Math.round((m + b) * 100) / 100;
-                        return Tt({ ...e, price: x }, nt.YEAR);
-                    }
-                default:
-                    return Tt(e, nt.YEAR, () => zn(o ?? i));
-            }
-        }
-        return Tt(e, Gn[t]?.[c]);
-    };
-var Vn = {
-        recurrenceLabel:
-            '{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}',
-        recurrenceAriaLabel:
-            '{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}',
-        perUnitLabel: '{perUnit, select, LICENSE {per license} other {}}',
-        perUnitAriaLabel: '{perUnit, select, LICENSE {per license} other {}}',
-        freeLabel: 'Free',
-        freeAriaLabel: 'Free',
-        taxExclusiveLabel:
-            '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
-        taxInclusiveLabel:
-            '{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}',
-        alternativePriceAriaLabel: 'Alternatively at',
-        strikethroughAriaLabel: 'Regularly at',
-        planTypeLabel:
-            '{planType, select, ABM {Annual, billed monthly} other {}}',
-    },
-    Hd = jo('ConsonantTemplates/price'),
-    Dd = /<\/?[^>]+(>|$)/g,
-    j = {
-        container: 'price',
-        containerOptical: 'price-optical',
-        containerStrikethrough: 'price-strikethrough',
-        containerAlternative: 'price-alternative',
-        containerAnnual: 'price-annual',
-        containerAnnualPrefix: 'price-annual-prefix',
-        containerAnnualSuffix: 'price-annual-suffix',
-        disabled: 'disabled',
-        currencySpace: 'price-currency-space',
-        currencySymbol: 'price-currency-symbol',
-        decimals: 'price-decimals',
-        decimalsDelimiter: 'price-decimals-delimiter',
-        integer: 'price-integer',
-        recurrence: 'price-recurrence',
-        taxInclusivity: 'price-tax-inclusivity',
-        unitType: 'price-unit-type',
-    },
-    Fe = {
-        perUnitLabel: 'perUnitLabel',
-        perUnitAriaLabel: 'perUnitAriaLabel',
-        recurrenceLabel: 'recurrenceLabel',
-        recurrenceAriaLabel: 'recurrenceAriaLabel',
-        taxExclusiveLabel: 'taxExclusiveLabel',
-        taxInclusiveLabel: 'taxInclusiveLabel',
-        strikethroughAriaLabel: 'strikethroughAriaLabel',
-        alternativePriceAriaLabel: 'alternativePriceAriaLabel',
-    },
-    jn = 'TAX_EXCLUSIVE',
-    Bd = (e) =>
-        Fo(e)
-            ? Object.entries(e)
-                  .filter(([, t]) => St(t) || Wr(t) || t === !0)
-                  .reduce(
-                      (t, [r, i]) =>
-                          t + ` ${r}${i === !0 ? '' : '="' + zo(i) + '"'}`,
-                      '',
-                  )
-            : '',
-    Y = (e, t, r, i = !1) =>
-        `<span class="${e}${t ? '' : ' ' + j.disabled}"${Bd(r)}>${i ? qa(t) : (t ?? '')}</span>`;
-function Oe(e, t, r, i) {
-    let n = e[r];
-    if (n == null) return '';
-    try {
-        return new Da(n.replace(Dd, ''), t).format(i);
-    } catch {
-        return Hd.error('Failed to format literal:', n), '';
-    }
-}
-function Ud(
-    e,
-    {
-        accessibleLabel: t,
-        altAccessibleLabel: r,
-        currencySymbol: i,
-        decimals: n,
-        decimalsDelimiter: o,
-        hasCurrencySpace: a,
-        integer: s,
-        isCurrencyFirst: c,
-        recurrenceLabel: l,
-        perUnitLabel: d,
-        taxInclusivityLabel: p,
-    },
-    f = {},
-) {
-    let m = Y(j.currencySymbol, i),
-        b = Y(j.currencySpace, a ? '&nbsp;' : ''),
-        x = '';
-    return (
-        t
-            ? (x = `<sr-only class="strikethrough-aria-label">${t}</sr-only>`)
-            : r && (x = `<sr-only class="alt-aria-label">${r}</sr-only>`),
-        c && (x += m + b),
-        (x += Y(j.integer, s)),
-        (x += Y(j.decimalsDelimiter, o)),
-        (x += Y(j.decimals, n)),
-        c || (x += b + m),
-        (x += Y(j.recurrence, l, null, !0)),
-        (x += Y(j.unitType, d, null, !0)),
-        (x += Y(j.taxInclusivity, p, !0)),
-        Y(e, x, { ...f })
-    );
-}
-var ie =
-        ({
-            isAlternativePrice: e = !1,
-            displayOptical: t = !1,
-            displayStrikethrough: r = !1,
-            displayAnnual: i = !1,
-            instant: n = void 0,
-        } = {}) =>
-        (
-            {
-                country: o,
-                displayFormatted: a = !0,
-                displayRecurrence: s = !0,
-                displayPerUnit: c = !1,
-                displayTax: l = !1,
-                language: d,
-                literals: p = {},
-                quantity: f = 1,
-                space: m = !1,
-            } = {},
-            {
-                commitment: b,
-                offerSelectorIds: x,
-                formatString: S,
-                price: O,
-                priceWithoutDiscount: P,
-                taxDisplay: C,
-                taxTerm: M,
-                term: I,
-                usePrecision: F,
-                promotion: W,
-            } = {},
-            te = {},
-        ) => {
-            Object.entries({
-                country: o,
-                formatString: S,
-                language: d,
-                price: O,
-            }).forEach(([Gc, Vc]) => {
-                if (Vc == null)
-                    throw new Error(
-                        `Argument "${Gc}" is missing for osi ${x?.toString()}, country ${o}, language ${d}`,
-                    );
-            });
-            let V = { ...Vn, ...p },
-                H = `${d.toLowerCase()}-${o.toUpperCase()}`,
-                Z = r && P ? P : O,
-                de = t ? Ya : Xa;
-            i && (de = Ka);
-            let {
-                    accessiblePrice: He,
-                    recurrenceTerm: Ee,
-                    ...bt
-                } = de({
-                    commitment: b,
-                    formatString: S,
-                    instant: n,
-                    isIndianPrice: o === 'IN',
-                    originalPrice: O,
-                    priceWithoutDiscount: P,
-                    price: t ? O : Z,
-                    promotion: W,
-                    quantity: f,
-                    term: I,
-                    usePrecision: F,
-                }),
-                Bi = '',
-                Ui = '',
-                zi = '';
-            A(s) &&
-                Ee &&
-                (zi = Oe(V, H, Fe.recurrenceLabel, { recurrenceTerm: Ee }));
-            let zr = '';
-            A(c) &&
-                (m && (zr += ' '),
-                (zr += Oe(V, H, Fe.perUnitLabel, { perUnit: 'LICENSE' })));
-            let Fr = '';
-            A(l) &&
-                M &&
-                (m && (Fr += ' '),
-                (Fr += Oe(
-                    V,
-                    H,
-                    C === jn ? Fe.taxExclusiveLabel : Fe.taxInclusiveLabel,
-                    { taxTerm: M },
-                ))),
-                r &&
-                    (Bi = Oe(V, H, Fe.strikethroughAriaLabel, {
-                        strikethroughPrice: Bi,
-                    })),
-                e &&
-                    (Ui = Oe(V, H, Fe.alternativePriceAriaLabel, {
-                        alternativePrice: Ui,
-                    }));
-            let vt = j.container;
-            if (
-                (t && (vt += ' ' + j.containerOptical),
-                r && (vt += ' ' + j.containerStrikethrough),
-                e && (vt += ' ' + j.containerAlternative),
-                i && (vt += ' ' + j.containerAnnual),
-                A(a))
-            )
-                return Ud(
-                    vt,
-                    {
-                        ...bt,
-                        accessibleLabel: Bi,
-                        altAccessibleLabel: Ui,
-                        recurrenceLabel: zi,
-                        perUnitLabel: zr,
-                        taxInclusivityLabel: Fr,
-                    },
-                    te,
-                );
-            let {
-                    currencySymbol: Lo,
-                    decimals: Dc,
-                    decimalsDelimiter: Bc,
-                    hasCurrencySpace: Ro,
-                    integer: Uc,
-                    isCurrencyFirst: zc,
-                } = bt,
-                yt = [Uc, Bc, Dc];
-            zc
-                ? (yt.unshift(Ro ? '\xA0' : ''), yt.unshift(Lo))
-                : (yt.push(Ro ? '\xA0' : ''), yt.push(Lo)),
-                yt.push(zi, zr, Fr);
-            let Fc = yt.join('');
-            return Y(vt, Fc, te);
-        },
-    Qa = () => (e, t, r) => {
-        let n =
-            (e.displayOldPrice === void 0 || A(e.displayOldPrice)) &&
-            t.priceWithoutDiscount &&
-            t.priceWithoutDiscount != t.price;
-        return `${n ? ie({ displayStrikethrough: !0 })(e, t, r) + '&nbsp;' : ''}${ie({ isAlternativePrice: n })(e, t, r)}`;
-    },
-    Za = () => (e, t, r) => {
-        let { instant: i } = e;
-        try {
-            i ||
-                (i = new URLSearchParams(document.location.search).get(
-                    'instant',
-                )),
-                i && (i = new Date(i));
-        } catch {
-            i = void 0;
-        }
-        let n = { ...e, displayTax: !1, displayPerUnit: !1 },
-            a =
-                (e.displayOldPrice === void 0 || A(e.displayOldPrice)) &&
-                t.priceWithoutDiscount &&
-                t.priceWithoutDiscount != t.price;
-        return `${a ? ie({ displayStrikethrough: !0 })(n, t, r) + '&nbsp;' : ''}${ie({ isAlternativePrice: a })(e, t, r)}${Y(j.containerAnnualPrefix, '&nbsp;(')}${ie({ displayAnnual: !0, instant: i })(n, t, r)}${Y(j.containerAnnualSuffix, ')')}`;
-    },
-    Ja = () => (e, t, r) => {
-        let i = { ...e, displayTax: !1, displayPerUnit: !1 };
-        return `${ie({ isAlternativePrice: e.displayOldPrice })(e, t, r)}${Y(j.containerAnnualPrefix, '&nbsp;(')}${ie({ displayAnnual: !0 })(i, t, r)}${Y(j.containerAnnualSuffix, ')')}`;
-    };
-var xr = { ...j, containerLegal: 'price-legal', planType: 'price-plan-type' },
-    mi = { ...Fe, planTypeLabel: 'planTypeLabel' };
-function zd(
-    e,
-    { perUnitLabel: t, taxInclusivityLabel: r, planTypeLabel: i },
-    n = {},
-) {
-    let o = '';
-    return (
-        (o += Y(xr.unitType, t, null, !0)),
-        r && i && (r += '. '),
-        (o += Y(xr.taxInclusivity, r, !0)),
-        (o += Y(xr.planType, i, null)),
-        Y(e, o, { ...n })
-    );
-}
-var es = (
-    {
-        country: e,
-        displayPerUnit: t = !1,
-        displayTax: r = !1,
-        displayPlanType: i = !1,
-        language: n,
-        literals: o = {},
-    } = {},
-    { taxDisplay: a, taxTerm: s, planType: c } = {},
-    l = {},
-) => {
-    let d = { ...Vn, ...o },
-        p = `${n.toLowerCase()}-${e.toUpperCase()}`,
-        f = '';
-    A(t) && (f = Oe(d, p, mi.perUnitLabel, { perUnit: 'LICENSE' }));
-    let m = '';
-    e === 'US' && n === 'en' && (r = !1),
-        A(r) &&
-            s &&
-            (m = Oe(
-                d,
-                p,
-                a === jn ? mi.taxExclusiveLabel : mi.taxInclusiveLabel,
-                { taxTerm: s },
-            ));
-    let b = '';
-    A(i) && c && (b = Oe(d, p, mi.planTypeLabel, { planType: c }));
-    let x = xr.container;
-    return (
-        (x += ' ' + xr.containerLegal),
-        zd(x, { perUnitLabel: f, taxInclusivityLabel: m, planTypeLabel: b }, l)
-    );
-};
-var ts = ie(),
-    rs = Qa(),
-    is = ie({ displayOptical: !0 }),
-    ns = ie({ displayStrikethrough: !0 }),
-    os = ie({ displayAnnual: !0 }),
-    as = ie({ displayOptical: !0, isAlternativePrice: !0 }),
-    ss = ie({ isAlternativePrice: !0 }),
-    cs = Ja(),
-    ls = Za(),
-    ds = es;
-var Fd = (e, t) => {
-        if (!(!or(e) || !or(t))) return Math.floor(((t - e) / t) * 100);
-    },
-    hs = () => (e, t) => {
-        let { price: r, priceWithoutDiscount: i } = t,
-            n = Fd(r, i);
-        return n === void 0
-            ? '<span class="no-discount"></span>'
-            : `<span class="discount">${n}%</span>`;
-    };
-var ps = hs();
-var us = 'INDIVIDUAL_COM',
-    qn = 'TEAM_COM',
-    fs = 'INDIVIDUAL_EDU',
-    Wn = 'TEAM_EDU',
-    ms = [
-        'GB_en',
-        'AU_en',
-        'FR_fr',
-        'AT_de',
-        'BE_en',
-        'BE_fr',
-        'BE_nl',
-        'BG_bg',
-        'CH_de',
-        'CH_fr',
-        'CH_it',
-        'CZ_cs',
-        'DE_de',
-        'DK_da',
-        'EE_et',
-        'EG_ar',
-        'EG_en',
-        'ES_es',
-        'FI_fi',
-        'GR_el',
-        'GR_en',
-        'HU_hu',
-        'IE_en',
-        'IT_it',
-        'LU_de',
-        'LU_en',
-        'LU_fr',
-        'NL_nl',
-        'NO_nb',
-        'PL_pl',
-        'PT_pt',
-        'RO_ro',
-        'SE_sv',
-        'SI_sl',
-        'SK_sk',
-        'TR_tr',
-        'UA_uk',
-        'ID_en',
-        'ID_in',
-        'IN_en',
-        'IN_hi',
-        'JP_ja',
-        'MY_en',
-        'MY_ms',
-        'NZ_en',
-        'TH_en',
-        'TH_th',
-    ],
-    Gd = {
-        [us]: [
-            'MU_en',
-            'LT_lt',
-            'LV_lv',
-            'NG_en',
-            'SA_ar',
-            'SA_en',
-            'SG_en',
-            'KR_ko',
-        ],
-        [qn]: ['MU_en', 'LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko'],
-        [fs]: ['LT_lt', 'LV_lv', 'SA_en', 'SG_en'],
-        [Wn]: ['SG_en', 'KR_ko'],
-    },
-    Vd = {
-        MU_en: [!1, !1, !1, !1],
-        NG_en: [!1, !1, !1, !1],
-        AU_en: [!1, !1, !1, !1],
-        JP_ja: [!1, !1, !1, !1],
-        NZ_en: [!1, !1, !1, !1],
-        TH_en: [!1, !1, !1, !1],
-        TH_th: [!1, !1, !1, !1],
-        CO_es: [!1, !0, !1, !1],
-        AT_de: [!1, !1, !1, !0],
-        SG_en: [!1, !1, !1, !0],
-    },
-    jd = [us, qn, fs, Wn],
-    qd = (e) => [qn, Wn].includes(e),
-    Wd = (e, t, r, i) => {
-        let n = `${e}_${t}`,
-            o = `${r}_${i}`,
-            a = Vd[n];
-        if (a) {
-            let s = jd.indexOf(o);
-            return a[s];
-        }
-        return qd(o);
-    },
-    Yd = (e, t, r, i) => {
-        let n = `${e}_${t}`;
-        if (ms.includes(e) || ms.includes(n)) return !0;
-        let o = Gd[`${r}_${i}`];
-        return o
-            ? o.includes(e) || o.includes(n)
-                ? !0
-                : L.displayTax
-            : L.displayTax;
-    },
-    gs = async (e, t, r, i) => {
-        let n = Yd(e, t, r, i);
-        return {
-            displayTax: n,
-            forceTaxExclusive: n ? Wd(e, t, r, i) : L.forceTaxExclusive,
-        };
-    },
-    br = class br extends HTMLSpanElement {
-        constructor() {
-            super();
-            u(this, 'masElement', new ze(this));
-            this.handleClick = this.handleClick.bind(this);
-        }
-        static get observedAttributes() {
-            return [
-                'data-display-old-price',
-                'data-display-per-unit',
-                'data-display-recurrence',
-                'data-display-tax',
-                'data-display-plan-type',
-                'data-display-annual',
-                'data-perpetual',
-                'data-promotion-code',
-                'data-force-tax-exclusive',
-                'data-template',
-                'data-wcs-osi',
-            ];
-        }
-        static createInlinePrice(r) {
-            let i = re();
-            if (!i) return null;
-            let {
-                displayOldPrice: n,
-                displayPerUnit: o,
-                displayRecurrence: a,
-                displayTax: s,
-                displayPlanType: c,
-                displayAnnual: l,
-                forceTaxExclusive: d,
-                perpetual: p,
-                promotionCode: f,
-                quantity: m,
-                alternativePrice: b,
-                template: x,
-                wcsOsi: S,
-            } = i.collectPriceOptions(r);
-            return ti(br, {
-                displayOldPrice: n,
-                displayPerUnit: o,
-                displayRecurrence: a,
-                displayTax: s,
-                displayPlanType: c,
-                displayAnnual: l,
-                forceTaxExclusive: d,
-                perpetual: p,
-                promotionCode: f,
-                quantity: m,
-                alternativePrice: b,
-                template: x,
-                wcsOsi: S,
-            });
-        }
-        get isInlinePrice() {
-            return !0;
-        }
-        attributeChangedCallback(r, i, n) {
-            this.masElement.attributeChangedCallback(r, i, n);
-        }
-        connectedCallback() {
-            this.masElement.connectedCallback(),
-                this.addEventListener('click', this.handleClick);
-        }
-        disconnectedCallback() {
-            this.masElement.disconnectedCallback(),
-                this.removeEventListener('click', this.handleClick);
-        }
-        handleClick(r) {
-            r.target !== this &&
-                (r.stopImmediatePropagation(),
-                this.dispatchEvent(
-                    new MouseEvent('click', {
-                        bubbles: !0,
-                        cancelable: !0,
-                        view: window,
-                    }),
-                ));
-        }
-        onceSettled() {
-            return this.masElement.onceSettled();
-        }
-        get value() {
-            return this.masElement.value;
-        }
-        get options() {
-            return this.masElement.options;
-        }
-        get isFailed() {
-            return this.masElement.state === fe;
-        }
-        requestUpdate(r = !1) {
-            return this.masElement.requestUpdate(r);
-        }
-        async render(r = {}) {
-            if (!this.isConnected) return !1;
-            let i = re();
-            if (!i) return !1;
-            let n = i.collectPriceOptions(r, this),
-                o = { ...i.settings, ...n };
-            if (!o.wcsOsi.length) return !1;
-            try {
-                let a = this.masElement.togglePending({});
-                this.innerHTML = '';
-                let [s] = await i.resolveOfferSelectors(o),
-                    c = cr(await s, o),
-                    [l] = c;
-                if (i.featureFlags[Ue]) {
-                    if (
-                        (n.displayPerUnit === void 0 &&
-                            (o.displayPerUnit =
-                                l.customerSegment !== 'INDIVIDUAL'),
-                        n.displayTax === void 0 ||
-                            n.forceTaxExclusive === void 0)
-                    ) {
-                        let { country: d, language: p } = o,
-                            [f = ''] = l.marketSegments,
-                            m = await gs(d, p, l.customerSegment, f);
-                        n.displayTax === void 0 &&
-                            (o.displayTax = m?.displayTax || o.displayTax),
-                            n.forceTaxExclusive === void 0 &&
-                                (o.forceTaxExclusive =
-                                    m?.forceTaxExclusive ||
-                                    o.forceTaxExclusive),
-                            o.forceTaxExclusive && (c = cr(c, o));
-                    }
-                } else n.displayOldPrice === void 0 && (o.displayOldPrice = !0);
-                return this.renderOffers(c, o, a);
-            } catch (a) {
-                throw ((this.innerHTML = ''), a);
-            }
-        }
-        renderOffers(r, i, n = void 0) {
-            if (!this.isConnected) return;
-            let o = re();
-            if (!o) return !1;
-            if ((n ?? (n = this.masElement.togglePending()), r.length)) {
-                if (this.masElement.toggleResolved(n, r, i)) {
-                    this.innerHTML = o.buildPriceHTML(r, this.options);
-                    let a = this.closest('p, h3, div');
-                    if (
-                        !a ||
-                        !a.querySelector(
-                            'span[data-template="strikethrough"]',
-                        ) ||
-                        a.querySelector('.alt-aria-label')
-                    )
-                        return !0;
-                    let s = a?.querySelectorAll('span[is="inline-price"]');
-                    return (
-                        s.length > 1 &&
-                            s.length ===
-                                a.querySelectorAll(
-                                    'span[data-template="strikethrough"]',
-                                ).length *
-                                    2 &&
-                            s.forEach((c) => {
-                                c.dataset.template !== 'strikethrough' &&
-                                    c.options &&
-                                    !c.options.alternativePrice &&
-                                    !c.isFailed &&
-                                    ((c.options.alternativePrice = !0),
-                                    (c.innerHTML = o.buildPriceHTML(
-                                        r,
-                                        c.options,
-                                    )));
-                            }),
-                        !0
-                    );
-                }
-            } else {
-                let a = new Error(
-                    `Not provided: ${this.options?.wcsOsi ?? '-'}`,
-                );
-                if (this.masElement.toggleFailed(n, a, this.options))
-                    return (this.innerHTML = ''), !0;
-            }
-            return !1;
-        }
-    };
-u(br, 'is', 'inline-price'), u(br, 'tag', 'span');
-var Me = br;
-window.customElements.get(Me.is) ||
-    window.customElements.define(Me.is, Me, { extends: Me.tag });
-function xs({ literals: e, providers: t, settings: r }) {
-    function i(a, s = null) {
-        let c = {
-            country: r.country,
-            language: r.language,
-            locale: r.locale,
-            literals: { ...e.price },
-        };
-        if (s && t?.price) for (let F of t.price) F(s, c);
-        let {
-            displayOldPrice: l,
-            displayPerUnit: d,
-            displayRecurrence: p,
-            displayTax: f,
-            displayPlanType: m,
-            forceTaxExclusive: b,
-            perpetual: x,
-            displayAnnual: S,
-            promotionCode: O,
-            quantity: P,
-            alternativePrice: C,
-            wcsOsi: M,
-            ...I
-        } = Object.assign(c, s?.dataset ?? {}, a ?? {});
-        return (
-            (c = Yr(
-                Object.assign({
-                    ...c,
-                    ...I,
-                    displayOldPrice: A(l),
-                    displayPerUnit: A(d),
-                    displayRecurrence: A(p),
-                    displayTax: A(f),
-                    displayPlanType: A(m),
-                    forceTaxExclusive: A(b),
-                    perpetual: A(x),
-                    displayAnnual: A(S),
-                    promotionCode: Kr(O).effectivePromoCode,
-                    quantity: _t(P, L.quantity),
-                    alternativePrice: A(C),
-                    wcsOsi: Zr(M),
-                }),
-            )),
-            c
-        );
-    }
-    function n(a, s) {
-        if (!Array.isArray(a) || !a.length || !s) return '';
-        let { template: c } = s,
-            l;
-        switch (c) {
-            case 'discount':
-                l = ps;
-                break;
-            case 'strikethrough':
-                l = ns;
-                break;
-            case 'annual':
-                l = os;
-                break;
-            case 'legal':
-                l = ds;
-                break;
-            default:
-                s.template === 'optical' && s.alternativePrice
-                    ? (l = as)
-                    : s.template === 'optical'
-                      ? (l = is)
-                      : s.displayAnnual && a[0].planType === 'ABM'
-                        ? (l = s.promotionCode ? ls : cs)
-                        : s.alternativePrice
-                          ? (l = ss)
-                          : (l = s.promotionCode ? rs : ts);
-        }
-        let [d] = a;
-        return (d = { ...d, ...d.priceDetails }), l({ ...r, ...s }, d);
-    }
-    let o = Me.createInlinePrice;
-    return {
-        InlinePrice: Me,
-        buildPriceHTML: n,
-        collectPriceOptions: i,
-        createInlinePrice: o,
-    };
-}
-function Xd({
-    locale: e = void 0,
-    country: t = void 0,
-    language: r = void 0,
-} = {}) {
-    return (
-        r ?? (r = e?.split('_')?.[0] || L.language),
-        t ?? (t = e?.split('_')?.[1] || L.country),
-        e ?? (e = `${r}_${t}`),
-        { locale: e, country: t, language: r }
-    );
-}
-function bs(e = {}, t) {
-    let r = t.featureFlags[Ue],
-        { commerce: i = {} } = e,
-        n = we.PRODUCTION,
-        o = on,
-        a = D('checkoutClientId', i) ?? L.checkoutClientId,
-        s = ar(D('checkoutWorkflowStep', i), ee, L.checkoutWorkflowStep),
-        c = L.displayOldPrice,
-        l = L.displayPerUnit,
-        d = A(D('displayRecurrence', i), L.displayRecurrence),
-        p = A(D('displayTax', i), L.displayTax),
-        f = A(D('displayPlanType', i), L.displayPlanType),
-        m = A(D('entitlement', i), L.entitlement),
-        b = A(D('modal', i), L.modal),
-        x = A(D('forceTaxExclusive', i), L.forceTaxExclusive),
-        S = D('promotionCode', i) ?? L.promotionCode,
-        O = _t(D('quantity', i)),
-        P = D('wcsApiKey', i) ?? L.wcsApiKey,
-        C = i?.env === 'stage',
-        M = Be.PUBLISHED;
-    ['true', ''].includes(i.allowOverride) &&
-        ((C =
-            (D(rn, i, { metadata: !1 })?.toLowerCase() ?? i?.env) === 'stage'),
-        (M = ar(D(nn, i), Be, M))),
-        C && ((n = we.STAGE), (o = an));
-    let F = D(tn) ?? e.preview,
-        W = typeof F < 'u' && F !== 'off' && F !== 'false',
-        te = {};
-    W && (te = { preview: W });
-    let V =
-            D('mas-io-url') ??
-            e.masIOUrl ??
-            `https://www${n === we.STAGE ? '.stage' : ''}.adobe.com/mas/io`,
-        H = D('preselect-plan') ?? void 0;
-    return {
-        ...Xd(e),
-        ...te,
-        displayOldPrice: c,
-        checkoutClientId: a,
-        checkoutWorkflowStep: s,
-        displayPerUnit: l,
-        displayRecurrence: d,
-        displayTax: p,
-        displayPlanType: f,
-        entitlement: m,
-        extraOptions: L.extraOptions,
-        modal: b,
-        env: n,
-        forceTaxExclusive: x,
-        promotionCode: S,
-        quantity: O,
-        alternativePrice: L.alternativePrice,
-        wcsApiKey: P,
-        wcsURL: o,
-        landscape: M,
-        masIOUrl: V,
-        ...(H && { preselectPlan: H }),
-    };
-}
-async function ui(e, t = {}, r = 2, i = 100) {
-    let n;
-    for (let o = 0; o <= r; o++)
-        try {
-            let a = await fetch(e, t);
-            return (a.retryCount = o), a;
-        } catch (a) {
-            if (((n = a), (n.retryCount = o), o > r)) break;
-            await new Promise((s) => setTimeout(s, i * (o + 1)));
-        }
-    throw n;
-}
-var Kd = 'mas-commerce-service';
-function vr(e, t) {
-    let r;
-    return function () {
-        let i = this,
-            n = arguments;
-        clearTimeout(r), (r = setTimeout(() => e.apply(i, n), t));
-    };
-}
-function ne(e, t = {}, r = null, i = null) {
-    let n = i
-        ? document.createElement(e, { is: i })
-        : document.createElement(e);
-    r instanceof HTMLElement ? n.appendChild(r) : (n.innerHTML = r);
-    for (let [o, a] of Object.entries(t)) n.setAttribute(o, a);
-    return n;
-}
-function Ae(e) {
-    return `startTime:${e.startTime.toFixed(2)}|duration:${e.duration.toFixed(2)}`;
-}
-function vs() {
-    return window.matchMedia('(max-width: 1024px)').matches;
-}
-function ot() {
-    return document.getElementsByTagName(Kd)?.[0];
-}
-function yr(e) {
-    let t = window.getComputedStyle(e);
-    return (
-        e.offsetHeight + parseFloat(t.marginTop) + parseFloat(t.marginBottom)
-    );
-}
-var Yn = 'wcs';
-function ys({ settings: e }) {
-    let t = ce.module(Yn),
-        { env: r, wcsApiKey: i } = e,
-        n = new Map(),
-        o = new Map(),
-        a,
-        s = new Map();
-    async function c(m, b, x = !0) {
-        let S = re(),
-            O = Zi;
-        t.debug('Fetching:', m);
-        let P = '',
-            C;
-        if (m.offerSelectorIds.length > 1)
-            throw new Error('Multiple OSIs are not supported anymore');
-        let M = new Map(b),
-            [I] = m.offerSelectorIds,
-            F = Date.now() + Math.random().toString(36).substring(2, 7),
-            W = `${Yn}:${I}:${F}${et}`,
-            te = `${Yn}:${I}:${F}${tt}`,
-            V;
-        try {
-            if (
-                (performance.mark(W),
-                (P = new URL(e.wcsURL)),
-                P.searchParams.set('offer_selector_ids', I),
-                P.searchParams.set('country', m.country),
-                P.searchParams.set('locale', m.locale),
-                P.searchParams.set(
-                    'landscape',
-                    r === we.STAGE ? 'ALL' : e.landscape,
-                ),
-                P.searchParams.set('api_key', i),
-                m.language && P.searchParams.set('language', m.language),
-                m.promotionCode &&
-                    P.searchParams.set('promotion_code', m.promotionCode),
-                m.currency && P.searchParams.set('currency', m.currency),
-                (C = await ui(P.toString(), { credentials: 'omit' })),
-                C.ok)
-            ) {
-                let H = [];
-                try {
-                    let Z = await C.json();
-                    t.debug('Fetched:', m, Z), (H = Z.resolvedOffers ?? []);
-                } catch (Z) {
-                    t.error(`Error parsing JSON: ${Z.message}`, {
-                        ...Z.context,
-                        ...S?.duration,
-                    });
-                }
-                (H = H.map(sr)),
-                    b.forEach(({ resolve: Z }, de) => {
-                        let He = H.filter(({ offerSelectorIds: Ee }) =>
-                            Ee.includes(de),
-                        ).flat();
-                        He.length && (M.delete(de), b.delete(de), Z(He));
-                    });
-            } else O = Qi;
-        } catch (H) {
-            O = `Network error: ${H.message}`;
-        } finally {
-            (V = performance.measure(te, W)),
-                performance.clearMarks(W),
-                performance.clearMeasures(te);
-        }
-        if (x && b.size) {
-            t.debug('Missing:', { offerSelectorIds: [...b.keys()] });
-            let H = Jr(C);
-            b.forEach((Z) => {
-                Z.reject(
-                    new Le(O, {
-                        ...m,
-                        ...H,
-                        response: C,
-                        measure: Ae(V),
-                        ...S?.duration,
-                    }),
-                );
-            });
-        }
-    }
-    function l() {
-        clearTimeout(a);
-        let m = [...o.values()];
-        o.clear(), m.forEach(({ options: b, promises: x }) => c(b, x));
-    }
-    function d(m) {
-        if (!m || typeof m != 'object')
-            throw new TypeError('Cache must be a Map or similar object');
-        let b = r === we.STAGE ? 'stage' : 'prod',
-            x = m[b];
-        if (!x || typeof x != 'object') {
-            t.warn(`No cache found for environment: ${r}`);
-            return;
-        }
-        for (let [S, O] of Object.entries(x))
-            n.set(S, Promise.resolve(O.map(sr)));
-        t.debug(`Prefilled WCS cache with ${x.size} entries`);
-    }
-    function p() {
-        let m = n.size;
-        (s = new Map(n)),
-            n.clear(),
-            t.debug(`Moved ${m} cache entries to stale cache`);
-    }
-    function f({
-        country: m,
-        language: b,
-        perpetual: x = !1,
-        promotionCode: S = '',
-        wcsOsi: O = [],
-    }) {
-        let P = `${b}_${m}`;
-        m !== 'GB' && !x && (b = 'MULT');
-        let C = [m, b, S]
-            .filter((M) => M)
-            .join('-')
-            .toLowerCase();
-        return O.map((M) => {
-            let I = `${M}-${C}`;
-            if (n.has(I)) return n.get(I);
-            let F = new Promise((W, te) => {
-                let V = o.get(C);
-                if (!V) {
-                    let H = { country: m, locale: P, offerSelectorIds: [] };
-                    m !== 'GB' && !x && (H.language = b),
-                        (V = { options: H, promises: new Map() }),
-                        o.set(C, V);
-                }
-                S && (V.options.promotionCode = S),
-                    V.options.offerSelectorIds.push(M),
-                    V.promises.set(M, { resolve: W, reject: te }),
-                    l();
-            }).catch((W) => {
-                if (s.has(I)) return s.get(I);
-                throw W;
-            });
-            return n.set(I, F), F;
-        });
-    }
-    return {
-        Commitment: Ke,
-        PlanType: Wo,
-        Term: he,
-        applyPlanType: sr,
-        resolveOfferSelectors: f,
-        flushWcsCacheInternal: p,
-        prefillWcsCache: d,
-    };
-}
-var Es = 'mas-commerce-service',
-    ws = 'mas-commerce-service:start',
-    As = 'mas-commerce-service:ready',
-    Er,
-    Ct,
-    kt,
-    Ss,
-    _s,
-    Xn = class extends HTMLElement {
-        constructor() {
-            super(...arguments);
-            E(this, kt);
-            E(this, Er);
-            E(this, Ct);
-            u(this, 'lastLoggingTime', 0);
-        }
-        async registerCheckoutAction(r) {
-            typeof r == 'function' &&
-                (this.buildCheckoutAction = async (i, n, o) => {
-                    let a = await r?.(i, n, this.imsSignedInPromise, o);
-                    return a || null;
-                });
-        }
-        get featureFlags() {
-            return (
-                h(this, Ct) ||
-                    v(this, Ct, { [Ue]: Q(this, kt, _s).call(this, Ue) }),
-                h(this, Ct)
-            );
-        }
-        activate() {
-            let r = h(this, kt, Ss),
-                i = bs(r, this);
-            Gr(r.lana);
-            let n = ce.init(r.hostEnv).module('service');
-            n.debug('Activating:', r);
-            let a = { price: ha(i) },
-                s = { checkout: new Set(), price: new Set() },
-                c = { literals: a, providers: s, settings: i };
-            Object.defineProperties(
-                this,
-                Object.getOwnPropertyDescriptors({
-                    ...ca(c),
-                    ...la(c),
-                    ...xs(c),
-                    ...ys(c),
-                    ...ln,
-                    Log: ce,
-                    get defaults() {
-                        return L;
-                    },
-                    get log() {
-                        return ce;
-                    },
-                    get providers() {
-                        return {
-                            checkout(d) {
-                                return (
-                                    s.checkout.add(d),
-                                    () => s.checkout.delete(d)
-                                );
-                            },
-                            price(d) {
-                                return s.price.add(d), () => s.price.delete(d);
-                            },
-                            has: (d) => s.price.has(d) || s.checkout.has(d),
-                        };
-                    },
-                    get settings() {
-                        return i;
-                    },
-                }),
-            ),
-                n.debug('Activated:', { literals: a, settings: i });
-            let l = new CustomEvent(Vr, {
-                bubbles: !0,
-                cancelable: !1,
-                detail: this,
-            });
-            performance.mark(As),
-                v(this, Er, performance.measure(As, ws)),
-                this.dispatchEvent(l),
-                setTimeout(() => {
-                    this.logFailedRequests();
-                }, 1e4);
-        }
-        connectedCallback() {
-            performance.mark(ws), this.activate();
-        }
-        flushWcsCache() {
-            this.flushWcsCacheInternal(), this.log.debug('Flushed WCS cache');
-        }
-        refreshOffers() {
-            this.flushWcsCacheInternal(),
-                document
-                    .querySelectorAll(rr)
-                    .forEach((r) => r.requestUpdate(!0)),
-                this.log.debug('Refreshed WCS offers'),
-                this.logFailedRequests();
-        }
-        refreshFragments() {
-            this.flushWcsCacheInternal(),
-                customElements.get('aem-fragment')?.cache.clear(),
-                document
-                    .querySelectorAll('aem-fragment')
-                    .forEach((r) => r.refresh(!1)),
-                this.log.debug('Refreshed AEM fragments'),
-                this.logFailedRequests();
-        }
-        get duration() {
-            return { 'mas-commerce-service:measure': Ae(h(this, Er)) };
-        }
-        logFailedRequests() {
-            let r = [...performance.getEntriesByType('resource')]
-                    .filter(({ startTime: n }) => n > this.lastLoggingTime)
-                    .filter(
-                        ({ transferSize: n, duration: o, responseStatus: a }) =>
-                            (n === 0 && o === 0 && a < 200) || a >= 400,
-                    ),
-                i = Array.from(new Map(r.map((n) => [n.name, n])).values());
-            if (
-                i.some(({ name: n }) =>
-                    /(\/fragment\?|web_commerce_artifact)/.test(n),
-                )
-            ) {
-                let n = i.map(({ name: o }) => o);
-                this.log.error('Failed requests:', {
-                    failedUrls: n,
-                    ...this.duration,
-                });
-            }
-            this.lastLoggingTime = performance.now().toFixed(3);
-        }
-    };
-(Er = new WeakMap()),
-    (Ct = new WeakMap()),
-    (kt = new WeakSet()),
-    (Ss = function () {
-        let r = this.getAttribute('env') ?? 'prod',
-            i = {
-                commerce: { env: r },
-                hostEnv: { name: r },
-                lana: {
-                    tags: this.getAttribute('lana-tags'),
-                    sampleRate: parseInt(
-                        this.getAttribute('lana-sample-rate') ?? 1,
-                        10,
-                    ),
-                    isProdDomain: r === 'prod',
-                },
-                masIOUrl: this.getAttribute('mas-io-url'),
-            };
-        return (
-            ['locale', 'country', 'language', 'preview'].forEach((n) => {
-                let o = this.getAttribute(n);
-                o && (i[n] = o);
-            }),
-            [
-                'checkout-workflow-step',
-                'force-tax-exclusive',
-                'checkout-client-id',
-                'allow-override',
-                'wcs-api-key',
-            ].forEach((n) => {
-                let o = this.getAttribute(n);
-                if (o != null) {
-                    let a = n.replace(/-([a-z])/g, (s) => s[1].toUpperCase());
-                    i.commerce[a] = o;
-                }
-            }),
-            i
-        );
-    }),
-    (_s = function (r) {
-        return ['on', 'true', !0].includes(
-            this.getAttribute(`data-${r}`) || D(r),
-        );
-    });
-window.customElements.get(Es) || window.customElements.define(Es, Xn);
-var wr = class wr extends ii(HTMLButtonElement) {
-    static createCheckoutButton(t = {}, r = '') {
-        return ri(wr, t, r);
-    }
-    setCheckoutUrl(t) {
-        this.setAttribute('data-href', t);
-    }
-    get href() {
-        return this.getAttribute('data-href');
-    }
-    get isCheckoutButton() {
-        return !0;
-    }
-    clickHandler(t) {
-        if (this.checkoutActionHandler) {
-            this.checkoutActionHandler?.(t);
-            return;
-        }
-        this.href && (window.location.href = this.href);
-    }
-};
-u(wr, 'is', 'checkout-button'), u(wr, 'tag', 'button');
-var Pt = wr;
-window.customElements.get(Pt.is) ||
-    window.customElements.define(Pt.is, Pt, { extends: Pt.tag });
-function Qd(e) {
-    return `https://${e === 'PRODUCTION' ? 'www.adobe.com' : 'www.stage.adobe.com'}/offers/promo-terms.html`;
-}
-var st,
-    at = class at extends HTMLAnchorElement {
-        constructor() {
-            super();
-            u(this, 'masElement', new ze(this));
-            E(this, st);
-            this.setAttribute('is', at.is);
-        }
-        get isUptLink() {
-            return !0;
-        }
-        initializeWcsData(r, i) {
-            this.setAttribute('data-wcs-osi', r),
-                i && this.setAttribute('data-promotion-code', i);
-        }
-        attributeChangedCallback(r, i, n) {
-            this.masElement.attributeChangedCallback(r, i, n);
-        }
-        connectedCallback() {
-            this.masElement.connectedCallback(),
-                v(this, st, ot()),
-                h(this, st) && (this.log = h(this, st).log.module('upt-link'));
-        }
-        disconnectedCallback() {
-            this.masElement.disconnectedCallback(), v(this, st, void 0);
-        }
-        requestUpdate(r = !1) {
-            this.masElement.requestUpdate(r);
-        }
-        onceSettled() {
-            return this.masElement.onceSettled();
-        }
-        async render() {
-            let r = ot();
-            if (!r) return !1;
-            this.dataset.imsCountry ||
-                r.imsCountryPromise.then((a) => {
-                    a && (this.dataset.imsCountry = a);
-                });
-            let i = r.collectCheckoutOptions({}, this);
-            if (!i.wcsOsi)
-                return (
-                    this.log.error(
-                        "Missing 'data-wcs-osi' attribute on upt-link.",
-                    ),
-                    !1
-                );
-            let n = this.masElement.togglePending(i),
-                o = r.resolveOfferSelectors(i);
-            try {
-                let [[a]] = await Promise.all(o),
-                    { country: s, language: c, env: l } = i,
-                    d = `locale=${c}_${s}&country=${s}&offer_id=${a.offerId}`,
-                    p = this.getAttribute('data-promotion-code');
-                p && (d += `&promotion_code=${encodeURIComponent(p)}`),
-                    (this.href = `${Qd(l)}?${d}`),
-                    this.masElement.toggleResolved(n, a, i);
-            } catch (a) {
-                let s = new Error(
-                    `Could not resolve offer selectors for id: ${i.wcsOsi}.`,
-                    a.message,
-                );
-                return this.masElement.toggleFailed(n, s, i), !1;
-            }
-        }
-        static createFrom(r) {
-            let i = new at();
-            for (let n of r.attributes)
-                n.name !== 'is' &&
-                    (n.name === 'class' && n.value.includes('upt-link')
-                        ? i.setAttribute(
-                              'class',
-                              n.value.replace('upt-link', '').trim(),
-                          )
-                        : i.setAttribute(n.name, n.value));
-            return (
-                (i.innerHTML = r.innerHTML), i.setAttribute('tabindex', 0), i
-            );
-        }
-    };
-(st = new WeakMap()),
-    u(at, 'is', 'upt-link'),
-    u(at, 'tag', 'a'),
-    u(at, 'observedAttributes', [
-        'data-wcs-osi',
-        'data-promotion-code',
-        'data-ims-country',
-    ]);
-var Ge = at;
-window.customElements.get(Ge.is) ||
-    window.customElements.define(Ge.is, Ge, { extends: Ge.tag });
-R();
-R();
-var le = '(max-width: 767px)',
-    ge = '(max-width: 1199px)',
-    G = '(min-width: 768px)',
-    U = '(min-width: 1200px)',
-    Se = '(min-width: 1600px)';
-function wi() {
-    return window.matchMedia(le);
-}
-function Ai() {
-    return window.matchMedia(U);
-}
-function Si() {
-    return wi().matches;
-}
-function _i() {
-    return Ai().matches;
-}
-var qs = y`
+`,lt.MISSING_INTL_API,o);var I=r.getPluralRules(t,{type:d.pluralType}).select(u-(d.offset||0));w=d.options[I]||d.options.other}if(!w)throw new qn(d.value,u,Object.keys(d.options),o);s.push.apply(s,Ar(w.value,t,r,i,n,u-(d.offset||0)));continue}}return Ud(s)}function Gd(e,t){return t?C(C(C({},e||{}),t||{}),Object.keys(e).reduce(function(r,i){return r[i]=C(C({},e[i]),t[i]||{}),r},{})):e}function qd(e,t){return t?Object.keys(e).reduce(function(r,i){return r[i]=Gd(e[i],t[i]),r},C({},e)):e}function Vn(e){return{create:function(){return{get:function(t){return e[t]},set:function(t,r){e[t]=r}}}}}function Vd(e){return e===void 0&&(e={number:{},dateTime:{},pluralRules:{}}),{getNumberFormat:Er(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.NumberFormat).bind.apply(t,mi([void 0],r,!1)))},{cache:Vn(e.number),strategy:Ei.variadic}),getDateTimeFormat:Er(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.DateTimeFormat).bind.apply(t,mi([void 0],r,!1)))},{cache:Vn(e.dateTime),strategy:Ei.variadic}),getPluralRules:Er(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.PluralRules).bind.apply(t,mi([void 0],r,!1)))},{cache:Vn(e.pluralRules),strategy:Ei.variadic})}}var es=function(){function e(t,r,i,n){var a=this;if(r===void 0&&(r=e.defaultLocale),this.formatterCache={number:{},dateTime:{},pluralRules:{}},this.format=function(o){var s=a.formatToParts(o);if(s.length===1)return s[0].value;var c=s.reduce(function(l,d){return!l.length||d.type!==re.literal||typeof l[l.length-1]!="string"?l.push(d.value):l[l.length-1]+=d.value,l},[]);return c.length<=1?c[0]||"":c},this.formatToParts=function(o){return Ar(a.ast,a.locales,a.formatters,a.formats,o,void 0,a.message)},this.resolvedOptions=function(){return{locale:a.resolvedLocale.toString()}},this.getAst=function(){return a.ast},this.locales=r,this.resolvedLocale=e.resolveLocale(r),typeof t=="string"){if(this.message=t,!e.__parse)throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");this.ast=e.__parse(t,{ignoreTag:n?.ignoreTag,locale:this.resolvedLocale})}else this.ast=t;if(!Array.isArray(this.ast))throw new TypeError("A message must be provided as a String or AST.");this.formats=qd(e.formats,i),this.formatters=n&&n.formatters||Vd(this.formatterCache)}return Object.defineProperty(e,"defaultLocale",{get:function(){return e.memoizedDefaultLocale||(e.memoizedDefaultLocale=new Intl.NumberFormat().resolvedOptions().locale),e.memoizedDefaultLocale},enumerable:!1,configurable:!0}),e.memoizedDefaultLocale=null,e.resolveLocale=function(t){var r=Intl.NumberFormat.supportedLocalesOf(t);return r.length>0?new Intl.Locale(r[0]):new Intl.Locale(typeof t=="string"?t:t[0])},e.__parse=Xo,e.formats={number:{integer:{maximumFractionDigits:0},currency:{style:"currency"},percent:{style:"percent"}},date:{short:{month:"numeric",day:"numeric",year:"2-digit"},medium:{month:"short",day:"numeric",year:"numeric"},long:{month:"long",day:"numeric",year:"numeric"},full:{weekday:"long",month:"long",day:"numeric",year:"numeric"}},time:{short:{hour:"numeric",minute:"numeric"},medium:{hour:"numeric",minute:"numeric",second:"numeric"},long:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"},full:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"}}},e}();var ts=es;var jn={recurrenceLabel:"{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",recurrenceAriaLabel:"{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",perUnitLabel:"{perUnit, select, LICENSE {per license} other {}}",perUnitAriaLabel:"{perUnit, select, LICENSE {per license} other {}}",freeLabel:"Free",freeAriaLabel:"Free",taxExclusiveLabel:"{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",taxInclusiveLabel:"{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",alternativePriceAriaLabel:"Alternatively at",strikethroughAriaLabel:"Regularly at",planTypeLabel:"{planType, select, ABM {Annual, billed monthly} other {}}"},jd=Xa("ConsonantTemplates/price"),Wd=/<\/?[^>]+(>|$)/g,q={container:"price",containerOptical:"price-optical",containerStrikethrough:"price-strikethrough",containerAlternative:"price-alternative",containerAnnual:"price-annual",containerAnnualPrefix:"price-annual-prefix",containerAnnualSuffix:"price-annual-suffix",disabled:"disabled",currencySpace:"price-currency-space",currencySymbol:"price-currency-symbol",decimals:"price-decimals",decimalsDelimiter:"price-decimals-delimiter",integer:"price-integer",recurrence:"price-recurrence",taxInclusivity:"price-tax-inclusivity",unitType:"price-unit-type"},Ve={perUnitLabel:"perUnitLabel",perUnitAriaLabel:"perUnitAriaLabel",recurrenceLabel:"recurrenceLabel",recurrenceAriaLabel:"recurrenceAriaLabel",taxExclusiveLabel:"taxExclusiveLabel",taxInclusiveLabel:"taxInclusiveLabel",strikethroughAriaLabel:"strikethroughAriaLabel",alternativePriceAriaLabel:"alternativePriceAriaLabel"},Wn="TAX_EXCLUSIVE",Yd=e=>ja(e)?Object.entries(e).filter(([,t])=>kt(t)||ti(t)||t===!0).reduce((t,[r,i])=>t+` ${r}${i===!0?"":'="'+Va(i)+'"'}`,""):"",Y=(e,t,r,i=!1)=>`<span class="${e}${t?"":" "+q.disabled}"${Yd(r)}>${i?uo(t):t??""}</span>`;function Xd(e){e=e.replaceAll("</a>","&lt;/a&gt;");let t=/<a [^>]+(>|$)/g;return e.match(t)?.forEach(i=>{let n=i.replace("<a ","&lt;a ").replace(">","&gt;");e=e.replaceAll(i,n)}),e}function Kd(e){e=e.replaceAll("&lt;/a&gt;","</a>");let t=/&lt;a (?!&gt;)(.*?)(&gt;|$)/g;return e.match(t)?.forEach(i=>{let n=i.replace("&lt;a ","<a ").replace("&gt;",">");e=e.replaceAll(i,n)}),e}function De(e,t,r,i){let n=e[r];if(n==null)return"";let a=n.includes("<"),o=n.includes("<a ");try{n=o?Xd(n):n,n=a?n.replace(Wd,""):n;let s=new ts(n,t).format(i);return o?Kd(s):s}catch{return jd.error("Failed to format literal:",n),""}}function Qd(e,{accessibleLabel:t,altAccessibleLabel:r,currencySymbol:i,decimals:n,decimalsDelimiter:a,hasCurrencySpace:o,integer:s,isCurrencyFirst:c,recurrenceLabel:l,perUnitLabel:d,taxInclusivityLabel:p},u={}){let g=Y(q.currencySymbol,i),x=Y(q.currencySpace,o?"&nbsp;":""),v="";return t?v=`<sr-only class="strikethrough-aria-label">${t}</sr-only>`:r&&(v=`<sr-only class="alt-aria-label">${r}</sr-only>`),c&&(v+=g+x),v+=Y(q.integer,s),v+=Y(q.decimalsDelimiter,a),v+=Y(q.decimals,n),c||(v+=x+g),v+=Y(q.recurrence,l,null,!0),v+=Y(q.unitType,d,null,!0),v+=Y(q.taxInclusivity,p,!0),Y(e,v,{...u})}var ie=({isAlternativePrice:e=!1,displayOptical:t=!1,displayStrikethrough:r=!1,displayAnnual:i=!1,instant:n=void 0}={})=>({country:a,displayFormatted:o=!0,displayRecurrence:s=!0,displayPerUnit:c=!1,displayTax:l=!1,language:d,literals:p={},quantity:u=1,space:g=!1,isPromoApplied:x=!1}={},{commitment:v,offerSelectorIds:A,formatString:N,price:M,priceWithoutDiscount:w,taxDisplay:I,taxTerm:j,term:G,usePrecision:X,promotion:Z}={},ce={})=>{Object.entries({country:a,formatString:N,language:d,price:M}).forEach(([Zc,Jc])=>{if(Jc==null)throw new Error(`Argument "${Zc}" is missing for osi ${A?.toString()}, country ${a}, language ${d}`)});let K={...jn,...p},W=`${d.toLowerCase()}-${a.toUpperCase()}`,z;Z&&!x&&w?z=e?M:w:r&&w?z=w:z=M;let ge=t?fo:xo;i&&(ge=vo);let{accessiblePrice:ke,recurrenceTerm:Ue,...Oa}=ge({commitment:v,formatString:N,instant:n,isIndianPrice:a==="IN",originalPrice:M,priceWithoutDiscount:w,price:t?M:z,promotion:Z,quantity:u,term:G,usePrecision:X}),Fi="",Gi="",qi="";_(s)&&Ue&&(qi=De(K,W,Ve.recurrenceLabel,{recurrenceTerm:Ue}));let Xr="";_(c)&&(g&&(Xr+=" "),Xr+=De(K,W,Ve.perUnitLabel,{perUnit:"LICENSE"}));let Kr="";_(l)&&j&&(g&&(Kr+=" "),Kr+=De(K,W,I===Wn?Ve.taxExclusiveLabel:Ve.taxInclusiveLabel,{taxTerm:j})),r&&(Fi=De(K,W,Ve.strikethroughAriaLabel,{strikethroughPrice:Fi})),e&&(Gi=De(K,W,Ve.alternativePriceAriaLabel,{alternativePrice:Gi}));let At=q.container;if(t&&(At+=" "+q.containerOptical),r&&(At+=" "+q.containerStrikethrough),e&&(At+=" "+q.containerAlternative),i&&(At+=" "+q.containerAnnual),_(o))return Qd(At,{...Oa,accessibleLabel:Fi,altAccessibleLabel:Gi,recurrenceLabel:qi,perUnitLabel:Xr,taxInclusivityLabel:Kr},ce);let{currencySymbol:Na,decimals:Wc,decimalsDelimiter:Yc,hasCurrencySpace:Ia,integer:Xc,isCurrencyFirst:Kc}=Oa,St=[Xc,Yc,Wc];Kc?(St.unshift(Ia?"\xA0":""),St.unshift(Na)):(St.push(Ia?"\xA0":""),St.push(Na)),St.push(qi,Xr,Kr);let Qc=St.join("");return Y(At,Qc,ce)},rs=()=>(e,t,r)=>{let i=st(t.promotion,t.promotion?.displaySummary?.instant,Array.isArray(e.quantity)?e.quantity[0]:e.quantity),a=(e.displayOldPrice===void 0||_(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price&&(!t.promotion||i);return`${a?ie({displayStrikethrough:!0})({isPromoApplied:i,...e},t,r)+"&nbsp;":""}${ie({isAlternativePrice:a})({isPromoApplied:i,...e},t,r)}`},is=()=>(e,t,r)=>{let{instant:i}=e;try{i||(i=new URLSearchParams(document.location.search).get("instant")),i&&(i=new Date(i))}catch{i=void 0}let n=st(t.promotion,i,Array.isArray(e.quantity)?e.quantity[0]:e.quantity),a={...e,displayTax:!1,displayPerUnit:!1,isPromoApplied:n};if(!n)return ie()(e,{...t,price:t.priceWithoutDiscount},r)+Y(q.containerAnnualPrefix,"&nbsp;(")+ie({displayAnnual:!0,instant:i})(a,{...t,price:t.priceWithoutDiscount},r)+Y(q.containerAnnualSuffix,")");let s=(e.displayOldPrice===void 0||_(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price;return`${s?ie({displayStrikethrough:!0})(a,t,r)+"&nbsp;":""}${ie({isAlternativePrice:s})({isPromoApplied:n,...e},t,r)}${Y(q.containerAnnualPrefix,"&nbsp;(")}${ie({displayAnnual:!0,instant:i})(a,t,r)}${Y(q.containerAnnualSuffix,")")}`},ns=()=>(e,t,r)=>{let i={...e,displayTax:!1,displayPerUnit:!1};return`${ie({isAlternativePrice:e.displayOldPrice})(e,t,r)}${Y(q.containerAnnualPrefix,"&nbsp;(")}${ie({displayAnnual:!0})(i,t,r)}${Y(q.containerAnnualSuffix,")")}`};var Sr={...q,containerLegal:"price-legal",planType:"price-plan-type"},wi={...Ve,planTypeLabel:"planTypeLabel"};function Zd(e,{perUnitLabel:t,taxInclusivityLabel:r,planTypeLabel:i},n={}){let a="";return a+=Y(Sr.unitType,t,null,!0),r&&i&&(r+=". "),a+=Y(Sr.taxInclusivity,r,!0),a+=Y(Sr.planType,i,null),Y(e,a,{...n})}var as=({country:e,displayPerUnit:t=!1,displayTax:r=!1,displayPlanType:i=!1,language:n,literals:a={}}={},{taxDisplay:o,taxTerm:s,planType:c}={},l={})=>{let d={...jn,...a},p=`${n.toLowerCase()}-${e.toUpperCase()}`,u="";_(t)&&(u=De(d,p,wi.perUnitLabel,{perUnit:"LICENSE"}));let g="";e==="US"&&n==="en"&&(r=!1),_(r)&&s&&(g=De(d,p,o===Wn?wi.taxExclusiveLabel:wi.taxInclusiveLabel,{taxTerm:s}));let x="";_(i)&&c&&(x=De(d,p,wi.planTypeLabel,{planType:c}));let v=Sr.container;return v+=" "+Sr.containerLegal,Zd(v,{perUnitLabel:u,taxInclusivityLabel:g,planTypeLabel:x},l)};var os=ie(),ss=rs(),cs=ie({displayOptical:!0}),ls=ie({displayStrikethrough:!0}),ds=ie({displayAnnual:!0}),hs=ie({displayOptical:!0,isAlternativePrice:!0}),ps=ie({isAlternativePrice:!0}),ms=ns(),us=is(),gs=as;var Jd=(e,t)=>{if(!(!pr(e)||!pr(t)))return Math.floor((t-e)/t*100)},fs=()=>(e,t)=>{let{price:r,priceWithoutDiscount:i}=t,n=Jd(r,i);return n===void 0?'<span class="no-discount"></span>':`<span class="discount">${n}%</span>`};var xs=fs();var bs="INDIVIDUAL_COM",Yn="TEAM_COM",ys="INDIVIDUAL_EDU",Xn="TEAM_EDU",vs=["GB_en","AU_en","FR_fr","AT_de","BE_en","BE_fr","BE_nl","BG_bg","CH_de","CH_fr","CH_it","CZ_cs","DE_de","DK_da","EE_et","EG_ar","EG_en","ES_es","FI_fi","GR_el","GR_en","HU_hu","IE_en","IT_it","LU_de","LU_en","LU_fr","NL_nl","NO_nb","PL_pl","PT_pt","RO_ro","SE_sv","SI_sl","SK_sk","TR_tr","UA_uk","ID_en","ID_in","IN_en","IN_hi","JP_ja","MY_en","MY_ms","NZ_en","TH_en","TH_th"],eh={[bs]:["MU_en","LT_lt","LV_lv","NG_en","SA_ar","SA_en","SG_en","KR_ko"],[Yn]:["MU_en","LT_lt","LV_lv","NG_en","CO_es","KR_ko"],[ys]:["LT_lt","LV_lv","SA_en","SG_en"],[Xn]:["SG_en","KR_ko"]},th={MU_en:[!1,!1,!1,!1],NG_en:[!1,!1,!1,!1],AU_en:[!1,!1,!1,!1],JP_ja:[!1,!1,!1,!1],NZ_en:[!1,!1,!1,!1],TH_en:[!1,!1,!1,!1],TH_th:[!1,!1,!1,!1],CO_es:[!1,!0,!1,!1],AT_de:[!1,!1,!1,!0],SG_en:[!1,!1,!1,!0]},rh=[bs,Yn,ys,Xn],ih=e=>[Yn,Xn].includes(e),nh=(e,t,r,i)=>{let n=`${e}_${t}`,a=`${r}_${i}`,o=th[n];if(o){let s=rh.indexOf(a);return o[s]}return ih(a)},ah=(e,t,r,i)=>{let n=`${e}_${t}`;if(vs.includes(e)||vs.includes(n))return!0;let a=eh[`${r}_${i}`];return a?a.includes(e)||a.includes(n)?!0:P.displayTax:P.displayTax},Es=async(e,t,r,i)=>{let n=ah(e,t,r,i);return{displayTax:n,forceTaxExclusive:n?nh(e,t,r,i):P.forceTaxExclusive}},_r=class _r extends HTMLSpanElement{constructor(){super();m(this,"masElement",new qe(this));this.handleClick=this.handleClick.bind(this)}static get observedAttributes(){return["data-display-old-price","data-display-per-unit","data-display-recurrence","data-display-tax","data-display-plan-type","data-display-annual","data-perpetual","data-promotion-code","data-force-tax-exclusive","data-template","data-wcs-osi","data-quantity"]}static createInlinePrice(r){let i=le();if(!i)return null;let{displayOldPrice:n,displayPerUnit:a,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:p,promotionCode:u,quantity:g,alternativePrice:x,template:v,wcsOsi:A}=i.collectPriceOptions(r);return li(_r,{displayOldPrice:n,displayPerUnit:a,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:p,promotionCode:u,quantity:g,alternativePrice:x,template:v,wcsOsi:A})}get isInlinePrice(){return!0}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.handleClick)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.handleClick)}handleClick(r){r.target!==this&&(r.stopImmediatePropagation(),this.dispatchEvent(new MouseEvent("click",{bubbles:!0,cancelable:!0,view:window})))}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get isFailed(){return this.masElement.state===Ee}requestUpdate(r=!1){return this.masElement.requestUpdate(r)}async render(r={}){if(!this.isConnected)return!1;let i=le();if(!i)return!1;let n=i.collectPriceOptions(r,this),a={...i.settings,...n};if(!a.wcsOsi.length)return!1;try{let o=this.masElement.togglePending({});this.innerHTML="";let[s]=await i.resolveOfferSelectors(a),c=gr(await s,a),[l]=c;if(i.featureFlags[we]||a[we]){if(n.displayPerUnit===void 0&&(a.displayPerUnit=l.customerSegment!=="INDIVIDUAL"),n.displayTax===void 0||n.forceTaxExclusive===void 0){let{country:d,language:p}=a,[u=""]=l.marketSegments,g=await Es(d,p,l.customerSegment,u);n.displayTax===void 0&&(a.displayTax=g?.displayTax||a.displayTax),n.forceTaxExclusive===void 0&&(a.forceTaxExclusive=g?.forceTaxExclusive||a.forceTaxExclusive),a.forceTaxExclusive&&(c=gr(c,a))}}else n.displayOldPrice===void 0&&(a.displayOldPrice=!0);return this.renderOffers(c,a,o)}catch(o){throw this.innerHTML="",o}}renderOffers(r,i,n=void 0){if(!this.isConnected)return;let a=le();if(!a)return!1;if(n??(n=this.masElement.togglePending()),r.length){if(this.masElement.toggleResolved(n,r,i)){this.innerHTML=a.buildPriceHTML(r,this.options);let o=this.closest("p, h3, div");if(!o||!o.querySelector('span[data-template="strikethrough"]')||o.querySelector(".alt-aria-label"))return!0;let s=o?.querySelectorAll('span[is="inline-price"]');return s.length>1&&s.length===o.querySelectorAll('span[data-template="strikethrough"]').length*2&&s.forEach(c=>{c.dataset.template!=="strikethrough"&&c.options&&!c.options.alternativePrice&&!c.isFailed&&(c.options.alternativePrice=!0,c.innerHTML=a.buildPriceHTML(r,c.options))}),!0}}else{let o=new Error(`Not provided: ${this.options?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(n,o,this.options))return this.innerHTML="",!0}return!1}};m(_r,"is","inline-price"),m(_r,"tag","span");var ze=_r;window.customElements.get(ze.is)||window.customElements.define(ze.is,ze,{extends:ze.tag});function ws({literals:e,providers:t,settings:r}){function i(o,s=null){let c={country:r.country,language:r.language,locale:r.locale,literals:{...e.price}};if(s&&t?.price)for(let G of t.price)G(s,c);let{displayOldPrice:l,displayPerUnit:d,displayRecurrence:p,displayTax:u,displayPlanType:g,forceTaxExclusive:x,perpetual:v,displayAnnual:A,promotionCode:N,quantity:M,alternativePrice:w,wcsOsi:I,...j}=Object.assign(c,s?.dataset??{},o??{});return c=ri(Object.assign({...c,...j,displayOldPrice:_(l),displayPerUnit:_(d),displayRecurrence:_(p),displayTax:_(u),displayPlanType:_(g),forceTaxExclusive:_(x),perpetual:_(v),displayAnnual:_(A),promotionCode:ni(N).effectivePromoCode,quantity:Pt(M,P.quantity),alternativePrice:_(w),wcsOsi:oi(I)})),c}function n(o,s){if(!Array.isArray(o)||!o.length||!s)return"";let{template:c}=s,l;switch(c){case"discount":l=xs;break;case"strikethrough":l=ls;break;case"annual":l=ds;break;case"legal":l=gs;break;default:s.template==="optical"&&s.alternativePrice?l=hs:s.template==="optical"?l=cs:s.displayAnnual&&o[0].planType==="ABM"?l=s.promotionCode?us:ms:s.alternativePrice?l=ps:l=s.promotionCode?ss:os}let[d]=o;return d={...d,...d.priceDetails},l({...r,...s},d)}let a=ze.createInlinePrice;return{InlinePrice:ze,buildPriceHTML:n,collectPriceOptions:i,createInlinePrice:a}}function oh({locale:e=void 0,country:t=void 0,language:r=void 0}={}){return r??(r=e?.split("_")?.[0]||P.language),t??(t=e?.split("_")?.[1]||P.country),e??(e=`${r}_${t}`),{locale:e,country:t,language:r}}function As(e={},t){let r=t.featureFlags[we],{commerce:i={}}=e,n=Pe.PRODUCTION,a=cn,o=B("checkoutClientId",i)??P.checkoutClientId,s=mr(B("checkoutWorkflowStep",i),oe,P.checkoutWorkflowStep),c=P.displayOldPrice,l=P.displayPerUnit,d=_(B("displayRecurrence",i),P.displayRecurrence),p=_(B("displayTax",i),P.displayTax),u=_(B("displayPlanType",i),P.displayPlanType),g=_(B("entitlement",i),P.entitlement),x=_(B("modal",i),P.modal),v=_(B("forceTaxExclusive",i),P.forceTaxExclusive),A=B("promotionCode",i)??P.promotionCode,N=Pt(B("quantity",i)),M=B("wcsApiKey",i)??P.wcsApiKey,w=i?.env==="stage",I=Ge.PUBLISHED;["true",""].includes(i.allowOverride)&&(w=(B(on,i,{metadata:!1})?.toLowerCase()??i?.env)==="stage",I=mr(B(sn,i),Ge,I)),w&&(n=Pe.STAGE,a=ln);let G=B(an)??e.preview,X=typeof G<"u"&&G!=="off"&&G!=="false",Z={};X&&(Z={preview:X});let ce=B("mas-io-url")??e.masIOUrl??`https://www${n===Pe.STAGE?".stage":""}.adobe.com/mas/io`,K=B("preselect-plan")??void 0;return{...oh(e),...Z,displayOldPrice:c,checkoutClientId:o,checkoutWorkflowStep:s,displayPerUnit:l,displayRecurrence:d,displayTax:p,displayPlanType:u,entitlement:g,extraOptions:P.extraOptions,modal:x,env:n,forceTaxExclusive:v,promotionCode:A,quantity:N,alternativePrice:P.alternativePrice,wcsApiKey:M,wcsURL:a,landscape:I,masIOUrl:ce,...K&&{preselectPlan:K}}}async function Ai(e,t={},r=2,i=100){let n;for(let a=0;a<=r;a++)try{let o=await fetch(e,t);return o.retryCount=a,o}catch(o){if(n=o,n.retryCount=a,a>r)break;await new Promise(s=>setTimeout(s,i*(a+1)))}throw n}var sh="mas-commerce-service";function Tr(e,t){let r;return function(){let i=this,n=arguments;clearTimeout(r),r=setTimeout(()=>e.apply(i,n),t)}}function de(e,t={},r=null,i=null){let n=i?document.createElement(e,{is:i}):document.createElement(e);r instanceof HTMLElement?n.appendChild(r):n.innerHTML=r;for(let[a,o]of Object.entries(t))n.setAttribute(a,o);return n}function Le(e){return`startTime:${e.startTime.toFixed(2)}|duration:${e.duration.toFixed(2)}`}function Kn(){return window.matchMedia("(max-width: 1024px)").matches}function dt(){return document.getElementsByTagName(sh)?.[0]}function Cr(e){let t=window.getComputedStyle(e);return e.offsetHeight+parseFloat(t.marginTop)+parseFloat(t.marginBottom)}var Qn="wcs";function Ss({settings:e}){let t=ue.module(Qn),{env:r,wcsApiKey:i}=e,n=new Map,a=new Map,o,s=new Map;async function c(x,v,A=!0){let N=le(),M=tn;t.debug("Fetching:",x);let w="",I;if(x.offerSelectorIds.length>1)throw new Error("Multiple OSIs are not supported anymore");let j=new Map(v),[G]=x.offerSelectorIds,X=Date.now()+Math.random().toString(36).substring(2,7),Z=`${Qn}:${G}:${X}${nt}`,ce=`${Qn}:${G}:${X}${at}`,K;try{if(performance.mark(Z),w=new URL(e.wcsURL),w.searchParams.set("offer_selector_ids",G),w.searchParams.set("country",x.country),w.searchParams.set("locale",x.locale),w.searchParams.set("landscape",r===Pe.STAGE?"ALL":e.landscape),w.searchParams.set("api_key",i),x.language&&w.searchParams.set("language",x.language),x.promotionCode&&w.searchParams.set("promotion_code",x.promotionCode),x.currency&&w.searchParams.set("currency",x.currency),I=await Ai(w.toString(),{credentials:"omit"}),I.ok){let W=[];try{let z=await I.json();t.debug("Fetched:",x,z),W=z.resolvedOffers??[]}catch(z){t.error(`Error parsing JSON: ${z.message}`,{...z.context,...N?.duration})}W=W.map(ur),v.forEach(({resolve:z},ge)=>{let ke=W.filter(({offerSelectorIds:Ue})=>Ue.includes(ge)).flat();ke.length&&(j.delete(ge),v.delete(ge),z(ke))})}else M=en}catch(W){M=`Network error: ${W.message}`}finally{K=performance.measure(ce,Z),performance.clearMarks(Z),performance.clearMeasures(ce)}if(A&&v.size){t.debug("Missing:",{offerSelectorIds:[...v.keys()]});let W=si(I);v.forEach(z=>{z.reject(new Ne(M,{...x,...W,response:I,measure:Le(K),...N?.duration}))})}}function l(){clearTimeout(o);let x=[...a.values()];a.clear(),x.forEach(({options:v,promises:A})=>c(v,A))}function d(x){if(!x||typeof x!="object")throw new TypeError("Cache must be a Map or similar object");let v=r===Pe.STAGE?"stage":"prod",A=x[v];if(!A||typeof A!="object"){t.warn(`No cache found for environment: ${r}`);return}for(let[N,M]of Object.entries(A))n.set(N,Promise.resolve(M.map(ur)));t.debug(`Prefilled WCS cache with ${A.size} entries`)}function p(){let x=n.size;s=new Map(n),n.clear(),t.debug(`Moved ${x} cache entries to stale cache`)}function u(x,v,A){let N=x!=="GB"&&!A?"MULT":"en",M=hn.includes(x)?x:P.country;return{validCountry:M,validLanguage:N,locale:`${v}_${M}`}}function g({country:x,language:v,perpetual:A=!1,promotionCode:N="",wcsOsi:M=[]}){let{validCountry:w,validLanguage:I,locale:j}=u(x,v,A),G=[w,I,N].filter(X=>X).join("-").toLowerCase();return M.map(X=>{let Z=`${X}-${G}`;if(n.has(Z))return n.get(Z);let ce=new Promise((K,W)=>{let z=a.get(G);z||(z={options:{country:w,locale:j,...I==="MULT"&&{language:I},offerSelectorIds:[]},promises:new Map},a.set(G,z)),N&&(z.options.promotionCode=N),z.options.offerSelectorIds.push(X),z.promises.set(X,{resolve:K,reject:W}),l()}).catch(K=>{if(s.has(Z))return s.get(Z);throw K});return n.set(Z,ce),ce})}return{Commitment:Je,PlanType:Qa,Term:fe,applyPlanType:ur,resolveOfferSelectors:g,flushWcsCacheInternal:p,prefillWcsCache:d,normalizeCountryLanguageAndLocale:u}}var _s="mas-commerce-service",Ts="mas-commerce-service:start",Cs="mas-commerce-service:ready",kr,Rt,Mt,ks,Ps,Zn=class extends HTMLElement{constructor(){super(...arguments);E(this,Mt);E(this,kr);E(this,Rt);m(this,"lastLoggingTime",0)}async registerCheckoutAction(r){typeof r=="function"&&(this.buildCheckoutAction=async(i,n,a)=>{let o=await r?.(i,n,this.imsSignedInPromise,a);return o||null})}get featureFlags(){return h(this,Rt)||y(this,Rt,{[we]:te(this,Mt,Ps).call(this,we)}),h(this,Rt)}activate(){let r=h(this,Mt,ks),i=As(r,this);Qr(r.lana);let n=ue.init(r.hostEnv).module("service");n.debug("Activating:",r);let o={price:ko(i)},s={checkout:new Set,price:new Set},c={literals:o,providers:s,settings:i};Object.defineProperties(this,Object.getOwnPropertyDescriptors({..._o(c),...To(c),...ws(c),...Ss(c),...pn,Log:ue,get defaults(){return P},get log(){return ue},get providers(){return{checkout(d){return s.checkout.add(d),()=>s.checkout.delete(d)},price(d){return s.price.add(d),()=>s.price.delete(d)},has:d=>s.price.has(d)||s.checkout.has(d)}},get settings(){return i}})),n.debug("Activated:",{literals:o,settings:i});let l=new CustomEvent(Zr,{bubbles:!0,cancelable:!1,detail:this});performance.mark(Cs),y(this,kr,performance.measure(Cs,Ts)),this.dispatchEvent(l),setTimeout(()=>{this.logFailedRequests()},1e4)}connectedCallback(){performance.mark(Ts),this.activate()}flushWcsCache(){this.flushWcsCacheInternal(),this.log.debug("Flushed WCS cache")}refreshOffers(){this.flushWcsCacheInternal(),document.querySelectorAll(cr).forEach(r=>r.requestUpdate(!0)),this.log.debug("Refreshed WCS offers"),this.logFailedRequests()}refreshFragments(){this.flushWcsCacheInternal(),customElements.get("aem-fragment")?.cache.clear(),document.querySelectorAll("aem-fragment").forEach(r=>r.refresh(!1)),this.log.debug("Refreshed AEM fragments"),this.logFailedRequests()}get duration(){return{"mas-commerce-service:measure":Le(h(this,kr))}}logFailedRequests(){let r=[...performance.getEntriesByType("resource")].filter(({startTime:n})=>n>this.lastLoggingTime).filter(({transferSize:n,duration:a,responseStatus:o})=>n===0&&a===0&&o<200||o>=400),i=Array.from(new Map(r.map(n=>[n.name,n])).values());if(i.some(({name:n})=>/(\/fragment\?|web_commerce_artifact)/.test(n))){let n=i.map(({name:a})=>a);this.log.error("Failed requests:",{failedUrls:n,...this.duration})}this.lastLoggingTime=performance.now().toFixed(3)}};kr=new WeakMap,Rt=new WeakMap,Mt=new WeakSet,ks=function(){let r=this.getAttribute("env")??"prod",i={commerce:{env:r},hostEnv:{name:r},lana:{tags:this.getAttribute("lana-tags"),sampleRate:parseInt(this.getAttribute("lana-sample-rate")??1,10),isProdDomain:r==="prod"},masIOUrl:this.getAttribute("mas-io-url")};return["locale","country","language","preview"].forEach(n=>{let a=this.getAttribute(n);a&&(i[n]=a)}),["checkout-workflow-step","force-tax-exclusive","checkout-client-id","allow-override","wcs-api-key"].forEach(n=>{let a=this.getAttribute(n);if(a!=null){let o=n.replace(/-([a-z])/g,s=>s[1].toUpperCase());i.commerce[o]=a}}),i},Ps=function(r){return["on","true",!0].includes(this.getAttribute(`data-${r}`)||B(r))};window.customElements.get(_s)||window.customElements.define(_s,Zn);var Pr=class Pr extends hi(HTMLButtonElement){static createCheckoutButton(t={},r=""){return di(Pr,t,r)}setCheckoutUrl(t){this.setAttribute("data-href",t)}get href(){return this.getAttribute("data-href")}get isCheckoutButton(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}this.href&&(window.location.href=this.href)}};m(Pr,"is","checkout-button"),m(Pr,"tag","button");var Ot=Pr;window.customElements.get(Ot.is)||window.customElements.define(Ot.is,Ot,{extends:Ot.tag});function ch(e){return`https://${e==="PRODUCTION"?"www.adobe.com":"www.stage.adobe.com"}/offers/promo-terms.html`}var pt,ht=class ht extends HTMLAnchorElement{constructor(){super();m(this,"masElement",new qe(this));E(this,pt);this.setAttribute("is",ht.is)}get isUptLink(){return!0}initializeWcsData(r,i){this.setAttribute("data-wcs-osi",r),i&&this.setAttribute("data-promotion-code",i)}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),y(this,pt,dt()),h(this,pt)&&(this.log=h(this,pt).log.module("upt-link"))}disconnectedCallback(){this.masElement.disconnectedCallback(),y(this,pt,void 0)}requestUpdate(r=!1){this.masElement.requestUpdate(r)}onceSettled(){return this.masElement.onceSettled()}async render(){let r=dt();if(!r)return!1;this.dataset.imsCountry||r.imsCountryPromise.then(o=>{o&&(this.dataset.imsCountry=o)});let i=r.collectCheckoutOptions({},this);if(!i.wcsOsi)return this.log.error("Missing 'data-wcs-osi' attribute on upt-link."),!1;let n=this.masElement.togglePending(i),a=r.resolveOfferSelectors(i);try{let[[o]]=await Promise.all(a),{country:s,language:c,env:l}=i,d=`locale=${c}_${s}&country=${s}&offer_id=${o.offerId}`,p=this.getAttribute("data-promotion-code");p&&(d+=`&promotion_code=${encodeURIComponent(p)}`),this.href=`${ch(l)}?${d}`,this.masElement.toggleResolved(n,o,i)}catch(o){let s=new Error(`Could not resolve offer selectors for id: ${i.wcsOsi}.`,o.message);return this.masElement.toggleFailed(n,s,i),!1}}static createFrom(r){let i=new ht;for(let n of r.attributes)n.name!=="is"&&(n.name==="class"&&n.value.includes("upt-link")?i.setAttribute("class",n.value.replace("upt-link","").trim()):i.setAttribute(n.name,n.value));return i.innerHTML=r.innerHTML,i.setAttribute("tabindex",0),i}};pt=new WeakMap,m(ht,"is","upt-link"),m(ht,"tag","a"),m(ht,"observedAttributes",["data-wcs-osi","data-promotion-code","data-ims-country"]);var je=ht;window.customElements.get(je.is)||window.customElements.define(je.is,je,{extends:je.tag});R();R();var Q="(max-width: 767px)",ne="(max-width: 1199px)",F="(min-width: 768px)",O="(min-width: 1200px)",se="(min-width: 1600px)",Ks={matchMobile:window.matchMedia(Q),matchDesktop:window.matchMedia(`${O} and (not ${se})`),matchDesktopOrUp:window.matchMedia(O),matchLargeDesktop:window.matchMedia(se),get isMobile(){return this.matchMobile.matches},get isDesktop(){return this.matchDesktop.matches},get isDesktopOrUp(){return this.matchDesktopOrUp.matches}},D=Ks;function Dr(){return Ks.isDesktop}var Qs=b`
     :host {
         --consonant-merch-card-background-color: #fff;
         --consonant-merch-card-border: 1px solid
@@ -7619,11 +877,9 @@ var qs = y`
     ::slotted([slot='price']) {
         color: var(--consonant-merch-card-price-color);
     }
-`,
-    Ws = () => [
-        y`
+`,Zs=()=>[b`
             /* Tablet */
-            @media screen and ${Ve(G)} {
+            @media screen and ${Ae(F)} {
                 :host([size='wide']),
                 :host([size='super-wide']) {
                     width: 100%;
@@ -7632,84 +888,22 @@ var qs = y`
             }
 
             /* Laptop */
-            @media screen and ${Ve(U)} {
+            @media screen and ${Ae(O)} {
                 :host([size='wide']) {
                     grid-column: span 2;
                 }
             }
-        `,
-    ];
-R();
-function nh() {
-    return (
-        customElements.get('sp-tooltip') !== void 0 ||
-        document.querySelector('sp-theme') !== null
-    );
-}
-var Mt = class extends $ {
-    constructor() {
-        super(), (this.size = 'm'), (this.alt = ''), (this.loading = 'lazy');
-    }
-    connectedCallback() {
-        super.connectedCallback(), setTimeout(() => this.handleTooltips(), 0);
-    }
-    handleTooltips() {
-        if (nh()) return;
-        this.querySelectorAll('sp-tooltip, overlay-trigger').forEach((r) => {
-            let i = '',
-                n = 'top';
-            if (r.tagName === 'SP-TOOLTIP')
-                (i = r.textContent), (n = r.getAttribute('placement') || 'top');
-            else if (r.tagName === 'OVERLAY-TRIGGER') {
-                let o = r.querySelector('sp-tooltip');
-                o &&
-                    ((i = o.textContent),
-                    (n =
-                        o.getAttribute('placement') ||
-                        r.getAttribute('placement') ||
-                        'top'));
-            }
-            if (i) {
-                let o = document.createElement('mas-mnemonic');
-                o.setAttribute('content', i), o.setAttribute('placement', n);
-                let a = this.querySelector('img'),
-                    s = this.querySelector('a');
-                s && s.contains(a) ? o.appendChild(s) : a && o.appendChild(a),
-                    (this.innerHTML = ''),
-                    this.appendChild(o),
-                    Promise.resolve().then(() => Ti());
-            }
-            r.remove();
-        });
-    }
-    render() {
-        let { href: t } = this;
-        return t
-            ? g`<a href="${t}">
+        `];R();function gh(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var zt=class extends ${constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(gh())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(r=>{let i="",n="top";if(r.tagName==="SP-TOOLTIP")i=r.textContent,n=r.getAttribute("placement")||"top";else if(r.tagName==="OVERLAY-TRIGGER"){let a=r.querySelector("sp-tooltip");a&&(i=a.textContent,n=a.getAttribute("placement")||r.getAttribute("placement")||"top")}if(i){let a=document.createElement("mas-mnemonic");a.setAttribute("content",i),a.setAttribute("placement",n);let o=this.querySelector("img"),s=this.querySelector("a");s&&s.contains(o)?a.appendChild(s):o&&a.appendChild(o),this.innerHTML="",this.appendChild(a),Promise.resolve().then(()=>Ri())}r.remove()})}render(){let{href:t}=this;return t?f`<a href="${t}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>`
-            : g` <img
+              </a>`:f` <img
                   src="${this.src}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`;
-    }
-};
-u(Mt, 'properties', {
-    size: { type: String, attribute: !0 },
-    src: { type: String, attribute: !0 },
-    alt: { type: String, attribute: !0 },
-    href: { type: String, attribute: !0 },
-    loading: { type: String, attribute: !0 },
-}),
-    u(
-        Mt,
-        'styles',
-        y`
+              />`}};m(zt,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),m(zt,"styles",b`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -7747,125 +941,7 @@ u(Mt, 'properties', {
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `,
-    );
-customElements.define('merch-icon', Mt);
-var Pr,
-    mt,
-    Lr,
-    Rr,
-    Nt,
-    Ci = class extends HTMLElement {
-        constructor() {
-            super();
-            E(this, Pr, '');
-            E(this, mt);
-            E(this, Lr, []);
-            E(this, Rr, []);
-            E(this, Nt);
-            v(
-                this,
-                Nt,
-                vr(() => {
-                    this.isConnected &&
-                        ((this.parentElement.style.background = this.value),
-                        h(this, mt)
-                            ? (this.parentElement.style.borderRadius = h(
-                                  this,
-                                  mt,
-                              ))
-                            : h(this, mt) === '' &&
-                              (this.parentElement.style.borderRadius = ''));
-                }, 1),
-            );
-        }
-        static get observedAttributes() {
-            return ['colors', 'positions', 'angle', 'border-radius'];
-        }
-        get value() {
-            let r = h(this, Lr)
-                .map((i, n) => {
-                    let o = h(this, Rr)[n] || '';
-                    return `${i} ${o}`;
-                })
-                .join(', ');
-            return `linear-gradient(${h(this, Pr)}, ${r})`;
-        }
-        connectedCallback() {
-            h(this, Nt).call(this);
-        }
-        attributeChangedCallback(r, i, n) {
-            r === 'border-radius' && v(this, mt, n?.trim()),
-                r === 'colors' && n
-                    ? v(this, Lr, n?.split(',').map((o) => o.trim()) ?? [])
-                    : r === 'positions' && n
-                      ? v(this, Rr, n?.split(',').map((o) => o.trim()) ?? [])
-                      : r === 'angle' && v(this, Pr, n?.trim() ?? ''),
-                h(this, Nt).call(this);
-        }
-    };
-(Pr = new WeakMap()),
-    (mt = new WeakMap()),
-    (Lr = new WeakMap()),
-    (Rr = new WeakMap()),
-    (Nt = new WeakMap());
-customElements.define('merch-gradient', Ci);
-R();
-var It = class extends $ {
-    constructor() {
-        super(),
-            (this.planType = void 0),
-            (this.checked = !1),
-            (this.updatePlanType = this.updatePlanType.bind(this)),
-            (this.handleChange = this.handleChange.bind(this)),
-            (this.handleCustomClick = this.handleCustomClick.bind(this));
-    }
-    getOsi(t, r) {
-        let o = (
-            {
-                TRIAL: ['TRIAL'],
-                BASE: ['BASE', 'PROMOTION', 'TRIAL'],
-                PROMOTION: ['PROMOTION', 'BASE', 'TRIAL'],
-            }[r] || [r]
-        )
-            .map((s) => `p[data-plan-type="${t}"] ${z}[data-offer-type="${s}"]`)
-            .join(', ');
-        return this.querySelector(o)?.dataset?.wcsOsi;
-    }
-    connectedCallback() {
-        super.connectedCallback(),
-            this.addEventListener(At, this.updatePlanType);
-    }
-    disconnectedCallback() {
-        super.disconnectedCallback(),
-            this.removeEventListener(At, this.updatePlanType);
-    }
-    updatePlanType(t) {
-        if (t.target.tagName !== 'SPAN') return;
-        let r = t.target,
-            i = r?.value?.[0];
-        i &&
-            (r.setAttribute('data-offer-type', i.offerType),
-            r.closest('p').setAttribute('data-plan-type', i.planType));
-    }
-    handleChange(t) {
-        (this.checked = t.target.checked),
-            this.dispatchEvent(
-                new CustomEvent('change', {
-                    detail: { checked: this.checked },
-                    bubbles: !0,
-                    composed: !0,
-                }),
-            );
-    }
-    handleCustomClick() {
-        this.shadowRoot.querySelector('input').click();
-    }
-    handleKeyDown(t) {
-        t.key === ' ' && (t.preventDefault(), this.handleCustomClick());
-    }
-    render() {
-        return g` <input
+    `);customElements.define("merch-icon",zt);var zr,vt,$r,Hr,$t,Mi=class extends HTMLElement{constructor(){super();E(this,zr,"");E(this,vt);E(this,$r,[]);E(this,Hr,[]);E(this,$t);y(this,$t,Tr(()=>{this.isConnected&&(this.parentElement.style.background=this.value,h(this,vt)?this.parentElement.style.borderRadius=h(this,vt):h(this,vt)===""&&(this.parentElement.style.borderRadius=""))},1))}static get observedAttributes(){return["colors","positions","angle","border-radius"]}get value(){let r=h(this,$r).map((i,n)=>{let a=h(this,Hr)[n]||"";return`${i} ${a}`}).join(", ");return`linear-gradient(${h(this,zr)}, ${r})`}connectedCallback(){h(this,$t).call(this)}attributeChangedCallback(r,i,n){r==="border-radius"&&y(this,vt,n?.trim()),r==="colors"&&n?y(this,$r,n?.split(",").map(a=>a.trim())??[]):r==="positions"&&n?y(this,Hr,n?.split(",").map(a=>a.trim())??[]):r==="angle"&&y(this,zr,n?.trim()??""),h(this,$t).call(this)}};zr=new WeakMap,vt=new WeakMap,$r=new WeakMap,Hr=new WeakMap,$t=new WeakMap;customElements.define("merch-gradient",Mi);R();var Ht=class extends ${constructor(){super(),this.planType=void 0,this.checked=!1,this.updatePlanType=this.updatePlanType.bind(this),this.handleChange=this.handleChange.bind(this),this.handleCustomClick=this.handleCustomClick.bind(this)}getOsi(t,r){let a=({TRIAL:["TRIAL"],BASE:["BASE","PROMOTION","TRIAL"],PROMOTION:["PROMOTION","BASE","TRIAL"]}[r]||[r]).map(s=>`p[data-plan-type="${t}"] ${H}[data-offer-type="${s}"]`).join(", ");return this.querySelector(a)?.dataset?.wcsOsi}connectedCallback(){super.connectedCallback(),this.addEventListener(Ct,this.updatePlanType)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(Ct,this.updatePlanType)}updatePlanType(t){if(t.target.tagName!=="SPAN")return;let r=t.target,i=r?.value?.[0];i&&(r.setAttribute("data-offer-type",i.offerType),r.closest("p").setAttribute("data-plan-type",i.planType))}handleChange(t){this.checked=t.target.checked,this.dispatchEvent(new CustomEvent("change",{detail:{checked:this.checked},bubbles:!0,composed:!0}))}handleCustomClick(){this.shadowRoot.querySelector("input").click()}handleKeyDown(t){t.key===" "&&(t.preventDefault(),this.handleCustomClick())}render(){return f` <input
                 type="checkbox"
                 id="addon-checkbox"
                 .checked=${this.checked}
@@ -7883,22 +959,7 @@ var It = class extends $ {
             </span>
             <label id="custom-checkbox-label" for="addon-checkbox">
                 <slot></slot>
-            </label>`;
-    }
-};
-u(It, 'properties', {
-    planType: { type: String, attribute: 'plan-type', reflect: !0 },
-    checked: { type: Boolean, reflect: !0 },
-    customCheckbox: {
-        type: Boolean,
-        attribute: 'custom-checkbox',
-        reflect: !0,
-    },
-}),
-    u(
-        It,
-        'styles',
-        y`
+            </label>`}};m(Ht,"properties",{planType:{type:String,attribute:"plan-type",reflect:!0},checked:{type:Boolean,reflect:!0},customCheckbox:{type:Boolean,attribute:"custom-checkbox",reflect:!0}}),m(Ht,"styles",b`
         :host {
             --merch-addon-gap: 9px;
             --merch-addon-align: start;
@@ -7963,62 +1024,7 @@ u(It, 'properties', {
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `,
-    );
-customElements.define('merch-addon', It);
-R();
-var $t,
-    Or = class Or {
-        constructor(t) {
-            u(this, 'card');
-            E(this, $t);
-            (this.card = t), this.insertVariantStyle();
-        }
-        getContainer() {
-            return (
-                v(
-                    this,
-                    $t,
-                    h(this, $t) ??
-                        this.card.closest('[class*="-merch-cards"]') ??
-                        this.card.parentElement,
-                ),
-                h(this, $t)
-            );
-        }
-        insertVariantStyle() {
-            if (!Or.styleMap[this.card.variant]) {
-                Or.styleMap[this.card.variant] = !0;
-                let t = document.createElement('style');
-                (t.innerHTML = this.getGlobalCSS()),
-                    document.head.appendChild(t);
-            }
-        }
-        updateCardElementMinHeight(t, r) {
-            if (!t) return;
-            let i = `--consonant-merch-card-${this.card.variant}-${r}-height`,
-                n = Math.max(
-                    0,
-                    parseInt(window.getComputedStyle(t).height) || 0,
-                ),
-                o =
-                    parseInt(this.getContainer().style.getPropertyValue(i)) ||
-                    0;
-            n > o && this.getContainer().style.setProperty(i, `${n}px`);
-        }
-        get badge() {
-            let t;
-            if (
-                !(
-                    !this.card.badgeBackgroundColor ||
-                    !this.card.badgeColor ||
-                    !this.card.badgeText
-                )
-            )
-                return (
-                    this.evergreen &&
-                        (t = `border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),
-                    g`
+    `);customElements.define("merch-addon",Ht);R();var Bt,Br=class Br{constructor(t){m(this,"card");E(this,Bt);this.card=t,this.insertVariantStyle()}getContainer(){return y(this,Bt,h(this,Bt)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),h(this,Bt)}insertVariantStyle(){if(!Br.styleMap[this.card.variant]){Br.styleMap[this.card.variant]=!0;let t=document.createElement("style");t.innerHTML=this.getGlobalCSS(),document.head.appendChild(t)}}updateCardElementMinHeight(t,r){if(!t)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),a=parseInt(this.getContainer().style.getPropertyValue(i))||0;n>a&&this.getContainer().style.setProperty(i,`${n}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
@@ -8028,64 +1034,14 @@ var $t,
             >
                 ${this.card.badgeText}
             </div>
-        `
-                );
-        }
-        get cardImage() {
-            return g` <div class="image">
+        `}get cardImage(){return f` <div class="image">
             <slot name="bg-image"></slot>
             ${this.badge}
-        </div>`;
-        }
-        getGlobalCSS() {
-            return '';
-        }
-        get theme() {
-            return document.querySelector('sp-theme');
-        }
-        get evergreen() {
-            return this.card.classList.contains('intro-pricing');
-        }
-        get promoBottom() {
-            return this.card.classList.contains('promo-bottom');
-        }
-        get headingSelector() {
-            return '[slot="heading-xs"]';
-        }
-        get secureLabel() {
-            return this.card.secureLabel
-                ? g`<span class="secure-transaction-label"
+        </div>`}getGlobalCSS(){return""}get theme(){return document.querySelector("sp-theme")}get evergreen(){return this.card.classList.contains("intro-pricing")}get promoBottom(){return this.card.classList.contains("promo-bottom")}get headingSelector(){return'[slot="heading-xs"]'}get secureLabel(){return this.card.secureLabel?f`<span class="secure-transaction-label"
                   >${this.card.secureLabel}</span
-              >`
-                : N;
-        }
-        get secureLabelFooter() {
-            return g`<footer>
+              >`:L}get secureLabelFooter(){return f`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`;
-        }
-        async adjustTitleWidth() {
-            let t = this.card.getBoundingClientRect().width,
-                r = this.card.badgeElement?.getBoundingClientRect().width || 0;
-            t === 0 ||
-                r === 0 ||
-                this.card.style.setProperty(
-                    '--consonant-merch-card-heading-xs-max-width',
-                    `${Math.round(t - r - 16)}px`,
-                );
-        }
-        async postCardUpdateHook() {}
-        connectedCallbackHook() {}
-        disconnectedCallbackHook() {}
-        renderLayout() {}
-        get aemFragmentMapping() {
-            return ki(this.card.variant);
-        }
-    };
-($t = new WeakMap()), u(Or, 'styleMap', {});
-var k = Or;
-R();
-var Ys = `
+        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return Oi(this.card.variant)}};Bt=new WeakMap,m(Br,"styleMap",{});var T=Br;R();var Js=`
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;
@@ -8141,19 +1097,19 @@ merch-card-collection-header.catalog {
     --merch-card-collection-header-search-max-width: 244px;
 }
 
-@media screen and ${le} {
+@media screen and ${Q} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-columns: min-content auto;
     }
 }
 
-@media screen and ${G} {
+@media screen and ${F} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-column-gap: 16px;
     }
 }
 
-@media screen and ${U} {
+@media screen and ${O} {
     :root {
         --consonant-merch-card-catalog-width: 276px;
     }
@@ -8190,12 +1146,17 @@ merch-card[variant="catalog"] [slot="action-menu-content"] ul li {
   line-height: var(--consonant-merch-card-body-line-height);
 }
 
+merch-card[variant="catalog"] [slot="action-menu-content"] ul li p {
+  display: inline;
+}
+
 merch-card[variant="catalog"] [slot="action-menu-content"] ::marker {
   margin-right: 0;
 }
 
 merch-card[variant="catalog"] [slot="action-menu-content"] p {
   color: var(--color-white, #fff);
+  margin: 0;
 }
 
 merch-card[variant="catalog"] [slot="action-menu-content"] a {
@@ -8208,78 +1169,21 @@ merch-card[variant="catalog"] .payment-details {
   font-style: italic;
   font-weight: 400;
   line-height: var(--consonant-merch-card-body-line-height);
-}`;
-var Xs = {
-        badge: !0,
-        ctas: { slot: 'footer', size: 'm' },
-        description: { tag: 'div', slot: 'body-xs' },
-        mnemonics: { size: 'l' },
-        prices: { tag: 'h3', slot: 'heading-xs' },
-        size: ['wide', 'super-wide'],
-        title: { tag: 'h3', slot: 'heading-xs' },
-    },
-    Ht = class extends k {
-        constructor(r) {
-            super(r);
-            u(this, 'dispatchActionMenuToggle', () => {
-                this.card.dispatchEvent(
-                    new CustomEvent(Vi, {
-                        bubbles: !0,
-                        composed: !0,
-                        detail: { card: this.card.name, type: 'action-menu' },
-                    }),
-                );
-            });
-            u(this, 'toggleActionMenu', (r) => {
-                if (
-                    !this.actionMenuContentSlot ||
-                    !r ||
-                    (r.type !== 'click' &&
-                        r.code !== 'Space' &&
-                        r.code !== 'Enter')
-                )
-                    return;
-                r.preventDefault(),
-                    this.actionMenuContentSlot.classList.toggle('hidden');
-                let i = this.actionMenuContentSlot.classList.contains('hidden');
-                i || this.dispatchActionMenuToggle(),
-                    this.setAriaExpanded(this.actionMenu, (!i).toString());
-            });
-            u(this, 'toggleActionMenuFromCard', (r) => {
-                let i = r?.type === 'mouseleave' ? !0 : void 0;
-                this.card.blur(),
-                    this.actionMenu?.classList.remove('always-visible'),
-                    this.actionMenuContentSlot &&
-                        (i || this.dispatchActionMenuToggle(),
-                        this.actionMenuContentSlot.classList.toggle(
-                            'hidden',
-                            i,
-                        ),
-                        this.setAriaExpanded(this.actionMenu, 'false'));
-            });
-            u(this, 'hideActionMenu', (r) => {
-                this.actionMenuContentSlot?.classList.add('hidden'),
-                    this.setAriaExpanded(this.actionMenu, 'false');
-            });
-        }
-        get actionMenu() {
-            return this.card.shadowRoot.querySelector('.action-menu');
-        }
-        get actionMenuContentSlot() {
-            return this.card.shadowRoot.querySelector(
-                'slot[name="action-menu-content"]',
-            );
-        }
-        renderLayout() {
-            return g` <div class="body">
+}
+
+merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
+  font-size: 15px;
+  font-weight: 700;
+}`;var ec={cardName:{attribute:"name"},badge:!0,ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},shortDescription:{tag:"div",slot:"action-menu-content",attributes:{tabindex:"0"}},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"}},Ut=class extends T{constructor(r){super(r);m(this,"dispatchActionMenuToggle",()=>{this.card.dispatchEvent(new CustomEvent(Wi,{bubbles:!0,composed:!0,detail:{card:this.card.name,type:"action-menu"}}))});m(this,"toggleActionMenu",r=>{!this.actionMenuContentSlot||!r||r.type!=="click"&&r.code!=="Space"&&r.code!=="Enter"||(r.preventDefault(),r.stopPropagation(),this.setMenuVisibility(!this.isMenuOpen()))});m(this,"toggleActionMenuFromCard",r=>{let i=r?.type==="mouseleave"?!0:void 0;this.card.blur(),this.setIconVisibility(!1),this.actionMenuContentSlot&&r?.type==="mouseleave"&&this.setMenuVisibility(!1)});m(this,"showActionMenuOnHover",()=>{this.actionMenu&&this.setIconVisibility(!0)});m(this,"hideActionMenu",()=>{this.setMenuVisibility(!1),this.setIconVisibility(!1)});m(this,"hideActionMenuOnBlur",r=>{r.relatedTarget===this.actionMenu||this.actionMenu?.contains(r.relatedTarget)||this.slottedContent?.contains(r.relatedTarget)||(this.isMenuOpen()&&this.setMenuVisibility(!1),this.card.contains(r.relatedTarget)||this.setIconVisibility(!1))});m(this,"handleCardFocusOut",r=>{r.relatedTarget===this.actionMenu||this.actionMenu?.contains(r.relatedTarget)||r.relatedTarget===this.card||(this.slottedContent&&(r.target===this.slottedContent||this.slottedContent.contains(r.target))&&(this.slottedContent.contains(r.relatedTarget)||this.setMenuVisibility(!1)),!this.card.contains(r.relatedTarget)&&!this.isMenuOpen()&&this.setIconVisibility(!1))});m(this,"handleKeyDown",r=>{(r.key==="Escape"||r.key==="Esc")&&(r.preventDefault(),this.hideActionMenu(),this.actionMenu?.focus())})}get actionMenu(){return this.card.shadowRoot.querySelector(".action-menu")}get actionMenuContentSlot(){return this.card.shadowRoot.querySelector('slot[name="action-menu-content"]')}get slottedContent(){return this.card.querySelector('[slot="action-menu-content"]')}setIconVisibility(r){Kn()&&this.card.actionMenu||(this.actionMenu?.classList.toggle("invisible",!r),this.actionMenu?.classList.toggle("always-visible",r))}setMenuVisibility(r){this.actionMenuContentSlot?.classList.toggle("hidden",!r),this.setAriaExpanded(this.actionMenu,r.toString()),r&&(this.dispatchActionMenuToggle(),setTimeout(()=>{let i=this.slottedContent?.querySelector("a");i&&i.focus()},0))}isMenuOpen(){return!this.actionMenuContentSlot?.classList.contains("hidden")}renderLayout(){return f` <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot> ${this.badge}
                     <div
                         class="action-menu
-                ${vs() && this.card.actionMenu ? 'always-visible' : ''}
-                ${this.card.actionMenu ? 'invisible' : 'hidden'}"
+                ${Kn()&&this.card.actionMenu?"always-visible":"invisible"}"
                         @click="${this.toggleActionMenu}"
                         @keypress="${this.toggleActionMenu}"
+                        @focus="${this.showActionMenuOnHover}"
+                        @blur="${this.hideActionMenuOnBlur}"
                         tabindex="0"
                         aria-expanded="false"
                         role="button"
@@ -8290,53 +1194,20 @@ var Xs = {
                 <slot
                     name="action-menu-content"
                     class="action-menu-content
-            ${this.card.actionMenuContent ? '' : 'hidden'}"
-                    @focusout="${this.hideActionMenu}"
+            ${this.card.actionMenuContent?"":"hidden"}"
                     >${this.card.actionMenuContent}
                 </slot>
                 <slot name="heading-xs"></slot>
                 <slot name="heading-m"></slot>
                 <slot name="body-xxs"></slot>
-                ${
-                    this.promoBottom
-                        ? ''
-                        : g`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`
-                }
+                ${this.promoBottom?"":f`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`}
                 <slot name="body-xs"></slot>
-                ${
-                    this.promoBottom
-                        ? g`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`
-                        : ''
-                }
+                ${this.promoBottom?f`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`:""}
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`;
-        }
-        getGlobalCSS() {
-            return Ys;
-        }
-        setAriaExpanded(r, i) {
-            r.setAttribute('aria-expanded', i);
-        }
-        connectedCallbackHook() {
-            this.card.addEventListener(
-                'mouseleave',
-                this.toggleActionMenuFromCard,
-            );
-        }
-        disconnectedCallbackHook() {
-            this.card.removeEventListener(
-                'mouseleave',
-                this.toggleActionMenuFromCard,
-            );
-        }
-    };
-u(
-    Ht,
-    'variantStyle',
-    y`
+            <slot></slot>`}getGlobalCSS(){return Js}setAriaExpanded(r,i){r.setAttribute("aria-expanded",i)}connectedCallbackHook(){this.card.addEventListener("mouseenter",this.showActionMenuOnHover),this.card.addEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.addEventListener("focusin",this.showActionMenuOnHover),this.card.addEventListener("focusout",this.handleCardFocusOut),this.card.addEventListener("keydown",this.handleKeyDown)}disconnectedCallbackHook(){this.card.removeEventListener("mouseenter",this.showActionMenuOnHover),this.card.removeEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.removeEventListener("focusin",this.showActionMenuOnHover),this.card.removeEventListener("focusout",this.handleCardFocusOut),this.card.removeEventListener("keydown",this.handleKeyDown)}};m(Ut,"variantStyle",b`
         :host([variant='catalog']) {
             min-height: 330px;
             width: var(--consonant-merch-card-catalog-width);
@@ -8354,10 +1225,7 @@ u(
             margin-left: var(--consonant-merch-spacing-xxs);
             box-sizing: border-box;
         }
-    `,
-);
-R();
-var Ks = `
+    `);R();var tc=`
 :root {
   --consonant-merch-card-image-width: 300px;
 }
@@ -8369,7 +1237,7 @@ var Ks = `
   grid-template-columns: var(--consonant-merch-card-image-width);
 }
 
-@media screen and ${G} {
+@media screen and ${F} {
   .two-merch-cards.image,
   .three-merch-cards.image,
   .four-merch-cards.image {
@@ -8377,7 +1245,7 @@ var Ks = `
   }
 }
 
-@media screen and ${U} {
+@media screen and ${O} {
   :root {
     --consonant-merch-card-image-width: 378px;
     --consonant-merch-card-image-width-4clm: 276px;
@@ -8391,47 +1259,26 @@ var Ks = `
       grid-template-columns: repeat(4, var(--consonant-merch-card-image-width-4clm));
   }
 }
-`;
-var Pi = class extends k {
-    constructor(t) {
-        super(t);
-    }
-    getGlobalCSS() {
-        return Ks;
-    }
-    renderLayout() {
-        return g`${this.cardImage}
+`;var Ni=class extends T{constructor(t){super(t)}getGlobalCSS(){return tc}renderLayout(){return f`${this.cardImage}
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${
-                    this.promoBottom
-                        ? g`<slot name="body-xs"></slot
-                          ><slot name="promo-text"></slot>`
-                        : g`<slot name="promo-text"></slot
-                          ><slot name="body-xs"></slot>`
-                }
+                ${this.promoBottom?f`<slot name="body-xs"></slot
+                          ><slot name="promo-text"></slot>`:f`<slot name="promo-text"></slot
+                          ><slot name="body-xs"></slot>`}
             </div>
-            ${
-                this.evergreen
-                    ? g`
+            ${this.evergreen?f`
                       <div
                           class="detail-bg-container"
                           style="background: ${this.card.detailBg}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  `
-                    : g`
+                  `:f`
                       <hr />
                       ${this.secureLabelFooter}
-                  `
-            }`;
-    }
-};
-R();
-var Qs = `
+                  `}`}};R();var rc=`
 :root {
   --consonant-merch-card-inline-heading-width: 300px;
 }
@@ -8443,7 +1290,7 @@ var Qs = `
     grid-template-columns: var(--consonant-merch-card-inline-heading-width);
 }
 
-@media screen and ${G} {
+@media screen and ${F} {
   .two-merch-cards.inline-heading,
   .three-merch-cards.inline-heading,
   .four-merch-cards.inline-heading {
@@ -8451,7 +1298,7 @@ var Qs = `
   }
 }
 
-@media screen and ${U} {
+@media screen and ${O} {
   :root {
     --consonant-merch-card-inline-heading-width: 378px;
   }
@@ -8462,21 +1309,12 @@ var Qs = `
   }
 }
 
-@media screen and ${Se} {
+@media screen and ${se} {
   .four-merch-cards.inline-heading {
       grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
   }
 }
-`;
-var Li = class extends k {
-    constructor(t) {
-        super(t);
-    }
-    getGlobalCSS() {
-        return Qs;
-    }
-    renderLayout() {
-        return g` ${this.badge}
+`;var Ii=class extends T{constructor(t){super(t)}getGlobalCSS(){return rc}renderLayout(){return f` ${this.badge}
             <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot>
@@ -8484,11 +1322,7 @@ var Li = class extends k {
                 </div>
                 <slot name="body-xs"></slot>
             </div>
-            ${this.card.customHr ? '' : g`<hr />`} ${this.secureLabelFooter}`;
-    }
-};
-R();
-var Zs = `
+            ${this.card.customHr?"":f`<hr />`} ${this.secureLabelFooter}`}};R();var ic=`
   :root {
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-border-color: #E9E9E9;
@@ -8752,7 +1586,9 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"] .p
   font-weight: 700;
 }
 
-merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] > .price-annual, .price-annual-prefix::after, .price-annual-suffix {
+merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] > .price-annual, 
+merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] > .price-annual-prefix::after, 
+merch-card[variant="mini-compare-chart"].bullet-list [slot="heading-m-price"].annual-price-new-line > span[is="inline-price"] >.price-annual-suffix {
   font-size: var(--consonant-merch-card-body-s-font-size);
   line-height: var(--consonant-merch-card-body-s-line-height);
   font-weight: 400;
@@ -8827,7 +1663,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* mini compare mobile */ 
-@media screen and ${le} {
+@media screen and ${Q} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -8870,7 +1706,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${ge} {
+@media screen and ${ne} {
   merch-card[variant="mini-compare-chart"] [slot="heading-m"] {
     font-size: var(--consonant-merch-card-body-s-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
@@ -8901,7 +1737,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
     line-height: var(--consonant-merch-card-body-s-line-height);
   }
 }
-@media screen and ${G} {
+@media screen and ${F} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -8943,7 +1779,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${O} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 378px;
     --consonant-merch-card-mini-compare-chart-wide-width: 484px;  
@@ -8964,7 +1800,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${Se} {
+@media screen and ${se} {
   .four-merch-cards.mini-compare-chart {
       grid-template-columns: repeat(4, var(--consonant-merch-card-mini-compare-chart-width));
   }
@@ -9005,206 +1841,29 @@ merch-card .footer-row-cell:nth-child(7) {
 merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;
-var oh = 32,
-    Dt = class extends k {
-        constructor(r) {
-            super(r);
-            u(
-                this,
-                'getRowMinHeightPropertyName',
-                (r) => `--consonant-merch-card-footer-row-${r}-min-height`,
-            );
-            u(this, 'getMiniCompareFooter', () => {
-                let r = this.card.secureLabel
-                    ? g`<slot name="secure-transaction-label">
+`;var fh=32,Ft=class extends T{constructor(r){super(r);m(this,"getRowMinHeightPropertyName",r=>`--consonant-merch-card-footer-row-${r}-min-height`);m(this,"getMiniCompareFooter",()=>{let r=this.card.secureLabel?f`<slot name="secure-transaction-label">
                   <span class="secure-transaction-label"
                       >${this.card.secureLabel}</span
                   ></slot
-              >`
-                    : g`<slot name="secure-transaction-label"></slot>`;
-                return g`<footer>${r}<slot name="footer"></slot></footer>`;
-            });
-        }
-        getGlobalCSS() {
-            return Zs;
-        }
-        adjustMiniCompareBodySlots() {
-            if (this.card.getBoundingClientRect().width <= 2) return;
-            this.updateCardElementMinHeight(
-                this.card.shadowRoot.querySelector('.top-section'),
-                'top-section',
-            );
-            let r = [
-                'heading-m',
-                'body-m',
-                'heading-m-price',
-                'body-xxs',
-                'price-commitment',
-                'offers',
-                'promo-text',
-                'callout-content',
-            ];
-            this.card.classList.contains('bullet-list') &&
-                r.push('footer-rows'),
-                r.forEach((n) =>
-                    this.updateCardElementMinHeight(
-                        this.card.shadowRoot.querySelector(`slot[name="${n}"]`),
-                        n,
-                    ),
-                ),
-                this.updateCardElementMinHeight(
-                    this.card.shadowRoot.querySelector('footer'),
-                    'footer',
-                ),
-                this.card.shadowRoot.querySelector('.mini-compare-chart-badge')
-                    ?.textContent !== '' &&
-                    this.getContainer().style.setProperty(
-                        '--consonant-merch-card-mini-compare-chart-top-section-mobile-height',
-                        '32px',
-                    );
-        }
-        adjustMiniCompareFooterRows() {
-            if (this.card.getBoundingClientRect().width === 0) return;
-            let r = this.card.querySelector('[slot="footer-rows"] ul');
-            !r ||
-                !r.children ||
-                [...r.children].forEach((i, n) => {
-                    let o = Math.max(
-                            oh,
-                            parseFloat(window.getComputedStyle(i).height) || 0,
-                        ),
-                        a =
-                            parseFloat(
-                                this.getContainer().style.getPropertyValue(
-                                    this.getRowMinHeightPropertyName(n + 1),
-                                ),
-                            ) || 0;
-                    o > a &&
-                        this.getContainer().style.setProperty(
-                            this.getRowMinHeightPropertyName(n + 1),
-                            `${o}px`,
-                        );
-                });
-        }
-        removeEmptyRows() {
-            this.card.querySelectorAll('.footer-row-cell').forEach((i) => {
-                let n = i.querySelector('.footer-row-cell-description');
-                n && !n.textContent.trim() && i.remove();
-            });
-        }
-        get mainPrice() {
-            return this.card.querySelector(
-                `[slot="heading-m-price"] ${z}[data-template="price"]`,
-            );
-        }
-        get headingMPriceSlot() {
-            return this.card.shadowRoot
-                .querySelector('slot[name="heading-m-price"]')
-                ?.assignedElements()[0];
-        }
-        toggleAddon(r) {
-            let i = this.mainPrice,
-                n = this.headingMPriceSlot;
-            if (!i && n) {
-                let o = r?.getAttribute('plan-type'),
-                    a = null;
-                if (
-                    (r &&
-                        o &&
-                        (a = r
-                            .querySelector(`p[data-plan-type="${o}"]`)
-                            ?.querySelector('span[is="inline-price"]')),
-                    this.card
-                        .querySelectorAll('p[slot="heading-m-price"]')
-                        .forEach((s) => s.remove()),
-                    r.checked)
-                ) {
-                    if (a) {
-                        let s = ne(
-                            'p',
-                            {
-                                class: 'addon-heading-m-price-addon',
-                                slot: 'heading-m-price',
-                            },
-                            a.innerHTML,
-                        );
-                        this.card.appendChild(s);
-                    }
-                } else {
-                    let s = ne(
-                        'p',
-                        {
-                            class: 'card-heading',
-                            id: 'free',
-                            slot: 'heading-m-price',
-                        },
-                        'Free',
-                    );
-                    this.card.appendChild(s);
-                }
-            }
-        }
-        async adjustAddon() {
-            await this.card.updateComplete;
-            let r = this.card.addon;
-            if (!r) return;
-            let i = this.mainPrice,
-                n = this.card.planType;
-            if (
-                (i && (await i.onceSettled(), (n = i.value?.[0]?.planType)), !n)
-            )
-                return;
-            (r.planType = n),
-                this.card
-                    .querySelector('merch-addon[plan-type]')
-                    ?.updateComplete.then(() => {
-                        this.updateCardElementMinHeight(
-                            this.card.shadowRoot.querySelector(
-                                'slot[name="addon"]',
-                            ),
-                            'addon',
-                        );
-                    });
-        }
-        renderLayout() {
-            return g` <div class="top-section${this.badge ? ' badge' : ''}">
+              >`:f`<slot name="secure-transaction-label"></slot>`;return f`<footer>${r}<slot name="footer"></slot></footer>`});this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){this.card.addEventListener(ae,this.updatePriceQuantity)}disconnectedCallbackHook(){this.card.removeEventListener(ae,this.updatePriceQuantity)}updatePriceQuantity({detail:r}){!this.mainPrice||!r?.option||(this.mainPrice.dataset.quantity=r.option)}getGlobalCSS(){return ic}adjustMiniCompareBodySlots(){if(this.card.getBoundingClientRect().width<=2)return;this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(".top-section"),"top-section");let r=["heading-m","body-m","heading-m-price","body-xxs","price-commitment","offers","promo-text","callout-content"];this.card.classList.contains("bullet-list")&&r.push("footer-rows"),r.forEach(n=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${n}"]`),n)),this.updateCardElementMinHeight(this.card.shadowRoot.querySelector("footer"),"footer"),this.card.shadowRoot.querySelector(".mini-compare-chart-badge")?.textContent!==""&&this.getContainer().style.setProperty("--consonant-merch-card-mini-compare-chart-top-section-mobile-height","32px")}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let r=this.card.querySelector('[slot="footer-rows"] ul');!r||!r.children||[...r.children].forEach((i,n)=>{let a=Math.max(fh,parseFloat(window.getComputedStyle(i).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(n+1)))||0;a>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(n+1),`${a}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(i=>{let n=i.querySelector(".footer-row-cell-description");n&&!n.textContent.trim()&&i.remove()})}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${H}[data-template="price"]`)}get headingMPriceSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0]}toggleAddon(r){let i=this.mainPrice,n=this.headingMPriceSlot;if(!i&&n){let a=r?.getAttribute("plan-type"),o=null;if(r&&a&&(o=r.querySelector(`p[data-plan-type="${a}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-m-price"]').forEach(s=>s.remove()),r.checked){if(o){let s=de("p",{class:"addon-heading-m-price-addon",slot:"heading-m-price"},o.innerHTML);this.card.appendChild(s)}}else{let s=de("p",{class:"card-heading",id:"free",slot:"heading-m-price"},"Free");this.card.appendChild(s)}}}async adjustAddon(){await this.card.updateComplete;let r=this.card.addon;if(!r)return;let i=this.mainPrice,n=this.card.planType;if(i&&(await i.onceSettled(),n=i.value?.[0]?.planType),!n)return;r.planType=n,this.card.querySelector("merch-addon[plan-type]")?.updateComplete.then(()=>{this.updateCardElementMinHeight(this.card.shadowRoot.querySelector('slot[name="addon"]'),"addon")})}renderLayout(){return f` <div class="top-section${this.badge?" badge":""}">
                 <slot name="icons"></slot> ${this.badge}
             </div>
             <slot name="heading-m"></slot>
-            ${
-                this.card.classList.contains('bullet-list')
-                    ? g`<slot name="heading-m-price"></slot>
+            ${this.card.classList.contains("bullet-list")?f`<slot name="heading-m-price"></slot>
                       <slot name="price-commitment"></slot>
                       <slot name="body-xxs"></slot>
                       <slot name="promo-text"></slot>
                       <slot name="body-m"></slot>
-                      <slot name="offers"></slot>`
-                    : g`<slot name="body-m"></slot>
+                      <slot name="offers"></slot>`:f`<slot name="body-m"></slot>
                       <slot name="heading-m-price"></slot>
                       <slot name="body-xxs"></slot>
                       <slot name="price-commitment"></slot>
                       <slot name="offers"></slot>
-                      <slot name="promo-text"></slot> `
-            }
+                      <slot name="promo-text"></slot> `}
             <slot name="callout-content"></slot>
             <slot name="addon"></slot>
             ${this.getMiniCompareFooter()}
-            <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
-        }
-        async postCardUpdateHook() {
-            await Promise.all(this.card.prices.map((r) => r.onceSettled())),
-                await this.adjustAddon(),
-                Si()
-                    ? this.removeEmptyRows()
-                    : (this.adjustMiniCompareBodySlots(),
-                      this.adjustMiniCompareFooterRows());
-        }
-    };
-u(
-    Dt,
-    'variantStyle',
-    y`
+            <slot name="footer-rows"><slot name="body-s"></slot></slot>`}async postCardUpdateHook(){await Promise.all(this.card.prices.map(r=>r.onceSettled())),await this.adjustAddon(),D.isMobile?this.removeEmptyRows():(this.adjustMiniCompareBodySlots(),this.adjustMiniCompareFooterRows())}};m(Ft,"variantStyle",b`
         :host([variant='mini-compare-chart']) > slot:not([name='icons']) {
             display: block;
         }
@@ -9263,7 +1922,7 @@ u(
             color: #505050;
         }
 
-        @media screen and ${Ve(ge)} {
+        @media screen and ${Ae(ne)} {
             [class*'-merch-cards']
                 :host([variant='mini-compare-chart'])
                 footer {
@@ -9273,7 +1932,7 @@ u(
             }
         }
 
-        @media screen and ${Ve(U)} {
+        @media screen and ${Ae(O)} {
             :host([variant='mini-compare-chart']) footer {
                 padding: var(--consonant-merch-spacing-xs)
                     var(--consonant-merch-spacing-s)
@@ -9338,14 +1997,11 @@ u(
             slot[name='footer-rows'] {
             justify-content: flex-start;
         }
-    `,
-);
-R();
-var Js = `
+    `);R();var nc=`
 :root {
     --consonant-merch-card-plans-width: 302px;
+    --consonant-merch-card-plans-students-width: 302px;
     --consonant-merch-card-plans-icon-size: 40px;
-    --consonant-merch-card-plans-students-width: 568px;
 }
 
 merch-card[variant^="plans"] {
@@ -9354,12 +2010,16 @@ merch-card[variant^="plans"] {
     width: var(--consonant-merch-card-plans-width);
 }
 
-merch-card[variant^="plans"][size="wide"], merch-card[variant^="plans"][size="super-wide"] {
-    width: auto;
+merch-card[variant^="plans"] merch-badge {
+    max-width: calc(var(--consonant-merch-card-plans-width) * var(--merch-badge-card-size) - var(--merch-badge-with-offset) * 40px - var(--merch-badge-offset) * 48px);
 }
 
 merch-card[variant="plans-students"] {
-    width: 100%;
+    width: var(--consonant-merch-card-plans-students-width);
+}
+
+merch-card[variant^="plans"][size="wide"], merch-card[variant^="plans"][size="super-wide"] {
+    width: auto;
 }
 
 merch-card[variant^="plans"] [slot="icons"] {
@@ -9553,22 +2213,6 @@ merch-card[variant^="plans"] merch-addon span[data-template="price"] {
     display: none;
 }
 
-/* Mobile */
-@media screen and ${le} {
-    merch-whats-included merch-mnemonic-list,
-    merch-whats-included [slot="heading"] {
-        width: 100%;
-    }
-    merch-card[variant="plans-students"] {
-        min-width: var(--consonant-merch-card-plans-width);
-        max-width: var(--consonant-merch-card-plans-students-width);
-        width: 100%;
-    }
-    merch-card[variant="plans-education"] .spacer {
-        height: 0px;
-    }
-}
-
 merch-card[variant^="plans"]:not([size]) {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
@@ -9605,13 +2249,8 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     margin: 0;
 }
 
-.columns.merch-card > .row {
-    grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-plans-width));
-    justify-content: center;
-    align-items: center;
-}
-
 .columns.checkmark-list ul {
+    margin: 0;
     padding-left: 20px;
     list-style-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -3 18 18" height="18px"><path fill="currentcolor" d="M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z"></path></svg>');
 }
@@ -9630,25 +2269,120 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     border-top-color: #EAEAEA;
     border-right-color: #EAEAEA;
 }
+
 #tabs-plan .tab-list-container button[role="tab"][aria-selected="false"]:first-of-type {
     border-left-color: #EAEAEA;
 }
 
+.plans-team {
+    display: grid;
+    grid-template-columns: min-content;
+    justify-content: center;
+}
+
+.plans-team .row-1 {
+    grid-template-columns: repeat(2, calc(var(--consonant-merch-card-plans-width) * 2 + 32px));
+    justify-content: center;
+}
+
+.plans-team .col-2 {
+    align-content: center;
+}
+
+.plans-team .col-2 h3 {
+    font-size: 20px;
+    margin: 0 0 16px;
+}
+
+.plans-team .col-2 p {
+    margin: 0 0 16px;
+}
+
+.plans-team .text .foreground,
+.plans-edu .text .foreground {
+    max-width: unset;
+    margin: 0;
+}
+
+.plans-edu .columns .row {
+    grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-plans-students-width));
+    justify-content: center;
+    align-items: center;
+}
+
+.plans-edu .columns .row-1 {
+    grid-template-columns: var(--consonant-merch-card-plans-students-width);
+    margin-block: var(--spacing-xs);
+}
+
+.plans-edu .columns .row-2 {
+    margin-bottom: 40px;
+}
+
+.plans-edu .columns .row-3 {
+    margin-bottom: 48px;
+}
+
+.plans-edu .col-2 h3 {
+    margin: 0 0 16px;
+    font-size: 20px;
+}
+
+.plans-individual .content,
+.plans-team .content,
+.plans-edu-inst .content {
+    padding-bottom: 48px;
+}
+
+/* Mobile */
+@media screen and ${Q} {
+    merch-whats-included merch-mnemonic-list,
+    merch-whats-included [slot="heading"] {
+        width: 100%;
+    }
+
+    merch-card[variant="plans-education"] .spacer {
+        height: 0px;
+    }
+
+    merch-card[variant^="plans"] merch-badge {
+        max-width: calc(var(--consonant-merch-card-plans-width) - var(--merch-badge-with-offset) * 40px - var(--merch-badge-offset) * 48px);
+    }
+}
+
 /* Tablet */
-@media screen and ${G} {
+@media screen and ${F} {
+    :root {
+        --consonant-merch-card-plans-students-width: 486px;
+    }
+
     .four-merch-cards.plans .foreground {
         max-width: unset;
     }
+}
 
-    .columns.merch-card > .row {
-        grid-template-columns: repeat(auto-fit, calc(var(--consonant-merch-card-plans-width) * 2 + var(--consonant-merch-spacing-m)));
+@media screen and ${ne} {
+    .plans-team .row-1 {
+        grid-template-columns: min-content;
+    }
+
+    .plans-edu-inst {
+        display: grid;
+        grid-template-columns: min-content;
+        justify-content: center;
+    }
+
+    .plans-edu-inst .text .foreground {
+        max-width: unset;
+        margin: 0;
     }
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${O} {
     :root {
         --consonant-merch-card-plans-width: 276px;
+        --consonant-merch-card-plans-students-width: 484px;
     }
 
     merch-sidenav.plans {
@@ -9657,10 +2391,6 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 
     .columns .four-merch-cards.plans {
         grid-template-columns: repeat(2, var(--consonant-merch-card-plans-width));
-    }
-
-    merch-card[variant="plans-students"] {
-        width: var(--consonant-merch-card-plans-students-width);
     }
 
     merch-card-collection-header.plans {
@@ -9675,12 +2405,24 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         transform: translateX(-50vw);
         justify-content: start;
         padding-inline: 30px;
+    }
+
+    .plans-individual .content {
         padding-top: 24px;
+    }
+
+    .plans-edu .columns .row-1 {
+        grid-template-columns: calc(var(--consonant-merch-card-plans-students-width) * 2 + var(--spacing-m));
+    }
+
+    .plans-edu-inst .text .foreground {
+        max-width: 1200px;
+        margin: auto;
     }
 }
 
 /* Large desktop */
-@media screen and ${Se} {
+@media screen and ${se} {
     .columns .four-merch-cards.plans {
         grid-template-columns: repeat(2, var(--consonant-merch-card-plans-width));
     }
@@ -9689,283 +2431,11 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         --merch-sidenav-collection-gap: 54px;
     }
 }
-`;
-var Ri = {
-        cardName: { attribute: 'name' },
-        title: { tag: 'h3', slot: 'heading-xs' },
-        subtitle: { tag: 'p', slot: 'subtitle' },
-        prices: { tag: 'p', slot: 'heading-m' },
-        promoText: { tag: 'p', slot: 'promo-text' },
-        description: { tag: 'div', slot: 'body-xs' },
-        mnemonics: { size: 'l' },
-        callout: { tag: 'div', slot: 'callout-content' },
-        quantitySelect: { tag: 'div', slot: 'quantity-select' },
-        addon: !0,
-        secureLabel: !0,
-        planType: !0,
-        badge: {
-            tag: 'div',
-            slot: 'badge',
-            default: 'spectrum-yellow-300-plans',
-        },
-        allowedBadgeColors: [
-            'spectrum-yellow-300-plans',
-            'spectrum-gray-300-plans',
-            'spectrum-gray-700-plans',
-            'spectrum-green-900-plans',
-        ],
-        allowedBorderColors: [
-            'spectrum-yellow-300-plans',
-            'spectrum-gray-300-plans',
-            'spectrum-green-900-plans',
-        ],
-        borderColor: { attribute: 'border-color' },
-        size: ['wide', 'super-wide'],
-        whatsIncluded: { tag: 'div', slot: 'whats-included' },
-        ctas: { slot: 'footer', size: 'm' },
-        style: 'consonant',
-        perUnitLabel: { tag: 'span', slot: 'per-unit-label' },
-    },
-    ec = {
-        ...(function () {
-            let { whatsIncluded: e, size: t, ...r } = Ri;
-            return r;
-        })(),
-        title: { tag: 'h3', slot: 'heading-s' },
-        secureLabel: !1,
-    },
-    tc = {
-        ...(function () {
-            let {
-                subtitle: e,
-                whatsIncluded: t,
-                size: r,
-                quantitySelect: i,
-                ...n
-            } = Ri;
-            return n;
-        })(),
-    },
-    oe = class extends k {
-        constructor(t) {
-            super(t), (this.adaptForMedia = this.adaptForMedia.bind(this));
-        }
-        priceOptionsProvider(t, r) {
-            t.dataset.template === cn &&
-                (r.displayPlanType =
-                    this.card?.settings?.displayPlanType ?? !1);
-        }
-        getGlobalCSS() {
-            return Js;
-        }
-        adjustSlotPlacement(t, r, i) {
-            let n = this.card.shadowRoot,
-                o = n.querySelector('footer'),
-                a = this.card.getAttribute('size');
-            if (!a) return;
-            let s = n.querySelector(`footer slot[name="${t}"]`),
-                c = n.querySelector(`.body slot[name="${t}"]`),
-                l = n.querySelector('.body');
-            if (
-                (a.includes('wide') ||
-                    (o?.classList.remove('wide-footer'), s && s.remove()),
-                !!r.includes(a))
-            ) {
-                if ((o?.classList.toggle('wide-footer', _i()), !i && s)) {
-                    if (c) s.remove();
-                    else {
-                        let d = l.querySelector(
-                            `[data-placeholder-for="${t}"]`,
-                        );
-                        d ? d.replaceWith(s) : l.appendChild(s);
-                    }
-                    return;
-                }
-                if (i && c) {
-                    let d = document.createElement('div');
-                    if (
-                        (d.setAttribute('data-placeholder-for', t),
-                        d.classList.add('slot-placeholder'),
-                        !s)
-                    ) {
-                        let p = c.cloneNode(!0);
-                        o.prepend(p);
-                    }
-                    c.replaceWith(d);
-                }
-            }
-        }
-        adaptForMedia() {
-            if (
-                !this.card.closest(
-                    'merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns',
-                )
-            ) {
-                this.card.removeAttribute('size');
-                return;
-            }
-            this.adjustSlotPlacement('addon', ['super-wide'], _i()),
-                this.adjustSlotPlacement(
-                    'callout-content',
-                    ['super-wide'],
-                    _i(),
-                );
-        }
-        adjustCallout() {
-            let t = this.card.querySelector(
-                '[slot="callout-content"] .icon-button',
-            );
-            t &&
-                t.title &&
-                ((t.dataset.tooltip = t.title),
-                t.removeAttribute('title'),
-                t.classList.add('hide-tooltip'),
-                document.addEventListener('touchstart', (r) => {
-                    r.preventDefault(),
-                        r.target !== t
-                            ? t.classList.add('hide-tooltip')
-                            : r.target.classList.toggle('hide-tooltip');
-                }),
-                document.addEventListener('mouseover', (r) => {
-                    r.preventDefault(),
-                        r.target !== t
-                            ? t.classList.add('hide-tooltip')
-                            : r.target.classList.remove('hide-tooltip');
-                }));
-        }
-        async adjustEduLists() {
-            if (
-                this.card.variant !== 'plans-education' ||
-                this.card.querySelector('.spacer')
-            )
-                return;
-            let r = this.card.querySelector('[slot="body-xs"]');
-            if (!r) return;
-            let i = r.querySelector('ul');
-            if (!i) return;
-            let n = i.previousElementSibling,
-                o = document.createElement('div');
-            o.classList.add('spacer'), r.insertBefore(o, n);
-            let a = new IntersectionObserver(([s]) => {
-                if (s.boundingClientRect.height === 0) return;
-                let c = 0,
-                    l = this.card.querySelector('[slot="heading-s"]');
-                l && (c += yr(l));
-                let d = this.card.querySelector('[slot="subtitle"]');
-                d && (c += yr(d));
-                let p = this.card.querySelector('[slot="heading-m"]');
-                p && (c += 8 + yr(p));
-                for (let m of r.childNodes) {
-                    if (m.classList.contains('spacer')) break;
-                    c += yr(m);
-                }
-                let f = this.card.parentElement.style.getPropertyValue(
-                    '--merch-card-plans-edu-list-max-offset',
-                );
-                c > (parseFloat(f) || 0) &&
-                    this.card.parentElement.style.setProperty(
-                        '--merch-card-plans-edu-list-max-offset',
-                        `${c}px`,
-                    ),
-                    this.card.style.setProperty(
-                        '--merch-card-plans-edu-list-offset',
-                        `${c}px`,
-                    ),
-                    a.disconnect();
-            });
-            a.observe(this.card);
-        }
-        async postCardUpdateHook() {
-            this.adaptForMedia(),
-                this.adjustTitleWidth(),
-                this.adjustAddon(),
-                this.adjustCallout(),
-                this.legalAdjusted ||
-                    (await this.adjustLegal(), await this.adjustEduLists());
-        }
-        get headingM() {
-            return this.card.querySelector('[slot="heading-m"]');
-        }
-        get mainPrice() {
-            return this.headingM.querySelector(`${z}[data-template="price"]`);
-        }
-        get divider() {
-            return this.card.variant === 'plans-education'
-                ? g`<div class="divider"></div>`
-                : N;
-        }
-        async adjustLegal() {
-            if (!this.legalAdjusted)
-                try {
-                    (this.legalAdjusted = !0),
-                        await this.card.updateComplete,
-                        await customElements.whenDefined('inline-price');
-                    let t = [],
-                        r = this.card.querySelector(
-                            `[slot="heading-m"] ${z}[data-template="price"]`,
-                        );
-                    r && t.push(r);
-                    let i = t.map(async (n) => {
-                        let o = n.cloneNode(!0);
-                        await n.onceSettled(),
-                            n?.options &&
-                                (n.options.displayPerUnit &&
-                                    (n.dataset.displayPerUnit = 'false'),
-                                n.options.displayTax &&
-                                    (n.dataset.displayTax = 'false'),
-                                n.options.displayPlanType &&
-                                    (n.dataset.displayPlanType = 'false'),
-                                o.setAttribute('data-template', 'legal'),
-                                n.parentNode.insertBefore(o, n.nextSibling),
-                                await o.onceSettled());
-                    });
-                    await Promise.all(i);
-                } catch {}
-        }
-        async adjustAddon() {
-            await this.card.updateComplete;
-            let t = this.card.addon;
-            if (!t) return;
-            t.setAttribute('custom-checkbox', '');
-            let r = this.mainPrice;
-            if (!r) return;
-            await r.onceSettled();
-            let i = r.value?.[0]?.planType;
-            i && (t.planType = i);
-        }
-        get stockCheckbox() {
-            return this.card.checkboxLabel
-                ? g`<label id="stock-checkbox">
+`;var Di={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},ac={...function(){let{whatsIncluded:e,size:t,...r}=Di;return r}(),title:{tag:"h3",slot:"heading-s"},secureLabel:!1},oc={...function(){let{subtitle:e,whatsIncluded:t,size:r,quantitySelect:i,...n}=Di;return n}()},he=class extends T{constructor(t){super(t),this.adaptForMedia=this.adaptForMedia.bind(this)}priceOptionsProvider(t,r){t.dataset.template===hr&&(r.displayPlanType=this.card?.settings?.displayPlanType??!1)}getGlobalCSS(){return nc}adjustSlotPlacement(t,r,i){let n=this.card.shadowRoot,a=n.querySelector("footer"),o=this.card.getAttribute("size");if(!o)return;let s=n.querySelector(`footer slot[name="${t}"]`),c=n.querySelector(`.body slot[name="${t}"]`),l=n.querySelector(".body");if(o.includes("wide")||(a?.classList.remove("wide-footer"),s&&s.remove()),!!r.includes(o)){if(a?.classList.toggle("wide-footer",D.isDesktopOrUp),!i&&s){if(c)s.remove();else{let d=l.querySelector(`[data-placeholder-for="${t}"]`);d?d.replaceWith(s):l.appendChild(s)}return}if(i&&c){let d=document.createElement("div");if(d.setAttribute("data-placeholder-for",t),d.classList.add("slot-placeholder"),!s){let p=c.cloneNode(!0);a.prepend(p)}c.replaceWith(d)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns")){this.card.removeAttribute("size");return}this.adjustSlotPlacement("addon",["super-wide"],D.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],D.isDesktopOrUp)}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');t&&t.title&&(t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip"),document.addEventListener("touchstart",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.toggle("hide-tooltip")}),document.addEventListener("mouseover",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.remove("hide-tooltip")}))}async adjustEduLists(){if(this.card.variant!=="plans-education"||this.card.querySelector(".spacer"))return;let r=this.card.querySelector('[slot="body-xs"]');if(!r)return;let i=r.querySelector("ul");if(!i)return;let n=i.previousElementSibling,a=document.createElement("div");a.classList.add("spacer"),r.insertBefore(a,n);let o=new IntersectionObserver(([s])=>{if(s.boundingClientRect.height===0)return;let c=0,l=this.card.querySelector('[slot="heading-s"]');l&&(c+=Cr(l));let d=this.card.querySelector('[slot="subtitle"]');d&&(c+=Cr(d));let p=this.card.querySelector('[slot="heading-m"]');p&&(c+=8+Cr(p));for(let g of r.childNodes){if(g.classList.contains("spacer"))break;c+=Cr(g)}let u=this.card.parentElement.style.getPropertyValue("--merch-card-plans-edu-list-max-offset");c>(parseFloat(u)||0)&&this.card.parentElement.style.setProperty("--merch-card-plans-edu-list-max-offset",`${c}px`),this.card.style.setProperty("--merch-card-plans-edu-list-offset",`${c}px`),o.disconnect()});o.observe(this.card)}async postCardUpdateHook(){this.adaptForMedia(),this.adjustTitleWidth(),this.adjustAddon(),this.adjustCallout(),this.legalAdjusted||(await this.adjustLegal(),await this.adjustEduLists())}get headingM(){return this.card.querySelector('[slot="heading-m"]')}get mainPrice(){return this.headingM.querySelector(`${H}[data-template="price"]`)}get divider(){return this.card.variant==="plans-education"?f`<div class="divider"></div>`:L}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=[],r=this.card.querySelector(`[slot="heading-m"] ${H}[data-template="price"]`);r&&t.push(r);let i=t.map(async n=>{let a=n.cloneNode(!0);await n.onceSettled(),n?.options&&(n.options.displayPerUnit&&(n.dataset.displayPerUnit="false"),n.options.displayTax&&(n.dataset.displayTax="false"),n.options.displayPlanType&&(n.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),n.parentNode.insertBefore(a,n.nextSibling),await a.onceSettled())});await Promise.all(i)}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let r=this.mainPrice;if(!r)return;await r.onceSettled();let i=r.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?f`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>`
-                : N;
-        }
-        get icons() {
-            return !this.card.querySelector('[slot="icons"]') &&
-                !this.card.getAttribute('id')
-                ? N
-                : g`<slot name="icons"></slot>`;
-        }
-        connectedCallbackHook() {
-            let t = wi();
-            t?.addEventListener &&
-                t.addEventListener('change', this.adaptForMedia);
-            let r = Ai();
-            r?.addEventListener &&
-                r.addEventListener('change', this.adaptForMedia);
-        }
-        disconnectedCallbackHook() {
-            let t = wi();
-            t?.removeEventListener &&
-                t.removeEventListener('change', this.adaptForMedia);
-            let r = Ai();
-            r?.removeEventListener &&
-                r.removeEventListener('change', this.adaptForMedia);
-        }
-        renderLayout() {
-            return g` ${this.badge}
+            </label>`:L}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?L:f`<slot name="icons"></slot>`}connectedCallbackHook(){D.matchMobile.addEventListener("change",this.adaptForMedia),D.matchDesktopOrUp.addEventListener("change",this.adaptForMedia)}disconnectedCallbackHook(){D.matchMobile.removeEventListener("change",this.adaptForMedia),D.matchDesktopOrUp.removeEventListener("change",this.adaptForMedia)}renderLayout(){return f` ${this.badge}
             <div class="body">
                 ${this.icons}
                 <slot name="heading-xs"></slot>
@@ -9986,13 +2456,7 @@ var Ri = {
                 <slot name="badge"></slot>
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`;
-        }
-    };
-u(
-    oe,
-    'variantStyle',
-    y`
+            <slot></slot>`}};m(he,"variantStyle",b`
         :host([variant^='plans']) {
             min-height: 273px;
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
@@ -10096,20 +2560,1256 @@ u(
             line-height: 21px;
             padding: 2px 10px 3px;
         }
-    `,
-),
-    u(oe, 'collectionOptions', {
-        customHeaderArea: (t) =>
-            t.sidenav ? g`<slot name="resultsText"></slot>` : N,
-        headerVisibility: {
-            search: !1,
-            sort: !1,
-            result: ['mobile', 'tablet'],
-            custom: ['desktop'],
-        },
-    });
-R();
-var rc = `
+    `),m(he,"collectionOptions",{customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:L,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let r=()=>{let i=t.querySelectorAll("merch-card");for(let a of i)a.hasAttribute("data-size")&&(a.setAttribute("size",a.getAttribute("data-size")),a.removeAttribute("data-size"));if(!D.isDesktop)return;let n=0;for(let a of i){if(a.style.display==="none")continue;let o=a.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&n%3===2&&(a.setAttribute("data-size",o),a.removeAttribute("size"),s=1),n+=s}};D.matchDesktop.addEventListener("change",r),t.addEventListener(et,r),t.onUnmount.push(()=>{D.matchDesktop.removeEventListener("change",r),t.removeEventListener(et,r)})}});R();var sc=`
+:root {
+    --consonant-merch-card-plans-v2-font-family-regular: 'Adobe Clean', 'adobe-clean', sans-serif;
+    --consonant-merch-card-plans-v2-font-family: 'Adobe Clean Display', 'adobe-clean-display', 'Adobe Clean', 'adobe-clean', sans-serif;
+    --consonant-merch-card-plans-v2-width: 276px;
+    --consonant-merch-card-plans-v2-height: auto;
+    --consonant-merch-card-plans-v2-icon-size: 41.5px;
+    --consonant-merch-card-plans-v2-border-color: #E9E9E9;
+    --consonant-merch-card-plans-v2-border-radius: 16px;
+    --picker-up-icon-black: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="10" width="10" viewBox="0 0 10 10"><path d="M5 3L8 6L2 6Z" fill="%222222"/></svg>');
+    --picker-down-icon-black: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="10" width="10" viewBox="0 0 10 10"><path d="M5 7L2 4L8 4Z" fill="%222222"/></svg>');
+    --consonant-merch-spacing-m: 20px;
+    --consonant-merch-card-plans-v2-toggle-background-color: #F8F8F8;
+    --consonant-merch-card-plans-v2-toggle-label-color: #292929;
+    --consonant-merch-card-plans-v2-divider-color: #E8E8E8;
+    --consonant-merch-card-plans-v2-toggle-expanded-background-color: #FFFFFF;
+}
+
+merch-card[variant="plans-v2"] {
+    width: var(--consonant-merch-card-plans-v2-width);
+    height: var(--consonant-merch-card-plans-v2-height);
+    border: 1px solid var(--consonant-merch-card-border-color, var(--consonant-merch-card-plans-v2-border-color));
+    border-radius: var(--consonant-merch-card-plans-v2-border-radius);
+    background-color: var(--spectrum-gray-50, #FFFFFF);
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+}
+
+merch-card[variant="plans-v2"]:has(merch-quantity-select:not([closed])) {
+    z-index: 100;
+}
+
+merch-card[variant="plans-v2"] .spacer {
+    height: calc(var(--merch-card-plans-v2-max-offset) - var(--merch-card-plans-v2-offset));
+}
+
+.dark merch-card[variant="plans-v2"] {
+    --consonant-merch-card-background-color: rgb(20, 24, 38);
+    --consonant-merch-card-border-color: #3D3D3D;
+    --spectrum-gray-800: rgb(242, 242, 242);
+    --spectrum-gray-700: rgb(219, 219, 219);
+    background-color: var(--consonant-merch-card-background-color);
+}
+
+/* Keep "What you get" section white in dark mode */
+.dark merch-card[variant="plans-v2"] merch-whats-included {
+    background-color: #FFFFFF;
+}
+
+.dark merch-card[variant="plans-v2"] [slot="body-xs"] .spectrum-Link.spectrum-Link--primary {
+    color: #FFFFFF;
+}
+
+.dark merch-card[variant="plans-v2"] merch-whats-included h4,
+.dark merch-card[variant="plans-v2"] merch-whats-included ul li {
+    color: #292929;
+}
+.dark merch-card[variant="plans-v2"] [slot="body-xs"] {
+    color: #C6C6C6;
+}
+.dark merch-card[variant="plans-v2"] [slot="quantity-select"] merch-quantity-select {
+  --label-color: #C6C6C6 ;
+}
+
+/* Dark mode heading colors for wide cards */
+.dark merch-card[variant="plans-v2"][size="wide"] [slot^="heading-"],
+.dark merch-card[variant="plans-v2"][size="wide"] span[class^="heading-"],
+.dark merch-card[variant="plans-v2"] span.price-unit-type,
+.dark merch-card[variant="plans-v2"] [slot="heading-m"] .price-recurrence  {
+    color: #B6B6B6;
+}
+
+.dark merch-card[variant="plans-v2"] [slot="heading-m"] span.price.price-strikethrough,
+.dark merch-card[variant="plans-v2"] [slot="heading-m"] s {
+  color: #B6B6B6;
+}
+
+/* Dark mode strikethrough price size for wide cards */
+.dark merch-card[variant="plans-v2"][size="wide"] [slot="heading-m"] span.price.price-strikethrough,
+.dark merch-card[variant="plans-v2"][size="wide"] [slot="heading-m"] s {
+    font-size: 20px;
+}
+
+.dark merch-card[variant="plans-v2"] {
+  --consonant-merch-card-plans-v2-toggle-background-color: var(--consonant-merch-card-background-color);
+  --consonant-merch-card-plans-v2-toggle-expanded-background-color: var(--consonant-merch-card-background-color);
+  --consonant-merch-card-plans-v2-toggle-label-color: #FFFFFF;
+  --consonant-merch-card-plans-v2-divider-color: var(--consonant-merch-card-background-color);
+}
+merch-card[variant="plans-v2"][size="wide"],
+merch-card[variant="plans-v2"][size="super-wide"] {
+    width: 100%;
+    max-width: 768px;
+}
+
+merch-card[variant="plans-v2"] [slot="icons"] {
+    --img-width: var(--consonant-merch-card-plans-v2-icon-size);
+    --img-height: var(--consonant-merch-card-plans-v2-icon-size);
+}
+merch-card[variant="plans-v2"] [slot="heading-m"] .price-recurrence,
+merch-card[variant="plans-v2"] span.price-unit-type {
+    color: #6B6B6B;
+}
+
+merch-card[variant="plans-v2"] span.price-unit-type {
+    display: inline;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 110%;
+}
+
+merch-card[variant="plans-v2"] .price-unit-type:not(.disabled)::before {
+    content: '';
+}
+
+merch-card[variant="plans-v2"] .price-unit-type.disabled,
+merch-card[variant="plans-v2"] .price-tax-inclusivity.disabled {
+    display: none;
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"] .price-unit-type.disabled,
+merch-card[variant="plans-v2"] [slot="heading-m"] .price-tax-inclusivity.disabled {
+    display: none;
+}
+
+merch-card[variant="plans-v2"] s .price-unit-type.disabled,
+merch-card[variant="plans-v2"] s .price-tax-inclusivity.disabled,
+merch-card[variant="plans-v2"] .price-strikethrough .price-unit-type.disabled,
+merch-card[variant="plans-v2"] .price-strikethrough .price-tax-inclusivity.disabled {
+    display: none;
+}
+
+merch-card[variant="plans-v2"] [slot="description"] {
+    min-height: auto;
+}
+
+merch-card[variant="plans-v2"] [slot="description"] {
+    min-height: auto;
+}
+
+merch-card[variant="plans-v2"] [slot="quantity-select"] {}
+
+merch-card[variant="plans-v2"] merch-addon {
+    --merch-addon-gap: 10px;
+    --merch-addon-align: flex-start;
+}
+
+merch-card[variant="plans-v2"] merch-addon span[data-template="price"] {
+    display: inline;
+}
+
+merch-card[variant^="plans-v2"] span[data-template="legal"] {
+    display: inline;
+    color: var(--spectrum-gray-600, #6E6E6E);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.375;
+}
+
+merch-card[variant="plans-v2"] span.text-l {
+    display: inline;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+merch-card[variant="plans-v2"] [slot="callout-content"] {
+    margin: 0;
+}
+
+merch-card[variant="plans-v2"] [slot='callout-content'] > div > div,
+merch-card[variant="plans-v2"] [slot="callout-content"] > p {
+    background: transparent;
+    padding: 0;
+}
+
+merch-card[variant="plans-v2"] [slot="footer"] a {
+    line-height: 1.2;
+    padding: 9px 18px 10px 18px;
+}
+
+merch-card[variant="plans-v2"] [slot="icons"] img {
+    width: var(--consonant-merch-card-plans-v2-icon-size);
+    height: var(--consonant-merch-card-plans-v2-icon-size);
+}
+
+merch-card[variant="plans-v2"] [slot="heading-xs"] {
+    font-size: 28px;
+    font-weight: 900;
+    font-family: var(--consonant-merch-card-plans-v2-font-family);
+    line-height: 1.1;
+    color: var(--spectrum-gray-800, #2C2C2C);
+}
+
+/* Mobile-specific heading-xs styles */
+@media ${Q} {
+    merch-card[variant="plans-v2"] [slot="heading-xs"] {
+        font-size: 28px;
+        font-weight: 800;
+        line-height: 125%;
+        letter-spacing: -0.02em;
+        vertical-align: middle;
+    }
+    merch-card[variant="plans-v2"][size="wide"] [slot="heading-xs"] {
+        font-size: 16px;
+    }
+}
+
+/* Subtitle styling for regular cards */
+merch-card[variant="plans-v2"] [slot="subtitle"] {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--consonant-merch-card-plans-v2-font-family-regular);
+    color: var(--spectrum-gray-800, #2C2C2C);
+    line-height: 23px;
+}
+
+/* Wide card override */
+merch-card[variant="plans-v2"][size="wide"] [slot="subtitle"] {
+    font-family: var(--consonant-merch-card-plans-v2-font-family);
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"] span.price, merch-card[variant="plans-v2"] [slot="heading-m"] p {
+    font-size: 20px;
+    font-weight: 900;
+    font-family: var(--consonant-merch-card-plans-v2-font-family);
+    color: var(--spectrum-gray-800, #2C2C2C);
+    line-height: 1.1;
+}
+
+/* Mobile-specific wide card subtitle styles */
+@media ${Q} {
+    merch-card[variant="plans-v2"][size="wide"] [slot="subtitle"] {
+        font-size: 28px;
+        font-weight: 900;
+        line-height: 1.1;
+        letter-spacing: 0px;
+    }
+
+    merch-card[variant="plans-v2"] span.price-unit-type,
+    merch-card[variant="plans-v2"] [slot="heading-m"] span.price, merch-card[variant="plans-v2"] [slot="heading-m"] p {
+        font-size: 28px;
+    }
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"] {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+    color: inherit;
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"] span.price.price-strikethrough,
+merch-card[variant="plans-v2"] [slot="heading-m"] s {
+    font-size: 20px;
+    color: #6B6B6B;
+    text-decoration: line-through;
+    font-family: var(--consonant-merch-card-plans-v2-font-family-regular);
+    font-weight: 400;
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"]:has(span[is='inline-price'] + span[is='inline-price']) span[is='inline-price'] {
+    display: inline;
+    text-decoration: none;
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"] .price-legal {
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--spectrum-gray-600, #6E6E6E);
+    line-height: 1.375;
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"] .price-recurrence,
+merch-card[variant="plans-v2"] [slot="heading-m"] span[data-template="recurrence"] {
+    text-transform: lowercase;
+    line-height: 1.4;
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"] .price-recurrence:not(.disabled)::after,
+merch-card[variant="plans-v2"] [slot="heading-m"] span[data-template="recurrence"]:not(.disabled)::after {
+    content: ' ';
+    white-space: pre;
+}
+
+merch-card[variant="plans-v2"] [slot="heading-m"] .price-plan-type,
+merch-card[variant="plans-v2"] [slot="heading-m"] span[data-template="planType"] {
+    text-transform: unset;
+    display: block;
+    color: var(--spectrum-gray-700, #505050);
+    font-size: 16px;
+    font-weight: 400;
+    font-family: var(--consonant-merch-card-plans-v2-font-family-regular);
+    line-height: 1.4;
+}
+
+merch-card[variant="plans-v2"] [slot="promo-text"] {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--consonant-merch-card-plans-v2-font-family-regular);
+    color: var(--merch-color-green-promo, #05834E);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+merch-card[variant="plans-v2"] [slot="promo-text"] a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+merch-card[variant="plans-v2"] [slot="body-xs"] {
+    --consonant-merch-card-body-xs-font-size: 18px;
+    font-size: 18px;
+    font-weight: 400;
+    font-family: var(--consonant-merch-card-plans-v2-font-family-regular);
+    color: var(--spectrum-gray-700, #505050);
+    line-height: 1.4;
+}
+
+merch-card[variant="plans-v2"] [slot="quantity-select"] {
+    margin-bottom: 16px;
+}
+
+merch-card[variant="plans-v2"] [slot="quantity-select"] label {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: #464646;
+    margin-bottom: var(--consonant-merch-spacing-xxs);
+}
+
+merch-card[variant="plans-v2"] [slot="quantity-select"] merch-quantity-select {
+    --qs-input-height: 32px;
+    --qs-button-width: 18px;
+    --qs-font-size: 14px;
+    --border-color: #909090;
+    --border-width: 1px;
+    --background-color: #FDFDFD;
+    --qs-label-font-size: 12px;
+    --qs-label-color: #464646;
+    --radius: 4px;
+    --button-width: 29px;
+    --qs-input-width: 59px;
+    --picker-button-border-left: none;
+    --label-color: var(--spectrum-gray-700, #4B4B4B);
+}
+
+merch-card[variant="plans-v2"] [slot="quantity-select"] merch-quantity-select .item.highlighted {
+    background-color: #F6F6F6;
+}
+
+merch-card[variant="plans-v2"] [slot="footer"] {}
+
+merch-card[variant="plans-v2"] [slot="footer"] a {
+    width: auto;
+    min-width: fit-content;
+    text-align: center;
+    padding: 5px 18px 6px 18px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 20px;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+    background-color: #3B63FB;
+    color: #FFFFFF;
+    border: 2px solid #3B63FB;
+    border-radius: 20px;
+    display: inline-flex;
+    max-width: fit-content;
+merch-card[variant="plans-v2"] [slot="footer"] a.con-button.blue {
+    background-color: #1473E6;
+    color: #FFFFFF;
+    border: 2px solid #1473E6;
+    border-radius: 20px;
+}
+
+merch-card[variant="plans-v2"] [slot="footer"] a.con-button.blue:hover {
+    background-color: #0D66D0;
+    border-color: #0D66D0;
+}
+
+merch-card[variant="plans-v2"] [slot="footer"] a.con-button.outline {
+    background-color: transparent;
+    color: #1473E6;
+    border: 2px solid #1473E6;
+}
+
+merch-card[variant="plans-v2"] [slot="footer"] a.con-button.outline:hover {
+    background-color: #F5F5F5;
+}
+
+
+merch-card[variant="plans-v2"] h4 {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--consonant-merch-card-plans-v2-font-family-regular);
+    color: var(--spectrum-gray-800, #292929);
+    line-height: 22px;
+    margin: 0 0 16px 0;
+    align-self: flex-start;  /* Explicit alignment for consistent positioning */
+}
+
+/* Ensure merch-whats-included container is properly aligned */
+merch-card[variant="plans-v2"] merch-whats-included {
+    background-color: #FFFFFF;
+    align-self: stretch;  /* Full width alignment */
+}
+
+merch-card[variant="plans-v2"] ul {
+    padding: 0;
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--consonant-merch-spacing-xxs);
+}
+
+merch-card[variant="plans-v2"] ul li {
+    font-family: var(--consonant-merch-card-plans-v2-font-family-regular);
+    color: #292929;
+    line-height: 140%;
+    display: inline-flex;
+    list-style: none;
+    padding: var(--consonant-merch-spacing-xxs) 0;
+}
+
+merch-card[variant="plans-v2"] ul li::before {
+    display: inline-block;
+    content: var(--list-checked-icon);
+    margin-right: var(--consonant-merch-spacing-xxs);
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+merch-card[variant="plans-v2"] .help-text {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--spectrum-gray-600, #6E6E6E);
+    line-height: 1.5;
+    margin-top: var(--consonant-merch-spacing-xxs);
+}
+
+@media screen and ${Q}, ${ne} {
+    :root {
+        --consonant-merch-card-plans-v2-width: 100%;
+    }
+    merch-card[variant="plans-v2"] {
+        width: 100%;
+        max-width: var(--consonant-merch-card-plans-v2-width);
+        box-sizing: border-box;
+    }
+}
+
+@media screen and ${F}, ${O}, ${se} {
+    :root {
+        --consonant-merch-card-plans-v2-width: 276px;
+    }
+}
+collection-container.plans:has(merch-card[variant="plans-v2"]) {
+    --merch-card-collection-card-min-height: 273px;
+    --merch-card-collection-card-width: var(--consonant-merch-card-plans-v2-width);
+    grid-template-columns: auto;
+}
+
+merch-card-collection-header.plans {
+    --merch-card-collection-header-columns: 1fr fit-content(100%);
+    --merch-card-collection-header-areas: "result filter";
+}
+
+merch-card-collection.plans:is(.one-merch-cards, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="plans-v2"]) {
+    --merch-card-collection-card-width: 100%;
+    display: grid;
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+}
+
+merch-card-collection.plans merch-card[variant="plans-v2"] {
+    width: auto;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 1fr auto;
+}
+
+merch-card-collection.plans merch-card[variant="plans-v2"][has-short-description] {
+    grid-template-rows: min-content min-content auto;
+}
+
+merch-card-collection.plans merch-card[variant="plans-v2"] {
+    height: 100%;
+    align-self: stretch;
+}
+
+merch-card-collection.plans merch-card[variant="plans-v2"] .heading-wrapper {
+    align-items: center;
+    gap: 12px;
+    overflow: visible;
+}
+
+merch-card-collection.plans merch-card[variant="plans-v2"] [slot="icons"] {
+    align-items: center;
+}
+
+merch-card-collection.plans merch-card[variant="plans-v2"] [slot="heading-xs"] {}
+
+merch-card-collection.plans merch-card[variant="plans-v2"] aem-fragment + [slot^="heading-"] {
+    margin-top: calc(40px + var(--consonant-merch-spacing-xxs));
+}
+
+merch-card-collection.plans merch-card[variant="plans-v2"] [slot="short-description"] strong {
+    font-weight: 800;
+    font-size: 18px;
+}
+
+merch-card[variant="plans-v2"][size="wide"] {
+    width: 100%;
+    max-width: 635px;
+}
+
+merch-card[variant="plans-v2"] .price-divider {
+    display: none;
+}
+
+merch-card[variant="plans-v2"][size="wide"] .price-divider {
+    display: block;
+    height: 1px;
+    background-color: #E8E8E8;
+    margin: 16px 0;
+}
+
+merch-card[variant="plans-v2"][size="wide"] .heading-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+}
+
+merch-card[variant="plans-v2"][size="wide"] .heading-wrapper [slot="icons"] {
+    margin-bottom: 0;
+}
+
+merch-card[variant="plans-v2"][size="wide"] .heading-wrapper [slot="heading-xs"] {
+    margin: 0;
+}
+
+merch-card[variant="plans-v2"][size="wide"] [slot="body-xs"] {
+    margin-bottom: 0;
+}
+
+merch-card[variant="plans-v2"][size="wide"] [slot="heading-m"] {
+    margin-top: 0;
+}
+
+merch-card[variant="plans-v2"][size="wide"] [slot="heading-m"] span[data-template="planType"] {
+    font-style: italic;
+}
+
+merch-card[variant="plans-v2"][size="wide"] footer {
+    align-items: flex-start;
+}
+
+merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
+    order: -1;
+    margin-bottom: 16px;
+    align-self: flex-start;
+}
+
+/* Mobile */
+@media screen and ${Q} {
+    merch-whats-included merch-mnemonic-list,
+    merch-whats-included [slot="heading"] {
+        width: 100%;
+    }
+
+    merch-card[variant="plans-v2"] .spacer {
+        display: none;
+    }
+
+    merch-card-collection.plans:is(.one-merch-cards, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="plans-v2"]) {
+        grid-auto-rows: auto;
+    }
+
+    merch-card-collection.plans:is(.one-merch-cards, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="plans-v2"]) {
+        --merch-card-collection-card-width: unset;
+    }
+}
+
+/* Tablet */
+@media screen and ${F} {
+    :root {
+        --consonant-merch-card-plans-v2-width: 360px;
+    }
+    merch-card-collection.plans.four-merch-cards:has(merch-card[variant="plans-v2"]) .foreground {
+        max-width: unset;
+    }
+    merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="plans-v2"]) {
+        grid-template-columns: repeat(2, var(--consonant-merch-card-plans-v2-width));
+    }
+    merch-card[variant="plans-v2"][size="wide"], merch-card[variant="plans-v2"][size="super-wide"]{
+      padding: 55px 47px;
+    }
+}
+
+/* Desktop */
+@media screen and ${O} {
+    :root {
+        --consonant-merch-card-plans-v2-width: 276px;
+    }
+
+    merch-card-collection.plans:is(.three-merch-cards):has(merch-card[variant="plans-v2"]) {
+        grid-template-columns: repeat(3, var(--consonant-merch-card-plans-v2-width));
+    }
+
+    merch-card-collection.plans:is(.four-merch-cards):has(merch-card[variant="plans-v2"]) {
+        grid-template-columns: repeat(4 , var(--consonant-merch-card-plans-v2-width));
+    }
+
+    merch-card-collection-header.plans {
+        --merch-card-collection-header-columns: fit-content(100%);
+        --merch-card-collection-header-areas: "custom";
+    }
+}
+
+/* Large Desktop */
+@media screen and ${se} {
+.columns .four-merch-cards.plans:has(merch-card[variant="plans-v2"]) {
+    grid-template-columns: repeat(2, var(--consonant-merch-card-plans-v2-width));
+  }
+
+}
+`;var cc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},shortDescription:{tag:"p",slot:"short-description"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},Ye=class extends T{constructor(t){super(t),this.adaptForMedia=this.adaptForMedia.bind(this),this.toggleShortDescription=this.toggleShortDescription.bind(this),this.shortDescriptionExpanded=!1,this.syncScheduled=!1}priceOptionsProvider(t,r){if(t.dataset.template===hr){r.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(t.dataset.template==="strikethrough"||t.dataset.template==="price")&&(r.displayPerUnit=!1)}getGlobalCSS(){return sc}adjustSlotPlacement(t,r,i){let{shadowRoot:n}=this.card,a=n.querySelector("footer"),o=n.querySelector(".body"),s=this.card.getAttribute("size");if(!s)return;let c=n.querySelector(`footer slot[name="${t}"]`),l=n.querySelector(`.body slot[name="${t}"]`);if(s.includes("wide")||(a?.classList.remove("wide-footer"),c?.remove()),!!r.includes(s)){if(a?.classList.toggle("wide-footer",D.isDesktopOrUp),!i&&c){if(l)c.remove();else{let d=o.querySelector(`[data-placeholder-for="${t}"]`);d?d.replaceWith(c):o.appendChild(c)}return}if(i&&l){let d=document.createElement("div");d.setAttribute("data-placeholder-for",t),d.classList.add("slot-placeholder"),c||a.prepend(l.cloneNode(!0)),l.replaceWith(d)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards,.columns"))return this.card.hasAttribute("size"),void 0;this.adjustSlotPlacement("heading-m",["wide"],!0),this.adjustSlotPlacement("addon",["super-wide"],D.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],D.isDesktopOrUp)}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');if(!t?.title)return;t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip");let r=i=>{i===t?t.classList.toggle("hide-tooltip"):t.classList.add("hide-tooltip")};document.addEventListener("touchstart",i=>{i.preventDefault(),r(i.target)}),document.addEventListener("mouseover",i=>{i.preventDefault(),i.target!==t?t.classList.add("hide-tooltip"):t.classList.remove("hide-tooltip")})}async postCardUpdateHook(){if(this.card.isConnected&&(this.adaptForMedia(),this.adjustTitleWidth(),this.adjustAddon(),this.adjustCallout(),this.updateShortDescriptionVisibility(),this.hasShortDescription?this.card.setAttribute("has-short-description",""):this.card.removeAttribute("has-short-description"),this.legalAdjusted||await this.adjustLegal(),await this.card.updateComplete,this.card.prices?.length>0&&await Promise.all(this.card.prices.map(t=>t.onceSettled?.()||Promise.resolve())),window.matchMedia("(min-width: 768px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-body-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}get mainPrice(){return this.card.querySelector(`[slot="heading-m"] ${H}[data-template="price"]`)}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.shadowRoot?.querySelector(".body");t&&this.updateCardElementMinHeight(t,"body");let r=this.card.shadowRoot?.querySelector("footer");r&&this.updateCardElementMinHeight(r,"footer");let i=this.card.querySelector('[slot="short-description"]');i&&this.updateCardElementMinHeight(i,"short-description")}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t)return;let r=t.cloneNode(!0);if(await t.onceSettled(),!t?.options)return;t.options.displayPerUnit&&(t.dataset.displayPerUnit="false"),t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),r.setAttribute("data-template","legal"),t.parentNode.insertBefore(r,t.nextSibling),await r.onceSettled()}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let r=this.mainPrice;if(!r)return;await r.onceSettled();let i=r.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?f`<label id="stock-checkbox">
+                <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
+                <span></span>
+                ${this.card.checkboxLabel}
+            </label>`:L}get hasShortDescription(){return!!this.card.querySelector('[slot="short-description"]')}get shortDescriptionLabel(){let t=this.card.querySelector('[slot="short-description"]'),r=t.querySelector("strong, b");if(r?.textContent?.trim())return r.textContent.trim();let i=t.querySelector("h1, h2, h3, h4, h5, h6, p");return i?.textContent?.trim()?i.textContent.trim():t.textContent?.trim().split(`
+`)[0].trim()}updateShortDescriptionVisibility(){let t=this.card.querySelector('[slot="short-description"]');if(!t)return;let r=t.querySelector("strong, b, p");r&&(D.isMobile?r.style.display="none":r.style.display="")}toggleShortDescription(){this.shortDescriptionExpanded=!this.shortDescriptionExpanded,this.card.requestUpdate()}get shortDescriptionToggle(){return this.hasShortDescription?D.isMobile?f`
+            <div class="short-description-divider"></div>
+            <div
+                class="short-description-toggle ${this.shortDescriptionExpanded?"expanded":""}"
+                @click=${this.toggleShortDescription}
+            >
+                <span class="toggle-label">${this.shortDescriptionLabel}</span>
+                <span
+                    class="toggle-icon ${this.shortDescriptionExpanded?"expanded":""}"
+                ></span>
+            </div>
+            <div
+                class="short-description-content ${this.shortDescriptionExpanded?"expanded":""}"
+            >
+                <slot name="short-description"></slot>
+            </div>
+        `:f`
+                <div class="short-description-content desktop">
+                    <slot name="short-description"></slot>
+                </div>
+            `:L}get icons(){return this.card.querySelector('[slot="icons"]')||this.card.getAttribute("id")?f`<slot name="icons"></slot>`:L}get secureLabelFooter(){return f`<footer>
+            ${this.secureLabel}<slot name="quantity-select"></slot
+            ><slot name="footer"></slot>
+        </footer>`}connectedCallbackHook(){this.handleMediaChange=()=>{this.adaptForMedia(),this.updateShortDescriptionVisibility(),this.card.requestUpdate(),window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()})},D.matchMobile.addEventListener("change",this.handleMediaChange),D.matchDesktopOrUp.addEventListener("change",this.handleMediaChange),this.visibilityObserver=new IntersectionObserver(([t])=>{t.boundingClientRect.height!==0&&t.isIntersecting&&(window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()}),this.visibilityObserver.disconnect())}),this.visibilityObserver.observe(this.card)}disconnectedCallbackHook(){D.matchMobile.removeEventListener("change",this.handleMediaChange),D.matchDesktopOrUp.removeEventListener("change",this.handleMediaChange),this.visibilityObserver?.disconnect()}renderLayout(){let r=this.card.getAttribute("size")==="wide";return f` ${this.badge}
+            <div class="body">
+                ${r?f`
+                          <div class="heading-wrapper wide">
+                              ${this.icons}
+                              <slot name="heading-xs"></slot>
+                          </div>
+                          <slot name="subtitle"></slot>
+                          <slot name="body-xs"></slot>
+                          ${this.stockCheckbox}
+                          <slot name="addon"></slot>
+                          <slot name="badge"></slot>
+                          <div class="price-divider"></div>
+                          <slot name="heading-m"></slot>
+                      `:f`
+                          <div class="heading-wrapper">
+                              ${this.icons}
+                              <div class="heading-xs-wrapper">
+                                  <slot name="heading-xs"></slot>
+                                  <slot name="subtitle"></slot>
+                              </div>
+                          </div>
+                          <slot name="heading-m"></slot>
+                          <slot name="body-xs"></slot>
+                          ${this.stockCheckbox}
+                          <slot name="addon"></slot>
+                          <slot name="badge"></slot>
+                      `}
+            </div>
+            ${this.secureLabelFooter} ${this.shortDescriptionToggle}
+            <slot></slot>`}};m(Ye,"variantStyle",b`
+        :host([variant='plans-v2']) {
+            display: flex;
+            flex-direction: column;
+            min-height: 273px;
+            position: relative;
+            background-color: var(--spectrum-gray-50, #ffffff);
+            border-radius: var(
+                --consonant-merch-card-plans-v2-border-radius,
+                8px
+            );
+            overflow: hidden;
+            font-weight: 400;
+            box-sizing: border-box;
+            --consonant-merch-card-plans-v2-font-family: 'adobe-clean-display',
+                'Adobe Clean', sans-serif;
+            --merch-card-plans-v2-min-width: 220px;
+            --merch-card-plans-v2-padding: 24px 24px;
+            --merch-color-green-promo: #05834e;
+            --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23505050' viewBox='0 0 12 15'%3E%3Cpath d='M11.5 6H11V5A5 5 0 1 0 1 5v1H.5a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5ZM3 5a3 3 0 1 1 6 0v1H3Zm4 6.111V12.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1.389a1.5 1.5 0 1 1 2 0Z'/%3E%3C/svg%3E");
+            --list-checked-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' width='20' height='20'%3E%3Cpath fill='%23222222' d='M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z'%3E%3C/path%3E%3C/svg%3E");
+        }
+
+        :host([variant='plans-v2']) .slot-placeholder {
+            display: none;
+        }
+
+        :host([variant='plans-v2']) .body {
+            --merch-card-plans-v2-body-min-height: calc(
+                var(--consonant-merch-card-plans-v2-body-height, 0px) - (24px)
+            );
+            display: flex;
+            flex-direction: column;
+            min-width: var(--merch-card-plans-v2-min-width);
+            padding: var(--merch-card-plans-v2-padding);
+            padding-bottom: 0;
+            flex: 0 0 auto;
+            gap: 12px;
+            min-height: var(--merch-card-plans-v2-body-min-height, auto);
+            width: 220px;
+        }
+
+        :host([variant='plans-v2'][size]) .body {
+            width: auto;
+        }
+
+        :host([variant='plans-v2']) footer {
+            padding: var(--merch-card-plans-v2-padding);
+            min-height: var(
+                --consonant-merch-card-plans-v2-footer-height,
+                auto
+            );
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        :host([variant='plans-v2']) slot[name='subtitle'] {
+            display: var(--merch-card-plans-v2-subtitle-display);
+            min-height: 18px;
+            margin-top: 4px;
+            margin-bottom: -8px;
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='subtitle']) {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--spectrum-gray-700, #505050);
+            line-height: 1.4;
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='heading-xs']) {
+            font-size: 32px;
+            font-weight: 900;
+            font-family: var(
+                --consonant-merch-card-plans-v2-font-family,
+                'Adobe Clean Display',
+                sans-serif
+            );
+            line-height: 1.2;
+            color: var(--spectrum-gray-800, #2c2c2c);
+            margin: 0 0 16px 0;
+            min-height: var(--merch-card-plans-v2-heading-min-height);
+            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
+        }
+
+        :host([variant='plans-v2']) slot[name='icons'] {
+            gap: 3.5px;
+            mask-image: linear-gradient(
+                to right,
+                rgba(0, 0, 0, 1) 0%,
+                rgba(0, 0, 0, 1) 12.5%,
+                rgba(0, 0, 0, 0.8) 25%,
+                rgba(0, 0, 0, 0.6) 37.5%,
+                rgba(0, 0, 0, 0.4) 50%,
+                rgba(0, 0, 0, 0.2) 62.5%,
+                rgba(0, 0, 0, 0.05) 75%,
+                rgba(0, 0, 0, 0.03) 87.5%,
+                rgba(0, 0, 0, 0) 100%
+            );
+            -webkit-mask-image: linear-gradient(
+                to right,
+                rgba(0, 0, 0, 1) 0%,
+                rgba(0, 0, 0, 1) 12.5%,
+                rgba(0, 0, 0, 0.8) 25%,
+                rgba(0, 0, 0, 0.6) 37.5%,
+                rgba(0, 0, 0, 0.4) 50%,
+                rgba(0, 0, 0, 0.2) 62.5%,
+                rgba(0, 0, 0, 0.05) 75%,
+                rgba(0, 0, 0, 0.03) 87.5%,
+                rgba(0, 0, 0, 0) 100%
+            );
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='icons']) {
+            display: flex;
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='heading-m']) {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            font-weight: 800;
+            font-family: var(
+                --consonant-merch-card-plans-v2-font-family,
+                'Adobe Clean Display',
+                sans-serif
+            );
+            line-height: 1.15;
+            color: var(--spectrum-gray-800, #2c2c2c);
+        }
+
+        :host([variant='plans-v2'])
+            ::slotted([slot='heading-m'])
+            span[data-template='legal'] {
+            font-size: 20px;
+            color: var(--spectrum-gray-700, #6b6b6b);
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='promo-text']) {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--merch-color-green-promo, #05834e);
+            line-height: 1.5;
+            margin: 0 0 16px 0;
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='body-xs']) {
+            font-size: 18px;
+            font-weight: 400;
+            font-family: 'Adobe Clean', sans-serif;
+            color: var(--spectrum-gray-700, #505050);
+            line-height: 1.4;
+            margin: 0 0 16px 0;
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='quantity-select']) {
+            margin: 0 0 16px 0;
+        }
+
+        :host([variant='plans-v2']) .spacer {
+            flex: 1 1 auto;
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='whats-included']) {
+            padding-top: 24px;
+            padding-bottom: 24px;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        :host([variant='plans-v2']) ::slotted([slot='addon']) {
+            margin-top: auto;
+            padding-top: 8px;
+        }
+
+        :host([variant='plans-v2']) footer ::slotted([slot='addon']) {
+            margin: 0;
+            padding: 0;
+        }
+
+        :host([variant='plans-v2']) .wide-footer #stock-checkbox {
+            margin-top: 0;
+        }
+
+        :host([variant='plans-v2']) #stock-checkbox {
+            margin-top: 8px;
+            gap: 9px;
+            color: rgb(34, 34, 34);
+            line-height: var(--consonant-merch-card-detail-xs-line-height);
+            padding-top: 4px;
+            padding-bottom: 5px;
+        }
+
+        :host([variant='plans-v2']) #stock-checkbox > span {
+            border: 2px solid rgb(109, 109, 109);
+            width: 12px;
+            height: 12px;
+        }
+
+        :host([variant='plans-v2']) .secure-transaction-label {
+            color: rgb(80, 80, 80);
+            line-height: var(--consonant-merch-card-detail-xs-line-height);
+        }
+
+        :host([variant='plans-v2']) footer ::slotted(a) {
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        :host([variant='plans-v2']) footer ::slotted(a:last-child) {
+            margin-bottom: 0;
+        }
+
+        :host([variant='plans-v2']) .short-description-divider {
+            height: 1px;
+            background-color: var(
+                --consonant-merch-card-plans-v2-divider-color,
+                #e8e8e8
+            );
+            margin: 0;
+        }
+
+        :host([variant='plans-v2']) .short-description-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 32px;
+            cursor: pointer;
+            background-color: var(
+                --consonant-merch-card-plans-v2-toggle-background-color,
+                #f8f8f8
+            );
+            transition: background-color 0.2s ease;
+            border-bottom-left-radius: var(
+                --consonant-merch-card-plans-v2-border-radius
+            );
+            border-bottom-right-radius: var(
+                --consonant-merch-card-plans-v2-border-radius
+            );
+        }
+
+        :host([variant='plans-v2']) .short-description-toggle .toggle-label {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Adobe Clean', sans-serif;
+            color: var(
+                --consonant-merch-card-plans-v2-toggle-label-color,
+                #292929
+            );
+            text-align: left;
+            flex: 1;
+            line-height: 22px;
+        }
+
+        :host([variant='plans-v2']) .short-description-toggle .toggle-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            background-image: url('data:image/svg+xml,<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" fill="%23F8F8F8"/><path d="M14 26C7.38258 26 2 20.6174 2 14C2 7.38258 7.38258 2 14 2C20.6174 2 26 7.38258 26 14C26 20.6174 20.6174 26 14 26ZM14 4.05714C8.51696 4.05714 4.05714 8.51696 4.05714 14C4.05714 19.483 8.51696 23.9429 14 23.9429C19.483 23.9429 23.9429 19.483 23.9429 14C23.9429 8.51696 19.483 4.05714 14 4.05714Z" fill="%23292929"/><path d="M18.5484 12.9484H15.0484V9.44844C15.0484 8.86875 14.5781 8.39844 13.9984 8.39844C13.4188 8.39844 12.9484 8.86875 12.9484 9.44844V12.9484H9.44844C8.86875 12.9484 8.39844 13.4188 8.39844 13.9984C8.39844 14.5781 8.86875 15.0484 9.44844 15.0484H12.9484V18.5484C12.9484 19.1281 13.4188 19.5984 13.9984 19.5984C14.5781 19.5984 15.0484 19.1281 15.0484 18.5484V15.0484H18.5484C19.1281 15.0484 19.5984 14.5781 19.5984 13.9984C19.5984 13.4188 19.1281 12.9484 18.5484 12.9484Z" fill="%23292929"/></svg>');
+            background-size: 28px 28px;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.3s ease;
+        }
+
+        :host([variant='plans-v2'])
+            .short-description-toggle
+            .toggle-icon.expanded {
+            background-image: url('data:image/svg+xml,<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="12" fill="%23292929"/><path d="M14 26C7.38258 26 2 20.6174 2 14C2 7.38258 7.38258 2 14 2C20.6174 2 26 7.38258 26 14C26 20.6174 20.6174 26 14 26ZM14 4.05714C8.51696 4.05714 4.05714 8.51696 4.05714 14C4.05714 19.483 8.51696 23.9429 14 23.9429C19.483 23.9429 23.9429 19.483 23.9429 14C23.9429 8.51696 19.483 4.05714 14 4.05714Z" fill="%23292929"/><path d="M9 14L19 14" stroke="%23F8F8F8" stroke-width="2" stroke-linecap="round"/></svg>');
+        }
+
+        :host([variant='plans-v2']) .short-description-content {
+            max-height: 0;
+            overflow: hidden;
+            transition:
+                max-height 0.3s ease,
+                padding 0.3s ease;
+            padding: 0 32px;
+            background-color: #ffffff;
+        }
+
+        :host([variant='plans-v2']) .short-description-content.expanded {
+            max-height: 500px;
+            padding: 24px 32px;
+            border-bottom-right-radius: 16px;
+            border-bottom-left-radius: 16px;
+        }
+
+        :host([variant='plans-v2']) .short-description-content.desktop {
+            max-height: none;
+            overflow: visible;
+            padding: 26px 24px;
+            transition: none;
+            border-top: 1px solid #e9e9e9;
+            min-height: var(
+                --consonant-merch-card-plans-v2-short-description-height,
+                auto
+            );
+            background-color: #ffffff;
+            border-bottom-left-radius: var(
+                --consonant-merch-card-plans-v2-border-radius
+            );
+            border-bottom-right-radius: var(
+                --consonant-merch-card-plans-v2-border-radius
+            );
+            width: 226px;
+        }
+
+        :host([variant='plans-v2'])
+            .short-description-content
+            ::slotted([slot='short-description']) {
+            font-size: 16px;
+            font-weight: 400;
+            font-family: 'Adobe Clean', sans-serif;
+            color: #292929;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        :host([variant='plans-v2'][border-color='spectrum-yellow-300-plans']) {
+            border-color: #ffd947;
+        }
+
+        :host([variant='plans-v2'][border-color='spectrum-gray-300-plans']) {
+            border-color: #dadada;
+        }
+
+        :host([variant='plans-v2'][border-color='spectrum-green-900-plans']) {
+            border-color: #05834e;
+        }
+
+        :host([variant='plans-v2'][border-color='spectrum-red-700-plans']) {
+            border-color: #eb1000;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
+        }
+
+        :host([variant='plans-v2'])
+            ::slotted([slot='badge'].spectrum-red-700-plans) {
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
+        }
+
+        :host([variant='plans-v2'])
+            ::slotted([slot='badge'].spectrum-yellow-300-plans),
+        :host([variant='plans-v2']) #badge.spectrum-yellow-300-plans {
+            background-color: #ffd947;
+            color: #2c2c2c;
+        }
+
+        :host([variant='plans-v2'])
+            ::slotted([slot='badge'].spectrum-gray-300-plans),
+        :host([variant='plans-v2']) #badge.spectrum-gray-300-plans {
+            background-color: #dadada;
+            color: #2c2c2c;
+        }
+
+        :host([variant='plans-v2'])
+            ::slotted([slot='badge'].spectrum-gray-700-plans),
+        :host([variant='plans-v2']) #badge.spectrum-gray-700-plans {
+            background-color: #4b4b4b;
+            color: #ffffff;
+        }
+
+        :host([variant='plans-v2'])
+            ::slotted([slot='badge'].spectrum-green-900-plans),
+        :host([variant='plans-v2']) #badge.spectrum-green-900-plans {
+            background-color: #05834e;
+            color: #ffffff;
+        }
+
+        :host([variant='plans-v2'])
+            ::slotted([slot='badge'].spectrum-red-700-plans),
+        :host([variant='plans-v2']) #badge.spectrum-red-700-plans {
+            background-color: #eb1000;
+            color: #ffffff;
+        }
+
+        :host([variant='plans-v2']) .price-divider {
+            display: none;
+        }
+
+        :host([variant='plans-v2']) .heading-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        :host([variant='plans-v2'][size='wide']) {
+            width: 100%;
+            max-width: 768px;
+        }
+
+        :host([variant='plans-v2'][size='wide']) .heading-wrapper.wide {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 0;
+        }
+
+        :host([variant='plans-v2'][size='wide'])
+            .heading-wrapper.wide
+            slot[name='icons'] {
+            margin-bottom: 0;
+            mask-image: none;
+            -webkit-mask-image: none;
+            flex-shrink: 0;
+        }
+
+        :host([variant='plans-v2'][size='wide'])
+            .heading-wrapper.wide
+            ::slotted([slot='icons']) {
+            margin-bottom: 0;
+        }
+
+        :host([variant='plans-v2'][size='wide'])
+            .heading-wrapper.wide
+            ::slotted([slot='heading-xs']) {
+            margin: 0;
+            font-size: 27px;
+            font-weight: 800;
+            line-height: 1.25;
+            white-space: nowrap;
+        }
+
+        :host([variant='plans-v2'][size='wide']) slot[name='subtitle'] {
+            display: block;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        :host([variant='plans-v2'][size='wide']) ::slotted([slot='subtitle']) {
+            font-family: var(
+                --consonant-merch-card-plans-v2-font-family,
+                'Adobe Clean Display',
+                'Adobe Clean',
+                sans-serif
+            );
+            font-size: 52px;
+            font-weight: 900;
+            line-height: 1.1;
+            color: var(--spectrum-gray-800, #2c2c2c);
+        }
+
+        :host([variant='plans-v2'][size='wide']) .price-divider {
+            display: block;
+            height: 4px;
+            background-color: #e8e8e8;
+            margin: 24px 0;
+            width: 100%;
+        }
+
+        :host([variant='plans-v2'][size='wide']) ::slotted([slot='body-xs']) {
+            margin-bottom: 0;
+        }
+
+        :host([variant='plans-v2'][size='wide']) ::slotted([slot='heading-m']) {
+            margin-top: 0;
+        }
+
+        :host([variant='plans-v2'][size='wide']) footer {
+            justify-content: flex-start;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        :host([variant='plans-v2'][size='wide'])
+            footer
+            ::slotted([slot='heading-m']) {
+            order: -1;
+            margin-bottom: 16px;
+            align-self: flex-start;
+        }
+
+        :host([variant='plans-v2'][size='wide']) footer ::slotted(a) {
+            width: auto;
+            min-width: 150px;
+            margin-right: 12px;
+            margin-bottom: 0;
+        }
+
+        :host([variant='plans-v2'][size='wide'])
+            footer
+            ::slotted(a:last-child) {
+            margin-right: 0;
+        }
+
+        @media ${Ae(Q)}, ${Ae(ne)} {
+            :host([variant='plans-v2']) {
+                --merch-card-plans-v2-padding: 26px 16px;
+            }
+
+            :host([variant='plans-v2']) .short-description-toggle {
+                padding: 16px;
+            }
+
+            :host([variant='plans-v2']) .short-description-toggle.expanded {
+                background-color: var(
+                    --consonant-merch-card-plans-v2-toggle-expanded-background-color,
+                    #ffffff
+                );
+            }
+
+            :host([variant='plans-v2']) .short-description-content {
+                padding: 0 16px;
+                width: auto !important;
+            }
+
+            :host([variant='plans-v2']) .short-description-content.expanded {
+                padding: 24px 16px;
+            }
+
+            :host([variant='plans-v2'][size='wide']) .body {
+                padding: 16px;
+                width: auto;
+            }
+
+            :host([variant='plans-v2']) .body {
+                width: auto;
+            }
+        }
+
+        /* Keep short-description section white in dark mode */
+        :host-context(.dark)
+            :host([variant='plans-v2'])
+            .short-description-content {
+            background-color: #ffffff;
+            border-bottom-left-radius: var(
+                --consonant-merch-card-plans-v2-border-radius
+            );
+            border-bottom-right-radius: var(
+                --consonant-merch-card-plans-v2-border-radius
+            );
+        }
+
+        :host-context(.dark)
+            :host([variant='plans-v2'])
+            .short-description-content
+            ::slotted([slot='short-description']) {
+            color: #292929;
+        }
+
+        :host-context(.dark)
+            :host([variant='plans-v2'])
+            .short-description-toggle {
+            background-color: #ffffff;
+        }
+
+        :host-context(.dark)
+            :host([variant='plans-v2'])
+            .short-description-toggle
+            .toggle-label {
+            color: #292929;
+        }
+    `),m(Ye,"collectionOptions",{customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:L,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let r=()=>{let i=t.querySelectorAll("merch-card");if(i.forEach(a=>{a.hasAttribute("data-size")&&(a.setAttribute("size",a.getAttribute("data-size")),a.removeAttribute("data-size"))}),!D.isDesktop)return;let n=0;i.forEach(a=>{if(a.style.display==="none")return;let o=a.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&n%3===2&&(a.setAttribute("data-size",o),a.removeAttribute("size"),s=1),n+=s})};D.matchDesktop.addEventListener("change",r),t.addEventListener(et,r),t.onUnmount.push(()=>{D.matchDesktop.removeEventListener("change",r),t.removeEventListener(et,r)})}});R();var lc=`
 :root {
   --consonant-merch-card-product-width: 300px;
 }
@@ -10152,7 +3852,7 @@ var rc = `
 }
 
 /* Tablet */
-@media screen and ${G} {
+@media screen and ${F} {
     .two-merch-cards.product,
     .three-merch-cards.product,
     .four-merch-cards.product {
@@ -10161,7 +3861,7 @@ var rc = `
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${O} {
   :root {
     --consonant-merch-card-product-width: 378px;
     --consonant-merch-card-product-width-4clm: 276px;
@@ -10175,121 +3875,19 @@ var rc = `
       grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
   }
 }
-`;
-var Bt = class extends k {
-    constructor(t) {
-        super(t),
-            (this.postCardUpdateHook = this.postCardUpdateHook.bind(this));
-    }
-    getGlobalCSS() {
-        return rc;
-    }
-    adjustProductBodySlots() {
-        if (this.card.getBoundingClientRect().width === 0) return;
-        [
-            'heading-xs',
-            'body-xxs',
-            'body-xs',
-            'promo-text',
-            'callout-content',
-            'addon',
-            'body-lower',
-        ].forEach((r) =>
-            this.updateCardElementMinHeight(
-                this.card.shadowRoot.querySelector(`slot[name="${r}"]`),
-                r,
-            ),
-        );
-    }
-    renderLayout() {
-        return g` ${this.badge}
+`;var Gt=class extends T{constructor(t){super(t),this.postCardUpdateHook=this.postCardUpdateHook.bind(this),this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}getGlobalCSS(){return lc}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(r=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${r}"]`),r))}renderLayout(){return f` ${this.badge}
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom ? '' : g`<slot name="promo-text"></slot>`}
+                ${this.promoBottom?"":f`<slot name="promo-text"></slot>`}
                 <slot name="body-xs"></slot>
-                ${this.promoBottom ? g`<slot name="promo-text"></slot>` : ''}
+                ${this.promoBottom?f`<slot name="promo-text"></slot>`:""}
                 <slot name="callout-content"></slot>
                 <slot name="addon"></slot>
                 <slot name="body-lower"></slot>
             </div>
-            ${this.secureLabelFooter}`;
-    }
-    connectedCallbackHook() {
-        window.addEventListener('resize', this.postCardUpdateHook);
-    }
-    disconnectedCallbackHook() {
-        window.removeEventListener('resize', this.postCardUpdateHook);
-    }
-    postCardUpdateHook() {
-        this.card.isConnected &&
-            (this.adjustAddon(),
-            Si() || this.adjustProductBodySlots(),
-            this.adjustTitleWidth());
-    }
-    get headingXSSlot() {
-        return this.card.shadowRoot
-            .querySelector('slot[name="heading-xs"]')
-            .assignedElements()[0];
-    }
-    get mainPrice() {
-        return this.card.querySelector(
-            `[slot="heading-xs"] ${z}[data-template="price"]`,
-        );
-    }
-    toggleAddon(t) {
-        let r = this.mainPrice,
-            i = this.headingXSSlot;
-        if (!r && i) {
-            let n = t?.getAttribute('plan-type'),
-                o = null;
-            if (
-                (t &&
-                    n &&
-                    (o = t
-                        .querySelector(`p[data-plan-type="${n}"]`)
-                        ?.querySelector('span[is="inline-price"]')),
-                this.card
-                    .querySelectorAll('p[slot="heading-xs"]')
-                    .forEach((a) => a.remove()),
-                t.checked)
-            ) {
-                if (o) {
-                    let a = ne(
-                        'p',
-                        {
-                            class: 'addon-heading-xs-price-addon',
-                            slot: 'heading-xs',
-                        },
-                        o.innerHTML,
-                    );
-                    this.card.appendChild(a);
-                }
-            } else {
-                let a = ne(
-                    'p',
-                    { class: 'card-heading', id: 'free', slot: 'heading-xs' },
-                    'Free',
-                );
-                this.card.appendChild(a);
-            }
-        }
-    }
-    async adjustAddon() {
-        await this.card.updateComplete;
-        let t = this.card.addon;
-        if (!t) return;
-        let r = this.mainPrice,
-            i = this.card.planType;
-        r && (await r.onceSettled(), (i = r.value?.[0]?.planType)),
-            i && (t.planType = i);
-    }
-};
-u(
-    Bt,
-    'variantStyle',
-    y`
+            ${this.secureLabelFooter}`}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook),this.card.addEventListener(ae,this.updatePriceQuantity)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook),this.card.removeEventListener(ae,this.updatePriceQuantity)}postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),D.isMobile||this.adjustProductBodySlots(),this.adjustTitleWidth())}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${H}[data-template="price"]`)}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}toggleAddon(t){let r=this.mainPrice,i=this.headingXSSlot;if(!r&&i){let n=t?.getAttribute("plan-type"),a=null;if(t&&n&&(a=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(o=>o.remove()),t.checked){if(a){let o=de("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},a.innerHTML);this.card.appendChild(o)}}else{let o=de("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(o)}}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let r=this.mainPrice,i=this.card.planType;r&&(await r.onceSettled(),i=r.value?.[0]?.planType),i&&(t.planType=i)}};m(Gt,"variantStyle",b`
         :host([variant='product']) > slot:not([name='icons']) {
             display: block;
         }
@@ -10322,10 +3920,7 @@ u(
         :host([variant='product']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `,
-);
-R();
-var ic = `
+    `);R();var dc=`
 :root {
   --consonant-merch-card-segment-width: 378px;
 }
@@ -10339,13 +3934,13 @@ var ic = `
 }
 
 /* Mobile */
-@media screen and ${le} {
+@media screen and ${Q} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
 }
 
-@media screen and ${G} {
+@media screen and ${F} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
@@ -10358,7 +3953,7 @@ var ic = `
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${O} {
   :root {
     --consonant-merch-card-segment-width: 302px;
   }
@@ -10371,54 +3966,25 @@ var ic = `
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 }
-`;
-var Ut = class extends k {
-    constructor(t) {
-        super(t);
-    }
-    getGlobalCSS() {
-        return ic;
-    }
-    postCardUpdateHook() {
-        this.adjustTitleWidth();
-    }
-    renderLayout() {
-        return g` ${this.badge}
+`;var qt=class extends T{constructor(t){super(t)}getGlobalCSS(){return dc}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return f` ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${
-                    this.promoBottom
-                        ? ''
-                        : g`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`
-                }
+                ${this.promoBottom?"":f`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`}
                 <slot name="body-xs"></slot>
-                ${
-                    this.promoBottom
-                        ? g`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`
-                        : ''
-                }
+                ${this.promoBottom?f`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`:""}
             </div>
             <hr />
-            ${this.secureLabelFooter}`;
-    }
-};
-u(
-    Ut,
-    'variantStyle',
-    y`
+            ${this.secureLabelFooter}`}};m(qt,"variantStyle",b`
         :host([variant='segment']) {
             min-height: 214px;
         }
         :host([variant='segment']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `,
-);
-R();
-var nc = `
+    `);R();var hc=`
 :root {
   --consonant-merch-card-special-offers-width: 378px;
 }
@@ -10435,13 +4001,13 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
   grid-template-columns: minmax(300px, var(--consonant-merch-card-special-offers-width));
 }
 
-@media screen and ${le} {
+@media screen and ${Q} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
 } 
   
-@media screen and ${G} {
+@media screen and ${F} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
@@ -10454,66 +4020,36 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
 }
 
 /* desktop */
-@media screen and ${U} {
+@media screen and ${O} {
   .three-merch-cards.special-offers,
   .four-merch-cards.special-offers {
     grid-template-columns: repeat(3, minmax(300px, var(--consonant-merch-card-special-offers-width)));
   }
 }
 
-@media screen and ${Se} {
+@media screen and ${se} {
   .four-merch-cards.special-offers {
     grid-template-columns: repeat(4, minmax(300px, var(--consonant-merch-card-special-offers-width)));
   }
 }
-`;
-var oc = {
-        name: { tag: 'h4', slot: 'detail-m' },
-        title: { tag: 'h4', slot: 'detail-m' },
-        backgroundImage: { tag: 'div', slot: 'bg-image' },
-        prices: { tag: 'h3', slot: 'heading-xs' },
-        description: { tag: 'div', slot: 'body-xs' },
-        ctas: { slot: 'footer', size: 'l' },
-    },
-    zt = class extends k {
-        constructor(t) {
-            super(t);
-        }
-        getGlobalCSS() {
-            return nc;
-        }
-        get headingSelector() {
-            return '[slot="detail-m"]';
-        }
-        renderLayout() {
-            return g`${this.cardImage}
+`;var pc={name:{tag:"h4",slot:"detail-m"},title:{tag:"h4",slot:"detail-m"},backgroundImage:{tag:"div",slot:"bg-image"},prices:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"}},Vt=class extends T{constructor(t){super(t)}getGlobalCSS(){return hc}get headingSelector(){return'[slot="detail-m"]'}renderLayout(){return f`${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xs"></slot>
             </div>
-            ${
-                this.evergreen
-                    ? g`
+            ${this.evergreen?f`
                       <div
                           class="detail-bg-container"
                           style="background: ${this.card.detailBg}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
-                  `
-                    : g`
+                  `:f`
                       <hr />
                       ${this.secureLabelFooter}
-                  `
-            }
-            <slot></slot>`;
-        }
-    };
-u(
-    zt,
-    'variantStyle',
-    y`
+                  `}
+            <slot></slot>`}};m(Vt,"variantStyle",b`
         :host([variant='special-offers']) {
             min-height: 439px;
         }
@@ -10525,10 +4061,7 @@ u(
         :host([variant='special-offers'].center) {
             text-align: center;
         }
-    `,
-);
-R();
-var ac = `
+    `);R();var mc=`
 :root {
     --merch-card-simplified-pricing-express-width: 311px;
 }
@@ -10558,11 +4091,42 @@ merch-card-collection.simplified-pricing-express p {
 }
 
 /* Desktop - 3 columns */
-@media screen and ${U} {
+@media screen and ${O} {
     merch-card-collection.simplified-pricing-express {
         grid-template-columns: repeat(3, 1fr);
         max-width: calc(3 * var(--merch-card-simplified-pricing-express-width) + 32px);
         margin: 0 auto;
+    }
+
+    /* Apply synchronized heights to slots using CSS variables */
+    merch-card[variant="simplified-pricing-express"] [slot="body-xs"] {
+        min-height: var(--consonant-merch-card-simplified-pricing-express-description-height);
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Push paragraph with mnemonics to the bottom using :has() */
+    merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:has(mas-mnemonic) {
+        margin-top: auto;
+        padding-top: 16px;
+    }
+
+    /* Fallback for browsers without :has() support - target last paragraph */
+    @supports not selector(:has(*)) {
+        merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:last-child {
+            margin-top: auto;
+            padding-top: 16px;
+        }
+    }
+
+    /* Additional fallback - if second paragraph exists, assume it has mnemonics */
+    merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2) {
+        margin-top: auto;
+        padding-top: 16px;
+    }
+
+    merch-card[variant="simplified-pricing-express"] [slot="price"] {
+        min-height: var(--consonant-merch-card-simplified-pricing-express-price-height);
     }
 }
 
@@ -10583,6 +4147,7 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] {
     line-height: var(--merch-card-simplified-pricing-express-body-xs-line-height, 18.2px);
     color: var(--spectrum-gray-700);
     margin-bottom: 32px;
+    justify-content: space-between;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="cta"] {
@@ -10741,7 +4306,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 /* Tooltip containers - overflow handled by Shadow DOM */
 
 /* Mobile styles */
-@media screen and ${le} {
+@media screen and ${Q} {
   merch-card-collection.simplified-pricing-express {
     gap: 8px;
   }
@@ -10776,7 +4341,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Collapse/expand styles for all tablet and mobile viewports */
-@media screen and ${ge} {
+@media screen and ${ne} {
   /* Collapsed state - hide content sections */
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="price"],
@@ -10816,7 +4381,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 }
 
 /* Tablet styles - extending mobile styles with specific adjustments */
-@media screen and ${G} and ${ge} {
+@media screen and ${F} and ${ne} {
   merch-card-collection.simplified-pricing-express {
     padding: var(--spacing-m) 32px;
     grid-template-columns: 1fr;
@@ -10844,111 +4409,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] button.spectrum-Bu
 merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent .spectrum-Button-label {
     color: var(--spectrum-white, #ffffff);
 }
-`;
-var Oi = () => window.matchMedia(ge).matches,
-    fo = {
-        title: { tag: 'h3', slot: 'heading-xs', maxCount: 250, withSuffix: !0 },
-        badge: { tag: 'div', slot: 'badge', default: 'spectrum-blue-400' },
-        allowedBadgeColors: [
-            'spectrum-blue-400',
-            'spectrum-gray-300',
-            'spectrum-yellow-300',
-            'gradient-purple-blue',
-            'gradient-firefly-spectrum',
-        ],
-        description: {
-            tag: 'div',
-            slot: 'body-xs',
-            maxCount: 2e3,
-            withSuffix: !1,
-        },
-        prices: { tag: 'div', slot: 'price' },
-        ctas: { slot: 'cta', size: 'XL' },
-        borderColor: {
-            attribute: 'border-color',
-            specialValues: {
-                gray: 'var(--spectrum-gray-300)',
-                blue: 'var(--spectrum-blue-400)',
-                'gradient-purple-blue':
-                    'linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)',
-                'gradient-firefly-spectrum':
-                    'linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)',
-            },
-        },
-        disabledAttributes: [
-            'badgeColor',
-            'badgeBorderColor',
-            'trialBadgeColor',
-            'trialBadgeBorderColor',
-        ],
-        supportsDefaultChild: !0,
-    },
-    Ft = class extends k {
-        getGlobalCSS() {
-            return ac;
-        }
-        get aemFragmentMapping() {
-            return fo;
-        }
-        get headingSelector() {
-            return '[slot="heading-xs"]';
-        }
-        connectedCallbackHook() {
-            !this.card ||
-                this.card.failed ||
-                (this.setupAccordion(),
-                requestAnimationFrame(() => {
-                    this.card?.hasAttribute('data-default-card') &&
-                        Oi() &&
-                        this.card.setAttribute('data-expanded', 'true');
-                }));
-        }
-        setupAccordion() {
-            let t = this.card;
-            if (!t) return;
-            let r = () => {
-                if (Oi()) {
-                    let n = t.hasAttribute('data-default-card');
-                    t.setAttribute('data-expanded', n ? 'true' : 'false');
-                } else t.removeAttribute('data-expanded');
-            };
-            r();
-            let i = window.matchMedia(ge);
-            (this.mediaQueryListener = () => {
-                r();
-            }),
-                i.addEventListener('change', this.mediaQueryListener),
-                (this.attributeObserver = new MutationObserver((n) => {
-                    n.forEach((o) => {
-                        o.type === 'attributes' &&
-                            o.attributeName === 'data-default-card' &&
-                            this.card.hasAttribute('data-default-card') &&
-                            Oi() &&
-                            this.card.setAttribute('data-expanded', 'true');
-                    });
-                })),
-                this.attributeObserver.observe(this.card, {
-                    attributes: !0,
-                    attributeOldValue: !0,
-                });
-        }
-        disconnectedCallbackHook() {
-            this.mediaQueryListener &&
-                window
-                    .matchMedia(ge)
-                    .removeEventListener('change', this.mediaQueryListener),
-                this.attributeObserver && this.attributeObserver.disconnect();
-        }
-        handleChevronClick(t) {
-            t.preventDefault(), t.stopPropagation();
-            let r = this.card;
-            if (!r || !Oi()) return;
-            let o =
-                r.getAttribute('data-expanded') === 'true' ? 'false' : 'true';
-            r.setAttribute('data-expanded', o);
-        }
-        renderLayout() {
-            return g`
+`;var xa={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},jt=class extends T{getGlobalCSS(){return mc}get aemFragmentMapping(){return xa}get headingSelector(){return'[slot="heading-xs"]'}syncHeights(){if(this.card.getBoundingClientRect().width===0)return;let t=this.card.querySelector('[slot="body-xs"]');t&&this.updateCardElementMinHeight(t,"description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,this.card.prices?.length&&await Promise.all(this.card.prices.map(t=>t.onceSettled?.())),Dr())){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-description-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),this.card?.hasAttribute("data-default-card")&&!Dr()&&this.card.setAttribute("data-expanded","true"))}setupAccordion(){let t=this.card;if(!t)return;let r=()=>{if(Dr())t.removeAttribute("data-expanded");else{let n=t.hasAttribute("data-default-card");t.setAttribute("data-expanded",n?"true":"false")}};r();let i=window.matchMedia(ne);this.mediaQueryListener=()=>{r()},i.addEventListener("change",this.mediaQueryListener)}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(ne).removeEventListener("change",this.mediaQueryListener)}handleChevronClick(t){t.preventDefault(),t.stopPropagation();let r=this.card;if(!r||Dr())return;let a=r.getAttribute("data-expanded")==="true"?"false":"true";r.setAttribute("data-expanded",a)}renderLayout(){return f`
             <div class="badge-wrapper">
                 <slot name="badge"></slot>
             </div>
@@ -10958,7 +4419,7 @@ var Oi = () => window.matchMedia(ge).matches,
                     <slot name="trial-badge"></slot>
                     <button
                         class="chevron-button"
-                        @click=${(t) => this.handleChevronClick(t)}
+                        @click=${t=>this.handleChevronClick(t)}
                     >
                         <svg
                             class="chevron-icon"
@@ -10986,23 +4447,12 @@ var Oi = () => window.matchMedia(ge).matches,
                 </div>
             </div>
             <slot></slot>
-        `;
-        }
-    };
-u(
-    Ft,
-    'variantStyle',
-    y`
+        `}};m(jt,"variantStyle",b`
         :host([variant='simplified-pricing-express']) {
-            /* CSS Variables */
             --merch-card-simplified-pricing-express-width: 365px;
-            --merch-card-simplified-pricing-express-tablet-width: 532px;
             --merch-card-simplified-pricing-express-padding: 24px;
             --merch-card-simplified-pricing-express-padding-mobile: 16px;
-            --merch-card-simplified-pricing-express-min-height: 341px;
             --merch-card-simplified-pricing-express-price-font-size: 28px;
-            --merch-card-simplified-pricing-express-price-p-font-size: 12px;
-            --merch-card-simplified-pricing-express-price-p-line-height: 15.6px;
             --merch-card-simplified-pricing-express-price-font-weight: 700;
             --merch-card-simplified-pricing-express-price-line-height: 36.4px;
             --merch-card-simplified-pricing-express-price-currency-font-size: 22px;
@@ -11047,7 +4497,6 @@ u(
             position: relative;
         }
 
-        /* Badge wrapper styling */
         :host([variant='simplified-pricing-express']) .badge-wrapper {
             padding: 4px 12px;
             border-radius: 8px 8px 0 0;
@@ -11063,12 +4512,6 @@ u(
             justify-content: center;
         }
 
-        /* Hide badge wrapper when empty */
-        :host([variant='simplified-pricing-express']) .badge-wrapper:empty {
-            display: none;
-        }
-
-        /* Also hide when badge slot is empty */
         :host(
                 [variant='simplified-pricing-express']:not(
                         :has([slot='badge']:not(:empty))
@@ -11078,7 +4521,6 @@ u(
             display: none;
         }
 
-        /* Card content styling */
         :host([variant='simplified-pricing-express']) .card-content {
             border-radius: 8px;
             padding: var(--merch-card-simplified-pricing-express-padding);
@@ -11089,7 +4531,6 @@ u(
             position: relative;
         }
 
-        /* Ensure content appears above pseudo-element background */
         :host([variant='simplified-pricing-express']) .card-content > * {
             position: relative;
         }
@@ -11108,7 +4549,6 @@ u(
                 );
         }
 
-        /* Collapsed state for non-gradient cards */
         :host(
                 [variant='simplified-pricing-express']:not(
                         [gradient-border='true']
@@ -11118,7 +4558,6 @@ u(
             overflow: hidden;
         }
 
-        /* When badge exists, adjust card content border radius */
         :host(
                 [variant='simplified-pricing-express']:has(
                         [slot='badge']:not(:empty)
@@ -11129,7 +4568,6 @@ u(
             border-top-right-radius: 0;
         }
 
-        /* When badge exists with regular border, ensure top border */
         :host(
                 [variant='simplified-pricing-express']:not(
                         [gradient-border='true']
@@ -11143,7 +4581,6 @@ u(
                 );
         }
 
-        /* When badge has content, ensure seamless connection */
         :host(
                 [variant='simplified-pricing-express']:has(
                         [slot='badge']:not(:empty)
@@ -11153,7 +4590,6 @@ u(
             margin-bottom: -2px;
         }
 
-        /* Common gradient border styles */
         :host([variant='simplified-pricing-express'][gradient-border='true'])
             .badge-wrapper {
             border: none;
@@ -11169,7 +4605,6 @@ u(
 
         :host([variant='simplified-pricing-express'][gradient-border='true'])
             .card-content {
-            position: relative;
             border: none;
             padding: calc(
                 var(--merch-card-simplified-pricing-express-padding) + 2px
@@ -11191,7 +4626,6 @@ u(
             pointer-events: none;
         }
 
-        /* Gradient-specific backgrounds */
         :host(
                 [variant='simplified-pricing-express'][border-color='gradient-purple-blue']
             )
@@ -11214,7 +4648,6 @@ u(
             background: var(--gradient-firefly-spectrum);
         }
 
-        /* When gradient and badge exist, keep rounded corners for smooth transition */
         :host(
                 [variant='simplified-pricing-express'][gradient-border='true']:has(
                         [slot='badge']:not(:empty)
@@ -11243,7 +4676,6 @@ u(
             gap: 8px;
         }
 
-        /* Font specifications for heading and body */
         :host([variant='simplified-pricing-express']) [slot='heading-xs'] {
             font-size: 18px;
             font-weight: 700;
@@ -11266,10 +4698,12 @@ u(
 
         /* Desktop only - Fixed heights for alignment */
         @media (min-width: 1200px) {
-            :host([variant='simplified-pricing-express']) {
-                display: flex;
-                flex-direction: column;
-                height: auto;
+            :host([variant='simplified-pricing-express']) .card-content {
+                height: 100%;
+            }
+
+            :host([variant='simplified-pricing-express']) .description {
+                flex: 1;
             }
 
             :host([variant='simplified-pricing-express']) .cta {
@@ -11368,10 +4802,791 @@ u(
                 padding: 16px 16px 35px 16px;
             }
         }
-    `,
-);
-R();
-var sc = `
+    `);R();var uc=`
+:root {
+    --merch-card-full-pricing-express-width: 378px;
+    --merch-card-full-pricing-express-mobile-width: 365px;
+}
+
+/* Collection grid layout */
+merch-card-collection.full-pricing-express {
+    display: grid;
+    justify-content: center;
+    justify-items: center;
+    align-items: stretch;
+    gap: 16px;
+}
+
+/* Mobile - 1 column */
+merch-card-collection.full-pricing-express {
+    grid-template-columns: 1fr;
+    max-width: var(--merch-card-full-pricing-express-mobile-width);
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* Tablet - 2 columns */
+@media screen and (min-width: 1025px) and (max-width: 1199px) {
+    merch-card-collection.full-pricing-express {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: calc(2 * var(--merch-card-full-pricing-express-width) + 16px);
+    }
+}
+
+/* Desktop small - 2 columns */
+@media screen and ${O} and (max-width: 1399px) {
+    merch-card-collection.full-pricing-express {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: calc(2 * var(--merch-card-full-pricing-express-width) + 16px);
+    }
+}
+
+/* Desktop large - 3 columns */
+@media screen and (min-width: 1400px) {
+    merch-card-collection.full-pricing-express {
+        grid-template-columns: repeat(3, 1fr);
+        max-width: calc(3 * var(--merch-card-full-pricing-express-width) + 32px);
+    }
+}
+
+/* Remove default paragraph margins */
+merch-card[variant="full-pricing-express"] p {
+    margin: 0 !important;
+    font-size: inherit;
+}
+
+/* Slot-specific styles */
+merch-card[variant="full-pricing-express"] [slot="heading-xs"] {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 26px;
+    color: var(--spectrum-gray-800);
+    margin-bottom: 8px;
+}
+
+/* Inline mnemonics inside heading */
+merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic {
+    display: inline-flex;
+    width: 14px;
+    height: 14px;
+    vertical-align: middle;
+    margin-right: 8px;
+    align-items: flex-end;
+}
+
+merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+}
+
+/* Icons slot styling */
+merch-card[variant="full-pricing-express"] [slot="icons"] {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="icons"] merch-icon {
+    --img-width: 20px;
+    --img-height: 20px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
+    position: absolute;
+    top: -8px;
+    right: 16px;
+    background: var(--spectrum-indigo-300);
+    border-radius: 4px;
+    font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
+    font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
+    line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
+    white-space: nowrap;
+    z-index: 0;
+    max-width: calc(100% - 24px);
+    text-align: right;
+}
+
+merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
+    font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
+    font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
+    line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
+    color: var(--spectrum-indigo-900);
+}
+
+merch-card[variant="full-pricing-express"] [slot="trial-badge"]:empty {
+    display: none;
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] {
+    font-size: 16px;
+    line-height: 20.8px;
+    color: var(--spectrum-gray-900);
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] hr {
+    margin-top: 16px;
+    margin-bottom: 24px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="shortDescription"] {
+    font-size: 16px;
+    line-height: 20.8px;
+    color: var(--spectrum-gray-700);
+    margin-bottom: var(--merch-card-full-pricing-express-section-gap);
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] ul {
+    margin: 0;
+    padding-left: 20px;
+    list-style: disc;
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] li {
+    margin-bottom: 8px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] li:last-child {
+    margin-bottom: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] p {
+    padding: 8px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] p a {
+    color: var(--spectrum-indigo-900);
+    font-weight: 700;
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] .button-container {
+    margin: 0;
+    padding: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] p:last-child a {
+    text-decoration: none;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-flow: column;
+    color: var(--spectrum-indigo-900);
+    background: transparent;
+    border: none;
+    margin: 0;
+    font-size: 16px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="body-s"] p:last-child a:hover {
+    background-color: initial;
+    border: none;
+}
+
+/* Price styling */
+merch-card[variant="full-pricing-express"] [slot="price"] {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] > p:first-child {
+    display: flex;
+    align-items: baseline;
+    margin: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] > p span[is="inline-price"]:first-child {
+    margin-right: 8px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"] {
+    font-size: var(--merch-card-full-pricing-express-price-font-size);
+    line-height: var(--merch-card-full-pricing-express-price-line-height);
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template="optical"] {
+    font-size: var(--merch-card-full-pricing-express-price-font-size);
+    color: var(--spectrum-gray-800);
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] .price-integer,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals-delimiter,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 36.4px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol {
+    font-size: var(--merch-card-full-pricing-express-price-font-size);
+    font-weight: var(--merch-card-full-pricing-express-price-font-weight);
+    line-height: var(--merch-card-full-pricing-express-price-line-height);
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"] .price-recurrence {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 15.6px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] p {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 15.6px;
+    color: var(--spectrum-gray-700);
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] > p span[is="inline-price"]:only-child {
+    color: var(--spectrum-gray-700);
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template="strikethrough"] + span[is="inline-price"] {
+    color: var(--spectrum-indigo-900);
+}
+
+/* Target inline prices in paragraphs that are not the first paragraph */
+merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 15.6px;
+    margin-right: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-integer,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals-delimiter,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-currency-symbol,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-recurrence {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 15.6px;
+}
+
+
+merch-card[variant="full-pricing-express"] [slot="price"] strong {
+    color: var(--spectrum-indigo-900);
+}
+merch-card[variant="full-pricing-express"] [slot="price"] p a {
+    color: var(--spectrum-indigo-900);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* Strikethrough price styling */
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-strikethrough,
+merch-card[variant="full-pricing-express"] span.placeholder-resolved[data-template='strikethrough'] {
+    text-decoration: none;
+    font-size: 12px;
+    line-height: 15.6px;
+}
+
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price {
+    color: var(--spectrum-gray-700);
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] p .heading-xs,
+merch-card[variant="full-pricing-express"] [slot="price"] p .heading-s,
+merch-card[variant="full-pricing-express"] [slot="price"] p .heading-m,
+merch-card[variant="full-pricing-express"] [slot="price"] p .heading-l {
+    font-size: 22px;
+    line-height: 28.6px;
+    text-align: center;
+    width: 100%;
+}
+
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-integer,
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-decimals-delimiter,
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-decimals {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+}
+
+/* Apply indigo-800 color to optical price when preceded by strikethrough */
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"][data-template='optical'],
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"][data-template='optical'] .price-currency-symbol {
+    color: var(--spectrum-indigo-900);
+}
+
+/* CTA button styling */
+merch-card[variant="full-pricing-express"] [slot="cta"] {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="cta"] sp-button,
+merch-card[variant="full-pricing-express"] [slot="cta"] button,
+merch-card[variant="full-pricing-express"] [slot="cta"] a.button {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 23.4px;
+    margin: 0;
+    padding: 12px 24px 13px 24px;
+    border-radius: 26px;
+}
+
+merch-card[variant="full-pricing-express"] [slot="cta"] sp-button[variant="accent"],
+merch-card[variant="full-pricing-express"] [slot="cta"] button.spectrum-Button--accent,
+merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent {
+    background-color: var(--spectrum-indigo-900);
+    color: var(--spectrum-white, #ffffff);
+    width: 100%;
+}
+
+/* Ensure text color is applied to the label span element for accessibility */
+merch-card[variant="full-pricing-express"] [slot="cta"] sp-button[variant="accent"] .spectrum-Button-label,
+merch-card[variant="full-pricing-express"] [slot="cta"] button.spectrum-Button--accent .spectrum-Button-label,
+merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent .spectrum-Button-label {
+    color: var(--spectrum-white, #ffffff);
+}
+
+/* Badge styling */
+merch-card[variant="full-pricing-express"] merch-badge {
+    white-space: nowrap;
+    color: var(--spectrum-white);
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 20.8px;
+}
+
+/* Mobile-specific selective display of body-s */
+@media (max-width: 1024px) {
+    /* Show body-s container */
+    merch-card[variant="full-pricing-express"] [slot="body-s"] {
+        display: block;
+    }
+
+    /* Hide all direct children by default */
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > * {
+        display: none;
+    }
+
+    /* Show only the last hr (2nd one) */
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > hr:last-of-type {
+        display: block;
+        margin: 24px 0;
+    }
+
+    /* Show only the button container (last p tag) */
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > p:last-child {
+        display: block;
+    }
+    
+    merch-card[variant="full-pricing-express"] {
+        max-width: 365px;
+    }
+    
+    /* Price font size on mobile */
+    merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol,
+    merch-card[variant="full-pricing-express"] [slot="price"] .price-integer,
+    merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals-delimiter,
+    merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals,
+    merch-card[variant="full-pricing-express"] [slot="price"] .price-recurrence,
+    merch-card[variant="full-pricing-express"] [slot="price"] .price-strikethrough,
+    merch-card[variant="full-pricing-express"] [slot="price"] .price-unit-type,
+    merch-card[variant="full-pricing-express"] [slot="price"] .price-tax-inclusivity {
+        font-size: 22px;
+    }
+    
+    /* Badge alignment on mobile */
+    merch-card[variant="full-pricing-express"] [slot="badge"] {
+        font-size: 16px;
+        font-weight: 400;
+    }
+    
+    /* Trial badge alignment on mobile */
+    merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
+        margin-left: 0;
+        align-self: flex-start;
+    }
+    
+    merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
+        font-size: 12px;
+        line-height: 20.8px;
+    }
+}
+
+/* Hide screen reader only text */
+merch-card[variant="full-pricing-express"] sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* mas-tooltip inline styles for full-pricing-express */
+merch-card[variant="full-pricing-express"] mas-tooltip {
+    display: inline-block;
+    align-items: center;
+    vertical-align: baseline;
+    margin-right: 8px;
+    overflow: visible;
+    padding-top: 16px;
+}
+
+/* Responsive rules for desktop/tablet */
+@media (min-width: 1025px) {
+    merch-card[variant="full-pricing-express"] [slot="body-s"] {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    merch-card[variant="full-pricing-express"] [slot="body-s"] p:first-child {
+        padding: 16px 8px;
+    }
+
+    /* Ensure the second divider wrapper stays at bottom with proper spacing */
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > hr:last-of-type {
+        margin-top: auto;
+        padding-top: 24px;
+        margin-bottom: 16px;
+        border: none;
+        border-bottom: 1px solid #E9E9E9;
+        height: 0;
+        background: transparent;
+    }
+
+    /* Ensure the button container stays at the bottom */
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > p.button-container,
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > p:last-child {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+}
+`;var va={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"l"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:[]},Wt=class extends T{getGlobalCSS(){return uc}get aemFragmentMapping(){return va}get headingSelector(){return'[slot="heading-xs"]'}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.querySelector('[slot="short-description"]');t&&this.updateCardElementMinHeight(t,"short-description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price");let i=this.card.querySelector('[slot="cta"]');i&&this.updateCardElementMinHeight(i,"cta")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,await Promise.all(this.card.prices.map(t=>t.onceSettled())),window.matchMedia("(min-width: 1025px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-price-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}renderLayout(){return f`
+            <div class="badge-wrapper">
+                <slot name="badge"></slot>
+            </div>
+            <div class="card-content">
+                <div class="header">
+                    <slot name="heading-xs"></slot>
+                    <slot name="icons"></slot>
+                </div>
+                <div class="short-description">
+                    <slot name="short-description"></slot>
+                </div>
+                <div class="price-container">
+                    <slot name="trial-badge"></slot>
+                    <slot name="price"></slot>
+                </div>
+                <div class="cta">
+                    <slot name="cta"></slot>
+                </div>
+                <div class="description">
+                    <slot name="body-s"></slot>
+                </div>
+            </div>
+            <slot></slot>
+        `}};m(Wt,"variantStyle",b`
+        :host([variant='full-pricing-express']) {
+            /* CSS Variables */
+            --merch-card-full-pricing-express-width: 437px;
+            --merch-card-full-pricing-express-mobile-width: 303px;
+            --merch-card-full-pricing-express-padding: 24px;
+            --merch-card-full-pricing-express-padding-mobile: 20px;
+            --merch-card-full-pricing-express-section-gap: 24px;
+
+            /* Price container specific */
+            --merch-card-full-pricing-express-price-bg: #f8f8f8;
+            --merch-card-full-pricing-express-price-radius: 8px;
+
+            /* Typography - matching simplified-pricing-express */
+            --merch-card-full-pricing-express-trial-badge-font-size: 12px;
+            --merch-card-full-pricing-express-trial-badge-font-weight: 700;
+            --merch-card-full-pricing-express-trial-badge-line-height: 15.6px;
+            --merch-card-full-pricing-express-price-font-size: 28px;
+            --merch-card-full-pricing-express-price-line-height: 36.4px;
+            --merch-card-full-pricing-express-price-font-weight: 700;
+            --merch-card-full-pricing-express-cta-font-size: 18px;
+            --merch-card-full-pricing-express-cta-font-weight: 700;
+            --merch-card-full-pricing-express-cta-line-height: 23.4px;
+
+            /* Gradient definitions (reused) */
+            --gradient-purple-blue: linear-gradient(
+                96deg,
+                #b539c8 0%,
+                #7155fa 66%,
+                #3b63fb 100%
+            );
+            --gradient-firefly-spectrum: linear-gradient(
+                96deg,
+                #d73220 0%,
+                #d92361 33%,
+                #7155fa 100%
+            );
+
+            width: var(--merch-card-full-pricing-express-width);
+            max-width: var(--merch-card-full-pricing-express-width);
+            background: transparent;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* Badge wrapper styling (same as simplified) */
+        :host([variant='full-pricing-express']) .badge-wrapper {
+            padding: 4px 12px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 20.8px;
+            color: var(--spectrum-gray-800);
+            position: relative;
+            min-height: 23px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Card content styling */
+        :host([variant='full-pricing-express']) .card-content {
+            border-radius: 8px;
+            padding: var(--merch-card-full-pricing-express-padding);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        :host([variant='full-pricing-express']) .card-content > * {
+            position: relative;
+        }
+
+        /* Regular border styling */
+        :host([variant='full-pricing-express']:not([gradient-border='true']))
+            .card-content {
+            background: var(--spectrum-gray-50);
+            border: 1px solid
+                var(
+                    --consonant-merch-card-border-color,
+                    var(--spectrum-gray-100)
+                );
+        }
+
+        /* When badge exists, adjust card content border radius */
+        :host([variant='full-pricing-express']:has([slot='badge']:not(:empty)))
+            .card-content {
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+        }
+
+        /* When badge exists with regular border, ensure top border */
+        :host(
+                [variant='full-pricing-express']:not(
+                        [gradient-border='true']
+                    ):has([slot='badge']:not(:empty))
+            )
+            .card-content {
+            border-top: 1px solid
+                var(
+                    --consonant-merch-card-border-color,
+                    var(--spectrum-gray-100)
+                );
+        }
+
+        /* When badge has content, ensure seamless connection */
+        :host([variant='full-pricing-express']:has([slot='badge']:not(:empty)))
+            .badge-wrapper {
+            margin-bottom: -2px;
+        }
+
+        /* Gradient border styling (reused from simplified) */
+        :host([variant='full-pricing-express'][gradient-border='true'])
+            .badge-wrapper {
+            border: none;
+            margin-bottom: -6px;
+            padding-bottom: 6px;
+        }
+
+        :host([variant='full-pricing-express'][gradient-border='true'])
+            .badge-wrapper
+            ::slotted(*) {
+            color: white;
+        }
+
+        :host([variant='full-pricing-express'][gradient-border='true'])
+            .card-content {
+            border: none;
+            padding: calc(var(--merch-card-full-pricing-express-padding) + 2px);
+            border-radius: 8px;
+        }
+
+        :host([variant='full-pricing-express'][gradient-border='true'])
+            .card-content::before {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            right: 1px;
+            bottom: 1px;
+            background: var(--spectrum-gray-50);
+            border-radius: 7px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Gradient backgrounds */
+        :host(
+                [variant='full-pricing-express'][border-color='gradient-purple-blue']
+            )
+            .badge-wrapper,
+        :host(
+                [variant='full-pricing-express'][border-color='gradient-purple-blue']
+            )
+            .card-content {
+            background: var(--gradient-purple-blue);
+        }
+
+        :host(
+                [variant='full-pricing-express'][border-color='gradient-firefly-spectrum']
+            )
+            .badge-wrapper,
+        :host(
+                [variant='full-pricing-express'][border-color='gradient-firefly-spectrum']
+            )
+            .card-content {
+            background: var(--gradient-firefly-spectrum);
+        }
+
+        :host(
+                [variant='full-pricing-express'][gradient-border='true']:has(
+                        [slot='badge']:not(:empty)
+                    )
+            )
+            .card-content::before {
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+
+        /* Header styling */
+        :host([variant='full-pricing-express']) .header {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        :host([variant='full-pricing-express']) [slot='heading-xs'] {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 23.4px;
+            color: var(--spectrum-gray-800);
+        }
+
+        /* Icons/Mnemonics styling */
+        :host([variant='full-pricing-express']) [slot='icons'] {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        :host([variant='full-pricing-express']) [slot='icons'] merch-icon {
+            --img-width: 20px;
+            --img-height: 20px;
+        }
+
+        /* Description sections */
+        :host([variant='full-pricing-express']) .description {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Price container with background */
+        :host([variant='full-pricing-express']) .price-container {
+            background: var(--merch-card-full-pricing-express-price-bg);
+            padding: 24px 16px;
+            border-radius: var(--merch-card-full-pricing-express-price-radius);
+            border: 1px solid #e0e2ff;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: visible;
+            margin-bottom: var(--merch-card-full-pricing-express-section-gap);
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* CTA styling */
+        :host([variant='full-pricing-express']) .cta,
+        :host([variant='full-pricing-express']) .cta ::slotted(*) {
+            width: 100%;
+            display: block;
+        }
+
+        /* Mobile styles */
+        @media (max-width: 1024px) {
+            :host([variant='full-pricing-express']) {
+                width: var(--merch-card-full-pricing-express-mobile-width);
+                max-width: var(--merch-card-full-pricing-express-mobile-width);
+            }
+
+            :host([variant='full-pricing-express']) .card-content {
+                padding: var(--merch-card-full-pricing-express-padding-mobile);
+            }
+
+            :host([variant='full-pricing-express'][gradient-border='true'])
+                .card-content {
+                padding: calc(
+                    var(--merch-card-full-pricing-express-padding-mobile) + 2px
+                );
+            }
+
+            :host([variant='full-pricing-express']) .short-description {
+                padding: 24px 0;
+            }
+        }
+
+        /* Desktop - fixed heights for alignment */
+        @media (min-width: 1025px) {
+            :host([variant='full-pricing-express']) .card-content {
+                height: 100%;
+            }
+
+            :host([variant='full-pricing-express']) .description {
+                flex: 1;
+            }
+
+            :host([variant='full-pricing-express']) .price-container {
+                height: var(
+                    --consonant-merch-card-full-pricing-express-price-height
+                );
+            }
+
+            :host([variant='full-pricing-express']) .cta {
+                height: var(
+                    --consonant-merch-card-full-pricing-express-cta-height
+                );
+                margin-bottom: 24px;
+            }
+
+            :host([variant='full-pricing-express']) .short-description {
+                height: var(
+                    --consonant-merch-card-full-pricing-express-short-description-height
+                );
+                margin-bottom: 24px;
+            }
+        }
+    `);R();var gc=`
 merch-card[variant="mini"] {
   color: var(--spectrum-body-color);
   width: 400px;
@@ -11404,52 +5619,7 @@ merch-card[variant="mini"] span.promo-duration-text,
 merch-card[variant="mini"] span.renewal-text {
     display: block;
 }
-`;
-var cc = {
-        title: { tag: 'p', slot: 'title' },
-        prices: { tag: 'p', slot: 'prices' },
-        description: { tag: 'p', slot: 'description' },
-        planType: !0,
-        ctas: { slot: 'ctas', size: 'S' },
-    },
-    Gt = class extends k {
-        constructor() {
-            super(...arguments);
-            u(this, 'legal');
-        }
-        async postCardUpdateHook() {
-            await this.card.updateComplete, this.adjustLegal();
-        }
-        getGlobalCSS() {
-            return sc;
-        }
-        get headingSelector() {
-            return '[slot="title"]';
-        }
-        priceOptionsProvider(r, i) {
-            (i.literals = {
-                ...i.literals,
-                strikethroughAriaLabel: '',
-                alternativePriceAriaLabel: '',
-            }),
-                (i.space = !0),
-                (i.displayAnnual = this.card.settings?.displayAnnual ?? !1);
-        }
-        adjustLegal() {
-            if (this.legal !== void 0) return;
-            let r = this.card.querySelector(`${z}[data-template="price"]`);
-            if (!r) return;
-            let i = r.cloneNode(!0);
-            (this.legal = i),
-                (r.dataset.displayTax = 'false'),
-                (i.dataset.template = 'legal'),
-                (i.dataset.displayPlanType =
-                    this.card?.settings?.displayPlanType ?? !0),
-                i.setAttribute('slot', 'legal'),
-                this.card.appendChild(i);
-        }
-        renderLayout() {
-            return g`
+`;var fc={title:{tag:"p",slot:"title"},prices:{tag:"p",slot:"prices"},description:{tag:"p",slot:"description"},planType:!0,ctas:{slot:"ctas",size:"S"}},Yt=class extends T{constructor(){super(...arguments);m(this,"legal")}async postCardUpdateHook(){await this.card.updateComplete,this.adjustLegal()}getGlobalCSS(){return gc}get headingSelector(){return'[slot="title"]'}priceOptionsProvider(r,i){i.literals={...i.literals,strikethroughAriaLabel:"",alternativePriceAriaLabel:""},i.space=!0,i.displayAnnual=this.card.settings?.displayAnnual??!1}adjustLegal(){if(this.legal!==void 0)return;let r=this.card.querySelector(`${H}[data-template="price"]`);if(!r)return;let i=r.cloneNode(!0);this.legal=i,r.dataset.displayTax="false",i.dataset.template="legal",i.dataset.displayPlanType=this.card?.settings?.displayPlanType??!0,i.setAttribute("slot","legal"),this.card.appendChild(i)}renderLayout(){return f`
             ${this.badge}
             <div class="body">
                 <slot name="title"></slot>
@@ -11458,64 +5628,14 @@ var cc = {
                 <slot name="description"></slot>
                 <slot name="ctas"></slot>
             </div>
-        `;
-        }
-    };
-u(
-    Gt,
-    'variantStyle',
-    y`
+        `}};m(Yt,"variantStyle",b`
         :host([variant='mini']) {
             min-width: 209px;
             min-height: 103px;
             background-color: var(--spectrum-background-base-color);
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
         }
-    `,
-);
-var Mi = new Map(),
-    q = (e, t, r = null, i = null, n) => {
-        Mi.set(e, {
-            class: t,
-            fragmentMapping: r,
-            style: i,
-            collectionOptions: n,
-        });
-    };
-q('catalog', Ht, Xs, Ht.variantStyle);
-q('image', Pi);
-q('inline-heading', Li);
-q('mini-compare-chart', Dt, null, Dt.variantStyle);
-q('plans', oe, Ri, oe.variantStyle, oe.collectionOptions);
-q('plans-students', oe, tc, oe.variantStyle, oe.collectionOptions);
-q('plans-education', oe, ec, oe.variantStyle, oe.collectionOptions);
-q('product', Bt, null, Bt.variantStyle);
-q('segment', Ut, null, Ut.variantStyle);
-q('special-offers', zt, oc, zt.variantStyle);
-q('simplified-pricing-express', Ft, fo, Ft.variantStyle);
-q('mini', Gt, cc, Gt.variantStyle);
-var go = (e) => {
-    let t = Mi.get(e.variant);
-    if (!t) return;
-    let { class: r, style: i } = t;
-    if (i)
-        try {
-            let n = new CSSStyleSheet();
-            n.replaceSync(i.cssText), e.shadowRoot.adoptedStyleSheets.push(n);
-        } catch {
-            let o = document.createElement('style');
-            (o.textContent = i.cssText), e.shadowRoot.appendChild(o);
-        }
-    return new r(e);
-};
-function ki(e) {
-    return Mi.get(e)?.fragmentMapping;
-}
-function lc(e) {
-    return Mi.get(e)?.collectionOptions;
-}
-var dc = document.createElement('style');
-dc.innerHTML = `
+    `);var zi=new Map,V=(e,t,r=null,i=null,n)=>{zi.set(e,{class:t,fragmentMapping:r,style:i,collectionOptions:n})};V("catalog",Ut,ec,Ut.variantStyle);V("image",Ni);V("inline-heading",Ii);V("mini-compare-chart",Ft,null,Ft.variantStyle);V("plans",he,Di,he.variantStyle,he.collectionOptions);V("plans-students",he,oc,he.variantStyle,he.collectionOptions);V("plans-education",he,ac,he.variantStyle,he.collectionOptions);V("plans-v2",Ye,cc,Ye.variantStyle,Ye.collectionOptions);V("product",Gt,null,Gt.variantStyle);V("segment",qt,null,qt.variantStyle);V("special-offers",Vt,pc,Vt.variantStyle);V("simplified-pricing-express",jt,xa,jt.variantStyle);V("full-pricing-express",Wt,va,Wt.variantStyle);V("mini",Yt,fc,Yt.variantStyle);var ba=e=>{let t=zi.get(e.variant);if(!t)return;let{class:r,style:i}=t;if(i)try{let n=new CSSStyleSheet;n.replaceSync(i.cssText),e.shadowRoot.adoptedStyleSheets.push(n)}catch{let a=document.createElement("style");a.textContent=i.cssText,e.shadowRoot.appendChild(a)}return new r(e)};function Oi(e){return zi.get(e)?.fragmentMapping}function xc(e){return zi.get(e)?.collectionOptions}var vc=document.createElement("style");vc.innerHTML=`
 :root {
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;
@@ -11628,6 +5748,7 @@ dc.innerHTML = `
     --spectrum-green-900-plans: #05834E;
     --spectrum-gray-300-plans: #DADADA;
     --spectrum-gray-700-plans: #505050;
+    --spectrum-red-700-plans: #EB1000;
 
     /* simplified-pricing-express colors */
     --spectrum-gray-50: #FFFFFF;
@@ -11640,6 +5761,7 @@ dc.innerHTML = `
     --spectrum-gray-700: #494949;
     --spectrum-gray-800: #2C2C2C;
     --spectrum-gray-900: #1C1C1C;
+    --spectrum-indigo-300: #D3D5FF;
     --spectrum-indigo-900: #5258E4;
   
     /* merch card generic */
@@ -11737,6 +5859,12 @@ merch-card-collection-header > div[slot] p {
     z-index: 3;
 }
 
+/* hide download/upgrade links except the first one */
+merch-card a[is="checkout-link"].download:not(:first-of-type),
+merch-card a[is="checkout-link"].upgrade:not(:first-of-type) {
+  display: none;
+}
+
 merch-card[variant="ccd-suggested"] *,
 merch-card[variant="ccd-slice"] * {
   box-sizing: border-box;
@@ -11754,6 +5882,13 @@ merch-card.has-divider hr {
     margin: var(--consonant-merch-spacing-xs) 0;
     height: 1px;
     border: none;
+}
+
+merch-card hr {
+    border: none;
+    margin: 0;
+    background-color: var(--spectrum-gray-300);
+    height: 1px;
 }
 
 merch-card.has-divider div[slot='body-lower'] hr {
@@ -11777,7 +5912,7 @@ merch-card span[is='inline-price'] {
   line-height: 0;
 }
 
-.annual-price-new-line > span[is="inline-price"] .price-alternative {
+.annual-price-new-line > span[is="inline-price"] .price:not(.price-annual) {
   display: block;
 }
 
@@ -12196,13 +6331,21 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
   display: none;
 }
 
+merch-badge[background-color="spectrum-red-700-plans"] {
+  color: #FFFFFF;
+}
+/* Red border color for merch-cards */
+merch-card[border-color="spectrum-red-700-plans"] {
+  border-color: var(--spectrum-red-700-plans);
+}
+
 @media (max-width: 600px) {
 merch-card [slot='callout-content'] .icon-button::before { 
     max-width: 180px;
   }
 }
 
-@media screen and ${G} {
+@media screen and ${F} {
     .two-merch-cards,
     .three-merch-cards,
     .four-merch-cards {
@@ -12210,7 +6353,7 @@ merch-card [slot='callout-content'] .icon-button::before {
     }
 }
 
-@media screen and ${U} {
+@media screen and ${O} {
     .four-merch-cards {
         grid-template-columns: repeat(4, var(--merch-card-collection-card-width));
     }
@@ -12221,472 +6364,14 @@ merch-card [slot='callout-content'] .icon-button::before {
     }
 }
 
-@media screen and ${Se} {
+@media screen and ${se} {
     .four-merch-cards,
     merch-sidenav ~ .four-merch-cards {
         grid-template-columns: repeat(4, var(--merch-card-collection-card-width));
     }
 }
 
-`;
-document.head.appendChild(dc);
-var hc = 'fragment',
-    pc = 'author',
-    mc = 'preview',
-    uc = 'loading',
-    fc = 'timeout',
-    xo = 'aem-fragment',
-    gc = 'eager',
-    xc = 'cache',
-    ah = [gc, xc],
-    _e,
-    ut,
-    xe,
-    bo = class {
-        constructor() {
-            E(this, _e, new Map());
-            E(this, ut, new Map());
-            E(this, xe, new Map());
-        }
-        clear() {
-            h(this, _e).clear(), h(this, ut).clear(), h(this, xe).clear();
-        }
-        add(t, r = !0) {
-            if (!this.has(t.id) && !this.has(t.fields?.originalId)) {
-                if (
-                    (h(this, _e).set(t.id, t),
-                    t.fields?.originalId &&
-                        h(this, _e).set(t.fields.originalId, t),
-                    h(this, xe).has(t.id))
-                ) {
-                    let [, i] = h(this, xe).get(t.id);
-                    i();
-                }
-                if (h(this, xe).has(t.fields?.originalId)) {
-                    let [, i] = h(this, xe).get(t.fields?.originalId);
-                    i();
-                }
-                if (
-                    !(
-                        !r ||
-                        typeof t.references != 'object' ||
-                        Array.isArray(t.references)
-                    )
-                )
-                    for (let i in t.references) {
-                        let { type: n, value: o } = t.references[i];
-                        n === 'content-fragment' &&
-                            ((o.settings = { ...t?.settings, ...o.settings }),
-                            (o.placeholders = {
-                                ...t?.placeholders,
-                                ...o.placeholders,
-                            }),
-                            (o.dictionary = {
-                                ...t?.dictionary,
-                                ...o.dictionary,
-                            }),
-                            (o.priceLiterals = {
-                                ...t?.priceLiterals,
-                                ...o.priceLiterals,
-                            }),
-                            this.add(o, t));
-                    }
-            }
-        }
-        has(t) {
-            return h(this, _e).has(t);
-        }
-        entries() {
-            return h(this, _e).entries();
-        }
-        get(t) {
-            return h(this, _e).get(t);
-        }
-        getAsPromise(t) {
-            let [r] = h(this, xe).get(t) ?? [];
-            if (r) return r;
-            let i;
-            return (
-                (r = new Promise((n) => {
-                    (i = n), this.has(t) && n();
-                })),
-                h(this, xe).set(t, [r, i]),
-                r
-            );
-        }
-        getFetchInfo(t) {
-            let r = h(this, ut).get(t);
-            return (
-                r ||
-                    ((r = {
-                        url: null,
-                        retryCount: 0,
-                        stale: !1,
-                        measure: null,
-                        status: null,
-                    }),
-                    h(this, ut).set(t, r)),
-                r
-            );
-        }
-        remove(t) {
-            h(this, _e).delete(t), h(this, ut).delete(t), h(this, xe).delete(t);
-        }
-    };
-(_e = new WeakMap()), (ut = new WeakMap()), (xe = new WeakMap());
-var qe = new bo(),
-    Vt,
-    Te,
-    Ie,
-    me,
-    ae,
-    X,
-    Mr,
-    Nr,
-    be,
-    Ir,
-    $r,
-    jt,
-    ve,
-    bc,
-    vc,
-    vo,
-    yc,
-    Ni = class extends HTMLElement {
-        constructor() {
-            super(...arguments);
-            E(this, ve);
-            u(this, 'cache', qe);
-            E(this, Vt);
-            E(this, Te, null);
-            E(this, Ie, null);
-            E(this, me, null);
-            E(this, ae);
-            E(this, X);
-            E(this, Mr, gc);
-            E(this, Nr, 5e3);
-            E(this, be);
-            E(this, Ir, !1);
-            E(this, $r, 0);
-            E(this, jt);
-        }
-        static get observedAttributes() {
-            return [hc, uc, fc, pc, mc];
-        }
-        attributeChangedCallback(r, i, n) {
-            r === hc && (v(this, ae, n), v(this, X, qe.getFetchInfo(n))),
-                r === uc && ah.includes(n) && v(this, Mr, n),
-                r === fc && v(this, Nr, parseInt(n, 10)),
-                r === pc && v(this, Ir, ['', 'true'].includes(n)),
-                r === mc && v(this, jt, n);
-        }
-        connectedCallback() {
-            if (!h(this, be)) {
-                if (
-                    (h(this, me) ?? v(this, me, ot(this)),
-                    v(this, jt, h(this, me).settings?.preview),
-                    h(this, Vt) ??
-                        v(
-                            this,
-                            Vt,
-                            h(this, me).log.module(`${xo}[${h(this, ae)}]`),
-                        ),
-                    !h(this, ae) || h(this, ae) === '#')
-                ) {
-                    h(this, X) ??
-                        v(this, X, qe.getFetchInfo('missing-fragment-id')),
-                        Q(this, ve, vo).call(this, 'Missing fragment id');
-                    return;
-                }
-                this.refresh(!1);
-            }
-        }
-        get fetchInfo() {
-            return Object.fromEntries(
-                Object.entries(h(this, X))
-                    .filter(([r, i]) => i != null)
-                    .map(([r, i]) => [`aem-fragment:${r}`, i]),
-            );
-        }
-        async refresh(r = !0) {
-            if (
-                h(this, be) &&
-                !(await Promise.race([h(this, be), Promise.resolve(!1)]))
-            )
-                return;
-            r && qe.remove(h(this, ae)),
-                h(this, Mr) === xc &&
-                    (await Promise.race([
-                        qe.getAsPromise(h(this, ae)),
-                        new Promise((s) => setTimeout(s, h(this, Nr))),
-                    ]));
-            try {
-                v(this, be, Q(this, ve, yc).call(this)), await h(this, be);
-            } catch (s) {
-                return Q(this, ve, vo).call(this, s.message), !1;
-            }
-            let {
-                references: i,
-                referencesTree: n,
-                placeholders: o,
-                wcs: a,
-            } = h(this, Te) || {};
-            return (
-                a &&
-                    !D('mas.disableWcsCache') &&
-                    h(this, me).prefillWcsCache(a),
-                this.dispatchEvent(
-                    new CustomEvent(Qe, {
-                        detail: {
-                            ...this.data,
-                            references: i,
-                            referencesTree: n,
-                            placeholders: o,
-                            ...h(this, X),
-                        },
-                        bubbles: !0,
-                        composed: !0,
-                    }),
-                ),
-                h(this, be)
-            );
-        }
-        get updateComplete() {
-            return (
-                h(this, be) ??
-                Promise.reject(new Error('AEM fragment cannot be loaded'))
-            );
-        }
-        get data() {
-            return h(this, Ie)
-                ? h(this, Ie)
-                : (h(this, Ir)
-                      ? this.transformAuthorData()
-                      : this.transformPublishData(),
-                  h(this, Ie));
-        }
-        transformAuthorData() {
-            let {
-                fields: r,
-                id: i,
-                tags: n,
-                settings: o = {},
-                priceLiterals: a = {},
-                dictionary: s = {},
-                placeholders: c = {},
-            } = h(this, Te);
-            v(
-                this,
-                Ie,
-                r.reduce(
-                    (l, { name: d, multiple: p, values: f }) => (
-                        (l.fields[d] = p ? f : f[0]), l
-                    ),
-                    {
-                        fields: {},
-                        id: i,
-                        tags: n,
-                        settings: o,
-                        priceLiterals: a,
-                        dictionary: s,
-                        placeholders: c,
-                    },
-                ),
-            );
-        }
-        transformPublishData() {
-            let {
-                fields: r,
-                id: i,
-                tags: n,
-                settings: o = {},
-                priceLiterals: a = {},
-                dictionary: s = {},
-                placeholders: c = {},
-            } = h(this, Te);
-            v(
-                this,
-                Ie,
-                Object.entries(r).reduce(
-                    (l, [d, p]) => (
-                        (l.fields[d] = p?.mimeType ? p.value : (p ?? '')), l
-                    ),
-                    {
-                        fields: {},
-                        id: i,
-                        tags: n,
-                        settings: o,
-                        priceLiterals: a,
-                        dictionary: s,
-                        placeholders: c,
-                    },
-                ),
-            );
-        }
-        getFragmentClientUrl() {
-            let i = new URLSearchParams(window.location.search).get('maslibs');
-            if (!i || i.trim() === '')
-                return 'https://mas.adobe.com/studio/libs/fragment-client.js';
-            let n = i.trim().toLowerCase();
-            if (n === 'local')
-                return 'http://localhost:3030/studio/libs/fragment-client.js';
-            let { hostname: o } = window.location,
-                a = o.endsWith('.page') ? 'page' : 'live';
-            return n.includes('--')
-                ? `https://${n}.aem.${a}/studio/libs/fragment-client.js`
-                : `https://${n}--mas--adobecom.aem.${a}/studio/libs/fragment-client.js`;
-        }
-        async generatePreview() {
-            let r = this.getFragmentClientUrl(),
-                { previewFragment: i } = await import(r);
-            return await i(h(this, ae), {
-                locale: h(this, me).settings.locale,
-                apiKey: h(this, me).settings.wcsApiKey,
-            });
-        }
-    };
-(Vt = new WeakMap()),
-    (Te = new WeakMap()),
-    (Ie = new WeakMap()),
-    (me = new WeakMap()),
-    (ae = new WeakMap()),
-    (X = new WeakMap()),
-    (Mr = new WeakMap()),
-    (Nr = new WeakMap()),
-    (be = new WeakMap()),
-    (Ir = new WeakMap()),
-    ($r = new WeakMap()),
-    (jt = new WeakMap()),
-    (ve = new WeakSet()),
-    (bc = async function (r) {
-        Io(this, $r)._++;
-        let i = `${xo}:${h(this, ae)}:${h(this, $r)}`,
-            n = `${i}${et}`,
-            o = `${i}${tt}`;
-        if (h(this, jt)) return await this.generatePreview();
-        performance.mark(n);
-        let a;
-        try {
-            if (
-                ((h(this, X).stale = !1),
-                (h(this, X).url = r),
-                (a = await ui(r, { cache: 'default', credentials: 'omit' })),
-                Q(this, ve, vc).call(this, a),
-                (h(this, X).status = a?.status),
-                (h(this, X).measure = Ae(performance.measure(o, n))),
-                (h(this, X).retryCount = a.retryCount),
-                !a?.ok)
-            )
-                throw new Le('Unexpected fragment response', {
-                    response: a,
-                    ...h(this, me).duration,
-                });
-            return await a.json();
-        } catch (s) {
-            if (
-                ((h(this, X).measure = Ae(performance.measure(o, n))),
-                (h(this, X).retryCount = s.retryCount),
-                h(this, Te))
-            )
-                return (
-                    (h(this, X).stale = !0),
-                    h(this, Vt).error('Serving stale data', h(this, X)),
-                    h(this, Te)
-                );
-            let c = s.message ?? 'unknown';
-            throw new Le(`Failed to fetch fragment: ${c}`, {});
-        }
-    }),
-    (vc = function (r) {
-        Object.assign(h(this, X), Jr(r));
-    }),
-    (vo = function (r) {
-        v(this, be, null),
-            (h(this, X).message = r),
-            this.classList.add('error');
-        let i = { ...h(this, X), ...h(this, me).duration };
-        h(this, Vt).error(r, i),
-            this.dispatchEvent(
-                new CustomEvent(Ze, { detail: i, bubbles: !0, composed: !0 }),
-            );
-    }),
-    (yc = async function () {
-        var c;
-        this.classList.remove('error'), v(this, Ie, null);
-        let r = qe.get(h(this, ae));
-        if (r) return v(this, Te, r), !0;
-        let {
-                masIOUrl: i,
-                wcsApiKey: n,
-                country: o,
-                locale: a,
-            } = h(this, me).settings,
-            s = `${i}/fragment?id=${h(this, ae)}&api_key=${n}&locale=${a}`;
-        return (
-            o && !a.endsWith(`_${o}`) && (s += `&country=${o}`),
-            (r = await Q(this, ve, bc).call(this, s)),
-            (c = r.fields).originalId ?? (c.originalId = h(this, ae)),
-            qe.add(r),
-            v(this, Te, r),
-            !0
-        );
-    }),
-    u(Ni, 'cache', qe);
-customElements.define(xo, Ni);
-R();
-var qt = class extends $ {
-    constructor() {
-        super(),
-            (this.color = ''),
-            (this.variant = ''),
-            (this.backgroundColor = ''),
-            (this.borderColor = ''),
-            (this.text = this.textContent);
-    }
-    connectedCallback() {
-        this.borderColor && this.borderColor !== 'Transparent'
-            ? this.style.setProperty(
-                  '--merch-badge-border',
-                  `1px solid var(--${this.borderColor})`,
-              )
-            : this.style.setProperty(
-                  '--merch-badge-border',
-                  `1px solid var(--${this.backgroundColor})`,
-              ),
-            this.style.setProperty(
-                '--merch-badge-background-color',
-                `var(--${this.backgroundColor})`,
-            ),
-            this.style.setProperty('--merch-badge-color', this.color),
-            this.style.setProperty(
-                '--merch-badge-padding',
-                '2px 10px 3px 10px',
-            ),
-            this.style.setProperty(
-                '--merch-badge-border-radius',
-                '4px 0 0 4px',
-            ),
-            this.style.setProperty(
-                '--merch-badge-font-size',
-                'var(--consonant-merch-card-body-xs-font-size)',
-            ),
-            (this.textContent = ''),
-            super.connectedCallback();
-    }
-    render() {
-        return g`<div class="badge">${this.text}</div>`;
-    }
-};
-u(qt, 'properties', {
-    color: { type: String },
-    variant: { type: String },
-    backgroundColor: { type: String, attribute: 'background-color' },
-    borderColor: { type: String, attribute: 'border-color' },
-}),
-    u(
-        qt,
-        'styles',
-        y`
+`;document.head.appendChild(vc);var bc="fragment",yc="author",Ec="preview",wc="loading",Ac="timeout",ya="aem-fragment",Sc="eager",_c="cache",xh=[Sc,_c],Re,bt,Se,Ea=class{constructor(){E(this,Re,new Map);E(this,bt,new Map);E(this,Se,new Map)}clear(){h(this,Re).clear(),h(this,bt).clear(),h(this,Se).clear()}add(t,r=!0){if(!this.has(t.id)&&!this.has(t.fields?.originalId)){if(h(this,Re).set(t.id,t),t.fields?.originalId&&h(this,Re).set(t.fields.originalId,t),h(this,Se).has(t.id)){let[,i]=h(this,Se).get(t.id);i()}if(h(this,Se).has(t.fields?.originalId)){let[,i]=h(this,Se).get(t.fields?.originalId);i()}if(!(!r||typeof t.references!="object"||Array.isArray(t.references)))for(let i in t.references){let{type:n,value:a}=t.references[i];n==="content-fragment"&&(a.settings={...t?.settings,...a.settings},a.placeholders={...t?.placeholders,...a.placeholders},a.dictionary={...t?.dictionary,...a.dictionary},a.priceLiterals={...t?.priceLiterals,...a.priceLiterals},this.add(a,t))}}}has(t){return h(this,Re).has(t)}entries(){return h(this,Re).entries()}get(t){return h(this,Re).get(t)}getAsPromise(t){let[r]=h(this,Se).get(t)??[];if(r)return r;let i;return r=new Promise(n=>{i=n,this.has(t)&&n()}),h(this,Se).set(t,[r,i]),r}getFetchInfo(t){let r=h(this,bt).get(t);return r||(r={url:null,retryCount:0,stale:!1,measure:null,status:null},h(this,bt).set(t,r)),r}remove(t){h(this,Re).delete(t),h(this,bt).delete(t),h(this,Se).delete(t)}};Re=new WeakMap,bt=new WeakMap,Se=new WeakMap;var Xe=new Ea,Xt,_e,He,ve,pe,J,Ur,Fr,Te,Gr,qr,Kt,Ce,Tc,Cc,wa,kc,$i=class extends HTMLElement{constructor(){super(...arguments);E(this,Ce);m(this,"cache",Xe);E(this,Xt);E(this,_e,null);E(this,He,null);E(this,ve,null);E(this,pe);E(this,J);E(this,Ur,Sc);E(this,Fr,5e3);E(this,Te);E(this,Gr,!1);E(this,qr,0);E(this,Kt)}static get observedAttributes(){return[bc,wc,Ac,yc,Ec]}attributeChangedCallback(r,i,n){r===bc&&(y(this,pe,n),y(this,J,Xe.getFetchInfo(n))),r===wc&&xh.includes(n)&&y(this,Ur,n),r===Ac&&y(this,Fr,parseInt(n,10)),r===yc&&y(this,Gr,["","true"].includes(n)),r===Ec&&y(this,Kt,n)}connectedCallback(){if(!h(this,Te)){if(h(this,ve)??y(this,ve,dt(this)),y(this,Kt,h(this,ve).settings?.preview),h(this,Xt)??y(this,Xt,h(this,ve).log.module(`${ya}[${h(this,pe)}]`)),!h(this,pe)||h(this,pe)==="#"){h(this,J)??y(this,J,Xe.getFetchInfo("missing-fragment-id")),te(this,Ce,wa).call(this,"Missing fragment id");return}this.refresh(!1)}}get fetchInfo(){return Object.fromEntries(Object.entries(h(this,J)).filter(([r,i])=>i!=null).map(([r,i])=>[`aem-fragment:${r}`,i]))}async refresh(r=!0){if(h(this,Te)&&!await Promise.race([h(this,Te),Promise.resolve(!1)]))return;r&&Xe.remove(h(this,pe)),h(this,Ur)===_c&&await Promise.race([Xe.getAsPromise(h(this,pe)),new Promise(s=>setTimeout(s,h(this,Fr)))]);try{y(this,Te,te(this,Ce,kc).call(this)),await h(this,Te)}catch(s){return te(this,Ce,wa).call(this,s.message),!1}let{references:i,referencesTree:n,placeholders:a,wcs:o}=h(this,_e)||{};return o&&!B("mas.disableWcsCache")&&h(this,ve).prefillWcsCache(o),this.dispatchEvent(new CustomEvent(tt,{detail:{...this.data,references:i,referencesTree:n,placeholders:a,...h(this,J)},bubbles:!0,composed:!0})),h(this,Te)}get updateComplete(){return h(this,Te)??Promise.reject(new Error("AEM fragment cannot be loaded"))}get data(){return h(this,He)?h(this,He):(h(this,Gr)?this.transformAuthorData():this.transformPublishData(),h(this,He))}get rawData(){return h(this,_e)}transformAuthorData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,He,r.reduce((l,{name:d,multiple:p,values:u})=>(l.fields[d]=p?u:u[0],l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}transformPublishData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,He,Object.entries(r).reduce((l,[d,p])=>(l.fields[d]=p?.mimeType?p.value:p??"",l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}getFragmentClientUrl(){let i=new URLSearchParams(window.location.search).get("maslibs");if(!i||i.trim()==="")return"https://mas.adobe.com/studio/libs/fragment-client.js";let n=i.trim().toLowerCase();if(n==="local")return"http://localhost:3030/studio/libs/fragment-client.js";let{hostname:a}=window.location,o=a.endsWith(".page")?"page":"live";return n.includes("--")?`https://${n}.aem.${o}/studio/libs/fragment-client.js`:`https://${n}--mas--adobecom.aem.${o}/studio/libs/fragment-client.js`}async generatePreview(){let r=this.getFragmentClientUrl(),{previewFragment:i}=await import(r);return await i(h(this,pe),{locale:h(this,ve).settings.locale,apiKey:h(this,ve).settings.wcsApiKey})}};Xt=new WeakMap,_e=new WeakMap,He=new WeakMap,ve=new WeakMap,pe=new WeakMap,J=new WeakMap,Ur=new WeakMap,Fr=new WeakMap,Te=new WeakMap,Gr=new WeakMap,qr=new WeakMap,Kt=new WeakMap,Ce=new WeakSet,Tc=async function(r){Ha(this,qr)._++;let i=`${ya}:${h(this,pe)}:${h(this,qr)}`,n=`${i}${nt}`,a=`${i}${at}`;if(h(this,Kt))return await this.generatePreview();performance.mark(n);let o;try{if(h(this,J).stale=!1,h(this,J).url=r,o=await Ai(r,{cache:"default",credentials:"omit"}),te(this,Ce,Cc).call(this,o),h(this,J).status=o?.status,h(this,J).measure=Le(performance.measure(a,n)),h(this,J).retryCount=o.retryCount,!o?.ok)throw new Ne("Unexpected fragment response",{response:o,...h(this,ve).duration});return await o.json()}catch(s){if(h(this,J).measure=Le(performance.measure(a,n)),h(this,J).retryCount=s.retryCount,h(this,_e))return h(this,J).stale=!0,h(this,Xt).error("Serving stale data",h(this,J)),h(this,_e);let c=s.message??"unknown";throw new Ne(`Failed to fetch fragment: ${c}`,{})}},Cc=function(r){Object.assign(h(this,J),si(r))},wa=function(r){y(this,Te,null),h(this,J).message=r,this.classList.add("error");let i={...h(this,J),...h(this,ve).duration};h(this,Xt).error(r,i),this.dispatchEvent(new CustomEvent(rt,{detail:i,bubbles:!0,composed:!0}))},kc=async function(){var c;this.classList.remove("error"),y(this,He,null);let r=Xe.get(h(this,pe));if(r)return y(this,_e,r),!0;let{masIOUrl:i,wcsApiKey:n,country:a,locale:o}=h(this,ve).settings,s=`${i}/fragment?id=${h(this,pe)}&api_key=${n}&locale=${o}`;return a&&!o.endsWith(`_${a}`)&&(s+=`&country=${a}`),r=await te(this,Ce,Tc).call(this,s),(c=r.fields).originalId??(c.originalId=h(this,pe)),Xe.add(r),y(this,_e,r),!0},m($i,"cache",Xe);customElements.define(ya,$i);R();var Qt=class extends ${constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent}connectedCallback(){this.borderColor&&this.borderColor!=="Transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-border-radius","4px 0 0 4px"),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.textContent="";let t=this.closest("merch-card"),r=t?.getAttribute("size"),i=t?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",i),this.style.setProperty("--merch-badge-with-offset",i?1:0),this.style.setProperty("--merch-badge-card-size",r?2:1),super.connectedCallback()}render(){return f`<div class="badge">${this.text}</div>`}};m(Qt,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"}}),m(Qt,"styles",b`
         :host {
             display: block;
             background-color: var(--merch-badge-background-color);
@@ -12699,25 +6384,10 @@ u(qt, 'properties', {
             position: relative;
             left: 1px;
         }
-    `,
-    );
-customElements.define('merch-badge', qt);
-R();
-var Hr = class extends $ {
-    constructor() {
-        super();
-    }
-    render() {
-        return g`
+    `);customElements.define("merch-badge",Qt);R();var Vr=class extends ${constructor(){super()}render(){return f`
             <slot name="icon"></slot>
             <slot name="description">${this.description}</slot>
-        `;
-    }
-};
-u(
-    Hr,
-    'styles',
-    y`
+        `}};m(Vr,"styles",b`
         :host {
             display: flex;
             flex-wrap: nowrap;
@@ -12742,59 +6412,11 @@ u(
         :host .hidden {
             display: none;
         }
-    `,
-),
-    u(Hr, 'properties', { description: { type: String, attribute: !0 } });
-customElements.define('merch-mnemonic-list', Hr);
-R();
-var Dr = class extends $ {
-    updated() {
-        this.hideSeeMoreEls();
-    }
-    hideSeeMoreEls() {
-        this.isMobile &&
-            this.rows.forEach((t, r) => {
-                r >= 5 && (t.style.display = this.showAll ? 'flex' : 'none');
-            });
-    }
-    constructor() {
-        super(),
-            (this.showAll = !1),
-            (this.mobileRows =
-                this.mobileRows === void 0 ? 5 : this.mobileRows);
-    }
-    toggle() {
-        (this.showAll = !this.showAll),
-            this.dispatchEvent(
-                new CustomEvent('hide-see-more-elements', {
-                    bubbles: !0,
-                    composed: !0,
-                }),
-            ),
-            this.requestUpdate();
-    }
-    render() {
-        return g`<slot name="heading"></slot>
+    `),m(Vr,"properties",{description:{type:String,attribute:!0}});customElements.define("merch-mnemonic-list",Vr);R();var jr=class extends ${updated(){this.hideSeeMoreEls()}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((t,r)=>{r>=5&&(t.style.display=this.showAll?"flex":"none")})}constructor(){super(),this.showAll=!1,this.mobileRows=this.mobileRows===void 0?5:this.mobileRows}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}render(){return f`<slot name="heading"></slot>
             <slot name="content"></slot>
-            ${
-                this.isMobile && this.rows.length > this.mobileRows
-                    ? g`<div @click=${this.toggle} class="see-more">
-                      ${this.showAll ? '- See less' : '+ See more'}
-                  </div>`
-                    : g``
-            }`;
-    }
-    get isMobile() {
-        return window.matchMedia('(max-width: 767px)').matches;
-    }
-    get rows() {
-        return this.querySelectorAll('merch-mnemonic-list');
-    }
-};
-u(
-    Dr,
-    'styles',
-    y`
+            ${this.isMobile&&this.rows.length>this.mobileRows?f`<div @click=${this.toggle} class="see-more">
+                      ${this.showAll?"- See less":"+ See more"}
+                  </div>`:f``}`}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}get rows(){return this.querySelectorAll("merch-mnemonic-list")}};m(jr,"styles",b`
         :host {
             display: flex;
             flex-wrap: wrap;
@@ -12823,1281 +6445,7 @@ u(
             text-decoration: underline;
             color: var(--link-color-dark);
         }
-    `,
-),
-    u(Dr, 'properties', {
-        heading: { type: String, attribute: !0 },
-        mobileRows: { type: Number, attribute: !0 },
-    });
-customElements.define('merch-whats-included', Dr);
-var sh = '#000000',
-    yo = '#F8D904',
-    ch = '#EAEAEA',
-    lh = '#31A547',
-    dh = /(accent|primary|secondary)(-(outline|link))?/,
-    hh = 'mas:product_code/',
-    ph = 'daa-ll',
-    $i = 'daa-lh',
-    mh = ['XL', 'L', 'M', 'S'],
-    Eo = '...';
-function ye(e, t, r, i) {
-    let n = i[e];
-    if (t[e] && n) {
-        let o = { slot: n?.slot },
-            a = t[e];
-        if (n.maxCount && typeof a == 'string') {
-            let [c, l] = Lh(a, n.maxCount, n.withSuffix);
-            c !== a && ((o.title = l), (a = c));
-        }
-        let s = ne(n.tag, o, a);
-        r.append(s);
-    }
-}
-function uh(e, t, r) {
-    let i = e.mnemonicIcon?.map((o, a) => ({
-        icon: o,
-        alt: e.mnemonicAlt[a] ?? '',
-        link: e.mnemonicLink[a] ?? '',
-    }));
-    i?.forEach(({ icon: o, alt: a, link: s }) => {
-        if (s && !/^https?:/.test(s))
-            try {
-                s = new URL(`https://${s}`).href.toString();
-            } catch {
-                s = '#';
-            }
-        let c = {
-            slot: 'icons',
-            src: o,
-            loading: t.loading,
-            size: r?.size ?? 'l',
-        };
-        a && (c.alt = a), s && (c.href = s);
-        let l = ne('merch-icon', c);
-        t.append(l);
-    });
-    let n = t.shadowRoot.querySelector('slot[name="icons"]');
-    !i?.length && n && n.remove();
-}
-function fh(e, t, r) {
-    if (r.badge?.slot) {
-        if (e.badge?.length && !e.badge?.startsWith('<merch-badge')) {
-            let i = yo,
-                n = !1;
-            r.allowedBadgeColors?.includes(r.badge?.default) &&
-                ((i = r.badge?.default), e.borderColor || (n = !0));
-            let o = e.badgeBackgroundColor || i,
-                a = e.borderColor || '';
-            n && ((a = r.badge?.default), (e.borderColor = r.badge?.default)),
-                (e.badge = `<merch-badge variant="${e.variant}" background-color="${o}" border-color="${a}">${e.badge}</merch-badge>`);
-        }
-        ye('badge', e, t, r);
-    } else
-        e.badge
-            ? (t.setAttribute('badge-text', e.badge),
-              r.disabledAttributes?.includes('badgeColor') ||
-                  t.setAttribute('badge-color', e.badgeColor || sh),
-              r.disabledAttributes?.includes('badgeBackgroundColor') ||
-                  t.setAttribute(
-                      'badge-background-color',
-                      e.badgeBackgroundColor || yo,
-                  ),
-              t.setAttribute('border-color', e.badgeBackgroundColor || yo))
-            : t.setAttribute('border-color', e.borderColor || ch);
-}
-function gh(e, t, r) {
-    if (r.trialBadge && e.trialBadge) {
-        if (!e.trialBadge.startsWith('<merch-badge')) {
-            let i =
-                (!r.disabledAttributes?.includes('trialBadgeBorderColor') &&
-                    e.trialBadgeBorderColor) ||
-                lh;
-            e.trialBadge = `<merch-badge variant="${e.variant}" border-color="${i}">${e.trialBadge}</merch-badge>`;
-        }
-        ye('trialBadge', e, t, r);
-    }
-}
-function xh(e, t, r) {
-    r?.includes(e.size) && t.setAttribute('size', e.size);
-}
-function bh(e, t) {
-    e.cardName && t.setAttribute('name', e.cardName);
-}
-function vh(e, t, r) {
-    ye('cardTitle', e, t, { cardTitle: r });
-}
-function yh(e, t, r) {
-    ye('subtitle', e, t, r);
-}
-function Eh(e, t, r, i) {
-    if (!e.backgroundColor || e.backgroundColor.toLowerCase() === 'default') {
-        t.style.removeProperty('--merch-card-custom-background-color'),
-            t.removeAttribute('background-color');
-        return;
-    }
-    r?.[e.backgroundColor]
-        ? (t.style.setProperty(
-              '--merch-card-custom-background-color',
-              `var(${r[e.backgroundColor]})`,
-          ),
-          t.setAttribute('background-color', e.backgroundColor))
-        : i?.attribute &&
-          e.backgroundColor &&
-          (t.setAttribute(i.attribute, e.backgroundColor),
-          t.style.removeProperty('--merch-card-custom-background-color'));
-}
-function wh(e, t, r) {
-    let i = r?.borderColor,
-        n = '--consonant-merch-card-border-color';
-    if (e.borderColor?.toLowerCase() === 'transparent')
-        t.style.setProperty(n, 'transparent');
-    else if (e.borderColor && i)
-        if (
-            i?.specialValues?.[e.borderColor]?.includes('gradient') ||
-            /-gradient/.test(e.borderColor)
-        ) {
-            t.setAttribute('gradient-border', 'true');
-            let s = e.borderColor;
-            if (i?.specialValues) {
-                for (let [c, l] of Object.entries(i.specialValues))
-                    if (l === e.borderColor) {
-                        s = c;
-                        break;
-                    }
-            }
-            t.setAttribute('border-color', s), t.style.removeProperty(n);
-        } else t.style.setProperty(n, `var(--${e.borderColor})`);
-}
-function Ah(e, t, r) {
-    if (e.backgroundImage) {
-        let i = { loading: t.loading ?? 'lazy', src: e.backgroundImage };
-        if (
-            (e.backgroundImageAltText
-                ? (i.alt = e.backgroundImageAltText)
-                : (i.role = 'none'),
-            !r)
-        )
-            return;
-        if (r?.attribute) {
-            t.setAttribute(r.attribute, e.backgroundImage);
-            return;
-        }
-        t.append(ne(r.tag, { slot: r.slot }, ne('img', i)));
-    }
-}
-function Ii(e) {
-    return (
-        !e ||
-            typeof e != 'string' ||
-            (e.includes('<mas-mnemonic') &&
-                Promise.resolve()
-                    .then(() => (Ti(), uo))
-                    .catch(console.error)),
-        e
-    );
-}
-function Sh(e, t, r) {
-    e.prices && (e.prices = Ii(e.prices)), ye('prices', e, t, r);
-}
-function wc(e, t, r) {
-    let i = e.hasAttribute('data-wcs-osi') && !!e.getAttribute('data-wcs-osi'),
-        n = e.className || '',
-        o = dh.exec(n)?.[0] ?? 'accent',
-        a = o.includes('accent'),
-        s = o.includes('primary'),
-        c = o.includes('secondary'),
-        l = o.includes('-outline'),
-        d = o.includes('-link');
-    e.classList.remove('accent', 'primary', 'secondary');
-    let p;
-    if (t.consonant) p = Nh(e, a, i, d, s);
-    else if (d) p = e;
-    else {
-        let f;
-        a ? (f = 'accent') : s ? (f = 'primary') : c && (f = 'secondary'),
-            (p = t.spectrum === 'swc' ? Mh(e, r, l, f, i) : Oh(e, r, l, f, i));
-    }
-    return p;
-}
-function _h(e, t) {
-    let { slot: r } = t?.description,
-        i = e.querySelectorAll(`[slot="${r}"] a[data-wcs-osi]`);
-    i.length &&
-        i.forEach((n) => {
-            let o = wc(n, e, t);
-            n.replaceWith(o);
-        });
-}
-function Th(e, t, r) {
-    e.description && (e.description = Ii(e.description)),
-        e.promoText && (e.promoText = Ii(e.promoText)),
-        ye('promoText', e, t, r),
-        ye('description', e, t, r),
-        _h(t, r),
-        ye('callout', e, t, r),
-        ye('quantitySelect', e, t, r),
-        ye('whatsIncluded', e, t, r);
-}
-function Ch(e, t, r) {
-    if (!r.addon) return;
-    let i = e.addon?.replace(/[{}]/g, '');
-    if (!i || /disabled/.test(i)) return;
-    let n = ne('merch-addon', { slot: 'addon' }, i);
-    [...n.querySelectorAll(z)].forEach((o) => {
-        let a = o.parentElement;
-        a?.nodeName === 'P' && a.setAttribute('data-plan-type', '');
-    }),
-        t.append(n);
-}
-function kh(e, t, r) {
-    e.addonConfirmation && ye('addonConfirmation', e, t, r);
-}
-function Ph(e, t, r, i) {
-    i?.secureLabel &&
-        r?.secureLabel &&
-        t.setAttribute('secure-label', i.secureLabel);
-}
-function Lh(e, t, r = !0) {
-    try {
-        let i = typeof e != 'string' ? '' : e,
-            n = Ec(i);
-        if (n.length <= t) return [i, n];
-        let o = 0,
-            a = !1,
-            s = r ? (t - Eo.length < 1 ? 1 : t - Eo.length) : t,
-            c = [];
-        for (let p of i) {
-            if ((o++, p === '<'))
-                if (((a = !0), i[o] === '/')) c.pop();
-                else {
-                    let f = '';
-                    for (let m of i.substring(o)) {
-                        if (m === ' ' || m === '>') break;
-                        f += m;
-                    }
-                    c.push(f);
-                }
-            if ((p === '/' && i[o] === '>' && c.pop(), p === '>')) {
-                a = !1;
-                continue;
-            }
-            if (!a && (s--, s === 0)) break;
-        }
-        let l = i.substring(0, o).trim();
-        if (c.length > 0) {
-            c[0] === 'p' && c.shift();
-            for (let p of c.reverse()) l += `</${p}>`;
-        }
-        return [`${l}${r ? Eo : ''}`, n];
-    } catch {
-        let n = typeof e == 'string' ? e : '',
-            o = Ec(n);
-        return [n, o];
-    }
-}
-function Ec(e) {
-    if (!e) return '';
-    let t = '',
-        r = !1;
-    for (let i of e) {
-        if ((i === '<' && (r = !0), i === '>')) {
-            r = !1;
-            continue;
-        }
-        r || (t += i);
-    }
-    return t;
-}
-function Rh(e, t) {
-    t.querySelectorAll('a.upt-link').forEach((i) => {
-        let n = Ge.createFrom(i);
-        i.replaceWith(n), n.initializeWcsData(e.osi, e.promoCode);
-    });
-}
-function Oh(e, t, r, i, n) {
-    let o = e;
-    n
-        ? (o = customElements
-              .get('checkout-button')
-              .createCheckoutButton({}, e.innerHTML))
-        : (o.innerHTML = `<span>${o.textContent}</span>`),
-        o.setAttribute('tabindex', 0);
-    for (let d of e.attributes)
-        ['class', 'is'].includes(d.name) || o.setAttribute(d.name, d.value);
-    o.firstElementChild?.classList.add('spectrum-Button-label');
-    let a = t?.ctas?.size ?? 'M',
-        s = `spectrum-Button--${i}`,
-        c = mh.includes(a)
-            ? `spectrum-Button--size${a}`
-            : 'spectrum-Button--sizeM',
-        l = ['spectrum-Button', s, c];
-    return r && l.push('spectrum-Button--outline'), o.classList.add(...l), o;
-}
-function Mh(e, t, r, i, n) {
-    let o = e;
-    n &&
-        ((o = customElements
-            .get('checkout-button')
-            .createCheckoutButton(e.dataset)),
-        o.connectedCallback(),
-        o.render());
-    let a = 'fill';
-    r && (a = 'outline');
-    let s = ne(
-        'sp-button',
-        {
-            treatment: a,
-            variant: i,
-            tabIndex: 0,
-            size: t?.ctas?.size ?? 'm',
-            ...(e.dataset.analyticsId && {
-                'data-analytics-id': e.dataset.analyticsId,
-            }),
-        },
-        e.innerHTML,
-    );
-    return (
-        (s.source = o),
-        (n ? o.onceSettled() : Promise.resolve(o)).then((c) => {
-            s.setAttribute('data-navigation-url', c.href);
-        }),
-        s.addEventListener('click', (c) => {
-            c.defaultPrevented || o.click();
-        }),
-        s
-    );
-}
-function Nh(e, t, r, i, n) {
-    let o = e;
-    return (
-        r &&
-            (o = customElements
-                .get('checkout-link')
-                .createCheckoutLink(e.dataset, e.innerHTML)),
-        i ||
-            (o.classList.add('button', 'con-button'),
-            t && o.classList.add('blue'),
-            n && o.classList.add('primary')),
-        o
-    );
-}
-function Ih(e, t, r, i) {
-    if (e.ctas) {
-        e.ctas = Ii(e.ctas);
-        let { slot: n } = r.ctas,
-            o = ne('div', { slot: n }, e.ctas),
-            a = [...o.querySelectorAll('a')].map((s) => wc(s, t, r));
-        (o.innerHTML = ''), o.append(...a), t.append(o);
-    }
-}
-function $h(e, t) {
-    let { tags: r } = e,
-        i = r
-            ?.find((o) => o.startsWith(hh))
-            ?.split('/')
-            .pop();
-    if (!i) return;
-    t.setAttribute($i, i),
-        [
-            ...t.shadowRoot.querySelectorAll(
-                'a[data-analytics-id],button[data-analytics-id]',
-            ),
-            ...t.querySelectorAll(
-                'a[data-analytics-id],button[data-analytics-id]',
-            ),
-        ].forEach((o, a) => {
-            o.setAttribute(ph, `${o.dataset.analyticsId}-${a + 1}`);
-        });
-}
-function Hh(e) {
-    e.spectrum === 'css' &&
-        [
-            ['primary-link', 'primary'],
-            ['secondary-link', 'secondary'],
-        ].forEach(([t, r]) => {
-            e.querySelectorAll(`a.${t}`).forEach((i) => {
-                i.classList.remove(t),
-                    i.classList.add('spectrum-Link', `spectrum-Link--${r}`);
-            });
-        });
-}
-function Dh(e) {
-    e.querySelectorAll('[slot]').forEach((i) => {
-        i.remove();
-    }),
-        (e.variant = void 0),
-        [
-            'checkbox-label',
-            'stock-offer-osis',
-            'secure-label',
-            'background-image',
-            'background-color',
-            'border-color',
-            'badge-background-color',
-            'badge-color',
-            'badge-text',
-            'gradient-border',
-            'size',
-            $i,
-        ].forEach((i) => e.removeAttribute(i));
-    let r = ['wide-strip', 'thin-strip'];
-    e.classList.remove(...r);
-}
-async function Ac(e, t) {
-    if (!e) {
-        let c = t?.id || 'unknown';
-        throw (
-            (console.error(
-                `hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${c}).`,
-            ),
-            new Error(
-                `hydrate: Fragment is undefined for card (merchCard id: ${c}).`,
-            ))
-        );
-    }
-    if (!e.fields) {
-        let c = e.id || 'unknown',
-            l = t?.id || 'unknown';
-        throw (
-            (console.error(
-                `hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'. Cannot hydrate.`,
-            ),
-            new Error(
-                `hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'.`,
-            ))
-        );
-    }
-    let { id: r, fields: i, settings: n = {}, priceLiterals: o } = e,
-        { variant: a } = i;
-    if (!a) throw new Error(`hydrate: no variant found in payload ${r}`);
-    Dh(t),
-        (t.settings = n),
-        o && (t.priceLiterals = o),
-        t.id ?? (t.id = e.id),
-        (t.variant = a),
-        await t.updateComplete;
-    let { aemFragmentMapping: s } = t.variantLayout;
-    if (!s) throw new Error(`hydrate: variant mapping not found for ${r}`);
-    s.style === 'consonant' && t.setAttribute('consonant', !0),
-        uh(i, t, s.mnemonics),
-        fh(i, t, s),
-        gh(i, t, s),
-        xh(i, t, s.size),
-        bh(i, t),
-        vh(i, t, s.title),
-        yh(i, t, s),
-        Sh(i, t, s),
-        Ah(i, t, s.backgroundImage),
-        Eh(i, t, s.allowedColors, s.backgroundColor),
-        wh(i, t, s),
-        Th(i, t, s),
-        Ch(i, t, s),
-        kh(i, t, s),
-        Ph(i, t, s, n),
-        Rh(i, t),
-        Ih(i, t, s, a),
-        $h(i, t),
-        Hh(t);
-}
-var Ao = 'merch-card',
-    wo = 2e4,
-    Sc = 'merch-card:';
-function _c(e, t) {
-    let r = e.closest(Ao);
-    if (!r) return t;
-    r.priceLiterals &&
-        (t.literals ?? (t.literals = {}),
-        Object.assign(t.literals, r.priceLiterals)),
-        r.variantLayout?.priceOptionsProvider?.(e, t);
-}
-function Bh(e) {
-    e.providers.has(_c) || e.providers.price(_c);
-}
-var Uh = 0,
-    Wt,
-    Yt,
-    Xt,
-    $e,
-    gt,
-    Ce,
-    xt,
-    K,
-    ft,
-    Hi,
-    Tc,
-    Di,
-    We = class extends $ {
-        constructor() {
-            super();
-            E(this, K);
-            E(this, Wt);
-            E(this, Yt);
-            E(this, Xt);
-            E(this, $e);
-            E(this, gt);
-            E(this, Ce);
-            E(
-                this,
-                xt,
-                new Promise((r) => {
-                    v(this, Ce, r);
-                }),
-            );
-            u(this, 'customerSegment');
-            u(this, 'marketSegment');
-            u(this, 'variantLayout');
-            (this.id = null),
-                (this.failed = !1),
-                (this.filters = {}),
-                (this.types = ''),
-                (this.selected = !1),
-                (this.spectrum = 'css'),
-                (this.loading = 'lazy'),
-                (this.handleAemFragmentEvents =
-                    this.handleAemFragmentEvents.bind(this)),
-                (this.handleMerchOfferSelectReady =
-                    this.handleMerchOfferSelectReady.bind(this));
-        }
-        firstUpdated() {
-            (this.variantLayout = go(this)),
-                this.variantLayout?.connectedCallbackHook();
-        }
-        willUpdate(r) {
-            (r.has('variant') || !this.variantLayout) &&
-                ((this.variantLayout = go(this)),
-                this.variantLayout?.connectedCallbackHook());
-        }
-        updated(r) {
-            (r.has('badgeBackgroundColor') || r.has('borderColor')) &&
-                this.style.setProperty(
-                    '--consonant-merch-card-border',
-                    this.computedBorderStyle,
-                ),
-                r.has('backgroundColor') &&
-                    this.style.setProperty(
-                        '--merch-card-custom-background-color',
-                        this.backgroundColor
-                            ? `var(--${this.backgroundColor})`
-                            : '',
-                    );
-            try {
-                this.variantLayoutPromise =
-                    this.variantLayout?.postCardUpdateHook(r);
-            } catch (i) {
-                Q(this, K, ft).call(
-                    this,
-                    `Error in postCardUpdateHook: ${i.message}`,
-                    {},
-                    !1,
-                );
-            }
-        }
-        get theme() {
-            return this.closest('sp-theme');
-        }
-        get dir() {
-            return this.closest('[dir]')?.getAttribute('dir') ?? 'ltr';
-        }
-        render() {
-            if (
-                !(
-                    !this.isConnected ||
-                    !this.variantLayout ||
-                    this.style.display === 'none'
-                )
-            )
-                return this.variantLayout.renderLayout();
-        }
-        get computedBorderStyle() {
-            return [
-                'ccd-slice',
-                'ccd-suggested',
-                'ah-promoted-plans',
-                'simplified-pricing-express',
-            ].includes(this.variant)
-                ? ''
-                : `1px solid ${this.borderColor ? this.borderColor : this.badgeBackgroundColor}`;
-        }
-        get badgeElement() {
-            return this.shadowRoot.getElementById('badge');
-        }
-        get headingmMSlot() {
-            return this.shadowRoot
-                .querySelector('slot[name="heading-m"]')
-                .assignedElements()[0];
-        }
-        get footerSlot() {
-            return this.shadowRoot
-                .querySelector('slot[name="footer"]')
-                ?.assignedElements()[0];
-        }
-        get descriptionSlot() {
-            return this.shadowRoot
-                .querySelector('slot[name="body-xs"')
-                ?.assignedElements()[0];
-        }
-        get descriptionSlotCompare() {
-            return this.shadowRoot
-                .querySelector('slot[name="body-m"')
-                ?.assignedElements()[0];
-        }
-        get price() {
-            return this.headingmMSlot?.querySelector(z);
-        }
-        get checkoutLinks() {
-            return [...(this.footerSlot?.querySelectorAll(ue) ?? [])];
-        }
-        get checkoutLinksDescription() {
-            return [...(this.descriptionSlot?.querySelectorAll(ue) ?? [])];
-        }
-        get checkoutLinkDescriptionCompare() {
-            return [
-                ...(this.descriptionSlotCompare?.querySelectorAll(ue) ?? []),
-            ];
-        }
-        get activeDescriptionLinks() {
-            return this.variant === 'mini-compare-chart'
-                ? this.checkoutLinkDescriptionCompare
-                : this.checkoutLinksDescription;
-        }
-        async toggleStockOffer({ target: r }) {
-            if (!this.stockOfferOsis) return;
-            let i = this.checkoutLinks;
-            if (i.length !== 0)
-                for (let n of i) {
-                    await n.onceSettled();
-                    let o = n.value?.[0]?.planType;
-                    if (!o) return;
-                    let a = this.stockOfferOsis[o];
-                    if (!a) return;
-                    let s = n.dataset.wcsOsi.split(',').filter((c) => c !== a);
-                    r.checked && s.push(a), (n.dataset.wcsOsi = s.join(','));
-                }
-        }
-        changeHandler(r) {
-            r.target.tagName === 'MERCH-ADDON' && this.toggleAddon(r.target);
-        }
-        toggleAddon(r) {
-            this.variantLayout?.toggleAddon?.(r);
-            let i = [
-                ...this.checkoutLinks,
-                ...(this.activeDescriptionLinks ?? []),
-            ];
-            if (i.length === 0) return;
-            let n = (o) => {
-                let { offerType: a, planType: s } = o.value?.[0] ?? {};
-                if (!a || !s) return;
-                let c = r.getOsi(s, a),
-                    l = (o.dataset.wcsOsi || '')
-                        .split(',')
-                        .filter((d) => d && d !== c);
-                r.checked && l.push(c), (o.dataset.wcsOsi = l.join(','));
-            };
-            i.forEach(n);
-        }
-        handleQuantitySelection(r) {
-            let i = [
-                ...this.checkoutLinks,
-                ...(this.activeDescriptionLinks ?? []),
-            ];
-            if (i.length !== 0)
-                for (let n of i) n.dataset.quantity = r.detail.option;
-        }
-        get titleElement() {
-            return this.querySelector(
-                this.variantLayout?.headingSelector || '.card-heading',
-            );
-        }
-        get title() {
-            return this.titleElement?.textContent?.trim();
-        }
-        get description() {
-            return this.querySelector('[slot="body-xs"]')?.textContent?.trim();
-        }
-        updateFilters(r) {
-            let i = { ...this.filters };
-            Object.keys(i).forEach((n) => {
-                if (r) {
-                    i[n].order = Math.min(i[n].order || 2, 2);
-                    return;
-                }
-                let o = i[n].order;
-                o === 1 || isNaN(o) || (i[n].order = Number(o) + 1);
-            }),
-                (this.filters = i);
-        }
-        includes(r) {
-            return this.textContent.match(new RegExp(r, 'i')) !== null;
-        }
-        connectedCallback() {
-            var i;
-            super.connectedCallback(),
-                h(this, Yt) || v(this, Yt, Uh++),
-                this.aemFragment ||
-                    ((i = h(this, Ce)) == null || i.call(this),
-                    v(this, Ce, void 0)),
-                this.id ??
-                    (this.id =
-                        this.getAttribute('id') ??
-                        this.aemFragment?.getAttribute('fragment'));
-            let r = this.id ?? h(this, Yt);
-            v(this, gt, `${Sc}${r}${et}`),
-                v(this, Wt, `${Sc}${r}${tt}`),
-                performance.mark(h(this, gt)),
-                v(this, $e, ot()),
-                Bh(h(this, $e)),
-                v(this, Xt, h(this, $e).Log.module(Ao)),
-                this.addEventListener(ke, this.handleQuantitySelection),
-                this.addEventListener(jr, this.handleAddonAndQuantityUpdate),
-                this.addEventListener(ir, this.handleMerchOfferSelectReady),
-                this.addEventListener(Ze, this.handleAemFragmentEvents),
-                this.addEventListener(Qe, this.handleAemFragmentEvents),
-                this.addEventListener('change', this.changeHandler),
-                this.aemFragment || setTimeout(() => this.checkReady(), 0);
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback(),
-                this.variantLayout?.disconnectedCallbackHook(),
-                this.removeEventListener(ke, this.handleQuantitySelection),
-                this.removeEventListener(Ze, this.handleAemFragmentEvents),
-                this.removeEventListener(Qe, this.handleAemFragmentEvents),
-                this.removeEventListener('change', this.changeHandler),
-                this.removeEventListener(jr, this.handleAddonAndQuantityUpdate);
-        }
-        async handleAemFragmentEvents(r) {
-            var i;
-            if (
-                this.isConnected &&
-                (r.type === Ze &&
-                    Q(this, K, ft).call(this, 'AEM fragment cannot be loaded'),
-                r.type === Qe &&
-                    ((this.failed = !1), r.target.nodeName === 'AEM-FRAGMENT'))
-            ) {
-                let n = r.detail;
-                try {
-                    h(this, Ce) ||
-                        v(
-                            this,
-                            xt,
-                            new Promise((o) => {
-                                v(this, Ce, o);
-                            }),
-                        ),
-                        Ac(n, this);
-                } catch (o) {
-                    Q(this, K, ft).call(
-                        this,
-                        `hydration has failed: ${o.message}`,
-                    );
-                } finally {
-                    (i = h(this, Ce)) == null || i.call(this),
-                        v(this, Ce, void 0);
-                }
-                this.checkReady();
-            }
-        }
-        async checkReady() {
-            if (!this.isConnected) return;
-            h(this, xt) && (await h(this, xt), v(this, xt, void 0)),
-                this.variantLayoutPromise &&
-                    (await this.variantLayoutPromise,
-                    (this.variantLayoutPromise = void 0));
-            let r = new Promise((a) => setTimeout(() => a('timeout'), wo));
-            if (this.aemFragment) {
-                let a = await Promise.race([
-                    this.aemFragment.updateComplete,
-                    r,
-                ]);
-                if (a === !1 || a === 'timeout') {
-                    let s =
-                        a === 'timeout'
-                            ? `AEM fragment was not resolved within ${wo} timeout`
-                            : 'AEM fragment cannot be loaded';
-                    Q(this, K, ft).call(this, s, {}, !1);
-                    return;
-                }
-            }
-            let i = [...this.querySelectorAll(rr)],
-                n = Promise.all(
-                    i.map((a) => a.onceSettled().catch(() => a)),
-                ).then((a) =>
-                    a.every((s) =>
-                        s.classList.contains('placeholder-resolved'),
-                    ),
-                ),
-                o = await Promise.race([n, r]);
-            if (o === !0) {
-                this.measure = performance.measure(h(this, Wt), h(this, gt));
-                let a = {
-                    ...this.aemFragment?.fetchInfo,
-                    ...h(this, $e).duration,
-                    measure: Ae(this.measure),
-                };
-                return (
-                    this.dispatchEvent(
-                        new CustomEvent(qi, {
-                            bubbles: !0,
-                            composed: !0,
-                            detail: a,
-                        }),
-                    ),
-                    this
-                );
-            } else {
-                this.measure = performance.measure(h(this, Wt), h(this, gt));
-                let a = { measure: Ae(this.measure), ...h(this, $e).duration };
-                o === 'timeout'
-                    ? Q(this, K, ft).call(
-                          this,
-                          `Contains offers that were not resolved within ${wo} timeout`,
-                          a,
-                      )
-                    : Q(this, K, ft).call(
-                          this,
-                          'Contains unresolved offers',
-                          a,
-                      );
-            }
-        }
-        get aemFragment() {
-            return this.querySelector('aem-fragment');
-        }
-        get addon() {
-            return this.querySelector('merch-addon');
-        }
-        get quantitySelect() {
-            return this.querySelector('merch-quantity-select');
-        }
-        get addonCheckbox() {
-            return this.querySelector('merch-addon');
-        }
-        displayFooterElementsInColumn() {
-            if (!this.classList.contains('product')) return;
-            let r = this.shadowRoot.querySelector('.secure-transaction-label');
-            (this.footerSlot?.querySelectorAll(ue)).length === 2 &&
-                r &&
-                r.parentElement.classList.add('footer-column');
-        }
-        handleMerchOfferSelectReady() {
-            (this.offerSelect && !this.offerSelect.planType) ||
-                this.displayFooterElementsInColumn();
-        }
-        get dynamicPrice() {
-            return this.querySelector('[slot="price"]');
-        }
-        handleAddonAndQuantityUpdate({ detail: { id: r, items: i } }) {
-            if (
-                !r ||
-                !i?.length ||
-                this.closest('[role="tabpanel"][hidden="true"]')
-            )
-                return;
-            let o = this.checkoutLinks.find(
-                (d) => d.getAttribute('data-modal-id') === r,
-            );
-            if (!o) return;
-            let s = new URL(o.getAttribute('href')).searchParams.get('pa'),
-                c = i.find((d) => d.productArrangementCode === s)?.quantity,
-                l = !!i.find((d) => d.productArrangementCode !== s);
-            if (
-                (c &&
-                    this.quantitySelect?.dispatchEvent(
-                        new CustomEvent(wt, {
-                            detail: { quantity: c },
-                            bubbles: !0,
-                            composed: !0,
-                        }),
-                    ),
-                this.addonCheckbox && this.addonCheckbox.checked !== l)
-            ) {
-                this.toggleStockOffer({ target: this.addonCheckbox });
-                let d = new Event('change', { bubbles: !0, cancelable: !0 });
-                Object.defineProperty(d, 'target', {
-                    writable: !1,
-                    value: { checked: l },
-                }),
-                    this.addonCheckbox.handleChange(d);
-            }
-        }
-        get prices() {
-            return Array.from(this.querySelectorAll(z));
-        }
-        get promoPrice() {
-            if (!this.querySelector('span.price-strikethrough')) return;
-            let r = this.querySelector('.price.price-alternative');
-            if (
-                (r ||
-                    (r = this.querySelector(
-                        `${z}[data-template="price"] > span`,
-                    )),
-                !!r)
-            )
-                return (r = r.innerText), r;
-        }
-        get regularPrice() {
-            return h(this, K, Hi)?.innerText;
-        }
-        get promotionCode() {
-            let r = [
-                    ...this.querySelectorAll(
-                        `${z}[data-promotion-code],${ue}[data-promotion-code]`,
-                    ),
-                ].map((n) => n.dataset.promotionCode),
-                i = [...new Set(r)];
-            return (
-                i.length > 1 &&
-                    h(this, Xt)?.warn(
-                        `Multiple different promotion codes found: ${i.join(', ')}`,
-                    ),
-                r[0]
-            );
-        }
-        get annualPrice() {
-            return this.querySelector(
-                `${z}[data-template="price"] > .price.price-annual`,
-            )?.innerText;
-        }
-        get promoText() {}
-        get taxText() {
-            return (
-                (h(this, K, Tc) ?? h(this, K, Hi))
-                    ?.querySelector('span.price-tax-inclusivity')
-                    ?.textContent?.trim() || void 0
-            );
-        }
-        get recurrenceText() {
-            return h(this, K, Hi)
-                ?.querySelector('span.price-recurrence')
-                ?.textContent?.trim();
-        }
-        get planTypeText() {
-            return this.querySelector(
-                '[is="inline-price"][data-template="legal"] span.price-plan-type',
-            )?.textContent?.trim();
-        }
-        get seeTermsInfo() {
-            let r = this.querySelector('a[is="upt-link"]');
-            if (r) return Q(this, K, Di).call(this, r);
-        }
-        get renewalText() {
-            return this.querySelector('span.renewal-text')?.textContent?.trim();
-        }
-        get promoDurationText() {
-            return this.querySelector(
-                'span.promo-duration-text',
-            )?.textContent?.trim();
-        }
-        get ctas() {
-            let r = this.querySelector(
-                '[slot="ctas"], [slot="footer"]',
-            )?.querySelectorAll(`${ue}, a`);
-            return Array.from(r ?? []);
-        }
-        get primaryCta() {
-            return Q(this, K, Di).call(
-                this,
-                this.ctas.find(
-                    (r) =>
-                        r.variant === 'accent' ||
-                        r.matches('.spectrum-Button--accent,.con-button.blue'),
-                ),
-            );
-        }
-        get secondaryCta() {
-            return Q(this, K, Di).call(
-                this,
-                this.ctas.find(
-                    (r) =>
-                        r.variant !== 'accent' &&
-                        !r.matches('.spectrum-Button--accent,.con-button.blue'),
-                ),
-            );
-        }
-    };
-(Wt = new WeakMap()),
-    (Yt = new WeakMap()),
-    (Xt = new WeakMap()),
-    ($e = new WeakMap()),
-    (gt = new WeakMap()),
-    (Ce = new WeakMap()),
-    (xt = new WeakMap()),
-    (K = new WeakSet()),
-    (ft = function (r, i = {}, n = !0) {
-        if (!this.isConnected) return;
-        let a = this.aemFragment?.getAttribute('fragment');
-        a = `[${a}]`;
-        let s = {
-            ...this.aemFragment?.fetchInfo,
-            ...h(this, $e).duration,
-            ...i,
-            message: r,
-        };
-        h(this, Xt).error(`merch-card${a}: ${r}`, s),
-            (this.failed = !0),
-            n &&
-                this.dispatchEvent(
-                    new CustomEvent(Wi, {
-                        bubbles: !0,
-                        composed: !0,
-                        detail: s,
-                    }),
-                );
-    }),
-    (Hi = function () {
-        return (
-            this.querySelector('span.price-strikethrough') ??
-            this.querySelector(`${z}[data-template="price"] > span`)
-        );
-    }),
-    (Tc = function () {
-        return this.querySelector(`${z}[data-template="legal"]`);
-    }),
-    (Di = function (r) {
-        if (r)
-            return {
-                text: r.innerText.trim(),
-                analyticsId: r.dataset.analyticsId,
-                href: r.getAttribute('href') ?? r.dataset.href,
-            };
-    }),
-    u(We, 'properties', {
-        id: { type: String, attribute: 'id', reflect: !0 },
-        name: { type: String, attribute: 'name', reflect: !0 },
-        variant: { type: String, reflect: !0 },
-        size: { type: String, attribute: 'size', reflect: !0 },
-        badgeColor: { type: String, attribute: 'badge-color', reflect: !0 },
-        borderColor: { type: String, attribute: 'border-color', reflect: !0 },
-        backgroundColor: {
-            type: String,
-            attribute: 'background-color',
-            reflect: !0,
-        },
-        badgeBackgroundColor: {
-            type: String,
-            attribute: 'badge-background-color',
-            reflect: !0,
-        },
-        backgroundImage: {
-            type: String,
-            attribute: 'background-image',
-            reflect: !0,
-        },
-        badgeText: { type: String, attribute: 'badge-text' },
-        actionMenu: { type: Boolean, attribute: 'action-menu' },
-        actionMenuLabel: { type: String, attribute: 'action-menu-label' },
-        customHr: { type: Boolean, attribute: 'custom-hr' },
-        consonant: { type: Boolean, attribute: 'consonant' },
-        failed: { type: Boolean, attribute: 'failed', reflect: !0 },
-        spectrum: { type: String, attribute: 'spectrum' },
-        detailBg: { type: String, attribute: 'detail-bg' },
-        secureLabel: { type: String, attribute: 'secure-label' },
-        checkboxLabel: { type: String, attribute: 'checkbox-label' },
-        addonTitle: { type: String, attribute: 'addon-title' },
-        addonOffers: { type: Object, attribute: 'addon-offers' },
-        selected: { type: Boolean, attribute: 'aria-selected', reflect: !0 },
-        storageOption: { type: String, attribute: 'storage', reflect: !0 },
-        planType: { type: String, attribute: 'plan-type', reflect: !0 },
-        settings: { type: Object, attribute: !1 },
-        stockOfferOsis: {
-            type: Object,
-            attribute: 'stock-offer-osis',
-            converter: {
-                fromAttribute: (r) => {
-                    if (!r) return;
-                    let [i, n, o] = r.split(',');
-                    return { PUF: i, ABM: n, M2M: o };
-                },
-            },
-        },
-        filters: {
-            type: String,
-            reflect: !0,
-            converter: {
-                fromAttribute: (r) =>
-                    Object.fromEntries(
-                        r.split(',').map((i) => {
-                            let [n, o, a] = i.split(':'),
-                                s = Number(o);
-                            return [
-                                n,
-                                { order: isNaN(s) ? void 0 : s, size: a },
-                            ];
-                        }),
-                    ),
-                toAttribute: (r) =>
-                    Object.entries(r)
-                        .map(([i, { order: n, size: o }]) =>
-                            [i, n, o].filter((a) => a != null).join(':'),
-                        )
-                        .join(','),
-            },
-        },
-        types: { type: String, attribute: 'types', reflect: !0 },
-        merchOffer: { type: Object },
-        analyticsId: { type: String, attribute: $i, reflect: !0 },
-        loading: { type: String },
-        priceLiterals: { type: Object },
-    }),
-    u(We, 'styles', [qs, ...Ws()]),
-    u(We, 'registerVariant', q),
-    u(We, 'getCollectionOptions', lc),
-    u(We, 'getFragmentMapping', ki);
-customElements.define(Ao, We);
-R();
-var Kt,
-    Br = class extends $ {
-        constructor() {
-            super();
-            E(this, Kt);
-            (this.defaults = {}), (this.variant = 'plans');
-        }
-        saveContainerDefaultValues() {
-            let r = this.closest(this.getAttribute('container')),
-                i = r
-                    ?.querySelector('[slot="description"]:not(merch-offer > *)')
-                    ?.cloneNode(!0),
-                n = r?.badgeText;
-            return { description: i, badgeText: n };
-        }
-        getSlottedElement(r, i) {
-            return (
-                i || this.closest(this.getAttribute('container'))
-            ).querySelector(`[slot="${r}"]:not(merch-offer > *)`);
-        }
-        updateSlot(r, i) {
-            let n = this.getSlottedElement(r, i);
-            if (!n) return;
-            let o = this.selectedOffer.getOptionValue(r)
-                ? this.selectedOffer.getOptionValue(r)
-                : this.defaults[r];
-            o && n.replaceWith(o.cloneNode(!0));
-        }
-        handleOfferSelection(r) {
-            let i = r.detail;
-            this.selectOffer(i);
-        }
-        handleOfferSelectionByQuantity(r) {
-            let i = r.detail.option,
-                n = Number.parseInt(i),
-                o = this.findAppropriateOffer(n);
-            this.selectOffer(o),
-                this.getSlottedElement('cta').setAttribute('data-quantity', n);
-        }
-        selectOffer(r) {
-            if (!r) return;
-            let i = this.selectedOffer;
-            i && (i.selected = !1),
-                (r.selected = !0),
-                (this.selectedOffer = r),
-                (this.planType = r.planType),
-                this.updateContainer(),
-                this.updateComplete.then(() => {
-                    this.dispatchEvent(
-                        new CustomEvent(ji, { detail: this, bubbles: !0 }),
-                    );
-                });
-        }
-        findAppropriateOffer(r) {
-            let i = null;
-            return (
-                this.offers.find((o) => {
-                    let a = Number.parseInt(o.getAttribute('value'));
-                    if (a === r) return !0;
-                    if (a > r) return !1;
-                    i = o;
-                }) || i
-            );
-        }
-        updateBadgeText(r) {
-            this.selectedOffer.badgeText === ''
-                ? (r.badgeText = null)
-                : this.selectedOffer.badgeText
-                  ? (r.badgeText = this.selectedOffer.badgeText)
-                  : (r.badgeText = this.defaults.badgeText);
-        }
-        updateContainer() {
-            let r = this.closest(this.getAttribute('container'));
-            !r ||
-                !this.selectedOffer ||
-                (this.updateSlot('cta', r),
-                this.updateSlot('secondary-cta', r),
-                this.updateSlot('price', r),
-                !this.manageableMode &&
-                    (this.updateSlot('description', r),
-                    this.updateBadgeText(r)));
-        }
-        render() {
-            return g`<fieldset><slot class="${this.variant}"></slot></fieldset>`;
-        }
-        connectedCallback() {
-            super.connectedCallback(),
-                this.addEventListener('focusin', this.handleFocusin),
-                this.addEventListener('click', this.handleFocusin),
-                this.addEventListener(Et, this.handleOfferSelectReady);
-            let r = this.closest('merch-quantity-select');
-            (this.manageableMode = r),
-                (this.offers = [...this.querySelectorAll('merch-offer')]),
-                v(this, Kt, this.handleOfferSelectionByQuantity.bind(this)),
-                this.manageableMode
-                    ? r.addEventListener(ke, h(this, Kt))
-                    : (this.defaults = this.saveContainerDefaultValues()),
-                (this.selectedOffer = this.offers[0]),
-                this.planType && this.updateContainer();
-        }
-        get miniCompareMobileCard() {
-            return (
-                this.merchCard?.variant === 'mini-compare-chart' &&
-                this.isMobile
-            );
-        }
-        get merchCard() {
-            return this.closest('merch-card');
-        }
-        get isMobile() {
-            return window.matchMedia('(max-width: 767px)').matches;
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback(),
-                this.removeEventListener(ke, h(this, Kt)),
-                this.removeEventListener(Et, this.handleOfferSelectReady),
-                this.removeEventListener('focusin', this.handleFocusin),
-                this.removeEventListener('click', this.handleFocusin);
-        }
-        get price() {
-            return this.querySelector(
-                'merch-offer[aria-selected] [is="inline-price"]',
-            );
-        }
-        get customerSegment() {
-            return this.selectedOffer?.customerSegment;
-        }
-        get marketSegment() {
-            return this.selectedOffer?.marketSegment;
-        }
-        handleFocusin(r) {
-            r.target?.nodeName === 'MERCH-OFFER' &&
-                (r.preventDefault(),
-                r.stopImmediatePropagation(),
-                this.selectOffer(r.target));
-        }
-        async handleOfferSelectReady() {
-            this.planType ||
-                this.querySelector('merch-offer:not([plan-type])') ||
-                ((this.planType = this.selectedOffer.planType),
-                await this.updateComplete,
-                this.selectOffer(
-                    this.selectedOffer ??
-                        this.querySelector('merch-offer[aria-selected]') ??
-                        this.querySelector('merch-offer'),
-                ),
-                this.dispatchEvent(new CustomEvent(ir, { bubbles: !0 })));
-        }
-    };
-(Kt = new WeakMap()),
-    u(
-        Br,
-        'styles',
-        y`
+    `),m(jr,"properties",{heading:{type:String,attribute:!0},mobileRows:{type:Number,attribute:!0}});customElements.define("merch-whats-included",jr);var vh="#000000",Aa="#F8D904",bh="#EAEAEA",yh="#31A547",Eh=/(accent|primary|secondary)(-(outline|link))?/,wh="mas:product_code/",Ah="daa-ll",Hi="daa-lh",Sh=["XL","L","M","S"],Sa="...";function be(e,t,r,i){let n=i[e];if(t[e]&&n){let a={slot:n?.slot,...n?.attributes},o=t[e];if(n.maxCount&&typeof o=="string"){let[c,l]=Uh(o,n.maxCount,n.withSuffix);c!==o&&(a.title=l,o=c)}let s=de(n.tag,a,o);r.append(s)}}function _h(e,t,r){let i=e.mnemonicIcon?.map((a,o)=>({icon:a,alt:e.mnemonicAlt[o]??"",link:e.mnemonicLink[o]??""}));i?.forEach(({icon:a,alt:o,link:s})=>{if(s&&!/^https?:/.test(s))try{s=new URL(`https://${s}`).href.toString()}catch{s="#"}let c={slot:"icons",src:a,loading:t.loading,size:r?.size??"l"};o&&(c.alt=o),s&&(c.href=s);let l=de("merch-icon",c);t.append(l)});let n=t.shadowRoot.querySelector('slot[name="icons"]');n&&(n.style.display=i?.length?null:"none")}function Th(e,t,r){if(r.badge?.slot){if(e.badge?.length&&!e.badge?.startsWith("<merch-badge")){let i=Aa,n=!1;r.allowedBadgeColors?.includes(r.badge?.default)&&(i=r.badge?.default,e.borderColor||(n=!0));let a=e.badgeBackgroundColor||i,o=e.borderColor||"";n&&(o=r.badge?.default,e.borderColor=r.badge?.default),e.badge=`<merch-badge variant="${e.variant}" background-color="${a}" border-color="${o}">${e.badge}</merch-badge>`}be("badge",e,t,r)}else e.badge?(t.setAttribute("badge-text",e.badge),r.disabledAttributes?.includes("badgeColor")||t.setAttribute("badge-color",e.badgeColor||vh),r.disabledAttributes?.includes("badgeBackgroundColor")||t.setAttribute("badge-background-color",e.badgeBackgroundColor||Aa),t.setAttribute("border-color",e.badgeBackgroundColor||Aa)):t.setAttribute("border-color",e.borderColor||bh)}function Ch(e,t,r){if(r.trialBadge&&e.trialBadge){if(!e.trialBadge.startsWith("<merch-badge")){let i=!r.disabledAttributes?.includes("trialBadgeBorderColor")&&e.trialBadgeBorderColor||yh;e.trialBadge=`<merch-badge variant="${e.variant}" border-color="${i}">${e.trialBadge}</merch-badge>`}be("trialBadge",e,t,r)}}function kh(e,t,r){r?.includes(e.size)&&t.setAttribute("size",e.size)}function Ph(e,t){e.cardName&&t.setAttribute("name",e.cardName)}function Lh(e,t,r){e.cardTitle&&(e.cardTitle=Zt(e.cardTitle)),be("cardTitle",e,t,{cardTitle:r})}function Rh(e,t,r){be("subtitle",e,t,r)}function Mh(e,t,r,i){if(!e.backgroundColor||e.backgroundColor.toLowerCase()==="default"){t.style.removeProperty("--merch-card-custom-background-color"),t.removeAttribute("background-color");return}r?.[e.backgroundColor]?(t.style.setProperty("--merch-card-custom-background-color",`var(${r[e.backgroundColor]})`),t.setAttribute("background-color",e.backgroundColor)):i?.attribute&&e.backgroundColor&&(t.setAttribute(i.attribute,e.backgroundColor),t.style.removeProperty("--merch-card-custom-background-color"))}function Oh(e,t,r){let i=r?.borderColor,n="--consonant-merch-card-border-color";if(e.borderColor?.toLowerCase()==="transparent")t.style.setProperty(n,"transparent");else if(e.borderColor&&i){let o=i?.specialValues?.[e.borderColor]?.includes("gradient")||/-gradient/.test(e.borderColor),s=/^spectrum-.*-plans$/.test(e.borderColor);if(o){t.setAttribute("gradient-border","true");let c=e.borderColor;if(i?.specialValues){for(let[l,d]of Object.entries(i.specialValues))if(d===e.borderColor){c=l;break}}t.setAttribute("border-color",c),t.style.removeProperty(n)}else s?(t.setAttribute("border-color",e.borderColor),t.style.setProperty(n,`var(--${e.borderColor})`)):t.style.setProperty(n,`var(--${e.borderColor})`)}}function Nh(e,t,r){if(e.backgroundImage){let i={loading:t.loading??"lazy",src:e.backgroundImage};if(e.backgroundImageAltText?i.alt=e.backgroundImageAltText:i.role="none",!r)return;if(r?.attribute){t.setAttribute(r.attribute,e.backgroundImage);return}t.append(de(r.tag,{slot:r.slot},de("img",i)))}}function Zt(e){return!e||typeof e!="string"||e.includes("<mas-mnemonic")&&Promise.resolve().then(()=>(Ri(),fa)).catch(console.error),e}function Ih(e,t,r){e.prices&&(e.prices=Zt(e.prices)),be("prices",e,t,r)}function Lc(e,t,r){let i=e.hasAttribute("data-wcs-osi")&&!!e.getAttribute("data-wcs-osi"),n=e.className||"",a=Eh.exec(n)?.[0]??"accent",o=a.includes("accent"),s=a.includes("primary"),c=a.includes("secondary"),l=a.includes("-outline"),d=a.includes("-link");e.classList.remove("accent","primary","secondary");let p;if(t.consonant)p=Vh(e,o,i,d,s);else if(d)p=e;else{let u;o?u="accent":s?u="primary":c&&(u="secondary"),p=t.spectrum==="swc"?qh(e,r,l,u,i):Gh(e,r,l,u,i)}return p}function Dh(e,t){let{slot:r}=t?.description,i=e.querySelectorAll(`[slot="${r}"] a[data-wcs-osi]`);i.length&&i.forEach(n=>{let a=Lc(n,e,t);n.replaceWith(a)})}function zh(e,t,r){e.description&&(e.description=Zt(e.description)),e.promoText&&(e.promoText=Zt(e.promoText)),e.shortDescription&&(e.shortDescription=Zt(e.shortDescription)),be("promoText",e,t,r),be("description",e,t,r),be("shortDescription",e,t,r),e.shortDescription&&(t.setAttribute("action-menu","true"),e.actionMenuLabel||t.setAttribute("action-menu-label","More options")),Dh(t,r),be("callout",e,t,r),be("quantitySelect",e,t,r),be("whatsIncluded",e,t,r)}function $h(e,t,r){if(!r.addon)return;let i=e.addon?.replace(/[{}]/g,"");if(!i||/disabled/.test(i))return;let n=de("merch-addon",{slot:"addon"},i);[...n.querySelectorAll(H)].forEach(a=>{let o=a.parentElement;o?.nodeName==="P"&&o.setAttribute("data-plan-type","")}),t.append(n)}function Hh(e,t,r){e.addonConfirmation&&be("addonConfirmation",e,t,r)}function Bh(e,t,r,i){i?.secureLabel&&r?.secureLabel&&t.setAttribute("secure-label",i.secureLabel)}function Uh(e,t,r=!0){try{let i=typeof e!="string"?"":e,n=Pc(i);if(n.length<=t)return[i,n];let a=0,o=!1,s=r?t-Sa.length<1?1:t-Sa.length:t,c=[];for(let p of i){if(a++,p==="<")if(o=!0,i[a]==="/")c.pop();else{let u="";for(let g of i.substring(a)){if(g===" "||g===">")break;u+=g}c.push(u)}if(p==="/"&&i[a]===">"&&c.pop(),p===">"){o=!1;continue}if(!o&&(s--,s===0))break}let l=i.substring(0,a).trim();if(c.length>0){c[0]==="p"&&c.shift();for(let p of c.reverse())l+=`</${p}>`}return[`${l}${r?Sa:""}`,n]}catch{let n=typeof e=="string"?e:"",a=Pc(n);return[n,a]}}function Pc(e){if(!e)return"";let t="",r=!1;for(let i of e){if(i==="<"&&(r=!0),i===">"){r=!1;continue}r||(t+=i)}return t}function Fh(e,t){t.querySelectorAll("a.upt-link").forEach(i=>{let n=je.createFrom(i);i.replaceWith(n),n.initializeWcsData(e.osi,e.promoCode)})}function Gh(e,t,r,i,n){let a=e;n?a=customElements.get("checkout-button").createCheckoutButton({},e.innerHTML):a.innerHTML=`<span>${a.textContent}</span>`,a.setAttribute("tabindex",0);for(let d of e.attributes)["class","is"].includes(d.name)||a.setAttribute(d.name,d.value);a.firstElementChild?.classList.add("spectrum-Button-label");let o=t?.ctas?.size??"M",s=`spectrum-Button--${i}`,c=Sh.includes(o)?`spectrum-Button--size${o}`:"spectrum-Button--sizeM",l=["spectrum-Button",s,c];return r&&l.push("spectrum-Button--outline"),a.classList.add(...l),a}function qh(e,t,r,i,n){let a=e;n&&(a=customElements.get("checkout-button").createCheckoutButton(e.dataset),a.connectedCallback(),a.render());let o="fill";r&&(o="outline");let s=de("sp-button",{treatment:o,variant:i,tabIndex:0,size:t?.ctas?.size??"m",...e.dataset.analyticsId&&{"data-analytics-id":e.dataset.analyticsId}},e.innerHTML);return s.source=a,(n?a.onceSettled():Promise.resolve(a)).then(c=>{s.setAttribute("data-navigation-url",c.href)}),s.addEventListener("click",c=>{c.defaultPrevented||a.click()}),s}function Vh(e,t,r,i,n){let a=e;return r&&(a=customElements.get("checkout-link").createCheckoutLink(e.dataset,e.innerHTML)),i||(a.classList.add("button","con-button"),t&&a.classList.add("blue"),n&&a.classList.add("primary")),a}function jh(e,t,r,i){if(e.ctas){e.ctas=Zt(e.ctas);let{slot:n}=r.ctas,a=de("div",{slot:n},e.ctas),o=[...a.querySelectorAll("a")].map(s=>Lc(s,t,r));a.innerHTML="",a.append(...o),t.append(a)}}function Wh(e,t){let{tags:r}=e,i=r?.find(a=>a.startsWith(wh))?.split("/").pop();if(!i)return;t.setAttribute(Hi,i),[...t.shadowRoot.querySelectorAll("a[data-analytics-id],button[data-analytics-id]"),...t.querySelectorAll("a[data-analytics-id],button[data-analytics-id]")].forEach((a,o)=>{a.setAttribute(Ah,`${a.dataset.analyticsId}-${o+1}`)})}function Yh(e){e.spectrum==="css"&&[["primary-link","primary"],["secondary-link","secondary"]].forEach(([t,r])=>{e.querySelectorAll(`a.${t}`).forEach(i=>{i.classList.remove(t),i.classList.add("spectrum-Link",`spectrum-Link--${r}`)})})}function Xh(e){e.querySelectorAll("[slot]").forEach(i=>{i.remove()}),e.variant=void 0,["checkbox-label","stock-offer-osis","secure-label","background-image","background-color","border-color","badge-background-color","badge-color","badge-text","gradient-border","size",Hi].forEach(i=>e.removeAttribute(i));let r=["wide-strip","thin-strip"];e.classList.remove(...r)}async function Rc(e,t){if(!e){let c=t?.id||"unknown";throw console.error(`hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${c}).`),new Error(`hydrate: Fragment is undefined for card (merchCard id: ${c}).`)}if(!e.fields){let c=e.id||"unknown",l=t?.id||"unknown";throw console.error(`hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'. Cannot hydrate.`),new Error(`hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'.`)}let{id:r,fields:i,settings:n={},priceLiterals:a}=e,{variant:o}=i;if(!o)throw new Error(`hydrate: no variant found in payload ${r}`);Xh(t),t.settings=n,a&&(t.priceLiterals=a),t.id??(t.id=e.id),t.variant=o,await t.updateComplete;let{aemFragmentMapping:s}=t.variantLayout;if(!s)throw new Error(`hydrate: variant mapping not found for ${r}`);s.style==="consonant"&&t.setAttribute("consonant",!0),_h(i,t,s.mnemonics),Th(i,t,s),Ch(i,t,s),kh(i,t,s.size),Ph(i,t),Lh(i,t,s.title),Rh(i,t,s),Ih(i,t,s),Nh(i,t,s.backgroundImage),Mh(i,t,s.allowedColors,s.backgroundColor),Oh(i,t,s),zh(i,t,s),$h(i,t,s),Hh(i,t,s),Bh(i,t,s,n),Fh(i,t),jh(i,t,s,o),Wh(i,t),Yh(t)}var Ta="merch-card",_a=2e4,Mc="merch-card:",Kh=["full-pricing-express","simplified-pricing-express"];function Oc(e,t){let r=e.closest(Ta);if(!r)return t;r.priceLiterals&&(t.literals??(t.literals={}),Object.assign(t.literals,r.priceLiterals)),r.aemFragment&&(t[we]=!0),r.variantLayout?.priceOptionsProvider?.(e,t)}function Qh(e){e.providers.has(Oc)||e.providers.price(Oc)}var Nc=new IntersectionObserver(e=>{e.forEach(t=>{t.target.clientHeight!==0&&(Nc.unobserve(t.target),t.target.requestUpdate())})}),Zh=0,Jt,er,tr,Be,Et,Me,wt,ee,yt,Bi,Ic,Ui,Ke=class extends ${constructor(){super();E(this,ee);E(this,Jt);E(this,er);E(this,tr);E(this,Be);E(this,Et);E(this,Me);E(this,wt,new Promise(r=>{y(this,Me,r)}));m(this,"customerSegment");m(this,"marketSegment");m(this,"variantLayout");this.id=null,this.failed=!1,this.filters={},this.types="",this.selected=!1,this.spectrum="css",this.loading="lazy",this.handleAemFragmentEvents=this.handleAemFragmentEvents.bind(this),this.handleMerchOfferSelectReady=this.handleMerchOfferSelectReady.bind(this)}firstUpdated(){this.variantLayout=ba(this),this.variantLayout?.connectedCallbackHook()}willUpdate(r){(r.has("variant")||!this.variantLayout)&&(this.variantLayout?.disconnectedCallbackHook(),this.variantLayout=ba(this),this.variantLayout?.connectedCallbackHook())}updated(r){(r.has("badgeBackgroundColor")||r.has("borderColor"))&&this.style.setProperty("--consonant-merch-card-border",this.computedBorderStyle),r.has("backgroundColor")&&this.style.setProperty("--merch-card-custom-background-color",this.backgroundColor?`var(--${this.backgroundColor})`:"");try{this.variantLayoutPromise=this.variantLayout?.postCardUpdateHook(r)}catch(i){te(this,ee,yt).call(this,`Error in postCardUpdateHook: ${i.message}`,{},!1)}}get theme(){return this.closest("sp-theme")}get dir(){return this.closest("[dir]")?.getAttribute("dir")??"ltr"}render(){if(!(!this.isConnected||!this.variantLayout||this.style.display==="none"))return this.variantLayout.renderLayout()}get computedBorderStyle(){return["ccd-slice","ccd-suggested","ah-promoted-plans","simplified-pricing-express","full-pricing-express"].includes(this.variant)?"":`1px solid ${this.borderColor?this.borderColor:this.badgeBackgroundColor}`}get badgeElement(){return this.shadowRoot.getElementById("badge")}get headingmMSlot(){return this.shadowRoot.querySelector('slot[name="heading-m"]').assignedElements()[0]}get footerSlot(){return this.shadowRoot.querySelector('slot[name="footer"]')?.assignedElements()[0]}get descriptionSlot(){return this.shadowRoot.querySelector('slot[name="body-xs"')?.assignedElements()[0]}get descriptionSlotCompare(){return this.shadowRoot.querySelector('slot[name="body-m"')?.assignedElements()[0]}get price(){return this.headingmMSlot?.querySelector(H)}get checkoutLinks(){return[...this.footerSlot?.querySelectorAll(ye)??[]]}get checkoutLinksDescription(){return[...this.descriptionSlot?.querySelectorAll(ye)??[]]}get checkoutLinkDescriptionCompare(){return[...this.descriptionSlotCompare?.querySelectorAll(ye)??[]]}get activeDescriptionLinks(){return this.variant==="mini-compare-chart"?this.checkoutLinkDescriptionCompare:this.checkoutLinksDescription}async toggleStockOffer({target:r}){if(!this.stockOfferOsis)return;let i=this.checkoutLinks;if(i.length!==0)for(let n of i){await n.onceSettled();let a=n.value?.[0]?.planType;if(!a)return;let o=this.stockOfferOsis[a];if(!o)return;let s=n.dataset.wcsOsi.split(",").filter(c=>c!==o);r.checked&&s.push(o),n.dataset.wcsOsi=s.join(",")}}changeHandler(r){r.target.tagName==="MERCH-ADDON"&&this.toggleAddon(r.target)}toggleAddon(r){this.variantLayout?.toggleAddon?.(r);let i=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(i.length===0)return;let n=a=>{let{offerType:o,planType:s}=a.value?.[0]??{};if(!o||!s)return;let c=r.getOsi(s,o),l=(a.dataset.wcsOsi||"").split(",").filter(d=>d&&d!==c);r.checked&&l.push(c),a.dataset.wcsOsi=l.join(",")};i.forEach(n)}handleQuantitySelection(r){let i=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(i.length!==0)for(let n of i)n.dataset.quantity=r.detail.option}get titleElement(){return this.querySelector(this.variantLayout?.headingSelector||".card-heading")}get title(){return this.titleElement?.textContent?.trim()}get description(){return this.querySelector('[slot="body-xs"]')?.textContent?.trim()}updateFilters(r){let i={...this.filters};Object.keys(i).forEach(n=>{if(r){i[n].order=Math.min(i[n].order||2,2);return}let a=i[n].order;a===1||isNaN(a)||(i[n].order=Number(a)+1)}),this.filters=i}includes(r){return this.textContent.match(new RegExp(r,"i"))!==null}connectedCallback(){var i;super.connectedCallback(),h(this,er)||y(this,er,Zh++),this.aemFragment||((i=h(this,Me))==null||i.call(this),y(this,Me,void 0)),this.id??(this.id=this.getAttribute("id")??this.aemFragment?.getAttribute("fragment"));let r=this.id??h(this,er);y(this,Et,`${Mc}${r}${nt}`),y(this,Jt,`${Mc}${r}${at}`),performance.mark(h(this,Et)),y(this,Be,dt()),Qh(h(this,Be)),y(this,tr,h(this,Be).Log.module(Ta)),this.addEventListener(ae,this.handleQuantitySelection),this.addEventListener(Jr,this.handleAddonAndQuantityUpdate),this.addEventListener(lr,this.handleMerchOfferSelectReady),this.addEventListener(rt,this.handleAemFragmentEvents),this.addEventListener(tt,this.handleAemFragmentEvents),this.addEventListener("change",this.changeHandler),this.variantLayout&&this.variantLayout.connectedCallbackHook(),this.aemFragment||setTimeout(()=>this.checkReady(),0)}disconnectedCallback(){super.disconnectedCallback(),this.variantLayout?.disconnectedCallbackHook(),this.removeEventListener(ae,this.handleQuantitySelection),this.removeEventListener(rt,this.handleAemFragmentEvents),this.removeEventListener(tt,this.handleAemFragmentEvents),this.removeEventListener("change",this.changeHandler),this.removeEventListener(Jr,this.handleAddonAndQuantityUpdate)}async handleAemFragmentEvents(r){var i;if(this.isConnected&&(r.type===rt&&te(this,ee,yt).call(this,"AEM fragment cannot be loaded"),r.type===tt&&(this.failed=!1,r.target.nodeName==="AEM-FRAGMENT"))){let n=r.detail;try{h(this,Me)||y(this,wt,new Promise(a=>{y(this,Me,a)})),Rc(n,this)}catch(a){te(this,ee,yt).call(this,`hydration has failed: ${a.message}`)}finally{(i=h(this,Me))==null||i.call(this),y(this,Me,void 0)}this.checkReady()}}async checkReady(){if(!this.isConnected)return;h(this,wt)&&(await h(this,wt),Kh.includes(this.variantLayout)&&Nc.observe(this),y(this,wt,void 0)),this.variantLayoutPromise&&(await this.variantLayoutPromise,this.variantLayoutPromise=void 0);let r=new Promise(o=>setTimeout(()=>o("timeout"),_a));if(this.aemFragment){let o=await Promise.race([this.aemFragment.updateComplete,r]);if(o===!1||o==="timeout"){let s=o==="timeout"?`AEM fragment was not resolved within ${_a} timeout`:"AEM fragment cannot be loaded";te(this,ee,yt).call(this,s,{},!1);return}}let i=[...this.querySelectorAll(cr)],n=Promise.all(i.map(o=>o.onceSettled().catch(()=>o))).then(o=>o.every(s=>s.classList.contains("placeholder-resolved"))),a=await Promise.race([n,r]);if(a===!0){this.measure=performance.measure(h(this,Jt),h(this,Et));let o={...this.aemFragment?.fetchInfo,...h(this,Be).duration,measure:Le(this.measure)};return this.dispatchEvent(new CustomEvent(Xi,{bubbles:!0,composed:!0,detail:o})),this}else{this.measure=performance.measure(h(this,Jt),h(this,Et));let o={measure:Le(this.measure),...h(this,Be).duration};a==="timeout"?te(this,ee,yt).call(this,`Contains offers that were not resolved within ${_a} timeout`,o):te(this,ee,yt).call(this,"Contains unresolved offers",o)}}get aemFragment(){return this.querySelector("aem-fragment")}get addon(){return this.querySelector("merch-addon")}get quantitySelect(){return this.querySelector("merch-quantity-select")}get addonCheckbox(){return this.querySelector("merch-addon")}displayFooterElementsInColumn(){if(!this.classList.contains("product"))return;let r=this.shadowRoot.querySelector(".secure-transaction-label");(this.footerSlot?.querySelectorAll(ye)).length===2&&r&&r.parentElement.classList.add("footer-column")}handleMerchOfferSelectReady(){this.offerSelect&&!this.offerSelect.planType||this.displayFooterElementsInColumn()}get dynamicPrice(){return this.querySelector('[slot="price"]')}handleAddonAndQuantityUpdate({detail:{id:r,items:i}}){if(!r||!i?.length||this.closest('[role="tabpanel"][hidden="true"]'))return;let a=this.checkoutLinks.find(d=>d.getAttribute("data-modal-id")===r);if(!a)return;let s=new URL(a.getAttribute("href")).searchParams.get("pa"),c=i.find(d=>d.productArrangementCode===s)?.quantity,l=!!i.find(d=>d.productArrangementCode!==s);if(c&&this.quantitySelect?.dispatchEvent(new CustomEvent(Tt,{detail:{quantity:c},bubbles:!0,composed:!0})),this.addonCheckbox&&this.addonCheckbox.checked!==l){this.toggleStockOffer({target:this.addonCheckbox});let d=new Event("change",{bubbles:!0,cancelable:!0});Object.defineProperty(d,"target",{writable:!1,value:{checked:l}}),this.addonCheckbox.handleChange(d)}}get prices(){return Array.from(this.querySelectorAll(H))}get promoPrice(){if(!this.querySelector("span.price-strikethrough"))return;let r=this.querySelector(".price.price-alternative");if(r||(r=this.querySelector(`${H}[data-template="price"] > span`)),!!r)return r=r.innerText,r}get regularPrice(){return h(this,ee,Bi)?.innerText}get promotionCode(){let r=[...this.querySelectorAll(`${H}[data-promotion-code],${ye}[data-promotion-code]`)].map(n=>n.dataset.promotionCode),i=[...new Set(r)];return i.length>1&&h(this,tr)?.warn(`Multiple different promotion codes found: ${i.join(", ")}`),r[0]}get annualPrice(){return this.querySelector(`${H}[data-template="price"] > .price.price-annual`)?.innerText}get promoText(){}get taxText(){return(h(this,ee,Ic)??h(this,ee,Bi))?.querySelector("span.price-tax-inclusivity")?.textContent?.trim()||void 0}get recurrenceText(){return h(this,ee,Bi)?.querySelector("span.price-recurrence")?.textContent?.trim()}get planTypeText(){return this.querySelector('[is="inline-price"][data-template="legal"] span.price-plan-type')?.textContent?.trim()}get seeTermsInfo(){let r=this.querySelector('a[is="upt-link"]');if(r)return te(this,ee,Ui).call(this,r)}get renewalText(){return this.querySelector("span.renewal-text")?.textContent?.trim()}get promoDurationText(){return this.querySelector("span.promo-duration-text")?.textContent?.trim()}get ctas(){let r=this.querySelector('[slot="ctas"], [slot="footer"]')?.querySelectorAll(`${ye}, a`);return Array.from(r??[])}get primaryCta(){return te(this,ee,Ui).call(this,this.ctas.find(r=>r.variant==="accent"||r.matches(".spectrum-Button--accent,.con-button.blue")))}get secondaryCta(){return te(this,ee,Ui).call(this,this.ctas.find(r=>r.variant!=="accent"&&!r.matches(".spectrum-Button--accent,.con-button.blue")))}};Jt=new WeakMap,er=new WeakMap,tr=new WeakMap,Be=new WeakMap,Et=new WeakMap,Me=new WeakMap,wt=new WeakMap,ee=new WeakSet,yt=function(r,i={},n=!0){if(!this.isConnected)return;let o=this.aemFragment?.getAttribute("fragment");o=`[${o}]`;let s={...this.aemFragment.fetchInfo,...h(this,Be).duration,...i,message:r};h(this,tr).error(`merch-card${o}: ${r}`,s),this.failed=!0,n&&this.dispatchEvent(new CustomEvent(Ki,{bubbles:!0,composed:!0,detail:s}))},Bi=function(){return this.querySelector("span.price-strikethrough")??this.querySelector(`${H}[data-template="price"] > span`)},Ic=function(){return this.querySelector(`${H}[data-template="legal"]`)},Ui=function(r){if(r)return{text:r.innerText.trim(),analyticsId:r.dataset.analyticsId,href:r.getAttribute("href")??r.dataset.href}},m(Ke,"properties",{id:{type:String,attribute:"id",reflect:!0},name:{type:String,attribute:"name",reflect:!0},variant:{type:String,reflect:!0},size:{type:String,attribute:"size",reflect:!0},badgeColor:{type:String,attribute:"badge-color",reflect:!0},borderColor:{type:String,attribute:"border-color",reflect:!0},backgroundColor:{type:String,attribute:"background-color",reflect:!0},badgeBackgroundColor:{type:String,attribute:"badge-background-color",reflect:!0},backgroundImage:{type:String,attribute:"background-image",reflect:!0},badgeText:{type:String,attribute:"badge-text"},actionMenu:{type:Boolean,attribute:"action-menu"},actionMenuLabel:{type:String,attribute:"action-menu-label"},customHr:{type:Boolean,attribute:"custom-hr"},consonant:{type:Boolean,attribute:"consonant"},failed:{type:Boolean,attribute:"failed",reflect:!0},spectrum:{type:String,attribute:"spectrum"},detailBg:{type:String,attribute:"detail-bg"},secureLabel:{type:String,attribute:"secure-label"},checkboxLabel:{type:String,attribute:"checkbox-label"},addonTitle:{type:String,attribute:"addon-title"},addonOffers:{type:Object,attribute:"addon-offers"},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},storageOption:{type:String,attribute:"storage",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},settings:{type:Object,attribute:!1},stockOfferOsis:{type:Object,attribute:"stock-offer-osis",converter:{fromAttribute:r=>{if(!r)return;let[i,n,a]=r.split(",");return{PUF:i,ABM:n,M2M:a}}}},filters:{type:String,reflect:!0,converter:{fromAttribute:r=>Object.fromEntries(r.split(",").map(i=>{let[n,a,o]=i.split(":"),s=Number(a);return[n,{order:isNaN(s)?void 0:s,size:o}]})),toAttribute:r=>Object.entries(r).map(([i,{order:n,size:a}])=>[i,n,a].filter(o=>o!=null).join(":")).join(",")}},types:{type:String,attribute:"types",reflect:!0},merchOffer:{type:Object},analyticsId:{type:String,attribute:Hi,reflect:!0},loading:{type:String},priceLiterals:{type:Object}}),m(Ke,"styles",[Qs,...Zs()]),m(Ke,"registerVariant",V),m(Ke,"getCollectionOptions",xc),m(Ke,"getFragmentMapping",Oi);customElements.define(Ta,Ke);R();var rr,Wr=class extends ${constructor(){super();E(this,rr);this.defaults={},this.variant="plans"}saveContainerDefaultValues(){let r=this.closest(this.getAttribute("container")),i=r?.querySelector('[slot="description"]:not(merch-offer > *)')?.cloneNode(!0),n=r?.badgeText;return{description:i,badgeText:n}}getSlottedElement(r,i){return(i||this.closest(this.getAttribute("container"))).querySelector(`[slot="${r}"]:not(merch-offer > *)`)}updateSlot(r,i){let n=this.getSlottedElement(r,i);if(!n)return;let a=this.selectedOffer.getOptionValue(r)?this.selectedOffer.getOptionValue(r):this.defaults[r];a&&n.replaceWith(a.cloneNode(!0))}handleOfferSelection(r){let i=r.detail;this.selectOffer(i)}handleOfferSelectionByQuantity(r){let i=r.detail.option,n=Number.parseInt(i),a=this.findAppropriateOffer(n);this.selectOffer(a),this.getSlottedElement("cta").setAttribute("data-quantity",n)}selectOffer(r){if(!r)return;let i=this.selectedOffer;i&&(i.selected=!1),r.selected=!0,this.selectedOffer=r,this.planType=r.planType,this.updateContainer(),this.updateComplete.then(()=>{this.dispatchEvent(new CustomEvent(Yi,{detail:this,bubbles:!0}))})}findAppropriateOffer(r){let i=null;return this.offers.find(a=>{let o=Number.parseInt(a.getAttribute("value"));if(o===r)return!0;if(o>r)return!1;i=a})||i}updateBadgeText(r){this.selectedOffer.badgeText===""?r.badgeText=null:this.selectedOffer.badgeText?r.badgeText=this.selectedOffer.badgeText:r.badgeText=this.defaults.badgeText}updateContainer(){let r=this.closest(this.getAttribute("container"));!r||!this.selectedOffer||(this.updateSlot("cta",r),this.updateSlot("secondary-cta",r),this.updateSlot("price",r),!this.manageableMode&&(this.updateSlot("description",r),this.updateBadgeText(r)))}render(){return f`<fieldset><slot class="${this.variant}"></slot></fieldset>`}connectedCallback(){super.connectedCallback(),this.addEventListener("focusin",this.handleFocusin),this.addEventListener("click",this.handleFocusin),this.addEventListener(_t,this.handleOfferSelectReady);let r=this.closest("merch-quantity-select");this.manageableMode=r,this.offers=[...this.querySelectorAll("merch-offer")],y(this,rr,this.handleOfferSelectionByQuantity.bind(this)),this.manageableMode?r.addEventListener(ae,h(this,rr)):this.defaults=this.saveContainerDefaultValues(),this.selectedOffer=this.offers[0],this.planType&&this.updateContainer()}get miniCompareMobileCard(){return this.merchCard?.variant==="mini-compare-chart"&&this.isMobile}get merchCard(){return this.closest("merch-card")}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(ae,h(this,rr)),this.removeEventListener(_t,this.handleOfferSelectReady),this.removeEventListener("focusin",this.handleFocusin),this.removeEventListener("click",this.handleFocusin)}get price(){return this.querySelector('merch-offer[aria-selected] [is="inline-price"]')}get customerSegment(){return this.selectedOffer?.customerSegment}get marketSegment(){return this.selectedOffer?.marketSegment}handleFocusin(r){r.target?.nodeName==="MERCH-OFFER"&&(r.preventDefault(),r.stopImmediatePropagation(),this.selectOffer(r.target))}async handleOfferSelectReady(){this.planType||this.querySelector("merch-offer:not([plan-type])")||(this.planType=this.selectedOffer.planType,await this.updateComplete,this.selectOffer(this.selectedOffer??this.querySelector("merch-offer[aria-selected]")??this.querySelector("merch-offer")),this.dispatchEvent(new CustomEvent(lr,{bubbles:!0})))}};rr=new WeakMap,m(Wr,"styles",b`
         :host {
             display: inline-block;
         }
@@ -14116,20 +6464,7 @@ var Kt,
             flex-direction: column;
             gap: var(--consonant-merch-spacing-xs);
         }
-    `,
-    ),
-    u(Br, 'properties', {
-        offers: { type: Array },
-        selectedOffer: { type: Object },
-        defaults: { type: Object },
-        variant: { type: String, attribute: 'variant', reflect: !0 },
-        planType: { type: String, attribute: 'plan-type', reflect: !0 },
-        stock: { type: Boolean, reflect: !0 },
-    });
-customElements.define('merch-offer-select', Br);
-R();
-R();
-var Cc = y`
+    `),m(Wr,"properties",{offers:{type:Array},selectedOffer:{type:Object},defaults:{type:Object},variant:{type:String,attribute:"variant",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},stock:{type:Boolean,reflect:!0}});customElements.define("merch-offer-select",Wr);R();R();var Dc=b`
     :host {
         --merch-radio: rgba(82, 88, 228);
         --merch-radio-hover: rgba(64, 70, 202);
@@ -14340,37 +6675,11 @@ var Cc = y`
         position: relative;
         height: 40px;
     }
-`;
-var zh = 'merch-offer',
-    Ur = class extends $ {
-        constructor() {
-            super();
-            u(this, 'tr');
-            (this.type = 'radio'), (this.selected = !1);
-        }
-        getOptionValue(r) {
-            return this.querySelector(`[slot="${r}"]`);
-        }
-        connectedCallback() {
-            super.connectedCallback(),
-                this.initOffer(),
-                (this.configuration = this.closest('quantity-selector')),
-                !this.hasAttribute('tabindex') &&
-                    !this.configuration &&
-                    (this.tabIndex = 0),
-                !this.hasAttribute('role') &&
-                    !this.configuration &&
-                    (this.role = 'radio');
-        }
-        get asRadioOption() {
-            return g` <div class="merch-Radio">
+`;var Jh="merch-offer",Yr=class extends ${constructor(){super();m(this,"tr");this.type="radio",this.selected=!1}getOptionValue(r){return this.querySelector(`[slot="${r}"]`)}connectedCallback(){super.connectedCallback(),this.initOffer(),this.configuration=this.closest("quantity-selector"),!this.hasAttribute("tabindex")&&!this.configuration&&(this.tabIndex=0),!this.hasAttribute("role")&&!this.configuration&&(this.role="radio")}get asRadioOption(){return f` <div class="merch-Radio">
             <input tabindex="-1" type="radio" class="merch-Radio-input" />
             <span class="merch-Radio-button"></span>
             <span class="merch-Radio-label">${this.text}</span>
-        </div>`;
-        }
-        get asSubscriptionOption() {
-            return g`<slot name="commitment"></slot>
+        </div>`}get asSubscriptionOption(){return f`<slot name="commitment"></slot>
             <slot name="price"></slot>
             <slot name="teaser"></slot>
             <div id="condition">
@@ -14383,57 +6692,7 @@ var zh = 'merch-offer',
                         ><slot name="condition-tooltip"></slot
                     ></sp-tooltip>
                 </sp-overlay>
-            </div>`;
-        }
-        render() {
-            return this.configuration || !this.price
-                ? ''
-                : this.type === 'subscription-option'
-                  ? this.asSubscriptionOption
-                  : this.asRadioOption;
-        }
-        get price() {
-            return this.querySelector(
-                'span[is="inline-price"]:not([data-template="strikethrough"])',
-            );
-        }
-        get cta() {
-            return this.querySelector(ue);
-        }
-        get prices() {
-            return this.querySelectorAll('span[is="inline-price"]');
-        }
-        get customerSegment() {
-            return this.price?.value?.[0].customerSegment;
-        }
-        get marketSegment() {
-            return this.price?.value?.[0].marketSegments[0];
-        }
-        async initOffer() {
-            if (!this.price) return;
-            this.prices.forEach((i) => i.setAttribute('slot', 'price')),
-                await this.updateComplete,
-                await Promise.all([...this.prices].map((i) => i.onceSettled()));
-            let {
-                value: [r],
-            } = this.price;
-            (this.planType = r.planType),
-                await this.updateComplete,
-                this.dispatchEvent(new CustomEvent(Et, { bubbles: !0 }));
-        }
-    };
-u(Ur, 'properties', {
-    text: { type: String },
-    selected: { type: Boolean, attribute: 'aria-selected', reflect: !0 },
-    badgeText: { type: String, attribute: 'badge-text' },
-    type: { type: String, attribute: 'type', reflect: !0 },
-    planType: { type: String, attribute: 'plan-type', reflect: !0 },
-}),
-    u(Ur, 'styles', [Cc]);
-customElements.define(zh, Ur);
-R();
-R();
-var kc = y`
+            </div>`}render(){return this.configuration||!this.price?"":this.type==="subscription-option"?this.asSubscriptionOption:this.asRadioOption}get price(){return this.querySelector('span[is="inline-price"]:not([data-template="strikethrough"])')}get cta(){return this.querySelector(ye)}get prices(){return this.querySelectorAll('span[is="inline-price"]')}get customerSegment(){return this.price?.value?.[0].customerSegment}get marketSegment(){return this.price?.value?.[0].marketSegments[0]}async initOffer(){if(!this.price)return;this.prices.forEach(i=>i.setAttribute("slot","price")),await this.updateComplete,await Promise.all([...this.prices].map(i=>i.onceSettled()));let{value:[r]}=this.price;this.planType=r.planType,await this.updateComplete,this.dispatchEvent(new CustomEvent(_t,{bubbles:!0}))}};m(Yr,"properties",{text:{type:String},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},badgeText:{type:String,attribute:"badge-text"},type:{type:String,attribute:"type",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0}}),m(Yr,"styles",[Dc]);customElements.define(Jh,Yr);R();R();var zc=b`
     :host {
         box-sizing: border-box;
         --background-color: var(--qs-background-color, #f6f6f6);
@@ -14482,6 +6741,7 @@ var kc = y`
         padding-inline-start: 12px;
         box-sizing: border-box;
         -moz-appearance: textfield;
+        z-index: 1;
     }
 
     .text-field-input::-webkit-inner-spin-button,
@@ -14501,6 +6761,10 @@ var kc = y`
         position: absolute;
         inset-inline-end: 0;
         border: var(--border-width) solid var(--border-color);
+        border-left: var(
+            --picker-button-border-left,
+            var(--border-width) solid var(--border-color)
+        );
         border-top-right-radius: var(--radius);
         border-bottom-right-radius: var(--radius);
         background-color: var(--background-color);
@@ -14533,7 +6797,7 @@ var kc = y`
         border-radius: var(--radius);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         overflow: hidden;
-        z-index: 100;
+        z-index: 1000;
         transition: var(--qs-transition);
         visibility: hidden;
         box-sizing: border-box;
@@ -14575,7 +6839,7 @@ var kc = y`
     }
 
     .item.highlighted {
-        background-color: var(--background-color);
+        background-color: var(--qs-background-color-highlighted, #e8e8e8);
     }
 
     .item.selected {
@@ -14583,246 +6847,28 @@ var kc = y`
         background-position: right 7px center;
         background-repeat: no-repeat;
     }
-`;
-var [_b, Tb, So, _o, Pc, Lc] = [
-    'ArrowLeft',
-    'ArrowRight',
-    'ArrowUp',
-    'ArrowDown',
-    'Enter',
-    'Tab',
-];
-var To = class extends $ {
-    static get properties() {
-        return {
-            closed: { type: Boolean, reflect: !0 },
-            selected: { type: Number },
-            min: { type: Number },
-            max: { type: Number },
-            step: { type: Number },
-            maxInput: { type: Number, attribute: 'max-input' },
-            options: { type: Array },
-            highlightedIndex: { type: Number },
-            defaultValue: {
-                type: Number,
-                attribute: 'default-value',
-                reflect: !0,
-            },
-            title: { type: String },
-        };
-    }
-    static get styles() {
-        return kc;
-    }
-    constructor() {
-        super(),
-            (this.options = []),
-            (this.title = ''),
-            (this.closed = !0),
-            (this.min = 0),
-            (this.max = 0),
-            (this.step = 0),
-            (this.maxInput = void 0),
-            (this.defaultValue = void 0),
-            (this.selectedValue = 0),
-            (this.highlightedIndex = 0),
-            (this.toggleMenu = this.toggleMenu.bind(this)),
-            (this.closeMenu = this.closeMenu.bind(this)),
-            (this.openMenu = this.openMenu.bind(this)),
-            (this.handleClickOutside = this.handleClickOutside.bind(this)),
-            (this.boundKeydownListener = this.handleKeydown.bind(this)),
-            (this.handleKeyupDebounced = vr(this.handleKeyup.bind(this), 500)),
-            (this.debouncedQuantityUpdate = vr(
-                this.handleQuantityUpdate.bind(this),
-                500,
-            ));
-    }
-    connectedCallback() {
-        super.connectedCallback(),
-            this.addEventListener('keydown', this.boundKeydownListener),
-            window.addEventListener('mousedown', this.handleClickOutside),
-            this.addEventListener(wt, this.debouncedQuantityUpdate);
-    }
-    get button() {
-        return this.shadowRoot.querySelector('button');
-    }
-    handleKeyup(t) {
-        t.key === _o || t.key === So || (this.handleInput(), this.sendEvent());
-    }
-    selectValue() {
-        if (!this.closed) {
-            let t = this.options[this.highlightedIndex];
-            if (!t) {
-                this.closed = !0;
-                return;
-            }
-            (this.selectedValue = t),
-                this.handleMenuOption(this.selectedValue),
-                (this.closed = !0);
-        }
-    }
-    handleKeydown(t) {
-        switch (t.key) {
-            case ' ':
-                this.selectValue();
-                break;
-            case 'Escape':
-                this.closed = !0;
-                break;
-            case Lc:
-                this.selectValue();
-                break;
-            case _o:
-                this.closed
-                    ? this.openMenu()
-                    : (this.highlightedIndex =
-                          (this.highlightedIndex + 1) % this.options.length),
-                    t.preventDefault();
-                break;
-            case So:
-                this.closed ||
-                    (this.highlightedIndex =
-                        (this.highlightedIndex - 1 + this.options.length) %
-                        this.options.length),
-                    t.preventDefault();
-                break;
-            case Pc:
-                this.selectValue(),
-                    this.button.classList.contains('focused') &&
-                        t.preventDefault();
-                break;
-        }
-        t.composedPath().includes(this) && t.stopPropagation();
-    }
-    adjustInput(t, r) {
-        (this.selectedValue = r),
-            (t.value = r),
-            (this.highlightedIndex = this.options.indexOf(r));
-    }
-    handleInput() {
-        let t = this.shadowRoot.querySelector('.text-field-input'),
-            r = t.value.replace(/\D/g, '');
-        t.value = r;
-        let i = parseInt(r);
-        if (!isNaN(i))
-            if (i > 0 && i !== this.selectedValue) {
-                let n = i;
-                this.maxInput && i > this.maxInput && (n = this.maxInput),
-                    this.min && n < this.min && (n = this.min),
-                    this.adjustInput(t, n);
-            } else this.adjustInput(t, this.selectedValue || this.min || 1);
-    }
-    disconnectedCallback() {
-        super.disconnectedCallback(),
-            window.removeEventListener('mousedown', this.handleClickOutside),
-            this.removeEventListener('keydown', this.boundKeydownListener),
-            this.removeEventListener(wt, this.debouncedQuantityUpdate);
-    }
-    generateOptionsArray() {
-        let t = [];
-        if (this.step > 0)
-            for (let r = this.min; r <= this.max; r += this.step) t.push(r);
-        return t;
-    }
-    update(t) {
-        (t.has('min') ||
-            t.has('max') ||
-            t.has('step') ||
-            t.has('defaultValue')) &&
-            ((this.options = this.generateOptionsArray()),
-            (this.highlightedIndex = this.defaultValue
-                ? this.options.indexOf(this.defaultValue)
-                : 0),
-            this.handleMenuOption(
-                this.defaultValue ? this.defaultValue : this.options[0],
-            )),
-            super.update(t);
-    }
-    handleClickOutside(t) {
-        t.composedPath().includes(this) || this.closeMenu();
-    }
-    toggleMenu() {
-        (this.closed = !this.closed),
-            this.adjustPopoverPlacement(),
-            this.closed &&
-                (this.highlightedIndex = this.options.indexOf(
-                    this.selectedValue,
-                ));
-    }
-    closeMenu() {
-        (this.closed = !0),
-            (this.highlightedIndex = this.options.indexOf(this.selectedValue));
-    }
-    openMenu() {
-        (this.closed = !1), this.adjustPopoverPlacement();
-    }
-    adjustPopoverPlacement() {
-        let t = this.shadowRoot.querySelector('.popover');
-        this.closed || t.getBoundingClientRect().bottom <= window.innerHeight
-            ? t.setAttribute('placement', 'bottom')
-            : t.setAttribute('placement', 'top');
-    }
-    handleMouseEnter(t) {
-        this.highlightedIndex = t;
-    }
-    handleMenuOption(t, r) {
-        t === this.max &&
-            this.shadowRoot.querySelector('.text-field-input')?.focus(),
-            (this.selectedValue = t),
-            this.sendEvent(),
-            r && this.closeMenu();
-    }
-    sendEvent() {
-        let t = new CustomEvent(ke, {
-            detail: { option: this.selectedValue },
-            bubbles: !0,
-        });
-        this.dispatchEvent(t);
-    }
-    get offerSelect() {
-        return this.querySelector('merch-offer-select');
-    }
-    get popover() {
-        return g` <div
+`;var[rb,ib,Ca,ka,$c,Hc]=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter","Tab"];var Pa=class extends ${static get properties(){return{closed:{type:Boolean,reflect:!0},selected:{type:Number},min:{type:Number},max:{type:Number},step:{type:Number},maxInput:{type:Number,attribute:"max-input"},options:{type:Array},highlightedIndex:{type:Number},defaultValue:{type:Number,attribute:"default-value",reflect:!0},title:{type:String}}}static get styles(){return zc}constructor(){super(),this.options=[],this.title="",this.closed=!0,this.min=0,this.max=0,this.step=0,this.maxInput=void 0,this.defaultValue=void 0,this.selectedValue=0,this.highlightedIndex=0,this.toggleMenu=this.toggleMenu.bind(this),this.closeMenu=this.closeMenu.bind(this),this.openMenu=this.openMenu.bind(this),this.handleClickOutside=this.handleClickOutside.bind(this),this.boundKeydownListener=this.handleKeydown.bind(this),this.handleKeyupDebounced=Tr(this.handleKeyup.bind(this),500),this.debouncedQuantityUpdate=Tr(this.handleQuantityUpdate.bind(this),500)}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this.boundKeydownListener),window.addEventListener("mousedown",this.handleClickOutside),this.addEventListener(Tt,this.debouncedQuantityUpdate)}get button(){return this.shadowRoot.querySelector("button")}handleKeyup(t){t.key===ka||t.key===Ca||(this.handleInput(),this.sendEvent())}selectValue(){if(!this.closed){let t=this.options[this.highlightedIndex];if(!t){this.closed=!0;return}this.selectedValue=t,this.handleMenuOption(this.selectedValue),this.closed=!0}}handleKeydown(t){switch(t.key){case" ":this.selectValue();break;case"Escape":this.closed=!0;break;case Hc:this.selectValue();break;case ka:this.closed?this.openMenu():this.highlightedIndex=(this.highlightedIndex+1)%this.options.length,t.preventDefault();break;case Ca:this.closed||(this.highlightedIndex=(this.highlightedIndex-1+this.options.length)%this.options.length),t.preventDefault();break;case $c:this.selectValue(),this.button.classList.contains("focused")&&t.preventDefault();break}t.composedPath().includes(this)&&t.stopPropagation()}adjustInput(t,r){this.selectedValue=r,t.value=r,this.highlightedIndex=this.options.indexOf(r)}handleInput(){let t=this.shadowRoot.querySelector(".text-field-input"),r=t.value.replace(/\D/g,"");t.value=r;let i=parseInt(r);if(!isNaN(i))if(i>0&&i!==this.selectedValue){let n=i;this.maxInput&&i>this.maxInput&&(n=this.maxInput),this.min&&n<this.min&&(n=this.min),this.adjustInput(t,n)}else this.adjustInput(t,this.selectedValue||this.min||1)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside),this.removeEventListener("keydown",this.boundKeydownListener),this.removeEventListener(Tt,this.debouncedQuantityUpdate)}generateOptionsArray(){let t=[];if(this.step>0)for(let r=this.min;r<=this.max;r+=this.step)t.push(r);return t}update(t){(t.has("min")||t.has("max")||t.has("step")||t.has("defaultValue"))&&(this.options=this.generateOptionsArray(),this.highlightedIndex=this.defaultValue?this.options.indexOf(this.defaultValue):0,this.handleMenuOption(this.defaultValue?this.defaultValue:this.options[0])),super.update(t)}handleClickOutside(t){t.composedPath().includes(this)||this.closeMenu()}toggleMenu(){this.closed=!this.closed,this.adjustPopoverPlacement(),this.closed&&(this.highlightedIndex=this.options.indexOf(this.selectedValue))}closeMenu(){this.closed=!0,this.highlightedIndex=this.options.indexOf(this.selectedValue)}openMenu(){this.closed=!1,this.adjustPopoverPlacement()}adjustPopoverPlacement(){let t=this.shadowRoot.querySelector(".popover");this.closed||t.getBoundingClientRect().bottom<=window.innerHeight?t.setAttribute("placement","bottom"):t.setAttribute("placement","top")}handleMouseEnter(t){this.highlightedIndex=t}handleMenuOption(t,r){t===this.max&&this.shadowRoot.querySelector(".text-field-input")?.focus(),this.selectedValue=t,this.sendEvent(),r&&this.closeMenu()}sendEvent(){let t=new CustomEvent(ae,{detail:{option:this.selectedValue},bubbles:!0});this.dispatchEvent(t)}get offerSelect(){return this.querySelector("merch-offer-select")}get popover(){return f` <div
             id="qsPopover"
-            class="popover ${this.closed ? 'closed' : 'open'}"
+            class="popover ${this.closed?"closed":"open"}"
             placement="bottom"
             role="listbox"
             aria-multiselectable="false"
             aria-labelledby="qsLabel"
             tabindex="-1"
         >
-            ${this.options.map(
-                (t, r) => g`
+            ${this.options.map((t,r)=>f`
                     <div
-                        class="item ${r === this.highlightedIndex ? 'highlighted' : ''}${this.selectedValue === t ? ' selected' : ''}"
+                        class="item ${r===this.highlightedIndex?"highlighted":""}${this.selectedValue===t?" selected":""}"
                         role="option"
                         id="${`qs-item-${r}`}"
-                        aria-selected=${this.selectedValue === t}
-                        @click="${() => this.handleMenuOption(t, !0)}"
-                        @mouseenter="${() => this.handleMouseEnter(r)}"
+                        aria-selected=${this.selectedValue===t}
+                        @click="${()=>this.handleMenuOption(t,!0)}"
+                        @mouseenter="${()=>this.handleMouseEnter(r)}"
                     >
-                        ${t === this.max ? `${t}+` : t}
+                        ${t===this.max?`${t}+`:t}
                     </div>
-                `,
-            )}
-        </div>`;
-    }
-    handleQuantityUpdate({ detail: { quantity: t } }) {
-        if (t && t !== this.selectedValue) {
-            this.selectedValue = t;
-            let r = this.shadowRoot.querySelector('.text-field-input');
-            r && (r.value = t), this.sendEvent();
-        }
-    }
-    onButtonFocus(t) {
-        t.target.classList.add('focused');
-    }
-    onButtonBlur(t) {
-        t.target.classList.remove('focused');
-    }
-    render() {
-        return g`
+                `)}
+        </div>`}handleQuantityUpdate({detail:{quantity:t}}){if(t&&t!==this.selectedValue){this.selectedValue=t;let r=this.shadowRoot.querySelector(".text-field-input");r&&(r.value=t),this.sendEvent()}}onButtonFocus(t){t.target.classList.add("focused")}onButtonBlur(t){t.target.classList.remove("focused")}render(){return f`
             <div class="label" id="qsLabel">${this.title}</div>
             <div class="text-field">
                 <input
@@ -14832,7 +6878,7 @@ var To = class extends $ {
                     role="combobox"
                     aria-expanded=${!this.closed}
                     aria-controls="qsPopover"
-                    aria-activedescendant="${this.closed ? N : `qs-item-${this.highlightedIndex}`}"
+                    aria-activedescendant="${this.closed?L:`qs-item-${this.highlightedIndex}`}"
                     .value="${this.selectedValue}"
                     type="text"
                     autocomplete="off"
@@ -14841,7 +6887,7 @@ var To = class extends $ {
                 />
                 <button
                     class="picker-button"
-                    aria-activedescendant="${this.closed ? N : `qs-item-${this.highlightedIndex}`}"
+                    aria-activedescendant="${this.closed?L:`qs-item-${this.highlightedIndex}`}"
                     @focus="${this.onButtonFocus}"
                     @blur="${this.onButtonBlur}"
                     aria-controls="qsPopover"
@@ -14850,18 +6896,12 @@ var To = class extends $ {
                     @click="${this.toggleMenu}"
                 >
                     <div
-                        class="picker-button-fill ${this.closed ? 'open' : 'closed'}"
+                        class="picker-button-fill ${this.closed?"open":"closed"}"
                     ></div>
                 </button>
                 ${this.popover}
             </div>
-        `;
-    }
-};
-customElements.define('merch-quantity-select', To);
-Ti();
-R();
-var Rc = `
+        `}};customElements.define("merch-quantity-select",Pa);Ri();R();var Bc=`
 
   merch-card[variant="ccd-suggested"] [slot="heading-xs"] {
     font-size: var(--consonant-merch-card-heading-xxs-font-size);
@@ -14891,34 +6931,12 @@ var Rc = `
 .spectrum--darkest  merch-card[variant="ccd-suggested"]:hover {
   --consonant-merch-card-border-color:rgb(73, 73, 73);
 }
-`;
-var Oc = {
-        backgroundImage: { attribute: 'background-image' },
-        badge: !0,
-        ctas: { slot: 'cta', size: 'M' },
-        description: { tag: 'div', slot: 'body-xs' },
-        mnemonics: { size: 'l' },
-        prices: { tag: 'p', slot: 'price' },
-        size: [],
-        subtitle: { tag: 'h4', slot: 'detail-s' },
-        title: { tag: 'h3', slot: 'heading-xs' },
-    },
-    Qt = class extends k {
-        getGlobalCSS() {
-            return Rc;
-        }
-        get stripStyle() {
-            return this.card.backgroundImage
-                ? `
+`;var Uc={backgroundImage:{attribute:"background-image"},badge:!0,ctas:{slot:"cta",size:"M"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"p",slot:"price"},size:[],subtitle:{tag:"h4",slot:"detail-s"},title:{tag:"h3",slot:"heading-xs"}},ir=class extends T{getGlobalCSS(){return Bc}get stripStyle(){return this.card.backgroundImage?`
             background: url("${this.card.backgroundImage}");
         background-size: auto 100%;
         background-repeat: no-repeat;
-        background-position: ${this.card.dir === 'ltr' ? 'left' : 'right'};
-        `
-                : '';
-        }
-        renderLayout() {
-            return g` <div style="${this.stripStyle}" class="body">
+        background-position: ${this.card.dir==="ltr"?"left":"right"};
+        `:""}renderLayout(){return f` <div style="${this.stripStyle}" class="body">
                 <div class="header">
                     <div class="top-section">
                         <slot name="icons"></slot>
@@ -14935,32 +6953,7 @@ var Oc = {
                     <slot name="cta"></slot>
                 </div>
             </div>
-            <slot></slot>`;
-        }
-        postCardUpdateHook(t) {
-            t.has('backgroundImage') && this.styleBackgroundImage();
-        }
-        styleBackgroundImage() {
-            if (
-                (this.card.classList.remove('thin-strip'),
-                this.card.classList.remove('wide-strip'),
-                !this.card.backgroundImage)
-            )
-                return;
-            let t = new Image();
-            (t.src = this.card.backgroundImage),
-                (t.onload = () => {
-                    t.width > 8
-                        ? this.card.classList.add('wide-strip')
-                        : t.width === 8 &&
-                          this.card.classList.add('thin-strip');
-                });
-        }
-    };
-u(
-    Qt,
-    'variantStyle',
-    y`
+            <slot></slot>`}postCardUpdateHook(t){t.has("backgroundImage")&&this.styleBackgroundImage()}styleBackgroundImage(){if(this.card.classList.remove("thin-strip"),this.card.classList.remove("wide-strip"),!this.card.backgroundImage)return;let t=new Image;t.src=this.card.backgroundImage,t.onload=()=>{t.width>8?this.card.classList.add("wide-strip"):t.width===8&&this.card.classList.add("thin-strip")}}};m(ir,"variantStyle",b`
         :host([variant='ccd-suggested']) {
             --consonant-merch-card-background-color: rgb(245, 245, 245);
             --consonant-merch-card-body-xs-color: rgb(75, 75, 75);
@@ -15068,10 +7061,7 @@ u(
         :host([variant='ccd-suggested']) .top-section {
             align-items: center;
         }
-    `,
-);
-R();
-var Mc = `
+    `);R();var Fc=`
 
 merch-card[variant="ccd-slice"] [slot='image'] img {
   overflow: hidden;
@@ -15096,21 +7086,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
   --consonant-merch-card-border-color:rgb(48, 48, 48);
   --consonant-merch-card-detail-s-color:rgb(235, 235, 235);
 }
-`;
-var Nc = {
-        backgroundImage: { tag: 'div', slot: 'image' },
-        badge: !0,
-        ctas: { slot: 'footer', size: 'S' },
-        description: { tag: 'div', slot: 'body-s' },
-        mnemonics: { size: 'm' },
-        size: ['wide'],
-    },
-    Zt = class extends k {
-        getGlobalCSS() {
-            return Mc;
-        }
-        renderLayout() {
-            return g` <div class="content">
+`;var Gc={backgroundImage:{tag:"div",slot:"image"},badge:!0,ctas:{slot:"footer",size:"S"},description:{tag:"div",slot:"body-s"},mnemonics:{size:"m"},size:["wide"]},nr=class extends T{getGlobalCSS(){return Fc}renderLayout(){return f` <div class="content">
                 <div class="top-section">
                     <slot name="icons"></slot>
                     ${this.badge}
@@ -15119,13 +7095,7 @@ var Nc = {
                 <slot name="footer"></slot>
             </div>
             <slot name="image"></slot>
-            <slot></slot>`;
-        }
-    };
-u(
-    Zt,
-    'variantStyle',
-    y`
+            <slot></slot>`}};m(nr,"variantStyle",b`
         :host([variant='ccd-slice']) {
             --consonant-merch-card-background-color: rgb(248, 248, 248);
             --consonant-merch-card-border-color: rgb(230, 230, 230);
@@ -15227,10 +7197,7 @@ u(
             align-items: center;
             gap: 8px;
         }
-    `,
-);
-R();
-var Ic = `
+    `);R();var qc=`
     merch-card[variant="ah-try-buy-widget"] [slot="body-xxs"] {
         letter-spacing: normal;
         margin-bottom: 16px;
@@ -15373,40 +7340,7 @@ var Ic = `
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"]:hover {
       --consonant-merch-card-border-color:rgb(73, 73, 73);
     }
-`;
-var Co = {
-        mnemonics: { size: 's' },
-        title: {
-            tag: 'h3',
-            slot: 'heading-xxxs',
-            maxCount: 40,
-            withSuffix: !0,
-        },
-        badge: { tag: 'div', slot: 'badge', default: 'fuchsia' },
-        allowedBadgeColors: ['fuchsia'],
-        description: {
-            tag: 'div',
-            slot: 'body-xxs',
-            maxCount: 200,
-            withSuffix: !1,
-        },
-        prices: { tag: 'p', slot: 'price' },
-        ctas: { slot: 'cta', size: 'S' },
-        backgroundImage: { tag: 'div', slot: 'image' },
-        backgroundColor: { attribute: 'background-color' },
-        borderColor: { attribute: 'border-color', specialValues: {} },
-        allowedColors: { gray: '--spectrum-gray-100' },
-        size: ['single', 'double', 'triple'],
-    },
-    Jt = class extends k {
-        getGlobalCSS() {
-            return Ic;
-        }
-        get aemFragmentMapping() {
-            return Co;
-        }
-        renderLayout() {
-            return g`
+`;var La={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"fuchsia"},allowedBadgeColors:["fuchsia"],description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{}},allowedColors:{gray:"--spectrum-gray-100"},size:["single","double","triple"]},ar=class extends T{getGlobalCSS(){return qc}get aemFragmentMapping(){return La}renderLayout(){return f`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -15423,13 +7357,7 @@ var Co = {
             <slot name="image"></slot>
             <slot name="badge"></slot>
             <slot></slot>
-        `;
-        }
-    };
-u(
-    Jt,
-    'variantStyle',
-    y`
+        `}};m(ar,"variantStyle",b`
         :host([variant='ah-try-buy-widget']) {
             --merch-card-ah-try-buy-widget-min-width: 156px;
             --merch-card-ah-try-buy-widget-content-min-width: 132px;
@@ -15510,10 +7438,7 @@ u(
             flex-direction: row;
             align-self: flex-end;
         }
-    `,
-);
-R();
-var $c = `
+    `);R();var Vc=`
     merch-card[variant="ah-promoted-plans"] [slot="body-xxs"] {
         letter-spacing: normal;
         box-sizing: border-box;
@@ -15600,42 +7525,7 @@ var $c = `
       --consonant-merch-card-body-xxs-color:rgb(219, 219, 219);
       --merch-card-ah-promoted-plans-strikethrough-color:rgb(138, 138, 138);
     }
-`;
-var ko = {
-        mnemonics: { size: 's' },
-        title: {
-            tag: 'h3',
-            slot: 'heading-xxxs',
-            maxCount: 40,
-            withSuffix: !0,
-        },
-        description: {
-            tag: 'div',
-            slot: 'body-xxs',
-            maxCount: 200,
-            withSuffix: !1,
-        },
-        prices: { tag: 'p', slot: 'price' },
-        ctas: { slot: 'cta', size: 'S' },
-        backgroundImage: { tag: 'div', slot: 'image' },
-        backgroundColor: { attribute: 'background-color' },
-        borderColor: {
-            attribute: 'border-color',
-            specialValues: {
-                gradient:
-                    'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
-            },
-        },
-    },
-    er = class extends k {
-        getGlobalCSS() {
-            return $c;
-        }
-        get aemFragmentMapping() {
-            return ko;
-        }
-        renderLayout() {
-            return g`
+`;var Ra={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{gradient:"linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)"}}},or=class extends T{getGlobalCSS(){return Vc}get aemFragmentMapping(){return Ra}renderLayout(){return f`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -15650,13 +7540,7 @@ var ko = {
                 </div>
             </div>
             <slot></slot>
-        `;
-        }
-    };
-u(
-    er,
-    'variantStyle',
-    y`
+        `}};m(or,"variantStyle",b`
         /* Default styles for the component */
         :host([variant='ah-promoted-plans']) {
             --merch-card-ah-promoted-plans-min-width: 211px;
@@ -15745,10 +7629,7 @@ u(
             justify-content: space-between;
             align-items: center;
         }
-    `,
-);
-R();
-var Hc = `
+    `);R();var jc=`
     merch-card[variant='fries'] {
         background-color: var(
             --merch-card-custom-background-color,
@@ -15893,44 +7774,7 @@ var Hc = `
     .spectrum--darkest merch-card[variant="fries"] [slot="body-s"] {
         color: rgb(142, 142, 147);
     }
-`;
-var Po = {
-        mnemonics: { size: 's' },
-        title: {
-            tag: 'h3',
-            slot: 'heading-xxs',
-            maxCount: 250,
-            withSuffix: !0,
-        },
-        description: {
-            tag: 'div',
-            slot: 'body-s',
-            maxCount: 2e3,
-            withSuffix: !1,
-        },
-        badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300' },
-        trialBadge: {
-            tag: 'div',
-            slot: 'trial-badge',
-            default: 'spectrum-green-800',
-        },
-        prices: { tag: 'p', slot: 'price' },
-        ctas: { slot: 'cta', size: 'M' },
-        addonConfirmation: { tag: 'div', slot: 'addon-confirmation' },
-        borderColor: {
-            attribute: 'border-color',
-            specialValues: { gray: '--spectrum-gray-300' },
-        },
-    },
-    tr = class extends k {
-        getGlobalCSS() {
-            return Hc;
-        }
-        get aemFragmentMapping() {
-            return Po;
-        }
-        renderLayout() {
-            return g`
+`;var Ma={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300"}}},sr=class extends T{getGlobalCSS(){return jc}get aemFragmentMapping(){return Ma}renderLayout(){return f`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -15948,13 +7792,7 @@ var Po = {
                 </div>
             </div>
             <slot></slot>
-        `;
-        }
-    };
-u(
-    tr,
-    'variantStyle',
-    y`
+        `}};m(sr,"variantStyle",b`
         :host([variant='fries']) {
             --merch-card-fries-max-width: 620px;
             --merch-card-fries-padding: 24px;
@@ -16019,13 +7857,7 @@ u(
             gap: 8px;
             margin-top: 15px;
         }
-    `,
-);
-q('ccd-suggested', Qt, Oc, Qt.variantStyle);
-q('ccd-slice', Zt, Nc, Zt.variantStyle);
-q('ah-try-buy-widget', Jt, Co, Jt.variantStyle);
-q('ah-promoted-plans', er, ko, er.variantStyle);
-q('fries', tr, Po, tr.variantStyle);
+    `);V("ccd-suggested",ir,Uc,ir.variantStyle);V("ccd-slice",nr,Gc,nr.variantStyle);V("ah-try-buy-widget",ar,La,ar.variantStyle);V("ah-promoted-plans",or,Ra,or.variantStyle);V("fries",sr,Ma,sr.variantStyle);
 /*! Bundled license information:
 
 @lit/reactive-element/css-tag.js:

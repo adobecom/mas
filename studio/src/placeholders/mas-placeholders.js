@@ -22,6 +22,7 @@ class MasPlaceholders extends LitElement {
         showCreationModal: { type: Boolean, state: true },
         selects: { type: String, state: true },
         pending: { type: Boolean, state: true },
+        error: { type: String, state: true },
     };
 
     constructor() {
@@ -46,10 +47,15 @@ class MasPlaceholders extends LitElement {
     }
 
     reactiveController = new ReactiveController(this, [
+        Store.filters,
+        Store.folders.data,
+        Store.folders.loaded,
+        Store.placeholders?.list?.data,
+        Store.placeholders?.list?.loading,
+        Store.placeholders.index,
         Store.placeholders.list.loading,
         Store.placeholders.selection,
-        Store.placeholders.index,
-        Store.filters,
+        Store.search,
     ]);
     filterAndSortReactiveController = new ReactiveController(
         this,
@@ -299,7 +305,7 @@ class MasPlaceholders extends LitElement {
                     </sp-button>
                 </div>
 
-                ${this.renderError()}
+                ${this.errorMessage}
 
                 <div class="search-filters-container">
                     <div class="placeholders-title">
@@ -420,12 +426,12 @@ class MasPlaceholders extends LitElement {
 
     // #endregion
 
-    renderError() {
+    get errorMessage() {
         if (!this.error) return nothing;
 
         return html`
             <div class="error-message">
-                <sp-icon-alert></sp-icon-alert>
+                <sp-icon-alert size="m"></sp-icon-alert>
                 <span>${this.error}</span>
             </div>
         `;

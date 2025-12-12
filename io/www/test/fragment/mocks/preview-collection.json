@@ -339,8 +339,6 @@
                         },
                         {
                             "id": "mas:product/cc/lightroom",
-                            "title": "Lightroom (1TB)",
-                            "i18n": [],
                             "titlePath": "Merch at Scale : Product / Creative Cloud / Lightroom (1TB)",
                             "name": "lightroom",
                             "path": "/content/cq:tags/mas/product/cc/lightroom",

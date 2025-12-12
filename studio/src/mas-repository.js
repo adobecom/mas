@@ -16,7 +16,8 @@ import {
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
     EDITABLE_FRAGMENT_MODEL_IDS,
-    DICTIONARY_MODEL_ID,
+    DICTIONARY_INDEX_MODEL_ID,
+    DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
@@ -24,14 +25,18 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDictionary } from '../libs/fragment-client.js';
+
+import { SURFACES } from './constants.js';
+import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
+import { applyCorrectorToFragment } from './utils/corrector-helper.js';
+import { Promotion } from './aem/promotion.js';
 
 let fragmentCache;
 
 export function getDamPath(path) {
     if (!path) return ROOT_PATH;
     if (path.startsWith(ROOT_PATH)) return path;
-    return ROOT_PATH + '/' + path;
+    return `${ROOT_PATH}/${path}`;
 }
 
 export async function initFragmentCache() {
@@ -68,6 +73,7 @@ export class MasRepository extends LitElement {
             search: null,
             recentlyUpdated: null,
             placeholders: null,
+            promotions: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -129,6 +135,9 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
+                break;
+            case PAGE_NAMES.PROMOTIONS:
+                this.loadPromotions();
                 break;
         }
     }
@@ -254,6 +263,9 @@ export class MasRepository extends LitElement {
                     this.#abortControllers.search,
                 );
                 if (fragmentData && fragmentData.path.indexOf(damPath) == 0) {
+                    // Apply corrector transformer before caching
+                    const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
+                    applyCorrectorToFragment(fragmentData, surface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
                     dataStore.set([sourceStore]);
@@ -273,9 +285,13 @@ export class MasRepository extends LitElement {
                 dataStore.set([]);
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const fragmentStores = [];
+                // Extract surface from path for corrector
+                const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 for await (const result of cursor) {
                     for await (const item of result) {
                         if (this.skipVariant(variants, item)) continue;
+                        // Apply corrector transformer before caching
+                        applyCorrectorToFragment(item, surface);
                         const fragment = await this.#addToCache(item);
                         const sourceStore = generateFragmentStore(fragment);
                         fragmentStores.push(sourceStore);
@@ -324,7 +340,11 @@ export class MasRepository extends LitElement {
 
             const result = await cursor.next();
             const fragmentStores = [];
+            // Extract surface from path for corrector
+            const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
             for await (const item of result.value) {
+                // Apply corrector transformer before caching
+                applyCorrectorToFragment(item, surface);
                 const fragment = await this.#addToCache(item);
                 const sourceStore = generateFragmentStore(fragment);
                 fragmentStores.push(sourceStore);
@@ -347,6 +367,11 @@ export class MasRepository extends LitElement {
             if (!this.search.value.path) return;
 
             const dictionaryPath = this.getDictionaryPath();
+            try {
+                await this.ensureDictionaryIndex(dictionaryPath);
+            } catch (error) {
+                console.error('Failed to ensure dictionary index:', error);
+            }
 
             const searchOptions = {
                 path: dictionaryPath,
@@ -362,7 +387,7 @@ export class MasRepository extends LitElement {
 
             const indexFragment = fragments.find((fragment) => fragment.path.endsWith('/index'));
             if (indexFragment) Store.placeholders.index.set(indexFragment);
-            else console.error('No index fragment found:', error);
+            else console.warn('No index fragment found for dictionary path:', dictionaryPath);
 
             const placeholders = fragments
                 .filter((fragment) => !fragment.path.endsWith('/index'))
@@ -394,8 +419,277 @@ export class MasRepository extends LitElement {
         }
     }
 
+    async loadPromotions() {
+        try {
+            const promotionsPath = this.getPromotionsPath();
+
+            const searchOptions = {
+                path: promotionsPath,
+                sort: [{ on: 'created', order: 'ASC' }],
+            };
+
+            if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
+            this.#abortControllers.promotions = new AbortController();
+
+            Store.promotions.list.loading.set(true);
+
+            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
+
+            const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
+
+            Store.promotions.list.data.set(promotions);
+        } catch (error) {
+            this.processError(error, 'Could not load promotions.');
+        } finally {
+            Store.promotions.list.loading.set(false);
+        }
+    }
+
     getDictionaryPath() {
         return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+    }
+
+    parseDictionaryPath(dictionaryPath) {
+        if (!dictionaryPath?.startsWith(ROOT_PATH)) return {};
+        const relativePath = dictionaryPath.slice(ROOT_PATH.length).replace(/^\/+/, '');
+
+        // Expected structure: [surface segments...]/[locale]/dictionary
+        const match = relativePath.match(/^(?<surfacePath>.*?)\/(?<locale>[^/]+)\/dictionary$/);
+        if (!match) return {};
+
+        const { surfacePath = '', locale } = match.groups;
+        const surfaceRoot = surfacePath.split('/').filter(Boolean)[0] ?? '';
+
+        return {
+            locale,
+            surfacePath,
+            surfaceRoot,
+        };
+    }
+
+    getDictionaryFolderPath(surfacePath, locale) {
+        if (!locale) return null;
+        const trimmedSurface = surfacePath?.replace(/^\/+|\/+$/g, '') ?? '';
+        const prefix = trimmedSurface ? `${ROOT_PATH}/${trimmedSurface}` : ROOT_PATH;
+        return `${prefix}/${locale}/dictionary`;
+    }
+
+    getFallbackLocale(locale) {
+        if (!locale) return null;
+        const [languageCode] = locale.split('_');
+        const match = LOCALE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
+        if (!match || match === locale) return null;
+        return match;
+    }
+
+    async ensureDictionaryFolder(dictionaryPath) {
+        if (!dictionaryPath) return false;
+        const normalized = dictionaryPath.replace(/\/+$/, '');
+        if (!normalized) return false;
+
+        const parentPath = normalized.slice(0, normalized.lastIndexOf('/'));
+        const folderName = normalized.slice(parentPath.length + 1);
+        if (!parentPath || !folderName) return false;
+
+        // Check if dictionary folder already exists
+        let parentListResult;
+        try {
+            parentListResult = await this.aem.folders.list(parentPath);
+        } catch (error) {
+            console.warn('An error occurred while checking dictionary folder. Placeholder feature may be degraded:', error);
+            return false;
+        }
+
+        const { children = [] } = parentListResult ?? {};
+        const exists = children.some((child) => child.path === normalized || child.name === folderName);
+        if (exists) return true;
+
+        try {
+            await this.aem.folders.create(parentPath, folderName, folderName);
+            return true;
+        } catch (error) {
+            if (error.message?.includes('409')) return true;
+            console.warn('An error occurred while creating dictionary folder. Placeholder feature may be degraded:', error);
+            return false;
+        }
+    }
+
+    async fetchIndexFragment(indexPath) {
+        try {
+            return await this.aem.sites.cf.fragments.getByPath(indexPath);
+        } catch (error) {
+            const message = error.message?.toLowerCase() ?? '';
+            if (message.includes('404') || message.includes('not found')) return null;
+            throw error;
+        }
+    }
+
+    ensureReferenceField(fields, fieldName, value) {
+        const field = fields.find((item) => item.name === fieldName);
+        const desiredValues = value ? [value] : [];
+
+        if (field) {
+            const currentValues = Array.isArray(field.values) ? field.values : [];
+            const sameValues =
+                currentValues.length === desiredValues.length &&
+                currentValues.every((item, index) => item === desiredValues[index]);
+            if (sameValues && field.type === 'content-fragment' && field.multiple === false) {
+                return { fields, changed: false };
+            }
+            Object.assign(field, {
+                type: 'content-fragment',
+                multiple: false,
+                locked: false,
+                values: desiredValues,
+            });
+            return { fields, changed: true };
+        }
+
+        fields.push({
+            name: fieldName,
+            type: 'content-fragment',
+            multiple: false,
+            locked: false,
+            values: desiredValues,
+        });
+        return { fields, changed: true };
+    }
+
+    async ensureIndexFallbackFields(indexFragment, parentReference) {
+        if (!indexFragment || !parentReference) return indexFragment;
+
+        const fields = [...(indexFragment.fields ?? [])];
+        const result = this.ensureReferenceField(fields, 'parent', parentReference);
+
+        if (!result.changed) return indexFragment;
+
+        try {
+            const saved = await this.aem.sites.cf.fragments.save({
+                ...indexFragment,
+                fields,
+            });
+            return saved ?? indexFragment;
+        } catch (error) {
+            console.error('Failed to save dictionary index fallback fields:', error);
+            return indexFragment;
+        }
+    }
+
+    async createDictionaryIndexFragment({ parentPath, parentReference, publish = true }) {
+        try {
+            const fields = [
+                {
+                    name: 'parent',
+                    type: 'content-fragment',
+                    multiple: false,
+                    locked: false,
+                    values: parentReference ? [parentReference] : [],
+                },
+                {
+                    name: 'entries',
+                    type: 'content-fragment',
+                    multiple: true,
+                    values: [],
+                },
+            ];
+
+            const indexFragment = await this.aem.sites.cf.fragments.create({
+                parentPath,
+                modelId: DICTIONARY_INDEX_MODEL_ID,
+                name: 'index',
+                title: 'Dictionary Index',
+                description: 'Index of dictionary placeholders',
+                fields,
+            });
+
+            if (!indexFragment?.id) {
+                console.error('Failed to create dictionary index fragment');
+                return null;
+            }
+
+            if (publish) {
+                await this.publishFragment(indexFragment, [], false);
+            }
+            return indexFragment;
+        } catch (error) {
+            console.error('Failed to create dictionary index fragment:', error);
+            return null;
+        }
+    }
+
+    async ensureDictionaryIndex(dictionaryPath, visited = new Set()) {
+        if (!dictionaryPath) return null;
+        if (visited.has(dictionaryPath)) {
+            try {
+                return await this.fetchIndexFragment(`${dictionaryPath}/index`);
+            } catch (error) {
+                console.error(`Failed to fetch already visited dictionary index for ${dictionaryPath}:`, error);
+                return null;
+            }
+        }
+        visited.add(dictionaryPath);
+
+        const { locale, surfacePath, surfaceRoot } = this.parseDictionaryPath(dictionaryPath);
+        if (!locale || !surfacePath) return null;
+
+        const indexPath = `${dictionaryPath}/index`;
+        let indexFragment = await this.fetchIndexFragment(indexPath);
+        const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
+
+        let parentReference = null;
+
+        const fallbackLocale = this.getFallbackLocale(locale);
+        const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
+        const acomFallbackLocale = fallbackLocale ?? locale;
+
+        const sameSurfaceDictionaryPath = surfaceFallbackLocale
+            ? this.getDictionaryFolderPath(surfacePath, surfaceFallbackLocale)
+            : null;
+
+        // 2. Check surface language fallback (same surface, fallback locale)
+        if (sameSurfaceDictionaryPath) {
+            try {
+                const sameSurfaceIndex = await this.ensureDictionaryIndex(sameSurfaceDictionaryPath, visited);
+                if (sameSurfaceIndex?.path) parentReference = sameSurfaceIndex.path;
+            } catch (error) {
+                console.error(`Failed to ensure same-surface fallback index for ${sameSurfaceDictionaryPath}:`, error);
+            }
+        }
+
+        // 3. Check ACOM language fallback (ACOM surface, fallback locale or current locale)
+        if (!parentReference && surfaceRoot !== SURFACES.ACOM.name && acomFallbackLocale) {
+            const acomFallbackPath = this.getDictionaryFolderPath(SURFACES.ACOM.name, acomFallbackLocale);
+            if (acomFallbackPath) {
+                try {
+                    const acomIndex = await this.ensureDictionaryIndex(acomFallbackPath, visited);
+                    if (acomIndex?.path) parentReference = acomIndex.path;
+                } catch (error) {
+                    console.error(`Failed to ensure ACOM fallback index for ${acomFallbackPath}:`, error);
+                }
+            }
+        }
+
+        if (!indexFragment) {
+            const hasDictionaryFolder = await this.ensureDictionaryFolder(dictionaryPath);
+            if (!hasDictionaryFolder) {
+                console.error(`Failed to ensure dictionary folder exists: ${dictionaryPath}`);
+                return null;
+            }
+
+            indexFragment = await this.createDictionaryIndexFragment({
+                parentPath: dictionaryPath,
+                parentReference,
+            });
+            if (!indexFragment) return null;
+        } else if (parentReference && currentParent !== parentReference) {
+            indexFragment = await this.ensureIndexFallbackFields(indexFragment, parentReference);
+        }
+
+        return indexFragment;
+    }
+
+    getPromotionsPath() {
+        return `${ROOT_PATH}/promotions`;
     }
 
     /**
@@ -448,6 +742,9 @@ export class MasRepository extends LitElement {
                 await this.aem.saveTags(latest);
                 latest = await this.aem.sites.cf.fragments.getById(result.id);
             }
+            // Apply corrector transformer before caching
+            const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+            applyCorrectorToFragment(latest, surface);
             const fragment = await this.#addToCache(latest);
 
             if (withToast) showToast('Fragment successfully created.', 'positive');
@@ -481,13 +778,16 @@ export class MasRepository extends LitElement {
     /**
      * Unified method to save a fragment (regular or dictionary)
      * @param {FragmentStore} fragmentStore - The fragment to save
+     * @param {boolean} withToast - Whether to show toast notifications
      * @returns {Promise<Object>} The saved fragment
      */
-    async saveFragment(fragmentStore) {
-        showToast('Saving fragment...');
+    async saveFragment(fragmentStore, withToast = true) {
+        if (withToast) showToast('Saving fragment...');
         const fragmentToSave = fragmentStore.get();
-        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi')) {
-            showToast('Please select offer', 'negative');
+        const tags = fragmentToSave.getField('tags')?.values || [];
+        const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi') && !hasOfferlessTag) {
+            if (withToast) showToast('Please select offer', 'negative');
             return false;
         }
         this.operation.set(OPERATIONS.SAVE);
@@ -495,7 +795,7 @@ export class MasRepository extends LitElement {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
             fragmentStore.refreshFrom(savedFragment);
-            showToast('Fragment successfully saved.', 'positive');
+            if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {
             this.processError(error, 'Failed to save fragment.');
@@ -535,6 +835,9 @@ export class MasRepository extends LitElement {
                 await this.aem.saveTags(savedResult);
                 savedResult = await this.aem.sites.cf.fragments.getById(savedResult.id);
             }
+            // Apply corrector transformer before caching
+            const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+            applyCorrectorToFragment(savedResult, surface);
             const newFragment = await this.#addToCache(savedResult);
 
             const sourceStore = generateFragmentStore(newFragment);
@@ -566,6 +869,65 @@ export class MasRepository extends LitElement {
             return true;
         } catch (error) {
             this.processError(error, 'Failed to publish fragment.');
+            return false;
+        } finally {
+            this.operation.set(null);
+        }
+    }
+
+    /**
+     * Publish multiple fragments in bulk
+     * @param {Array<string>} fragmentIds - Array of fragment IDs to publish
+     * @param {object} options - Options object
+     * @param {Array<string>} options.publishReferencesWithStatus - Statuses to include references for
+     * @param {boolean} options.withToast - Whether to show toast notifications
+     * @returns {Promise<boolean>} Whether or not it was successful
+     */
+    async bulkPublishFragments(fragmentIds, options = {}) {
+        const { publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true } = options;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            if (withToast) showToast('No fragments selected to publish.', 'negative');
+            return false;
+        }
+
+        try {
+            this.operation.set(OPERATIONS.PUBLISH);
+            if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
+
+            // Get fragment objects from the store
+            const fragments = fragmentIds
+                .map((id) => {
+                    const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
+                    return store?.get();
+                })
+                .filter(Boolean);
+
+            if (fragments.length === 0) {
+                if (withToast) showToast('No valid fragments found to publish.', 'negative');
+                return false;
+            }
+
+            // Publish all fragments in a single request
+            await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+
+            // Refresh all published fragments
+            const refreshPromises = fragmentIds.map((id) => {
+                const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
+                if (store) {
+                    return this.refreshFragment(store);
+                }
+                return Promise.resolve();
+            });
+            await Promise.all(refreshPromises);
+
+            if (withToast) {
+                showToast(`Successfully published ${fragments.length} fragment(s).`, 'positive');
+            }
+
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to publish fragments.');
             return false;
         } finally {
             this.operation.set(null);
@@ -632,7 +994,7 @@ export class MasRepository extends LitElement {
             const payload = {
                 name: placeholder.key,
                 parentPath: dictionaryPath,
-                modelId: DICTIONARY_MODEL_ID,
+                modelId: DICTIONARY_ENTRY_MODEL_ID,
                 title: placeholder.key,
                 description: `Placeholder for ${placeholder.key}`,
                 fields: Object.keys(fields).map((key) => ({
@@ -688,18 +1050,23 @@ export class MasRepository extends LitElement {
         const indexPath = `${parentPath}/index`;
 
         const indexFragment = await this.getIndexFragment(indexPath);
+        if (!indexFragment) {
+            console.error(`Index fragment does not exist at ${indexPath}.`);
+            return false;
+        }
 
         try {
-            if (!indexFragment) {
-                return this.createIndexFragment(parentPath, fragment.path);
+            const entriesField = indexFragment.getField('entries');
+            if (!entriesField) {
+                console.error(`Index fragment at ${indexPath} is missing entries field`);
+                return false;
             }
 
-            const entries = indexFragment.getField('entries');
-            const shouldUpdate = !entries.values.includes(fragment.path);
+            const shouldUpdate = !entriesField.values.includes(fragment.path);
 
             let updatedIndexFragment = indexFragment;
             if (shouldUpdate) {
-                indexFragment.updateField('entries', [...entries.values, fragment.path]);
+                indexFragment.updateField('entries', [...entriesField.values, fragment.path]);
                 updatedIndexFragment = await this.aem.sites.cf.fragments.save(indexFragment);
             } else {
                 console.info(`Fragment already added to index: ${fragment.path}`);
@@ -722,10 +1089,9 @@ export class MasRepository extends LitElement {
         const indexPath = `${parentPath}/index`;
 
         const indexFragment = await this.getIndexFragment(indexPath);
+        if (!indexFragment) return false;
 
         try {
-            if (!indexFragment) return false;
-
             const entries = indexFragment.getField('entries');
             let shouldUpdate = false;
             for (const fragment of fragmentsToRemove) {
@@ -757,62 +1123,6 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Creates a new index fragment with initial entries
-     * @param {string} parentPath - Parent path for the index
-     * @param {string} fragmentPath - Initial fragment path to include
-     * @returns {Promise<boolean>} - Success status
-     */
-    async createIndexFragment(parentPath, fragmentPath) {
-        try {
-            const indexFragment = await this.aem.sites.cf.fragments.create({
-                parentPath,
-                modelId: DICTIONARY_MODEL_ID,
-                name: 'index',
-                title: 'Dictionary Index',
-                description: 'Index of dictionary placeholders',
-                fields: [
-                    {
-                        name: 'entries',
-                        type: 'content-fragment',
-                        multiple: true,
-                        values: [fragmentPath],
-                    },
-                    {
-                        name: 'key',
-                        type: 'text',
-                        multiple: false,
-                        values: ['index'],
-                    },
-                    {
-                        name: 'value',
-                        type: 'text',
-                        multiple: false,
-                        values: ['Dictionary index'],
-                    },
-                    {
-                        name: 'locReady',
-                        type: 'boolean',
-                        multiple: false,
-                        values: [true],
-                    },
-                ],
-            });
-
-            if (!indexFragment?.id) {
-                console.error('Failed to create index fragment');
-                return false;
-            }
-
-            await this.publishFragment(indexFragment, [], false);
-
-            return true;
-        } catch (error) {
-            console.error('Failed to create index fragment:', error);
-            return false;
-        }
-    }
-
-    /**
      * Updates a given fragment store with the latest data
      * @param {FragmentStore} store
      */
@@ -820,6 +1130,10 @@ export class MasRepository extends LitElement {
         store.setLoading(true);
         const id = store.get().id;
         const latest = await this.aem.sites.cf.fragments.getById(id);
+
+        // Apply corrector transformer before refreshing
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        applyCorrectorToFragment(latest, surface);
 
         store.refreshFrom(latest);
         if ([CARD_MODEL_PATH, COLLECTION_MODEL_PATH].includes(latest.model.path)) {

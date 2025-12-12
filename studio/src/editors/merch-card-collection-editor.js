@@ -259,7 +259,7 @@ class MerchCardCollectionEditor extends LitElement {
                           `
                         : html`
                               <div class="drop-zone-placeholder">
-                                  <sp-icon-drag-handle size="l"></sp-icon-drag-handle>
+                                  <sp-icon-order size="l"></sp-icon-order>
                                   <p>${config.helpText}</p>
                               </div>
                           `}
@@ -306,7 +306,7 @@ class MerchCardCollectionEditor extends LitElement {
 
         return html`
             <div class="tip">
-                <sp-icon-info-outline></sp-icon-info-outline>
+                <sp-icon-info-outline size="m"></sp-icon-info-outline>
                 <div>Drag and drop cards or collections to add to this collection.</div>
             </div>
         `;
@@ -331,7 +331,7 @@ class MerchCardCollectionEditor extends LitElement {
                           ></sp-icon-preview>
                       `
                     : nothing}
-                <sp-icon-drag-handle label="Order"></sp-icon-drag-handle>
+                <sp-icon-order size="m" label="Order"></sp-icon-order>
             </div>
         `;
     }
@@ -666,7 +666,9 @@ class MerchCardCollectionEditor extends LitElement {
             this.fragment.references = [...(this.fragment.references || []), fragmentData];
 
             // Create a FragmentStore for the new reference
-            this.#fragmentReferencesMap.set(fragmentData.path, new FragmentStore(new Fragment(fragmentData)));
+            const newFragment = new Fragment(fragmentData);
+            const newFragmentStore = generateFragmentStore(newFragment);
+            this.#fragmentReferencesMap.set(fragmentData.path, newFragmentStore);
         }
     }
 

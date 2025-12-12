@@ -61,7 +61,8 @@ export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 export const LOCALES = [
     { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
     { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
-    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada' },
+    { code: 'en_CA', flag: '🇨🇦', name: 'Canada (English)' },
+    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada (French)' },
     { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
     { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
     { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },
@@ -136,6 +137,8 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
+    PROMOTIONS: 'promotions',
+    PROMOTIONS_EDITOR: 'promotions-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -144,7 +147,10 @@ export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
-export const DICTIONARY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+export const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
+
+export const PROMOTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3Byb21vdGlvbg==';
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
@@ -175,5 +181,37 @@ export const VARIANT_CAPABILITIES = {
         supported: ['simplified-pricing-express'],
         label: 'Default Card',
         helpText: 'Drag a card here to set as default',
+    },
+};
+export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+
+export const SURFACES = {
+    ACOM: {
+        label: 'Adobe.com',
+        name: 'acom',
+    },
+    ADOBE_HOME: {
+        label: 'Adobe Home',
+        name: 'adobe-home',
+    },
+    CCD: {
+        label: 'CCD',
+        name: 'ccd',
+    },
+    COMMERCE: {
+        label: 'Commerce',
+        name: 'commerce',
+    },
+    EXPRESS: {
+        label: 'Express',
+        name: 'express',
+    },
+    NALA: {
+        label: 'Nala',
+        name: 'nala',
+    },
+    SANDBOX: {
+        label: 'Sandbox',
+        name: 'sandbox',
     },
 };

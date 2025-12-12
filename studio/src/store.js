@@ -33,6 +33,7 @@ const Store = {
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
+    viewMode: new ReactiveStore('default'),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
     placeholders: {
         search: new ReactiveStore(''),
@@ -55,6 +56,22 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    promotions: {
+        list: {
+            loading: new ReactiveStore(true),
+            data: new ReactiveStore([]),
+            filter: new ReactiveStore('scheduled'),
+            filterOptions: new ReactiveStore([
+                { value: 'all', label: 'All' },
+                { value: 'active', label: 'Active' },
+                { value: 'scheduled', label: 'Scheduled' },
+                { value: 'expired', label: 'Expired' },
+                { value: 'archived', label: 'Archived' },
+            ]),
+        },
+        inEdit: new ReactiveStore(null),
+        promotionId: new ReactiveStore(null),
+    },
 };
 
 // #region Validators
@@ -83,7 +100,13 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
+    const validPages = [
+        PAGE_NAMES.WELCOME,
+        PAGE_NAMES.CONTENT,
+        PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.PROMOTIONS,
+        PAGE_NAMES.PROMOTIONS_EDITOR,
+    ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 
@@ -137,7 +160,11 @@ export function toggleSelection(id) {
  * Edit a fragment in the editor panel
  */
 export function editFragment(store, x = 0) {
-    if (!Store.fragments.list.data.get().includes(store)) {
+    const fragmentId = store.get().id;
+    const storeFragments = Store.fragments.list.data.get();
+    const defaultInStore = storeFragments.includes(store);
+    const variationInStore = storeFragments.find((s) => s.get().references?.find((r) => r.id === fragmentId));
+    if (!defaultInStore && !variationInStore) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }
     editorPanel()?.editFragment(store, x);

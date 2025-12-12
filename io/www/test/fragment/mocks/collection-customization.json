@@ -1,0 +1,452 @@
+{
+    "path": "/content/dam/mas/sandbox/en_US/another-collection",
+    "name": "",
+    "title": "another collection",
+    "id": "coll-en-us",
+    "description": "",
+    "model": { "id": "model-id" },
+    "fields": {
+        "cards": [],
+        "collections": ["subcoll-en-us"],
+        "originalId": "coll-en-us"
+    },
+    "references": {
+        "subcoll-en-us": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/nicocoll",
+                "name": "",
+                "title": "NICOCOLL",
+                "id": "subcoll-en-us",
+                "description": "",
+                "model": { "id": "model-id" },
+                "fields": {
+                    "label": "blah",
+                    "cards": ["some-card-en-us", "some-other-card-en-us"],
+                    "collections": [],
+                    "originalId": "subcoll-en-us",
+                    "variations": ["subcoll-en-au"]
+                }
+            }
+        },
+        "subcoll-en-au": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_AU/nicocoll",
+                "name": "",
+                "title": "NICOCOLL AU",
+                "id": "subcoll-en-au",
+                "description": "",
+                "model": { "id": "model-id" },
+                "fields": {
+                    "label": "blah au",
+                    "cards": [],
+                    "collections": [],
+                    "originalId": "subcoll-en-us"
+                }
+            }
+        },
+        "some-card-en-us": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/some/card",
+                "name": "",
+                "title": "Acom Plans CC All Apps",
+                "id": "some-card-en-us",
+                "description": "test card for plans",
+                "model": { "id": "card-model-id" },
+                "fields": {
+                    "variant": "plans",
+                    "osi": "Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ",
+                    "size": "super-wide",
+                    "mnemonicIcon": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"],
+                    "mnemonicAlt": [""],
+                    "mnemonicLink": ["http://www.adobe.com/creativecloud/plans.html"],
+                    "badge": {
+                        "value": "<merch-badge background-color=\"spectrum-green-900-plans\" color=\"#fff\" border-color=\"spectrum-yellow-300-plans\" variant=\"plans\">badge</merch-badge>",
+                        "mimeType": "text/html"
+                    },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "borderColor": "spectrum-gray-300-plans",
+                    "backgroundImage": "https://www.adobe.com/my/images/bg.png",
+                    "cardTitle": "Mili Test Cards",
+                    "subtitle": "blahasdasdaaaa",
+                    "prices": {
+                        "value": "<span is=\"inline-price\" data-display-per-unit=\"true\" data-display-tax=\"true\" data-promotion-code=\"UMRM2MUSPr501YOC\" data-template=\"price\" data-wcs-osi=\"yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg\"></span>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "promoText": "test promo text new July 16th again",
+                    "description": {
+                        "value": "<p>Body XS/Regular Get 20+ apps for all kinds of creative work, from editing photos and videos to designing logos and more.. <a class=\"secondary-link\" href=\"tel:01234567\" title=\"text\" target=\"_self\">01234567</a></p><p><strong><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\"></span> </strong><span is=\"inline-price\" data-display-tax=\"true\" data-template=\"legal\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\"></span></p><p><a class=\"primary-link\" href=\"https://example.com\" target=\"_self\">Learn more</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "value": "<p>This is some callout text...</p>", "mimeType": "text/html" },
+                    "quantitySelect": "<merch-quantity-select title=\"Select quantity:\" min=\"2\" max=\"10\" step=\"2\"></merch-quantity-select>",
+                    "addon": "{{addon-mili-test}}",
+                    "ctas": {
+                        "value": "<a class=\"accent\" data-extra-options=\"{&quot;mv&quot;:&quot;1&quot;,&quot;cs&quot;:&quot;tr&quot;,&quot;ms&quot;:&quot;ind&quot;,&quot;promoid&quot;:&quot;12345&quot;,&quot;mv2&quot;:&quot;2&quot;}\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">Buy now</a>",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "whatsIncluded": "<merch-whats-included><div slot=\"heading\">List of items:</div><div slot=\"content\"><merch-mnemonic-list><div slot=\"icon\"><merch-icon size=\"s\" src=\"https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg\" alt=\"Creative Cloud\"></merch-icon></div><p slot=\"description\"><strong>Creative Cloud</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot=\"icon\"><merch-icon size=\"s\" src=\"https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg\" alt=\"Photoshop\"></merch-icon></div><p slot=\"description\"><strong>Photoshop</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot=\"icon\"><merch-icon size=\"s\" src=\"https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg\" alt=\"Illustrator\"></merch-icon></div><p slot=\"description\"><strong>Illustrator</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot=\"icon\"><merch-icon size=\"s\" src=\"https://www.adobe.com/cc-shared/assets/img/product-icons/svg/indesign.svg\" alt=\"InDesign\"></merch-icon></div><p slot=\"description\"><strong>InDesign</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot=\"icon\"><merch-icon size=\"s\" src=\"https://www.adobe.com/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg\" alt=\"Acrobat Pro\"></merch-icon></div><p slot=\"description\"><strong>Acrobat Pro</strong></p></merch-mnemonic-list></div></merch-whats-included>",
+                    "tags": [
+                        "mas:product_family",
+                        "mas:offer_type/base",
+                        "mas:commitment/access_pass",
+                        "mas:market_segments/com",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:promotion/back-to-school"
+                    ],
+                    "originalId": "some-card-en-us",
+                    "locReady": false
+                }
+            }
+        },
+        "mas:product_family": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/product_family",
+                "name": "product_family",
+                "title": "Product family",
+                "id": "mas:product_family",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Product family",
+                "description": null
+            }
+        },
+        "mas:offer_type/base": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/offer_type/base",
+                "name": "base",
+                "title": "Base",
+                "id": "mas:offer_type/base",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Offer type / Base",
+                "description": null
+            }
+        },
+        "mas:commitment/access_pass": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/commitment/access_pass",
+                "name": "access_pass",
+                "title": "ACCESS_PASS",
+                "id": "mas:commitment/access_pass",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Commitment / ACCESS_PASS",
+                "description": ""
+            }
+        },
+        "mas:market_segments/com": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/market_segments/com",
+                "name": "com",
+                "title": "COM",
+                "id": "mas:market_segments/com",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Market segments / COM",
+                "description": ""
+            }
+        },
+        "mas:plan_type/abm": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/plan_type/abm",
+                "name": "abm",
+                "title": "ABM",
+                "id": "mas:plan_type/abm",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Plan type / ABM",
+                "description": ""
+            }
+        },
+        "mas:customer_segment/individual": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/customer_segment/individual",
+                "name": "individual",
+                "title": "Individual",
+                "id": "mas:customer_segment/individual",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Customer segment / Individual",
+                "description": null
+            }
+        },
+        "mas:promotion/back-to-school": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/promotion/back-to-school",
+                "name": "back-to-school",
+                "title": "Back To School",
+                "id": "mas:promotion/back-to-school",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Promotion / Back To School",
+                "description": ""
+            }
+        },
+        "some-other-card-en-us": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/some/othercard",
+                "name": "",
+                "title": "regional CCD Slice Wide CC All Apps",
+                "id": "some-other-card-en-us",
+                "description": "",
+                "model": { "id": "card-model-id" },
+                "fields": {
+                    "variant": "plans",
+                    "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
+                    "size": "Default",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/my/images/product-icons/svg/lightroom.svg",
+                        "https://www.adobe.com/my/images/product-icons/svg/photoshop.svg"
+                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
+                    "badge": {
+                        "value": "<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"default\" variant=\"plans\">default badge</merch-badge>",
+                        "mimeType": "text/html"
+                    },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://www.adobe.com/my/images/bg.jpg",
+                    "cardTitle": "Photography  (1TB)",
+                    "prices": {
+                        "value": "<p><span is=\"inline-price\" data-tax-exclusive=\"false\" data-template=\"price\" data-wcs-osi=\"7eMy4KQZ4IYf7QQDBemiRJuGnNLV0ezGROEJLJZZisE\"></span></p>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "value": "<p>Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "showSecureLabel": false,
+                    "showPlanType": false,
+                    "ctas": {
+                        "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
+                        "mimeType": "text/html"
+                    },
+                    "variations": ["some-other-card-en-au", "15891dd8-872f-4643-99a6-492d8917d46b"],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/phlt",
+                        "mas:market_segments/com"
+                    ],
+                    "originalId": "some-other-card-en-us",
+                    "locReady": false
+                }
+            }
+        },
+        "some-other-card-en-au": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_AU/some/othercard",
+                "name": "",
+                "title": "Photography Promo AU",
+                "id": "some-other-card-en-au",
+                "description": "variation built for australia",
+                "model": { "id": "card-model-id" },
+                "fields": {
+                    "variant": "plans",
+                    "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
+                    "size": "Default",
+                    "mnemonicIcon": [],
+                    "mnemonicAlt": [],
+                    "mnemonicLink": [],
+                    "badge": {
+                        "value": "<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"default\" variant=\"plans\">Australian card</merch-badge>",
+                        "mimeType": "text/html"
+                    },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://www.adobe.com/my/image.jpg",
+                    "prices": { "mimeType": "text/html" },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": { "mimeType": "text/html" },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": { "mimeType": "text/html" },
+                    "variations": [],
+                    "tags": [],
+                    "originalId": "some-other-card-en-us",
+                    "locReady": false
+                }
+            }
+        },
+        "some-other-card-en-in": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_IN/nico/ccd-slice-wide-cc-all-app1",
+                "name": "",
+                "title": "Photography Promo",
+                "id": "some-other-card-en-in",
+                "description": "",
+                "model": { "id": "card-model-id" },
+                "fields": {
+                    "variant": "plans",
+                    "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
+                    "size": "Default",
+                    "mnemonicIcon": [
+                        "https://www.adobe.com/my/images/product-icons/svg/lightroom.svg",
+                        "https://www.adobe.com/my/images/product-icons/svg/photoshop.svg"
+                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
+                    "badge": { "mimeType": "text/html" },
+                    "trialBadge": { "mimeType": "text/html" },
+                    "backgroundImage": "https://www.adobe.com/my/image.jpg",
+                    "cardTitle": "Photography  (1TB)",
+                    "prices": {
+                        "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"K79yhO4-kgnn85ghM8NwRIACiaH_LucDbaIKajqpYk8\"></span>",
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": { "mimeType": "text/html" },
+                    "description": {
+                        "value": "<p>Edit this is the {{demo-sunil}} organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": { "mimeType": "text/html" },
+                    "ctas": {
+                        "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/phlt",
+                        "mas:market_segments/com"
+                    ],
+                    "originalId": "some-other-card-en-us",
+                    "locReady": false
+                }
+            }
+        },
+        "mas:product_code/phlt": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/product_code/phlt",
+                "name": "phlt",
+                "title": "Photoshop Lightroom Bundle (20GB)",
+                "id": "mas:product_code/phlt",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Product code / Photoshop Lightroom Bundle (20GB)",
+                "description": ""
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "collections",
+            "identifier": "subcoll-en-us",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "some-card-en-us",
+                    "referencesTree": [
+                        { "fieldName": "tags", "identifier": "mas:product_family", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:commitment/access_pass", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:promotion/back-to-school", "referencesTree": [] }
+                    ]
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "some-other-card-en-us",
+                    "referencesTree": [
+                        {
+                            "fieldName": "variations",
+                            "identifier": "some-other-card-en-au",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "variations",
+                            "identifier": "15891dd8-872f-4643-99a6-492d8917d46b",
+                            "referencesTree": [
+                                { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
+                                { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
+                                { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
+                                { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
+                                { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+                            ]
+                        },
+                        { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
+                        { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+                    ]
+                }
+            ]
+        }
+    ],
+    "modelReferences": {
+        "model-id": {
+            "id": "model-id",
+            "path": "/conf/mas/settings/dam/cfm/models/collection",
+            "title": "Collection",
+            "fields": {
+                "label": { "type": "text" },
+                "navigationLabel": { "type": "text" },
+                "queryLabel": { "type": "text" },
+                "icon": { "type": "text" },
+                "iconLight": { "type": "text" },
+                "cards": { "type": "content-fragment" },
+                "collections": { "type": "content-fragment" },
+                "originalId": { "type": "text" },
+                "defaultchild": { "type": "text" },
+                "locReady": { "type": "boolean" }
+            }
+        },
+        "card-model-id": {
+            "id": "card-model-id",
+            "path": "/conf/mas/settings/dam/cfm/models/card",
+            "title": "Card",
+            "fields": {
+                "variant": { "type": "text" },
+                "osi": { "type": "text" },
+                "size": { "type": "text" },
+                "mnemonicIcon": { "type": "text" },
+                "mnemonicAlt": { "type": "text" },
+                "mnemonicLink": { "type": "text" },
+                "badge": { "type": "long-text" },
+                "trialBadge": { "type": "long-text" },
+                "backgroundColor": { "type": "text" },
+                "borderColor": { "type": "text" },
+                "backgroundImage": { "type": "text" },
+                "backgroundImageAltText": { "type": "text" },
+                "cardTitle": { "type": "text" },
+                "cardName": { "type": "text" },
+                "cardTitleLink": { "type": "text" },
+                "subtitle": { "type": "text" },
+                "prices": { "type": "long-text" },
+                "shortDescription": { "type": "long-text" },
+                "promoText": { "type": "text" },
+                "promoCode": { "type": "text" },
+                "description": { "type": "long-text" },
+                "callout": { "type": "long-text" },
+                "showSecureLabel": { "type": "boolean" },
+                "showPlanType": { "type": "boolean" },
+                "quantitySelect": { "type": "text" },
+                "addon": { "type": "text" },
+                "addonConfirmation": { "type": "text" },
+                "ctas": { "type": "long-text" },
+                "variations": { "type": "content-fragment" },
+                "product": { "type": "content-reference" },
+                "whatsIncluded": { "type": "text" },
+                "tags": { "type": "tag" },
+                "perUnitLabel": { "type": "text" },
+                "originalId": { "type": "text" },
+                "locReady": { "type": "boolean" }
+            }
+        }
+    }
+}

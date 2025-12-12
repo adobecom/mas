@@ -998,6 +998,17 @@ class MerchCardEditor extends LitElement {
                     </mas-addon-field>
                     ${this.renderOverrideIndicator('addon')}
                 </sp-field-group>
+                <sp-field-group id="locReady">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <sp-field-label for="loc-ready">Send to translation?</sp-field-label>
+                        <sp-switch
+                            id="loc-ready"
+                            ?checked="${form.locReady?.values[0]}"
+                            @click="${this.#handleLocReady}"
+                        ></sp-switch>
+                    </div>
+                    ${this.renderOverrideIndicator('locReady')}
+                </sp-field-group>
             </div>
         `;
     }
@@ -1437,6 +1448,11 @@ class MerchCardEditor extends LitElement {
             this.updateFragment(event);
         }
     };
+
+    #handleLocReady() {
+        const value = !this.fragment.getField('locReady')?.values[0];
+        this.fragmentStore.updateField('locReady', [value]);
+    }
 
     #getPerUnitDisplayValue(value) {
         if (!value) return '';

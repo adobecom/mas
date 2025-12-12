@@ -155,10 +155,7 @@ export default class StudioPage {
                 await this.page.waitForTimeout(1000); // Give editor time to stabilize
 
                 // Wait for clone button and ensure it's enabled
-                await this.cloneCardButton.waitFor({
-                    state: 'visible',
-                    timeout: 5000,
-                });
+                await expect(this.cloneCardButton).toBeVisible();
                 await expect(this.cloneCardButton).toBeEnabled();
 
                 await this.cloneCardButton.scrollIntoViewIfNeeded();

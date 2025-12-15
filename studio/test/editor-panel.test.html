@@ -88,6 +88,16 @@
                         editorPanel.repository.aem.sites.cf.fragments.getVersions = async () => ({ items: [] });
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
+                        const store = Store.fragments.inEdit.get();
+                        if (store) {
+                            const frag = store.get();
+                            if (frag) {
+                                frag.initialValue = structuredClone(frag);
+                                frag.hasChanges = false;
+                            }
+                            store.notify();
+                        }
+                        await editorPanel.updateComplete;
                     });
 
                     it('implements "discard changes"', async () => {

@@ -2,10 +2,12 @@ import { LitElement, html } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { generateCodeToUse, getService, showToast } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
-import Store, { editFragment } from './store.js';
+import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
+import router from './router.js';
+import './mas-variation-dialog.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
@@ -14,6 +16,7 @@ class MasFragmentTable extends LitElement {
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
         toggleExpand: { type: Function, attribute: false },
+        showVariationDialog: { state: true },
     };
 
     constructor() {
@@ -21,6 +24,7 @@ class MasFragmentTable extends LitElement {
         this.offerData = null;
         this.expanded = false;
         this.nested = false;
+        this.showVariationDialog = false;
     }
 
     #reactiveControllers = new ReactiveController(this);
@@ -97,12 +101,37 @@ class MasFragmentTable extends LitElement {
 
     handleCreateVariation(event) {
         event.stopPropagation();
-        // TODO: Implement create variation logic
+        this.showVariationDialog = true;
+    }
+
+    handleVariationDialogCancel() {
+        this.showVariationDialog = false;
+    }
+
+    handleFragmentCopied(event) {
+        this.showVariationDialog = false;
+        const { fragment } = event.detail;
+        if (fragment?.id) {
+            const locale = this.extractLocaleFromPath(fragment.path);
+            router.navigateToFragmentEditor(fragment.id, { locale });
+        }
     }
 
     handleEditFragment(event) {
         event.stopPropagation();
-        editFragment(this.fragmentStore, event.clientX);
+        const fragment = this.fragmentStore.value;
+        if (fragment?.id) {
+            const locale = this.extractLocaleFromPath(fragment.path);
+            router.navigateToFragmentEditor(fragment.id, { locale });
+        }
+    }
+
+    extractLocaleFromPath(path) {
+        if (!path) return null;
+        const parts = path.split('/');
+        const masIndex = parts.indexOf('mas');
+        if (masIndex === -1) return null;
+        return parts[masIndex + 2] || null;
     }
 
     getTruncatedOfferId() {
@@ -128,6 +157,14 @@ class MasFragmentTable extends LitElement {
     render() {
         const data = this.fragmentStore.value;
         return html`
+            ${this.showVariationDialog
+                ? html`<mas-variation-dialog
+                      .fragment=${data}
+                      .isVariation=${false}
+                      @cancel=${this.handleVariationDialogCancel}
+                      @fragment-copied=${this.handleFragmentCopied}
+                  ></mas-variation-dialog>`
+                : ''}
             <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
                 ${this.nested
                     ? ''
@@ -176,7 +213,7 @@ class MasFragmentTable extends LitElement {
                         </sp-menu-item>
                     </sp-action-menu>
                 </sp-table-cell>
-                ${data.model.path === CARD_MODEL_PATH
+                ${data.model?.path === CARD_MODEL_PATH
                     ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}
                           ><sp-icon-preview label="Preview item"></sp-icon-preview
                       ></sp-table-cell>`

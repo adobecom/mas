@@ -19,8 +19,11 @@ describe('MasFragment', () => {
             value: {
                 id: 'fragment-1',
                 path: '/test/path',
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
                 references: null,
+                getField: sandbox.stub().returns({ values: [] }),
                 getFieldValue: sandbox.stub().returns(''),
+                getTagTitle: sandbox.stub().returns(''),
                 listLocaleVariations: sandbox.stub().returns([]),
                 ...overrides,
             },

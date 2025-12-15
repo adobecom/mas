@@ -9,6 +9,7 @@ import './mas-side-nav-item.js';
 class MasSideNav extends LitElement {
     static properties = {
         editorHasChanges: { type: Boolean, state: true },
+        variationDataLoading: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -17,7 +18,7 @@ class MasSideNav extends LitElement {
             flex-direction: column;
             height: auto;
             width: 68px;
-            padding: 32px 12px 12px 8px;
+            padding: 32px 12px 12px 5px;
             box-sizing: content-box;
             overflow-y: overlay;
         }
@@ -50,7 +51,9 @@ class MasSideNav extends LitElement {
     currentPage = new StoreController(this, Store.page);
     viewMode = new StoreController(this, Store.viewMode);
     editorHasChanges = false;
+    variationDataLoading = false;
     fragmentStoreSubscription = null;
+    variationLoadingTimeout = null;
 
     connectedCallback() {
         super.connectedCallback();
@@ -70,8 +73,16 @@ class MasSideNav extends LitElement {
             }
 
             if (fragmentStore) {
+                this.variationDataLoading = true;
+                this.setupVariationLoadingTimeout();
                 this.fragmentStoreSubscription = fragmentStoreHandler;
                 fragmentStore.subscribe(this.fragmentStoreSubscription);
+            } else {
+                this.variationDataLoading = false;
+                if (this.variationLoadingTimeout) {
+                    clearTimeout(this.variationLoadingTimeout);
+                    this.variationLoadingTimeout = null;
+                }
             }
 
             this.updateEditorChangesState();
@@ -80,8 +91,18 @@ class MasSideNav extends LitElement {
 
         Store.fragments.inEdit.subscribe(parentStoreHandler);
 
+        const editorContextHandler = () => {
+            if (this.variationLoadingTimeout) {
+                clearTimeout(this.variationLoadingTimeout);
+                this.variationLoadingTimeout = null;
+            }
+            this.updateVariationLoadingState();
+        };
+        Store.fragmentEditor.editorContext.subscribe(editorContextHandler);
+
         this.unsubscribe = () => {
             Store.fragments.inEdit.unsubscribe(parentStoreHandler);
+            Store.fragmentEditor.editorContext.unsubscribe(editorContextHandler);
             if (this.fragmentStoreSubscription) {
                 const store = Store.fragments.inEdit.get();
                 if (store) {
@@ -94,10 +115,47 @@ class MasSideNav extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         if (this.unsubscribe) this.unsubscribe();
+        if (this.variationLoadingTimeout) {
+            clearTimeout(this.variationLoadingTimeout);
+            this.variationLoadingTimeout = null;
+        }
     }
 
     updateEditorChangesState() {
         this.editorHasChanges = Store.editor.hasChanges;
+    }
+
+    async updateVariationLoadingState() {
+        if (this.variationLoadingTimeout) {
+            clearTimeout(this.variationLoadingTimeout);
+            this.variationLoadingTimeout = null;
+        }
+
+        const editorContextStore = Store.fragmentEditor.editorContext;
+        const fragmentId = this.fragmentEditor?.fragment?.id;
+
+        if (!fragmentId) {
+            this.variationDataLoading = false;
+            this.requestUpdate();
+            return;
+        }
+
+        if (editorContextStore.isVariation(fragmentId) && editorContextStore.parentFetchPromise) {
+            await editorContextStore.parentFetchPromise;
+        }
+
+        this.variationDataLoading = false;
+        this.requestUpdate();
+    }
+
+    setupVariationLoadingTimeout() {
+        this.variationLoadingTimeout = setTimeout(() => {
+            if (this.variationDataLoading) {
+                console.warn('Variation data loading timeout - forcing buttons to enable');
+                this.variationDataLoading = false;
+                this.requestUpdate();
+            }
+        }, 10000);
     }
 
     get fragmentEditor() {
@@ -124,23 +182,18 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.publishFragment();
     }
 
-    async unpublishFragment() {
-        Events.toast.emit({
-            variant: 'info',
-            content: 'Unpublish feature coming soon',
-        });
-    }
-
     async copyCode() {
         if (!this.fragmentEditor) return;
         await this.fragmentEditor.copyToUse();
     }
 
     async showHistory() {
-        Events.toast.emit({
-            variant: 'info',
-            content: 'History feature coming soon',
-        });
+        const editorPanel = document.querySelector('editor-panel');
+        const versionHistory =
+            editorPanel?.querySelector('version-history') || this.fragmentEditor?.querySelector('version-history');
+        if (versionHistory) {
+            versionHistory.togglePanel();
+        }
     }
 
     async unlockFragment() {
@@ -202,38 +255,40 @@ class MasSideNav extends LitElement {
     }
 
     get editNavigation() {
-        const isVariation = this.fragmentEditor?.fragment?.isVariation();
+        const fragmentId = this.fragmentEditor?.fragment?.id;
+        const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
+        const loading = this.variationDataLoading;
 
         return html`
-            <mas-side-nav-item label="Save" ?disabled=${!this.editorHasChanges} @nav-click="${this.saveFragment}">
+            <mas-side-nav-item label="Save" ?disabled=${!this.editorHasChanges || loading} @nav-click="${this.saveFragment}">
                 <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
             </mas-side-nav-item>
             ${!isVariation
                 ? html`
-                      <mas-side-nav-item label="Create Variation" @nav-click="${this.createVariant}">
+                      <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
                           <sp-icon-add slot="icon"></sp-icon-add>
                       </mas-side-nav-item>
                   `
                 : ''}
-            <mas-side-nav-item label="Duplicate" @nav-click="${this.duplicateFragment}">
+            <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
                 <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Publish" @nav-click="${this.publishFragment}">
+            <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Unpublish" @nav-click="${this.unpublishFragment}">
+            <mas-side-nav-item label="Unpublish" disabled>
                 <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Copy Code" @nav-click="${this.copyCode}">
+            <mas-side-nav-item label="Copy Code" ?disabled=${loading} @nav-click="${this.copyCode}">
                 <sp-icon-code slot="icon"></sp-icon-code>
             </mas-side-nav-item>
-            <mas-side-nav-item label="History" @nav-click="${this.showHistory}">
+            <mas-side-nav-item label="History" ?disabled=${loading} @nav-click="${this.showHistory}">
                 <sp-icon-history slot="icon"></sp-icon-history>
             </mas-side-nav-item>
             <mas-side-nav-item label="Unlock" @nav-click="${this.unlockFragment}" disabled>
                 <sp-icon-settings slot="icon"></sp-icon-settings>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Delete" @nav-click="${this.deleteFragment}">
+            <mas-side-nav-item label="Delete" ?disabled=${loading} @nav-click="${this.deleteFragment}">
                 <sp-icon-delete slot="icon"></sp-icon-delete>
             </mas-side-nav-item>
         `;

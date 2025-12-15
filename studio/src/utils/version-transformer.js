@@ -10,6 +10,12 @@
 let FIELD_CONFIG = null;
 
 /**
+ * Fields that must remain as arrays for merch-card hydration
+ * These fields are accessed via .map() or array indexing in hydrate.js
+ */
+const ARRAY_FIELDS = new Set(['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink', 'ctas', 'tags']);
+
+/**
  * Set the field configuration
  * @param {Object} config - Field configuration object
  */
@@ -23,46 +29,28 @@ export function setFieldConfig(config) {
  * @returns {Object} Normalized fields object
  */
 export function normalizeFields(data) {
-    if (!FIELD_CONFIG) {
-        throw new Error('FIELD_CONFIG not initialized. Call setFieldConfig() first.');
-    }
-
     // Return if fields is already an object (not an array)
     if (data.fields && !Array.isArray(data.fields)) {
         return data.fields;
     }
 
-    // Get array fields from config
-    const arrayFields = new Set(
-        Object.entries(FIELD_CONFIG)
-            .filter(([, config]) => config.isArray)
-            .map(([fieldName]) => fieldName),
-    );
-
     const sourceArray = data.fields || data.elements;
     if (!Array.isArray(sourceArray)) return {};
 
     const fields = {};
-    const processFieldValue = (name, value) => {
-        if (arrayFields.has(name)) {
-            fields[name] = Array.isArray(value) ? value : [value];
-        } else if (Array.isArray(value)) {
-            if (value.length === 0) return;
-            if (value.length === 1) {
-                fields[name] = typeof value[0] === 'object' && value[0] !== null ? value : value[0];
-            } else {
-                fields[name] = typeof value[0] === 'object' && value[0] !== null ? value : value[0];
-            }
-        } else {
-            fields[name] = value;
-        }
-    };
-
     sourceArray.forEach((element) => {
         if (!element.name) return;
         const value = element.value !== undefined ? element.value : element.values;
-        if (value !== undefined) {
-            processFieldValue(element.name, value);
+        if (value === undefined) return;
+
+        // Keep array fields as arrays, unwrap single-item arrays for others
+        if (ARRAY_FIELDS.has(element.name)) {
+            fields[element.name] = Array.isArray(value) ? value : [value];
+        } else if (Array.isArray(value)) {
+            if (value.length === 0) return;
+            fields[element.name] = value.length === 1 ? value[0] : value;
+        } else {
+            fields[element.name] = value;
         }
     });
 
@@ -190,6 +178,11 @@ export function getFieldVisible(fieldName) {
     return FIELD_CONFIG[fieldName]?.visible || false;
 }
 
+/**
+ * Get field hidden from config
+ * @param {string} fieldName - Field name
+ * @returns {boolean} Whether field is hidden
+ */
 export function getFieldHidden(fieldName) {
     if (!FIELD_CONFIG) {
         return false;

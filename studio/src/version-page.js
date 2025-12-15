@@ -31,65 +31,44 @@ class VersionPage extends LitElement {
 
     // Centralized field configuration
     static FIELD_CONFIG = {
-        // Fragment-level fields (metadata - not visible on card)
-        title: { label: 'Fragment Title', isArray: false, visible: false },
-        description: { label: 'Description', isArray: false, visible: true },
-        locReady: { label: 'Send to translation', isArray: false, visible: false },
-        tags: { label: 'Tags', isArray: true, visible: false },
-        // Merch Card configuration fields (not visible on card)
-        variant: { label: 'Variant', isArray: false, visible: false },
-        style: { label: 'Style', isArray: false, visible: false },
-        size: { label: 'Size', isArray: false, visible: false },
-        name: { label: 'Card name', isArray: false, visible: false },
-        osi: { label: 'OSI Search', isArray: false, visible: false },
-        // Merch Card visible content fields (rendered on card)
-        cardName: { label: 'Card name', isArray: true, visible: false },
-        cardTitle: { label: 'Title', isArray: false, visible: true },
-        subtitle: { label: 'Subtitle', isArray: false, visible: true },
-        mnemonics: { label: 'Mnemonics', isArray: false, visible: true },
-        mnemonicIcon: { label: 'Mnemonic Icon', isArray: true, visible: true },
-        mnemonicAlt: { label: 'Mnemonic Alt', isArray: true, visible: true },
-        mnemonicLink: { label: 'Mnemonic Link', isArray: true, visible: true },
-        whatsIncluded: { label: "What's included", isArray: false, visible: true },
-        badge: { label: 'Badge', isArray: false, visible: true },
-        badgeText: { label: 'Badge Text', isArray: true, visible: true },
-        trialBadge: { label: 'Trial Badge', isArray: false, visible: true },
-        backgroundImage: { label: 'Background Image', isArray: false, visible: true },
-        backgroundImageAltText: { label: 'Background Image Alt Text', isArray: false, visible: false },
-        prices: { label: 'Prices', isArray: true, visible: true },
-        offers: { label: 'Offers', isArray: true, visible: false },
-        priceDetails: { label: 'Price Details', isArray: true, visible: false },
-        promoCode: { label: 'Promo Code', isArray: false, visible: true },
-        promoText: { label: 'Promo Text', isArray: false, visible: true },
-        addonConfirmation: { label: 'Addon Confirmation', isArray: false, visible: true },
-        shortDescription: { label: 'Short Description', isArray: false, visible: true },
-        callout: { label: 'Callout text', isArray: false, visible: true },
-        ctas: { label: 'Footer', isArray: true, visible: true },
-        actionMenu: { label: 'Action Menu', isArray: true, visible: false },
-        icons: { label: 'Icons', isArray: true, visible: true },
-        links: { label: 'Links', isArray: true, visible: true },
-        descriptions: { label: 'Descriptions', isArray: true, visible: true },
-        ctaTexts: { label: 'CTA Texts', isArray: true, visible: true },
-        perUnitLabel: { label: 'Per Unit Label', isArray: false, visible: true },
-        backgroundColor: { label: 'Background Color', isArray: false, visible: true },
-        // Collection fields (visible on collection UI)
-        queryLabel: { label: 'Query label', isArray: false, visible: true },
-        label: { label: 'label', isArray: false, visible: true },
-        icon: { label: 'Default icon', isArray: false, visible: true },
-        iconLight: { label: 'Selected Icon', isArray: false, visible: true },
-        searchText: { label: 'Search Text', isArray: false, visible: true },
-        tagFiltersTitle: { label: 'Tag Filters Title', isArray: false, visible: true },
-        tagFilters: { label: 'Tag Filters', isArray: false, visible: true },
-        linksTitle: { label: 'Links Title', isArray: false, visible: true },
-        link: { label: 'Link', isArray: false, visible: true },
-        linkIcon: { label: 'Link Icon', isArray: false, visible: true },
-        linkText: { label: 'Link Text', isArray: false, visible: true },
-        // Quantity fields (visible on card)
-        quantityTitle: { label: 'Quantity selector title', isArray: false, visible: true },
-        startQuantity: { label: 'Start quantity', isArray: false, visible: true },
-        stepQuantity: { label: 'Step', isArray: false, visible: true },
-        borderColor: { label: 'Border Color', isArray: false, visible: true },
-        originalId: { label: 'Original ID', isArray: false, visible: true, hidden: true },
+        // Visible on card
+        cardTitle: { label: 'Card Title', visible: true },
+        description: { label: 'Description', visible: true },
+        prices: { label: 'Prices', visible: true },
+        ctas: { label: 'CTAs', visible: true },
+        borderColor: { label: 'Border Color', visible: true },
+        size: { label: 'Size', visible: true },
+        backgroundColor: { label: 'Background Color', visible: true },
+        backgroundImage: { label: 'Background Image', visible: true },
+        mnemonicIcon: { label: 'Mnemonic Icon', visible: true },
+        badge: { label: 'Badge', visible: true },
+        trialBadge: { label: 'Trial Badge', visible: true },
+        promoText: { label: 'Promo Text', visible: true },
+        subtitle: { label: 'Subtitle', visible: true },
+        callout: { label: 'Callout', visible: true },
+        // Not visible on card
+        variant: { label: 'Variant', visible: false },
+        osi: { label: 'OSI', visible: false },
+        mnemonicAlt: { label: 'Mnemonic Alt', visible: false },
+        mnemonicLink: { label: 'Mnemonic Link', visible: false },
+        backgroundImageAltText: { label: 'Background Image Alt Text', visible: false },
+        cardName: { label: 'Card Name', visible: false },
+        cardTitleLink: { label: 'Card Title Link', visible: false },
+        shortDescription: { label: 'Short Description', visible: false },
+        promoCode: { label: 'Promo Code', visible: false },
+        showSecureLabel: { label: 'Show Secure Label', visible: false },
+        showPlanType: { label: 'Show Plan Type', visible: false },
+        quantitySelect: { label: 'Quantity Select', visible: false },
+        addon: { label: 'Addon', visible: false },
+        addonConfirmation: { label: 'Addon Confirmation', visible: false },
+        variations: { label: 'Variations', visible: false },
+        product: { label: 'Product', visible: false },
+        whatsIncluded: { label: 'Whats Included', visible: false },
+        tags: { label: 'Tags', visible: false },
+        perUnitLabel: { label: 'Per Unit Label', visible: false },
+        locReady: { label: 'Loc Ready', visible: false },
+        // Hidden on changed fields list
+        originalId: { label: 'Original ID', visible: false, hidden: true },
     };
 
     static styles = css`
@@ -738,7 +717,7 @@ class VersionPage extends LitElement {
 
         const differences =
             className === 'selected' && this.fragment && fragmentData ? calculateDifferences(this.fragment, fragmentData) : [];
-        console.log('differences', differences);
+
         return html`
             <div class="preview-column ${className}">
                 <div class="preview-column-header">
@@ -852,25 +831,10 @@ class VersionPage extends LitElement {
             await customElements.whenDefined('merch-card');
             await merchCard.updateComplete;
 
-            // Ensure certain fields are always arrays (merch-card expects these)
-            const safeFields = { ...fields };
-            const mustBeArrays = Object.entries(VersionPage.FIELD_CONFIG)
-                .filter(([, config]) => config.isArray)
-                .map(([fieldName]) => fieldName);
-
-            mustBeArrays.forEach((fieldName) => {
-                if (safeFields[fieldName] !== undefined && !Array.isArray(safeFields[fieldName])) {
-                    safeFields[fieldName] = [safeFields[fieldName]];
-                } else if (safeFields[fieldName] === undefined) {
-                    // Set to empty array if undefined
-                    safeFields[fieldName] = [];
-                }
-            });
-
             // Create the properly formatted fragment data
             const formattedData = {
                 id: fragmentData.id,
-                fields: safeFields,
+                fields,
                 settings: fragmentData.settings || {},
                 priceLiterals: fragmentData.priceLiterals || {},
             };

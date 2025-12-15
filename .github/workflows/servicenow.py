@@ -193,7 +193,7 @@ if __name__ == "__main__":
       "approvedBy": [  "casalino@adobe.com", "jmichnow@adobe.com", "mauchley@adobe.com", "bbalakrishna@adobe.com", "tuscany@adobe.com", "brahmbha@adobe.com" ],
       "testPlan": "Test plan is documented in the PR link in the mas repository above. See the PR's merge checks to see Unit and Nala testing.",
       "implementationPlan": "The change will be released as part of the continuous deployment of mas's production branch, i.e., \"main\"",
-      "backoutPlan": "Revert merge to the mas production branch by creating a revert commit.", "testResults": "Changes are tested and validated successfully in staging environment. Please see the link of the PR in the description for the test results and/or the \"#nala-test-results\" slack channel."
+      "backoutPlan": "Revert merge to the mas production branch by creating a revert commit.", "testResults": "Changes are tested and validated successfully in staging environment. Please see the link of the PR in the description for the test results and/or the \"#merch-at-scale\" slack channel."
     }
     response = requests.post(SERVICENOW_CMR_URL, headers=headers, json=data)
     json_parse = json.loads(response.text)

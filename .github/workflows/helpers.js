@@ -29,7 +29,7 @@ Then run: node --env-file=.env .github/workflows/snow-pr-comment.js`);
 
 const slackNotification = (text, webhook) => {
   console.log(text);
-  return fetch(webhook || process.env.MAS_RELEASE_SLACK_WH, {
+  return fetch(webhook || process.env.SLACK_WEBHOOK_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

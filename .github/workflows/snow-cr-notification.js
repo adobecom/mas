@@ -30,7 +30,7 @@ async function main({
 
     await slackNotification(
         `${prefix} <${html_url}|#${number}>.`,
-        process.env.MAS_RELEASE_SLACK_WH
+        process.env.SLACK_WEBHOOK_URL
     );
 }
 

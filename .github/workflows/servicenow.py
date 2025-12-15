@@ -9,14 +9,24 @@ import requests
 APPLICATION_JSON = "application/json"
 CMR_RETRIEVAL_ERROR = "CMR ID Retrieval Operation failed..."
 POST_FAILURE_MESSAGE = "POST failed with response code: "
-#Non-prod
-IMS_URL = 'https://ims-na1-stg1.adobelogin.com/ims/token'
-SERVICENOW_CMR_URL = 'https://ipaasapi-stage.adobe-services.com/change_management/changes'
-SERVICENOW_GET_CMR_URL = 'https://ipaasapi-stage.adobe-services.com/change_management/transactions/'
-#Prod
-#IMS_URL = 'https://ims-na1.adobelogin.com/ims/token'
-#SERVICENOW_CMR_URL = 'https://ipaasapi.adobe-services.com/change_management/changes'
-#SERVICENOW_GET_CMR_URL = 'https://ipaasapi.adobe-services.com/change_management/transactions/'
+
+# Set URLs based on ENVIRONMENT variable
+ENVIRONMENT = os.environ.get('ENVIRONMENT', 'stage')
+
+if ENVIRONMENT == 'prod':
+    # Production URLs
+    IMS_URL = 'https://ims-na1.adobelogin.com/ims/token'
+    SERVICENOW_CMR_URL = 'https://ipaasapi.adobe-services.com/change_management/changes'
+    SERVICENOW_GET_CMR_URL = 'https://ipaasapi.adobe-services.com/change_management/transactions/'
+else:
+    # Stage URLs (default)
+    IMS_URL = 'https://ims-na1-stg1.adobelogin.com/ims/token'
+    SERVICENOW_CMR_URL = 'https://ipaasapi-stage.adobe-services.com/change_management/changes'
+    SERVICENOW_GET_CMR_URL = 'https://ipaasapi-stage.adobe-services.com/change_management/transactions/'
+
+print(f"Using ENVIRONMENT: {ENVIRONMENT}")
+print(f"IMS_URL: {IMS_URL}")
+print(f"SERVICENOW_CMR_URL: {SERVICENOW_CMR_URL}")
 
 output_file = open(os.environ['GITHUB_OUTPUT'], 'a')
 

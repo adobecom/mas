@@ -20,9 +20,11 @@ async function main({
 
     const { number, title, html_url } = pull_request;
     const isOpen = process.env.PR_STATE === 'open';
+    const environment = process.env.ENVIRONMENT || 'stage';
+    const envLabel = environment === 'stage' ? ' in the QA ServiceNow environment' : '';
     const prefix = isOpen
-        ? ':servicenow_logo: ServiceNow Change Request Created and in progress: Transaction ID: ' + transaction_id + '\n: Planned start: ' + planned_start_time + ' | end: ' + planned_end_time + ' | '
-        : ':servicenow_logo: ServiceNow Change Request Closed: Search for Change Record by Change ID: ' + change_id + ' or search for it by planned start, end time\n:';
+        ? ':servicenow_logo: ServiceNow Change Request Created and in progress' + envLabel + ': Transaction ID: ' + transaction_id + '\n: Planned start: ' + planned_start_time + ' | end: ' + planned_end_time + ' | '
+        : ':servicenow_logo: ServiceNow Change Request Closed' + envLabel + ': Search for Change Record by Change ID: ' + change_id + ' or search for it by planned start, end time\n:';
 
     console.log(`Sending SNOW CR notification for PR #${number}: ${title}`);
 

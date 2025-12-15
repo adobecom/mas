@@ -19,6 +19,7 @@ permissions:
   contents: read
 
 env:
+  ENVIRONMENT: stage  # Set to "stage" or "prod"
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   IMSACCESS_CLIENT_ID: ${{ secrets.IMSACCESS_CLIENT_ID }}
   IMSACCESS_CLIENT_SECRET: ${{ secrets.IMSACCESS_CLIENT_SECRET_STAGE }}

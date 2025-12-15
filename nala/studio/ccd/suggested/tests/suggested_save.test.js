@@ -47,11 +47,21 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             const clonedCardOne = await studio.getCard(data.clonedCardOneID);
             const clonedCardTwo = await studio.getCard(data.clonedCardTwoID);
 
+            await expect(await studio.fragmentsTable).toBeVisible();
+            await studio.fragmentsTable.click();
+
+            await page.waitForTimeout(2000);
+
             await clonedCardOne.dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCardOne).toBeVisible();
             await studio.deleteCard(data.clonedCardOneID);
             await expect(await clonedCardOne).not.toBeVisible();
 
+            await expect(await clonedCardTwo).toBeVisible();
             await clonedCardTwo.dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCardTwo).toBeVisible();
             await studio.deleteCard(data.clonedCardTwoID);
             await expect(await clonedCardTwo).not.toBeVisible();
         });
@@ -75,7 +85,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Change variant and save card', async () => {
@@ -120,7 +131,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Change variant and save card', async () => {
@@ -167,7 +179,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit title field', async () => {
@@ -181,7 +194,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-5: Edit mnemonic field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();
@@ -267,7 +279,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit price and save card', async () => {
@@ -311,7 +324,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Open CTA link editor', async () => {
@@ -412,7 +426,8 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Change osi and save card', async () => {

@@ -106,6 +106,7 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
+    FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
 };
@@ -153,6 +154,10 @@ export const VARIANT_CAPABILITIES = {
     },
 };
 export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+
+export const VARIATION_TYPES = {
+    LOCALE: 'Locale',
+};
 
 export const SURFACES = {
     ACOM: {

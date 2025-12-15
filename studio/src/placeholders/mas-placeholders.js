@@ -344,7 +344,7 @@ class MasPlaceholders extends LitElement {
 
     loadingIndicator() {
         if (!this.loading) return nothing;
-        return html`<sp-progress-circle style="top:-60px" indeterminate size="l"></sp-progress-circle>`;
+        return html`<sp-progress-circle class="loading-indicator" indeterminate size="l"></sp-progress-circle>`;
     }
 
     // #region Table
@@ -389,10 +389,9 @@ class MasPlaceholders extends LitElement {
                     ${columns.map(
                         ({ key, label, sortable, align }) => html`
                             <sp-table-head-cell
-                                class=${key}
+                                class="${key} ${align === 'right' ? 'align-right' : ''}"
                                 ?sortable=${sortable}
                                 @click=${sortable ? () => this.updateSort(key) : undefined}
-                                style="${align === 'right' ? 'text-align: right;' : ''}"
                             >
                                 ${label}
                             </sp-table-head-cell>

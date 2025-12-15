@@ -14,6 +14,7 @@ export default class StudioPage {
         this.searchInput = page.locator('#actions sp-search  input');
         this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-search');
         this.filter = page.locator('sp-action-button[label="Filter"]');
+        this.folderPicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.previewMenu = page.locator('#actions sp-action-menu[value="render"]');
         this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');
         this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
@@ -21,13 +22,14 @@ export default class StudioPage {
         this.tableView = page.locator('sp-table');
         this.tableViewHeaders = page.locator('sp-table-head');
         this.quickActions = page.locator('.quick-actions');
-        this.editorPanel = page.locator('editor-panel > #editor');
+        this.editorPanel = page.locator('mas-fragment-editor > #fragment-editor #editor-content');
         this.confirmationDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.cancelDialog = page.locator('sp-button:has-text("Cancel")');
         this.deleteDialog = page.locator('sp-button:has-text("Delete")');
         this.discardDialog = page.locator('sp-button:has-text("Discard")');
         this.toastPositive = page.locator('mas-toast >> sp-toast[variant="positive"]');
         this.toastNegative = page.locator('mas-toast >> sp-toast[variant="negative"]');
+        this.toastProgress = page.locator('mas-toast >> sp-toast[variant="info"]');
         this.suggestedCard = page.locator('merch-card[variant="ccd-suggested"]');
         this.sliceCard = page.locator('merch-card[variant="ccd-slice"]');
         this.sliceCardWide = page.locator('merch-card[variant="ccd-slice"][size="wide"]');
@@ -41,16 +43,16 @@ export default class StudioPage {
         this.ahPromotedPlansCardGradientBorder = page.locator(
             'merch-card[variant="ah-promoted-plans"][gradient-border="true"]',
         );
-        // Editor panel toolbar
-        this.cloneCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="clone"]');
-        this.deleteCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="delete"]');
-        this.saveCardButton = page.locator('div[id="editor-toolbar"] >> sp-action-button[value="save"]');
         // Topnav panel
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-locale-picker sp-action-menu');
+        this.fragmentsTable = page.locator('.breadcrumbs-container sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
+        this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
+        this.deleteCardButton = this.sideNav.locator('mas-side-nav-item[label="Delete"]');
+        this.saveCardButton = this.sideNav.locator('mas-side-nav-item[label="Save"]');
         this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
         this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
         this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');
@@ -146,17 +148,14 @@ export default class StudioPage {
                 const card = await this.getCard(cardId);
                 await expect(card).toBeVisible();
                 await card.dblclick();
-                await this.page.waitForSelector('editor-panel > #editor', {
+                await this.editorPanel.waitFor({
                     state: 'visible',
                     timeout: 30000,
                 });
                 await this.page.waitForTimeout(1000); // Give editor time to stabilize
 
                 // Wait for clone button and ensure it's enabled
-                await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="clone"]', {
-                    state: 'visible',
-                    timeout: 5000,
-                });
+                await expect(this.cloneCardButton).toBeVisible();
                 await expect(this.cloneCardButton).toBeEnabled();
 
                 await this.cloneCardButton.scrollIntoViewIfNeeded();
@@ -167,7 +166,7 @@ export default class StudioPage {
                 // Wait for fragment title dialog and enter title
                 await this.page.waitForSelector('sp-dialog[variant="confirmation"]', {
                     state: 'visible',
-                    timeout: 5000,
+                    timeout: 15000,
                 });
 
                 // Enter fragment title with run ID
@@ -179,9 +178,9 @@ export default class StudioPage {
 
                 // Wait for progress circle
                 await this.page
-                    .waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="clone"] sp-progress-circle', {
+                    .waitForSelector('sp-dialog[variant="confirmation"] sp-button sp-progress-circle', {
                         state: 'visible',
-                        timeout: 5000,
+                        timeout: 15000,
                     })
                     .catch(() => {
                         throw new Error('[CLICK_FAILED] Clone button click did not trigger progress circle');
@@ -257,9 +256,9 @@ export default class StudioPage {
 
                 await this.saveCardButton.click({ force: true });
 
-                // Wait for progress circle
-                await this.page
-                    .waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="save"] sp-progress-circle', {
+                // Wait for progress toast
+                await this.toastProgress
+                    .waitFor({
                         state: 'visible',
                         timeout: 5000,
                     })
@@ -267,9 +266,9 @@ export default class StudioPage {
                         throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
                     });
 
-                // Wait for any toast
+                // Wait for any toast (excluding progress toast)
                 await this.page
-                    .waitForSelector('mas-toast >> sp-toast', {
+                    .waitForSelector('mas-toast >> sp-toast:not([variant="info"])', {
                         state: 'visible',
                         timeout: 15000,
                     })
@@ -331,18 +330,21 @@ export default class StudioPage {
 
         try {
             // First ensure card exists and editor is open
-            const card = await this.getCard(cardId);
-            await expect(card).toBeVisible();
-            await card.dblclick();
-            await this.page.waitForSelector('editor-panel > #editor', {
-                state: 'visible',
-                timeout: 30000,
-            });
+            const isEditorVisible = await this.editorPanel.isVisible().catch(() => false);
+            if (!isEditorVisible) {
+                const card = await this.getCard(cardId);
+                await expect(card).toBeVisible();
+                await card.dblclick();
+                await this.editorPanel.waitFor({
+                    state: 'visible',
+                    timeout: 30000,
+                });
+            }
             await this.page.waitForTimeout(1500); // Give editor time to stabilize
 
             await this.#retryOperation(async (attempt) => {
                 // Wait for delete button and ensure it's enabled
-                await this.page.waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="delete"]', {
+                await this.deleteCardButton.waitFor({
                     state: 'visible',
                     timeout: 5000,
                 });
@@ -355,19 +357,19 @@ export default class StudioPage {
                 await expect(await this.confirmationDialog).toBeVisible();
                 await this.confirmationDialog.locator(this.deleteDialog).click();
 
-                // Wait for progress circle
-                await this.page
-                    .waitForSelector('div[id="editor-toolbar"] >> sp-action-button[value="delete"] sp-progress-circle', {
+                // Wait for progress toast
+                await this.toastProgress
+                    .waitFor({
                         state: 'visible',
                         timeout: 5000,
                     })
                     .catch(() => {
-                        throw new Error('[CLICK_FAILED] Delete confirmation did not trigger progress circle');
+                        throw new Error('[CLICK_FAILED] Delete confirmation did not trigger progress toast');
                     });
 
                 // Wait for any toast
                 await this.page
-                    .waitForSelector('mas-toast >> sp-toast', {
+                    .waitForSelector('mas-toast >> sp-toast:not([variant="info"])', {
                         state: 'visible',
                         timeout: 15000,
                     })
@@ -439,7 +441,8 @@ export default class StudioPage {
 
     async discardEditorChanges(editor) {
         // Close the editor and verify discard is triggered
-        await editor.closeEditor.click();
+        // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
+        await this.page.goBack();
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();

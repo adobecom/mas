@@ -4,7 +4,8 @@ import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import './mas-fragment-variations.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
-import Store, { editFragment } from './store.js';
+import Store from './store.js';
+import router from './router.js';
 import { styles } from './mas-fragment.css.js';
 import { MasRepository } from './mas-repository.js';
 import { showToast } from './utils.js';
@@ -78,13 +79,16 @@ class MasFragment extends LitElement {
         event.currentTarget.classList.remove('has-tooltip');
     }
 
-    edit(event) {
-        if (Store.selecting.get()) return;
+    async edit(event) {
+        if (this.selecting.value) return;
         // Remove tooltip
         clearTimeout(tooltipTimeout.get());
         event.currentTarget.classList.remove('has-tooltip');
         // Handle edit
-        editFragment(this.fragmentStore, event.clientX);
+        const fragment = this.fragmentStore.value;
+        if (fragment?.id) {
+            await router.navigateToFragmentEditor(fragment.id);
+        }
     }
 
     get renderView() {

@@ -299,7 +299,7 @@ class MasPlaceholders extends LitElement {
                                     region: event.detail.locale,
                                 }))}
                             mode="region"
-                            search-placeholder="Search region"
+                            searchplaceholder="Search region"
                         ></mas-locale-picker>
                     </div>
                     <sp-button variant="primary" @click=${this.toggleCreationModal} class="create-button">
@@ -327,7 +327,7 @@ class MasPlaceholders extends LitElement {
                 <div class="placeholders-content">${this.loadingIndicator()}${this.renderTable()}</div>
 
                 ${this.showCreationModal
-                    ? html`<mas-placeholders-creation-modal                            
+                    ? html`<mas-placeholders-creation-modal
                           .onClose=${this.toggleCreationModal}
                           @save=${this.onSave}
                       ></mas-placeholders-creation-modal>`

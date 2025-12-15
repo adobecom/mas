@@ -118,7 +118,8 @@ jobs:
       id: create-close-cmr-step
       env:
         RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
-        SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.SNOW_INSTANCE_ID_IO, secrets.SNOW_INSTANCE_ID_STUDIO) || needs.detect-changes.outputs.changed_path == 'io' && secrets.SNOW_INSTANCE_ID_IO || secrets.SNOW_INSTANCE_ID_STUDIO) || '' }}
+        # SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.SNOW_INSTANCE_ID_IO, secrets.SNOW_INSTANCE_ID_STUDIO) || needs.detect-changes.outputs.changed_path == 'io' && secrets.SNOW_INSTANCE_ID_IO || secrets.SNOW_INSTANCE_ID_STUDIO) || '' }}
+        SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY, secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY) || needs.detect-changes.outputs.changed_path == 'io' && secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY || secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY) || '' }}
       run: |
         python ./.github/workflows/servicenow.py
 

@@ -48,7 +48,9 @@ export class AddonField extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.repository.loadAddonPlaceholders();
+        if (this.placeholderKey) {
+            this.repository.loadAddonPlaceholders();
+        }
     }
 
     /** @type {MasRepository} */
@@ -58,7 +60,11 @@ export class AddonField extends LitElement {
 
     #handleToggle(e) {
         this.editable = e.target.checked;
-        if (!this.editable) this.value = '';
+        if (this.editable) {
+            this.repository.loadAddonPlaceholders();
+        } else {
+            this.value = '';
+        }
         this.dispatchInputEvent();
     }
 

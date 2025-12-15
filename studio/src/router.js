@@ -1,4 +1,4 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
 
@@ -8,6 +8,7 @@ export class Router extends EventTarget {
         this.location = location;
         this.updateHistory = debounce(this.updateHistory.bind(this), 50);
         this.linkedStores = [];
+        this.isNavigating = false;
     }
 
     updateHistory() {
@@ -32,16 +33,87 @@ export class Router extends EventTarget {
     navigateToPage(value) {
         return async () => {
             if (Store.page.value === value) return;
-            const editorPanel = document.querySelector('editor-panel');
-            const confirmed = !Store.editor.hasChanges || (await editorPanel.promptDiscardChanges());
-            if (confirmed) {
-                Store.fragments.inEdit.set();
-                Store.fragments.list.data.set([]);
-                Store.search.set((prev) => ({ ...prev, query: undefined }));
-                Store.filters.set((prev) => ({ ...prev, tags: undefined }));
-                Store.page.set(value);
+            this.isNavigating = true;
+            try {
+                const fragmentEditor = document.querySelector('mas-fragment-editor');
+                const isLoading = fragmentEditor?.isLoading ?? false;
+                const confirmed =
+                    isLoading ||
+                    !Store.editor.hasChanges ||
+                    (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
+                if (confirmed) {
+                    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
+                        Store.fragmentEditor.fragmentId.set(null);
+                    }
+                    Store.fragments.inEdit.set();
+                    if (value !== PAGE_NAMES.CONTENT) {
+                        Store.fragments.list.data.set([]);
+                        Store.search.set((prev) => ({ ...prev, query: undefined }));
+                        Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+                    }
+                    Store.viewMode.set('default');
+                    Store.page.set(value);
+                }
+            } finally {
+                this.isNavigating = false;
             }
         };
+    }
+
+    /**
+     * Navigate to the fragment editor
+     * @param {string} fragmentId - The fragment ID to edit
+     * @param {Object} options - Navigation options
+     * @param {string} options.locale - Optional locale to set before navigation
+     */
+    async navigateToFragmentEditor(fragmentId, options = {}) {
+        if (!fragmentId) {
+            console.error('Fragment ID is required for navigation');
+            return;
+        }
+
+        const { locale } = options;
+
+        this.isNavigating = true;
+        try {
+            // Set locale BEFORE setting page to include it in the first URL change
+            if (locale && locale !== Store.filters.value.locale) {
+                Store.filters.set((prev) => ({ ...prev, locale }));
+            }
+
+            // Check if this is a collection to use editor-panel instead
+            const fragmentList = Store.fragments.list.data.get();
+            const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);
+
+            if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
+                // Use editor-panel for collections
+                const editorPanel = document.querySelector('editor-panel');
+                if (editorPanel) {
+                    if (Store.editor.hasChanges) {
+                        const confirmed = await editorPanel.promptDiscardChanges();
+                        if (!confirmed) return;
+                    }
+                    await editorPanel.editFragment(fragmentStore);
+                    Store.viewMode.set('editing');
+                    return;
+                }
+            }
+
+            // Default: use full-page fragment editor for regular cards
+            if (Store.editor.hasChanges) {
+                const fragmentEditor = document.querySelector('mas-fragment-editor');
+                const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
+                if (!confirmed) return;
+            }
+
+            Store.fragments.inEdit.set();
+            Store.fragmentEditor.fragmentId.set(fragmentId);
+            Store.search.set((prev) => ({ ...prev, query: undefined }));
+            Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
+            Store.viewMode.set('editing');
+        } finally {
+            this.isNavigating = false;
+        }
     }
 
     /**
@@ -56,11 +128,11 @@ export class Router extends EventTarget {
     syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
         this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
-        let hashUpdated = false;
+        const hashUpdated = false;
 
         for (const key of keysArray) {
             if (this.currentParams.has(key)) {
-                let value = this.currentParams.get(key);
+                const value = this.currentParams.get(key);
                 let parsedValue;
                 try {
                     parsedValue = JSON.parse(value);
@@ -75,11 +147,11 @@ export class Router extends EventTarget {
                     newValue = parsedValue;
                 }
             } else {
-                const _defaultValue = defaultValueGetter(defaultValue)();
+                const defaultVal = defaultValueGetter(defaultValue)();
                 if (isObject) {
-                    newValue[key] = _defaultValue?.[key];
+                    newValue[key] = defaultVal?.[key];
                 } else {
-                    newValue = _defaultValue;
+                    newValue = defaultVal;
                 }
             }
         }
@@ -132,7 +204,7 @@ export class Router extends EventTarget {
                     continue;
                 }
 
-                if (storeValue === undefined) {
+                if (storeValue === undefined || storeValue === null) {
                     if (self.currentParams.has(key)) {
                         self.currentParams.delete(key);
                     }
@@ -145,8 +217,8 @@ export class Router extends EventTarget {
                     self.currentParams.set(key, stringValue);
                 }
 
-                const _defaultValue = getDefaultValue();
-                const defaultValueToCompare = isObject ? _defaultValue?.[key] : _defaultValue;
+                const defaultValue = getDefaultValue();
+                const defaultValueToCompare = isObject ? defaultValue?.[key] : defaultValue;
                 if (self.currentParams.get(key) === defaultValueToCompare) {
                     self.currentParams.delete(key);
                 }
@@ -165,6 +237,7 @@ export class Router extends EventTarget {
 
     start() {
         this.currentParams = new URLSearchParams(this.location.hash.slice(1));
+        this.previousHash = this.location.hash;
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, ['path', 'query'], {});
         this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
@@ -173,14 +246,41 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
+        this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
-        window.addEventListener('hashchange', () => {
+
+        if (this.currentParams.get('page') === PAGE_NAMES.FRAGMENT_EDITOR) {
+            Store.viewMode.set('editing');
+            if (this.currentParams.has('query')) {
+                this.currentParams.delete('query');
+                Store.search.set((prev) => ({ ...prev, query: undefined }));
+                this.updateHistory();
+            }
+        }
+
+        window.addEventListener('hashchange', async (event) => {
+            if (!this.isNavigating) {
+                const fragmentEditor = document.querySelector('mas-fragment-editor');
+                const isLoading = fragmentEditor?.isLoading ?? false;
+                const shouldCheckUnsavedChanges =
+                    !isLoading && Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
+
+                if (shouldCheckUnsavedChanges) {
+                    const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
+                    if (!confirmed) {
+                        event.preventDefault();
+                        this.location.hash = this.previousHash;
+                        return;
+                    }
+                }
+            }
+
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(this.location.hash.slice(1));
-            if (this.currentParams.has('query')) {
+            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
             const page = this.currentParams.get('page');
@@ -191,12 +291,38 @@ export class Router extends EventTarget {
             if (!path && Store.search.value.path) {
                 this.currentParams.set('path', Store.search.value.path);
             }
+            const locale = this.currentParams.get('locale');
+            if (!locale && Store.filters.value.locale && Store.filters.value.locale !== 'en_US') {
+                this.currentParams.set('locale', Store.filters.value.locale);
+            }
+
+            if (page === PAGE_NAMES.FRAGMENT_EDITOR) {
+                Store.viewMode.set('editing');
+                if (this.currentParams.has('query')) {
+                    this.currentParams.delete('query');
+                    Store.search.set((prev) => ({ ...prev, query: undefined }));
+                    this.updateHistory();
+                }
+            } else if (Store.viewMode.value === 'editing') {
+                Store.viewMode.set('default');
+            }
+
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
                 const currentValue = store.get();
                 const isObject = typeof currentValue === 'object' && currentValue !== null;
                 this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
             });
+
+            this.previousHash = this.location.hash;
+        });
+
+        window.addEventListener('beforeunload', (event) => {
+            if (Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+                event.preventDefault();
+                event.returnValue = '';
+                return '';
+            }
         });
     }
 }

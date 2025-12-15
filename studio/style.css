@@ -42,6 +42,35 @@ mas-studio {
     height: calc(100vh - var(--mas-nav-height));
 }
 
+.breadcrumbs-container {
+    grid-column: 1 / -1;
+    grid-row: 1 / 2;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 16px 24px 0px 86px;
+    max-height: 50px;
+}
+
+.breadcrumbs-container sp-breadcrumbs {
+    margin-bottom: 0;
+}
+
+.breadcrumbs-container sp-breadcrumb-item {
+    cursor: pointer;
+    color: var(--spectrum-global-color-gray-800);
+    font-size: 14px;
+}
+
+.breadcrumbs-container sp-breadcrumb-item:hover {
+    color: var(--spectrum-global-color-blue-600);
+}
+
+.breadcrumbs-container sp-breadcrumb-item:last-child {
+    cursor: default;
+    pointer-events: none;
+}
+
 side-nav {
     grid-column: 1 / 2;
     display: flex;
@@ -93,7 +122,7 @@ sp-sidenav-item sp-icon {
     margin-block-start: 16px;
     margin-block-end: 20px;
     margin-inline: 12px;
-    border-radius: 16px 16px 0 0;
+    border-radius: 16px;
     background: var(--spectrum-white);
     border: 1px solid var(--spectrum-gray-75, #f3f3f3);
     box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
@@ -167,12 +196,10 @@ sp-dialog-wrapper {
     margin-top: 20px;
 }
 
-editor-panel[position='left'] #move-left {
-    display: none;
-}
-
-editor-panel[position='right'] #move-right {
-    display: none;
+.two-column-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 }
 
 #actions {
@@ -246,11 +273,6 @@ mas-fragment-render[selected]:hover sp-icon-close {
 
 mas-fragment-render:not([selected]):hover sp-icon-add {
     display: block;
-}
-
-mas-multifield,
-rte-field {
-    margin-inline-end: 16px;
 }
 
 mas-recently-updated[loading] {
@@ -520,7 +542,7 @@ sp-table-head-cell {
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 24px;
+    padding: 24px 24px 60px 24px;
     width: 100%;
     box-sizing: border-box;
 }
@@ -577,10 +599,6 @@ sp-table-head-cell {
     background-color: #f8f8f8;
 }
 
-#badgeBorderColor {
-    margin: 0;
-}
-
 .quick-action-card div[slot='cover-photo'] svg {
     width: 36px;
     height: 36px;
@@ -631,7 +649,7 @@ sp-underlay + sp-dialog {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1;
-    background: var(--spectrum-gray-100);
+    background: var(--spectrum-white);
 }
 
 .unknown-fragment {
@@ -692,6 +710,14 @@ sp-underlay + sp-dialog {
     transform: translateY(-50%);
 }
 
+.preview-popover.position-left {
+    left: var(--popover-position);
+}
+
+.preview-popover.position-right {
+    right: var(--popover-position);
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -717,10 +743,77 @@ sp-progress-circle.next-page {
     position: relative;
 }
 
+.derived-from-container {
+    background: var(--spectrum-blue-100);
+    border: 2px solid var(--spectrum-blue-400);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.derived-from-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.derived-from-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--spectrum-blue-900);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.derived-from-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--spectrum-blue-900);
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.derived-from-link:hover {
+    color: var(--spectrum-blue-900);
+    text-decoration: none;
+}
+
+.derived-from-content {
+    color: var(--spectrum-blue-900);
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 8px;
+    text-decoration: none;
+    display: block;
+}
+
+.derived-from-content:hover {
+    color: var(--spectrum-global-color-blue-500);
+    text-decoration: none;
+}
+
 @media screen and (max-width: 1100px) {
     sp-table-cell.offer-id {
         word-break: break-all;
     }
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 16px;
+}
+
+.loading-text {
+    font-size: 14px;
+    color: var(--spectrum-global-color-gray-700);
 }
 
 /* mas-top-nav styles */
@@ -899,4 +992,12 @@ mas-top-nav .account-menu-item {
 mas-top-nav .account-menu-item:hover {
     background-color: var(--spectrum-gray-100);
     color: var(--spectrum-gray-800);
+}
+
+merch-card-editor .color-swatch {
+    background: var(--swatch-bg);
+}
+
+mas-mnemonic-field sp-action-menu sp-overlay sp-popover sp-menu {
+    min-width: auto;
 }

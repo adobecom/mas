@@ -3,6 +3,7 @@
     <head>
         <script type="module">
             window.process = { env: {} };
+            window.__swc = { warn: () => {} };
         </script>
         <title>Prosemirror RTE field custom element</title>
         <meta name="nofollow-links" content="on" />
@@ -121,6 +122,7 @@
                         let span = firstStyledElement();
                         expect(span.className).to.equal('heading-m');
 
+                        await selectWordsInTextNode(rte.editorView, 'Styling');
                         rte.handleStylingAction('heading-xxs');
                         await delay(100);
 

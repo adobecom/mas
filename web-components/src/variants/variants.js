@@ -28,11 +28,6 @@ import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
 // Registry for dynamic variants
 const variantRegistry = new Map();
 
-const variantState = new WeakMap();
-
-// Cache for variant stylesheets to avoid duplicates
-const variantStyleSheets = new Map();
-
 // Function to register a new variant
 export const registerVariant = (
     name,
@@ -114,64 +109,24 @@ registerVariant(
 );
 registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
 
-const applyStyleSheet = (card, style, state) => {
-    try {
-        let sheet = variantStyleSheets.get(card.variant);
-        if (!sheet) {
-            sheet = new CSSStyleSheet();
-            sheet.replaceSync(style.cssText);
-            variantStyleSheets.set(card.variant, sheet);
-        }
-
-        // Remove old sheet if exists and it's different
-        if (state?.styleSheet && state.styleSheet !== sheet) {
-            const index = card.shadowRoot.adoptedStyleSheets.indexOf(
-                state.styleSheet,
-            );
-            if (index !== -1) {
-                card.shadowRoot.adoptedStyleSheets.splice(index, 1);
-            }
-        }
-
-        if (!card.shadowRoot.adoptedStyleSheets.includes(sheet)) {
-            card.shadowRoot.adoptedStyleSheets.push(sheet);
-        }
-
-        return { styleSheet: sheet };
-    } catch (e) {
-        // Fallback for browsers without CSSStyleSheet constructor
-        const styleElement = document.createElement('style');
-        styleElement.textContent = style.cssText;
-        styleElement.setAttribute('data-variant-style', card.variant);
-
-        // Remove old style element
-        const oldElement =
-            state?.styleElement ||
-            card.shadowRoot.querySelector('[data-variant-style]');
-        if (oldElement) oldElement.remove();
-
-        card.shadowRoot.appendChild(styleElement);
-        return { styleElement };
-    }
-};
-
 const getVariantLayout = (card) => {
     const variantInfo = variantRegistry.get(card.variant);
-    if (!variantInfo) return undefined;
-
-    const { class: VariantClass, style } = variantInfo;
-    const state = variantState.get(card);
-
-    if (state?.appliedVariant === card.variant) {
-        return new VariantClass(card);
+    if (!variantInfo) {
+        return undefined;
     }
-
-    const styleState = style ? applyStyleSheet(card, style, state) : {};
-    variantState.set(card, {
-        appliedVariant: card.variant,
-        ...styleState,
-    });
-
+    const { class: VariantClass, style } = variantInfo;
+    if (style) {
+        try {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(style.cssText);
+            card.shadowRoot.adoptedStyleSheets.push(sheet);
+        } catch (e) {
+            // If CSSStyleSheet constructor fails, fall back to style element
+            const styleElement = document.createElement('style');
+            styleElement.textContent = style.cssText;
+            card.shadowRoot.appendChild(styleElement);
+        }
+    }
     return new VariantClass(card);
 };
 

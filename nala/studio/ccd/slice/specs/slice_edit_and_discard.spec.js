@@ -129,7 +129,7 @@ export default {
         },
         {
             tcid: '9',
-            name: '@studio-slice-edit-discard-price-promo',
+            name: '@studio-slice-edit-discard-promo-price',
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',

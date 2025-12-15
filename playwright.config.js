@@ -1,5 +1,8 @@
 import { devices } from '@playwright/test';
 
+const USER_AGENT_DESKTOP =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS';
+
 /**
  * @see https://playwright.dev/docs/test-configuration
  * @type {import('@playwright/test').PlaywrightTestConfig}
@@ -50,6 +53,7 @@ const config = {
             name: 'setup',
             use: {
                 ...devices['Desktop Chrome'],
+                userAgent: USER_AGENT_DESKTOP,
             },
             testMatch: /.*\.setup\.cjs/,
         },
@@ -60,6 +64,7 @@ const config = {
                 ...devices['Desktop Chrome'],
                 // Use prepared auth state.
                 storageState: './nala/.auth/user.json',
+                userAgent: USER_AGENT_DESKTOP,
             },
             bypassCSP: true,
             launchOptions: {

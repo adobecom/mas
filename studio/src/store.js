@@ -1,5 +1,8 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
+import { EditorContextStore } from './reactivity/editor-context-store.js';
+
+let editorContextInstance = null;
 
 // Store definition with default values - no URL parsing here
 const Store = {
@@ -16,6 +19,15 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
     },
+    fragmentEditor: {
+        fragmentId: new ReactiveStore(null),
+        get editorContext() {
+            if (!editorContextInstance) {
+                editorContextInstance = new EditorContextStore(null);
+            }
+            return editorContextInstance;
+        },
+    },
     operation: new ReactiveStore(),
     editor: {
         get hasChanges() {
@@ -30,6 +42,7 @@ const Store = {
     filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
     sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
+    viewMode: new ReactiveStore('default'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
@@ -104,6 +117,7 @@ function pageValidator(value) {
         PAGE_NAMES.WELCOME,
         PAGE_NAMES.CONTENT,
         PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,
     ];
@@ -145,8 +159,6 @@ function previewValidator(value) {
 
 // #endregion
 
-const editorPanel = () => document.querySelector('editor-panel');
-
 /**
  * Toggle selection of a fragment
  */
@@ -170,6 +182,10 @@ export function editFragment(store, x = 0) {
     editorPanel()?.editFragment(store, x);
 }
 
+function editorPanel() {
+    return document.querySelector('editor-panel');
+}
+
 export default Store;
 
 // Reset sort on page change
@@ -185,6 +201,12 @@ Store.placeholders.preview.subscribe(() => {
     }
     if (Store.page.value === PAGE_NAMES.WELCOME) {
         for (const fragmentStore of Store.fragments.recentlyUpdated.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
+    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+        const fragmentStore = Store.fragments.inEdit.get();
+        if (fragmentStore) {
             fragmentStore.resolvePreviewFragment();
         }
     }

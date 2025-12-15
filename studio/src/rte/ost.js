@@ -12,13 +12,18 @@ if (!ostRoot) {
 
 const ostDefaultSettings = () => {
     const masCommerceService = document.querySelector('mas-commerce-service');
-    let { displayOldPrice, displayPerUnit, displayPlanType, displayRecurrence, displayTax, isPerpetual, checkoutWorkflowStep } =
-        masCommerceService.settings;
-    if (!masCommerceService.featureFlags['mas-ff-defaults']) {
-        displayOldPrice = true;
-    }
-    return {
+    const {
         displayOldPrice,
+        displayPerUnit,
+        displayPlanType,
+        displayRecurrence,
+        displayTax,
+        isPerpetual,
+        checkoutWorkflowStep,
+    } = masCommerceService.settings;
+    const effectiveDisplayOldPrice = masCommerceService.featureFlags['mas-ff-defaults'] ? displayOldPrice : true;
+    return {
+        displayOldPrice: effectiveDisplayOldPrice,
         displayPerUnit,
         displayPlanType,
         displayRecurrence,
@@ -89,7 +94,12 @@ const OST_VALUE_MAPPING = {
 };
 
 export function onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride) {
-    const changes = getObjectDifference(options, ostDefaultSettings());
+    const masCommerceService = document.querySelector('mas-commerce-service');
+    const settings = ostDefaultSettings();
+    if (masCommerceService.featureFlags['mas-ff-defaults']) {
+        settings.displayPerUnit = offer.customer_segment !== 'INDIVIDUAL';
+    }
+    const changes = getObjectDifference(options, settings);
 
     const attributes = { 'data-wcs-osi': offerSelectorId };
 
@@ -226,7 +236,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 },
             },
             rootElement: ostRoot,
-            zIndex: 20,
+            zIndex: 2000,
             aosAccessToken,
             landscape,
             searchParameters,

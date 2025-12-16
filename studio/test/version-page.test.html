@@ -47,15 +47,19 @@
             import Store from '../src/store.js';
 
             runTests(() => {
-                // Initialize field config for tests
+                // Initialize field config for tests - must match version-page.js FIELD_CONFIG structure
                 setFieldConfig({
-                    title: { label: 'Fragment Title', isArray: false, visible: false },
-                    description: { label: 'Fragment Description', isArray: false, visible: false },
-                    tags: { label: 'Tags', isArray: true, visible: false },
-                    cardTitle: { label: 'Title', isArray: false, visible: true },
-                    prices: { label: 'Prices', isArray: true, visible: true },
-                    ctas: { label: 'Footer', isArray: true, visible: true },
-                    badge: { label: 'Badge', isArray: false, visible: true },
+                    cardTitle: { label: 'Card title', visible: true },
+                    description: { label: 'Description', visible: true },
+                    prices: { label: 'Prices', visible: true },
+                    ctas: { label: 'CTAs', visible: true },
+                    badge: { label: 'Badge', visible: true },
+                    tags: { label: 'Tags', visible: false },
+                    variant: { label: 'Variant', visible: false },
+                    osi: { label: 'OSI', visible: false },
+                    mnemonicIcon: { label: 'Mnemonic icon', visible: true },
+                    fragmentTitle: { label: 'Fragment title', visible: false },
+                    fragmentDescription: { label: 'Fragment description', visible: false },
                 });
 
                 describe('version-page', () => {
@@ -81,20 +85,18 @@
                             expect(config).to.exist;
 
                             // Check critical fields exist
-                            expect(config.title).to.exist;
                             expect(config.cardTitle).to.exist;
                             expect(config.prices).to.exist;
                             expect(config.badge).to.exist;
                             expect(config.tags).to.exist;
+                            expect(config.variant).to.exist;
                         });
 
-                        it('should have label, isArray, and visible properties for each field', () => {
+                        it('should have label and visible properties for each field', () => {
                             const config = versionPage.constructor.FIELD_CONFIG;
                             Object.entries(config).forEach(([fieldName, fieldConfig]) => {
                                 expect(fieldConfig).to.have.property('label');
-                                expect(fieldConfig).to.have.property('isArray');
                                 expect(fieldConfig).to.have.property('visible');
-                                expect(typeof fieldConfig.isArray).to.equal('boolean');
                                 expect(typeof fieldConfig.visible).to.equal('boolean');
                             });
                         });
@@ -109,34 +111,18 @@
                             expect(config.ctas.visible).to.be.true;
 
                             // These should not be visible (metadata)
-                            expect(config.title.visible).to.be.false;
                             expect(config.tags.visible).to.be.false;
                             expect(config.variant.visible).to.be.false;
                             expect(config.osi.visible).to.be.false;
-                        });
-
-                        it('should mark array fields correctly', () => {
-                            const config = versionPage.constructor.FIELD_CONFIG;
-
-                            // These should be arrays
-                            expect(config.tags.isArray).to.be.true;
-                            expect(config.prices.isArray).to.be.true;
-                            expect(config.ctas.isArray).to.be.true;
-                            expect(config.mnemonicIcon.isArray).to.be.true;
-
-                            // These should not be arrays
-                            expect(config.title.isArray).to.be.false;
-                            expect(config.cardTitle.isArray).to.be.false;
-                            expect(config.badge.isArray).to.be.false;
                         });
                     });
 
                     describe('getFieldLabel (utility)', () => {
                         it('should return user-friendly labels for known fields', () => {
-                            expect(getFieldLabel('title')).to.equal('Fragment Title');
-                            expect(getFieldLabel('cardTitle')).to.equal('Title');
+                            expect(getFieldLabel('cardTitle')).to.equal('Card title');
                             expect(getFieldLabel('prices')).to.equal('Prices');
                             expect(getFieldLabel('badge')).to.equal('Badge');
+                            expect(getFieldLabel('fragmentTitle')).to.equal('Fragment title');
                         });
 
                         it('should return the field name for unknown fields', () => {
@@ -162,9 +148,9 @@
                     });
 
                     describe('formatFieldValue (utility)', () => {
-                        it('should return "N/A" for null or undefined', () => {
-                            expect(formatFieldValue(null)).to.equal('N/A');
-                            expect(formatFieldValue(undefined)).to.equal('N/A');
+                        it('should return false for null or undefined', () => {
+                            expect(formatFieldValue(null)).to.equal(false);
+                            expect(formatFieldValue(undefined)).to.equal(false);
                         });
 
                         it('should join array values with comma', () => {
@@ -187,52 +173,50 @@
                     describe('normalizeFields (utility)', () => {
                         it('should return fields object if already normalized', () => {
                             const data = {
-                                fields: { title: 'Test', description: 'Description' },
+                                fields: { cardTitle: 'Test', description: 'Description' },
                             };
                             const result = normalizeFields(data);
                             expect(result).to.deep.equal(data.fields);
                         });
 
-                        it('should convert elements array to fields object', () => {
+                        it('should convert fields array to fields object', () => {
                             const data = {
-                                elements: [
-                                    { name: 'title', value: 'Test Title' },
+                                fields: [
+                                    { name: 'cardTitle', value: 'Test Title' },
                                     { name: 'description', values: ['Test Description'] },
-                                    { name: 'prices', values: ['$10', '$20'] },
                                 ],
                             };
                             const result = normalizeFields(data);
-                            expect(result.title).to.equal('Test Title');
+                            expect(result.cardTitle).to.equal('Test Title');
                             expect(result.description).to.equal('Test Description');
-                            expect(result.prices).to.be.an('array');
                         });
 
-                        it('should ensure array fields stay as arrays', () => {
+                        it('should ensure array fields stay as arrays (mnemonicIcon, ctas, tags)', () => {
                             const data = {
-                                elements: [
+                                fields: [
                                     { name: 'tags', value: 'single-tag' },
-                                    { name: 'prices', values: ['$10'] },
-                                    { name: 'ctas', values: [] },
+                                    { name: 'ctas', values: ['cta1'] },
+                                    { name: 'mnemonicIcon', value: 'icon1' },
                                 ],
                             };
                             const result = normalizeFields(data);
                             expect(result.tags).to.be.an('array');
                             expect(result.tags).to.deep.equal(['single-tag']);
-                            expect(result.prices).to.be.an('array');
-                            expect(result.prices).to.deep.equal(['$10']);
                             expect(result.ctas).to.be.an('array');
-                            expect(result.ctas).to.deep.equal([]);
+                            expect(result.ctas).to.deep.equal(['cta1']);
+                            expect(result.mnemonicIcon).to.be.an('array');
+                            expect(result.mnemonicIcon).to.deep.equal(['icon1']);
                         });
 
                         it('should unwrap single-element arrays for non-array fields', () => {
                             const data = {
-                                elements: [
-                                    { name: 'title', values: ['Single Title'] },
+                                fields: [
+                                    { name: 'cardTitle', values: ['Single Title'] },
                                     { name: 'badge', values: ['Best Value'] },
                                 ],
                             };
                             const result = normalizeFields(data);
-                            expect(result.title).to.equal('Single Title');
+                            expect(result.cardTitle).to.equal('Single Title');
                             expect(result.badge).to.equal('Best Value');
                         });
                     });

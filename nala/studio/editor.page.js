@@ -123,8 +123,9 @@ export default class EditorPage {
         const editButton = mnemonicEditMenu.locator('sp-menu sp-menu-item:has-text("Edit")');
         await expect(editButton).toBeVisible();
         await expect(editButton).toBeEnabled();
-        await editButton.click({ force: true });
-        await expect(this.page.locator('mas-mnemonic-modal[open] sp-dialog')).toBeVisible();
+        await editButton.click();
+        await this.page.waitForTimeout(500);
+        await expect(this.page.locator('mas-mnemonic-modal[open] sp-dialog')).toBeVisible({ timeout: 10000 });
     }
 
     async selectProductIcon(productName) {

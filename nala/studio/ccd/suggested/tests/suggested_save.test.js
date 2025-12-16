@@ -49,8 +49,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
             await expect(await studio.fragmentsTable).toBeVisible();
             await studio.fragmentsTable.click();
-
             await page.waitForTimeout(2000);
+            await expect(await clonedCardOne).toBeVisible();
+            await expect(await clonedCardTwo).toBeVisible();
 
             await clonedCardOne.dblclick();
             await expect(await editor.panel).toBeVisible();

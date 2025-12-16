@@ -1,6 +1,7 @@
 export default class OSTPage {
     constructor(page) {
         this.page = page.locator('[data-testid="modal"]');
+        this.popup = page.locator('[data-testid="popover"]');
 
         // OST panel
         this.searchField = this.page.locator('//input[contains(@data-testid,"search")]');
@@ -8,7 +9,7 @@ export default class OSTPage {
         this.planType = this.page.locator(
             '//button/span[contains(@class, "spectrum-Dropdown-label") and (.//ancestor::div/span[contains(text(),"plan type")])]',
         );
-        this.planTypeABM = this.page.locator('//div[@role="listbox"]//span[text()="ABM"]');
+        this.planTypeABM = this.popup.locator('//div[@role="listbox"]//span[text()="ABM"]');
         this.offerType = this.page.locator(
             '//button/span[contains(@class, "spectrum-Dropdown-label") and (.//ancestor::div/span[contains(text(),"offer type")])]',
         );

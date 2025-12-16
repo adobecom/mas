@@ -1,8 +1,9 @@
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
-import { delay, initElementFromTemplate, oneEvent } from './utils.js';
+import { initElementFromTemplate, oneEvent } from './utils.js';
 import Store from '../src/store.js';
 import '../src/mas-locale-picker.js';
+import { getDefaultLocales } from '../src/locales.js';
 
 runTests(async () => {
     describe('mas-locale-picker custom element', async () => {
@@ -39,7 +40,6 @@ runTests(async () => {
                 setContext('en_US');
                 const el = initElementFromTemplate('localeEN_US', this.test.title);
                 await el.updateComplete;
-
                 expect(el.locale).to.equal('en_US');
                 expect(el.currentLocale.code).to.equal('en_US');
                 expect(el.currentLocale.flag).to.equal('🇺🇸');
@@ -52,15 +52,6 @@ runTests(async () => {
                 expect(el.currentLocale.code).to.equal('de_DE');
                 expect(el.currentLocale.flag).to.equal('🇩🇪');
             });
-            it('should initialize with French locale', async function () {
-                setContext('fr_FR');
-                const el = initElementFromTemplate('localeFR_FR', this.test.title);
-                await el.updateComplete;
-                expect(el.locale).to.equal('fr_FR');
-                expect(el.currentLocale.code).to.equal('fr_FR');
-                expect(el.currentLocale.flag).to.equal('🇫🇷');
-            });
-
             it('should initialize with Japanese locale', async function () {
                 setContext('ja_JP');
                 const el = initElementFromTemplate('localeJA_JP', this.test.title);
@@ -127,8 +118,37 @@ runTests(async () => {
                 await el.updateComplete;
 
                 expect(el.surface).to.equal('acom');
-                const locales = el.getDefaultLocales('acom');
+                const locales = getDefaultLocales('acom');
                 expect(locales.length).to.be.greaterThan(0);
+            });
+            it('should filter by express surface', async function () {
+                const locales = getDefaultLocales('express');
+                expect(locales.map((loc) => loc.code)).to.deep.equal([
+                    'cs_CZ',
+                    'da_DK',
+                    'de_DE',
+                    'en_US',
+                    'es_ES',
+                    'fi_FI',
+                    'fr_FR',
+                    'hu_HU',
+                    'id_ID',
+                    'it_IT',
+                    'ja_JP',
+                    'ko_KR',
+                    'nb_NO',
+                    'nl_NL',
+                    'pl_PL',
+                    'pt_BR',
+                    'ru_RU',
+                    'sv_SE',
+                    'th_TH',
+                    'tr_TR',
+                    'uk_UA',
+                    'vi_VN',
+                    'zh_CN',
+                    'zh_TW',
+                ]);
             });
 
             it('should filter by nala surface', async function () {
@@ -136,7 +156,7 @@ runTests(async () => {
                 await el.updateComplete;
 
                 expect(el.surface).to.equal('nala');
-                const locales = el.getDefaultLocales('nala');
+                const locales = getDefaultLocales('nala');
                 expect(locales.length).to.be.greaterThan(0);
             });
         });

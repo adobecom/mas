@@ -5,7 +5,7 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, LOCALES, PAGE_NAMES } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
@@ -13,6 +13,7 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './editors/version-panel.js';
 import './mas-variation-dialog.js';
+import { getLocaleByCode } from './locales.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -1114,11 +1115,6 @@ export default class MasFragmentEditor extends LitElement {
         return parts[localeIndex] || null;
     }
 
-    getLocaleInfo(localeCode) {
-        if (!localeCode) return null;
-        return LOCALES.find((locale) => locale.code === localeCode);
-    }
-
     get localeVariationHeader() {
         if (!this.fragment || !this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
@@ -1126,8 +1122,7 @@ export default class MasFragmentEditor extends LitElement {
 
         const localeCode = this.extractLocaleFromPath(this.fragment.path);
         if (!localeCode) return nothing;
-
-        const localeInfo = this.getLocaleInfo(localeCode);
+        const localeInfo = getLocaleByCode(localeCode);
         if (!localeInfo) return nothing;
 
         return html`

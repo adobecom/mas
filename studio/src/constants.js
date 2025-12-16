@@ -96,8 +96,6 @@ export const ENVS = {
     },
 };
 
-export const LOCALE_DEFAULT = 'en_US';
-
 export const STATUS_PUBLISHED = 'PUBLISHED';
 export const STATUS_DRAFT = 'DRAFT';
 export const STATUS_MODIFIED = 'MODIFIED';

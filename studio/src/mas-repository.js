@@ -21,13 +21,13 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
-    COLLECTION_MODEL_PATH,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 
 import { SURFACES } from './constants.js';
-import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
+import { getDictionary } from '../libs/fragment-client.js';
+import { getDefaultLocale } from './locales.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
 
@@ -584,14 +584,6 @@ export class MasRepository extends LitElement {
         return `${prefix}/${locale}/dictionary`;
     }
 
-    getFallbackLocale(locale) {
-        if (!locale) return null;
-        const [languageCode] = locale.split('_');
-        const match = LOCALE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
-        if (!match || match === locale) return null;
-        return match;
-    }
-
     async ensureDictionaryFolder(dictionaryPath) {
         if (!dictionaryPath) return false;
         const normalized = dictionaryPath.replace(/\/+$/, '');
@@ -747,8 +739,7 @@ export class MasRepository extends LitElement {
         const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
 
         let parentReference = null;
-
-        const fallbackLocale = this.getFallbackLocale(locale);
+        const fallbackLocale = getDefaultLocale(locale, surfaceRoot)?.code;
         const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
         const acomFallbackLocale = fallbackLocale ?? locale;
 

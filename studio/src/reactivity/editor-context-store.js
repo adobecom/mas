@@ -1,5 +1,5 @@
 import { ReactiveStore } from './reactive-store.js';
-import { previewFragmentForEditor, LOCALE_DEFAULTS } from 'fragment-client';
+import { previewFragmentForEditor } from 'fragment-client';
 import Store from '../store.js';
 
 export class EditorContextStore extends ReactiveStore {

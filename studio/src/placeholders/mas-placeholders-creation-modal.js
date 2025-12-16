@@ -111,7 +111,7 @@ class MasPlaceholdersCreationModal extends LitElement {
                             <sp-field-label for="placeholder-locale" required> Locale </sp-field-label>
                             <mas-locale-picker
                                 id="placeholder-locale"
-                                locale=${Store.search.value.region || Store.filters.value.locale || ''}
+                                locale=${Store.locale()}
                                 ?disabled=${this.saving}
                                 @locale-changed=${this.handleLocaleChange}
                             ></mas-locale-picker>

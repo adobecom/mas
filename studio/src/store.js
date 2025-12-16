@@ -85,6 +85,12 @@ const Store = {
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
     },
+    locale: function () {
+        return Store.search.value.region || Store.filters.value.locale || 'en_US';
+    },
+    surface: function () {
+        return Store.search.value.path;
+    },
 };
 
 // #region Validators

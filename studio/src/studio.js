@@ -180,7 +180,7 @@ class MasStudio extends LitElement {
     }
 
     renderCommerceService() {
-        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
+        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape

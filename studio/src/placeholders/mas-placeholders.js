@@ -95,10 +95,6 @@ class MasPlaceholders extends LitElement {
         return Store.placeholders.list.data.get();
     }
 
-    get locale() {
-        return Store.search.value.region || Store.filters.value.locale || '';
-    }
-
     get loading() {
         return Store.placeholders.list.loading.get();
     }
@@ -291,8 +287,8 @@ class MasPlaceholders extends LitElement {
                 <div class="placeholders-header">
                     <div class="header-left">
                         <mas-locale-picker
-                            surface=${Store.search.value.path}
-                            locale=${this.locale}
+                            surface=${Store.surface()}
+                            locale=${Store.locale()}
                             @locale-changed=${(event) =>
                                 Store.search.set((prev) => ({
                                     ...prev,

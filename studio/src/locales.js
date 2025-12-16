@@ -151,8 +151,8 @@ export function getDefaultLocales(surface) {
     return defaultLocalesCache[surface];
 }
 
-export function getDefaultLocale(locale, surface) {
-    return getDefaultLocales(surface).find((loc) => loc.lang === locale.split('_')[0]);
+export function getDefaultLocale(localeCode, surface) {
+    return getDefaultLocales(surface).find((loc) => loc.lang === localeCode.split('_')[0]);
 }
 
 export function isRegionLocale(locale, surface, language, includeDefault = true) {

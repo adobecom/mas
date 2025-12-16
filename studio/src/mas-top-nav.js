@@ -139,7 +139,7 @@ class MasTopNav extends LitElement {
                                       Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
                                   }}
                                   ?disabled=${this.isFragmentEditorPage}
-                                  surface=${Store.search.value.path}
+                                  surface=${Store.surface()}
                               >
                               </mas-locale-picker>
                               <div class="divider"></div>

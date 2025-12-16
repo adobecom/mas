@@ -42,7 +42,11 @@ export class Router extends EventTarget {
                     !Store.editor.hasChanges ||
                     (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
                 if (confirmed) {
-                    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.VERSION) {
+                    if (
+                        Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR &&
+                        value !== PAGE_NAMES.FRAGMENT_EDITOR &&
+                        value !== PAGE_NAMES.VERSION
+                    ) {
                         Store.fragmentEditor.fragmentId.set(null);
                     }
                     Store.fragments.inEdit.set();

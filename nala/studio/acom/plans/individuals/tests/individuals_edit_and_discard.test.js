@@ -1403,8 +1403,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             expect(searchParams.get('ctx')).toBe(data.cta.ctx);
             expect(searchParams.get('lang')).toBe(data.cta.lang);
             expect(searchParams.get('cli')).toBe(data.cta.client);
-            //@TODO: update promo code and uncomment this
-            // expect(searchParams.get('apc')).toBe(data.cta.promo);
+            expect(searchParams.get('apc')).toBe(data.cta.promo);
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
@@ -1500,8 +1499,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             expect(searchParams.get('ctx')).toBe(data.ctx);
             expect(searchParams.get('lang')).toBe(data.lang);
             expect(searchParams.get('cli')).toBe(data.client);
-            //@TODO: update promo code and uncomment this
-            // expect(searchParams.get('apc')).toBe(data.promo.original);
+            expect(searchParams.get('apc')).toBe(data.promo.original);
 
             await (await editor.CTA).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
@@ -1510,15 +1508,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.promoLabel).toContainText(data.promo.original);
             await expect(await ost.promoField).toHaveValue(data.promo.original);
 
-            //@TODO: update promo code and uncomment this
-            // await ost.backButton.click();
-            // await page.waitForTimeout(2000);
-            // await expect(await ost.planType).toBeVisible();
-            // await ost.planType.click();
-            // await expect(await ost.planTypeABM).toBeVisible();
-            // await ost.planTypeABM.click();
-            // await page.waitForTimeout(2000);
-            // await ost.nextButton.click();
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
+            await expect(await ost.planType).toBeVisible();
+            await ost.planType.click();
+            await expect(await ost.planTypeABM).toBeVisible();
+            await ost.planTypeABM.click();
+            await page.waitForTimeout(2000);
+            await ost.nextButton.click();
             await ost.promoField.fill(data.promo.updated);
             expect(await ost.promoLabel).toContainText(data.promo.updated);
             await expect(await ost.promoField).toHaveValue(data.promo.updated);
@@ -1537,8 +1534,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(newCTA).toHaveAttribute('href', new RegExp(`ctx=${data.ctx}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`lang=${data.lang}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`cli=${data.client}`));
-            //@TODO: update promo code and uncomment this
-            // await expect(newCTA).toHaveAttribute('href', new RegExp(`apc=${data.promo.updated}`));
+            await expect(newCTA).toHaveAttribute('href', new RegExp(`apc=${data.promo.updated}`));
         });
 
         await test.step('step-6: Remove promo', async () => {

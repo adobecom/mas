@@ -195,6 +195,7 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         osi: { type: String },
+        value: { type: String },
     };
 
     static get styles() {
@@ -223,7 +224,7 @@ class RteField extends LitElement {
 
                 :host([focused]) #editor {
                     outline: 2px solid;
-                    outline-color: rgb(20, 122, 243);
+                    outline-color: var(--spectrum-blue-900);
                     outline-offset: 2px;
                 }
 
@@ -232,9 +233,9 @@ class RteField extends LitElement {
                 }
 
                 ${unsafeCSS(
-                    CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
+                    `${CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
                         .map(([mark]) => `span.${mark}`)
-                        .join(',\n') + ` { background-color: rgba(250, 50, 50, 0.1); }`,
+                        .join(',\n')} { background-color: rgba(250, 50, 50, 0.1); }`,
                 )}
 
                 #editor {
@@ -242,9 +243,9 @@ class RteField extends LitElement {
                     min-height: 36px;
                     flex: 1;
                     color: var(--spectrum-gray-800);
-                    background-color: var(--spectrum-gray-50);
-                    border: 1px solid rgb(144, 144, 144);
-                    border-radius: 4px;
+                    background-color: var(--spectrum-white);
+                    border: 2px solid var(--spectrum-gray-300);
+                    border-radius: 8px;
                 }
 
                 .exceeded {
@@ -568,7 +569,8 @@ class RteField extends LitElement {
     #boundHandlers;
     #editorSchema;
     editorView;
-    value = null;
+    #value = null;
+    #isInternalUpdate = false;
     #serializer;
     #stylingMarksData;
 
@@ -609,6 +611,19 @@ class RteField extends LitElement {
     firstUpdated() {
         this.#initEditorSchema();
         this.#initializeEditor();
+    }
+
+    get value() {
+        return this.#value;
+    }
+
+    set value(newValue) {
+        const oldValue = this.#value;
+        this.#value = newValue;
+        if (oldValue !== newValue && this.editorView && !this.#isInternalUpdate) {
+            this.updateContent(newValue);
+        }
+        this.requestUpdate('value', oldValue);
     }
 
     connectedCallback() {
@@ -700,7 +715,10 @@ class RteField extends LitElement {
                 parseDOM: [
                     {
                         tag: '.icon-button',
-                        getAttrs: this.#collectDataAttributes,
+                        getAttrs: (dom) => ({
+                            class: dom.getAttribute('class'),
+                            title: dom.getAttribute('data-tooltip') || dom.getAttribute('title'),
+                        }),
                     },
                 ],
                 toDOM: this.#createIconElement.bind(this),
@@ -976,7 +994,7 @@ class RteField extends LitElement {
     }
 
     #createIconElement(node) {
-        const tooltipText = node.content.content[0]?.text.trim() || node.attrs.title;
+        const tooltipText = node.attrs.title || node.content.content[0]?.text.trim();
 
         const icon = document.createElement('span');
         icon.setAttribute('class', 'icon-button');
@@ -1037,7 +1055,7 @@ class RteField extends LitElement {
         });
 
         try {
-            const html = this.innerHTML.trim();
+            const html = (this.value ?? this.innerHTML).trim();
             this.innerHTML = '';
             const container = document.createElement('div');
             container.innerHTML = html;
@@ -1083,6 +1101,40 @@ class RteField extends LitElement {
         this.editorView.dispatch(tr);
     }
 
+    updateContent(html) {
+        if (!this.editorView) return;
+        try {
+            const container = document.createElement('div');
+            container.innerHTML = html || '';
+            container.querySelectorAll('div').forEach((div) => {
+                div.replaceWith(...div.childNodes);
+            });
+            container.querySelectorAll('strong > a').forEach((a) => {
+                a.parentElement.replaceWith(a);
+            });
+            container.querySelectorAll('a').forEach((a) => {
+                if (a.dataset.wcsOsi) {
+                    a.setAttribute('is', CUSTOM_ELEMENT_CHECKOUT_LINK);
+                }
+            });
+            container.querySelectorAll('span merch-icon').forEach((icon) => {
+                const span = icon.parentElement;
+                if (!span.classList.contains('mnemonic')) {
+                    span.classList.add('mnemonic');
+                }
+                if (span.classList.contains('mnemonic-text')) {
+                    span.classList.remove('mnemonic-text');
+                }
+            });
+            const parser = DOMParser.fromSchema(this.#editorSchema);
+            const doc = parser.parse(container);
+            const tr = this.editorView.state.tr.replaceWith(0, this.editorView.state.doc.content.size, doc.content);
+            this.editorView.dispatch(tr);
+        } catch (error) {
+            console.error('Error updating editor content:', error);
+        }
+    }
+
     #handleTransaction(transaction) {
         try {
             const oldState = this.editorView?.state;
@@ -1100,7 +1152,9 @@ class RteField extends LitElement {
                 // skip change event during initialization
                 const isFirstChange = this.value === null;
                 if (value !== this.value) {
+                    this.#isInternalUpdate = true;
                     this.value = value === '<p></p>' ? '' : value;
+                    this.#isInternalUpdate = false;
                     if (isFirstChange) return;
                     this.dispatchEvent(
                         new CustomEvent('change', {
@@ -1205,7 +1259,7 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        const node = state.schema.nodes.icon.create({}, state.schema.text(tooltip || ' '));
+        const node = state.schema.nodes.icon.create({ title: tooltip || '' });
         const tr = state.tr.insert(selection.from, node);
         dispatch(tr);
 

@@ -17,7 +17,7 @@ export default {
         },
         {
             tcid: '1',
-            name: '@studio-full-pricing-express-edit-discard-title-mnemonic',
+            name: '@studio-full-pricing-express-edit-discard-mnemonic-title',
             path: '/studio.html',
             data: {
                 cardid: 'a7f68812-0fb3-42f9-a8d4-f28e3f1dd6d4',

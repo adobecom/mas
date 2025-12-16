@@ -42,7 +42,7 @@ export class Router extends EventTarget {
                     !Store.editor.hasChanges ||
                     (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
                 if (confirmed) {
-                    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
+                    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.VERSION) {
                         Store.fragmentEditor.fragmentId.set(null);
                     }
                     Store.fragments.inEdit.set();
@@ -246,7 +246,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
-        this.linkStoreToHash(Store.version.fragmentId, 'fragment');
+        this.linkStoreToHash(Store.version.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         if (Store.search.value.query) {

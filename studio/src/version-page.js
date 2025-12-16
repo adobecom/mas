@@ -720,16 +720,23 @@ class VersionPage extends LitElement {
     get breadcrumbs() {
         if (this.page.value !== PAGE_NAMES.VERSION) return nothing;
 
-        const handleBackToBreadcrumb = async () => {
+        const handleBackToContent = async () => {
             Store.viewMode.set('default');
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
+        };
+
+        const handleBackToEditor = async () => {
+            const fragmentId = this.fragmentId.value;
+            if (fragmentId) {
+                await router.navigateToFragmentEditor(fragmentId);
+            }
         };
 
         return html`
             <div class="breadcrumbs-container">
                 <sp-breadcrumbs>
-                    <sp-breadcrumb-item @click="${handleBackToBreadcrumb}">Fragments table</sp-breadcrumb-item>
-                    <sp-breadcrumb-item @click="${handleBackToBreadcrumb}">Editor</sp-breadcrumb-item>
+                    <sp-breadcrumb-item @click="${handleBackToContent}">Fragments table</sp-breadcrumb-item>
+                    <sp-breadcrumb-item @click="${handleBackToEditor}">Editor</sp-breadcrumb-item>
                     <sp-breadcrumb-item>Version history</sp-breadcrumb-item>
                 </sp-breadcrumbs>
             </div>

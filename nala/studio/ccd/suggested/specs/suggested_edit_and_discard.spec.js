@@ -7,7 +7,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',

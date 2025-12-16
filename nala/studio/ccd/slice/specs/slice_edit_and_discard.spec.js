@@ -270,7 +270,7 @@ export default {
                     original: 'buy-now-1',
                     updated: 'save-now-1',
                 },
-                daaLH: 'phsp',
+                daaLH: 'ppro',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',

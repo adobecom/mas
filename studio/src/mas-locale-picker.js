@@ -50,30 +50,9 @@ export class MasLocalePicker extends LitElement {
             gap: 6px;
         }
 
-        :host([disabled]) sp-action-menu {
-            cursor: not-allowed;
-            pointer-events: none;
-            opacity: 1 !important;
-            filter: none !important;
-            color: var(--spectrum-gray-900, #1e1e1e);
-        }
-
-        :host([disabled]) sp-action-menu [slot='icon'] {
-            color: var(--spectrum-gray-900, #1e1e1e) !important;
-            opacity: 1 !important;
-        }
-
-        :host([disabled]) [slot='label'].locale-label {
-            color: var(--spectrum-gray-900, #1e1e1e) !important;
-        }
-
         :host([disabled]) {
-            --mod-actionbutton-content-color-disabled: var(--spectrum-gray-900, #1e1e1e);
-            --spectrum-actionbutton-content-color-disabled: var(--spectrum-gray-900, #1e1e1e);
-        }
-
-        :host([disabled]) sp-icon-chevron-down {
-            color: var(--spectrum-gray-900, #1e1e1e) !important;
+            --mod-actionbutton-background-color-disabled: var(--spectrum-gray-50, #f6f6f6);
+            --mod-actionbutton-content-color-disabled: var(--spectrum-gray-600, #919191);
         }
 
         .flag {

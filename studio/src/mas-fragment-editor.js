@@ -1234,7 +1234,7 @@ export default class MasFragmentEditor extends LitElement {
         const cssProps = this.previewCSSCustomProperties;
 
         const localeCode = this.extractLocaleFromPath(this.fragment.path);
-        const localeInfo = this.getLocaleInfo(localeCode);
+        const localeInfo = getLocaleByCode(localeCode);
 
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);

@@ -17,7 +17,6 @@ import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, showToast, extractLocaleFromPath } from './utils.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
-import './editors/version-panel.js';
 import router from './router.js';
 
 export const MODEL_WEB_COMPONENT_MAPPING = {
@@ -234,7 +233,6 @@ export default class EditorPanel extends LitElement {
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
-
         this.loadFragmentVersions();
         await this.loadLocaleDefaultFragmentContext(id);
     }

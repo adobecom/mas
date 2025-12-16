@@ -188,12 +188,14 @@ class MasSideNav extends LitElement {
     }
 
     async showHistory() {
-        const editorPanel = document.querySelector('editor-panel');
-        const versionHistory =
-            editorPanel?.querySelector('version-history') || this.fragmentEditor?.querySelector('version-history');
-        if (versionHistory) {
-            versionHistory.togglePanel();
-        }
+        const fragmentId = this.fragmentEditor?.fragment?.id;
+        if (!fragmentId) return;
+
+        // Store the fragment ID in the version store
+        Store.version.fragmentId.set(fragmentId);
+
+        // Navigate to the version history page
+        router.navigateToPage(PAGE_NAMES.VERSION)();
     }
 
     async unlockFragment() {

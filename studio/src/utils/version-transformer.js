@@ -144,13 +144,14 @@ export function calculateDifferences(currentData, selectedData) {
  * @returns {string} Formatted value
  */
 export function formatFieldValue(value) {
-    if (value === null || value === undefined) return 'N/A';
+    if (!value) return false;
     if (typeof value === 'object') {
         if (Array.isArray(value)) {
             return value.join(', ');
         }
         return Object.values(value).join(', ');
     }
+
     return String(value);
 }
 

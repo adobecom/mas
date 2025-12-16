@@ -46,6 +46,8 @@ class VersionPage extends LitElement {
         promoText: { label: 'Promo Text', visible: true },
         subtitle: { label: 'Subtitle', visible: true },
         callout: { label: 'Callout', visible: true },
+        whatsIncluded: { label: 'Whats Included', visible: true },
+        perUnitLabel: { label: 'Per Unit Label', visible: true },
         // Not visible on card
         variant: { label: 'Variant', visible: false },
         osi: { label: 'OSI', visible: false },
@@ -63,9 +65,7 @@ class VersionPage extends LitElement {
         addonConfirmation: { label: 'Addon Confirmation', visible: false },
         variations: { label: 'Variations', visible: false },
         product: { label: 'Product', visible: false },
-        whatsIncluded: { label: 'Whats Included', visible: false },
         tags: { label: 'Tags', visible: false },
-        perUnitLabel: { label: 'Per Unit Label', visible: false },
         locReady: { label: 'Loc Ready', visible: false },
         // Hidden on changed fields list
         originalId: { label: 'Original ID', visible: false, hidden: true },
@@ -790,7 +790,8 @@ class VersionPage extends LitElement {
                                                     : html`
                                                           <li>
                                                               <sp-detail size="s" class="changed-field-detail">
-                                                                  ${getFieldLabel(diff.field)}${getFieldVisible(diff.field)
+                                                                  ${getFieldLabel(diff.field)}${getFieldVisible(diff.field) ||
+                                                                  !formatFieldValue(diff.selectedValue)
                                                                       ? ''
                                                                       : `: ${formatFieldValue(diff.selectedValue)}`}
                                                               </sp-detail>

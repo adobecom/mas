@@ -283,9 +283,6 @@ export default class MasFragmentEditor extends LitElement {
         previewResolved: { type: Boolean, state: true },
         previewLazyLoaded: { type: Boolean, state: true },
         variationsToDelete: { type: Array, state: true },
-        fragmentVersions: { type: Array, state: true },
-        selectedVersion: { type: String, state: true },
-        versionsLoading: { type: Boolean, state: true },
         contextLoaded: { type: Boolean, state: true },
         initializingFragment: { type: Boolean, state: true },
         initializationComplete: { type: Boolean, state: true },
@@ -317,9 +314,6 @@ export default class MasFragmentEditor extends LitElement {
         this.previewLazyLoadTimer = null;
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
-        this.fragmentVersions = [];
-        this.selectedVersion = '';
-        this.versionsLoading = false;
         this.contextLoaded = false;
         this.initializingFragment = false;
         this.initializationComplete = false;
@@ -643,8 +637,6 @@ export default class MasFragmentEditor extends LitElement {
             this.localeDefaultFragmentLoading = false;
             this.requestUpdate();
         });
-
-        this.loadFragmentVersions();
     }
 
     dispatchFragmentLoaded() {
@@ -925,60 +917,6 @@ export default class MasFragmentEditor extends LitElement {
         } catch (e) {
             showToast('Failed to copy code to clipboard', 'negative');
         }
-    }
-
-    async loadFragmentVersions() {
-        if (!this.fragment?.id) return;
-        this.versionsLoading = true;
-        try {
-            const versions = await this.repository.aem.sites.cf.fragments.getVersions(this.fragment.id);
-            this.fragmentVersions = versions.items || [];
-            if (this.fragmentVersions.length > 0) {
-                this.selectedVersion = this.fragmentVersions[0].id;
-            }
-        } catch (error) {
-            console.error('Failed to load fragment versions:', error);
-            this.fragmentVersions = [];
-            showToast('Failed to load fragment versions', 'negative');
-        } finally {
-            this.versionsLoading = false;
-        }
-    }
-
-    async handleVersionChange(event) {
-        const { versionId, version } = event.detail;
-        this.selectedVersion = versionId;
-
-        if (version && versionId) {
-            try {
-                const versionFragment = await this.repository.aem.sites.cf.fragments.getVersion(this.fragment.id, versionId);
-                if (versionFragment) {
-                    this.fragmentStore.refreshFrom(versionFragment);
-                    this.fragmentStore.value.hasChanges = true;
-                    this.fragmentStore.notify();
-                    showToast(`Switched to version ${version.title || versionId}. Save to apply changes.`, 'positive');
-                }
-            } catch (error) {
-                console.error('Failed to load fragment version:', error);
-                showToast('Failed to load fragment version', 'negative');
-            }
-        }
-    }
-
-    handleVersionUpdated(event) {
-        const { version } = event.detail;
-        const versionIndex = this.fragmentVersions.findIndex((v) => v.id === version.id);
-        if (versionIndex !== -1) {
-            this.fragmentVersions[versionIndex] = version;
-            this.fragmentVersions = [...this.fragmentVersions];
-        }
-        showToast(`Version "${version.title}" updated successfully`, 'positive');
-    }
-
-    handleVersionUpdateError(event) {
-        const { error } = event.detail;
-        console.error('Version update failed:', error);
-        showToast(`Failed to update version: ${error}`, 'negative');
     }
 
     get deleteConfirmationDialog() {
@@ -1311,17 +1249,6 @@ export default class MasFragmentEditor extends LitElement {
                 </div>
                 ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
                 ${this.copyVariationDialog}
-                <version-history
-                    hide-button
-                    .versions="${this.fragmentVersions}"
-                    .selectedVersion="${this.selectedVersion}"
-                    .loading="${this.versionsLoading}"
-                    .fragmentId="${this.fragment.id}"
-                    .repository="${this.repository}"
-                    @version-change="${this.handleVersionChange}"
-                    @version-updated="${this.handleVersionUpdated}"
-                    @version-update-error="${this.handleVersionUpdateError}"
-                ></version-history>
             </div>
         `;
     }

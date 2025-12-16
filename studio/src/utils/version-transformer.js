@@ -33,8 +33,7 @@ export function normalizeFields(data) {
     if (data.fields && !Array.isArray(data.fields)) {
         return data.fields;
     }
-
-    const sourceArray = data.fields || data.elements;
+    const sourceArray = data.fields;
     if (!Array.isArray(sourceArray)) return {};
 
     const fields = {};
@@ -53,6 +52,9 @@ export function normalizeFields(data) {
             fields[element.name] = value;
         }
     });
+
+    fields.fragmentDescription = data.description;
+    fields.fragmentTitle = data.title;
 
     return fields;
 }

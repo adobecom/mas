@@ -32,43 +32,46 @@ class VersionPage extends LitElement {
     // Centralized field configuration
     static FIELD_CONFIG = {
         // Visible on card
-        cardTitle: { label: 'Card Title', visible: true },
+        cardTitle: { label: 'Card title', visible: true },
         description: { label: 'Description', visible: true },
         prices: { label: 'Prices', visible: true },
         ctas: { label: 'CTAs', visible: true },
-        borderColor: { label: 'Border Color', visible: true },
+        borderColor: { label: 'Border color', visible: true },
         size: { label: 'Size', visible: true },
-        backgroundColor: { label: 'Background Color', visible: true },
-        backgroundImage: { label: 'Background Image', visible: true },
-        mnemonicIcon: { label: 'Mnemonic Icon', visible: true },
+        backgroundColor: { label: 'Background color', visible: true },
+        backgroundImage: { label: 'Background image', visible: true },
+        mnemonicIcon: { label: 'Mnemonic icon', visible: true },
         badge: { label: 'Badge', visible: true },
-        trialBadge: { label: 'Trial Badge', visible: true },
-        promoText: { label: 'Promo Text', visible: true },
+        trialBadge: { label: 'Trial badge', visible: true },
+        promoText: { label: 'Promo text', visible: true },
         subtitle: { label: 'Subtitle', visible: true },
         callout: { label: 'Callout', visible: true },
-        whatsIncluded: { label: 'Whats Included', visible: true },
-        perUnitLabel: { label: 'Per Unit Label', visible: true },
+        whatsIncluded: { label: 'Whats included', visible: true },
+        perUnitLabel: { label: 'Per unit label', visible: true },
         // Not visible on card
         variant: { label: 'Variant', visible: false },
         osi: { label: 'OSI', visible: false },
-        mnemonicAlt: { label: 'Mnemonic Alt', visible: false },
-        mnemonicLink: { label: 'Mnemonic Link', visible: false },
-        backgroundImageAltText: { label: 'Background Image Alt Text', visible: false },
-        cardName: { label: 'Card Name', visible: false },
-        cardTitleLink: { label: 'Card Title Link', visible: false },
-        shortDescription: { label: 'Short Description', visible: false },
-        promoCode: { label: 'Promo Code', visible: false },
-        showSecureLabel: { label: 'Show Secure Label', visible: false },
-        showPlanType: { label: 'Show Plan Type', visible: false },
-        quantitySelect: { label: 'Quantity Select', visible: false },
+        mnemonicAlt: { label: 'Mnemonic alt', visible: false },
+        mnemonicLink: { label: 'Mnemonic link', visible: false },
+        backgroundImageAltText: { label: 'Background image alt text', visible: false },
+        cardName: { label: 'Card name', visible: false },
+        cardTitleLink: { label: 'Card title link', visible: false },
+        shortDescription: { label: 'Short description', visible: false },
+        promoCode: { label: 'Promo code', visible: false },
+        showSecureLabel: { label: 'Show secure label', visible: false },
+        showPlanType: { label: 'Show plan type', visible: false },
+        quantitySelect: { label: 'Quantity select', visible: false },
         addon: { label: 'Addon', visible: false },
-        addonConfirmation: { label: 'Addon Confirmation', visible: false },
+        addonConfirmation: { label: 'Addon confirmation', visible: false },
         variations: { label: 'Variations', visible: false },
         product: { label: 'Product', visible: false },
         tags: { label: 'Tags', visible: false },
-        locReady: { label: 'Loc Ready', visible: false },
+        locReady: { label: 'Loc ready', visible: false },
         // Hidden on changed fields list
         originalId: { label: 'Original ID', visible: false, hidden: true },
+        // Outside of fields array
+        fragmentDescription: { label: 'Fragment description', visible: false },
+        fragmentTitle: { label: 'Fragment title', visible: false },
     };
 
     static styles = css`
@@ -86,14 +89,24 @@ class VersionPage extends LitElement {
             gap: 12px;
         }
 
-        .breadcrumb-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        #breadcrumbs {
+            margin-bottom: 32px;
+        }
+        .breadcrumbs-container {
+            padding: 0;
+        }
+        sp-breadcrumbs {
+            margin-bottom: 0;
         }
 
-        sp-breadcrumbs {
-            --mod-breadcrumbs-height: auto;
+        sp-breadcrumb-item {
+            cursor: pointer;
+            color: var(--spectrum-global-color-gray-800);
+            font-size: 14px;
+        }
+
+        sp-breadcrumb-item:hover {
+            color: var(--spectrum-global-color-blue-600);
         }
 
         .page-title-section {
@@ -581,14 +594,6 @@ class VersionPage extends LitElement {
         }
     }
 
-    handleBackClick() {
-        router.navigateToPage(PAGE_NAMES.CONTENT)();
-    }
-
-    handleBreadcrumbClick(page) {
-        router.navigateToPage(page)();
-    }
-
     get filteredVersions() {
         if (!this.versionRepository) return this.versions;
         return this.versionRepository.searchVersions(this.versions, this.searchQuery);
@@ -708,6 +713,25 @@ class VersionPage extends LitElement {
                             : nothing}
                     </div>
                 </div>
+            </div>
+        `;
+    }
+
+    get breadcrumbs() {
+        if (this.page.value !== PAGE_NAMES.VERSION) return nothing;
+
+        const handleBackToBreadcrumb = async () => {
+            Store.viewMode.set('default');
+            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+        };
+
+        return html`
+            <div class="breadcrumbs-container">
+                <sp-breadcrumbs>
+                    <sp-breadcrumb-item @click="${handleBackToBreadcrumb}">Fragments table</sp-breadcrumb-item>
+                    <sp-breadcrumb-item @click="${handleBackToBreadcrumb}">Editor</sp-breadcrumb-item>
+                    <sp-breadcrumb-item>Version history</sp-breadcrumb-item>
+                </sp-breadcrumbs>
             </div>
         `;
     }
@@ -882,19 +906,7 @@ class VersionPage extends LitElement {
                 ${this.constructor.styles.cssText}
             </style>
             <div class="version-page-wrapper">
-                <div class="version-page-header">
-                    <div class="breadcrumb-wrapper">
-                        <sp-breadcrumbs>
-                            <sp-breadcrumb-item @click="${() => this.handleBreadcrumbClick(PAGE_NAMES.CONTENT)}">
-                                Content table
-                            </sp-breadcrumb-item>
-                            <sp-breadcrumb-item @click="${() => this.handleBreadcrumbClick(PAGE_NAMES.CONTENT)}">
-                                Editor
-                            </sp-breadcrumb-item>
-                            <sp-breadcrumb-item>Version history</sp-breadcrumb-item>
-                        </sp-breadcrumbs>
-                    </div>
-                </div>
+                <div class="version-page-header">${this.breadcrumbs}</div>
                 <div class="version-page-content">${this.versionListPanel} ${this.previewPanel}</div>
             </div>
         `;

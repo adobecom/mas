@@ -61,8 +61,8 @@ test.describe('ACOM MAS cards feature test suite', () => {
             await expect(await acomPage.getCardCTA(data.id)).toHaveAttribute('class', /con-button blue/);
             await expect(await acomPage.getCardCTA(data.id)).toHaveAttribute('data-wcs-osi', data.ctaOsi);
             await expect(await acomPage.getCardCTA(data.id)).toContainText(data.cta);
-            // const ctaHref = await (await acomPage.getCardCTA(data.id)).evaluate((el) => el.href);
-            // expect(validateCommerceUrl(ctaHref, { requiredParams: ['apc'] })).toBe(true);
+            const ctaHref = await (await acomPage.getCardCTA(data.id)).evaluate((el) => el.href);
+            expect(validateCommerceUrl(ctaHref, { requiredParams: ['apc'] })).toBe(true);
             await expect(await acomPage.getCardCTA(data.id)).toHaveAttribute('data-analytics-id', /.*/);
         });
     });

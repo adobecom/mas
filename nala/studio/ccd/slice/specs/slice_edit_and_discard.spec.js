@@ -7,7 +7,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -96,7 +96,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 ctaText: {
                     original: 'Buy now',
                     updated: 'save-now',
@@ -118,7 +118,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 ctaText: {
                     original: 'Buy now',
                     updated: 'Buy now 2',
@@ -149,7 +149,7 @@ export default {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
                 promo: {
                     original: 'UMRM2MUSPr501YOC',
-                    updated: 'testpromo',
+                    updated: 'UMRABMUSPr501YOC',
                 },
                 ucv3: 'commerce.adobe.com/store/email',
                 country: 'US',
@@ -166,7 +166,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -176,12 +176,12 @@ export default {
             name: '@studio-slice-add-osi',
             path: '/studio.html',
             data: {
-                cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                productCodeTag: 'product_code/phsp',
+                cardid: '9744936c-94e4-4e78-806b-58dd63d02fd7',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                productCodeTag: 'product_code/ppro',
                 offerTypeTag: 'offer_type/base',
                 marketSegmentsTag: 'market_segments/com',
-                planTypeTag: 'plan_type/abm',
+                planTypeTag: 'plan_type/m2m',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
@@ -220,7 +220,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 cta: {
                     original: {
                         variant: 'accent',
@@ -246,7 +246,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '8cf16da3-a95d-4186-8a74-e0a2386631a6',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 checkoutParams: {
                     mv: '1',
                     promoid: 'ABC123',

@@ -229,7 +229,6 @@ export default class EditorPanel extends LitElement {
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
-        this.loadFragmentVersions();
         await this.loadLocaleDefaultFragmentContext(id);
     }
 

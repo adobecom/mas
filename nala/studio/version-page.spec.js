@@ -8,7 +8,7 @@ export default {
             data: {
                 fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            browserParams: '#page=version&path=nala&fragmentId=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
         {
@@ -18,7 +18,7 @@ export default {
             data: {
                 fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            browserParams: '#page=version&path=nala&fragmentId=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
         {
@@ -28,7 +28,7 @@ export default {
             data: {
                 fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            browserParams: '#page=version&path=nala&fragmentId=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
         {
@@ -38,7 +38,7 @@ export default {
             data: {
                 fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            browserParams: '#page=version&path=nala&fragmentId=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
         {
@@ -49,7 +49,7 @@ export default {
                 fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
                 searchQuery: '1.0',
             },
-            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            browserParams: '#page=version&path=nala&fragmentId=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
         {
@@ -59,7 +59,7 @@ export default {
             data: {
                 fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            browserParams: '#page=version&path=nala&fragmentId=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
         {
@@ -69,7 +69,7 @@ export default {
             data: {
                 fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            browserParams: '#page=version&path=nala&fragmentId=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
         {
@@ -79,7 +79,7 @@ export default {
             data: {
                 fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
             },
-            browserParams: '#page=version&path=nala&fragment=206a8742-0289-4196-92d4-ced99ec4191e',
+            browserParams: '#page=version&path=nala&fragmentId=206a8742-0289-4196-92d4-ced99ec4191e',
             tags: '@mas-studio @version',
         },
     ],

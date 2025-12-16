@@ -155,10 +155,6 @@ export default class EditorPanel extends LitElement {
         this.cancelDiscard = this.cancelDiscard.bind(this);
         this.onToolbarDiscard = this.onToolbarDiscard.bind(this);
         this.openVersionHistory = this.openVersionHistory.bind(this);
-        this.loadFragmentVersions = this.loadFragmentVersions.bind(this);
-        this.handleVersionChange = this.handleVersionChange.bind(this);
-        this.handleVersionUpdated = this.handleVersionUpdated.bind(this);
-        this.handleVersionUpdateError = this.handleVersionUpdateError.bind(this);
         this.fetchLocaleDefaultFragment = this.fetchLocaleDefaultFragment.bind(this);
         this.navigateToLocaleDefaultFragment = this.navigateToLocaleDefaultFragment.bind(this);
     }

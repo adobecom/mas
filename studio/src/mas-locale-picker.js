@@ -15,6 +15,9 @@ export class MasLocalePicker extends LitElement {
     };
 
     static styles = css`
+        :host {
+            --mod-actionbutton-border-color-default: transparent;
+        }
         :host(.strong) {
             --mod-actionbutton-min-width: auto;
             --mod-actionbutton-background-color-default: var(--spectrum-gray-800, #292929);
@@ -190,20 +193,18 @@ export class MasLocalePicker extends LitElement {
     render() {
         const currentLocale = this.currentLocale;
         return html`
-            <div class="locale-picker-wrapper">
-                <sp-action-menu size="m" value=${currentLocale.code} ?disabled=${this.disabled}>
-                    <sp-icon-chevron-down dir="ltr" class="chevron" slot="icon"></sp-icon-chevron-down>
-                    ${this.displayMode === 'strong'
-                        ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
-                        : ''}
-                    <span slot="label" class="locale-label">
-                        <span>${currentLocale.lang.toUpperCase()} (${currentLocale.code.substring(3)})</span>
-                    </span>
-                    <sp-menu size="m">
-                        ${this.searchField} ${this.getFilteredLocales().map((locale) => this.renderMenuItem(locale))}
-                    </sp-menu>
-                </sp-action-menu>
-            </div>
+            <sp-action-menu size="m" value=${currentLocale.code} ?disabled=${this.disabled}>
+                <sp-icon-chevron-down dir="ltr" class="chevron" slot="icon"></sp-icon-chevron-down>
+                ${this.displayMode === 'strong'
+                    ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
+                    : ''}
+                <span slot="label" class="locale-label">
+                    <span>${currentLocale.lang.toUpperCase()} (${currentLocale.code.substring(3)})</span>
+                </span>
+                <sp-menu size="m">
+                    ${this.searchField} ${this.getFilteredLocales().map((locale) => this.renderMenuItem(locale))}
+                </sp-menu>
+            </sp-action-menu>
         `;
     }
 }

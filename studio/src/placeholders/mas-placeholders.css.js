@@ -81,12 +81,6 @@ export const styles = css`
         top: -60px;
     }
 
-    mas-locale-picker {
-        width: 150px;
-        border: 1px solid var(--spectrum-gray-700);
-        border-radius: 4px;
-    }
-
     .placeholders-table {
         width: 100%;
         border-collapse: separate;

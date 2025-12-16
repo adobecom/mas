@@ -25,7 +25,7 @@ env:
   IMSACCESS_CLIENT_SECRET: ${{ secrets.IMSACCESS_CLIENT_SECRET_STAGE }}
   IMSACCESS_AUTH_CODE: ${{ secrets.IMSACCESS_AUTH_CODE_STAGE }}
   IPAAS_KEY: ${{ secrets.IPAAS_KEY_STAGE }}
-  SLACK_WEBHOOK_URL: ${{ secrets.MERCH_AT_SCALE_SLACK_WEBHOOK_URL }}
+  SLACK_WEBHOOK_URL: ${{ secrets.MAS_RELEASE_SLACK_WH }}
   PR_TITLE: ${{ github.event.pull_request.title }}
   PR_BODY: ${{ github.event.pull_request.body }}
   PR_NUMBER: ${{ github.event.pull_request.number }}

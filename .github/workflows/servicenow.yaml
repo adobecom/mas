@@ -93,7 +93,7 @@ jobs:
 
   create-cmr-io:
     needs: detect-changes
-    if: ${{ always() && (needs.detect-changes.outputs.changed_path == 'io' || needs.detect-changes.outputs.changed_path == 'both') && (github.event.pull_request.merged == true || github.event.pull_request.state == 'open') }}
+    if: ${{ always() && ((github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'io' || needs.detect-changes.outputs.changed_path == 'both')) || github.event.pull_request.merged == true) }}
     runs-on: ubuntu-latest
 
     steps:
@@ -162,7 +162,7 @@ jobs:
 
   create-cmr-studio:
     needs: detect-changes
-    if: ${{ always() && (needs.detect-changes.outputs.changed_path == 'studio' || needs.detect-changes.outputs.changed_path == 'both') && (github.event.pull_request.merged == true || github.event.pull_request.state == 'open') }}
+    if: ${{ always() && ((github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'studio' || needs.detect-changes.outputs.changed_path == 'both')) || github.event.pull_request.merged == true) }}
     runs-on: ubuntu-latest
 
     steps:

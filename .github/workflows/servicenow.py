@@ -219,6 +219,14 @@ if __name__ == "__main__":
       output_file.close()
   else:
     # PR is closed.  Set actual start and end times on the CMR, close it, and send a Slack notification.
+    cmr_path = os.environ.get('CMR_PATH', '')
+    retrieved_transaction_id = os.environ.get('RETRIEVED_TRANSACTION_ID', '')
+    
+    if not retrieved_transaction_id:
+      print(f"No transaction ID found for path '{cmr_path}'. This CMR path was likely not created when the PR was opened. Skipping CMR closure.")
+      sys.exit(0)
+    
+    print(f"Closing CMR for path '{cmr_path}' with transaction ID: {retrieved_transaction_id}")
     print("Waiting for Transaction from Queue to ServiceNow then Retrieve CMR ID...")
 
     print("Getting IMS Token")

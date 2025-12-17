@@ -142,8 +142,9 @@ jobs:
             console.log('PR is not in an opened state. Skipping...');
           }
 
-    - name: Execute script for notifying of CMR state (IO)
+    - name: Execute script for notifying Slack of CMR state (IO)
       id: slack-snow-cr-step
+      if: ${{ (github.event.pull_request.state == 'open' && steps.create-close-cmr-step.outputs.transaction_id) || (github.event.pull_request.state == 'closed' && steps.retrieve-transactionId-step.outputs.retrieved_transaction_id) }}
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       env:
         RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
@@ -211,8 +212,9 @@ jobs:
             console.log('PR is not in an opened state. Skipping...');
           }
 
-    - name: Execute script for notifying of CMR state (Studio)
+    - name: Execute script for notifying Slack of CMR state (Studio)
       id: slack-snow-cr-step
+      if: ${{ (github.event.pull_request.state == 'open' && steps.create-close-cmr-step.outputs.transaction_id) || (github.event.pull_request.state == 'closed' && steps.retrieve-transactionId-step.outputs.retrieved_transaction_id) }}
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       env:
         RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}

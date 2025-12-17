@@ -11,7 +11,6 @@ import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
-import './editors/version-panel.js';
 import './mas-variation-dialog.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {

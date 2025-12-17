@@ -173,7 +173,11 @@ export const PAGE_NAMES = {
     FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
+    AI_ASSISTANT: 'ai-assistant',
 };
+
+export const AI_CHAT_BASE_URL = 'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio';
+export const MCP_SERVER_URL = 'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio';
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';

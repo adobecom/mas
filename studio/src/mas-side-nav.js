@@ -244,6 +244,13 @@ class MasSideNav extends LitElement {
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
             <mas-side-nav-item
+                label="AI Assistant"
+                ?selected=${Store.page.get() === PAGE_NAMES.AI_ASSISTANT}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)}"
+            >
+                <sp-icon-magic-wand slot="icon"></sp-icon-magic-wand>
+            </mas-side-nav-item>
+            <mas-side-nav-item
                 class="side-nav-support"
                 label="Support"
                 @nav-click="${() => window.open('https://adobe.enterprise.slack.com/archives/C02RZERR9CH', '_blank')}"

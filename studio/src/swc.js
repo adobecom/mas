@@ -62,6 +62,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-label.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-link-out-light.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-link-page.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-link.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-magic-wand.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-market.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-money.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-more.js';

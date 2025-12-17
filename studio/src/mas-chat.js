@@ -6,10 +6,10 @@ import './mas-prompt-suggestions.js';
 import './mas-card-selection-dialog.js';
 import './mas-operation-result.js';
 import './mas-chat-session-selector.js';
-import Store, { editFragment } from './store.js';
+import Store from './store.js';
+import router from './router.js';
 import { createFragmentFromAIConfig, createFragmentDataForAEM } from './utils/ai-card-mapper.js';
 import { executeOperationWithFeedback } from './utils/ai-operations-executor.js';
-import { Fragment } from './aem/fragment.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
@@ -469,16 +469,19 @@ export class MasChat extends LitElement {
         }
     }
 
-    openInEditor(cardConfig) {
+    async openInEditor(cardConfig) {
         try {
             const fragment = createFragmentFromAIConfig(cardConfig, cardConfig.variant, {
                 title: this.extractTitle(cardConfig),
             });
 
             const fragmentStore = new FragmentStore(fragment);
+            const storeFragments = Store.fragments.list.data.get();
+            if (!storeFragments.find((s) => s.get()?.id === fragment.id)) {
+                Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            }
 
-            editFragment(fragmentStore);
-
+            await router.navigateToFragmentEditor(fragment.id);
             showToast('Card opened in editor');
         } catch (error) {
             console.error('Failed to open in editor:', error);
@@ -564,15 +567,7 @@ export class MasChat extends LitElement {
 
     async openDraftInEditor(fragmentId) {
         try {
-            const repository = document.querySelector('mas-repository');
-            if (!repository) {
-                throw new Error('Repository not found');
-            }
-
-            const fragmentData = await repository.aem.sites.cf.fragments.getById(fragmentId);
-            const fragment = new Fragment(fragmentData);
-            const fragmentStore = new FragmentStore(fragment);
-            editFragment(fragmentStore);
+            await router.navigateToFragmentEditor(fragmentId);
             showToast('Draft card opened in editor');
         } catch (error) {
             console.error('Failed to open draft in editor:', error);
@@ -1031,10 +1026,9 @@ export class MasChat extends LitElement {
         return messages[operationType] || 'Executing operation...';
     }
 
-    handleOpenCardFromOperation(event) {
+    async handleOpenCardFromOperation(event) {
         const { fragment } = event.detail;
-        const fragmentStore = new FragmentStore(fragment);
-        editFragment(fragmentStore);
+        await router.navigateToFragmentEditor(fragment.id);
         showToast('Card opened in editor');
     }
 

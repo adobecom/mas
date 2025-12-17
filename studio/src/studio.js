@@ -18,6 +18,7 @@ import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
 import './mas-fragment-editor.js';
 import './editor-panel.js';
+import './mas-chat.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
@@ -181,6 +182,11 @@ class MasStudio extends LitElement {
         return html`<mas-promotions-editor></mas-promotions-editor>`;
     }
 
+    get aiAssistant() {
+        if (this.page.value !== PAGE_NAMES.AI_ASSISTANT) return nothing;
+        return html`<mas-chat></mas-chat>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -226,7 +232,7 @@ class MasStudio extends LitElement {
                 ${this.masJsReady
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
-                          ${this.promotionsEditor}
+                          ${this.promotionsEditor} ${this.aiAssistant}
                           <editor-panel></editor-panel>
                       </div>`
                     : nothing}

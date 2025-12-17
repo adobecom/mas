@@ -33,6 +33,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit card variant', async () => {
@@ -50,7 +51,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
@@ -96,11 +97,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'wide');
+            await editor.size.scrollIntoViewIfNeeded();
             await editor.size.click();
             await page.getByRole('option', { name: 'default' }).click();
             await page.waitForTimeout(2000);
@@ -136,6 +139,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Remove badge field', async () => {
@@ -190,6 +194,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit description field', async () => {
@@ -231,10 +236,10 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();
@@ -273,6 +278,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Remove background URL field', async () => {
@@ -328,6 +334,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit price field', async () => {
@@ -393,6 +400,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA field', async () => {
@@ -440,8 +448,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             expect(searchParams.get('ctx')).toBe(data.ctx);
             expect(searchParams.get('lang')).toBe(data.lang);
             expect(searchParams.get('cli')).toBe(data.client);
-            //@TODO: update promo code and uncomment this
-            // expect(searchParams.get('apc')).toBe(data.promo);
+            expect(searchParams.get('apc')).toBe(data.promo);
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
@@ -469,6 +476,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA label', async () => {
@@ -503,7 +511,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
     });
 
-    // @studio-slice-edit-discard-price-promo - Validate edit price promo for slice card in mas studio
+    // @studio-slice-edit-discard-promo-price - Validate edit price promo for slice card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
         const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
@@ -519,6 +527,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit promo field', async () => {
@@ -598,6 +607,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA promo field', async () => {
@@ -613,8 +623,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             expect(searchParams.get('ctx')).toBe(data.ctx);
             expect(searchParams.get('lang')).toBe(data.lang);
             expect(searchParams.get('cli')).toBe(data.client);
-            //@TODO: update promo code and uncomment this
-            // expect(searchParams.get('apc')).toBe(data.promo.original);
+            expect(searchParams.get('apc')).toBe(data.promo.original);
 
             await editor.CTA.dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
@@ -623,7 +632,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await ost.promoLabel).toContainText(data.promo.original);
             await expect(await ost.promoField).toHaveValue(data.promo.original);
 
+            await ost.backButton.click();
+            await page.waitForTimeout(2000);
+            await expect(await ost.planType).toBeVisible();
+            await ost.planType.click();
+            await expect(await ost.planTypeABM).toBeVisible();
+            await ost.planTypeABM.click();
+            await page.waitForTimeout(2000);
+            await ost.nextButton.click();
             await ost.promoField.fill(data.promo.updated);
+
             expect(await ost.promoLabel).toContainText(data.promo.updated);
             await expect(await ost.promoField).toHaveValue(data.promo.updated);
             await ost.checkoutLinkUse.click();
@@ -641,8 +659,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(newCTA).toHaveAttribute('data-href', new RegExp(`ctx=${data.ctx}`));
             await expect(newCTA).toHaveAttribute('data-href', new RegExp(`lang=${data.lang}`));
             await expect(newCTA).toHaveAttribute('data-href', new RegExp(`cli=${data.client}`));
-            //@TODO: update promo code and uncomment this
-            // await expect(newCTA).toHaveAttribute('data-href', new RegExp(`apc=${data.promo.updated}`));
+            await expect(newCTA).toHaveAttribute('data-href', new RegExp(`apc=${data.promo.updated}`));
         });
 
         await test.step('step-6: Remove promo', async () => {
@@ -684,6 +701,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit card variant', async () => {
@@ -701,7 +719,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
+            await expect(await editor.mnemonicEditMenu).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundImage).toBeVisible();
@@ -747,19 +765,19 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Choose OSI in OST', async () => {
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.tags).toBeVisible();
-            await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.productCodeTag}`));
             await expect(await editor.OSI).not.toContainText(data.osi);
+            await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.productCodeTag}`));
             await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.planTypeTag}`));
             await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.offerTypeTag}`));
             await expect(await editor.tags).not.toHaveAttribute('value', new RegExp(`${data.marketSegmentsTag}`));
 
             await (await editor.OSIButton).click();
-            await ost.backButton.click();
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi);
             await (await ost.nextButton).click();
@@ -795,6 +813,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Change OSI in OST', async () => {
@@ -840,6 +859,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         await test.step('step-7: Open the editor and validate there are no changes', async () => {
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi.original);
             await expect(await editor.OSI).not.toContainText(data.osi.updated);
             await expect(await editor.tags).toHaveAttribute('value', new RegExp(`${data.osiTags.original.productCodeTag}`));
@@ -871,6 +891,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA variant', async () => {
@@ -923,6 +944,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA checkout parameters', async () => {
@@ -978,6 +1000,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit analytics IDs', async () => {
@@ -1029,6 +1052,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Validate original icon', async () => {
@@ -1036,7 +1060,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-4: Select product icon from icon picker', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();

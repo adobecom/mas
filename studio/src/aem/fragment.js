@@ -1,3 +1,4 @@
+import { PATH_TOKENS } from '../constants.js';
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -40,12 +41,17 @@ export class Fragment {
     }
 
     get statusVariant() {
-        return this.status.toLowerCase();
+        return this.status?.toLowerCase();
     }
 
     getTagTitle(id) {
         const tags = this.tags.filter((tag) => tag.id.includes(id));
         return tags[0]?.title;
+    }
+
+    get locale() {
+        const match = this.path.match(PATH_TOKENS);
+        return match?.groups?.parsedLocale || '';
     }
 
     refreshFrom(fragmentData) {
@@ -85,32 +91,149 @@ export class Fragment {
         return this.fields.find((field) => field.name === fieldName)?.values?.[index];
     }
 
-    getOriginalIdField() {
-        return this.fields.find((field) => field.name === 'originalId');
+    getVariations() {
+        const variationsField = this.fields.find((field) => field.name === 'variations');
+        return variationsField?.values || [];
+    }
+
+    hasVariations() {
+        const variations = this.getVariations();
+        return variations.length > 0;
     }
 
     updateField(fieldName, value) {
         let change = false;
-        this.fields
-            .filter((field) => field.name === fieldName)
-            .forEach((field) => {
-                //handles encoding of values for characters like ✓
-                const encodedValues = value.map((v) => {
-                    if (typeof v === 'string') {
-                        return v.normalize('NFC');
-                    }
-                    return v;
-                });
-                if (
-                    field.values.length === encodedValues.length &&
-                    field.values.every((v, index) => v === encodedValues[index])
-                )
-                    return;
-                field.values = encodedValues;
-                this.hasChanges = true;
-                change = true;
+        const encodedValues = value.map((v) => {
+            if (typeof v === 'string') {
+                return v.normalize('NFC');
+            }
+            return v;
+        });
+
+        const existingField = this.fields.find((field) => field.name === fieldName);
+
+        if (existingField) {
+            if (
+                existingField.values.length === encodedValues.length &&
+                existingField.values.every((v, index) => v === encodedValues[index])
+            ) {
+                if (fieldName === 'tags') this.newTags = value;
+                return change;
+            }
+            existingField.values = encodedValues;
+            this.hasChanges = true;
+            change = true;
+        } else if (encodedValues.length > 0 && encodedValues.some((v) => v !== '')) {
+            this.fields.push({
+                name: fieldName,
+                type: 'text',
+                values: encodedValues,
             });
+            this.hasChanges = true;
+            change = true;
+        }
+
         if (fieldName === 'tags') this.newTags = value;
         return change;
+    }
+
+    getEffectiveFieldValue(fieldName, parentFragment, isVariation, index = 0) {
+        const ownValue = this.getFieldValue(fieldName, index);
+        if (ownValue !== undefined && ownValue !== null && ownValue !== '') {
+            return ownValue;
+        }
+        if (!parentFragment || !isVariation) {
+            return ownValue;
+        }
+        return parentFragment.getFieldValue(fieldName, index);
+    }
+
+    getEffectiveFieldValues(fieldName, parentFragment, isVariation) {
+        const ownField = this.getField(fieldName);
+        if (ownField && ownField.values && ownField.values.length > 0) {
+            return ownField.values;
+        }
+        if (!parentFragment || !isVariation) {
+            return ownField?.values || [];
+        }
+        const parentField = parentFragment.getField(fieldName);
+        return parentField?.values || [];
+    }
+
+    getFieldState(fieldName, parentFragment, isVariation) {
+        if (!isVariation || !parentFragment) {
+            return 'no-parent';
+        }
+        const ownField = this.getField(fieldName);
+        const parentField = parentFragment.getField(fieldName);
+
+        const ownValues = ownField?.values || [];
+        const parentValues = parentField?.values || [];
+
+        const isEffectivelyEmpty = (values) =>
+            values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
+
+        const ownIsEmpty = isEffectivelyEmpty(ownValues);
+        const parentIsEmpty = isEffectivelyEmpty(parentValues);
+
+        if (ownIsEmpty && parentIsEmpty) {
+            return 'inherited';
+        }
+        if (ownIsEmpty) {
+            return 'inherited';
+        }
+
+        const normalizeForComparison = (v) => {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'string') {
+                return v
+                    .normalize('NFC')
+                    .trim()
+                    .replace(/\s+role="[^"]*"/g, '')
+                    .replace(/\s+aria-level="[^"]*"/g, '');
+            }
+            return String(v);
+        };
+
+        const areEqual =
+            ownValues.length === parentValues.length &&
+            ownValues.every((v, i) => normalizeForComparison(v) === normalizeForComparison(parentValues[i]));
+        return areEqual ? 'same-as-parent' : 'overridden';
+    }
+
+    isFieldOverridden(fieldName, parentFragment, isVariation) {
+        return this.getFieldState(fieldName, parentFragment, isVariation) === 'overridden';
+    }
+
+    resetFieldToParent(fieldName) {
+        const fieldIndex = this.fields.findIndex((field) => field.name === fieldName);
+        if (fieldIndex !== -1) {
+            this.fields.splice(fieldIndex, 1);
+            this.hasChanges = true;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Lists all locale variations of the fragment. Other name: regional variations.
+     * @returns {Fragment[]}
+     */
+    listLocaleVariations() {
+        const currentMatch = this.path.match(PATH_TOKENS);
+        if (!currentMatch?.groups) {
+            return [];
+        }
+
+        const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
+
+        return this.references?.filter((reference) => {
+            const refMatch = reference.path.match(PATH_TOKENS);
+            if (!refMatch?.groups) {
+                return false;
+            }
+            const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
+            return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
+        });
     }
 }

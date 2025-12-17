@@ -30,7 +30,8 @@ class RteMnemonicEditor extends LitElement {
                 left: 50%;
                 transform: translate(-50%, -50%);
                 z-index: 2000;
-                background: var(--spectrum-gray-100);
+                background: var(--spectrum-white);
+                border-radius: 16px;
             }
 
             sp-dialog {
@@ -100,9 +101,9 @@ class RteMnemonicEditor extends LitElement {
             }
 
             .icon-item.selected {
-                border-color: var(--spectrum-global-color-blue-600);
-                background-color: var(--spectrum-global-color-blue-50);
-                box-shadow: 0 0 0 1px var(--spectrum-global-color-blue-600);
+                border-color: var(--spectrum-blue-600);
+                background-color: var(--spectrum-blue-50);
+                box-shadow: 0 0 0 1px var(--spectrum-blue-600);
             }
 
             .icon-item img {
@@ -142,11 +143,11 @@ class RteMnemonicEditor extends LitElement {
                 width: 100%;
             }
 
-            sp-dialog::part(footer) {
-                display: flex;
-                justify-content: space-between;
-                padding-top: 16px;
-                border-top: 1px solid var(--spectrum-gray-200);
+            sp-dialog {
+                --spectrum-dialog-footer-display: flex;
+                --spectrum-dialog-footer-justify-content: space-between;
+                --spectrum-dialog-footer-padding-top: 16px;
+                --spectrum-dialog-footer-border-top: 1px solid var(--spectrum-gray-200);
             }
 
             sp-button[slot='button'][variant='secondary'] {
@@ -170,10 +171,6 @@ class RteMnemonicEditor extends LitElement {
         this.mnemonicPlacement = 'top';
         this.selectedTab = 'product-icon';
         this.selectedProductId = null;
-
-        this.addEventListener('change', (e) => {
-            e.stopImmediatePropagation();
-        });
     }
 
     connectedCallback() {
@@ -231,6 +228,7 @@ class RteMnemonicEditor extends LitElement {
     }
 
     #handleTabChange(e) {
+        if (e.target.nodeName !== 'SP-TABS') return;
         this.selectedTab = e.currentTarget.selected;
         this.requestUpdate();
         setTimeout(() => this.#updateInputReferences(), 0);
@@ -315,9 +313,7 @@ class RteMnemonicEditor extends LitElement {
                         id="product-alt"
                         placeholder="Descriptive text for accessibility"
                         value="${this.altText}"
-                        @input=${(e) => {
-                            this.altText = e.target.value;
-                        }}
+                        @input=${(e) => (this.altText = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -337,9 +333,7 @@ class RteMnemonicEditor extends LitElement {
                         id="mnemonicText"
                         placeholder="Enter mnemonic text (optional)"
                         .value=${this.mnemonicText}
-                        @input=${(e) => {
-                            this.mnemonicText = e.target.value;
-                        }}
+                        @input=${(e) => (this.mnemonicText = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -374,9 +368,7 @@ class RteMnemonicEditor extends LitElement {
                         required
                         placeholder="https://example.com/icon.svg"
                         value="${this.imageUrl}"
-                        @input=${(e) => {
-                            this.imageUrl = e.target.value;
-                        }}
+                        @input=${(e) => (this.imageUrl = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -386,9 +378,7 @@ class RteMnemonicEditor extends LitElement {
                         id="altText"
                         placeholder="Descriptive text for accessibility"
                         .value=${this.altText}
-                        @input=${(e) => {
-                            this.altText = e.target.value;
-                        }}
+                        @input=${(e) => (this.altText = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -408,9 +398,7 @@ class RteMnemonicEditor extends LitElement {
                         id="mnemonicText"
                         placeholder="Enter mnemonic text (optional)"
                         .value=${this.mnemonicText}
-                        @input=${(e) => {
-                            this.mnemonicText = e.target.value;
-                        }}
+                        @input=${(e) => (this.mnemonicText = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -438,7 +426,7 @@ class RteMnemonicEditor extends LitElement {
     get #editor() {
         const isEditing = !!this.imageUrl;
         return html`
-            <sp-dialog close=${this.#handleClose}>
+            <sp-dialog>
                 <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Inline Mnemonic</h2>
 
                 <form @submit=${this.#handleSubmit}>

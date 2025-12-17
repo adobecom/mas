@@ -46,7 +46,7 @@ export default class CCDSuggestedPage {
                 'line-height': '21px',
             },
             legalLink: {
-                color: 'rgb(2, 101, 220)',
+                color: 'rgb(59, 99, 251)',
                 'font-size': '12px',
                 'font-weight': '400',
                 'line-height': '18px',
@@ -58,11 +58,11 @@ export default class CCDSuggestedPage {
                 'line-height': '21px',
             },
             strikethroughPrice: {
-                color: 'rgb(109, 109, 109)',
+                color: 'rgb(113, 113, 113)',
                 'font-size': '14px',
                 'font-weight': '400',
                 'text-decoration-line': 'line-through',
-                'text-decoration-color': 'rgb(109, 109, 109)',
+                'text-decoration-color': 'rgb(113, 113, 113)',
             },
             cta: {
                 color: 'rgb(34, 34, 34)',

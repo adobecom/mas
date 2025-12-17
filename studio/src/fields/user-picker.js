@@ -153,6 +153,7 @@ class MasUserPicker extends LitElement {
     handleCheckboxChange(e) {
         const checkbox = e.target;
         checkbox.checked = !checkbox.checked;
+        e.stopPropagation();
     }
 
     get popoverContent() {

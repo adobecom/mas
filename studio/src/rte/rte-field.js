@@ -7,7 +7,6 @@ import { schema } from 'prosemirror-schema-basic';
 import { addListNodes, wrapInList, splitListItem, liftListItem } from 'prosemirror-schema-list';
 import { baseKeymap, toggleMark, deleteSelection } from 'prosemirror-commands';
 import { history, undo, redo } from 'prosemirror-history';
-import { placeholder } from 'prosemirror-placeholder';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
@@ -196,7 +195,7 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         osi: { type: String },
-        placeholder: { type: String, attribute: 'placeholder' },
+        value: { type: String },
     };
 
     static get styles() {
@@ -225,7 +224,7 @@ class RteField extends LitElement {
 
                 :host([focused]) #editor {
                     outline: 2px solid;
-                    outline-color: rgb(20, 122, 243);
+                    outline-color: var(--spectrum-blue-900);
                     outline-offset: 2px;
                 }
 
@@ -234,23 +233,23 @@ class RteField extends LitElement {
                 }
 
                 ${unsafeCSS(
-                    CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
+                    `${CUSTOM_MARKS_DATA.filter((item) => item.length === 2)
                         .map(([mark]) => `span.${mark}`)
-                        .join(',\n') + ` { background-color: rgba(250, 50, 50, 0.1); }`,
+                        .join(',\n')} { background-color: rgba(250, 50, 50, 0.1); }`,
                 )}
 
                 #editor {
                     padding: 8px 4px 4px 4px;
                     min-height: 36px;
                     flex: 1;
-                    color: var(--spectrum-global-color-gray-800);
-                    background-color: var(--spectrum-global-color-gray-50);
-                    border: 1px solid rgb(144, 144, 144);
-                    border-radius: 4px;
+                    color: var(--spectrum-gray-800);
+                    background-color: var(--spectrum-white);
+                    border: 2px solid var(--spectrum-gray-300);
+                    border-radius: 8px;
                 }
 
                 .exceeded {
-                    color: var(--spectrum-global-color-red-700);
+                    color: var(--spectrum-red-700);
                 }
 
                 rte-link-editor,
@@ -280,30 +279,30 @@ class RteField extends LitElement {
                 }
 
                 a.accent {
-                    background-color: var(--spectrum-global-color-blue-500);
-                    color: var(--spectrum-global-color-gray-50);
+                    background-color: var(--spectrum-blue-500);
+                    color: var(--spectrum-gray-50);
                 }
 
                 a.primary {
-                    background-color: var(--spectrum-global-color-gray-900);
-                    color: var(--spectrum-global-color-gray-50);
+                    background-color: var(--spectrum-gray-900);
+                    color: var(--spectrum-gray-50);
                 }
 
                 a.primary-outline {
                     background-color: initial;
-                    border: 2px solid var(--spectrum-global-color-gray-900);
-                    color: var(--spectrum-global-color-gray-900);
+                    border: 2px solid var(--spectrum-gray-900);
+                    color: var(--spectrum-gray-900);
                 }
 
                 a.secondary {
-                    color: var(--spectrum-global-color-gray-900);
-                    background-color: var(--spectrum-global-color-gray-200);
+                    color: var(--spectrum-gray-900);
+                    background-color: var(--spectrum-gray-200);
                 }
 
                 a.secondary-outline {
                     background-color: initial;
-                    border: 2px solid var(--spectrum-global-color-gray-300);
-                    color: var(--spectrum-global-color-gray-900);
+                    border: 2px solid var(--spectrum-gray-300);
+                    color: var(--spectrum-gray-900);
                 }
 
                 a.primary-link,
@@ -397,7 +396,7 @@ class RteField extends LitElement {
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused merch-icon.mnemonic-icon.ProseMirror-selectednode {
-                    outline: 2px dashed var(--spectrum-global-color-blue-500);
+                    outline: 2px dashed var(--spectrum-blue-500);
                     outline-offset: 2px;
                     border-radius: 16px;
                 }
@@ -405,7 +404,7 @@ class RteField extends LitElement {
                 div.ProseMirror-focused .ProseMirror-selectednode.mnemonic merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode {
-                    outline: 2px dashed var(--spectrum-global-color-blue-500) !important;
+                    outline: 2px dashed var(--spectrum-blue-500) !important;
                     outline-offset: 2px;
                 }
 
@@ -420,7 +419,7 @@ class RteField extends LitElement {
 
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode,
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode merch-icon {
-                    outline: 2px dashed var(--spectrum-global-color-blue-500) !important;
+                    outline: 2px dashed var(--spectrum-blue-500) !important;
                     outline-offset: 2px;
                 }
 
@@ -430,7 +429,7 @@ class RteField extends LitElement {
                 div.ProseMirror-focused span.mnemonic.ProseMirror-selectednode {
                     display: inline-flex;
                     vertical-align: middle;
-                    outline: 2px dashed var(--spectrum-global-color-blue-500) !important;
+                    outline: 2px dashed var(--spectrum-blue-500) !important;
                     outline-offset: 2px;
                 }
 
@@ -438,7 +437,7 @@ class RteField extends LitElement {
                 hr {
                     border: none;
                     margin: 0;
-                    background-color: var(--spectrum-global-color-gray-300);
+                    background-color: var(--spectrum-gray-300);
                     height: 1px;
                 }
 
@@ -556,6 +555,12 @@ class RteField extends LitElement {
                 #stylingMenu .is-selected {
                     background-color: rgba(213, 213, 213);
                 }
+
+                .superscript-icon {
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -564,7 +569,8 @@ class RteField extends LitElement {
     #boundHandlers;
     #editorSchema;
     editorView;
-    value = null;
+    #value = null;
+    #isInternalUpdate = false;
     #serializer;
     #stylingMarksData;
 
@@ -605,6 +611,19 @@ class RteField extends LitElement {
     firstUpdated() {
         this.#initEditorSchema();
         this.#initializeEditor();
+    }
+
+    get value() {
+        return this.#value;
+    }
+
+    set value(newValue) {
+        const oldValue = this.#value;
+        this.#value = newValue;
+        if (oldValue !== newValue && this.editorView && !this.#isInternalUpdate) {
+            this.updateContent(newValue);
+        }
+        this.requestUpdate('value', oldValue);
     }
 
     connectedCallback() {
@@ -696,7 +715,10 @@ class RteField extends LitElement {
                 parseDOM: [
                     {
                         tag: '.icon-button',
-                        getAttrs: this.#collectDataAttributes,
+                        getAttrs: (dom) => ({
+                            class: dom.getAttribute('class'),
+                            title: dom.getAttribute('data-tooltip') || dom.getAttribute('title'),
+                        }),
                     },
                 ],
                 toDOM: this.#createIconElement.bind(this),
@@ -741,10 +763,10 @@ class RteField extends LitElement {
 
                             if (!triggerIcon) return false;
 
-                            let textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
-                            let textFromAriaLabel = triggerIcon.getAttribute('aria-label');
+                            const textFromMnemonic = mnemonicContent ? mnemonicContent.textContent.trim() : null;
+                            const textFromAriaLabel = triggerIcon.getAttribute('aria-label');
 
-                            let parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
+                            const parsedMnemonicText = textFromMnemonic || textFromAriaLabel || null;
 
                             return {
                                 src: triggerIcon.getAttribute('src'),
@@ -952,10 +974,6 @@ class RteField extends LitElement {
             keymap(baseKeymap),
         ];
 
-        if (this.placeholder) {
-            plugins.push(placeholder(this.placeholder));
-        }
-
         return EditorState.create({
             schema: this.#editorSchema,
             doc,
@@ -976,7 +994,7 @@ class RteField extends LitElement {
     }
 
     #createIconElement(node) {
-        const tooltipText = node.content.content[0]?.text.trim() || node.attrs.title;
+        const tooltipText = node.attrs.title || node.content.content[0]?.text.trim();
 
         const icon = document.createElement('span');
         icon.setAttribute('class', 'icon-button');
@@ -1037,7 +1055,7 @@ class RteField extends LitElement {
         });
 
         try {
-            const html = this.innerHTML.trim();
+            const html = (this.value ?? this.innerHTML).trim();
             this.innerHTML = '';
             const container = document.createElement('div');
             container.innerHTML = html;
@@ -1083,10 +1101,46 @@ class RteField extends LitElement {
         this.editorView.dispatch(tr);
     }
 
+    updateContent(html) {
+        if (!this.editorView) return;
+        try {
+            const container = document.createElement('div');
+            container.innerHTML = html || '';
+            container.querySelectorAll('div').forEach((div) => {
+                div.replaceWith(...div.childNodes);
+            });
+            container.querySelectorAll('strong > a').forEach((a) => {
+                a.parentElement.replaceWith(a);
+            });
+            container.querySelectorAll('a').forEach((a) => {
+                if (a.dataset.wcsOsi) {
+                    a.setAttribute('is', CUSTOM_ELEMENT_CHECKOUT_LINK);
+                }
+            });
+            container.querySelectorAll('span merch-icon').forEach((icon) => {
+                const span = icon.parentElement;
+                if (!span.classList.contains('mnemonic')) {
+                    span.classList.add('mnemonic');
+                }
+                if (span.classList.contains('mnemonic-text')) {
+                    span.classList.remove('mnemonic-text');
+                }
+            });
+            const parser = DOMParser.fromSchema(this.#editorSchema);
+            const doc = parser.parse(container);
+            const tr = this.editorView.state.tr.replaceWith(0, this.editorView.state.doc.content.size, doc.content);
+            this.editorView.dispatch(tr);
+        } catch (error) {
+            console.error('Error updating editor content:', error);
+        }
+    }
+
     #handleTransaction(transaction) {
         try {
-            const oldState = this.editorView.state;
-            let newState = oldState.apply(transaction);
+            const oldState = this.editorView?.state;
+            if (!oldState) return;
+
+            const newState = oldState.apply(transaction);
             if (!newState) return;
 
             this.#updateSelection(newState);
@@ -1098,7 +1152,9 @@ class RteField extends LitElement {
                 // skip change event during initialization
                 const isFirstChange = this.value === null;
                 if (value !== this.value) {
+                    this.#isInternalUpdate = true;
                     this.value = value === '<p></p>' ? '' : value;
+                    this.#isInternalUpdate = false;
                     if (isFirstChange) return;
                     this.dispatchEvent(
                         new CustomEvent('change', {
@@ -1109,7 +1165,11 @@ class RteField extends LitElement {
                 }
             }
         } catch (error) {
-            console.error('Error handling transaction:', error);
+            // Silently handle transaction errors that can occur during editor cleanup
+            // These are typically harmless and occur when the editor is being destroyed
+            if (error.message && !error.message.includes('matchesNode')) {
+                console.error('Error handling transaction:', error);
+            }
         }
     }
 
@@ -1199,7 +1259,7 @@ class RteField extends LitElement {
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
-        const node = state.schema.nodes.icon.create({}, state.schema.text(tooltip || ' '));
+        const node = state.schema.nodes.icon.create({ title: tooltip || '' });
         const tr = state.tr.insert(selection.from, node);
         dispatch(tr);
 
@@ -1329,7 +1389,7 @@ class RteField extends LitElement {
             item.classList.remove('is-selected');
         });
 
-        let { state } = this.editorView;
+        const { state } = this.editorView;
         const {
             selection: { from, to },
         } = state;
@@ -1351,7 +1411,7 @@ class RteField extends LitElement {
     }
 
     handleStylingAction(stylingType) {
-        let { state, dispatch } = this.editorView;
+        const { state, dispatch } = this.editorView;
         const {
             selection: { from, to },
         } = state;
@@ -1378,7 +1438,7 @@ class RteField extends LitElement {
     #handleListAction(listType) {
         return () => {
             const { state, dispatch } = this.editorView;
-            let { $from } = state.selection;
+            const { $from } = state.selection;
 
             let isInList = false;
             const listItemNode = this.#editorSchema.nodes.list_item;
@@ -1450,11 +1510,19 @@ class RteField extends LitElement {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         if (!element && this.osi) {
-            element = document.createElement('span');
-            element.setAttribute('data-wcs-osi', this.osi);
-            element.isInlinePrice = true;
+            element = this.selectedMerchLink;
+            if (!element) {
+                element = document.createElement('span');
+                element.setAttribute('data-wcs-osi', this.osi);
+                element.isInlinePrice = true;
+            }
         }
+
         openOfferSelectorTool(this, element);
+    }
+
+    get selectedMerchLink() {
+        return this.shadowRoot.querySelector('.ProseMirror-selectednode[data-wcs-osi]');
     }
 
     get #linkEditorButton() {
@@ -1638,7 +1706,7 @@ class RteField extends LitElement {
         if (!this.divider) return nothing;
         return html`
             <sp-action-button emphasized id="addDividerButton" @click=${this.addDivider} title="Add Divider">
-                <sp-icon-divide slot="icon"></sp-icon-divide>
+                <sp-icon-stroke-solid slot="icon"></sp-icon-stroke-solid>
             </sp-action-button>
         `;
     }
@@ -1669,7 +1737,7 @@ class RteField extends LitElement {
             title="Add Universal Promo Terms Link"
             @click=${this.#boundHandlers.addUptLink}
         >
-            <sp-icon-link-page slot="icon"></sp-icon-link-page>
+            <sp-icon-review-link slot="icon"></sp-icon-review-link>
         </sp-action-button>`;
     }
 
@@ -1680,14 +1748,14 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
                 title="Bold (Command+B)"
             >
-                <sp-icon-tag-bold slot="icon"></sp-icon-tag-bold>
+                <sp-icon-text-bold slot="icon"></sp-icon-text-bold>
             </sp-action-button>
             <sp-action-button
                 @click=${this.#handleToolbarAction('em')}
                 @mousedown=${(e) => e.preventDefault()}
                 title="Italic (Command+I)"
             >
-                <sp-icon-tag-italic slot="icon"></sp-icon-tag-italic>
+                <sp-icon-text-italic slot="icon"></sp-icon-text-italic>
             </sp-action-button>
             <sp-action-button
                 @click=${this.#handleToolbarAction('strikethrough')}
@@ -1708,7 +1776,7 @@ class RteField extends LitElement {
                 @mousedown=${(e) => e.preventDefault()}
                 title="Superscript (Command+Shift+.)"
             >
-                <span slot="icon" style="font-family: sans-serif; font-size: 14px; font-weight: bold;">x²</span>
+                <span slot="icon" class="superscript-icon">x²</span>
             </sp-action-button>
         `;
     }

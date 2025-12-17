@@ -22,6 +22,7 @@ class MasPlaceholders extends LitElement {
         showCreationModal: { type: Boolean, state: true },
         selects: { type: String, state: true },
         pending: { type: Boolean, state: true },
+        error: { type: String, state: true },
     };
 
     constructor() {
@@ -46,10 +47,15 @@ class MasPlaceholders extends LitElement {
     }
 
     reactiveController = new ReactiveController(this, [
+        Store.filters,
+        Store.folders.data,
+        Store.folders.loaded,
+        Store.placeholders?.list?.data,
+        Store.placeholders?.list?.loading,
+        Store.placeholders.index,
         Store.placeholders.list.loading,
         Store.placeholders.selection,
-        Store.placeholders.index,
-        Store.filters,
+        Store.search,
     ]);
     filterAndSortReactiveController = new ReactiveController(
         this,
@@ -299,7 +305,7 @@ class MasPlaceholders extends LitElement {
                     </sp-button>
                 </div>
 
-                ${this.renderError()}
+                ${this.errorMessage}
 
                 <div class="search-filters-container">
                     <div class="placeholders-title">
@@ -335,7 +341,7 @@ class MasPlaceholders extends LitElement {
 
     loadingIndicator() {
         if (!this.loading) return nothing;
-        return html`<sp-progress-circle style="top:-60px" indeterminate size="l"></sp-progress-circle>`;
+        return html`<sp-progress-circle class="loading-indicator" indeterminate size="l"></sp-progress-circle>`;
     }
 
     // #region Table
@@ -380,10 +386,9 @@ class MasPlaceholders extends LitElement {
                     ${columns.map(
                         ({ key, label, sortable, align }) => html`
                             <sp-table-head-cell
-                                class=${key}
+                                class="${key} ${align === 'right' ? 'align-right' : ''}"
                                 ?sortable=${sortable}
                                 @click=${sortable ? () => this.updateSort(key) : undefined}
-                                style="${align === 'right' ? 'text-align: right;' : ''}"
                             >
                                 ${label}
                             </sp-table-head-cell>
@@ -420,12 +425,12 @@ class MasPlaceholders extends LitElement {
 
     // #endregion
 
-    renderError() {
+    get errorMessage() {
         if (!this.error) return nothing;
 
         return html`
             <div class="error-message">
-                <sp-icon-alert></sp-icon-alert>
+                <sp-icon-alert size="m"></sp-icon-alert>
                 <span>${this.error}</span>
             </div>
         `;

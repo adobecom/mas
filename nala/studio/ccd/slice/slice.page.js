@@ -48,7 +48,7 @@ export default class CCDSlicePage {
                 'line-height': '18px',
             },
             legalLink: {
-                color: 'rgb(34, 34, 34)',
+                color: 'rgb(41, 41, 41)',
                 'font-size': '12px',
                 'font-weight': '400',
                 'line-height': '18px',
@@ -60,11 +60,11 @@ export default class CCDSlicePage {
                 'line-height': '18px',
             },
             strikethroughPrice: {
-                color: 'rgb(109, 109, 109)',
+                color: 'rgb(113, 113, 113)',
                 'font-size': '14px',
                 'font-weight': '400',
                 'line-height': '18px',
-                'text-decoration-color': 'rgb(109, 109, 109)',
+                'text-decoration-color': 'rgb(113, 113, 113)',
                 'text-decoration-line': 'line-through',
             },
             cta: {

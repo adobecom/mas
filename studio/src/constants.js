@@ -40,8 +40,8 @@ export const ANALYTICS_LINK_IDS = [
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {
-    ccd: {
-        'mas-ff-defaults': 'on',
+    'adobe-home': {
+        'mas-ff-defaults': 'off',
     },
 };
 
@@ -61,7 +61,8 @@ export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 export const LOCALES = [
     { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
     { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
-    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada' },
+    { code: 'en_CA', flag: '🇨🇦', name: 'Canada (English)' },
+    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada (French)' },
     { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
     { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
     { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },
@@ -88,6 +89,39 @@ export const LOCALES = [
     { code: 'zh_TW', flag: '🇹🇼', name: 'Taiwan' },
 ];
 
+export const LOCALE_DEFAULTS = [
+    'ar_MENA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_DE',
+    'en_US',
+    'es_ES',
+    'fi_FI',
+    'fr_FR',
+    'he_IL',
+    'hu_HU',
+    'id_ID',
+    'it_IT',
+    'ja_JP',
+    'ko_KR',
+    'nb_NO',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'ro_RO',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'vi_VN',
+    'zh_CN',
+    'zh_TW',
+];
+
 export const OPERATIONS = {
     CREATE: 'create',
     DELETE: 'delete',
@@ -96,7 +130,6 @@ export const OPERATIONS = {
     SAVE: 'save',
     CLONE: 'clone',
     UNPUBLISH: 'unpublish',
-    CREATE: 'create',
 };
 
 export const EnvColorCode = {
@@ -137,20 +170,10 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
-    CHAT: 'chat',
+    FRAGMENT_EDITOR: 'fragment-editor',
+    PROMOTIONS: 'promotions',
+    PROMOTIONS_EDITOR: 'promotions-editor',
 };
-
-// AI Chat endpoint - use direct Adobe I/O Runtime URL to avoid CORS issues
-export const AI_CHAT_BASE_URL =
-    window.location.hostname === 'localhost'
-        ? 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio'
-        : 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio';
-
-// MCP Server endpoint - localhost for development, Runtime for production
-export const MCP_SERVER_URL =
-    window.location.hostname === 'localhost'
-        ? 'http://localhost:3001'
-        : 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleMCP';
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
@@ -158,7 +181,10 @@ export const TAG_STATUS_DRAFT = 'mas:status/draft';
 export const TAG_STATUS_DRAFT_PATH = '/content/cq:tags/mas/status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
-export const DICTIONARY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
+export const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
+
+export const PROMOTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3Byb21vdGlvbg==';
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
@@ -189,5 +215,41 @@ export const VARIANT_CAPABILITIES = {
         supported: ['simplified-pricing-express'],
         label: 'Default Card',
         helpText: 'Drag a card here to set as default',
+    },
+};
+export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+
+export const VARIATION_TYPES = {
+    LOCALE: 'Locale',
+};
+
+export const SURFACES = {
+    ACOM: {
+        label: 'Adobe.com',
+        name: 'acom',
+    },
+    ADOBE_HOME: {
+        label: 'Adobe Home',
+        name: 'adobe-home',
+    },
+    CCD: {
+        label: 'CCD',
+        name: 'ccd',
+    },
+    COMMERCE: {
+        label: 'Commerce',
+        name: 'commerce',
+    },
+    EXPRESS: {
+        label: 'Express',
+        name: 'express',
+    },
+    NALA: {
+        label: 'Nala',
+        name: 'nala',
+    },
+    SANDBOX: {
+        label: 'Sandbox',
+        name: 'sandbox',
     },
 };

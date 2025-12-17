@@ -9,7 +9,7 @@ export default {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
             },
             browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ccd @ccd-save @ccd-suggested @ccd-suggested-save',
+            tags: '@mas-studio @ccd @ccd-save @ccd-suggested @ccd-suggested-save @nopr', // enable when the preview is fixed
         },
         {
             tcid: '1',

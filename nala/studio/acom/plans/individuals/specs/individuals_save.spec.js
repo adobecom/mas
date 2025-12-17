@@ -58,7 +58,7 @@ export default {
                     name: 'Green 900',
                     css: 'rgb(5, 131, 78)',
                 },
-                cardBorderColor: {
+                borderColor: {
                     name: 'Gray 300',
                     css: 'rgb(218, 218, 218)',
                 },

@@ -1,6 +1,10 @@
 <!doctype html>
 <html>
     <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
         <title>mas-create-dialog test page</title>
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -63,15 +67,14 @@
                         Store.search.set({ path: 'sandbox' });
                         Store.filters.set({ locale: 'en_US' });
 
-                        dialog._onOstSelect({
-                            detail: { offerSelectorId: 'ABC123', offer: {} },
-                        });
+                        document.dispatchEvent(
+                            new CustomEvent('ost-offer-select', {
+                                detail: { offerSelectorId: 'ABC123', offer: {} },
+                            }),
+                        );
 
                         // Fill in the form
                         const titleField = dialog.shadowRoot.querySelector('#fragment-title');
-
-                        // Get the dialog wrapper
-                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
 
                         // Set title
                         titleField.value = 'Test Merch Card';
@@ -79,8 +82,9 @@
 
                         await dialog.updateComplete;
 
-                        // Submit the form by triggering the confirm event directly on dialog wrapper
-                        dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
+                        // Submit the form by clicking the Create button
+                        const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
+                        createButton.click();
                         await dialog.updateComplete;
 
                         // Verify fetch was called with correct parameters
@@ -99,27 +103,31 @@
                     });
 
                     it('should display the correct dialog title based on type', async () => {
+                        // Reset dialog state from previous tests
+                        dialog.loading = false;
+
                         // Test with merch-card type
-                        const dialogWrapper = dialog.shadowRoot.querySelector('sp-dialog-wrapper');
                         dialog.type = 'merch-card';
                         await dialog.updateComplete;
 
-                        let heading = dialogWrapper.shadowRoot.querySelector('h2[slot="heading"]');
-                        expect(heading.innerText).to.equal('Create New Merch Card');
+                        let heading = dialog.shadowRoot.querySelector('.dialog-header');
+                        expect(heading).to.exist;
+                        expect(heading.textContent.trim()).to.equal('Create New Merch Card');
 
                         // Test with merch-card-collection type
                         dialog.type = 'merch-card-collection';
                         await dialog.updateComplete;
 
-                        heading = dialogWrapper.shadowRoot.querySelector('h2[slot="heading"]');
-                        expect(heading.innerText).to.equal('Create New Merch Card Collection');
+                        heading = dialog.shadowRoot.querySelector('.dialog-header');
+                        expect(heading).to.exist;
+                        expect(heading.textContent.trim()).to.equal('Create New Merch Card Collection');
                     });
                 });
             });
         </script>
         <main>
             <mas-repository bucket="test" base-url="http://localhost:2023/test/mocks"></mas-repository>
-            <sp-theme color="light" scale="medium">
+            <sp-theme system="spectrum-two" color="light" scale="medium">
                 <mas-create-dialog open></mas-create-dialog>
             </sp-theme>
         </main>

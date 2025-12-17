@@ -1,6 +1,10 @@
 <!doctype html>
 <html>
     <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
         <title>mas-user-picker unit tests</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script src="../../src/swc.js" type="module"></script>
@@ -77,27 +81,21 @@
             runTests(async () => {
                 describe('mas-user-picker custom element', async () => {
                     it('should display current user at the top of the list', async function () {
-                        const users = new ReactiveStore(mockUsers);
-                        const currentUser = new ReactiveStore({
-                            email: 'user3@example.com',
-                        });
-                        const selectedUsers = new ReactiveStore([]);
-                        const picker = await initUserPicker('createdBy1', this.test.title, users, currentUser, selectedUsers);
+                        const picker = await initUserPicker('createdBy1', this.test.title);
                         await picker.updateComplete;
-                        await delay(10);
-                        const actionButton = picker.shadowRoot.querySelector('sp-action-button');
-                        actionButton.click();
+                        await delay(100);
                         picker.open = true;
                         await picker.updateComplete;
                         await delay(200);
                         const checkbox = picker.shadowRoot.querySelector('sp-checkbox');
+                        expect(checkbox).to.not.be.null;
                         expect(checkbox.innerText.trim()).to.equal('Alex Johnson');
                     });
                 });
             });
         </script>
         <main>
-            <sp-theme color="light" scale="medium"></sp-theme>
+            <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
         </main>
         <template id="createdBy1">
             <mas-user-picker label="Created by"></mas-user-picker>

@@ -4,7 +4,8 @@ import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { styles } from './merch-card-collection-editor.css.js';
 import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH, VARIANT_CAPABILITIES } from '../constants.js';
-import Store, { editFragment } from '../store.js';
+import Store from '../store.js';
+import router from '../router.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -96,13 +97,22 @@ class MerchCardCollectionEditor extends LitElement {
         }
     }
 
-    editFragment(item) {
+    async editFragment(item) {
         const fragmentStore = this.#fragmentReferencesMap.get(item);
-        if (fragmentStore) editFragment(fragmentStore);
+        if (fragmentStore) {
+            const fragment = fragmentStore.get();
+            if (fragment?.id) {
+                await router.navigateToFragmentEditor(fragment.id);
+            }
+        }
     }
 
     #getFieldValue(fieldName) {
         return this.fragment?.fields?.find((f) => f.name === fieldName)?.values?.[0] || '';
+    }
+
+    #getFieldValues(fieldName) {
+        return this.fragment?.fields?.find((f) => f.name === fieldName)?.values || [];
     }
 
     get queryLabel() {
@@ -127,6 +137,36 @@ class MerchCardCollectionEditor extends LitElement {
 
     get fragment() {
         return this.fragmentStore?.get();
+    }
+
+    get searchText() {
+        return this.#getFieldValue('searchText');
+    }
+
+    get tagFiltersTitle() {
+        return this.#getFieldValue('tagFiltersTitle');
+    }
+
+    get tagFilters() {
+        return this.#getFieldValues('tagFilters')
+            .map((tag) => tag)
+            .join(',');
+    }
+
+    get linksTitle() {
+        return this.#getFieldValue('linksTitle');
+    }
+
+    get link() {
+        return this.#getFieldValue('link');
+    }
+
+    get linkIcon() {
+        return this.#getFieldValue('linkIcon');
+    }
+
+    get linkText() {
+        return this.#getFieldValue('linkText');
     }
 
     #getField(fieldName) {
@@ -225,7 +265,7 @@ class MerchCardCollectionEditor extends LitElement {
                           `
                         : html`
                               <div class="drop-zone-placeholder">
-                                  <sp-icon-drag-handle size="l"></sp-icon-drag-handle>
+                                  <sp-icon-order size="l"></sp-icon-order>
                                   <p>${config.helpText}</p>
                               </div>
                           `}
@@ -272,7 +312,7 @@ class MerchCardCollectionEditor extends LitElement {
 
         return html`
             <div class="tip">
-                <sp-icon-info-outline></sp-icon-info-outline>
+                <sp-icon-info-outline size="m"></sp-icon-info-outline>
                 <div>Drag and drop cards or collections to add to this collection.</div>
             </div>
         `;
@@ -297,7 +337,7 @@ class MerchCardCollectionEditor extends LitElement {
                           ></sp-icon-preview>
                       `
                     : nothing}
-                <sp-icon-drag-handle label="Order"></sp-icon-drag-handle>
+                <sp-icon-order size="m" label="Order"></sp-icon-order>
             </div>
         `;
     }
@@ -632,7 +672,9 @@ class MerchCardCollectionEditor extends LitElement {
             this.fragment.references = [...(this.fragment.references || []), fragmentData];
 
             // Create a FragmentStore for the new reference
-            this.#fragmentReferencesMap.set(fragmentData.path, new FragmentStore(new Fragment(fragmentData)));
+            const newFragment = new Fragment(fragmentData);
+            const newFragmentStore = generateFragmentStore(newFragment);
+            this.#fragmentReferencesMap.set(fragmentData.path, newFragmentStore);
         }
     }
 
@@ -774,6 +816,13 @@ class MerchCardCollectionEditor extends LitElement {
         }
     }
 
+    #handleTagFilterChange(e) {
+        if (Store.showCloneDialog.get()) return;
+        const value = e.target.getAttribute('value');
+        const newTags = value ? value.split(',') : []; // do not overwrite the tags array
+        this.fragmentStore.updateField('tagFilters', newTags);
+    }
+
     handleDefaultCardDrop(event) {
         event.preventDefault();
         event.stopPropagation();
@@ -874,9 +923,11 @@ class MerchCardCollectionEditor extends LitElement {
 
         const container = document.createElement('div');
         container.className = 'preview-container';
+        const positionClass = position.left !== undefined ? 'position-left' : 'position-right';
+        const positionValue = position.left !== undefined ? position.left : position.right;
         container.innerHTML = `
             <div class="preview-backdrop"></div>
-            <div class="preview-popover" style="${position.left !== undefined ? `left: ${position.left}px` : `right: ${position.right}px`}">
+            <div class="preview-popover ${positionClass}" style="--popover-position: ${positionValue}px">
                 <div class="preview-content">
                     <merch-card>
                         <aem-fragment author ims fragment="${previewItem.id}"></aem-fragment>
@@ -888,9 +939,18 @@ class MerchCardCollectionEditor extends LitElement {
 
         document.body.appendChild(container);
 
-        await container.querySelector('aem-fragment').updateComplete;
-        await container.querySelector('merch-card').checkReady();
-        container.querySelector('sp-progress-circle').remove();
+        try {
+            await container.querySelector('aem-fragment').updateComplete;
+            await container.querySelector('merch-card').checkReady();
+            container.querySelector('sp-progress-circle')?.remove();
+        } catch (error) {
+            console.error('Failed to load preview card:', error);
+            container.querySelector('sp-progress-circle')?.remove();
+            const errorMsg = document.createElement('div');
+            errorMsg.textContent = 'Failed to load preview';
+            errorMsg.style.color = 'var(--spectrum-global-color-red-600)';
+            container.querySelector('.preview-content').appendChild(errorMsg);
+        }
     }
 
     get #form() {
@@ -931,6 +991,74 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    get #sidenav() {
+        return html`
+            <h2>Side Navigation</h2>
+            <div class="form-container">
+                <div class="form-row">
+                    <sp-field-label for="searchText">Search Text</sp-field-label>
+                    <sp-textfield
+                        id="searchText"
+                        data-field="searchText"
+                        .value=${this.searchText}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="tagFiltersTitle">Tag Filters Title</sp-field-label>
+                    <sp-textfield
+                        id="tagFiltersTitle"
+                        data-field="tagFiltersTitle"
+                        .value=${this.tagFiltersTitle}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="tagFilters">Tag Filters</sp-field-label>
+                    <aem-tag-picker-field
+                        label="Tag Filters"
+                        id="tagFilters"
+                        namespace="/content/cq:tags/mas"
+                        multiple
+                        value="${this.tagFilters}"
+                        @change=${this.#handleTagFilterChange}
+                    ></aem-tag-picker-field>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="linksTitle">Links Title</sp-field-label>
+                    <sp-textfield
+                        id="linksTitle"
+                        data-field="linksTitle"
+                        .value=${this.linksTitle}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="link">Link</sp-field-label>
+                    <sp-textfield id="link" data-field="link" .value=${this.link} @input=${this.updateFragment}></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="linkIcon">Link Icon</sp-field-label>
+                    <sp-textfield
+                        id="linkIcon"
+                        data-field="linkIcon"
+                        .value=${this.linkIcon}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <sp-field-label for="linkText">Link Text</sp-field-label>
+                    <sp-textfield
+                        id="linkText"
+                        data-field="linkText"
+                        .value=${this.linkText}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
+                </div>
+            </div>
+        `;
+    }
+
     render() {
         const cardsField = this.#getField('cards');
         const hasCards = cardsField?.values?.length > 0;
@@ -939,7 +1067,7 @@ class MerchCardCollectionEditor extends LitElement {
         return html`<div class="editor-container">
             ${this.#form} ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}
             <div data-field-name="${CARDS_SECTION}">${this.#cards}</div>
-            ${this.#collections} ${this.#tip}
+            ${this.#collections} ${this.#tip} ${this.#sidenav}
         </div>`;
     }
 }

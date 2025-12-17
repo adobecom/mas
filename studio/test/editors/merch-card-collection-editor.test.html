@@ -1,6 +1,10 @@
 <!doctype html>
 <html>
     <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
         <title>merch-card-collection-editor test page</title>
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -66,7 +70,7 @@
             });
         </script>
         <main>
-            <sp-theme color="light" scale="medium"></sp-theme>
+            <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
         </main>
         <template id="merch-card-collection-editor">
             <div>

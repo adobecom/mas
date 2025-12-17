@@ -18,11 +18,12 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             const card = await studio.getCard(data.cardid);
-            await expect(card).toBeVisible({ timeout: 10000 });
+            await expect(await card).toBeVisible({ timeout: 10000 });
             const variant = await card.getAttribute('variant');
             expect(['full-pricing-express', 'simplified-pricing-express']).toContain(variant);
             await card.dblclick();
             await expect(await editor.panel).toBeVisible({ timeout: 10000 });
+            await expect(await card).toBeVisible();
         });
 
         await test.step('step-3: Edit title field', async () => {
@@ -44,7 +45,7 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
         });
     });
 
-    // @studio-full-pricing-express-edit-discard-title-mnemonic - Validate edit mnemonic for full pricing express card in mas studio
+    // @studio-full-pricing-express-edit-discard-mnemonic-title - Validate edit mnemonic for full pricing express card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
@@ -57,11 +58,12 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             const card = await studio.getCard(data.cardid);
-            await expect(card).toBeVisible();
+            await expect(await card).toBeVisible();
             const variant = await card.getAttribute('variant');
             expect(['full-pricing-express', 'simplified-pricing-express']).toContain(variant);
-            await (await studio.getCard(data.cardid)).dblclick();
+            await card.dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await card).toBeVisible();
         });
 
         await test.step('step-3: Edit mnemonic URL field', async () => {
@@ -101,11 +103,12 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             const card = await studio.getCard(data.cardid);
-            await expect(card).toBeVisible();
+            await expect(await card).toBeVisible();
             const variant = await card.getAttribute('variant');
             expect(['full-pricing-express', 'simplified-pricing-express']).toContain(variant);
-            await (await studio.getCard(data.cardid)).dblclick();
+            await card.dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await card).toBeVisible();
         });
 
         await test.step('step-3: Edit shortDescription field', async () => {
@@ -141,17 +144,19 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
 
         await test.step('step-2: Open card editor', async () => {
             const card = await studio.getCard(data.cardid);
-            await expect(card).toBeVisible();
+            await expect(await card).toBeVisible();
             const variant = await card.getAttribute('variant');
             expect(['full-pricing-express', 'simplified-pricing-express']).toContain(variant);
-            await (await studio.getCard(data.cardid)).dblclick();
+            await card.dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await card).toBeVisible();
         });
 
         await test.step('step-3: Edit CTA label', async () => {
             await expect(await editor.footer.locator(editor.linkEdit)).toBeVisible();
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.footer).toContainText(data.ctaText.original);
+            await editor.CTA.scrollIntoViewIfNeeded();
             await editor.CTA.click();
             await editor.footer.locator(editor.linkEdit).click();
             await expect(await editor.linkText).toBeVisible();
@@ -193,6 +198,7 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Validate original icon', async () => {
@@ -200,7 +206,6 @@ test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
         });
 
         await test.step('step-4: Select product icon from icon picker', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.selectProductIcon(data.productIcon.name);
             await editor.saveMnemonicModal();

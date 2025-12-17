@@ -36,7 +36,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Change variant and save card', async () => {
@@ -81,7 +82,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Change variant and save card', async () => {
@@ -128,7 +130,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit description field', async () => {
@@ -142,7 +145,6 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-5: Edit mnemonic field', async () => {
-            await expect(await editor.mnemonicEditButton.first()).toBeVisible();
             await editor.openMnemonicModal();
             await editor.mnemonicUrlTab.click();
             await expect(await editor.iconURL).toBeVisible();
@@ -157,6 +159,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-7: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
+            await editor.size.scrollIntoViewIfNeeded();
             await editor.size.click();
             await page.getByRole('option', { name: 'default' }).click();
         });
@@ -230,7 +233,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Edit price and save card', async () => {
@@ -273,7 +277,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Open CTA link editor', async () => {
@@ -375,7 +380,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
             await clonedCard.dblclick();
-            await page.waitForTimeout(2000);
+            await expect(await editor.panel).toBeVisible();
+            await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Change osi and save card', async () => {

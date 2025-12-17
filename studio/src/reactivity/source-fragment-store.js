@@ -42,7 +42,16 @@ export class SourceFragmentStore extends FragmentStore {
     discardChanges() {
         this.value.discardChanges();
         this.notify();
-        this.previewStore.discardChanges();
+        this.previewStore.refreshFrom(structuredClone(this.value));
+    }
+
+    resetFieldToParent(fieldName, parentValues = []) {
+        const success = this.value.resetFieldToParent(fieldName);
+        if (success) {
+            this.notify();
+            this.previewStore.updateFieldWithParentValue(fieldName, parentValues);
+        }
+        return success;
     }
 
     resolvePreviewFragment() {
@@ -57,10 +66,11 @@ export class SourceFragmentStore extends FragmentStore {
 /**
  * Generates a source fragment for editing & a resolved fragment for the aem-fragment cache
  * @param {Fragment} initialValue
+ * @param {{ skipAutoResolve?: boolean }} options
  * @returns {SourceFragmentStore}
  */
-export default function generateFragmentStore(initialValue) {
-    const previewStore = new PreviewFragmentStore(initialValue);
+export default function generateFragmentStore(initialValue, options = {}) {
+    const previewStore = new PreviewFragmentStore(initialValue, undefined, options);
     const sourceStore = new SourceFragmentStore(previewStore);
     return sourceStore;
 }

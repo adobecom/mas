@@ -103,5 +103,24 @@ export default {
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ahome @ahome-promoted-plans',
         },
+        {
+            tcid: '11',
+            name: '@studio-surface-change',
+            path: '/studio.html',
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '12',
+            name: '@studio-locale-change',
+            path: '/studio.html',
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '13',
+            name: '@studio-table-view',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala',
+            tags: '@mas-studio',
+        },
     ],
 };

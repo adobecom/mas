@@ -100,7 +100,7 @@ class AEM {
         };
         if (query) {
             filter.fullText = {
-                text: query,
+                text: encodeURIComponent(query),
                 // For info about modes: https://adobe-sites.redoc.ly/tag/Search#operation/fragments/search!path=query/filter/fullText/queryMode&t=request
                 queryMode: 'EDGES',
             };
@@ -228,6 +228,11 @@ class AEM {
 
         const { title, description, fields } = fragment;
 
+        const fieldsWithType = fields.map((field) => ({
+            ...field,
+            type: field.type || 'text',
+        }));
+
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
@@ -238,7 +243,7 @@ class AEM {
             body: JSON.stringify({
                 title,
                 description,
-                fields,
+                fields: fieldsWithType,
             }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
@@ -339,7 +344,7 @@ class AEM {
      */
     async copyFragmentClassic(fragment) {
         const csrfToken = await this.getCsrfToken();
-        let parentPath = fragment.path.split('/').slice(0, -1).join('/');
+        const parentPath = fragment.path.split('/').slice(0, -1).join('/');
         const formData = new FormData();
         formData.append('cmd', 'copyPage');
         formData.append('srcPath', fragment.path);
@@ -372,6 +377,7 @@ class AEM {
         let newFragment = await this.getFragmentByPath(newPath);
         if (newFragment) {
             newFragment = await this.sites.cf.fragments.getById(newFragment.id);
+            newFragment = await this.clearVariationsField(newFragment);
         }
         return newFragment;
     }
@@ -450,6 +456,42 @@ class AEM {
     }
 
     /**
+     * Publish multiple fragments in a single request
+     * @param {Array<Object>} fragments - Array of fragment objects
+     * @param {Array<string>} publishReferencesWithStatus - Statuses to include references for
+     * @returns {Promise<void>}
+     */
+    async publishFragments(fragments, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
+        if (!fragments || fragments.length === 0) {
+            throw new Error('No fragments provided to publish');
+        }
+
+        // Use the first fragment's etag for the If-Match header
+        const etag = fragments[0].etag;
+        const paths = fragments.map((fragment) => fragment.path);
+
+        const response = await fetch(this.cfPublishUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'If-Match': etag,
+                ...this.headers,
+            },
+            body: JSON.stringify({
+                paths,
+                filterReferencesByStatus: publishReferencesWithStatus,
+                workflowModelId: '/var/workflow/models/scheduled_activation_with_references',
+            }),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to publish fragments: ${response.status} ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
+    /**
      * Delete a fragment
      * @param {Object} fragment
      * @returns {Promise<void>}
@@ -469,6 +511,40 @@ class AEM {
             throw new Error(`Failed to delete fragment: ${response.status} ${response.statusText}`);
         }
         return response; //204 No Content
+    }
+
+    /**
+     * Force delete a fragment using Sling POST servlet.
+     * This bypasses CF API reference validation and deletes directly from JCR.
+     * Use with caution - this can leave orphaned references.
+     * @param {Object} fragment - Fragment with path property
+     * @returns {Promise<Response>}
+     */
+    async forceDeleteFragment(fragment) {
+        if (!fragment?.path) {
+            throw new Error('Fragment path is required for force delete');
+        }
+
+        const csrfToken = await this.getCsrfToken();
+        const formData = new FormData();
+        formData.append(':operation', 'delete');
+
+        const response = await fetch(`${this.baseUrl}${fragment.path}`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'CSRF-Token': csrfToken,
+            },
+            body: formData,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Force delete failed: ${response.status} ${errorText}`);
+        }
+        return response;
     }
 
     /**
@@ -573,7 +649,7 @@ class AEM {
      * @returns {Promise<Object>} The newly created fragment
      */
     async createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
-        const fields = fullFragment.fields.filter((field) => field.name !== 'originalId');
+        const fieldsWithoutVariations = fullFragment.fields.filter((field) => field.name !== 'variations');
 
         const copyData = {
             title: fullFragment.title,
@@ -581,7 +657,7 @@ class AEM {
             modelId: fullFragment.model.id,
             parentPath: targetPath,
             name,
-            fields,
+            fields: fieldsWithoutVariations,
         };
 
         const response = await fetch(this.cfFragmentsUrl, {
@@ -617,6 +693,16 @@ class AEM {
         } catch {
             // Silent fail - tags are not critical
         }
+    }
+
+    async clearVariationsField(fragment) {
+        const variationsField = fragment.fields.find((f) => f.name === 'variations');
+        if (variationsField && variationsField.values?.length > 0) {
+            variationsField.values = [];
+            await this.sites.cf.fragments.save(fragment);
+            return this.sites.cf.fragments.getById(fragment.id);
+        }
+        return fragment;
     }
 
     /**
@@ -660,6 +746,219 @@ class AEM {
         }
     }
 
+    /**
+     * Creates an empty variation fragment in the target locale folder.
+     * The variation starts with no content fields - it inherits from parent at runtime.
+     * @param {Object} parentFragment - The parent fragment to create a variation from
+     * @param {string} targetLocale - Target locale for the variation (e.g., 'en_GB')
+     * @returns {Promise<Object>} The newly created empty variation fragment
+     */
+    async createEmptyVariation(parentFragment, targetLocale) {
+        this.validateFragmentForCopy(parentFragment);
+
+        const parentPath = parentFragment.path;
+        const pathParts = parentPath.split('/');
+        const fragmentName = pathParts.pop();
+
+        const sourceLocaleIndex = pathParts.findIndex((part) => /^[a-z]{2}_[A-Z]{2}$/.test(part));
+        if (sourceLocaleIndex === -1) {
+            throw new Error('Could not determine source locale from parent path');
+        }
+
+        pathParts[sourceLocaleIndex] = targetLocale;
+        const targetFolder = pathParts.join('/');
+
+        await this.ensureFolderExists(targetFolder);
+
+        // Check if variation already exists - fail if it does
+        const targetPath = `${targetFolder}/${fragmentName}`;
+        const existingFragment = await this.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        if (existingFragment) {
+            throw new Error(`A variation already exists at ${targetPath}`);
+        }
+
+        const variationData = {
+            title: parentFragment.title,
+            description: parentFragment.description,
+            modelId: parentFragment.model.id,
+            parentPath: targetFolder,
+            name: fragmentName,
+            fields: [],
+        };
+
+        const response = await fetch(this.cfFragmentsUrl, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(variationData),
+        }).catch((err) => {
+            throw new Error(`Network error: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Failed to create variation: ${response.status} ${errorText}`);
+        }
+
+        const newFragment = await this.getFragment(response);
+        await this.wait(COPY_WAIT_TIME);
+
+        if (parentFragment.tags?.length) {
+            await this.copyFragmentTags(newFragment, parentFragment.tags);
+        }
+
+        return this.pollCreatedFragment(newFragment);
+    }
+
+    /**
+     * Updates the parent fragment's variations field to include a new variation path.
+     * @param {Object} parentFragment - The parent fragment to update
+     * @param {string} variationPath - The path of the variation to add
+     * @returns {Promise<Object>} The updated parent fragment
+     */
+    async updateParentVariations(parentFragment, variationPath) {
+        const variationsField = parentFragment.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+
+        if (currentVariations.includes(variationPath)) {
+            return parentFragment;
+        }
+
+        const updatedVariations = [...currentVariations, variationPath];
+
+        const latestParent = await this.getFragmentWithEtag(parentFragment.id);
+        if (!latestParent) {
+            throw new Error('Failed to retrieve parent fragment for update');
+        }
+
+        const updatedFields = latestParent.fields.map((field) => {
+            if (field.name === 'variations') {
+                return { ...field, values: updatedVariations };
+            }
+            return field;
+        });
+
+        if (!variationsField) {
+            updatedFields.push({
+                name: 'variations',
+                type: 'content-fragment',
+                multiple: true,
+                values: updatedVariations,
+            });
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${parentFragment.id}`, {
+            method: 'PUT',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+                'If-Match': latestParent.etag,
+            },
+            body: JSON.stringify({
+                title: latestParent.title,
+                description: latestParent.description,
+                fields: updatedFields,
+            }),
+        }).catch((err) => {
+            throw new Error(`Network error: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to update parent variations: ${response.status} ${response.statusText}`);
+        }
+
+        return this.pollUpdatedFragment(latestParent);
+    }
+
+    async removeFromParentVariations(parentFragment, variationPath) {
+        const latestParent = await this.getFragmentWithEtag(parentFragment.id);
+        if (!latestParent) {
+            throw new Error('Failed to retrieve parent fragment for update');
+        }
+
+        const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+
+        if (!currentVariations.includes(variationPath)) {
+            return latestParent;
+        }
+
+        const updatedVariations = currentVariations.filter((v) => v !== variationPath);
+
+        const updatedFields = latestParent.fields.map((field) => {
+            if (field.name === 'variations') {
+                return { ...field, values: updatedVariations };
+            }
+            return field;
+        });
+
+        return this.saveFragment({ ...latestParent, fields: updatedFields });
+    }
+
+    /**
+     * Finds all locale variations of a fragment by searching for fragments with the same name
+     * across different locale folders in the same repository.
+     * @param {Object} fragment - The parent fragment to find variations for
+     * @returns {Promise<Array<{id: string, path: string}>>} Array of variation fragment info
+     */
+    async findVariationsByName(fragment) {
+        const pathParts = fragment.path.split('/');
+        const fragmentName = pathParts.pop();
+        const localeIndex = pathParts.findIndex((part) => /^[a-z]{2}_[A-Z]{2}$/.test(part));
+
+        if (localeIndex === -1) {
+            return [];
+        }
+
+        const repoPath = pathParts.slice(0, localeIndex).join('/');
+
+        const searchQuery = {
+            filter: {
+                path: repoPath,
+                fullText: {
+                    text: fragmentName,
+                    queryMode: 'EXACT_WORDS',
+                },
+            },
+        };
+
+        const params = new URLSearchParams({
+            query: JSON.stringify(searchQuery),
+        });
+
+        const variations = [];
+        let cursor;
+
+        do {
+            if (cursor) {
+                params.set('cursor', cursor);
+            }
+
+            const response = await fetch(`${this.cfSearchUrl}?${params.toString()}`, {
+                headers: this.headers,
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to search for variations: ${response.status}`);
+                return [];
+            }
+
+            const result = await response.json();
+            cursor = result.cursor;
+
+            for (const item of result.items || []) {
+                const itemName = item.path.split('/').pop();
+                if (itemName === fragmentName && item.id !== fragment.id) {
+                    variations.push({ id: item.id, path: item.path });
+                }
+            }
+        } while (cursor);
+
+        return variations;
+    }
+
     async listFolders(path) {
         const name = path?.replace(/^\/content\/dam/, '');
         const response = await fetch(
@@ -669,8 +968,8 @@ class AEM {
                 headers: this.headers,
             },
         ).catch((error) => console.error('Error:', error));
-        if (!response.ok) {
-            throw new Error(`Failed to list folders: ${response.status} ${response.statusText}`);
+        if (!response?.ok) {
+            throw new Error(`Failed to list folders: ${response?.status} ${response?.statusText}`);
         }
         const result = await response.json();
         return {
@@ -684,6 +983,48 @@ class AEM {
         };
     }
 
+    async createFolder(parentPath, name, title = name) {
+        const payload = [
+            {
+                path: `${parentPath}/${name}`,
+                title,
+            },
+        ];
+        const response = await fetch(`${this.baseUrl}/adobe/folders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                Authorization: this.headers.Authorization,
+                'cache-control': 'no-cache',
+                'x-api-key': 'mas-studio',
+            },
+            body: JSON.stringify(payload),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (response.status === 409) {
+            return null;
+        }
+
+        if (!response.ok) {
+            let detail;
+            try {
+                const errorData = await response.json();
+                detail = errorData?.detail;
+                if (detail) throw new UserFriendlyError(detail);
+            } catch (parseError) {}
+            throw new Error(`Failed to create folder: ${response.status} ${response.statusText}`);
+        }
+
+        try {
+            return await response.json();
+        } catch (error) {
+            return null;
+        }
+    }
+
     async listTags(root) {
         const response = await fetch(
             `${this.baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1`,
@@ -692,8 +1033,8 @@ class AEM {
                 headers: this.headers,
             },
         ).catch((error) => console.error('Error:', error));
-        if (!response.ok) {
-            throw new Error(`Failed to list tags: ${response.status} ${response.statusText}`);
+        if (!response?.ok) {
+            throw new Error(`Failed to list tags: ${response?.status} ${response?.statusText}`);
         }
         return response.json();
     }
@@ -724,6 +1065,126 @@ class AEM {
         }
 
         return await this.getFragment(response);
+    }
+
+    /**
+     * Get fragment versions following Adobe AEM API specification
+     * @param {string} id - Fragment ID
+     * @param {Object} options - Query options
+     * @param {number} [options.limit] - Maximum number of versions to return
+     * @param {number} [options.offset] - Number of versions to skip
+     * @param {string} [options.sort] - Sort order (e.g., 'created:desc')
+     * @returns {Promise<Object>} Versions response with items array
+     */
+    async getFragmentVersions(id, options = { limit: 50, sort: 'created:desc' }) {
+        if (!id) {
+            throw new Error('Fragment ID is required');
+        }
+
+        const queryParams = new URLSearchParams();
+        if (options.limit) queryParams.append('limit', options.limit);
+        if (options.offset) queryParams.append('offset', options.offset);
+        if (options.sort) queryParams.append('sort', options.sort);
+
+        const url = `${this.cfFragmentsUrl}/${id}/versions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get fragment versions: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Get a specific fragment version by version ID
+     * @param {string} fragmentId - Fragment ID
+     * @param {string} versionId - Version ID
+     * @returns {Promise<Object>} Version data
+     */
+    async getFragmentVersion(fragmentId, versionId) {
+        if (!fragmentId || !versionId) {
+            throw new Error('Fragment ID and Version ID are required');
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/${versionId}`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get fragment version: ${response.status} ${response.statusText}`);
+        }
+
+        return await this.getFragment(response);
+    }
+
+    /**
+     * Create a new version of a fragment
+     * @param {string} id - Fragment ID
+     * @param {Object} versionData - Version data
+     * @param {string} [versionData.label] - Version label
+     * @param {string} [versionData.comment] - Version comment
+     * @returns {Promise<Object>} Created version
+     */
+    async createFragmentVersion(id, versionData = {}) {
+        if (!id) {
+            throw new Error('Fragment ID is required');
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}/versions`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(versionData),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to create fragment version: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Update version metadata (title and comment)
+     * @param {string} fragmentId - Fragment ID
+     * @param {string} versionId - Version ID
+     * @param {Object} versionData - Updated version data (title, comment)
+     * @returns {Promise<Object>} the updated version
+     */
+    async updateFragmentVersion(fragmentId, versionId, versionData = {}) {
+        if (!fragmentId || !versionId) {
+            throw new Error('Fragment ID and Version ID are required');
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/${versionId}`, {
+            method: 'PUT',
+            headers: {
+                ...this.headers,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(versionData),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to update fragment version: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
     }
 
     sites = {
@@ -762,13 +1223,57 @@ class AEM {
                  */
                 publish: this.publishFragment.bind(this),
                 /**
+                 * @see AEM#publishFragments
+                 */
+                publishFragments: this.publishFragments.bind(this),
+                /**
                  * @see AEM#deleteFragment
                  */
                 delete: this.deleteFragment.bind(this),
                 /**
+                 * @see AEM#forceDeleteFragment
+                 */
+                forceDelete: this.forceDeleteFragment.bind(this),
+                /**
+                 * @see AEM#getFragmentVersions
+                 */
+                getVersions: this.getFragmentVersions.bind(this),
+                /**
+                 * @see AEM#getFragmentVersion
+                 */
+                getVersion: this.getFragmentVersion.bind(this),
+                /**
+                 * @see AEM#createFragmentVersion
+                 */
+                createVersion: this.createFragmentVersion.bind(this),
+                /**
+                 * @see AEM#updateFragmentVersion
+                 */
+                updateVersion: this.updateFragmentVersion.bind(this),
+                /**
                  * @see AEM#copyToFolder
                  */
                 copyToFolder: this.copyToFolder.bind(this),
+                /**
+                 * @see AEM#ensureFolderExists
+                 */
+                ensureFolderExists: this.ensureFolderExists.bind(this),
+                /**
+                 * @see AEM#copyFragmentTags
+                 */
+                copyFragmentTags: this.copyFragmentTags.bind(this),
+                /**
+                 * @see AEM#pollCreatedFragment
+                 */
+                pollCreatedFragment: this.pollCreatedFragment.bind(this),
+                /**
+                 * @see AEM#pollUpdatedFragment
+                 */
+                pollUpdatedFragment: this.pollUpdatedFragment.bind(this),
+                /**
+                 * @see AEM#findVariationsByName
+                 */
+                findVariationsByName: this.findVariationsByName.bind(this),
             },
         },
     };
@@ -783,6 +1288,10 @@ class AEM {
          * @see AEM#listFolders
          */
         list: this.listFolders.bind(this),
+        /**
+         * @see AEM#createFolder
+         */
+        create: this.createFolder.bind(this),
     };
 }
 

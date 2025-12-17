@@ -159,7 +159,7 @@ class AemTagPickerField extends LitElement {
         this.searchQuery = '';
     }
 
-    _onOstSelect = ({ detail: { offer } }) => {
+    #onOstSelect = ({ detail: { offer } }) => {
         if (!offer) return;
         const extractedOffer = {
             offer_type: offer.offer_type,
@@ -206,13 +206,13 @@ class AemTagPickerField extends LitElement {
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
         if (!this.top) {
-            document.addEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+            document.addEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
         }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        document.removeEventListener(EVENT_OST_OFFER_SELECT, this._onOstSelect);
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
     }
 
     get #tagsRoot() {
@@ -362,7 +362,7 @@ class AemTagPickerField extends LitElement {
                 <sp-sidenav-item label="${label}" value="${value}">
                     ${hasChildren ? this.renderSidenavItems(item.__children__, value) : nothing}
                     ${hasChildren
-                        ? html`<sp-icon-labels slot="icon"></sp-icon-labels>`
+                        ? html`<sp-icon-add slot="icon"></sp-icon-add>`
                         : html`<sp-icon-label slot="icon"></sp-icon-label>`}
                 </sp-sidenav-item>
             `;
@@ -507,7 +507,7 @@ class AemTagPickerField extends LitElement {
      * - The list of sp-checkbox is scrollable if too large.
      * - The footer shows # selected, plus Reset/Apply.
      */
-    renderCheckboxMode() {
+    get checkboxMode() {
         const selectCount = this.value.length > 0 ? html`(${this.value.length})` : '';
         return html`
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
@@ -523,7 +523,7 @@ class AemTagPickerField extends LitElement {
 
     render() {
         if (this.selection === 'checkbox') {
-            return this.renderCheckboxMode();
+            return this.checkboxMode;
         }
         if (!this.ready) return nothing;
         return html`
@@ -531,7 +531,7 @@ class AemTagPickerField extends LitElement {
                 <overlay-trigger placement="bottom">
                     <sp-action-button slot="trigger">
                         ${this.triggerLabel}
-                        <sp-icon-labels slot="icon"></sp-icon-labels>
+                        <sp-icon-add slot="icon"></sp-icon-add>
                     </sp-action-button>
                     <sp-popover slot="click-content">
                         <sp-dialog size="s" no-divider>

@@ -20,6 +20,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-promoted-plans');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Enter long string in title field', async () => {
@@ -55,17 +56,20 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         });
 
         await test.step('step-2: Open card editor', async () => {
-            await expect(promotedPlansCard).toBeVisible();
-            await expect(promotedPlansCard).toHaveAttribute('variant', 'ah-promoted-plans');
+            await expect(await promotedPlansCard).toBeVisible();
+            await expect(await promotedPlansCard).toHaveAttribute('variant', 'ah-promoted-plans');
             await promotedPlansCard.dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await promotedPlansCard).toBeVisible();
         });
 
         await test.step('step-3: Edit border color field', async () => {
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.borderColor).toContainText(data.standardBorder.color);
             await expect(promotedPlansCard).toHaveAttribute('border-color', data.standardBorder.cssColor);
+            await editor.borderColor.scrollIntoViewIfNeeded();
             await editor.borderColor.click();
+            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
             await page.waitForSelector(`sp-menu-item[value="${data.gradientBorder.value}"]`, {
                 state: 'visible',
             });
@@ -104,6 +108,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-promoted-plans');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Update description field', async () => {
@@ -142,6 +147,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-promoted-plans');
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
         await test.step('step-3: Edit analytics IDs', async () => {

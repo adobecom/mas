@@ -80,6 +80,7 @@ export default class MasFragmentEditor extends LitElement {
             margin: 0 auto;
             border-radius: 12px;
             box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+            overflow-y: auto;
         }
 
         @media (max-width: 1200px) {

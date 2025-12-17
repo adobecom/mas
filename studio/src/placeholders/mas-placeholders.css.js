@@ -34,8 +34,8 @@ export const styles = css`
 
     .placeholders-title {
         display: flex;
-        justify-content: flex-start;
-        align-items: center;
+        flex-direction: column;
+        gap: 4px;
     }
 
     .placeholders-title h2 {

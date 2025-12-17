@@ -84,6 +84,9 @@ class MasTopNav extends LitElement {
         super();
         this.aemEnv = 'prod';
         this.showPickers = true;
+        Store.search.subscribe(() => {
+            this.requestUpdate();
+        });
     }
 
     get envIndicator() {

@@ -1,11 +1,20 @@
 import { html, css, LitElement } from 'lit';
 import Store from './store.js';
-import { getDefaultLocales, getRegionLocales, getLocaleByCode, getLanguageName } from './locales.js';
+import {
+    getDefaultLocales,
+    getRegionLocales,
+    getLocaleByCode,
+    getLanguageName,
+    getLocaleCode,
+    getCountryName,
+    getCountryFlag,
+} from './locales.js';
 
 export class MasLocalePicker extends LitElement {
     static properties = {
         disabled: { type: Boolean },
         displayMode: { type: String }, // can be 'strong' or 'light' which is default
+        label: { type: String },
         locale: { type: String, reflect: true },
         mode: { type: String }, //can be 'region' or 'language'
         searchDisabled: { type: Boolean },
@@ -15,9 +24,22 @@ export class MasLocalePicker extends LitElement {
     };
 
     static styles = css`
-        :host {
-            --mod-actionbutton-border-color-default: transparent;
+        sp-label {
+            font-weight: 600;
+            padding-right: 8px;
+            vertical-align: middle;
         }
+
+        sp-action-menu > .locale-label {
+            font-weight: bold;
+        }
+
+        .chevron {
+            vertical-align: middle;
+            margin-left: 6px;
+            margin-top: -3px;
+        }
+
         :host(.strong) {
             --mod-actionbutton-min-width: auto;
             --mod-actionbutton-background-color-default: var(--spectrum-gray-800, #292929);
@@ -149,13 +171,15 @@ export class MasLocalePicker extends LitElement {
             return this.getLocales();
         }
 
-        return this.getLocales().filter(({ code, name, lang }) => {
+        return this.getLocales().filter(({ lang, country }) => {
             const searchLower = this.searchQuery;
+            const code = `${lang}_${country}`;
             const languageName = getLanguageName(lang);
+            const countryName = getCountryName(country);
             return (
                 code.toLowerCase().includes(searchLower) ||
-                name.toLowerCase().includes(searchLower) ||
-                languageName.toLowerCase().includes(searchLower)
+                languageName.toLowerCase().includes(searchLower) ||
+                countryName.toLowerCase().includes(searchLower)
             );
         });
     }
@@ -177,14 +201,15 @@ export class MasLocalePicker extends LitElement {
     }
 
     renderMenuItem(locale) {
-        const { code, flag, lang, name } = locale;
+        const { lang, country } = locale;
+        const code = getLocaleCode(locale);
         return html`
             <sp-menu-item .value=${code} ?selected=${this.locale === code} @click=${() => this.handleLocaleChange(code)}>
                 <div class="locale-label">
-                    <span class="flag">${flag}</span>
+                    <span class="flag">${getCountryFlag(country)}</span>
                     ${this.mode === 'region'
-                        ? html`<span>${name}</span>`
-                        : html`<span>${getLanguageName(lang)} (${code.substring(3)})</span>`}
+                        ? html`<span>${getCountryName(country)}</span>`
+                        : html`<span>${getLanguageName(lang)} (${country})</span>`}
                 </div>
             </sp-menu-item>
         `;
@@ -192,14 +217,16 @@ export class MasLocalePicker extends LitElement {
 
     render() {
         const currentLocale = this.currentLocale;
+        const code = getLocaleCode(currentLocale);
         return html`
-            <sp-action-menu size="m" value=${currentLocale.code} ?disabled=${this.disabled}>
-                <sp-icon-chevron-down dir="ltr" class="chevron" slot="icon"></sp-icon-chevron-down>
+            ${this.label ? html`<sp-label>${this.label}</sp-label>` : ''}
+            <sp-action-menu>
                 ${this.displayMode === 'strong'
                     ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
                     : ''}
                 <span slot="label" class="locale-label">
-                    <span>${currentLocale.lang.toUpperCase()} (${currentLocale.code.substring(3)})</span>
+                    <span>${currentLocale.lang.toUpperCase()} (${currentLocale.country})</span>
+                    <sp-icon-chevron-down class="chevron"></sp-icon-chevron-down>
                 </span>
                 <sp-menu size="m">
                     ${this.searchField} ${this.getFilteredLocales().map((locale) => this.renderMenuItem(locale))}

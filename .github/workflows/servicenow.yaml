@@ -19,15 +19,15 @@ permissions:
   contents: read
 
 env:
-  ENVIRONMENT: prod  # Set to "stage" or "prod"
+  ENVIRONMENT: stage  # Set to "stage" or "prod"
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   IMSACCESS_CLIENT_ID: ${{ secrets.IMSACCESS_CLIENT_ID }}
-  # IMSACCESS_CLIENT_SECRET: ${{ secrets.IMSACCESS_CLIENT_SECRET_STAGE }}
-  # IMSACCESS_AUTH_CODE: ${{ secrets.IMSACCESS_AUTH_CODE_STAGE }}
-  # IPAAS_KEY: ${{ secrets.IPAAS_KEY_STAGE }}
-  IMSACCESS_CLIENT_SECRET: ${{ secrets.IMSACCESS_CLIENT_SECRET_PROD }}
-  IMSACCESS_AUTH_CODE: ${{ secrets.IMSACCESS_AUTH_CODE_PROD }}
-  IPAAS_KEY: ${{ secrets.IPAAS_KEY_PROD }}
+  IMSACCESS_CLIENT_SECRET: ${{ secrets.IMSACCESS_CLIENT_SECRET_STAGE }}
+  IMSACCESS_AUTH_CODE: ${{ secrets.IMSACCESS_AUTH_CODE_STAGE }}
+  IPAAS_KEY: ${{ secrets.IPAAS_KEY_STAGE }}
+  # IMSACCESS_CLIENT_SECRET: ${{ secrets.IMSACCESS_CLIENT_SECRET_PROD }}
+  # IMSACCESS_AUTH_CODE: ${{ secrets.IMSACCESS_AUTH_CODE_PROD }}
+  # IPAAS_KEY: ${{ secrets.IPAAS_KEY_PROD }}
   SLACK_WEBHOOK_URL: ${{ secrets.MAS_RELEASE_SLACK_WH }}
   PR_TITLE: ${{ github.event.pull_request.title }}
   PR_BODY: ${{ github.event.pull_request.body }}
@@ -36,10 +36,10 @@ env:
   PR_MERGED_AT: ${{ github.event.pull_request.merged_at }}
   PR_LINK: ${{ github.event.pull_request.html_url }}
   PR_STATE: ${{ github.event.pull_request.state }}
-  SNOW_INSTANCE_ID_IO: ${{ secrets.SNOW_INSTANCE_ID_IO }}
-  SNOW_INSTANCE_ID_STUDIO: ${{ secrets.SNOW_INSTANCE_ID_STUDIO }}
-  #SNOW_INSTANCE_ID_IO: ${{ secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY }}
-  #SNOW_INSTANCE_ID_STUDIO: ${{ secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY }}
+  # SNOW_INSTANCE_ID_IO: ${{ secrets.SNOW_INSTANCE_ID_IO }}
+  # SNOW_INSTANCE_ID_STUDIO: ${{ secrets.SNOW_INSTANCE_ID_STUDIO }}
+  SNOW_INSTANCE_ID_IO: ${{ secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY }}
+  SNOW_INSTANCE_ID_STUDIO: ${{ secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY }}
 
 jobs:
   # Detect which paths have changed in the PR
@@ -122,8 +122,8 @@ jobs:
       id: create-close-cmr-step
       env:
         RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
-        SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.SNOW_INSTANCE_ID_IO, secrets.SNOW_INSTANCE_ID_STUDIO) || needs.detect-changes.outputs.changed_path == 'io' && secrets.SNOW_INSTANCE_ID_IO || secrets.SNOW_INSTANCE_ID_STUDIO) || '' }}
-        #SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY, secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY) || needs.detect-changes.outputs.changed_path == 'io' && secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY || secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY) || '' }}
+        #SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.SNOW_INSTANCE_ID_IO, secrets.SNOW_INSTANCE_ID_STUDIO) || needs.detect-changes.outputs.changed_path == 'io' && secrets.SNOW_INSTANCE_ID_IO || secrets.SNOW_INSTANCE_ID_STUDIO) || '' }}
+        SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY, secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY) || needs.detect-changes.outputs.changed_path == 'io' && secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY || secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY) || '' }}
       run: |
         python ./.github/workflows/servicenow.py
 

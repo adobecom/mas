@@ -2,6 +2,8 @@ const ALL_SURFACES = 'all';
 
 const ACOM_SURFACES = ['acom', 'nala', 'sandbox'];
 
+const ALL_NO_EXPRESS_SURFACES = ['acom', 'ccd', 'adobe-home', 'nala', 'sandbox'];
+
 const LOCALES = [
     { code: 'ar_AE', lang: 'ar', flag: '🇦🇪', name: 'United Arab Emirates', region: 'ALL_SURFACES' },
     { code: 'ar_EG', lang: 'ar', flag: '🇪🇬', name: 'Egypt', region: ALL_SURFACES },
@@ -9,7 +11,7 @@ const LOCALES = [
     { code: 'ar_QA', lang: 'ar', flag: '🇶🇦', name: 'Qatar', region: ALL_SURFACES },
     { code: 'ar_SA', lang: 'ar', flag: '🇸🇦', name: 'Saudi Arabia', default: ACOM_SURFACES },
     { code: 'bg_BG', lang: 'bg', flag: '🇧🇬', name: 'Bulgaria', default: ACOM_SURFACES },
-    { code: 'cs_CZ', lang: 'cs', flag: '🇨🇿', name: 'Czech Republic', default: ALL_SURFACES },
+    { code: 'cs_CZ', lang: 'cs', flag: '🇨🇿', name: 'Czech Republic', default: ALL_NO_EXPRESS_SURFACES },
     { code: 'da_DK', lang: 'da', flag: '🇩🇰', name: 'Denmark', default: ALL_SURFACES },
     { code: 'de_AT', lang: 'de', flag: '🇦🇹', name: 'Austria', region: ALL_SURFACES },
     { code: 'de_CH', lang: 'de', flag: '🇨🇭', name: 'Switzerland (German)', region: ALL_SURFACES },
@@ -62,7 +64,7 @@ const LOCALES = [
     { code: 'fr_LU', lang: 'fr', flag: '🇱🇺', name: 'Luxembourg (French)', region: ALL_SURFACES },
     { code: 'he_IL', lang: 'he', flag: '🇮🇱', name: 'Israel', default: ACOM_SURFACES },
     { code: 'hi_IN', lang: 'hi', flag: '🇮🇳', name: 'India (Hindi)', default: ['acom', 'ccd', 'nala', 'sandbox'] },
-    { code: 'hu_HU', lang: 'hu', flag: '🇭🇺', name: 'Hungary', default: ALL_SURFACES },
+    { code: 'hu_HU', lang: 'hu', flag: '🇭🇺', name: 'Hungary', default: ALL_NO_EXPRESS_SURFACES },
     { code: 'id_ID', lang: 'id', flag: '🇮🇩', name: 'Indonesia', default: ALL_SURFACES },
     { code: 'it_CH', lang: 'it', flag: '🇨🇭', name: 'Switzerland (Italian)', region: ALL_SURFACES },
     { code: 'it_IT', lang: 'it', flag: '🇮🇹', name: 'Italy', default: ALL_SURFACES },
@@ -74,18 +76,18 @@ const LOCALES = [
     { code: 'nb_NO', lang: 'nb', flag: '🇳🇴', name: 'Norway', default: ALL_SURFACES },
     { code: 'nl_BE', lang: 'nl', flag: '🇧🇪', name: 'Belgium (Dutch)', region: ALL_SURFACES },
     { code: 'nl_NL', lang: 'nl', flag: '🇳🇱', name: 'Netherlands', default: ALL_SURFACES },
-    { code: 'pl_PL', lang: 'pl', flag: '🇵🇱', name: 'Poland', default: ALL_SURFACES },
+    { code: 'pl_PL', lang: 'pl', flag: '🇵🇱', name: 'Poland', default: ALL_NO_EXPRESS_SURFACES },
     { code: 'pt_BR', lang: 'pt', flag: '🇧🇷', name: 'Brazil', default: ['express', 'ccd', 'adobe-home'], region: ACOM_SURFACES },
     { code: 'pt_PT', lang: 'pt', flag: '🇵🇹', name: 'Portugal', default: ACOM_SURFACES },
     { code: 'ro_RO', lang: 'ro', flag: '🇷🇴', name: 'Romania', default: ACOM_SURFACES },
-    { code: 'ru_RU', lang: 'ru', flag: '🇷🇺', name: 'Russia', default: ALL_SURFACES },
+    { code: 'ru_RU', lang: 'ru', flag: '🇷🇺', name: 'Russia', default: ALL_NO_EXPRESS_SURFACES },
     { code: 'sk_SK', lang: 'sk', flag: '🇸🇰', name: 'Slovakia', default: ACOM_SURFACES },
     { code: 'sl_SI', lang: 'sl', flag: '🇸🇮', name: 'Slovenia', default: ACOM_SURFACES },
     { code: 'sv_SE', lang: 'sv', flag: '🇸🇪', name: 'Sweden', default: ALL_SURFACES },
-    { code: 'th_TH', lang: 'th', flag: '🇹🇭', name: 'Thailand', default: ALL_SURFACES },
-    { code: 'tr_TR', lang: 'tr', flag: '🇹🇷', name: 'Türkiye', default: ALL_SURFACES },
-    { code: 'uk_UA', lang: 'uk', flag: '🇺🇦', name: 'Ukraine', default: ALL_SURFACES },
-    { code: 'vi_VN', lang: 'vi', flag: '🇻🇳', name: 'Vietnam', default: ALL_SURFACES },
+    { code: 'th_TH', lang: 'th', flag: '🇹🇭', name: 'Thailand', default: ALL_NO_EXPRESS_SURFACES },
+    { code: 'tr_TR', lang: 'tr', flag: '🇹🇷', name: 'Türkiye', default: ALL_NO_EXPRESS_SURFACES },
+    { code: 'uk_UA', lang: 'uk', flag: '🇺🇦', name: 'Ukraine', default: ALL_NO_EXPRESS_SURFACES },
+    { code: 'vi_VN', lang: 'vi', flag: '🇻🇳', name: 'Vietnam', default: ALL_NO_EXPRESS_SURFACES },
     { code: 'zh_CN', lang: 'zh', flag: '🇨🇳', name: 'China (Simplified)', default: ALL_SURFACES },
     { code: 'zh_HK', lang: 'zh', flag: '🇭🇰', name: 'Hong Kong', default: ACOM_SURFACES },
     { code: 'zh_TW', lang: 'zh', flag: '🇹🇼', name: 'Taiwan', default: ALL_SURFACES },

@@ -124,28 +124,20 @@ runTests(async () => {
             it('should filter by express surface', async function () {
                 const locales = getDefaultLocales('express');
                 expect(locales.map((loc) => loc.code)).to.deep.equal([
-                    'cs_CZ',
                     'da_DK',
                     'de_DE',
                     'en_US',
                     'es_ES',
                     'fi_FI',
                     'fr_FR',
-                    'hu_HU',
                     'id_ID',
                     'it_IT',
                     'ja_JP',
                     'ko_KR',
                     'nb_NO',
                     'nl_NL',
-                    'pl_PL',
                     'pt_BR',
-                    'ru_RU',
                     'sv_SE',
-                    'th_TH',
-                    'tr_TR',
-                    'uk_UA',
-                    'vi_VN',
                     'zh_CN',
                     'zh_TW',
                 ]);

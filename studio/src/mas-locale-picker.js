@@ -220,7 +220,7 @@ export class MasLocalePicker extends LitElement {
         const code = getLocaleCode(currentLocale);
         return html`
             ${this.label ? html`<sp-label>${this.label}</sp-label>` : ''}
-            <sp-action-menu>
+            <sp-action-menu disabled=${this.disabled}>
                 ${this.displayMode === 'strong'
                     ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
                     : ''}

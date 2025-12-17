@@ -40,13 +40,14 @@ describe('Mnemonic field', () => {
         expect(iconImg.src).to.include('creative-cloud.svg');
     });
 
-    it('should open modal when edit button is clicked', async () => {
+    it('should open modal when edit is selected from menu', async () => {
         const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
 
-        const editButton = el.shadowRoot.querySelector('.edit-button');
-        expect(editButton).to.exist;
+        const actionMenu = el.shadowRoot.querySelector('sp-action-menu');
+        expect(actionMenu).to.exist;
 
-        editButton.click();
+        actionMenu.value = 'edit';
+        actionMenu.dispatchEvent(new Event('change', { bubbles: true }));
         await el.updateComplete;
 
         expect(el.modalOpen).to.be.true;

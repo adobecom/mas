@@ -1,5 +1,8 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
+import { EditorContextStore } from './reactivity/editor-context-store.js';
+
+let editorContextInstance = null;
 
 // Store definition with default values - no URL parsing here
 const Store = {
@@ -16,6 +19,15 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
     },
+    fragmentEditor: {
+        fragmentId: new ReactiveStore(null),
+        get editorContext() {
+            if (!editorContextInstance) {
+                editorContextInstance = new EditorContextStore(null);
+            }
+            return editorContextInstance;
+        },
+    },
     operation: new ReactiveStore(),
     editor: {
         get hasChanges() {
@@ -30,6 +42,7 @@ const Store = {
     filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
     sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
+    viewMode: new ReactiveStore('default'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
@@ -56,6 +69,22 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    promotions: {
+        list: {
+            loading: new ReactiveStore(true),
+            data: new ReactiveStore([]),
+            filter: new ReactiveStore('scheduled'),
+            filterOptions: new ReactiveStore([
+                { value: 'all', label: 'All' },
+                { value: 'active', label: 'Active' },
+                { value: 'scheduled', label: 'Scheduled' },
+                { value: 'expired', label: 'Expired' },
+                { value: 'archived', label: 'Archived' },
+            ]),
+        },
+        inEdit: new ReactiveStore(null),
+        promotionId: new ReactiveStore(null),
+    },
 };
 
 // #region Validators
@@ -84,7 +113,14 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
-    const validPages = [PAGE_NAMES.WELCOME, PAGE_NAMES.CONTENT, PAGE_NAMES.PLACEHOLDERS];
+    const validPages = [
+        PAGE_NAMES.WELCOME,
+        PAGE_NAMES.CONTENT,
+        PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.FRAGMENT_EDITOR,
+        PAGE_NAMES.PROMOTIONS,
+        PAGE_NAMES.PROMOTIONS_EDITOR,
+    ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
 
@@ -123,8 +159,6 @@ function previewValidator(value) {
 
 // #endregion
 
-const editorPanel = () => document.querySelector('editor-panel');
-
 /**
  * Toggle selection of a fragment
  */
@@ -138,10 +172,18 @@ export function toggleSelection(id) {
  * Edit a fragment in the editor panel
  */
 export function editFragment(store, x = 0) {
-    if (!Store.fragments.list.data.get().includes(store)) {
+    const fragmentId = store.get().id;
+    const storeFragments = Store.fragments.list.data.get();
+    const defaultInStore = storeFragments.includes(store);
+    const variationInStore = storeFragments.find((s) => s.get().references?.find((r) => r.id === fragmentId));
+    if (!defaultInStore && !variationInStore) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }
     editorPanel()?.editFragment(store, x);
+}
+
+function editorPanel() {
+    return document.querySelector('editor-panel');
 }
 
 export default Store;
@@ -159,6 +201,12 @@ Store.placeholders.preview.subscribe(() => {
     }
     if (Store.page.value === PAGE_NAMES.WELCOME) {
         for (const fragmentStore of Store.fragments.recentlyUpdated.data.value) {
+            fragmentStore.resolvePreviewFragment();
+        }
+    }
+    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+        const fragmentStore = Store.fragments.inEdit.get();
+        if (fragmentStore) {
             fragmentStore.resolvePreviewFragment();
         }
     }

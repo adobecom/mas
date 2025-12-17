@@ -1,6 +1,7 @@
 export default class OSTPage {
     constructor(page) {
         this.page = page.locator('[data-testid="modal"]');
+        this.popup = page.locator('[data-testid="popover"]');
 
         // OST panel
         this.searchField = this.page.locator('//input[contains(@data-testid,"search")]');
@@ -8,7 +9,7 @@ export default class OSTPage {
         this.planType = this.page.locator(
             '//button/span[contains(@class, "spectrum-Dropdown-label") and (.//ancestor::div/span[contains(text(),"plan type")])]',
         );
-        this.planTypeABM = this.page.locator('//div[@role="listbox"]//span[text()="ABM"]');
+        this.planTypeABM = this.popup.locator('//div[@role="listbox"]//span[text()="ABM"]');
         this.offerType = this.page.locator(
             '//button/span[contains(@class, "spectrum-Dropdown-label") and (.//ancestor::div/span[contains(text(),"offer type")])]',
         );
@@ -36,8 +37,8 @@ export default class OSTPage {
         this.legalDisclaimerUse = this.page.locator('button:near(:text("Legal disclaimer"))').first();
         this.checkoutTab = this.page.locator('//div[@data-key="checkout"]');
         this.checkoutLink = this.page.locator('//a[@is="checkout-link"]');
-        this.workflowMenu = this.page.locator('button:near(label:text("Workflow"))').first();
-        this.ctaTextMenu = this.page.locator('button:near(label:text("Cta text"))').first();
+        this.workflowMenu = this.page.locator('button:near(:text("Workflow"))').first();
+        this.ctaTextMenu = this.page.locator('button:near(:text("Cta text"))').first();
         this.promoField = this.page.locator('//input[contains(@class, "spectrum-Textfield-input")]');
         this.promoLabel = this.page.locator('//span[contains(@class, "spectrum-Badge-label")]');
         this.checkoutLinkUse = this.page.locator('button:near(h4:text("Checkout URL"))').first();

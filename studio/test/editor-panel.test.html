@@ -3,6 +3,28 @@
     <head>
         <script type="module">
             window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+
+            // Set up fetch mock before any components are loaded
+            const originalFetch = window.fetch;
+            window.fetch = async function (args) {
+                try {
+                    const url = new URL(args);
+                    const { pathname, search } = url;
+                    const fullPath = pathname + search;
+
+                    if (/querybuilder\.json\?path=\/content\/cq:tags\/mas/.test(fullPath)) {
+                        return originalFetch('/test/mocks/tags.json');
+                    }
+                    if (/querybuilder\.json\?path=\/content\/dam\/mas/.test(fullPath)) {
+                        return originalFetch('/test/mocks/folders.json');
+                    }
+                    return originalFetch(...arguments);
+                } catch (e) {
+                    // If URL construction fails, just pass through to original fetch
+                    return originalFetch(...arguments);
+                }
+            };
         </script>
         <title>editor-panel custom element test page</title>
         <meta name="nofollow-links" content="on" />
@@ -26,7 +48,6 @@
                 height: initial;
             }
         </style>
-        <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
     </head>
     <body>
         <script type="module">
@@ -51,24 +72,7 @@
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
 
-                const originalFetch = window.fetch;
-                const fragmentData = await originalFetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) =>
-                    res.json(),
-                );
-
-                window.fetch = async function (args) {
-                    const { pathname } = new URL(args);
-                    if (/querybuilder.json?path=\/content\/cq:tags\/mas/.test(pathname)) {
-                        return originalFetch('/test/mocks/tags.json');
-                    }
-                    if (/querybuilder.json?path=\/content\/dam\/mas/.test(pathname)) {
-                        return originalFetch('/test/mocks/folders.json');
-                    }
-                    if (/querybuilder.json?path=\/content\/dam\/mas/.test(pathname)) {
-                        return originalFetch('/test/mocks/folders.json');
-                    }
-                    return originalFetch(...arguments);
-                };
+                const fragmentData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
 
                 describe('editor-panel custom element', () => {
                     let fragment;
@@ -80,6 +84,16 @@
                         editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
                         editorPanel.repository.aem.sites.cf.fragments.getVersions = async () => ({ items: [] });
                         await editorPanel.editFragment(fragmentStore);
+                        await editorPanel.updateComplete;
+                        const store = Store.fragments.inEdit.get();
+                        if (store) {
+                            const frag = store.get();
+                            if (frag) {
+                                frag.initialValue = structuredClone(frag);
+                                frag.hasChanges = false;
+                            }
+                            store.notify();
+                        }
                         await editorPanel.updateComplete;
                     });
 
@@ -191,6 +205,7 @@
                 });
             });
         </script>
+        <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
         <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
     </body>
 </html>

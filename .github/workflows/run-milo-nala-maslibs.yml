@@ -1,0 +1,117 @@
+name: Milo Commerce Tests with MasLibs
+
+on:
+    pull_request:
+        branches: [main]
+        types: [opened, synchronize, reopened]
+        paths:
+            - 'web-components/**'
+    push:
+        branches: [main]
+        paths:
+            - 'web-components/**'
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    run-milo-commerce-tests:
+        name: ${{ matrix.project == 'mas' && 'Running MAS (all browsers)' || format('Running on • {0} browser', matrix.browser) }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 18
+        env:
+            # Directly set base URL to Milo's main branch
+            PR_BRANCH_LIVE_URL: https://main--milo--adobecom.aem.live
+        strategy:
+            fail-fast: false
+            matrix:
+                node-version: [20.x]
+                project: [milo-live-chromium, milo-live-firefox, milo-live-webkit, mas]
+                include:
+                    - project: milo-live-chromium
+                      browser: chromium
+                    - project: milo-live-firefox
+                      browser: firefox
+                    - project: milo-live-webkit
+                      browser: webkit
+                    - project: mas
+                      browser: MAS (All Browsers)
+        steps:
+            - name: Checkout Milo repository
+              uses: actions/checkout@v4
+              with:
+                  repository: adobecom/milo
+                  ref: main
+                  fetch-depth: 2
+
+            - name: Determine MasLibs parameter
+              id: maslibs
+              run: |
+                  # Get current repository info for maslibs parameter (from mas repo)
+                  if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+                      BRANCH_NAME="${{ github.head_ref }}"
+                      REPO_OWNER="${{ github.event.pull_request.head.repo.owner.login }}"
+                  else
+                      BRANCH_NAME="${{ github.ref_name }}"
+                      REPO_OWNER="${{ github.repository_owner }}"
+                  fi
+
+                  # Format maslibs parameter
+                  MASLIBS_PARAM="?maslibs=${BRANCH_NAME}--mas--${REPO_OWNER}"
+                  echo "maslibs_param=${MASLIBS_PARAM}" >> $GITHUB_OUTPUT
+                  echo "MasLibs parameter: ${MASLIBS_PARAM}"
+
+            - name: Set up Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: npm
+                  cache-dependency-path: |
+                      **/package-lock.json
+                      **/yarn.lock
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Set execute permission for pr.run.sh
+              run: chmod +x ./nala/utils/pr.run.sh
+
+            - name: Patch global.setup.js to preserve PR_BRANCH_LIVE_URL if already set
+              run: |
+                  # Add early return at start of getGitHubPRBranchLiveUrl if PR_BRANCH_LIVE_URL is already set
+                  sed -i.bak "s/async function getGitHubPRBranchLiveUrl() {/async function getGitHubPRBranchLiveUrl() {\n  if (process.env.PR_BRANCH_LIVE_URL) { return; }/" nala/utils/global.setup.js
+                  echo "Patched global.setup.js to preserve existing PR_BRANCH_LIVE_URL"
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@v4
+              id: playwright-cache
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-milo-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
+                  restore-keys: |
+                      playwright-${{ runner.os }}-milo-
+                      playwright-${{ runner.os }}-
+
+            - name: Install Playwright browsers
+              if: steps.playwright-cache.outputs.cache-hit != 'true'
+              run: npx playwright install --with-deps
+
+            - name: Install Playwright system dependencies
+              if: steps.playwright-cache.outputs.cache-hit == 'true'
+              run: npx playwright install-deps
+
+            - name: Run Milo Commerce Tests
+              run: ./nala/utils/pr.run.sh
+              env:
+                  MAS_LIBS: ${{ steps.maslibs.outputs.maslibs_param }}
+                  PROJECT: ${{ matrix.project }}
+                  IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
+                  IMS_PASS: ${{ secrets.IMS_PASS }}
+                  labels: '@commerce'
+                  GITHUB_ACTION_PATH: ${{ github.workspace }}
+                  GITHUB_WORKSPACE: ${{ github.workspace }}

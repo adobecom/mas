@@ -53,7 +53,7 @@ const inputContent = fs.readFileSync(inputPath, 'utf8');
 
 // depending on surface, load either Milo consonant or Spectrum styles
 const styleDependecy = ['plans.md'].includes(sourceFile)
-    ? '<link rel="stylesheet" href="../../../styles/styles.css">'
+    ? '<link rel="stylesheet" href="../styles/styles.css">'
     : '<link rel="stylesheet" href="spectrum.css">';
 
 // Render Markdown to HTML

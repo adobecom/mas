@@ -3,7 +3,7 @@ import { getLocalConfigs } from './helpers.js';
 import fs from 'fs';
 const SNOW_TRANSACTION_ID_COMMENT = "SNOW Change Request Transaction ID";
 
-const main = async ({ github = getLocalConfigs().github, context = getLocalConfigs().context, transaction_id = process.env.TRANSACTION_ID }) => {
+const main = async ({ github = getLocalConfigs().github, context = getLocalConfigs().context, transaction_id = process.env.TRANSACTION_ID, path_identifier = '' }) => {
   const comment = async ({ pr_number, message, comments }) => {
     if (comments.some((c) => c.body.includes(message))) {
       console.log(
@@ -34,16 +34,19 @@ const main = async ({ github = getLocalConfigs().github, context = getLocalConfi
       issue_number: process.env.PR_NUMBER,
     });
 
+    const pathLabel = path_identifier ? ` [${path_identifier.toUpperCase()}]` : '';
+    const commentIdentifier = `${SNOW_TRANSACTION_ID_COMMENT}${pathLabel}`;
+
     if (process.env.PR_STATE !== 'open') {
       // find transactionId in a pure way
-      const transactionIdComment = comments.find(singleComment => singleComment.body.includes(SNOW_TRANSACTION_ID_COMMENT));
+      const transactionIdComment = comments.find(singleComment => singleComment.body.includes(commentIdentifier));
 
       // Run the effect
       if (transactionIdComment === undefined) {
-        console.log(`No SNOW Transaction ID Comment found. Skipping...`);
+        console.log(`No SNOW Transaction ID Comment found for ${path_identifier || 'default path'}. Skipping...`);
       } else {
-        console.log(`Found SNOW Transaction ID Comment. Assigning transaction ID for closing SNOW Change Request...`);
-        const transactionID = transactionIdComment.body.split(`${SNOW_TRANSACTION_ID_COMMENT}: `)?.[1].trim();
+        console.log(`Found SNOW Transaction ID Comment for ${path_identifier || 'default path'}. Assigning transaction ID for closing SNOW Change Request...`);
+        const transactionID = transactionIdComment.body.split(`${commentIdentifier}: `)?.[1].trim();
         console.log(`Found Transaction ID: ${transactionID}`);
         fs.appendFileSync(process.env.GITHUB_OUTPUT, `retrieved_transaction_id=${transactionID}\n`);
       }
@@ -55,11 +58,11 @@ const main = async ({ github = getLocalConfigs().github, context = getLocalConfi
         pr_number: process.env.PR_NUMBER,
         comments,
         message:
-          `${SNOW_TRANSACTION_ID_COMMENT}: ` + transaction_id,
+          `${commentIdentifier}: ` + transaction_id,
       });
     }
     else {
-      console.log(`No SNOW Transaction ID found. Can't make PR comment. Skipping...`);
+      console.log(`No SNOW Transaction ID found for ${path_identifier || 'default path'}. Can't make PR comment. Skipping...`);
       return;
     }
   } catch (error) {

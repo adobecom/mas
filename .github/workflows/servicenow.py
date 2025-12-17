@@ -138,12 +138,14 @@ if __name__ == "__main__":
     print(f"Set end time for CMR: {end_time}")
 
     print("Set Release Summary for CMR...")
-    release_title = os.environ['PR_TITLE']
+    cmr_path = os.environ.get('CMR_PATH', '')
+    path_label = f" [{cmr_path.upper()}]" if cmr_path else ""
+    release_title = f"{os.environ['PR_TITLE']}{path_label}"
     release_details = os.environ['PR_BODY']
     pr_num = os.environ['PR_NUMBER']
     pr_link = os.environ['PR_LINK']
     pr_created = os.environ['PR_CREATED_AT']
-    release_summary = f"Release_Details: {release_details} \n\nPull Request Number: {pr_num} \nPull Request Link: {pr_link} \nPull Request Created At: {pr_created} \nSee the closure notes for merge date."
+    release_summary = f"Path: {cmr_path}/\nRelease_Details: {release_details} \n\nPull Request Number: {pr_num} \nPull Request Link: {pr_link} \nPull Request Created At: {pr_created} \nSee the closure notes for merge date."
 
     print("Getting IMS Token")
     headers = {"Content-Type":"multipart/form-data"}
@@ -176,8 +178,9 @@ if __name__ == "__main__":
       "Content-Type": APPLICATION_JSON,
       "api_key":os.environ['IPAAS_KEY']
     }
-    # Split comma-separated instance IDs into array
-    instance_ids = [id.strip() for id in os.environ['SNOW_INSTANCE_ID'].split(',') if id.strip()]
+    # Get single instance ID for this CMR path
+    instance_id = os.environ['SNOW_INSTANCE_ID'].strip()
+    instance_ids = [instance_id] if instance_id else []
     
     data = {
       "title":release_title,

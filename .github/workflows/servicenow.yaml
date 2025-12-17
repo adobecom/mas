@@ -91,9 +91,9 @@ jobs:
             exit 1
           fi
 
-  create-cmr:
+  create-cmr-io:
     needs: detect-changes
-    if: ${{ always() && (github.event.pull_request.merged == true || github.event.pull_request.state == 'open') }}
+    if: ${{ always() && (needs.detect-changes.outputs.changed_path == 'io' || needs.detect-changes.outputs.changed_path == 'both') && (github.event.pull_request.merged == true || github.event.pull_request.state == 'open') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -106,28 +106,29 @@ jobs:
       run: |
         python -m pip install --upgrade pip requests timedelta
 
-    - name: Retrieve transaction ID from PR Comments
+    - name: Retrieve transaction ID from PR Comments (IO)
       id: retrieve-transactionId-step
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       with:
         script: |
           const main = (await import('${{ github.workspace }}/.github/workflows/snow-pr-comment.js')).default
           if (process.env.PR_STATE == 'closed') {
-            main({ github, context, transaction_id: null })
+            main({ github, context, transaction_id: null, path_identifier: 'io' })
           } else {
             console.log('PR is not in an closed state. Skipping...');
           }
 
-    - name: Execute script for creating and closing CMR
+    - name: Execute script for creating and closing CMR (IO)
       id: create-close-cmr-step
       env:
         RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
-        #SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.SNOW_INSTANCE_ID_IO, secrets.SNOW_INSTANCE_ID_STUDIO) || needs.detect-changes.outputs.changed_path == 'io' && secrets.SNOW_INSTANCE_ID_IO || secrets.SNOW_INSTANCE_ID_STUDIO) || '' }}
-        SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == 'both' && format('{0}, {1}', secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY, secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY) || needs.detect-changes.outputs.changed_path == 'io' && secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY || secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY) || '' }}
+        #SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && secrets.SNOW_INSTANCE_ID_IO || '' }}
+        SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && secrets.TEMP_SNOW_INSTANCE_ID_IO_TEST_ONLY || '' }}
+        CMR_PATH: io
       run: |
         python ./.github/workflows/servicenow.py
 
-    - name: Save transaction ID in PR Comments
+    - name: Save transaction ID in PR Comments (IO)
       id: pr-comment-snow-cr-step
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       env:
@@ -136,12 +137,12 @@ jobs:
         script: |
           const main = (await import('${{ github.workspace }}/.github/workflows/snow-pr-comment.js')).default
           if (process.env.PR_STATE == 'open') {
-            main({ github, context })
+            main({ github, context, path_identifier: 'io' })
           } else {
             console.log('PR is not in an opened state. Skipping...');
           }
 
-    - name: Execute script for notifying of CMR state
+    - name: Execute script for notifying of CMR state (IO)
       id: slack-snow-cr-step
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       env:
@@ -154,7 +155,76 @@ jobs:
         script: |
           const main = (await import('${{ github.workspace }}/.github/workflows/snow-cr-notification.js')).default;
           if (process.env.PR_STATE == 'open') {
-            await main({ github, context });
+            await main({ github, context, path_identifier: 'io' });
           } else {
-            await main({ github, context, transaction_id: process.env.RETRIEVED_TRANSACTION_ID });
+            await main({ github, context, transaction_id: process.env.RETRIEVED_TRANSACTION_ID, path_identifier: 'io' });
+          }
+
+  create-cmr-studio:
+    needs: detect-changes
+    if: ${{ always() && (needs.detect-changes.outputs.changed_path == 'studio' || needs.detect-changes.outputs.changed_path == 'both') && (github.event.pull_request.merged == true || github.event.pull_request.state == 'open') }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+    - name: Set up Python 3.x, latest minor release
+      uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+      with:
+        python-version: "3.x"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip requests timedelta
+
+    - name: Retrieve transaction ID from PR Comments (Studio)
+      id: retrieve-transactionId-step
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+      with:
+        script: |
+          const main = (await import('${{ github.workspace }}/.github/workflows/snow-pr-comment.js')).default
+          if (process.env.PR_STATE == 'closed') {
+            main({ github, context, transaction_id: null, path_identifier: 'studio' })
+          } else {
+            console.log('PR is not in an closed state. Skipping...');
+          }
+
+    - name: Execute script for creating and closing CMR (Studio)
+      id: create-close-cmr-step
+      env:
+        RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
+        #SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && secrets.SNOW_INSTANCE_ID_STUDIO || '' }}
+        SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && secrets.TEMP_SNOW_INSTANCE_ID_STUDIO_TEST_ONLY || '' }}
+        CMR_PATH: studio
+      run: |
+        python ./.github/workflows/servicenow.py
+
+    - name: Save transaction ID in PR Comments (Studio)
+      id: pr-comment-snow-cr-step
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+      env:
+        TRANSACTION_ID: ${{ steps.create-close-cmr-step.outputs.transaction_id }}
+      with:
+        script: |
+          const main = (await import('${{ github.workspace }}/.github/workflows/snow-pr-comment.js')).default
+          if (process.env.PR_STATE == 'open') {
+            main({ github, context, path_identifier: 'studio' })
+          } else {
+            console.log('PR is not in an opened state. Skipping...');
+          }
+
+    - name: Execute script for notifying of CMR state (Studio)
+      id: slack-snow-cr-step
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+      env:
+        RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
+        TRANSACTION_ID: ${{ steps.create-close-cmr-step.outputs.transaction_id }}
+        CHANGE_ID: ${{ steps.create-close-cmr-step.outputs.change_id }}
+        PLANNED_START_TIME: ${{ steps.create-close-cmr-step.outputs.planned_start_time }}
+        PLANNED_END_TIME: ${{ steps.create-close-cmr-step.outputs.planned_end_time }}
+      with:
+        script: |
+          const main = (await import('${{ github.workspace }}/.github/workflows/snow-cr-notification.js')).default;
+          if (process.env.PR_STATE == 'open') {
+            await main({ github, context, path_identifier: 'studio' });
+          } else {
+            await main({ github, context, transaction_id: process.env.RETRIEVED_TRANSACTION_ID, path_identifier: 'studio' });
           }

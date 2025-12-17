@@ -229,4 +229,3 @@ describe('Router URL parameter handling', async () => {
         expect(router.location.hash).to.equal('page=content');
     });
 });
-

@@ -99,8 +99,6 @@ export class MasCommerceService extends HTMLElement {
                 config.commerce?.wcsApiKey || this.getAttribute('wcs-api-key');
             const previewParam = config.preview;
             const surface = getPreviewSurface(wcsApiKey, previewParam);
-
-            // Force mas-ff-defaults to true for all surfaces except adobe-home
             const isAdobeHome = surface === 'adobe-home';
             const ffDefaultsValue = isAdobeHome
                 ? this.#getFeatureFlag(FF_DEFAULTS)

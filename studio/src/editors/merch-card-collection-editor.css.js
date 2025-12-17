@@ -47,7 +47,7 @@ export const styles = css`
         transition: all 0.2s ease;
         background-color: var(--spectrum-gray-75);
         position: relative;
-        z-index: 10;
+        z-index: 0;
     }
 
     .default-card-drop-zone.empty:hover {
@@ -198,7 +198,7 @@ export const styles = css`
         background-color: var(--spectrum-gray-50);
         cursor: grab;
         position: relative;
-        z-index: 1;
+        z-index: 0;
     }
 
     .item-wrapper:hover {

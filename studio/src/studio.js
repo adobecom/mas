@@ -155,23 +155,50 @@ class MasStudio extends LitElement {
     }
 
     get breadcrumbs() {
-        if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
-
-        const editor = document.querySelector('mas-fragment-editor');
-        if (!editor || !editor.fragment || editor.fragmentStore?.loading) {
-            return nothing;
-        }
-
-        const handleBackToBreadcrumb = async () => {
-            Store.viewMode.set('default');
-            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+        // Define navigation handlers
+        const handlers = {
+            content: async () => {
+                Store.viewMode.set('default');
+                await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            },
+            editor: async () => {
+                const fragmentId = Store.version.fragmentId.get();
+                if (fragmentId) {
+                    await router.navigateToFragmentEditor(fragmentId);
+                }
+            },
         };
+
+        // Define breadcrumb configurations for each page
+        const breadcrumbConfig = {
+            [PAGE_NAMES.FRAGMENT_EDITOR]: {
+                condition: () => {
+                    const editor = document.querySelector('mas-fragment-editor');
+                    return editor && editor.fragment && !editor.fragmentStore?.loading;
+                },
+                items: [{ label: 'Fragments table', handler: handlers.content }, { label: 'Editor' }],
+            },
+            [PAGE_NAMES.VERSION]: {
+                items: [
+                    { label: 'Fragments table', handler: handlers.content },
+                    { label: 'Editor', handler: handlers.editor },
+                    { label: 'Version history' },
+                ],
+            },
+        };
+
+        const config = breadcrumbConfig[this.page.value];
+        if (!config) return nothing;
+        if (config.condition && !config.condition()) return nothing;
 
         return html`
             <div class="breadcrumbs-container">
                 <sp-breadcrumbs>
-                    <sp-breadcrumb-item @click="${handleBackToBreadcrumb}">Fragments table</sp-breadcrumb-item>
-                    <sp-breadcrumb-item>Editor</sp-breadcrumb-item>
+                    ${config.items.map(
+                        (item) => html`
+                            <sp-breadcrumb-item @click="${item.handler || nothing}">${item.label}</sp-breadcrumb-item>
+                        `,
+                    )}
                 </sp-breadcrumbs>
             </div>
         `;

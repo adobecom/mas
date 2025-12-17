@@ -2,7 +2,6 @@ import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { PAGE_NAMES, CARD_MODEL_PATH } from './constants.js';
-import router from './router.js';
 import Events from './events.js';
 import { VersionRepository } from './version-repository.js';
 import {
@@ -80,47 +79,6 @@ class VersionPage extends LitElement {
             flex-direction: column;
             height: 100vh;
             background: #f5f5f5;
-        }
-
-        .version-page-header {
-            padding: 16px 24px 0;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        #breadcrumbs {
-            margin-bottom: 32px;
-        }
-        .breadcrumbs-container {
-            padding: 0;
-        }
-        sp-breadcrumbs {
-            margin-bottom: 0;
-        }
-
-        sp-breadcrumb-item {
-            cursor: pointer;
-            color: var(--spectrum-global-color-gray-800);
-            font-size: 14px;
-        }
-
-        sp-breadcrumb-item:hover {
-            color: var(--spectrum-global-color-blue-600);
-        }
-
-        .page-title-section {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: white;
-        }
-
-        .page-title {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 600;
-            color: #333;
         }
 
         .version-page-content {
@@ -717,32 +675,6 @@ class VersionPage extends LitElement {
         `;
     }
 
-    get breadcrumbs() {
-        if (this.page.value !== PAGE_NAMES.VERSION) return nothing;
-
-        const handleBackToContent = async () => {
-            Store.viewMode.set('default');
-            await router.navigateToPage(PAGE_NAMES.CONTENT)();
-        };
-
-        const handleBackToEditor = async () => {
-            const fragmentId = this.fragmentId.value;
-            if (fragmentId) {
-                await router.navigateToFragmentEditor(fragmentId);
-            }
-        };
-
-        return html`
-            <div class="breadcrumbs-container">
-                <sp-breadcrumbs>
-                    <sp-breadcrumb-item @click="${handleBackToContent}">Fragments table</sp-breadcrumb-item>
-                    <sp-breadcrumb-item @click="${handleBackToEditor}">Editor</sp-breadcrumb-item>
-                    <sp-breadcrumb-item>Version history</sp-breadcrumb-item>
-                </sp-breadcrumbs>
-            </div>
-        `;
-    }
-
     renderPreviewColumn(version, label, fragmentData, className = '') {
         if (!version) return nothing;
 
@@ -913,7 +845,6 @@ class VersionPage extends LitElement {
                 ${this.constructor.styles.cssText}
             </style>
             <div class="version-page-wrapper">
-                <div class="version-page-header">${this.breadcrumbs}</div>
                 <div class="version-page-content">${this.versionListPanel} ${this.previewPanel}</div>
             </div>
         `;

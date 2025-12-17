@@ -10,7 +10,7 @@ import { Ims } from './ims.js';
 import { getPriceLiterals } from './literals.js';
 import { Log } from './log.js';
 import { Price } from './price.js';
-import { getSettings } from './settings.js';
+import { getSettings, getPreviewSurface } from './settings.js';
 import { Wcs } from './wcs.js';
 import { updateConfig as updateLanaConfig } from './lana.js';
 import { printMeasure } from './utils.js';
@@ -94,8 +94,22 @@ export class MasCommerceService extends HTMLElement {
 
     get featureFlags() {
         if (!this.#featureFlags) {
+            const config = this.#config;
+            const wcsApiKey =
+                config.commerce?.wcsApiKey || this.getAttribute('wcs-api-key');
+            const previewParam = config.preview;
+            const surface = getPreviewSurface(wcsApiKey, previewParam);
+
+            // Force mas-ff-defaults to true for all surfaces except adobe-home
+            const isAdobeHome = surface === 'adobe-home';
+            const ffDefaultsValue = isAdobeHome
+                ? this.#getFeatureFlag(FF_DEFAULTS)
+                : this.getAttribute('data-mas-ff-defaults') === 'off'
+                  ? false
+                  : true;
+
             this.#featureFlags = {
-                [FF_DEFAULTS]: this.#getFeatureFlag(FF_DEFAULTS),
+                [FF_DEFAULTS]: ffDefaultsValue,
             };
         }
         return this.#featureFlags;

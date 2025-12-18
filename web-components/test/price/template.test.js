@@ -145,7 +145,9 @@ describe('function "createPriceTemplate"', () => {
         });
 
         it('uses priceWithoutDiscount when displayPromoStrikethrough is true', function () {
-            const template = createPriceTemplate({ displayPromoStrikethrough: true });
+            const template = createPriceTemplate({
+                displayPromoStrikethrough: true,
+            });
             renderAndComparePrice(
                 'createPriceTemplatePromoStrikethrough',
                 template(context, valueDiscount, {}),

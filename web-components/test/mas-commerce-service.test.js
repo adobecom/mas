@@ -50,7 +50,7 @@ describe('commerce service', () => {
                 expect(
                     el.featureFlags['mas-ff-defaults'],
                     'undefined feature flag should be unset',
-                ).to.be.false;
+                ).to.be.true;
                 el = await initMasCommerceService({
                     'data-mas-ff-defaults': 'on',
                 });

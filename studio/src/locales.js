@@ -2,9 +2,9 @@ const ALL_SURFACES = 'all';
 
 const ACOM_SURFACES = ['acom', 'nala', 'sandbox'];
 
-const ALL_NO_EXPRESS_SURFACES = ['acom', 'ccd', 'adobe-home', 'nala', 'sandbox'];
+const ALL_NO_EXPRESS_SURFACES = ['acom', 'ccd', 'commerce', 'adobe-home', 'nala', 'sandbox'];
 
-const COUNTRY_NAMES = {
+const COUNTRY_DATA = {
     AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
     AR: { name: 'Argentina', flag: '🇦🇷' },
     AT: { name: 'Austria', flag: '🇦🇹' },
@@ -78,13 +78,14 @@ const LOCALES = [
     { lang: 'ar', country: 'QA', region: ALL_SURFACES },
     { lang: 'ar', country: 'SA', default: ACOM_SURFACES },
     { lang: 'bg', country: 'BG', default: ACOM_SURFACES },
+    { lang: 'zh', country: 'CN', default: ALL_SURFACES },
+    { lang: 'zh', country: 'HK', default: ACOM_SURFACES },
+    { lang: 'zh', country: 'TW', default: ALL_SURFACES },
     { lang: 'cs', country: 'CZ', default: ALL_NO_EXPRESS_SURFACES },
     { lang: 'da', country: 'DK', default: ALL_SURFACES },
+    { lang: 'nl', country: 'NL', default: ALL_SURFACES },
     { lang: 'de', country: 'AT', region: ALL_SURFACES },
     { lang: 'de', country: 'CH', region: ALL_SURFACES },
-    { lang: 'de', country: 'DE', default: ALL_SURFACES },
-    { lang: 'de', country: 'LU', region: ALL_SURFACES },
-    { lang: 'el', country: 'GR', default: ACOM_SURFACES },
     { lang: 'en', country: 'AE', region: ALL_SURFACES },
     { lang: 'en', country: 'AR', region: ALL_SURFACES },
     { lang: 'en', country: 'AU', region: ALL_SURFACES },
@@ -111,23 +112,16 @@ const LOCALES = [
     { lang: 'en', country: 'VN', region: ALL_SURFACES },
     { lang: 'en', country: 'ZA', region: ALL_SURFACES },
     { lang: 'en', country: 'GB', region: ACOM_SURFACES },
-    { lang: 'es', country: 'AR', region: ALL_SURFACES },
-    { lang: 'es', country: 'CL', region: ALL_SURFACES },
-    { lang: 'es', country: 'CO', region: ALL_SURFACES },
-    { lang: 'es', country: 'CR', region: ALL_SURFACES },
-    { lang: 'es', country: 'EC', region: ALL_SURFACES },
-    { lang: 'es', country: 'ES', default: ALL_SURFACES },
-    { lang: 'es', country: 'GT', region: ALL_SURFACES },
-    { lang: 'es', country: 'MX', region: ALL_SURFACES },
-    { lang: 'es', country: 'PE', region: ALL_SURFACES },
-    { lang: 'es', country: 'PR', region: ALL_SURFACES },
     { lang: 'et', country: 'EE', region: ALL_SURFACES },
     { lang: 'fi', country: 'FI', default: ALL_SURFACES },
     { lang: 'fil', country: 'PH', region: ACOM_SURFACES },
+    { lang: 'fr', country: 'FR', default: ALL_SURFACES },
     { lang: 'fr', country: 'BE', region: ALL_SURFACES },
     { lang: 'fr', country: 'CA', region: ['acom', 'express', 'ccd'] },
     { lang: 'fr', country: 'CH', region: ALL_SURFACES },
-    { lang: 'fr', country: 'FR', default: ALL_SURFACES },
+    { lang: 'de', country: 'DE', default: ALL_SURFACES },
+    { lang: 'de', country: 'LU', region: ALL_SURFACES },
+    { lang: 'el', country: 'GR', default: ACOM_SURFACES },
     { lang: 'fr', country: 'LU', region: ALL_SURFACES },
     { lang: 'he', country: 'IL', default: ACOM_SURFACES },
     { lang: 'hi', country: 'IN', default: ['acom', 'ccd', 'nala', 'sandbox'] },
@@ -142,7 +136,6 @@ const LOCALES = [
     { lang: 'ms', country: 'MY', default: ACOM_SURFACES },
     { lang: 'nb', country: 'NO', default: ALL_SURFACES },
     { lang: 'nl', country: 'BE', region: ALL_SURFACES },
-    { lang: 'nl', country: 'NL', default: ALL_SURFACES },
     { lang: 'pl', country: 'PL', default: ALL_NO_EXPRESS_SURFACES },
     { lang: 'pt', country: 'BR', default: ['express', 'ccd', 'adobe-home'], region: ACOM_SURFACES },
     { lang: 'pt', country: 'PT', default: ACOM_SURFACES },
@@ -150,14 +143,21 @@ const LOCALES = [
     { lang: 'ru', country: 'RU', default: ALL_NO_EXPRESS_SURFACES },
     { lang: 'sk', country: 'SK', default: ACOM_SURFACES },
     { lang: 'sl', country: 'SI', default: ACOM_SURFACES },
+    { lang: 'es', country: 'AR', region: ALL_SURFACES },
+    { lang: 'es', country: 'CL', region: ALL_SURFACES },
+    { lang: 'es', country: 'CO', region: ALL_SURFACES },
+    { lang: 'es', country: 'CR', region: ALL_SURFACES },
+    { lang: 'es', country: 'EC', region: ALL_SURFACES },
+    { lang: 'es', country: 'ES', default: ALL_SURFACES },
+    { lang: 'es', country: 'GT', region: ALL_SURFACES },
+    { lang: 'es', country: 'MX', region: ALL_SURFACES },
+    { lang: 'es', country: 'PE', region: ALL_SURFACES },
+    { lang: 'es', country: 'PR', region: ALL_SURFACES },
     { lang: 'sv', country: 'SE', default: ALL_SURFACES },
     { lang: 'th', country: 'TH', default: ALL_NO_EXPRESS_SURFACES },
     { lang: 'tr', country: 'TR', default: ALL_NO_EXPRESS_SURFACES },
     { lang: 'uk', country: 'UA', default: ALL_NO_EXPRESS_SURFACES },
     { lang: 'vi', country: 'VN', default: ALL_NO_EXPRESS_SURFACES },
-    { lang: 'zh', country: 'CN', default: ALL_SURFACES },
-    { lang: 'zh', country: 'HK', default: ACOM_SURFACES },
-    { lang: 'zh', country: 'TW', default: ALL_SURFACES },
 ];
 
 const LANG_TO_LANGUAGE = {
@@ -209,12 +209,12 @@ export function getLocaleCode(locale) {
 
 // Helper to get country name
 export function getCountryName(country) {
-    return COUNTRY_NAMES[country]?.name || country;
+    return COUNTRY_DATA[country]?.name || country;
 }
 
 // Helper to get country flag
 export function getCountryFlag(country) {
-    return COUNTRY_NAMES[country]?.flag || '🏴';
+    return COUNTRY_DATA[country]?.flag || '🏴';
 }
 
 export function isDefaultLocale(locale, surface) {
@@ -256,7 +256,7 @@ export function getRegionLocales(surface, language, includeDefault) {
     if (!regionLocalesCache[`${surface}-${language}`]) {
         regionLocalesCache[`${surface}-${language}`] = LOCALES.filter((locale) =>
             isRegionLocale(locale, surface, language, includeDefault),
-        );
+        ).sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)));
     }
     return regionLocalesCache[`${surface}-${language}`];
 }
@@ -264,5 +264,3 @@ export function getRegionLocales(surface, language, includeDefault) {
 export function getLanguageName(lang) {
     return LANG_TO_LANGUAGE[lang] || lang;
 }
-
-export { LOCALES, COUNTRY_NAMES };

@@ -15,11 +15,11 @@ export class MasLocalePicker extends LitElement {
         disabled: { type: Boolean },
         displayMode: { type: String }, // can be 'strong' or 'light' which is default
         label: { type: String },
-        locale: { type: String, reflect: true },
+        locale: { type: String },
         mode: { type: String }, //can be 'region' or 'language'
         searchDisabled: { type: Boolean },
         searchPlaceholder: { type: String },
-        searchQuery: { type: String, state: true },
+        searchQuery: { type: String },
         surface: { type: String },
     };
 
@@ -129,7 +129,7 @@ export class MasLocalePicker extends LitElement {
             this.classList.add('strong');
         }
         this.searchSubscriptions = Store.filters.subscribe(() => {
-            this.locale = Store.filters.value.locale;
+            this.locale = Store.locale();
             this.render();
         });
     }

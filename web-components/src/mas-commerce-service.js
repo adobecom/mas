@@ -21,6 +21,7 @@ export const TAG_NAME_SERVICE = 'mas-commerce-service';
 const MARK_START = 'mas-commerce-service:start';
 const MEASURE_READY = 'mas-commerce-service:ready';
 
+const SURFACES_WITHOUT_FORCED_DEFAULTS = ['adobe-home'];
 /**
  * web component to provide commerce and fragment service to consumers.
  */
@@ -95,16 +96,16 @@ export class MasCommerceService extends HTMLElement {
     get featureFlags() {
         if (!this.#featureFlags) {
             const config = this.#config;
-            const wcsApiKey =
-                config.commerce?.wcsApiKey || this.getAttribute('wcs-api-key');
+            const wcsApiKey = config.commerce?.wcsApiKey || Defaults.wcsApiKey;
             const previewParam = config.preview;
             const surface = getPreviewSurface(wcsApiKey, previewParam);
-            const isAdobeHome = surface === 'adobe-home';
-            const ffDefaultsValue = isAdobeHome
-                ? this.#getFeatureFlag(FF_DEFAULTS)
-                : this.getAttribute('data-mas-ff-defaults') === 'off'
-                  ? false
-                  : true;
+            const shouldForceDefaults =
+                !SURFACES_WITHOUT_FORCED_DEFAULTS.includes(surface);
+            const ffDefaultsValue = shouldForceDefaults
+                ? this.getAttribute('data-mas-ff-defaults') === 'off'
+                    ? false
+                    : true
+                : this.#getFeatureFlag(FF_DEFAULTS);
 
             this.#featureFlags = {
                 [FF_DEFAULTS]: ffDefaultsValue,

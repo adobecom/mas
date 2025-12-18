@@ -71,7 +71,9 @@
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
 
-                const fragmentData = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then((res) => res.json());
+                const fragmentData = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then((res) =>
+                    res.json(),
+                );
 
                 describe('editor-panel custom element', () => {
                     let fragment;

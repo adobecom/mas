@@ -271,7 +271,10 @@ const createPriceTemplate =
         let displayPrice;
 
         if (promotion && !isPromoApplied && priceWithoutDiscount) {
-            displayPrice = isAlternativePrice || displayPromoStrikethrough ? price : priceWithoutDiscount;
+            displayPrice =
+                isAlternativePrice || displayPromoStrikethrough
+                    ? price
+                    : priceWithoutDiscount;
         } else if (displayStrikethrough && priceWithoutDiscount) {
             displayPrice = priceWithoutDiscount;
         } else {

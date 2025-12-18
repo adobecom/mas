@@ -1538,5 +1538,121 @@
             "language": "MULT",
             "merchant": "ADOBE"
         }
+    ],
+    "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM-mult": [
+        {
+            "offerSelectorIds": ["KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM"],
+            "offerId": "7B3FB5E4F8662A207A960BAFB6B1C21C",
+            "priceDetails": {
+                "price": 99.99,
+                "priceWithoutTax": 99.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS",
+                "productCode": "CCLE"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM-ca": [
+        {
+            "offerSelectorIds": ["KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM"],
+            "offerId": "7B3FB5E4F8662A207A960BAFB6B1C21C",
+            "priceDetails": {
+                "price": 130.99,
+                "priceWithoutTax": 130.99,
+                "usePrecision": true,
+                "formatString": "'CAD $'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS",
+                "productCode": "CCLE"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM-au": [
+        {
+            "offerSelectorIds": ["KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM"],
+            "offerId": "7B3FB5E4F8662A207A960BAFB6B1C21C",
+            "priceDetails": {
+                "price": 157.99,
+                "priceWithoutTax": 143.63,
+                "usePrecision": true,
+                "formatString": "'A$'#,##0.00",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "GST"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS",
+                "productCode": "CCLE"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM-fr": [
+        {
+            "offerSelectorIds": ["KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM"],
+            "offerId": "7B3FB5E4F8662A207A960BAFB6B1C21C",
+            "priceDetails": {
+                "price": 103.86,
+                "priceWithoutTax": 86.55,
+                "usePrecision": true,
+                "formatString": "# ##0,00 '&euro;'",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "VAT"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS",
+                "productCode": "CCLE"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
     ]
 }

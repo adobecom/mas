@@ -1,0 +1,29 @@
+{
+    "path": "/content/dam/mas/sandbox/en_AU/mini-team",
+    "name": "",
+    "title": "Mini Team Card AU",
+    "id": "mini-team-au",
+    "description": "",
+    "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ" },
+    "fields": {
+        "variant": "mini",
+        "osi": "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM",
+        "cardTitle": "CCD Apps: Team Plan",
+        "prices": {
+            "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM\"></span>",
+            "mimeType": "text/html"
+        },
+        "description": {
+            "value": "<p><a class=\"upt-link\" href=\"#\" data-analytics-id=\"see-terms\">see terms</a></p>",
+            "mimeType": "text/html"
+        },
+        "ctas": {
+            "value": "<a class=\"accent\" data-checkout-workflow-step=\"segmentation\" data-wcs-osi=\"KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM\" data-template=\"checkoutUrl\" data-analytics-id=\"buy-now\">Buy now</a>",
+            "mimeType":"text/html"
+        }
+    },
+    "settings": {
+        "displayPlanType": "true"
+    }
+}
+

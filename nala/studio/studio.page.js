@@ -46,7 +46,7 @@ export default class StudioPage {
         // Topnav panel
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
-        this.localePicker = page.locator('mas-locale-picker sp-action-menu');
+        this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
         this.fragmentsTable = page.locator('.breadcrumbs-container sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');

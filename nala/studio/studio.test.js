@@ -365,6 +365,7 @@ test.describe('M@S Studio feature test suite', () => {
 
     // @studio-locale-change - Validate locale change in mas studio
     test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[12];
         const testPage = `${baseURL}${features[12].path}${miloLibs}`;
         setTestPage(testPage);
 
@@ -377,13 +378,14 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.localePicker).toBeVisible();
             await expect(await studio.localePicker).toHaveAttribute('value', 'en_US');
             await studio.localePicker.click();
-            await page.getByRole('menuitem', { name: 'fr_FR' }).click();
+            await page.waitForTimeout(500);
+            await page.getByRole('menuitem', { name: `${data.localePicker}` }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-3: Validate locale change', async () => {
-            await expect(await studio.localePicker).toHaveAttribute('value', 'fr_FR');
-            await expect(page).toHaveURL(`${testPage}#locale=fr_FR&page=welcome&path=acom`);
+            await expect(await studio.localePicker).toHaveAttribute('value', data.locale);
+            await expect(page).toHaveURL(`${testPage}#locale=${data.locale}&page=welcome&path=acom`);
             await expect(await studio.sideNav).toBeVisible();
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();

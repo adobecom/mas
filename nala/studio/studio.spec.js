@@ -112,6 +112,10 @@ export default {
         {
             tcid: '12',
             name: '@studio-locale-change',
+            data: {
+                localePicker: 'French (FR)',
+                locale: 'fr_FR',
+            },
             path: '/studio.html',
             tags: '@mas-studio',
         },

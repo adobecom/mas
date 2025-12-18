@@ -113,15 +113,24 @@ export function calculateDifferences(currentData, selectedData) {
     const allKeys = new Set([...Object.keys(fields), ...Object.keys(selectedFields)]);
 
     allKeys.forEach((key) => {
-        const currentValue = fields[key];
+        let currentValue = fields[key];
         let selectedValue = selectedFields[key];
 
         // Extract last segment from tags (e.g., 'caas:content-type/blog' → 'blog')
+        // Apply transformation to both values for accurate comparison
         if (key === 'tags') {
+            const extractTagName = (tag) => (typeof tag === 'string' ? tag.split('/').pop() : tag);
+
+            if (Array.isArray(currentValue)) {
+                currentValue = currentValue.map(extractTagName);
+            } else if (typeof currentValue === 'object' && currentValue !== null) {
+                currentValue = Object.values(currentValue).map(extractTagName);
+            }
+
             if (Array.isArray(selectedValue)) {
-                selectedValue = selectedValue.map((tag) => tag.split('/').pop());
+                selectedValue = selectedValue.map(extractTagName);
             } else if (typeof selectedValue === 'object' && selectedValue !== null) {
-                selectedValue = Object.values(selectedValue).map((tag) => tag.split('/').pop());
+                selectedValue = Object.values(selectedValue).map(extractTagName);
             }
         }
 

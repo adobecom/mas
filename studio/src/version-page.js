@@ -3,6 +3,7 @@ import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { PAGE_NAMES, CARD_MODEL_PATH } from './constants.js';
 import Events from './events.js';
+import { confirmation } from './mas-confirm-dialog.js';
 import { VersionRepository } from './version-repository.js';
 import {
     setFieldConfig,
@@ -441,6 +442,11 @@ class VersionPage extends LitElement {
         }
 
         this.loading = true;
+
+        // Clear hydration state so cards can be re-hydrated with fresh data
+        this.hydratedCards.clear();
+        this.pendingHydrations.clear();
+
         try {
             const { fragment, versions, currentVersion } = await this.versionRepository.loadVersionHistory(
                 this.fragmentId.value,
@@ -528,11 +534,16 @@ class VersionPage extends LitElement {
         if (!version || version.isCurrent) return;
 
         const versionLabel = version.title || `version from ${this.formatVersionDate(version.created)}`;
-        const confirmMessage = `Are you sure you want to restore "${versionLabel}"?\n\nThis will replace the current version with the selected version and create a new version entry.`;
 
-        if (!confirm(confirmMessage)) {
-            return;
-        }
+        const confirmed = await confirmation({
+            variant: 'confirmation',
+            title: 'Restore version',
+            content: `Are you sure you want to restore "${versionLabel}"? This will replace the current version with the selected version.`,
+            confirmLabel: 'Restore',
+            cancelLabel: 'Cancel',
+        });
+
+        if (!confirmed) return;
 
         try {
             this.loading = true;
@@ -623,7 +634,7 @@ class VersionPage extends LitElement {
                             <div class="version-author">
                                 By <span class="version-author-name">${version.createdBy || 'Unknown'}</span>
                             </div>
-                            ${version.title && !isCurrent
+                            ${version.title
                                 ? html`<div class="version-description"><strong>${version.title}</strong></div>`
                                 : nothing}
                             ${version.comment ? html`<div class="version-description">${version.comment}</div>` : nothing}

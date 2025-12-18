@@ -106,7 +106,7 @@ export class VersionRepository {
 
             Events.toast.emit({
                 variant: 'positive',
-                content: `Version ${version.version} restored successfully`,
+                content: `Version ${version.title} restored successfully`,
             });
         } catch (error) {
             console.error('Failed to restore version:', error);

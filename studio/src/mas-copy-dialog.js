@@ -348,7 +348,7 @@ export class MasCopyDialog extends LitElement {
                         <mas-locale-picker
                             id="locale-picker"
                             locale=${this.selectedLocale}
-                            @locale-change=${(e) => (this.selectedLocale = e.detail.locale)}
+                            @locale-changed=${(e) => (this.selectedLocale = e.detail.locale)}
                         ></mas-locale-picker>
                     </div>
 

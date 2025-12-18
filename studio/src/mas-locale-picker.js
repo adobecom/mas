@@ -98,9 +98,13 @@ export class MasLocalePicker extends LitElement {
         }
 
         sp-search {
+            --mod-search-border-color-default: var(--spectrum-gray-400, #a9a9a9ff);
             --mod-search-border-radius: 16px;
             --mod-search-border-width: 2px;
-            --mod-search-border-color-default: var(--spectrum-gray-400, #a9a9a9ff);
+        }
+
+        sp-search:focus {
+            --spectrum-focus-indicator-color: transparent;
         }
     `;
 
@@ -185,7 +189,16 @@ export class MasLocalePicker extends LitElement {
     }
 
     get currentLocale() {
-        const code = this.locale || 'en_US';
+        const defaultLocale = 'en_US';
+        let code = this.locale || defaultLocale;
+        if (
+            !this.getLocales()
+                .map((l) => getLocaleCode(l))
+                .includes(code)
+        ) {
+            code = defaultLocale;
+            this.locale = code;
+        }
         return getLocaleByCode(code);
     }
 
@@ -220,7 +233,7 @@ export class MasLocalePicker extends LitElement {
         const code = getLocaleCode(currentLocale);
         return html`
             ${this.label ? html`<sp-label>${this.label}</sp-label>` : ''}
-            <sp-action-menu disabled=${this.disabled}>
+            <sp-action-menu value=${code} ?disabled=${this.disabled}>
                 ${this.displayMode === 'strong'
                     ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
                     : ''}

@@ -60,6 +60,14 @@ runTests(async () => {
                 expect(el.currentLocale.country).to.equal('JP');
                 expect(el.currentLocale.lang).to.equal('ja');
             });
+            it('should initialize with default locale if requested locale is not present on surface', async function () {
+                setContext('ar_SA'); // Assume es_MX is not on default surface
+                const el = initElementFromTemplate('nonpresentLocale', this.test.title);
+                await el.updateComplete;
+                expect(el.locale).to.equal('en_US'); // Fallback to en_US
+                expect(el.currentLocale.country).to.equal('US');
+                expect(el.currentLocale.lang).to.equal('en');
+            });
         });
 
         describe('Modes', () => {

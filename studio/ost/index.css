@@ -22,7 +22,7 @@ button.promo-tag-button {
 .no-promo {
   opacity: 0.2;
 }
-.price-strikethrough {
+.price-strikethrough, .price-promo-strikethrough {
   text-decoration: line-through;
 }
 .placeholders-list {

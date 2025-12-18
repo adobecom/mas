@@ -48,6 +48,7 @@ function compareGetters(card, expected) {
         recurrenceText,
         planTypeText,
         promoDurationText,
+        unitText,
         ctas,
         primaryCta,
         secondaryCta,
@@ -61,6 +62,7 @@ function compareGetters(card, expected) {
     expect(taxText, '').to.equal(expected.taxText);
     expect(recurrenceText, '').to.equal(expected.recurrenceText);
     expect(planTypeText, '').to.equal(expected.planTypeText);
+    expect(unitText, '').to.equal(expected.unitText);
     expect(seeTermsInfo, '').to.deep.equal(expected.seeTermsInfo);
     expect(renewalText, '').to.equal(expected.renewalText);
     expect(promoDurationText, '').to.equal(expected.promoDurationText);
@@ -96,6 +98,7 @@ runTests(async () => {
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: undefined,
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'see terms',
                         analyticsId: 'see-terms',
@@ -118,6 +121,27 @@ runTests(async () => {
                     },
                 });
             });
+            it('should render US standard with no CTA', async () => {
+                const [card] = getTemplateContent('template-mini-photo-no-cta');
+                container.append(card);
+                await card.checkReady();
+                compareGetters(card, {
+                    title: 'CCD Apps: Photography no CTA',
+                    regularPrice: 'US$59.99/mo',
+                    promoPrice: undefined,
+                    annualPrice: undefined,
+                    taxText: undefined,
+                    unitText: '',
+                    seeTermsInfo: undefined,
+                    renewalText: undefined,
+                    promoDurationText: undefined,
+                    ctas: 0,
+                    planTypeText: 'Annual, paid monthly.',
+                    recurrenceText: '/mo',
+                    primaryCta: undefined,
+                    secondaryCta: undefined,
+                });
+            });
             it('should render US promo', async () => {
                 const [card] = getTemplateContent('template-mini-photo-promo');
                 container.append(card);
@@ -129,6 +153,7 @@ runTests(async () => {
                     promotionCode: 'CCI2AAUSQ22440CD',
                     annualPrice: undefined,
                     taxText: undefined,
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'see terms',
                         analyticsId: 'see-terms',
@@ -162,6 +187,7 @@ runTests(async () => {
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: undefined,
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'see terms',
                         analyticsId: 'see-terms',
@@ -199,23 +225,32 @@ runTests(async () => {
                 );
                 logSpy.restore();
             });
-            it('should render US standard with no CTA', async () => {
-                const [card] = getTemplateContent('template-mini-photo-no-cta');
+            it('should render US team', async () => {
+                const [card] = getTemplateContent('template-mini-team');
                 container.append(card);
                 await card.checkReady();
                 compareGetters(card, {
-                    title: 'CCD Apps: Photography no CTA',
-                    regularPrice: 'US$59.99/mo',
+                    title: 'CCD Apps: Team Plan',
+                    regularPrice: 'US$99.99/mo per license',
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: undefined,
-                    seeTermsInfo: undefined,
+                    unitText: 'per license',
+                    seeTermsInfo: {
+                        text: 'see terms',
+                        analyticsId: 'see-terms',
+                        href: 'https://www.stage.adobe.com/offers/promo-terms.html?locale=en_US&country=US&offer_id=7B3FB5E4F8662A207A960BAFB6B1C21C',
+                    },
                     renewalText: undefined,
                     promoDurationText: undefined,
-                    ctas: 0,
+                    ctas: 1,
                     planTypeText: 'Annual, paid monthly.',
                     recurrenceText: '/mo',
-                    primaryCta: undefined,
+                    primaryCta: {
+                        text: 'Buy now',
+                        analyticsId: 'buy-now',
+                        href: 'https://commerce-stg.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=US&lang=en&ms=COM&ot=BASE&cs=TEAM&pa=ccle_direct_indirect_team',
+                    },
                     secondaryCta: undefined,
                 });
             });
@@ -233,6 +268,7 @@ runTests(async () => {
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: undefined,
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'see terms',
                         analyticsId: 'see-terms',
@@ -268,6 +304,7 @@ runTests(async () => {
                     promotionCode: 'CCI2AACAQ22440CD',
                     annualPrice: undefined,
                     taxText: undefined,
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'see terms',
                         analyticsId: 'see-terms',
@@ -291,6 +328,35 @@ runTests(async () => {
                     },
                 });
             });
+            it('should render CA team', async () => {
+                const [card] = getTemplateContent('template-mini-team-ca');
+                container.append(card);
+                await card.checkReady();
+                compareGetters(card, {
+                    title: 'CCD Apps: Team Plan',
+                    regularPrice: 'CAD $130.99/mo per license',
+                    promoPrice: undefined,
+                    annualPrice: undefined,
+                    taxText: undefined,
+                    unitText: 'per license',
+                    seeTermsInfo: {
+                        text: 'see terms',
+                        analyticsId: 'see-terms',
+                        href: 'https://www.stage.adobe.com/offers/promo-terms.html?locale=en_CA&country=CA&offer_id=7B3FB5E4F8662A207A960BAFB6B1C21C',
+                    },
+                    renewalText: undefined,
+                    promoDurationText: undefined,
+                    ctas: 1,
+                    planTypeText: 'Annual, paid monthly.',
+                    recurrenceText: '/mo',
+                    primaryCta: {
+                        text: 'Buy now',
+                        analyticsId: 'buy-now',
+                        href: 'https://commerce-stg.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=CA&lang=en&ms=COM&ot=BASE&cs=TEAM&pa=ccle_direct_indirect_team',
+                    },
+                    secondaryCta: undefined,
+                });
+            });
         });
 
         describe('AU', () => {
@@ -305,6 +371,7 @@ runTests(async () => {
                     promoPrice: undefined,
                     annualPrice: 'A$1,151.88/yr',
                     taxText: 'Inclusive of all taxes.',
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'see terms',
                         analyticsId: 'see-terms',
@@ -340,6 +407,7 @@ runTests(async () => {
                     promotionCode: 'CCI2AAAUQ22440CD',
                     annualPrice: 'A$575.88/yr',
                     taxText: 'Inclusive of all taxes.',
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'see terms',
                         analyticsId: 'see-terms',
@@ -363,6 +431,35 @@ runTests(async () => {
                     },
                 });
             });
+            it('should render AU team', async () => {
+                const [card] = getTemplateContent('template-mini-team-au');
+                container.append(card);
+                await card.checkReady();
+                compareGetters(card, {
+                    title: 'CCD Apps: Team Plan',
+                    regularPrice: 'A$157.99/mo per license',
+                    promoPrice: undefined,
+                    annualPrice: undefined,
+                    taxText: 'Inclusive of all taxes.',
+                    unitText: 'per license',
+                    seeTermsInfo: {
+                        text: 'see terms',
+                        analyticsId: 'see-terms',
+                        href: 'https://www.stage.adobe.com/offers/promo-terms.html?locale=en_AU&country=AU&offer_id=7B3FB5E4F8662A207A960BAFB6B1C21C',
+                    },
+                    renewalText: undefined,
+                    promoDurationText: undefined,
+                    ctas: 1,
+                    planTypeText: 'Annual, paid monthly.',
+                    recurrenceText: '/mo',
+                    primaryCta: {
+                        text: 'Buy now',
+                        analyticsId: 'buy-now',
+                        href: 'https://commerce-stg.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=AU&lang=en&ms=COM&ot=BASE&cs=TEAM&pa=ccle_direct_indirect_team',
+                    },
+                    secondaryCta: undefined,
+                });
+            });
         });
 
         describe('FR', () => {
@@ -377,6 +474,7 @@ runTests(async () => {
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: 'Toutes taxes comprises.',
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'voir les conditions',
                         analyticsId: 'see-terms',
@@ -412,6 +510,7 @@ runTests(async () => {
                     promotionCode: 'CCI2AAFRQ22440CD',
                     annualPrice: undefined,
                     taxText: 'Toutes taxes comprises.',
+                    unitText: '',
                     seeTermsInfo: {
                         text: 'voir les conditions',
                         analyticsId: 'see-terms',
@@ -434,6 +533,35 @@ runTests(async () => {
                         analyticsId: 'free-trial',
                         href: 'https://commerce-stg.adobe.com/store/segmentation?apc=CCI2AAFRQ22440CD&cli=adobe_com&ctx=fp&co=FR&lang=fr&ms=COM&ot=BASE&cs=INDIVIDUAL&pa=ccsn_direct_individual',
                     },
+                });
+            });
+            it('should render FR team', async () => {
+                const [card] = getTemplateContent('template-mini-team-fr');
+                container.append(card);
+                await card.checkReady();
+                compareGetters(card, {
+                    title: 'CCD Apps: Team Plan',
+                    regularPrice: '86,55 €/mois par licence',
+                    promoPrice: undefined,
+                    annualPrice: undefined,
+                    taxText: 'hors TVA.',
+                    unitText: 'par licence',
+                    seeTermsInfo: {
+                        text: 'voir les conditions',
+                        analyticsId: 'see-terms',
+                        href: 'https://www.stage.adobe.com/offers/promo-terms.html?locale=fr_FR&country=FR&offer_id=7B3FB5E4F8662A207A960BAFB6B1C21C',
+                    },
+                    renewalText: undefined,
+                    promoDurationText: undefined,
+                    ctas: 1,
+                    planTypeText: 'Annuel, facturé mensuellement.',
+                    recurrenceText: '/mois',
+                    primaryCta: {
+                        text: 'Buy now',
+                        analyticsId: 'buy-now',
+                        href: 'https://commerce-stg.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=FR&lang=fr&ms=COM&ot=BASE&cs=TEAM&pa=ccle_direct_indirect_team',
+                    },
+                    secondaryCta: undefined,
                 });
             });
         });

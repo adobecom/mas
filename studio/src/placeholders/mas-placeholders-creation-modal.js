@@ -112,6 +112,7 @@ class MasPlaceholdersCreationModal extends LitElement {
                             <mas-locale-picker
                                 id="placeholder-locale"
                                 locale=${Store.locale()}
+                                mode="region"
                                 ?disabled=${this.saving}
                                 @locale-changed=${this.handleLocaleChange}
                             ></mas-locale-picker>

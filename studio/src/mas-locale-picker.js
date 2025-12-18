@@ -236,11 +236,11 @@ export class MasLocalePicker extends LitElement {
             <sp-action-menu value=${code} ?disabled=${this.disabled}>
                 ${this.displayMode === 'strong'
                     ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
-                    : ''}
+                    : html`<span slot="icon"></span>`}
                 <span slot="label" class="locale-label">
                     <span>${currentLocale.lang.toUpperCase()} (${currentLocale.country})</span>
-                    <sp-icon-chevron-down class="chevron"></sp-icon-chevron-down>
                 </span>
+                <sp-icon-chevron-down class="chevron" slot="label"></sp-icon-chevron-down>
                 <sp-menu size="m">
                     ${this.searchField} ${this.getFilteredLocales().map((locale) => this.renderMenuItem(locale))}
                 </sp-menu>

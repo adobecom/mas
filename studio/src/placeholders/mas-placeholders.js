@@ -300,7 +300,7 @@ class MasPlaceholders extends LitElement {
                     <mas-locale-picker
                         surface=${Store.surface()}
                         label="Region"
-                        locale=${Store.locale()}
+                        locale=${Store.localeOrRegion()}
                         @locale-changed=${(event) =>
                             Store.search.set((prev) => ({
                                 ...prev,

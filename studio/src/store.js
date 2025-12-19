@@ -85,8 +85,11 @@ const Store = {
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
     },
-    locale: function () {
+    localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';
+    },
+    removeRegionOverride: function () {
+        Store.search.set((prev) => ({ ...prev, region: null }));
     },
     surface: function () {
         return Store.search.value.path;

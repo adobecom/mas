@@ -129,7 +129,7 @@ export class MasLocalePicker extends LitElement {
             this.classList.add('strong');
         }
         this.searchSubscriptions = Store.filters.subscribe(() => {
-            this.locale = Store.locale();
+            this.locale = Store.localeOrRegion();
             this.render();
         });
     }

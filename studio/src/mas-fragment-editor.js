@@ -8,7 +8,7 @@ import StoreController from './reactivity/store-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
+import { generateCodeToUse, getFragmentMapping, getService, showToast } from './utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './editors/version-panel.js';
@@ -628,7 +628,7 @@ export default class MasFragmentEditor extends LitElement {
 
             if (isVariation) {
                 const fragmentLocale = this.extractLocaleFromPath(fragmentStore?.get()?.path);
-                if (fragmentLocale && fragmentLocale !== Store.locale()) {
+                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
                     Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
 
                     await this.repository.loadPreviewPlaceholders();
@@ -735,7 +735,7 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.localeDefaultFragment) return;
         const parentLocale = this.extractLocaleFromPath(this.localeDefaultFragment.path);
         if (parentLocale) {
-            Store.search.set((prev) => ({ ...prev, region: null }));
+            Store.removeRegionOverride();
         }
         await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
@@ -1233,6 +1233,10 @@ export default class MasFragmentEditor extends LitElement {
 
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
+
+        const masService = getService();
+        masService.setAttribute('locale', Store.localeOrRegion());
+        masService.activate();
 
         return html`
             <div id="preview-column">

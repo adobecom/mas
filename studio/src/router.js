@@ -52,6 +52,7 @@ export class Router extends EventTarget {
                         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
                     }
                     Store.viewMode.set('default');
+                    Store.removeRegionOverride();
                     Store.page.set(value);
                 }
             } finally {

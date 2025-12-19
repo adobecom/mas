@@ -142,7 +142,7 @@ class MasPlaceholdersItem extends LitElement {
 
         return html`
             <sp-table-row value=${this.placeholder.key}>
-                ${this.keyCell} ${this.valueCell} ${this.statusCell} ${this.renderTableCell(Store.locale(), 'right')}
+                ${this.keyCell} ${this.valueCell} ${this.statusCell} ${this.renderTableCell(Store.localeOrRegion(), 'right')}
                 ${this.renderTableCell(this.placeholder.updatedBy, 'right', 'updated-by', true)}
                 ${this.renderTableCell(this.placeholder.updatedAt, 'right')} ${this.actionCell}
             </sp-table-row>

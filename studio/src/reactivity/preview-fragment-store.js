@@ -172,7 +172,7 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         const context = {
-            locale: Store.locale(),
+            locale: Store.localeOrRegion(),
             surface: Store.surface(),
             dictionary: Store.placeholders.preview.value,
         };

@@ -95,10 +95,16 @@ export class VersionRepository {
             // Convert back to AEM array format for saving
             const fieldsArray = denormalizeFields(normalizedFields, currentFragment);
 
+            // Extract fragment title and description from normalized fields
+            const { fragmentTitle, fragmentDescription } = normalizedFields;
+
             // Update the current fragment with the version data
             const updatedFragment = {
                 ...currentFragment,
                 fields: fieldsArray,
+                // Restore title and description if they exist in the version
+                ...(fragmentTitle !== undefined && { title: fragmentTitle }),
+                ...(fragmentDescription !== undefined && { description: fragmentDescription }),
             };
 
             // Save the fragment

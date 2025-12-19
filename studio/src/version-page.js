@@ -5,6 +5,8 @@ import { PAGE_NAMES, CARD_MODEL_PATH } from './constants.js';
 import Events from './events.js';
 import { confirmation } from './mas-confirm-dialog.js';
 import { VersionRepository } from './version-repository.js';
+import { Fragment } from './aem/fragment.js';
+import generateFragmentStore from './reactivity/source-fragment-store.js';
 import {
     setFieldConfig,
     normalizeFields,
@@ -455,6 +457,16 @@ class VersionPage extends LitElement {
             this.fragment = fragment;
             this.versions = versions;
             this.currentVersion = currentVersion;
+
+            // Ensure fragment is in the list for navigation back to content page
+            // This mirrors the pattern used in mas-fragment-editor.js
+            const fragmentId = this.fragmentId.value;
+            const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+            if (!existingStore && fragment) {
+                const fragmentObj = new Fragment(fragment);
+                const fragmentStore = generateFragmentStore(fragmentObj);
+                Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            }
 
             // Set the selected version to the first historical version (second item)
             if (this.versions.length > 1) {

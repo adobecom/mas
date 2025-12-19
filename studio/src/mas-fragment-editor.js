@@ -598,6 +598,10 @@ export default class MasFragmentEditor extends LitElement {
                 return;
             }
         }
+        const locale = this.extractLocaleFromPath(fragmentStore.get().path);
+        if (Store.localeOrRegion() !== locale) {
+            Store.search.set((prev) => ({ ...prev, region: locale }));
+        }
 
         this.initializingFragment = true;
         this.requestUpdate();
@@ -1234,9 +1238,15 @@ export default class MasFragmentEditor extends LitElement {
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
 
-        const masService = getService();
-        masService.setAttribute('locale', Store.localeOrRegion());
-        masService.activate();
+        document.querySelectorAll('mas-commerce-service').forEach((el) => el.remove());
+        const masServiceElement = document.createElement('mas-commerce-service');
+        masServiceElement.setAttribute('locale', Store.localeOrRegion());
+        document.body.prepend(masServiceElement);
+        document.querySelectorAll('rte-field').forEach((rte) =>
+            rte.shadowRoot.querySelectorAll('[data-wcs-osi]').forEach((el) => {
+                if (el.requestUpdate) el.requestUpdate(true);
+            }),
+        );
 
         return html`
             <div id="preview-column">

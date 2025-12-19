@@ -179,7 +179,7 @@ export class MasVariationDialog extends LitElement {
 
             showToast('Variation created successfully', 'positive');
 
-            Store.filters.set((prev) => ({ ...prev, locale: this.selectedLocale }));
+            Store.search.set((prev) => ({ ...prev, region: this.selectedLocale }));
 
             this.dispatchEvent(
                 new CustomEvent('fragment-copied', {

@@ -13,7 +13,7 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './editors/version-panel.js';
 import './mas-variation-dialog.js';
-import { getLocaleByCode } from './locales.js';
+import { getCountryName, getLocaleByCode } from './locales.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -628,8 +628,9 @@ export default class MasFragmentEditor extends LitElement {
 
             if (isVariation) {
                 const fragmentLocale = this.extractLocaleFromPath(fragmentStore?.get()?.path);
-                if (fragmentLocale && fragmentLocale !== Store.filters.value.locale) {
-                    Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
+                if (fragmentLocale && fragmentLocale !== Store.locale()) {
+                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+
                     await this.repository.loadPreviewPlaceholders();
                     fragmentStore.resolvePreviewFragment();
                 }
@@ -734,7 +735,7 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.localeDefaultFragment) return;
         const parentLocale = this.extractLocaleFromPath(this.localeDefaultFragment.path);
         if (parentLocale) {
-            Store.filters.set((prev) => ({ ...prev, locale: parentLocale }));
+            Store.search.set((prev) => ({ ...prev, region: null }));
         }
         await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
@@ -1116,24 +1117,20 @@ export default class MasFragmentEditor extends LitElement {
         return parts[localeIndex] || null;
     }
 
+    displayRegionalVarationInfo(clazz) {
+        const localeCode = this.extractLocaleFromPath(this.fragment.path);
+        const locale = localeCode ? getLocaleByCode(localeCode) : null;
+        if (!locale) return nothing;
+        return html`<div class="${clazz}">
+            <span>Regional variation: <strong>${getCountryName(locale.country)} (${locale.lang.toUpperCase()})</strong></span>
+        </div>`;
+    }
+
     get localeVariationHeader() {
         if (!this.fragment || !this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
         }
-
-        const localeCode = this.extractLocaleFromPath(this.fragment.path);
-        if (!localeCode) return nothing;
-        const localeInfo = getLocaleByCode(localeCode);
-        if (!localeInfo) return nothing;
-
-        return html`
-            <div class="locale-variation-header">
-                <span
-                    >Regional variation:
-                    <strong>${localeInfo.name?.split(' (')[0]} (${localeCode?.split('_')[0].toUpperCase()})</strong></span
-                >
-            </div>
-        `;
+        return this.displayRegionalVarationInfo('locale-variation-header');
     }
 
     get localeDefaultLocaleLabel() {
@@ -1234,25 +1231,13 @@ export default class MasFragmentEditor extends LitElement {
         const borderAttrs = this.previewBorderColorAttributes;
         const cssProps = this.previewCSSCustomProperties;
 
-        const localeCode = this.extractLocaleFromPath(this.fragment.path);
-        const localeInfo = getLocaleByCode(localeCode);
-
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
 
         return html`
             <div id="preview-column">
                 ${this.editorContextStore.isVariation(this.fragment.id)
-                    ? html`
-                          <div class="preview-header">
-                              <div class="preview-header-title">
-                                  Regional variation:
-                                  <strong
-                                      >${localeInfo?.name?.split(' (')[0]} (${localeCode?.split('_')[0].toUpperCase()})</strong
-                                  >
-                              </div>
-                          </div>
-                      `
+                    ? this.displayRegionalVarationInfo('preview-header')
                     : nothing}
                 <div class="preview-content columns mas-fragment">
                     <merch-card

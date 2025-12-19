@@ -78,7 +78,7 @@ export class Router extends EventTarget {
         try {
             // Set locale BEFORE setting page to include it in the first URL change
             if (locale && locale !== Store.filters.value.locale) {
-                Store.filters.set((prev) => ({ ...prev, locale }));
+                Store.search.set((prev) => ({ ...prev, region: locale }));
             }
 
             // Check if this is a collection to use editor-panel instead

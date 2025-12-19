@@ -90,6 +90,15 @@ function parseArgs(args) {
         parsedParams.project = `mas-live-${parsedParams.browser}`;
     }
 
+    // Determine USE_AUTH
+    if (!process.env.USE_AUTH) {
+        if (parsedParams.test.includes('studio/') || parsedParams.tag.includes('mas-studio')) {
+            process.env.USE_AUTH = 'true';
+        } else {
+            process.env.USE_AUTH = 'false';
+        }
+    }
+
     return parsedParams;
 }
 
@@ -122,6 +131,7 @@ function buildPlaywrightCommand(parsedParams, localTestLiveUrl) {
         DEVICE: device,
         HEADLESS: mode === 'headless' || mode === 'headed' ? 'true' : 'false',
         LOCAL_TEST_LIVE_URL: localTestLiveUrl,
+        USE_AUTH: process.env.USE_AUTH,
     };
 
     const command = 'npx playwright test';

@@ -127,9 +127,7 @@ describe('VersionRepository', () => {
                 id: 'fragment-1',
                 title: 'Current Title',
                 description: 'Current Description',
-                fields: [
-                    { name: 'field1', type: 'text', values: ['current'] },
-                ],
+                fields: [{ name: 'field1', type: 'text', values: ['current'] }],
             };
             const versionData = {
                 fields: [{ name: 'field1', values: ['restored'] }],
@@ -158,9 +156,7 @@ describe('VersionRepository', () => {
                 id: 'fragment-1',
                 title: 'Current Title',
                 description: 'Current Description',
-                fields: [
-                    { name: 'field1', type: 'text', values: ['current'] },
-                ],
+                fields: [{ name: 'field1', type: 'text', values: ['current'] }],
             };
             const versionData = {
                 title: 'Restored Title',
@@ -184,7 +180,7 @@ describe('VersionRepository', () => {
 
             expect(mockRepository.aem.sites.cf.fragments.save.calledOnce).to.be.true;
             const savedFragment = mockRepository.aem.sites.cf.fragments.save.firstCall.args[0];
-            
+
             // Verify title and description are restored
             expect(savedFragment.title).to.equal('Restored Title');
             expect(savedFragment.description).to.equal('Restored Description');
@@ -197,9 +193,7 @@ describe('VersionRepository', () => {
                 id: 'fragment-1',
                 title: 'Current Title',
                 description: 'Current Description',
-                fields: [
-                    { name: 'field1', type: 'text', values: ['current'] },
-                ],
+                fields: [{ name: 'field1', type: 'text', values: ['current'] }],
             };
             const versionData = {
                 fields: [{ name: 'field1', values: ['restored'] }],
@@ -217,7 +211,7 @@ describe('VersionRepository', () => {
             await versionRepository.restoreVersion(version, currentFragment, normalizeFields, denormalizeFields);
 
             const savedFragment = mockRepository.aem.sites.cf.fragments.save.firstCall.args[0];
-            
+
             // Title and description should remain from current fragment (spread operator)
             expect(savedFragment.title).to.equal('Current Title');
             expect(savedFragment.description).to.equal('Current Description');
@@ -334,4 +328,3 @@ describe('VersionRepository', () => {
         });
     });
 });
-

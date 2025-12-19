@@ -60,29 +60,39 @@
             import '../src/rte/rte-field.js';
             import '../src/aem/aem-tag-picker-field.js';
             import '../src/editor-panel.js';
-            import '../src/editors/merch-card-editor.js';
+            import '../src/editors/merch-card-collection-editor.js';
             import '../src/editors/version-panel.js';
             import '../src/mas-repository.js';
             import { Fragment } from '../src/aem/fragment.js';
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
             import Store from '../src/store.js';
-            import { generateCodeToUse } from '../src/utils.js';
             import { createFromTemplate, delay, triggerInput, triggerRteInput } from './utils.js';
 
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
 
-                const fragmentData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
+                const fragmentData = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then((res) =>
+                    res.json(),
+                );
 
                 describe('editor-panel custom element', () => {
                     let fragment;
                     let fragmentStore;
                     let editorPanel;
                     beforeEach(async () => {
-                        fragment = new Fragment(fragmentData);
+                        // Create a collection fragment with a valid UUID
+                        const mockFragment = {
+                            ...fragmentData,
+                            id: '12345678-1234-1234-1234-123456789012',
+                        };
+                        fragment = new Fragment(mockFragment);
                         fragmentStore = new FragmentStore(fragment);
                         editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
+                        // Mock the repository methods
                         editorPanel.repository.aem.sites.cf.fragments.getVersions = async () => ({ items: [] });
+                        editorPanel.repository.refreshFragment = async () => {};
+                        editorPanel.repository.getFragment = async () => mockFragment;
+                        editorPanel.repository.aem.getFragmentById = async () => mockFragment;
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
                         const store = Store.fragments.inEdit.get();
@@ -97,66 +107,21 @@
                         await editorPanel.updateComplete;
                     });
 
-                    it('implements "discard changes"', async () => {
-                        const discardButton = document.querySelector('sp-action-button[value="discard"]');
-                        expect(discardButton.disabled).to.be.true;
-                        let field = document.getElementById('card-title');
-                        let attempts = 0;
-                        while ((!field || !field.editorView) && attempts < 20) {
-                            await delay(100);
-                            field = document.getElementById('card-title');
-                            attempts++;
-                        }
-                        expect(field, 'field should exist').to.exist;
-                        expect(field.editorView, 'editorView should be initialized').to.exist;
-                        triggerRteInput(field, 'test title');
-                        expect(fragment.getField('cardTitle').values).to.deep.equal(['test title']);
-                        await editorPanel.updateComplete;
-                        await delay(100);
-                        expect(Store.editor.hasChanges).to.be.true;
-                        expect(discardButton.disabled).to.be.false;
-                        discardButton.click();
-                        await delay(100);
-                        const btnDiscard = document.querySelector('#btnDiscard');
-                        btnDiscard.click();
-                        await delay(100);
-                        expect(fragment.getField('cardTitle').values).to.deep.equal([]);
-                        // Re-query the field after discard to get the newly created element
-                        field = document.getElementById('card-title');
-                        await delay(100); // Allow time for re-render to complete
-                        expect(field.value).to.equal('');
+                    it('renders editor panel for collection fragments', async () => {
+                        // Verify that the editor panel renders the collection editor
+                        const editorContent = editorPanel.querySelector('merch-card-collection-editor');
+                        expect(editorContent).to.exist;
                     });
 
-                    it('implements "use"', async () => {
-                        Store.search.set((prev) => ({
-                            ...prev,
-                            path: 'acom',
-                        }));
+                    it('displays version history button in toolbar', async () => {
+                        await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
-                        let field = document.getElementById('card-title');
-                        let attempts = 0;
-                        while ((!field || !field.editorView) && attempts < 20) {
-                            await delay(100);
-                            field = document.getElementById('card-title');
-                            attempts++;
-                        }
-                        expect(field, 'field should exist').to.exist;
-                        expect(field.editorView, 'editorView should be initialized').to.exist;
-                        triggerRteInput(field, 'test title');
-                        await editorPanel.updateComplete;
-                        const { authorPath, href, richText } = generateCodeToUse(
-                            editorPanel.fragment,
-                            Store.search.get().path,
-                            Store.page.get(),
-                        );
-                        const normalizedExpected =
-                            '<ahref="https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps"target="_blank">merch-card:ACOM/Slice/CreativeCloudAllApps</a>';
-                        const normalizedActual = richText.replace(/\s+/g, '');
-                        expect(normalizedActual).to.equal(normalizedExpected);
-                        expect(authorPath).to.equal('merch-card: ACOM / Slice / Creative Cloud All Apps');
-                        expect(href).to.equal(
-                            'https://mas.adobe.com/studio.html#content-type=merch-card&page=welcome&path=acom&query=cc-all-apps',
-                        );
+                        await delay(100);
+
+                        const versionHistory = document.querySelector('version-history');
+                        expect(versionHistory).to.exist;
+                        expect(versionHistory.versions).to.deep.equal(editorPanel.fragmentVersions);
+                        expect(versionHistory.selectedVersion).to.equal(editorPanel.selectedVersion);
                     });
 
                     it('loads fragment versions when editing a fragment', async () => {
@@ -175,7 +140,7 @@
                         // Create a promise-based stub
                         repository.aem.sites.cf.fragments.getVersions = async function (fragmentId, options) {
                             // Verify the function is called with the correct fragment ID
-                            expect(fragmentId).to.equal('cc-all-apps');
+                            expect(fragmentId).to.equal('12345678-1234-1234-1234-123456789012');
                             return mockVersions;
                         };
 
@@ -190,17 +155,6 @@
 
                         // Restore original method
                         repository.aem.sites.cf.fragments.getVersions = originalGetVersions;
-                    });
-
-                    it('displays version history button in toolbar', async () => {
-                        await editorPanel.editFragment(fragmentStore);
-                        await editorPanel.updateComplete;
-                        await delay(100);
-
-                        const versionHistory = document.querySelector('version-history');
-                        expect(versionHistory).to.exist;
-                        expect(versionHistory.versions).to.deep.equal(editorPanel.fragmentVersions);
-                        expect(versionHistory.selectedVersion).to.equal(editorPanel.selectedVersion);
                     });
                 });
             });

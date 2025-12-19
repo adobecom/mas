@@ -88,6 +88,9 @@ function parseArgs(args) {
     // Set the project if not provided
     if (!parsedParams.project) {
         parsedParams.project = `mas-live-${parsedParams.browser}`;
+        if (parsedParams.test.includes('studio/') || parsedParams.tag.includes('mas-studio')) {
+            parsedParams.project += '-studio';
+        }
     }
 
     return parsedParams;
@@ -122,6 +125,7 @@ function buildPlaywrightCommand(parsedParams, localTestLiveUrl) {
         DEVICE: device,
         HEADLESS: mode === 'headless' || mode === 'headed' ? 'true' : 'false',
         LOCAL_TEST_LIVE_URL: localTestLiveUrl,
+        NALA_SKIP_CLEANUP: parsedParams.test.includes('studio/') || parsedParams.tag.includes('mas-studio') ? 'false' : 'true',
     };
 
     const command = 'npx playwright test';

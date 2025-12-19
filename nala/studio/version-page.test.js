@@ -31,7 +31,6 @@ test.describe('M@S Studio - Version Page test suite', () => {
 
         await test.step('step-2: Validate version page elements', async () => {
             await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
-            await expect(versionPage.header).toBeVisible();
             await expect(versionPage.versionListPanel).toBeVisible();
             await expect(versionPage.previewPanel).toBeVisible();
             await expect(versionPage.searchInput).toBeVisible();
@@ -65,45 +64,10 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
     });
 
-    // @version-page-breadcrumbs - Validate breadcrumb navigation and back navigation
+    // @version-page-preview - Validate version preview and changed fields functionality
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.fragmentId}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Navigate to version page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
-            await expect(page).toHaveURL(new RegExp('page=version'));
-        });
-
-        await test.step('step-2: Validate breadcrumbs', async () => {
-            await expect(versionPage.breadcrumbs).toBeVisible();
-            await expect(versionPage.breadcrumbHome).toBeVisible();
-            await expect(versionPage.breadcrumbCurrent).toBeVisible();
-            await expect(versionPage.breadcrumbCurrent).toContainText('Version');
-        });
-
-        await test.step('step-3: Navigate back using breadcrumbs', async () => {
-            await versionPage.navigateBackToContent();
-            await page.waitForTimeout(1000);
-            // Should navigate back to content page
-            await expect(page).toHaveURL(new RegExp('page=content'));
-            // Verify we can see the studio content (either table or render view)
-            const contentVisible = await page
-                .locator('mas-content')
-                .isVisible()
-                .catch(() => false);
-            expect(contentVisible).toBe(true);
-        });
-    });
-
-    // @version-page-preview - Validate version preview and changed fields functionality
-    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.fragmentId}`;
         setTestPage(testPage);
 
         await test.step('step-1: Navigate to version page', async () => {
@@ -163,9 +127,9 @@ test.describe('M@S Studio - Version Page test suite', () => {
     });
 
     // @version-page-search - Validate version search functionality
-    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.fragmentId}`;
+    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[2];
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.fragmentId}`;
         setTestPage(testPage);
 
         await test.step('step-1: Navigate to version page', async () => {

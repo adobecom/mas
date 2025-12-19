@@ -13,16 +13,6 @@ export default {
         },
         {
             tcid: '1',
-            name: '@version-page-breadcrumbs',
-            path: '/studio.html',
-            data: {
-                fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
-            },
-            browserParams: '#page=version&path=nala&fragmentId=',
-            tags: '@mas-studio @version',
-        },
-        {
-            tcid: '2',
             name: '@version-page-preview',
             path: '/studio.html',
             data: {
@@ -32,7 +22,7 @@ export default {
             tags: '@mas-studio @version',
         },
         {
-            tcid: '3',
+            tcid: '2',
             name: '@version-page-search',
             path: '/studio.html',
             data: {

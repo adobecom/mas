@@ -12,10 +12,6 @@ export default class VersionPage {
         this.breadcrumbHome = page.locator('version-page sp-breadcrumb-item').first();
         this.breadcrumbCurrent = page.locator('version-page sp-breadcrumb-item').last();
 
-        // Header section
-        this.header = page.locator('version-page .version-page-header');
-        this.breadcrumbWrapper = page.locator('version-page .breadcrumb-wrapper');
-
         // Version list panel
         this.versionListPanel = page.locator('version-page .version-list-panel');
         this.versionListHeader = page.locator('version-page .version-list-header');

@@ -63,7 +63,7 @@ const config = {
             use: {
                 ...devices['Desktop Chrome'],
                 userAgent: USER_AGENT_DESKTOP,
-                ...(process.env.USE_AUTH === 'true' && {
+                ...(process.env.SKIP_AUTH !== 'true' && {
                     storageState: './nala/.auth/user.json',
                 }),
             },
@@ -71,7 +71,7 @@ const config = {
             launchOptions: {
                 args: ['--disable-web-security', '--disable-gpu'],
             },
-            ...(process.env.USE_AUTH === 'true' && {
+            ...(process.env.SKIP_AUTH !== 'true' && {
                 dependencies: ['setup'],
             }),
         },

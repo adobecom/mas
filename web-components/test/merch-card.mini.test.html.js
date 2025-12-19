@@ -231,7 +231,7 @@ runTests(async () => {
                 await card.checkReady();
                 compareGetters(card, {
                     title: 'CCD Apps: Team Plan',
-                    regularPrice: 'US$99.99/mo per license',
+                    regularPrice: 'US$99.99/mo',
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: undefined,
@@ -334,7 +334,7 @@ runTests(async () => {
                 await card.checkReady();
                 compareGetters(card, {
                     title: 'CCD Apps: Team Plan',
-                    regularPrice: 'CAD $130.99/mo per license',
+                    regularPrice: 'CAD $130.99/mo',
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: undefined,
@@ -437,7 +437,7 @@ runTests(async () => {
                 await card.checkReady();
                 compareGetters(card, {
                     title: 'CCD Apps: Team Plan',
-                    regularPrice: 'A$157.99/mo per license',
+                    regularPrice: 'A$157.99/mo',
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: 'Inclusive of all taxes.',
@@ -541,7 +541,7 @@ runTests(async () => {
                 await card.checkReady();
                 compareGetters(card, {
                     title: 'CCD Apps: Team Plan',
-                    regularPrice: '86,55 €/mois par licence',
+                    regularPrice: '86,55 €/mois',
                     promoPrice: undefined,
                     annualPrice: undefined,
                     taxText: 'hors TVA.',

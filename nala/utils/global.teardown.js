@@ -347,7 +347,7 @@ async function cleanupClonedCards() {
 }
 
 async function globalTeardown() {
-    if (process.env.NALA_SKIP_CLEANUP === 'true') {
+    if (process.env.USE_AUTH !== 'true') {
         console.info('\n⏩ Skipping Nala Global Teardown (not a Studio test run)\n');
         return;
     }

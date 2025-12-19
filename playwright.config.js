@@ -63,21 +63,7 @@ const config = {
             use: {
                 ...devices['Desktop Chrome'],
                 userAgent: USER_AGENT_DESKTOP,
-            },
-            bypassCSP: true,
-            launchOptions: {
-                args: ['--disable-web-security', '--disable-gpu'],
-            },
-        },
-
-        // This project runs with authentication and is used for Studio tests.
-        // It has a dependency on the 'setup' project which performs the login.
-        {
-            name: 'mas-live-chromium-studio',
-            use: {
-                ...devices['Desktop Chrome'],
-                userAgent: USER_AGENT_DESKTOP,
-                ...(process.env.SKIP_AUTH !== 'true' && {
+                ...(process.env.USE_AUTH === 'true' && {
                     storageState: './nala/.auth/user.json',
                 }),
             },
@@ -85,7 +71,7 @@ const config = {
             launchOptions: {
                 args: ['--disable-web-security', '--disable-gpu'],
             },
-            ...(process.env.SKIP_AUTH !== 'true' && {
+            ...(process.env.USE_AUTH === 'true' && {
                 dependencies: ['setup'],
             }),
         },

@@ -19,11 +19,10 @@
         },
         "ctas": {
             "value": "<a class=\"accent\" data-checkout-workflow-step=\"segmentation\" data-wcs-osi=\"KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM\" data-template=\"checkoutUrl\" data-analytics-id=\"buy-now\">Buy now</a>",
-            "mimeType":"text/html"
+            "mimeType": "text/html"
         }
     },
     "settings": {
         "displayPlanType": "true"
     }
 }
-

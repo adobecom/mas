@@ -347,6 +347,7 @@ async function cleanupClonedCards() {
 }
 
 async function globalTeardown() {
+    if (process.env.SKIP_AUTH === 'true') return;
     console.info(`\n---- Executing Nala Global Teardown ----\n`);
     try {
         await cleanupClonedCards();

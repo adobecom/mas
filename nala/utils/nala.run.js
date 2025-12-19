@@ -90,12 +90,12 @@ function parseArgs(args) {
         parsedParams.project = `mas-live-${parsedParams.browser}`;
     }
 
-    // Determine USE_AUTH
-    if (!process.env.USE_AUTH) {
-        if (parsedParams.test.includes('studio/') || parsedParams.tag.includes('mas-studio')) {
-            process.env.USE_AUTH = 'true';
+    // Determine SKIP_AUTH
+    if (!process.env.SKIP_AUTH) {
+        if (parsedParams.test.includes('docs/')) {
+            process.env.SKIP_AUTH = 'true';
         } else {
-            process.env.USE_AUTH = 'false';
+            process.env.SKIP_AUTH = 'false';
         }
     }
 
@@ -140,7 +140,7 @@ function buildPlaywrightCommand(parsedParams, localTestLiveUrl) {
         DEVICE: device,
         HEADLESS: mode === 'headless' || mode === 'headed' ? 'true' : 'false',
         LOCAL_TEST_LIVE_URL: localTestLiveUrl,
-        USE_AUTH: process.env.USE_AUTH,
+        SKIP_AUTH: process.env.SKIP_AUTH,
     };
 
     const command = 'npx playwright test';

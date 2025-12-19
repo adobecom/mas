@@ -38,6 +38,7 @@ PR_BRANCH_LIVE_URL_GH="https://$FEATURE_BRANCH--$prRepo--$prOrg.aem.live"
 # set pr branch url as env
 export PR_BRANCH_LIVE_URL_GH
 export PR_NUMBER
+export USE_AUTH="true"
 
 echo "PR Branch live URL: $PR_BRANCH_LIVE_URL_GH"
 

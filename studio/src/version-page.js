@@ -689,7 +689,7 @@ class VersionPage extends LitElement {
                 <div class="preview-content">
                     <div class="preview-split">
                         ${this.renderPreviewColumn(this.currentVersion, 'Current', this.fragment, 'current')}
-                        ${this.selectedVersion
+                        ${this.selectedVersion && this.selectedVersionData
                             ? this.renderPreviewColumn(this.selectedVersion, 'Selected', this.selectedVersionData, 'selected')
                             : nothing}
                     </div>
@@ -739,11 +739,16 @@ class VersionPage extends LitElement {
 
         const showSpinner = !version.isCurrent && (this.loadingVersionData || !isCardHydrated);
 
+        // Note: We don't set variant/size in the template because:
+        // 1. The hydration process via aem:load event sets all attributes
+        // 2. Lit re-renders would overwrite attributes set by hydration
+        // All merch-card attributes are set in hydrateCard() method
+
         return html`
             <div class="fragment-preview-wrapper">
                 ${isCard
                     ? html`
-                          <div class="fragment-card-container ${showSpinner ? 'hidden' : ''}">
+                          <div class="fragment-card-container mas-fragment columns ${showSpinner ? 'hidden' : ''}">
                               <merch-card id="${cardId}"></merch-card>
                           </div>
                       `
@@ -818,23 +823,28 @@ class VersionPage extends LitElement {
             await customElements.whenDefined('merch-card');
             await merchCard.updateComplete;
 
+            // Normalize size to lowercase format that hydrate.js expects
+            // AEM stores values like "super-wide" but we ensure consistency
+            const normalizedFields = { ...fields };
+            if (normalizedFields.size && normalizedFields.size !== 'Default') {
+                normalizedFields.size = normalizedFields.size.toLowerCase().replace(/\s+/g, '-');
+            }
+
             // Create the properly formatted fragment data
             const formattedData = {
                 id: fragmentData.id,
-                fields,
+                fields: normalizedFields,
                 settings: fragmentData.settings || {},
                 priceLiterals: fragmentData.priceLiterals || {},
             };
 
-            // Create an aem-fragment element (merch-card expects the event to come from this)
+            // Create an aem-fragment element (merch-card expects the event to come from aem-fragment)
+            // Note: Do NOT set the 'fragment' attribute - it triggers auto-loading
             const aemFragment = document.createElement('aem-fragment');
-            // Set fragment attribute to prevent "Missing fragment id" errors
-            aemFragment.setAttribute('fragment', fragmentData.id);
             merchCard.appendChild(aemFragment);
 
             // Wait for aem-fragment to be ready
             await customElements.whenDefined('aem-fragment');
-            await new Promise((resolve) => setTimeout(resolve, 50));
 
             // Dispatch the load event from the aem-fragment element with the formatted data
             const loadEvent = new CustomEvent('aem:load', {
@@ -849,11 +859,25 @@ class VersionPage extends LitElement {
             await new Promise((resolve) => setTimeout(resolve, 200));
             await merchCard.updateComplete;
 
+            // Explicitly set size attribute after hydration
+            // The hydrate.js processSize may not always set it correctly
+            if (normalizedFields.size && normalizedFields.size !== 'Default') {
+                merchCard.setAttribute('size', normalizedFields.size);
+            }
+
             // Mark this card as successfully hydrated
             this.hydratedCards.add(cardId);
 
-            // Trigger re-render to hide spinner
-            this.requestUpdate();
+            // Hide spinner and show card via direct DOM manipulation
+            // We avoid requestUpdate() because Lit re-render could overwrite our attributes
+            const container = merchCard.closest('.fragment-card-container');
+            if (container) {
+                container.classList.remove('hidden');
+            }
+            const spinnerOverlay = merchCard.closest('.fragment-preview-wrapper')?.querySelector('.spinner-overlay');
+            if (spinnerOverlay) {
+                spinnerOverlay.style.display = 'none';
+            }
         } catch (error) {
             console.error('Failed to hydrate card:', cardId, error.message, error.stack);
             merchCard.innerHTML = `<sp-body class="error-message">Failed to render: ${error.message}</sp-body>`;

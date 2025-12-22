@@ -72,7 +72,7 @@ const DISPLAY_TAX_MAP = {
         'KR_ko',
     ],
     [BUSINESS]: ['MU_en', 'LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko'],
-    [STUDENT]: ['LT_lt', 'LV_lv', 'SA_en', 'SG_en'],
+    [STUDENT]: ['LT_lt', 'LV_lv', 'SA_en', 'SA_ar', 'SG_en'],
     [UNIVERSITY]: ['SG_en', 'KR_ko'],
 };
 
@@ -94,6 +94,28 @@ const TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
 const defaultTaxExcluded = (segment) =>
     [BUSINESS, UNIVERSITY].includes(segment);
 
+const getFromMap = (map, country, language, isArray) => {
+    if (map[country]) return map[country];
+    const locale = `${country}_${language}`;
+    if (map[locale]) return map[locale];
+
+    let result;
+    if (isArray) {
+        map.forEach(item => {
+            if (!result && item.startsWith(`${country}_`)) {
+                result = item;
+            }
+        });
+    } else {
+        Object.keys(map).forEach(key => {
+            if (!result && key.startsWith(`${country}_`)) {
+                result = map[key];
+            }
+        });
+    }
+    return result;
+}
+
 /**
  * Resolves the default value for forceTaxExclusive for the provided geo info and segments.
  * @param {string} country - uppercase country code e.g. US, AT, MX
@@ -108,9 +130,8 @@ const resolveTaxExclusive = (
     customerSegment,
     marketSegment,
 ) => {
-    const locale = `${country}_${language}`;
     const segment = `${customerSegment}_${marketSegment}`;
-    const val = TAX_EXCLUDED_MAP[locale];
+    const val = getFromMap(TAX_EXCLUDED_MAP, country, language, false);
     if (val) {
         const index = TAX_EXCLUDED_MAP_INDEX.indexOf(segment);
         return val[index];
@@ -133,13 +154,7 @@ const resolveDisplayTaxForGeoAndSegment = (
     customerSegment,
     marketSegment,
 ) => {
-    const locale = `${country}_${language}`;
-    if (
-        DISPLAY_ALL_TAX_COUNTRIES.includes(country) ||
-        DISPLAY_ALL_TAX_COUNTRIES.includes(locale)
-    ) {
-        return true;
-    }
+    if (getFromMap(DISPLAY_ALL_TAX_COUNTRIES, country, language, true)) return true;
 
     const segmentConfig =
         DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
@@ -147,7 +162,7 @@ const resolveDisplayTaxForGeoAndSegment = (
         return Defaults.displayTax;
     }
 
-    if (segmentConfig.includes(country) || segmentConfig.includes(locale)) {
+    if (getFromMap(segmentConfig, country, language, true)) {
         return true;
     }
 

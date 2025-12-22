@@ -174,6 +174,8 @@ export const PAGE_NAMES = {
     FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
+    TRANSLATIONS: 'translations',
+    TRANSLATION_EDITOR: 'translation-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -186,6 +188,7 @@ export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW
 export const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
 
 export const PROMOTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3Byb21vdGlvbg==';
+export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3RyYW5zbGF0aW9uLXByb2plY3Q=';
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
@@ -218,6 +221,7 @@ export const VARIANT_CAPABILITIES = {
         helpText: 'Drag a card here to set as default',
     },
 };
+
 export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 
 export const VARIATION_TYPES = {
@@ -253,4 +257,15 @@ export const SURFACES = {
         label: 'Sandbox',
         name: 'sandbox',
     },
+};
+
+export const QUICK_ACTION = {
+    SAVE: 'save',
+    DUPLICATE: 'duplicate',
+    PUBLISH: 'publish',
+    CANCEL: 'cancel',
+    COPY: 'copy',
+    LOCK: 'lock',
+    DISCARD: 'discard',
+    DELETE: 'delete',
 };

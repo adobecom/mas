@@ -8,6 +8,8 @@ import './mas-toolbar.js';
 import './mas-content.js';
 import './mas-promotions.js';
 import './mas-promotions-editor.js';
+import './mas-translation.js';
+import './mas-translation-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
@@ -214,6 +216,16 @@ class MasStudio extends LitElement {
         return html`<mas-promotions-editor></mas-promotions-editor>`;
     }
 
+    get translation() {
+        if (this.page.value !== PAGE_NAMES.TRANSLATIONS) return nothing;
+        return html`<mas-translation></mas-translation>`;
+    }
+
+    get translationEditor() {
+        if (this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR) return nothing;
+        return html`<mas-translation-editor></mas-translation-editor>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -259,7 +271,7 @@ class MasStudio extends LitElement {
                 ${this.masJsReady
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
-                          ${this.promotionsEditor} ${this.versionPage}
+                          ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
                           <editor-panel></editor-panel>
                       </div>`
                     : nothing}

@@ -838,22 +838,26 @@ class VersionPage extends LitElement {
                 priceLiterals: fragmentData.priceLiterals || {},
             };
 
-            // Create an aem-fragment element (merch-card expects the event to come from aem-fragment)
-            // Note: Do NOT set the 'fragment' attribute - it triggers auto-loading
+            // Remove any existing aem-fragment elements to prevent conflicts
+            merchCard.querySelectorAll('aem-fragment').forEach((el) => el.remove());
+
+            // Create an aem-fragment element for dispatching aem:load event
+            // merch-card checks e.target.nodeName === 'AEM-FRAGMENT'
+            await customElements.whenDefined('aem-fragment');
+            
             const aemFragment = document.createElement('aem-fragment');
             merchCard.appendChild(aemFragment);
 
-            // Wait for aem-fragment to be ready
-            await customElements.whenDefined('aem-fragment');
-
-            // Dispatch the load event from the aem-fragment element with the formatted data
+            // Dispatch the load event with our version data
             const loadEvent = new CustomEvent('aem:load', {
                 detail: formattedData,
                 bubbles: true,
                 composed: true,
             });
-
             aemFragment.dispatchEvent(loadEvent);
+
+            // Remove immediately to prevent any refresh attempts
+            aemFragment.remove();
 
             // Give it time to process
             await new Promise((resolve) => setTimeout(resolve, 200));

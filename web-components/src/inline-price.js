@@ -101,20 +101,20 @@ const getFromMap = (map, country, language, isArray) => {
 
     let result;
     if (isArray) {
-        map.forEach(item => {
+        map.forEach((item) => {
             if (!result && item.startsWith(`${country}_`)) {
                 result = item;
             }
         });
     } else {
-        Object.keys(map).forEach(key => {
+        Object.keys(map).forEach((key) => {
             if (!result && key.startsWith(`${country}_`)) {
                 result = map[key];
             }
         });
     }
     return result;
-}
+};
 
 /**
  * Resolves the default value for forceTaxExclusive for the provided geo info and segments.
@@ -154,7 +154,8 @@ const resolveDisplayTaxForGeoAndSegment = (
     customerSegment,
     marketSegment,
 ) => {
-    if (getFromMap(DISPLAY_ALL_TAX_COUNTRIES, country, language, true)) return true;
+    if (getFromMap(DISPLAY_ALL_TAX_COUNTRIES, country, language, true))
+        return true;
 
     const segmentConfig =
         DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];

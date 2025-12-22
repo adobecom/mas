@@ -98,10 +98,11 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
     let settings = ostDefaultSettings();
     if (masCommerceService.featureFlags['mas-ff-defaults']) {
         const taxFlags = await masCommerceService?.resolvePriceTaxFlags(
-            masCommerceService.settings.country, 
-            null, 
-            offer.customer_segment, 
-            offer.market_segments[0]);
+            masCommerceService.settings.country,
+            null,
+            offer.customer_segment,
+            offer.market_segments[0],
+        );
         settings = {
             ...settings,
             ...taxFlags,

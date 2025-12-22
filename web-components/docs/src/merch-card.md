@@ -137,6 +137,7 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 | `promoText`         | The promo text, e.g. "Save over 30% with an annual plan.".                                                          | `string`                                            |
 | `taxText`           | The text for the tax.                                                                                               | `string`                                            |
 | `recurrenceText`    | The text for the billing frequency.                                                                                 | `string`                                            |
+| `unitText`          | The unit text for the offer, e.g. "per license".                                                                    | `string`                                            |
 | `seeTermsInfo`      | The see terms text and link href value.                                                                             | `{analyticsId: string, href: string, text: string}` |
 | `renewalText`       | Subscription renewal text.                                                                                          | `string`                                            |
 | `promoDurationText` | Promo duration text.                                                                                                | `string`                                            |

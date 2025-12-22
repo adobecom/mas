@@ -872,16 +872,10 @@ class VersionPage extends LitElement {
             // Mark this card as successfully hydrated
             this.hydratedCards.add(cardId);
 
-            // Hide spinner and show card via direct DOM manipulation
-            // We avoid requestUpdate() because Lit re-render could overwrite our attributes
-            const container = merchCard.closest('.fragment-card-container');
-            if (container) {
-                container.classList.remove('hidden');
-            }
-            const spinnerOverlay = merchCard.closest('.fragment-preview-wrapper')?.querySelector('.spinner-overlay');
-            if (spinnerOverlay) {
-                spinnerOverlay.style.display = 'none';
-            }
+            // Trigger re-render to update UI (hide spinner, show Changed Fields)
+            // This is safe because the merch-card template only has id="${cardId}" - 
+            // no variant/size attributes that would be overwritten
+            this.requestUpdate();
         } catch (error) {
             console.error('Failed to hydrate card:', cardId, error.message, error.stack);
             merchCard.innerHTML = `<sp-body class="error-message">Failed to render: ${error.message}</sp-body>`;

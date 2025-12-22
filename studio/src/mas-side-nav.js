@@ -1,8 +1,8 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
-import { PAGE_NAMES } from './constants.js';
+import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
 import './mas-side-nav-item.js';
 
@@ -50,6 +50,7 @@ class MasSideNav extends LitElement {
 
     currentPage = new StoreController(this, Store.page);
     viewMode = new StoreController(this, Store.viewMode);
+    search = new StoreController(this, Store.search);
     editorHasChanges = false;
     variationDataLoading = false;
     fragmentStoreSubscription = null;
@@ -100,7 +101,20 @@ class MasSideNav extends LitElement {
         };
         Store.fragmentEditor.editorContext.subscribe(editorContextHandler);
 
+        // Redirect away from the translation page when it becomes disabled
+        const searchHandler = () => {
+            if (
+                !this.isTranslationEnabled &&
+                [PAGE_NAMES.TRANSLATIONS, PAGE_NAMES.TRANSLATION_EDITOR].includes(Store.page.get())
+            ) {
+                Store.page.set(PAGE_NAMES.CONTENT);
+            }
+        };
+        Store.search.subscribe(searchHandler);
+
         this.unsubscribe = () => {
+            Store.fragments.inEdit.unsubscribe(parentStoreHandler);
+            Store.search.unsubscribe(searchHandler);
             Store.fragments.inEdit.unsubscribe(parentStoreHandler);
             Store.fragmentEditor.editorContext.unsubscribe(editorContextHandler);
             if (this.fragmentStoreSubscription) {
@@ -160,6 +174,11 @@ class MasSideNav extends LitElement {
 
     get fragmentEditor() {
         return document.querySelector('mas-fragment-editor');
+    }
+
+    get isTranslationEnabled() {
+        const surface = this.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        return [SURFACES.ACOM.name, SURFACES.EXPRESS.name, SURFACES.SANDBOX.name].includes(surface);
     }
 
     async saveFragment() {
@@ -240,7 +259,12 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-bookmark slot="icon"></sp-icon-bookmark>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Localization" disabled>
+            <mas-side-nav-item
+                label="Translations"
+                disabled
+                ?selected=${Store.page.get() === PAGE_NAMES.TRANSLATIONS}
+                @nav-click=${this.isTranslationEnabled ? router.navigateToPage(PAGE_NAMES.TRANSLATIONS) : nothing}
+            >
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
             <mas-side-nav-item

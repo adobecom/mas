@@ -26,6 +26,36 @@ export class Router extends EventTarget {
     }
 
     /**
+     * Gets the active editor element and its hasChanges state based on the current page
+     * @returns {{ editor: Element|null, hasChanges: boolean }}
+     */
+    getActiveEditor() {
+        const currentPage = Store.page.value;
+
+        switch (currentPage) {
+            case PAGE_NAMES.FRAGMENT_EDITOR: {
+                const editor = document.querySelector('mas-fragment-editor');
+                return {
+                    editor,
+                    hasChanges: editor && Store.editor.hasChanges,
+                    shouldCheckUnsavedChanges: editor && !editor.isLoading && Store.editor.hasChanges,
+                };
+            }
+            case PAGE_NAMES.TRANSLATION_EDITOR: {
+                const editor = document.querySelector('mas-translation-editor');
+                return {
+                    editor,
+                    hasChanges: (editor && Store.translationProjects.inEdit.get()?.get()?.hasChanges) || null,
+                    shouldCheckUnsavedChanges:
+                        editor && !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                };
+            }
+            default:
+                return { editor: null, hasChanges: false, shouldCheckUnsavedChanges: false };
+        }
+    }
+
+    /**
      * Navigation function to change the current page
      * @param {string} value - The page to navigate to
      * @returns {Function} A function that when called will navigate to the page
@@ -33,17 +63,18 @@ export class Router extends EventTarget {
     navigateToPage(value) {
         return async () => {
             if (Store.page.value === value) return;
+
             this.isNavigating = true;
             try {
-                const fragmentEditor = document.querySelector('mas-fragment-editor');
-                const isLoading = fragmentEditor?.isLoading ?? false;
-                const confirmed =
-                    isLoading ||
-                    !Store.editor.hasChanges ||
-                    (fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true);
+                const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+                const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
                 if (confirmed) {
                     if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
                         Store.fragmentEditor.fragmentId.set(null);
+                    }
+                    if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && value !== PAGE_NAMES.TRANSLATION_EDITOR) {
+                        Store.translationProjects.translationProjectId.set(null);
+                        Store.translationProjects.inEdit.set(null);
                     }
                     Store.fragments.inEdit.set();
                     if (value !== PAGE_NAMES.CONTENT) {
@@ -248,6 +279,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
+        this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
@@ -263,13 +295,10 @@ export class Router extends EventTarget {
 
         window.addEventListener('hashchange', async (event) => {
             if (!this.isNavigating) {
-                const fragmentEditor = document.querySelector('mas-fragment-editor');
-                const isLoading = fragmentEditor?.isLoading ?? false;
-                const shouldCheckUnsavedChanges =
-                    !isLoading && Store.editor.hasChanges && Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
+                const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
 
                 if (shouldCheckUnsavedChanges) {
-                    const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
+                    const confirmed = editor ? await editor.promptDiscardChanges() : true;
                     if (!confirmed) {
                         event.preventDefault();
                         this.location.hash = this.previousHash;

@@ -873,7 +873,7 @@ class VersionPage extends LitElement {
             this.hydratedCards.add(cardId);
 
             // Trigger re-render to update UI (hide spinner, show Changed Fields)
-            // This is safe because the merch-card template only has id="${cardId}" - 
+            // This is safe because the merch-card template only has id="${cardId}" -
             // no variant/size attributes that would be overwritten
             this.requestUpdate();
         } catch (error) {

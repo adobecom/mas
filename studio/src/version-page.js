@@ -844,7 +844,7 @@ class VersionPage extends LitElement {
             // Create an aem-fragment element for dispatching aem:load event
             // merch-card checks e.target.nodeName === 'AEM-FRAGMENT'
             await customElements.whenDefined('aem-fragment');
-            
+
             const aemFragment = document.createElement('aem-fragment');
             merchCard.appendChild(aemFragment);
 

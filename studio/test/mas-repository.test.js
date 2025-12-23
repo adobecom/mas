@@ -416,4 +416,72 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.publishFragment.called).to.be.false;
         });
     });
+
+    describe('loadFolders', () => {
+        it('should filter out images and promotions by default', async () => {
+            const repository = createRepository();
+            const mockChildren = [
+                { name: 'acom' },
+                { name: 'ccd' },
+                { name: 'images' },
+                { name: 'promotions' },
+                { name: 'express' },
+            ];
+            repository.aem = createAemMock({
+                folders: {
+                    list: sandbox.stub().resolves({ children: mockChildren }),
+                },
+            });
+            repository.search = { value: { path: 'acom', query: '' } };
+            const { default: Store } = await import('../src/store.js');
+            const originalStoreLoaded = Store.folders.loaded.set.bind(Store.folders.loaded);
+            const originalStoreData = Store.folders.data.set.bind(Store.folders.data);
+            const mockFoldersLoaded = { set: sandbox.stub() };
+            const mockFoldersData = { set: sandbox.stub() };
+            Store.folders.loaded.set = mockFoldersLoaded.set;
+            Store.folders.data.set = mockFoldersData.set;
+            const originalGetItem = window.localStorage.getItem.bind(window.localStorage);
+            sandbox.stub(window.localStorage, 'getItem').returns(null);
+            try {
+                await repository.loadFolders();
+                expect(mockFoldersLoaded.set.calledWith(true)).to.be.true;
+                const setFoldersCall = mockFoldersData.set.firstCall.args[0];
+                expect(setFoldersCall).to.deep.equal(['acom', 'ccd', 'express']);
+                expect(setFoldersCall).to.not.include('images');
+                expect(setFoldersCall).to.not.include('promotions');
+            } finally {
+                Store.folders.loaded.set = originalStoreLoaded;
+                Store.folders.data.set = originalStoreData;
+            }
+        });
+
+        it('should use custom ignore_folders from localStorage', async () => {
+            const repository = createRepository();
+            const mockChildren = [{ name: 'acom' }, { name: 'ccd' }, { name: 'custom-ignored' }];
+            repository.aem = createAemMock({
+                folders: {
+                    list: sandbox.stub().resolves({ children: mockChildren }),
+                },
+            });
+            repository.search = { value: { path: 'acom', query: '' } };
+            const { default: Store } = await import('../src/store.js');
+            const originalStoreLoaded = Store.folders.loaded.set.bind(Store.folders.loaded);
+            const originalStoreData = Store.folders.data.set.bind(Store.folders.data);
+            const mockFoldersLoaded = { set: sandbox.stub() };
+            const mockFoldersData = { set: sandbox.stub() };
+            Store.folders.loaded.set = mockFoldersLoaded.set;
+            Store.folders.data.set = mockFoldersData.set;
+            sandbox.stub(window.localStorage, 'getItem').returns('custom-ignored');
+            try {
+                await repository.loadFolders();
+                expect(mockFoldersLoaded.set.calledWith(true)).to.be.true;
+                const setFoldersCall = mockFoldersData.set.firstCall.args[0];
+                expect(setFoldersCall).to.deep.equal(['acom', 'ccd']);
+                expect(setFoldersCall).to.not.include('custom-ignored');
+            } finally {
+                Store.folders.loaded.set = originalStoreLoaded;
+                Store.folders.data.set = originalStoreData;
+            }
+        });
+    });
 });

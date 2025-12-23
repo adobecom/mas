@@ -1238,7 +1238,7 @@ export default class MasFragmentEditor extends LitElement {
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
 
-        document.querySelectorAll('mas-commerce-service').forEach((el) => el.remove());
+        getService().remove();
         const masServiceElement = document.createElement('mas-commerce-service');
         masServiceElement.setAttribute('locale', Store.localeOrRegion());
         document.body.prepend(masServiceElement);

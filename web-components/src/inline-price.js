@@ -73,7 +73,7 @@ const DISPLAY_TAX_MAP = {
         'ZA_en',
     ],
     [BUSINESS]: ['LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko', 'ZA_en'],
-    [STUDENT]: ['LT_lt', 'LV_lv', 'SA_en', 'SG_en', 'ZA_en'],
+    [STUDENT]: ['LT_lt', 'LV_lv', 'SA_en', 'SG_en', 'SA_ar', 'ZA_en'],
     [UNIVERSITY]: ['SG_en', 'KR_ko'],
 };
 

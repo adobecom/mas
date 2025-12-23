@@ -1,0 +1,668 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>M@S Web Components</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="spectrum.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://p.typekit.net/p.css?s=1&amp;k=hah7vzn&amp;ht=tk&amp;f=7180.7181.7182.7183.22474.22749.22750.22751.22753&amp;a=8634977&amp;app=typekit&amp;e=css">
+    <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+  
+  <!-- Include your custom element script as an ES6 module -->
+  <script type="module">
+    import { init } from './common.js';
+    init();
+  </script>
+  <!-- Include Highlight.js stylesheet for syntax highlighting -->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+  <script type="module" src="./mas-sidenav.js"></script>
+</head>
+<body class="spectrum spectrum--medium spectrum--light">
+    <aside is="mas-sidenav"></aside>
+<main>
+<sp-theme color="light" scale="medium">
+<h1 id="feature-flags" tabindex="-1">Feature Flags <a class="header-anchor" href="#feature-flags" href="#feature-flags" title="Permalink to this heading">#</a></h1>
+<p>Feature flags can be set via a meta tag.</p>
+<p>e.g <code>&lt;meta name=&quot;mas-ff-defaults&quot; content=&quot;on&quot;&gt;</code></p>
+<table>
+<thead>
+<tr>
+<th>Flag Name</th>
+<th>Description</th>
+<th>Default Value</th>
+<th>Valid Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mas-ff-defaults</code></td>
+<td>Enables good defaults for each locale and segment so that authors don’t have to set them manually. This includes automatic tax display settings based on country and customer segment.</td>
+<td><code>off</code></td>
+<td><code>on</code>, <code>off</code>, <code>true</code>, <code>false</code></td>
+</tr>
+<tr>
+<td><code>mas-ff-3in1</code></td>
+<td>Controls the 3-in-1 modal checkout experience. When enabled, TWP (Trial With Purchase), D2P (Direct to Purchase), and CRM (Content Rich Modals) modals will use the unified 3-in-1 checkout flow.</td>
+<td><code>on</code></td>
+<td><code>on</code>, <code>off</code></td>
+</tr>
+<tr>
+<td><code>mas-ff-annual-price</code></td>
+<td>Enables the display of annual pricing alongside monthly prices. When enabled and <code>annual</code> parameter is not set to <code>false</code>, prices will show the calculated annual cost.</td>
+<td><code>off</code></td>
+<td><code>on</code>, <code>off</code>, <code>true</code>, <code>false</code></td>
+</tr>
+<tr>
+<td><code>mas-ff-copy-cta</code></td>
+<td>Adds a copy-to-clipboard button next to checkout CTAs. Useful for authors who need to copy CTA links for use in other contexts.</td>
+<td><code>off</code></td>
+<td><code>on</code>, <code>off</code></td>
+</tr>
+<tr>
+<td><code>mas-ff-mas-deps</code></td>
+<td>Controls whether MAS components are loaded from an external URL (when masLibs is present) or from local dependencies. When enabled, components load from external sources.</td>
+<td><code>off</code></td>
+<td><code>on</code>, <code>off</code>, <code>true</code>, <code>false</code></td>
+</tr>
+<tr>
+<td><code>mas-geo-detection</code></td>
+<td>Enables geographic locale detection using Akamai geolocation. When enabled, the user’s actual geographic location is used to determine locale settings instead of the URL prefix.</td>
+<td><code>off</code></td>
+<td><code>on</code>, <code>off</code>, <code>true</code>, <code>false</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="detailed-flag-descriptions" tabindex="-1">Detailed Flag Descriptions <a class="header-anchor" href="#detailed-flag-descriptions" href="#detailed-flag-descriptions" title="Permalink to this heading">#</a></h2>
+<h3 id="mas-ff-defaults" tabindex="-1">mas-ff-defaults <a class="header-anchor" href="#mas-ff-defaults" href="#mas-ff-defaults" title="Permalink to this heading">#</a></h3>
+<p><strong>Purpose:</strong> Eliminates the need for authors to manually configure tax display and pricing settings for each locale. This flag automatically applies region-appropriate defaults based on country, language, and customer segment.</p>
+<p><strong>What it controls:</strong></p>
+<ul>
+<li><strong>Unit label display:</strong> Automatically adds unit labels (e.g., “per license”) for team offers across all countries.</li>
+<li><strong>Tax label display:</strong> Automatically shows or hides tax labels (“incl. tax” or “excl. tax”) based on country regulations.</li>
+</ul>
+<p><strong>Tax Label Display by Country and Customer Segment:</strong></p>
+<blockquote>
+<p><strong>Note:</strong> The settings in the table apply only to Milo.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Country/Locale</th>
+<th>INDIVIDUAL_COM</th>
+<th>TEAM_COM</th>
+<th>INDIVIDUAL_EDU</th>
+<th>TEAM_EDU</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Europe</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>AT_de (Austria)</td>
+<td>inkl. MwSt.</td>
+<td>inkl. MwSt.</td>
+<td>inkl. MwSt.</td>
+<td>zzgl. MwSt.</td>
+</tr>
+<tr>
+<td>BE_en (Belgium)</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+</tr>
+<tr>
+<td>BE_fr (Belgium)</td>
+<td>TTC</td>
+<td>HT</td>
+<td>TTC</td>
+<td>HT</td>
+</tr>
+<tr>
+<td>BE_nl (Belgium)</td>
+<td>incl. btw</td>
+<td>excl. btw</td>
+<td>incl. btw</td>
+<td>excl. btw</td>
+</tr>
+<tr>
+<td>BG_bg (Bulgaria)</td>
+<td>с включен ДДС</td>
+<td>без ДДС</td>
+<td>с включен ДДС</td>
+<td>без ДДС</td>
+</tr>
+<tr>
+<td>CH_de (Switzerland)</td>
+<td>inkl. MwSt.</td>
+<td>zzgl. MwSt.</td>
+<td>inkl. MwSt.</td>
+<td>zzgl. MwSt.</td>
+</tr>
+<tr>
+<td>CH_fr (Switzerland)</td>
+<td>TTC</td>
+<td>HT</td>
+<td>TTC</td>
+<td>HT</td>
+</tr>
+<tr>
+<td>CH_it (Switzerland)</td>
+<td>incl. IVA</td>
+<td>escl. IVA</td>
+<td>incl. IVA</td>
+<td>escl. IVA</td>
+</tr>
+<tr>
+<td>CZ_cs (Czech Republic)</td>
+<td>včetně DPH</td>
+<td>bez DPH</td>
+<td>včetně DPH</td>
+<td>bez DPH</td>
+</tr>
+<tr>
+<td>DE_de (Germany)</td>
+<td>inkl. MwSt.</td>
+<td>zzgl. MwSt.</td>
+<td>inkl. MwSt.</td>
+<td>zzgl. MwSt.</td>
+</tr>
+<tr>
+<td>DK_da (Denmark)</td>
+<td>inkl. moms</td>
+<td>ekskl. moms</td>
+<td>inkl. moms</td>
+<td>ekskl. moms</td>
+</tr>
+<tr>
+<td>EE_et (Estonia)</td>
+<td>käibemaksuga</td>
+<td>käibemaksuta</td>
+<td>käibemaksuga</td>
+<td>käibemaksuta</td>
+</tr>
+<tr>
+<td>ES_es (Spain)</td>
+<td>IVA incluido</td>
+<td>sin IVA</td>
+<td>IVA incluido</td>
+<td>sin IVA</td>
+</tr>
+<tr>
+<td>FI_fi (Finland)</td>
+<td>sis. ALV:n</td>
+<td>ilman ALV:tä</td>
+<td>sis. ALV:n</td>
+<td>ilman ALV:tä</td>
+</tr>
+<tr>
+<td>FR_fr (France)</td>
+<td>TTC</td>
+<td>HT</td>
+<td>TTC</td>
+<td>HT</td>
+</tr>
+<tr>
+<td>GB_en (United Kingdom)</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+</tr>
+<tr>
+<td>GR_el (Greece)</td>
+<td>(συμπερ. ΦΠΑ)</td>
+<td>(εξαιρ. ΦΠΑ)</td>
+<td>(συμπερ. ΦΠΑ)</td>
+<td>(εξαιρ. ΦΠΑ)</td>
+</tr>
+<tr>
+<td>GR_en (Greece)</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+</tr>
+<tr>
+<td>HU_hu (Hungary)</td>
+<td>áfával</td>
+<td>áfa nélkül</td>
+<td>áfával</td>
+<td>áfa nélkül</td>
+</tr>
+<tr>
+<td>IE_en (Ireland)</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+</tr>
+<tr>
+<td>IT_it (Italy)</td>
+<td>incl. IVA</td>
+<td>escl. IVA</td>
+<td>incl. IVA</td>
+<td>escl. IVA</td>
+</tr>
+<tr>
+<td>LT_lt (Lithuania)</td>
+<td>su PVM</td>
+<td>be PVM</td>
+<td>su PVM</td>
+<td>–</td>
+</tr>
+<tr>
+<td>LU_de (Luxembourg)</td>
+<td>inkl. MwSt.</td>
+<td>zzgl. MwSt.</td>
+<td>inkl. MwSt.</td>
+<td>zzgl. MwSt.</td>
+</tr>
+<tr>
+<td>LU_en (Luxembourg)</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+</tr>
+<tr>
+<td>LU_fr (Luxembourg)</td>
+<td>TTC</td>
+<td>HT</td>
+<td>TTC</td>
+<td>HT</td>
+</tr>
+<tr>
+<td>LV_lv (Latvia)</td>
+<td>ar PVN</td>
+<td>bez PVN</td>
+<td>ar PVN</td>
+<td>–</td>
+</tr>
+<tr>
+<td>NL_nl (Netherlands)</td>
+<td>incl. btw</td>
+<td>excl. btw</td>
+<td>incl. btw</td>
+<td>excl. btw</td>
+</tr>
+<tr>
+<td>NO_nb (Norway)</td>
+<td>inkl. mva</td>
+<td>ekskl. mva</td>
+<td>inkl. mva</td>
+<td>ekskl. mva</td>
+</tr>
+<tr>
+<td>PL_pl (Poland)</td>
+<td>w tym VAT</td>
+<td>bez VAT</td>
+<td>w tym VAT</td>
+<td>bez VAT</td>
+</tr>
+<tr>
+<td>PT_pt (Portugal)</td>
+<td>IVA incluso</td>
+<td>IVA não incluso</td>
+<td>IVA incluso</td>
+<td>IVA não incluso</td>
+</tr>
+<tr>
+<td>RO_ro (Romania)</td>
+<td>cu TVA</td>
+<td>fără TVA</td>
+<td>cu TVA</td>
+<td>fără TVA</td>
+</tr>
+<tr>
+<td>SE_sv (Sweden)</td>
+<td>inkl. moms</td>
+<td>exkl. moms</td>
+<td>inkl. moms</td>
+<td>exkl. moms</td>
+</tr>
+<tr>
+<td>SI_sl (Slovenia)</td>
+<td>z DDV-jem</td>
+<td>brez DDV-ja</td>
+<td>z DDV-jem</td>
+<td>brez DDV-ja</td>
+</tr>
+<tr>
+<td>SK_sk (Slovakia)</td>
+<td>vrátane DPH</td>
+<td>bez DPH</td>
+<td>vrátane DPH</td>
+<td>bez DPH</td>
+</tr>
+<tr>
+<td>TR_tr (Turkey)</td>
+<td>KDV dahil</td>
+<td>KDV hariç</td>
+<td>KDV dahil</td>
+<td>KDV hariç</td>
+</tr>
+<tr>
+<td>UA_uk (Ukraine)</td>
+<td>з ПДВ</td>
+<td>без урахування ПДВ</td>
+<td>з ПДВ</td>
+<td>без урахування ПДВ</td>
+</tr>
+<tr>
+<td><strong>Asia-Pacific</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>AU_en (Australia)</td>
+<td>incl. GST</td>
+<td>incl. GST</td>
+<td>incl. GST</td>
+<td>incl. GST</td>
+</tr>
+<tr>
+<td>ID_en (Indonesia)</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+</tr>
+<tr>
+<td>ID_in (Indonesia)</td>
+<td>termasuk PPN</td>
+<td>sebelum PPN</td>
+<td>termasuk PPN</td>
+<td>sebelum PPN</td>
+</tr>
+<tr>
+<td>IN_en (India)</td>
+<td>incl. GST</td>
+<td>excl. GST</td>
+<td>incl. GST</td>
+<td>excl. GST</td>
+</tr>
+<tr>
+<td>IN_hi (India)</td>
+<td>GST सहित</td>
+<td>GST अतिरिक्त</td>
+<td>GST सहित</td>
+<td>GST अतिरिक्त</td>
+</tr>
+<tr>
+<td>JP_ja (Japan)</td>
+<td>税込</td>
+<td>税込</td>
+<td>税込</td>
+<td>税込</td>
+</tr>
+<tr>
+<td>KR_ko (South Korea)</td>
+<td>부가세 포함</td>
+<td>부가세 별도</td>
+<td>–</td>
+<td>부가세 별도</td>
+</tr>
+<tr>
+<td>MY_en (Malaysia)</td>
+<td>incl. SST</td>
+<td>excl. SST</td>
+<td>incl. SST</td>
+<td>excl. SST</td>
+</tr>
+<tr>
+<td>MY_ms (Malaysia)</td>
+<td>termasuk SST</td>
+<td>SST dikecualikan</td>
+<td>termasuk SST</td>
+<td>SST dikecualikan</td>
+</tr>
+<tr>
+<td>NZ_en (New Zealand)</td>
+<td>incl. GST</td>
+<td>incl. GST</td>
+<td>incl. GST</td>
+<td>incl. GST</td>
+</tr>
+<tr>
+<td>SG_en (Singapore)</td>
+<td>incl. GST</td>
+<td>–</td>
+<td>incl. GST</td>
+<td>excl. GST</td>
+</tr>
+<tr>
+<td>TH_en (Thailand)</td>
+<td>incl. VAT</td>
+<td>incl. VAT</td>
+<td>incl. VAT</td>
+<td>incl. VAT</td>
+</tr>
+<tr>
+<td>TH_th (Thailand)</td>
+<td>รวม VAT</td>
+<td>รวม VAT</td>
+<td>รวม VAT</td>
+<td>รวม VAT</td>
+</tr>
+<tr>
+<td><strong>Middle East &amp; Africa</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>EG_ar (Egypt)</td>
+<td>شاملاً الضريبة</td>
+<td>باستثناء ضريبة</td>
+<td>شاملاً الضريبة</td>
+<td>باستثناء ضريبة</td>
+</tr>
+<tr>
+<td>EG_en (Egypt)</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+</tr>
+<tr>
+<td>MU_en (Mauritius)</td>
+<td>incl. VAT</td>
+<td>incl. VAT</td>
+<td>–</td>
+<td>–</td>
+</tr>
+<tr>
+<td>NG_en (Nigeria)</td>
+<td>incl. VAT</td>
+<td>incl. VAT</td>
+<td>–</td>
+<td>–</td>
+</tr>
+<tr>
+<td>SA_ar (Saudi Arabia)</td>
+<td>شاملاً الضريبة</td>
+<td>–</td>
+<td>–</td>
+<td>–</td>
+</tr>
+<tr>
+<td>SA_en (Saudi Arabia)</td>
+<td>incl. VAT</td>
+<td>–</td>
+<td>incl. VAT</td>
+<td>–</td>
+</tr>
+<tr>
+<td>ZA_en (South Africa)</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+<td>incl. VAT</td>
+<td>excl. VAT</td>
+</tr>
+<tr>
+<td><strong>Latin America</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>CO_es (Colombia)</td>
+<td>–</td>
+<td>IVA no incluido</td>
+<td>–</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<p>For the rest of the countries tax label is not displayed by default.</p>
+<p><strong>Important:</strong> Any card created in M@S Studio automatically has the <code>mas-ff-defaults</code> flag enabled, regardless of whether a meta tag is present on the page.</p>
+<p><strong>Usage:</strong></p>
+<p>Add the feature flag in the page metadata:</p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;mas-ff-defaults&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span>
+</code></pre>
+<p>Or on the commerce service element:</p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">mas-commerce-service</span> <span class="hljs-attr">data-mas-ff-defaults</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">mas-commerce-service</span>&gt;</span>
+</code></pre>
+<hr>
+<h3 id="mas-ff-3in1" tabindex="-1">mas-ff-3in1 <a class="header-anchor" href="#mas-ff-3in1" href="#mas-ff-3in1" title="Permalink to this heading">#</a></h3>
+<p><strong>Purpose:</strong> Controls the unified 3-in-1 modal checkout experience that streamlines the purchase flow by combining multiple checkout steps into a single modal interface.</p>
+<p><strong>What it controls:</strong></p>
+<ul>
+<li><strong>TWP (Trial With Purchase)</strong></li>
+<li><strong>D2P (Direct to Purchase)</strong></li>
+<li><strong>CRM (Content Rich Modals)</strong></li>
+</ul>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>When enabled (default): Checkout links with modal types <code>twp</code>, <code>d2p</code>, or <code>crm</code> open in the unified 3-in-1 modal interface</li>
+<li>When disabled: The system uses fallback workflow steps based on product-specific configurations (segmentation, commitment, recommendation, or email steps)</li>
+<li>The checkout URL includes <code>cli=mini_plans</code> for TWP/D2P or <code>cli=creative</code> for CRM modals</li>
+</ul>
+<p><strong>When to disable:</strong> Use <code>off</code> when you need to bypass the 3-in-1 modal and use traditional multi-step checkout flows, or when testing specific workflow step configurations.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="hljs language-html"><span class="hljs-comment">&lt;!-- Disable 3-in-1 modal (enabled by default) --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;mas-ff-3in1&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;off&quot;</span>&gt;</span>
+</code></pre>
+<hr>
+<h3 id="mas-ff-annual-price" tabindex="-1">mas-ff-annual-price <a class="header-anchor" href="#mas-ff-annual-price" href="#mas-ff-annual-price" title="Permalink to this heading">#</a></h3>
+<p><strong>Purpose:</strong> Enables the display of annual pricing information alongside monthly prices, helping customers understand the total yearly cost of subscription products.</p>
+<p><strong>What it controls:</strong></p>
+<ul>
+<li><strong>Annual price calculation:</strong> For yearly commitment products billed monthly, calculates and displays the total annual cost (monthly price × 12)</li>
+<li><strong>Promotional pricing:</strong> When promotions are active, calculates the blended annual price considering:
+<ul>
+<li>Discounted months during the promotion period</li>
+<li>Regular price months after promotion ends</li>
+<li>Example: 3 months at $9.99/mo + 9 months at $22.99/mo = $236.88/year</li>
+</ul>
+</li>
+<li><strong>Price template rendering:</strong> Adds annual price display in parentheses after the monthly price, e.g., “$22.99/mo ($275.88/yr)”</li>
+<li><strong>Mini compare chart styling:</strong> Adds <code>annual-price-new-line</code> class to price headings for proper layout</li>
+</ul>
+<p><strong>Usage:</strong></p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;mas-ff-annual-price&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span>
+</code></pre>
+<p>When enabled, individual price elements can opt out using the <code>annual=false</code> parameter in the merch link.</p>
+<hr>
+<h3 id="mas-ff-copy-cta" tabindex="-1">mas-ff-copy-cta <a class="header-anchor" href="#mas-ff-copy-cta" href="#mas-ff-copy-cta" title="Permalink to this heading">#</a></h3>
+<p><strong>Purpose:</strong> Adds a copy-to-clipboard utility button next to checkout CTA buttons, enabling content authors to easily copy CTA links for documentation or reuse in other contexts.</p>
+<p><strong>What it controls:</strong></p>
+<ul>
+<li><strong>Copy button placement:</strong> Adds a small clipboard icon button adjacent to each checkout CTA</li>
+<li><strong>Copy format:</strong> Copies the CTA as an HTML anchor tag with the full checkout URL and text placeholder, e.g.:<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;https://commerce.adobe.com/...&quot;</span> <span class="hljs-attr">title</span>=<span class="hljs-string">&quot;Special Link&quot;</span>&gt;</span>CTA {{Buy now}}<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+</code></pre>
+</li>
+</ul>
+<p><strong>When to use:</strong> Enable this flag during content authoring and review phases. This is primarily a development/authoring tool and is disabled in production.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;mas-ff-copy-cta&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span>
+</code></pre>
+<hr>
+<h3 id="mas-ff-mas-deps" tabindex="-1">mas-ff-mas-deps <a class="header-anchor" href="#mas-ff-mas-deps" href="#mas-ff-mas-deps" title="Permalink to this heading">#</a></h3>
+<p><strong>Purpose:</strong> Controls the source location for loading MAS (Merch at Scale) component dependencies, allowing teams to use either the centralized MAS repository or local Milo dependencies.</p>
+<p><strong>What it controls:</strong></p>
+<ul>
+<li><strong>Component loading source:</strong> Determines where MAS components (commerce service, merch cards, inline prices, checkout links) are loaded from</li>
+<li><strong>Loading priority:</strong>
+<ol>
+<li>If <code>masLibs</code> config is set: Load from the specified external URL</li>
+<li>If this flag is enabled: Load from <code>https://www.adobe.com/mas/libs/</code></li>
+<li>Fallback: Load from local Milo deps (<code>../../deps/mas/</code>)</li>
+</ol>
+</li>
+<li><strong>Error handling:</strong> If external load fails, automatically falls back to local Milo dependencies with a console warning</li>
+</ul>
+<p><strong>Components affected:</strong></p>
+<ul>
+<li><code>mas-commerce-service</code></li>
+<li><code>merch-card</code></li>
+<li><code>inline-price</code></li>
+<li><code>checkout-link</code></li>
+</ul>
+<p><strong>When to use:</strong> Enable when you want to use the latest MAS components from the centralized Adobe MAS repository instead of the bundled Milo versions.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;mas-ff-mas-deps&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span>
+</code></pre>
+<hr>
+<h3 id="mas-geo-detection" tabindex="-1">mas-geo-detection <a class="header-anchor" href="#mas-geo-detection" href="#mas-geo-detection" title="Permalink to this heading">#</a></h3>
+<p><strong>Purpose:</strong> Enables automatic geographic locale detection using Akamai EdgeScape geolocation data, ensuring users see prices and checkout flows appropriate for their actual location rather than the URL-inferred locale.</p>
+<p><strong>What it controls:</strong></p>
+<ul>
+<li><strong>Locale resolution:</strong> Uses Akamai’s geolocation (stored in <code>sessionStorage</code> as <code>akamai</code>, or provided in the page URL in the query parameter <code>akamaiLocale</code>) to determine the user’s country</li>
+<li><strong>Language-first site handling:</strong> Particularly useful for sites with URL structures like <code>/ar</code>, <code>/africa</code>, or <code>/langstore/[lang]</code> where the URL indicates language but not country</li>
+<li><strong>Price localization:</strong> Ensures WCS (Web Commerce Service) calls use the correct country code for accurate pricing</li>
+<li><strong>Checkout flow:</strong> Routes users to the appropriate regional checkout experience</li>
+</ul>
+<p><strong>Behavior by URL pattern:</strong></p>
+<ul>
+<li><code>/ar</code> (Argentina) + Akamai ES (Spain) → Uses <code>es_AR</code> locale with ES country for pricing</li>
+<li><code>/africa</code> + Akamai ES → Uses <code>en_MU</code> locale with ES country</li>
+<li><code>/langstore/en</code> + Akamai ES → Uses <code>en_US</code> locale with ES country</li>
+<li>Standard country-prefixed URLs (e.g., <code>/ae_ar</code>) → Uses URL locale regardless of Akamai</li>
+</ul>
+<p><strong>When to use:</strong> Enable for language-first sites or multi-region sites where users may access content from different geographic locations than the URL suggests.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;mas-geo-detection&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span>
+</code></pre>
+<h2 id="notes" tabindex="-1">Notes <a class="header-anchor" href="#notes" href="#notes" title="Permalink to this heading">#</a></h2>
+<ul>
+<li>Feature flags default to <code>off</code> unless otherwise specified (except <code>mas-ff-3in1</code> which defaults to <code>on</code>)</li>
+<li>Values <code>on</code> and <code>true</code> are equivalent for enabling a flag</li>
+<li>Values <code>off</code> and <code>false</code> are equivalent for disabling a flag</li>
+<li>Feature flags can be overridden via URL parameters for testing purposes</li>
+<li>Changes to feature flags take effect on page load</li>
+</ul>
+
+</sp-theme>
+</main>
+<script type="module">
+  document.querySelectorAll('code.demo').forEach(el => {
+      const targetContainer = document.createElement('div');
+      targetContainer.classList.toggle('light', el.classList.contains('light'));
+      targetContainer.innerHTML = `<h4>Demo: </h4><div class="demo-container">${el.textContent}</div>`;
+      el.parentElement.after(targetContainer);
+      // Extract and evaluate <script> tags
+      const scriptTags = targetContainer.getElementsByTagName('script');
+      for (let i = 0; i < scriptTags.length; i++) {
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.text = scriptTags[i].text;
+          document.body.appendChild(script); // Appends to the document to execute
+          scriptTags[i].remove(); // Remove the script tag
+      }
+  });
+</script>
+</body>
+</html>

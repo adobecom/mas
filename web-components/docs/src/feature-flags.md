@@ -82,7 +82,7 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | **Middle East & Africa** |
 | EG_ar (Egypt) | شاملاً الضريبة | باستثناء ضريبة | شاملاً الضريبة | باستثناء ضريبة |
 | EG_en (Egypt) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| MU_en (Mauritius) | incl. VAT | incl. VAT | – | – |
+| MU_en (Mauritius) | excl. VAT | excl. VAT | excl. VAT | excl. VAT |
 | NG_en (Nigeria) | incl. VAT | incl. VAT | – | – |
 | SA_ar (Saudi Arabia) | شاملاً الضريبة | – | – | – |
 | SA_en (Saudi Arabia) | incl. VAT | – | incl. VAT | – |

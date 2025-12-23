@@ -63,7 +63,6 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
 // countries where tax is displayed for some segments only by default
 const DISPLAY_TAX_MAP = {
     [INDIVIDUAL]: [
-        'MU_en',
         'LT_lt',
         'LV_lv',
         'NG_en',
@@ -73,7 +72,7 @@ const DISPLAY_TAX_MAP = {
         'KR_ko',
         'ZA_en',
     ],
-    [BUSINESS]: ['MU_en', 'LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko', 'ZA_en'],
+    [BUSINESS]: ['LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko', 'ZA_en'],
     [STUDENT]: ['LT_lt', 'LV_lv', 'SA_en', 'SG_en', 'ZA_en'],
     [UNIVERSITY]: ['SG_en', 'KR_ko'],
 };
@@ -81,7 +80,7 @@ const DISPLAY_TAX_MAP = {
 // For most countries where tax label is displayed the tax is included for Individuals and Students
 // and excluded for Business and Universities. This is the map of TaxExclusive values for other countries
 const TAX_EXCLUDED_MAP = {
-    ['MU_en']: [false, false, false, false],
+    ['MU_en']: [true, true, true, true],
     ['NG_en']: [false, false, false, false],
     ['AU_en']: [false, false, false, false],
     ['JP_ja']: [false, false, false, false],

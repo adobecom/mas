@@ -21,15 +21,15 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    SURFACES,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 
-import { SURFACES } from './constants.js';
 import { getDictionary } from '../libs/fragment-client.js';
-import { getDefaultLocale, getLocaleCode } from './locales.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
+import { TranslationProject } from './translation/translation-project.js';
 
 let fragmentCache;
 
@@ -103,6 +103,7 @@ export class MasRepository extends LitElement {
             recentlyUpdated: null,
             placeholders: null,
             promotions: null,
+            translations: null,
         };
         this.dictionaryCache = new Map();
         this.inflightDictionaryRequest = null;
@@ -182,13 +183,16 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.PROMOTIONS:
                 this.loadPromotions();
                 break;
+            case PAGE_NAMES.TRANSLATIONS:
+                this.loadTranslationProjects();
+                break;
         }
     }
 
     async loadFolders() {
         try {
             const { children } = await this.aem.folders.list(ROOT_PATH);
-            const ignore = window.localStorage.getItem('ignore_folders') || ['images'];
+            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions'];
             const folders = children.map((folder) => folder.name).filter((child) => !ignore.includes(child));
 
             Store.folders.loaded.set(true);
@@ -555,6 +559,10 @@ export class MasRepository extends LitElement {
         }
     }
 
+    getPromotionsPath() {
+        return `${ROOT_PATH}/promotions`;
+    }
+
     getDictionaryPath() {
         return `${ROOT_PATH}/${Store.surface()}/${Store.localeOrRegion()}/dictionary`;
     }
@@ -789,10 +797,31 @@ export class MasRepository extends LitElement {
         return indexFragment;
     }
 
-    getPromotionsPath() {
-        return `${ROOT_PATH}/promotions`;
+    getTranslationsPath() {
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        return surface ? `${ROOT_PATH}/${surface}/translations` : null;
     }
 
+    async loadTranslationProjects() {
+        try {
+            const translationsPath = this.getTranslationsPath();
+            if (!translationsPath) return;
+            if (this.#abortControllers.translations) this.#abortControllers.translations.abort();
+            this.#abortControllers.translations = new AbortController();
+            Store.translationProjects.list.loading.set(true);
+            const fragments = await this.searchFragmentList(
+                { path: translationsPath },
+                50,
+                this.#abortControllers.translations,
+            );
+            const translationProjects = fragments.map((fragment) => new FragmentStore(new TranslationProject(fragment)));
+            Store.translationProjects.list.data.set(translationProjects);
+        } catch (error) {
+            this.processError(error, 'Could not load translation projects.');
+        } finally {
+            Store.translationProjects.list.loading.set(false);
+        }
+    }
     /**
      * Helper method to create fragment fields from data object
      * @param {Object} data - The data object containing field values
@@ -896,6 +925,8 @@ export class MasRepository extends LitElement {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
             fragmentStore.refreshFrom(savedFragment);
+            fragmentCache.remove(savedFragment.id);
+            fragmentCache.add(new Fragment(savedFragment));
             if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {

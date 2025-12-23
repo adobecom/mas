@@ -94,6 +94,14 @@ const Store = {
     surface: function () {
         return Store.search.value.path;
     },
+    translationProjects: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+        inEdit: new ReactiveStore(null),
+        translationProjectId: new ReactiveStore(null),
+    },
 };
 
 // #region Validators
@@ -129,6 +137,8 @@ function pageValidator(value) {
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,
+        PAGE_NAMES.TRANSLATIONS,
+        PAGE_NAMES.TRANSLATION_EDITOR,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

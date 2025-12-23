@@ -101,6 +101,14 @@ class MasTopNav extends LitElement {
         return Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
 
+    get isTranslationEditorPage() {
+        return Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
+    }
+
+    get isTranslationsPage() {
+        return Store.page.value === PAGE_NAMES.TRANSLATIONS;
+    }
+
     get isDraftLandscape() {
         return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
     }
@@ -141,7 +149,9 @@ class MasTopNav extends LitElement {
                                   @locale-changed=${(e) => {
                                       Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
                                   }}
-                                  ?disabled=${this.isFragmentEditorPage}
+                                  ?disabled=${this.isFragmentEditorPage ||
+                                  this.isTranslationEditorPage ||
+                                  this.isTranslationsPage}
                                   surface=${Store.surface()}
                               >
                               </mas-locale-picker>

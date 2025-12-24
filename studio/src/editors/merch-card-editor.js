@@ -1414,9 +1414,11 @@ class MerchCardEditor extends LitElement {
         const element = document.createElement('merch-badge');
         if (bgColor) {
             element.setAttribute('background-color', bgColor);
-            if (bgColor === 'spectrum-green-900-plans'
-                || bgColor === 'spectrum-gray-700-plans'
-                || bgColor === 'spectrum-indigo-900')
+            if (
+                bgColor === 'spectrum-green-900-plans' ||
+                bgColor === 'spectrum-gray-700-plans' ||
+                bgColor === 'spectrum-indigo-900'
+            )
                 element.setAttribute('color', '#fff');
         }
         if (borderColor) {

@@ -120,6 +120,7 @@ function pageValidator(value) {
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,
+        PAGE_NAMES.AI_ASSISTANT,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

@@ -249,7 +249,7 @@ export class MasChatMessage extends LitElement {
             <div class="message-content">
                 <p>${this.message.content}</p>
                 <sp-button size="m" variant="accent" @click=${this.handleOpenSelector}>
-                    <sp-icon-selection-checked slot="icon"></sp-icon-selection-checked>
+                    <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
                     Select Cards
                 </sp-button>
             </div>
@@ -448,7 +448,7 @@ export class MasChatMessage extends LitElement {
                         ? html`
                               <div class="message-cards-context">
                                   <div class="message-cards-header">
-                                      <sp-icon-selection-checked size="s"></sp-icon-selection-checked>
+                                      <sp-icon-select-multi size="s"></sp-icon-select-multi>
                                       <span>Selected ${cards.length} card${cards.length !== 1 ? 's' : ''} for context</span>
                                   </div>
                                   <div class="message-cards-list">

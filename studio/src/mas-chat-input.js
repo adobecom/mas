@@ -188,24 +188,36 @@ export class MasChatInput extends LitElement {
                 </div>
 
                 <div class="input-actions">
-                    <sp-button size="m" variant="secondary" @click=${this.handleSelectCards} ?disabled=${this.disabled}>
-                        <sp-icon-selection-checked slot="icon"></sp-icon-selection-checked>
-                        Select Cards
-                    </sp-button>
+                    <sp-action-button
+                        quiet
+                        @click=${this.handleSelectCards}
+                        ?disabled=${this.disabled}
+                        title="Select cards for context"
+                    >
+                        <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
+                    </sp-action-button>
 
                     ${!this.selectedOsi
                         ? html`
-                              <sp-button size="m" variant="secondary" @click=${this.handleOsiSelect} ?disabled=${this.disabled}>
+                              <sp-action-button
+                                  quiet
+                                  @click=${this.handleOsiSelect}
+                                  ?disabled=${this.disabled}
+                                  title="Attach offer"
+                              >
                                   <sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>
-                                  Attach Offer
-                              </sp-button>
+                              </sp-action-button>
                           `
                         : ''}
 
-                    <sp-button size="m" variant="accent" @click=${this.handleSend} ?disabled=${this.disabled || !this.message}>
+                    <sp-action-button
+                        variant="accent"
+                        @click=${this.handleSend}
+                        ?disabled=${this.disabled || !this.message}
+                        title="Send message"
+                    >
                         <sp-icon-send slot="icon"></sp-icon-send>
-                        Send
-                    </sp-button>
+                    </sp-action-button>
                 </div>
             </div>
         `;

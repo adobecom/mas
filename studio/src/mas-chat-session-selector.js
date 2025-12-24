@@ -229,7 +229,7 @@ export class MasChatSessionSelector extends LitElement {
                         title="Clear conversation"
                         @click=${(e) => this.handleClearSession(e, session.id)}
                     >
-                        <sp-icon-delete-outline slot="icon"></sp-icon-delete-outline>
+                        <sp-icon-delete slot="icon"></sp-icon-delete>
                     </sp-action-button>
                     <sp-action-button
                         quiet

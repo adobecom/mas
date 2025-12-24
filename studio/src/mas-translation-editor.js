@@ -8,6 +8,7 @@ import router from './router.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from './constants.js';
 import { normalizeKey, showToast } from './utils.js';
 import { TranslationProject } from './translation/translation-project.js';
+import './mas-translation-files.js';
 import './mas-quick-actions.js';
 
 class MasTranslationEditor extends LitElement {
@@ -285,13 +286,13 @@ class MasTranslationEditor extends LitElement {
             <sp-dialog-wrapper
                 slot="click-content"
                 headline="Select files"
-                confirm-label="Done"
+                confirm-label="Add selected files"
                 cancel-label="Cancel"
-                size="l"
                 underlay
+                no-divider
                 @confirm=${this.#handleCloseAddFilesDialog}
             >
-                To be implemented...
+                <mas-translation-files .translationProject=${this.fragment}></mas-translation-files>
             </sp-dialog-wrapper>
         `;
     }

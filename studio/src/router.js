@@ -83,6 +83,7 @@ export class Router extends EventTarget {
                         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
                     }
                     Store.viewMode.set('default');
+                    Store.removeRegionOverride();
                     Store.page.set(value);
                 }
             } finally {
@@ -109,7 +110,7 @@ export class Router extends EventTarget {
         try {
             // Set locale BEFORE setting page to include it in the first URL change
             if (locale && locale !== Store.filters.value.locale) {
-                Store.filters.set((prev) => ({ ...prev, locale }));
+                Store.search.set((prev) => ({ ...prev, region: locale }));
             }
 
             // Check if this is a collection to use editor-panel instead

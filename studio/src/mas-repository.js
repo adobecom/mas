@@ -25,7 +25,8 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
+
+import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
 import { TranslationProject } from './translation/translation-project.js';
@@ -563,7 +564,7 @@ export class MasRepository extends LitElement {
     }
 
     getDictionaryPath() {
-        return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+        return `${ROOT_PATH}/${Store.surface()}/${Store.localeOrRegion()}/dictionary`;
     }
 
     parseDictionaryPath(dictionaryPath) {
@@ -589,14 +590,6 @@ export class MasRepository extends LitElement {
         const trimmedSurface = surfacePath?.replace(/^\/+|\/+$/g, '') ?? '';
         const prefix = trimmedSurface ? `${ROOT_PATH}/${trimmedSurface}` : ROOT_PATH;
         return `${prefix}/${locale}/dictionary`;
-    }
-
-    getFallbackLocale(locale) {
-        if (!locale) return null;
-        const [languageCode] = locale.split('_');
-        const match = LOCALE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
-        if (!match || match === locale) return null;
-        return match;
     }
 
     async ensureDictionaryFolder(dictionaryPath) {
@@ -754,8 +747,7 @@ export class MasRepository extends LitElement {
         const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
 
         let parentReference = null;
-
-        const fallbackLocale = this.getFallbackLocale(locale);
+        const fallbackLocale = getLocaleCode(getDefaultLocale(locale, surfaceRoot));
         const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
         const acomFallbackLocale = fallbackLocale ?? locale;
 

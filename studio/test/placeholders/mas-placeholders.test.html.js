@@ -9,7 +9,6 @@ import Store from '../../src/store.js';
 import '../../src/placeholders/mas-placeholders.js';
 // Import necessary dependencies potentially used by the component or tests
 import '../../src/mas-repository.js';
-import '../../src/filters/locale-picker.js';
 import '../../src/rte/rte-field.js';
 import '../../src/mas-fragment-status.js';
 import { PAGE_NAMES } from '../../src/constants.js';

@@ -1,8 +1,6 @@
 import { LitElement, html } from 'lit';
 
 import './mas-fragment-picker.js';
-// import './mas-collection-picker.js';
-// import './mas-placeholder-picker.js';
 
 class MasTranslationFiles extends LitElement {
     static properties = {
@@ -18,8 +16,8 @@ class MasTranslationFiles extends LitElement {
         return html`
             <sp-tabs quiet selected="fragments">
                 <sp-tab value="fragments" label="Fragments">Fragments</sp-tab>
-                <sp-tab value="collections" label="Collections">Collections</sp-tab>
-                <sp-tab value="placeholders" label="Placeholders">Placeholders</sp-tab>
+                <sp-tab value="collections" label="Collections" disabled>Collections</sp-tab>
+                <sp-tab value="placeholders" label="Placeholders" disabled>Placeholders</sp-tab>
                 <sp-tab-panel value="fragments">
                     <mas-fragment-picker></mas-fragment-picker>
                 </sp-tab-panel>

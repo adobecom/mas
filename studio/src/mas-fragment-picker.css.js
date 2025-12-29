@@ -2,6 +2,9 @@ import { css } from 'lit';
 
 export const styles = css`
     :host {
+        --link-color: #3b63fb;
+        --link-hover-color: #1d3ecf;
+
         .search {
             display: flex;
             align-items: center;
@@ -26,6 +29,47 @@ export const styles = css`
                 display: flex;
                 justify-content: center;
                 align-items: center;
+            }
+
+            .offer-id {
+                display: flex;
+                align-items: baseline;
+                color: var(--link-color);
+
+                sp-button {
+                    --spectrum-accent-background-color-default: transparent;
+                    --spectrum-button-background-color-hover: transparent;
+                    color: var(--link-color);
+
+                    &:hover {
+                        color: var(--link-hover-color);
+                    }
+                }
+            }
+
+            .path {
+                word-break: break-word;
+            }
+
+            .status-cell {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+
+                .status-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background-color: var(--spectrum-gray-500);
+                }
+
+                .status-dot.green {
+                    background-color: var(--spectrum-green-700);
+                }
+
+                .status-dot.yellow {
+                    background-color: var(--spectrum-yellow-600);
+                }
             }
 
             .selected-files {

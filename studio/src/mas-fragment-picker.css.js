@@ -67,8 +67,8 @@ export const styles = css`
                     background-color: var(--spectrum-green-700);
                 }
 
-                .status-dot.yellow {
-                    background-color: var(--spectrum-yellow-600);
+                .status-dot.blue {
+                    background-color: var(--spectrum-blue-800);
                 }
             }
 

@@ -582,7 +582,7 @@ class MasFragmentPicker extends LitElement {
         if (status === 'PUBLISHED') {
             statusClass = 'green';
         } else if (status === 'MODIFIED') {
-            statusClass = 'yellow';
+            statusClass = 'blue';
         }
         return html`<sp-table-cell class="status-cell">
             <div class="status-dot ${statusClass}"></div>

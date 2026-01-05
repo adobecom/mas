@@ -396,7 +396,7 @@
 .message-text ul,
 .message-text ol {
     margin: var(--spectrum-global-dimension-size-100) 0;
-    padding-left: var(--spectrum-global-dimension-size-300);
+    padding-left: 2em;
 }
 
 .message-text ul {

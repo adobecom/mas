@@ -7,6 +7,7 @@ import { confirmation } from './mas-confirm-dialog.js';
 import { VersionRepository } from './version-repository.js';
 import { Fragment } from './aem/fragment.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
+import { getFromFragmentCache } from './mas-repository.js';
 import {
     setFieldConfig,
     normalizeFields,
@@ -801,17 +802,11 @@ class VersionPage extends LitElement {
     async hydrateCard(cardId, fragmentData) {
         await this.updateComplete;
 
-        // Skip if already hydrated (important for keeping current card stable)
-        if (this.hydratedCards.has(cardId)) {
-            return;
-        }
+        if (this.hydratedCards.has(cardId)) return;
 
         const merchCard = this.renderRoot.querySelector(`#${CSS.escape(cardId)}`);
-        if (!merchCard || !fragmentData) {
-            return;
-        }
+        if (!merchCard || !fragmentData) return;
 
-        // Transform AEM data to the format merch-card expects
         const fields = normalizeFields(fragmentData);
 
         if (!fields.variant) {
@@ -819,62 +814,58 @@ class VersionPage extends LitElement {
         }
 
         try {
-            // Wait for merch-card to be fully defined
             await customElements.whenDefined('merch-card');
             await merchCard.updateComplete;
 
-            // Normalize size to lowercase format that hydrate.js expects
-            // AEM stores values like "super-wide" but we ensure consistency
+            // Normalize size to lowercase hyphenated format (e.g., "Super Wide" → "super-wide")
             const normalizedFields = { ...fields };
             if (normalizedFields.size && normalizedFields.size !== 'Default') {
                 normalizedFields.size = normalizedFields.size.toLowerCase().replace(/\s+/g, '-');
             }
 
-            // Create the properly formatted fragment data
+            // Get settings from cache (has MAS IO settings), with fallback for plans variant
+            const cachedFragment = await getFromFragmentCache(fragmentData.id);
+            let settings = cachedFragment?.settings || fragmentData.settings || {};
+            const priceLiterals = cachedFragment?.priceLiterals || fragmentData.priceLiterals || {};
+
+            // Fallback: if no cached settings and variant is 'plans', apply known settings
+            if (!cachedFragment?.settings && normalizedFields.variant?.startsWith('plans')) {
+                settings = { ...settings };
+                if (normalizedFields.showSecureLabel !== false) {
+                    settings.secureLabel = '{{secure-label}}';
+                }
+            }
+
             const formattedData = {
                 id: fragmentData.id,
                 fields: normalizedFields,
-                settings: fragmentData.settings || {},
-                priceLiterals: fragmentData.priceLiterals || {},
+                settings,
+                priceLiterals,
             };
 
-            // Remove any existing aem-fragment elements to prevent conflicts
+            // Dispatch aem:load event via aem-fragment element (required by merch-card)
             merchCard.querySelectorAll('aem-fragment').forEach((el) => el.remove());
-
-            // Create an aem-fragment element for dispatching aem:load event
-            // merch-card checks e.target.nodeName === 'AEM-FRAGMENT'
             await customElements.whenDefined('aem-fragment');
-
             const aemFragment = document.createElement('aem-fragment');
             merchCard.appendChild(aemFragment);
-
-            // Dispatch the load event with our version data
-            const loadEvent = new CustomEvent('aem:load', {
-                detail: formattedData,
-                bubbles: true,
-                composed: true,
-            });
-            aemFragment.dispatchEvent(loadEvent);
-
-            // Remove immediately to prevent any refresh attempts
+            aemFragment.dispatchEvent(
+                new CustomEvent('aem:load', {
+                    detail: formattedData,
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
             aemFragment.remove();
 
-            // Give it time to process
             await new Promise((resolve) => setTimeout(resolve, 200));
             await merchCard.updateComplete;
 
-            // Explicitly set size attribute after hydration
-            // The hydrate.js processSize may not always set it correctly
+            // Ensure size attribute persists after hydration
             if (normalizedFields.size && normalizedFields.size !== 'Default') {
                 merchCard.setAttribute('size', normalizedFields.size);
             }
 
-            // Mark this card as successfully hydrated
             this.hydratedCards.add(cardId);
-
-            // Trigger re-render to update UI (hide spinner, show Changed Fields)
-            // This is safe because the merch-card template only has id="${cardId}" -
-            // no variant/size attributes that would be overwritten
             this.requestUpdate();
         } catch (error) {
             console.error('Failed to hydrate card:', cardId, error.message, error.stack);

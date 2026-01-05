@@ -523,6 +523,11 @@ export class MasRepository extends LitElement {
             },
             locale: this.filters.value.locale,
             surface: this.search.value.path,
+            networkConfig: {
+                mainTimeout: 15000,
+                fetchTimeout: 10000,
+                retries: 3,
+            },
         };
 
         // Pass abort signal if available (fragment-client may support it)

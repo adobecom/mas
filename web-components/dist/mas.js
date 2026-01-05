@@ -5085,7 +5085,7 @@ merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template
 
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough {
-    color: var(--spectrum-gray-700);
+    color: var(--spectrum-gray-500);
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"],

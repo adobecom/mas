@@ -143,7 +143,9 @@ class MasTopNav extends LitElement {
                 <div class="right-section">
                     ${this.shouldShowPickers
                         ? html`
-                              <mas-nav-folder-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-folder-picker>
+                              <mas-nav-folder-picker
+                                  ?disabled=${this.isFragmentEditorPage || this.isTranslationEditorPage}
+                              ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"
                                   @locale-changed=${(e) => {

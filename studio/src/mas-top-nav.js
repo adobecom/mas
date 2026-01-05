@@ -99,6 +99,14 @@ class MasTopNav extends LitElement {
         return Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
 
+    get isTranslationEditorPage() {
+        return Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
+    }
+
+    get isTranslationsPage() {
+        return Store.page.value === PAGE_NAMES.TRANSLATIONS;
+    }
+
     get isDraftLandscape() {
         return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
     }
@@ -133,8 +141,14 @@ class MasTopNav extends LitElement {
                 <div class="right-section">
                     ${this.shouldShowPickers
                         ? html`
-                              <mas-nav-folder-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-folder-picker>
-                              <mas-nav-locale-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-locale-picker>
+                              <mas-nav-folder-picker
+                                  ?disabled=${this.isFragmentEditorPage || this.isTranslationEditorPage}
+                              ></mas-nav-folder-picker>
+                              <mas-nav-locale-picker
+                                  ?disabled=${this.isFragmentEditorPage ||
+                                  this.isTranslationEditorPage ||
+                                  this.isTranslationsPage}
+                              ></mas-nav-locale-picker>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

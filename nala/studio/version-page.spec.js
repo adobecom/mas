@@ -6,7 +6,7 @@ export default {
             name: '@version-page-load',
             path: '/studio.html',
             data: {
-                fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
+                fragmentId: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=version&path=nala&fragmentId=',
             tags: '@mas-studio @version',
@@ -16,7 +16,7 @@ export default {
             name: '@version-page-preview',
             path: '/studio.html',
             data: {
-                fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
+                fragmentId: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=version&path=nala&fragmentId=',
             tags: '@mas-studio @version',
@@ -26,7 +26,7 @@ export default {
             name: '@version-page-search',
             path: '/studio.html',
             data: {
-                fragmentId: '206a8742-0289-4196-92d4-ced99ec4191e',
+                fragmentId: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
                 searchQuery: '1.0',
             },
             browserParams: '#page=version&path=nala&fragmentId=',

@@ -7,6 +7,8 @@ export default class EditorPage {
 
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
+        this.localeVariationHeader = page.locator('.locale-variation-header');
+        this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
         this.variant = this.panel.locator('#card-variant');
         this.style = this.panel.locator('#card-style');
         this.size = this.panel.locator('#card-size');

@@ -169,6 +169,7 @@ async function cleanupClonedCards() {
 
         // Define paths to check for fragments (different locales/views)
         const pathsToCheck = [
+            // '#locale=en_AU&page=content&path=nala', // Australian locale path
             '#page=content&path=nala', // Default path
             '#locale=fr_FR&page=content&path=nala', // French locale path
         ];

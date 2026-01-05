@@ -9,6 +9,7 @@ const PRICE_PATTERN = {
         yr: /US\$\d+\.\d\d\/yr/,
     },
     FR: { mo: /\d+,\d\d\s€\/mois/ },
+    AU: { mo: /A\$\d+\.\d\d\/mo/ },
 };
 
 const PLANS_NALA_PATH = { US: '/drafts/nala/features/commerce/plans2' };

@@ -80,6 +80,7 @@ async function cleanupClonedCards(options = {}) {
             const pathsToCheck = [
                 '#page=content&path=nala', // Default path
                 '#locale=fr_FR&page=content&path=nala', // French locale path
+                '#locale=en_AU&page=content&path=nala', // Australian locale path
             ];
 
             let totalFragmentsFound = 0;
@@ -213,7 +214,12 @@ async function cleanupClonedCards(options = {}) {
                                 if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
                                     return { id: fragmentInfo.id, success: true, wasAlreadyDeleted: true };
                                 }
-                                return { id: fragmentInfo.id, success: false, error: errorMessage };
+                                return {
+                                    id: fragmentInfo.id,
+                                    success: false,
+                                    error: errorMessage,
+                                    path: fragmentInfo.fragment.path,
+                                };
                             }
                         });
 
@@ -230,7 +236,11 @@ async function cleanupClonedCards(options = {}) {
                                 )
                                 .map((result) => ({
                                     id: result.status === 'fulfilled' ? result.value.id : 'unknown',
-                                    error: result.status === 'fulfilled' ? result.value.error : result.reason.message,
+                                    error:
+                                        result.status === 'fulfilled'
+                                            ? result.value.error || 'Unknown error'
+                                            : result.reason?.message || result.reason?.toString() || 'Unknown error',
+                                    path: result.status === 'fulfilled' ? result.value.path : undefined,
                                 }));
 
                             return {
@@ -264,9 +274,24 @@ async function cleanupClonedCards(options = {}) {
                             });
                         }
                     } else {
-                        console.log(
-                            `  \x1b[32m✓\x1b[0m Found ${cleanupResult.fragmentsFound} fragments, deleted ${cleanupResult.deletedCount}`,
-                        );
+                        const failedCount = cleanupResult.failedCount || 0;
+                        if (failedCount > 0) {
+                            console.log(
+                                `  \x1b[33m⚠\x1b[0m Found ${cleanupResult.fragmentsFound} fragments, deleted ${cleanupResult.deletedCount}, failed ${failedCount}`,
+                            );
+                            if (cleanupResult.failedFragments) {
+                                cleanupResult.failedFragments.forEach((frag) => {
+                                    const pathInfo = frag.path ? ` (path: ${frag.path})` : '';
+                                    console.log(
+                                        `      \x1b[31m✘\x1b[0m Failed: ${frag.id}${pathInfo} - ${frag.error || 'Unknown error'}`,
+                                    );
+                                });
+                            }
+                        } else {
+                            console.log(
+                                `  \x1b[32m✓\x1b[0m Found ${cleanupResult.fragmentsFound} fragments, deleted ${cleanupResult.deletedCount}`,
+                            );
+                        }
                     }
                 } else {
                     console.log(`  ➖ No fragments found in this path`);
@@ -296,12 +321,11 @@ async function cleanupClonedCards(options = {}) {
                 console.log(`  \x1b[32m✓\x1b[0m Successfully deleted     : ${totalFragmentsDeleted}`);
                 if (allFailedFragments.length > 0) {
                     console.log(`  \x1b[31m✘\x1b[0m Failed to delete         : ${allFailedFragments.length}`);
-                    if (verbose) {
-                        console.log('\nFailed fragments:');
-                        allFailedFragments.forEach((fragment) => {
-                            console.log(`  - ${fragment.id}: ${fragment.error}`);
-                        });
-                    }
+                    console.log('\nFailed fragments:');
+                    allFailedFragments.forEach((fragment) => {
+                        const pathInfo = fragment.path ? ` (path: ${fragment.path})` : '';
+                        console.log(`  \x1b[31m✘\x1b[0m ${fragment.id}${pathInfo}: ${fragment.error || 'Unknown error'}`);
+                    });
                 }
             }
             console.log('='.repeat(42));

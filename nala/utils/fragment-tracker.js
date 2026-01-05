@@ -54,10 +54,20 @@ export function getFragmentSummary() {
     };
 }
 
+/**
+ * Generate fragment title with run ID
+ * @returns {string} Fragment title in format "MAS Nala Automation Fragment [runId]"
+ */
+export function getFragmentTitle() {
+    const runId = getCurrentRunId();
+    return `MAS Nala Automation Fragment [${runId}]`;
+}
+
 // Default export for backward compatibility
 export default {
     createRunId,
     getCurrentRunId,
     clearRunId,
     getFragmentSummary,
+    getFragmentTitle,
 };

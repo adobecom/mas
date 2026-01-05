@@ -594,7 +594,7 @@ class MasFragmentPicker extends LitElement {
         return html` <div class="container">
                 ${this.loading
                     ? html`<div class="loading-container">${this.loadingIndicator}</div>`
-                    : html`<sp-table emphasized scroller selects="multiple" @change=${this.handleSelectionChange}>
+                    : html`<sp-table class="fragments-table" emphasized scroller selects="multiple" @change=${this.handleSelectionChange}>
                           <sp-table-head>
                               <sp-table-head-cell sortable>Offer</sp-table-head-cell>
                               <sp-table-head-cell>Fragment title</sp-table-head-cell>

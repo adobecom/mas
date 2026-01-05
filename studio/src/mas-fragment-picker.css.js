@@ -31,9 +31,41 @@ export const styles = css`
                 align-items: center;
             }
 
+            .fragments-table {
+                --spectrum-table-header-background-color: var(--spectrum-gray-50);
+                --spectrum-table-border-radius: 0;
+
+                sp-table-head {
+                    border-top: 1px solid var(--spectrum-gray-300);
+                    border-left: 1px solid var(--spectrum-gray-300);
+                    border-right: 1px solid var(--spectrum-gray-300);
+                    border-radius: 12px 12px 0 0;
+                }
+
+                sp-table-head {
+                    border-top: 1px solid var(--spectrum-gray-300);
+                    border-left: 1px solid var(--spectrum-gray-300);
+                    border-right: 1px solid var(--spectrum-gray-300);
+
+                    sp-table-checkbox-cell:first-of-type {
+                        border-top-left-radius: 12px;
+                    }
+                }
+
+                sp-table-head-cell:last-of-type {
+                    align-content: center;
+                    border-top-right-radius: 12px;
+                }
+
+                sp-table-head-cell,
+                sp-table-cell {
+                    align-content: center;
+                }
+            }
+
             .offer-id {
                 display: flex;
-                align-items: baseline;
+                align-items: center;
                 color: var(--link-color);
 
                 sp-button {

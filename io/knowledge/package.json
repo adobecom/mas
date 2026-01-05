@@ -1,0 +1,35 @@
+{
+  "name": "mas-knowledge-service",
+  "version": "1.0.0",
+  "description": "MAS Knowledge Service - RAG for AI Assistant",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "mocha --recursive ./test",
+    "test:watch": "mocha --recursive ./test --watch",
+    "lint": "eslint src scripts",
+    "lint:fix": "eslint src scripts --fix",
+    "knowledge:extract": "node scripts/extract-knowledge/index.js --all",
+    "knowledge:extract:variants": "node scripts/extract-knowledge/index.js --variants",
+    "knowledge:extract:pipeline": "node scripts/extract-knowledge/index.js --pipeline",
+    "knowledge:extract:components": "node scripts/extract-knowledge/index.js --components",
+    "knowledge:extract:editor": "node scripts/extract-knowledge/index.js --editor",
+    "knowledge:extract:docs": "node scripts/extract-knowledge/index.js --docs",
+    "knowledge:preview": "node scripts/extract-knowledge/index.js --all --dry-run --verbose"
+  },
+  "dependencies": {
+    "@adobe/aio-lib-ims": "^7.0.2",
+    "@adobe/aio-sdk": "^6",
+    "@aws-sdk/client-bedrock-runtime": "^3",
+    "@opensearch-project/opensearch": "^3.5.1"
+  },
+  "devDependencies": {
+    "chai": "^5",
+    "dotenv": "^17.2.3",
+    "esbuild": "^0.27.2",
+    "eslint": "^8",
+    "mocha": "^10"
+  }
+}

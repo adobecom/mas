@@ -120,6 +120,21 @@ When you have enough information, respond with:
    - Correct CTA button class
    - Checkout attributes present
 
+=== REQUIRED FIELDS VALIDATION ===
+
+**CRITICAL**: EVERY card you generate MUST include these fields:
+- **title**: ALWAYS REQUIRED - use placeholder if not specified
+- **ctas**: ALWAYS REQUIRED - at least one CTA button
+- **description**: HIGHLY RECOMMENDED for most variants
+
+**NEVER generate a card with only a prices field.**
+**NEVER generate incomplete cards that will fail validation.**
+
+If user asks about pricing without specifying card content, include:
+1. A placeholder title (e.g., "[Product Name]")
+2. A placeholder CTA (e.g., "Buy now" button)
+3. The price field they asked about
+
 === PLACEHOLDER CONTENT GENERATION ===
 
 **CRITICAL**: When a user requests a card WITHOUT specific content details, you MUST generate complete placeholder content for ALL fields to create an immediately previewable card.

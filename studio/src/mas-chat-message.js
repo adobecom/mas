@@ -24,8 +24,10 @@ export class MasChatMessage extends LitElement {
     formatTimestamp(timestamp) {
         if (!timestamp) return '';
         const date = new Date(timestamp);
-        return date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
             minute: '2-digit',
         });
     }
@@ -46,7 +48,7 @@ export class MasChatMessage extends LitElement {
     }
 
     renderCardPreview() {
-        const { fragmentId, fragmentPath, fragmentTitle, fragmentStatus, validation, isCreatingDraft } = this.message;
+        const { fragmentId, fragmentPath, fragmentStatus, validation, isCreatingDraft, isDocumentation } = this.message;
 
         if (isCreatingDraft) {
             return html`
@@ -63,6 +65,21 @@ export class MasChatMessage extends LitElement {
             return html`<div class="message-card-preview">
                 <p>Card preview unavailable</p>
             </div>`;
+        }
+
+        if (isDocumentation) {
+            return html`
+                <div class="message-card-preview message-card-preview--example">
+                    <div class="card-info">
+                        <sp-badge size="s" variant="informative">Example</sp-badge>
+                    </div>
+                    <div class="card-visual-preview">
+                        <merch-card>
+                            <aem-fragment fragment="${fragmentId}" author ims></aem-fragment>
+                        </merch-card>
+                    </div>
+                </div>
+            `;
         }
 
         return html`

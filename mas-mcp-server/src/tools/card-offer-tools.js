@@ -1,6 +1,6 @@
-import { AEMClient } from '../services/aem-client.js';
+import { AEMClient } from '../../../io/mcp-server/src/lib/aem-client.js';
+import { StudioURLBuilder } from '../../../io/mcp-server/src/lib/studio-url-builder.js';
 import { AOSClient } from '../services/aos-client.js';
-import { StudioURLBuilder } from '../utils/studio-url-builder.js';
 
 /**
  * Card-Offer Linking Tools

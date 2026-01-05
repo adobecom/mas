@@ -548,11 +548,7 @@
 
 .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(
-        90deg,
-        var(--spectrum-global-color-blue-500),
-        var(--spectrum-global-color-indigo-500)
-    );
+    background: linear-gradient(90deg, var(--spectrum-global-color-blue-500), var(--spectrum-global-color-indigo-500));
     border-radius: 4px;
     transition: width 0.3s ease-out;
 }
@@ -678,6 +674,10 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+.message-card-preview--example {
+    border-color: var(--spectrum-global-color-blue-400);
+}
+
 .card-info,
 .collection-info {
     display: flex;
@@ -706,6 +706,8 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-radius: var(--spectrum-global-dimension-size-100);
     background: white;
+    height: fit-content;
+    min-height: auto;
 }
 
 .card-visual-preview merch-card[variant='fries'] {
@@ -853,7 +855,9 @@
 /* RTE Wrapper */
 .rte-wrapper {
     position: relative;
-    padding-top: var(--spectrum-global-dimension-size-250);
+    padding: 4px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .input-container rte-field {
@@ -873,27 +877,51 @@
     align-items: center;
 }
 
+.input-actions sp-action-button[variant='accent'] {
+    --mod-actionbutton-icon-color: white;
+    --spectrum-actionbutton-icon-color-default: white;
+    --spectrum-actionbutton-icon-color-hover: white;
+    --spectrum-actionbutton-icon-color-active: white;
+    --spectrum-actionbutton-icon-color-focus: white;
+}
+
+.input-actions sp-action-button[variant='accent'] sp-icon-send {
+    color: white;
+}
+
 /* Selected Offer Badge */
 .selected-offer-badge {
-    position: absolute;
-    top: 0;
-    right: 0;
     display: flex;
     align-items: center;
-    gap: var(--spectrum-global-dimension-size-75);
-    padding: var(--spectrum-global-dimension-size-75) var(--spectrum-global-dimension-size-125);
+    gap: var(--spectrum-global-dimension-size-100);
+    padding: var(--spectrum-global-dimension-size-100) var(--spectrum-global-dimension-size-150);
     background: var(--spectrum-global-color-green-100);
     border: 1px solid var(--spectrum-global-color-green-400);
-    border-radius: var(--spectrum-global-dimension-size-75);
+    border-radius: var(--spectrum-global-dimension-size-100);
     font-size: var(--spectrum-global-dimension-size-150);
     color: var(--spectrum-global-color-gray-900);
-    font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    z-index: 10;
+    margin-bottom: var(--spectrum-global-dimension-size-150);
+}
+
+.selected-offer-badge sp-icon-shopping-cart {
+    color: var(--spectrum-global-color-green-700);
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.selected-offer-badge .offer-id {
+    flex: 1;
+    font-family: monospace;
+    font-size: var(--spectrum-global-dimension-size-150);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 400px;
 }
 
 .selected-offer-badge sp-action-button {
-    margin-left: var(--spectrum-global-dimension-size-50);
+    flex-shrink: 0;
 }
 
 /* Selected Cards Badges */
@@ -1248,7 +1276,8 @@
 }
 
 .error-details sp-button {
-    margin: var(--spectrum-global-dimension-size-150) var(--spectrum-global-dimension-size-200) var(--spectrum-global-dimension-size-200);
+    margin: var(--spectrum-global-dimension-size-150) var(--spectrum-global-dimension-size-200)
+        var(--spectrum-global-dimension-size-200);
 }
 
 /* Search Results Grid */
@@ -1362,7 +1391,7 @@
 .search-results-cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--spectrum-global-dimension-size-200);
+    gap: var(--spectrum-global-dimension-size-400);
     margin-top: var(--spectrum-global-dimension-size-250);
     width: 100%;
     grid-auto-rows: min-content;
@@ -1375,6 +1404,10 @@
     width: 100%;
     contain: layout;
     position: relative;
+    padding: var(--spectrum-global-dimension-size-300);
+    background: var(--spectrum-global-color-gray-50);
+    border-radius: var(--spectrum-global-dimension-size-100);
+    border: 1px solid var(--spectrum-global-color-gray-200);
 }
 
 .search-results-cards-grid .card-wrapper merch-card,
@@ -1436,4 +1469,273 @@
     color: var(--spectrum-global-color-gray-600);
     margin-top: var(--spectrum-global-dimension-size-100);
     font-style: italic;
+}
+
+/* ================================
+   Welcome Screen Styles (Claude-like)
+   ================================ */
+
+.chat-welcome-container {
+    width: 100%;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--spectrum-white);
+    border-radius: 8px;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.welcome-header-actions {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 10;
+}
+
+.welcome-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    gap: 32px;
+}
+
+.welcome-greeting {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.welcome-greeting h1 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--spectrum-global-color-gray-800);
+}
+
+.welcome-icon {
+    width: 40px;
+    height: 40px;
+    color: var(--spectrum-global-color-orange-500);
+}
+
+.welcome-input-wrapper {
+    width: 100%;
+    max-width: 640px;
+    animation: fadeInUp 0.5s ease-out 0.1s both;
+}
+
+.welcome-input-wrapper .input-container {
+    background: #f5f5f5;
+    border-radius: 24px;
+    padding: 12px 20px;
+    border: 1px solid #d3d3d3;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.welcome-input-wrapper .input-container:focus-within {
+    border-color: #0265dc;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    background: #ffffff;
+}
+
+.welcome-input-wrapper .rte-wrapper {
+    padding: 4px 0;
+    width: 100%;
+}
+
+.welcome-input-wrapper rte-field {
+    width: 100%;
+}
+
+/* Hide RTE toolbar in welcome screen */
+.welcome-input-wrapper .rte-toolbar,
+.welcome-input-wrapper [role='toolbar'],
+.welcome-input-wrapper sp-action-group {
+    display: none !important;
+}
+
+/* Hide character counter in welcome screen */
+.welcome-input-wrapper #counter,
+.welcome-input-wrapper .rte-wrapper > p {
+    display: none !important;
+}
+
+/* Clean input styling in welcome screen */
+.welcome-input-wrapper .ProseMirror {
+    min-height: 24px;
+    padding: 8px 0;
+    outline: none;
+}
+
+.welcome-input-wrapper .ProseMirror p {
+    margin: 0;
+}
+
+.welcome-input-wrapper .ProseMirror p.is-editor-empty:first-child::before {
+    color: var(--spectrum-global-color-gray-500);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+.welcome-input-wrapper .input-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: none;
+    padding-top: 4px;
+}
+
+.welcome-input-wrapper .input-actions-left {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.welcome-input-wrapper .input-actions sp-action-button {
+    --mod-actionbutton-background-color-default: transparent;
+    --mod-actionbutton-border-color-default: transparent;
+    border-radius: 50%;
+}
+
+.welcome-input-wrapper .input-actions sp-action-button:hover {
+    --mod-actionbutton-background-color-hover: var(--spectrum-global-color-gray-200);
+}
+
+.welcome-input-wrapper .input-actions sp-action-button[variant='accent'] {
+    --mod-actionbutton-background-color-default: var(--spectrum-global-color-blue-500);
+    --mod-actionbutton-background-color-hover: var(--spectrum-global-color-blue-600);
+    --mod-actionbutton-icon-color: white;
+    --spectrum-actionbutton-icon-color-default: white;
+    --spectrum-actionbutton-icon-color-hover: white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+}
+
+.welcome-input-wrapper .input-actions sp-action-button[variant='accent'] sp-icon-send {
+    color: white;
+}
+
+/* Welcome Chips */
+.welcome-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    max-width: 600px;
+    animation: fadeInUp 0.5s ease-out 0.2s both;
+}
+
+.welcome-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: transparent;
+    border: 1px solid var(--spectrum-global-color-gray-300);
+    border-radius: 24px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--spectrum-global-color-gray-800);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.welcome-chip:hover {
+    background: var(--spectrum-global-color-gray-100);
+    border-color: var(--spectrum-global-color-gray-400);
+    transform: translateY(-1px);
+}
+
+.welcome-chip:active {
+    transform: translateY(0);
+}
+
+.welcome-chip sp-icon-add-circle,
+.welcome-chip sp-icon-search,
+.welcome-chip sp-icon-help,
+.welcome-chip sp-icon-table,
+.welcome-chip sp-icon-layers,
+.welcome-chip sp-icon-shopping-cart,
+.welcome-chip sp-icon-collection,
+.welcome-chip sp-icon-star,
+.welcome-chip sp-icon-asterisk {
+    color: var(--spectrum-global-color-gray-600);
+    width: 18px;
+    height: 18px;
+}
+
+.welcome-loading {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    background: var(--spectrum-global-color-gray-100);
+    border-radius: 24px;
+    color: var(--spectrum-global-color-gray-700);
+    font-size: 14px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive Welcome Screen */
+@media (max-width: 768px) {
+    .welcome-greeting h1 {
+        font-size: 24px;
+    }
+
+    .welcome-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .welcome-content {
+        padding: 32px 16px;
+        gap: 24px;
+    }
+
+    .welcome-input-wrapper {
+        max-width: 100%;
+    }
+
+    .welcome-chips {
+        gap: 8px;
+    }
+
+    .welcome-chip {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .welcome-header-actions {
+        top: 16px;
+        right: 16px;
+    }
 }

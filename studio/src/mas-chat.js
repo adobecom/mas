@@ -27,6 +27,8 @@ export class MasChat extends LitElement {
         error: { type: String },
         showPromptSuggestions: { type: Boolean },
         currentSessionId: { type: String },
+        showWelcomeScreen: { type: Boolean },
+        userName: { type: String },
     };
 
     constructor() {
@@ -37,6 +39,44 @@ export class MasChat extends LitElement {
         this.conversationHistory = [];
         this.showPromptSuggestions = true;
         this.currentSessionId = null;
+        this.showWelcomeScreen = true;
+        this.userName = null;
+    }
+
+    async fetchUserName() {
+        try {
+            const profile = await window.adobeIMS?.getProfile?.();
+            if (profile?.first_name) {
+                this.userName = profile.first_name;
+            } else if (profile?.displayName) {
+                this.userName = profile.displayName.split(' ')[0];
+            }
+        } catch {
+            this.userName = null;
+        }
+    }
+
+    getTimeGreeting() {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good morning';
+        if (hour < 18) return 'Good afternoon';
+        return 'Good evening';
+    }
+
+    getCurrentSurface() {
+        const path = Store.search?.value?.path || getHashParam('path');
+        if (!path) return null;
+        const surfaceMap = {
+            acom: 'acom',
+            ccd: 'ccd',
+            commerce: 'commerce',
+            ahome: 'adobe-home',
+            express: 'express',
+            sandbox: 'sandbox',
+            docs: 'docs',
+            nala: 'nala',
+        };
+        return surfaceMap[path] || null;
     }
 
     createRenderRoot() {
@@ -45,6 +85,7 @@ export class MasChat extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.fetchUserName();
         this.loadActiveSession();
         this.addEventListener('cards-selected', this.handleCardsSelected);
         this.addEventListener('create-collection-from-preview', this.handleCreateCollectionFromPreview);
@@ -75,10 +116,16 @@ export class MasChat extends LitElement {
         const session = sessionManager.getActiveSession();
         this.currentSessionId = session.id;
 
-        if (session.messages && session.messages.length > 0) {
+        const hasRealMessages =
+            session.messages &&
+            session.messages.length > 0 &&
+            session.messages.some((m) => m.role === 'user' || (m.role === 'assistant' && !m.showSuggestions));
+
+        if (hasRealMessages) {
             this.messages = session.messages;
             this.conversationHistory = session.conversationHistory || [];
             this.showPromptSuggestions = false;
+            this.showWelcomeScreen = false;
         } else {
             this.addWelcomeMessage();
         }
@@ -118,9 +165,15 @@ export class MasChat extends LitElement {
         this.currentSessionId = sessionId;
         this.messages = session.messages || [];
         this.conversationHistory = session.conversationHistory || [];
-        this.showPromptSuggestions = this.messages.length === 0 || this.messages.every((m) => m.role === 'assistant');
 
-        if (this.messages.length === 0) {
+        const hasRealMessages =
+            this.messages.length > 0 &&
+            this.messages.some((m) => m.role === 'user' || (m.role === 'assistant' && !m.showSuggestions));
+
+        this.showPromptSuggestions = !hasRealMessages;
+        this.showWelcomeScreen = !hasRealMessages;
+
+        if (!hasRealMessages) {
             this.addWelcomeMessage();
         }
 
@@ -136,26 +189,20 @@ export class MasChat extends LitElement {
             this.messages = [];
             this.conversationHistory = [];
             this.showPromptSuggestions = true;
-            this.addWelcomeMessage();
+            this.showWelcomeScreen = true;
         }
     }
 
     addWelcomeMessage() {
-        this.messages = [
-            {
-                role: 'assistant',
-                content:
-                    'Hi! I can help you create merch cards using natural language. Pick a suggestion below or type your own request.',
-                timestamp: Date.now(),
-                showSuggestions: true,
-            },
-        ];
-        this.saveCurrentSession();
+        this.messages = [];
+        this.showWelcomeScreen = true;
+        this.showPromptSuggestions = true;
     }
 
     handlePromptSelected(event) {
         const { prompt } = event.detail;
         this.showPromptSuggestions = false;
+        this.showWelcomeScreen = false;
         this.handleSendMessage({ detail: { message: prompt, context: {} } });
     }
 
@@ -165,6 +212,7 @@ export class MasChat extends LitElement {
         if (!message.trim()) return;
 
         this.showPromptSuggestions = false;
+        this.showWelcomeScreen = false;
 
         const userMessage = {
             role: 'user',
@@ -1135,6 +1183,50 @@ export class MasChat extends LitElement {
     }
 
     render() {
+        if (this.showWelcomeScreen) {
+            return this.renderWelcomeScreen();
+        }
+        return this.renderChatView();
+    }
+
+    renderWelcomeScreen() {
+        const greeting = this.getTimeGreeting();
+        const name = this.userName;
+
+        return html`
+            <div class="chat-welcome-container">
+                <div class="welcome-header-actions">
+                    <mas-chat-session-selector></mas-chat-session-selector>
+                </div>
+
+                <div class="welcome-content">
+                    <div class="welcome-greeting">
+                        <h1>${greeting}${name ? `, ${name}` : ''}</h1>
+                    </div>
+
+                    <div class="welcome-input-wrapper">
+                        <mas-chat-input
+                            @send-message=${this.handleSendMessage}
+                            .disabled=${this.isLoading}
+                            placeholder="How can I help you today?"
+                        ></mas-chat-input>
+                    </div>
+
+                    <mas-prompt-suggestions .context=${{ surface: this.getCurrentSurface() }}></mas-prompt-suggestions>
+                </div>
+
+                ${this.isLoading
+                    ? html`
+                          <div class="welcome-loading">
+                              <sp-progress-circle indeterminate size="m"></sp-progress-circle>
+                          </div>
+                      `
+                    : ''}
+            </div>
+        `;
+    }
+
+    renderChatView() {
         return html`
             <div class="chat-page-container">
                 <div class="chat-header">
@@ -1142,7 +1234,6 @@ export class MasChat extends LitElement {
                         <sp-icon-magic-wand size="l" class="chat-header-icon"></sp-icon-magic-wand>
                         <div class="chat-header-text">
                             <h2>Cosmocat</h2>
-                            <p>What can I help you with today?</p>
                         </div>
                     </div>
                     <div class="chat-header-actions">

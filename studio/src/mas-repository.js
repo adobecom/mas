@@ -237,7 +237,7 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        if (this.page.value !== PAGE_NAMES.CONTENT && this.page.value !== PAGE_NAMES.CHAT) return;
+        if (this.page.value !== PAGE_NAMES.CONTENT && this.page.value !== PAGE_NAMES.AI_ASSISTANT) return;
         if (!Store.profile.value) return;
 
         const path = this.search.value.path;

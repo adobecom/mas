@@ -8,15 +8,6 @@
 import { MCP_SERVER_URL } from '../constants.js';
 
 /**
- * Map MCP tool name to Runtime action name
- * @param {string} toolName - MCP tool name (e.g., 'studio_publish_card')
- * @returns {string} - Runtime action name (e.g., 'publish-card')
- */
-function mapToolNameToActionName(toolName) {
-    return toolName.replace('studio_', '').replace(/_/g, '-');
-}
-
-/**
  * Execute an MCP tool on the MCP server
  * @param {string} toolName - Name of the MCP tool (e.g., 'studio_publish_card')
  * @param {Object} params - Tool parameters
@@ -52,10 +43,7 @@ export async function executeMCPTool(toolName, params) {
             _aemBaseUrl: aemBaseUrl,
         };
 
-        const isLocalhost = window.location.hostname === 'localhost';
-        const endpoint = isLocalhost
-            ? `${MCP_SERVER_URL}/tools/${toolName}`
-            : `${MCP_SERVER_URL}/${mapToolNameToActionName(toolName)}`;
+        const endpoint = `${MCP_SERVER_URL}/tools/${toolName}`;
 
         console.log('[MCP Client] Endpoint:', endpoint);
 

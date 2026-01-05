@@ -20,13 +20,17 @@ import { handleOperation } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig } from './variant-configs.js';
 import { getVariantsForSurface } from './variant-knowledge-builder.js';
+import { KnowledgeClient } from './knowledge-client.js';
 
 /**
- * Get CORS headers for development
- * @returns {Object} - CORS headers (empty - let Adobe I/O Runtime handle CORS automatically)
+ * Get response headers for web action
+ * Note: CORS headers are handled automatically by OpenWhisk gateway for web actions
+ * @returns {Object} - Response headers
  */
-function getCorsHeaders() {
-    return {};
+function getResponseHeaders() {
+    return {
+        'Content-Type': 'application/json',
+    };
 }
 
 /**
@@ -98,6 +102,56 @@ async function authorize(headers) {
 }
 
 /**
+ * Create Knowledge Service client if RAG is enabled
+ * @param {Object} params - Action parameters
+ * @returns {KnowledgeClient|null} - Knowledge client instance or null
+ */
+function createKnowledgeClient(params) {
+    const { RAG_ENABLED, KNOWLEDGE_SERVICE_URL } = params;
+
+    if (RAG_ENABLED !== 'true') {
+        return null;
+    }
+
+    try {
+        return new KnowledgeClient(KNOWLEDGE_SERVICE_URL);
+    } catch (error) {
+        console.warn('Failed to create Knowledge client:', error.message);
+        return null;
+    }
+}
+
+/**
+ * Enhance system prompt with RAG knowledge if applicable
+ * @param {string} systemPrompt - Base system prompt
+ * @param {string} message - User message
+ * @param {KnowledgeClient|null} knowledgeClient - Knowledge service client
+ * @param {boolean} isDocumentation - Whether this is a documentation query
+ * @returns {Promise<string>} - Enhanced system prompt
+ */
+async function enhanceWithRAG(systemPrompt, message, knowledgeClient, isDocumentation) {
+    if (!knowledgeClient || !isDocumentation) {
+        return systemPrompt;
+    }
+
+    try {
+        const knowledgeContext = await knowledgeClient.queryAsContext(message, {
+            topK: 3,
+            minScore: 0.7,
+        });
+
+        if (knowledgeContext) {
+            console.log('[RAG] Retrieved relevant knowledge for query');
+            return `${systemPrompt}\n\n${knowledgeContext}`;
+        }
+    } catch (error) {
+        console.warn('[RAG] Failed to retrieve knowledge:', error.message);
+    }
+
+    return systemPrompt;
+}
+
+/**
  * Main action handler
  * @param {Object} params - Action parameters
  * @returns {Promise<Object>} - Action response
@@ -110,7 +164,7 @@ async function main(params) {
         return {
             statusCode: 200,
             headers: {
-                ...getCorsHeaders(),
+                ...getResponseHeaders(),
             },
         };
     }
@@ -119,7 +173,7 @@ async function main(params) {
         return {
             statusCode: 401,
             headers: {
-                ...getCorsHeaders(),
+                ...getResponseHeaders(),
             },
             body: {
                 error: 'Unauthorized: Bearer token is missing or invalid',
@@ -133,7 +187,7 @@ async function main(params) {
         return {
             statusCode: 400,
             headers: {
-                ...getCorsHeaders(),
+                ...getResponseHeaders(),
             },
             body: {
                 error: 'Message is required and must be a string',
@@ -151,7 +205,9 @@ async function main(params) {
             modelId: BEDROCK_MODEL_ID,
         });
 
-        const systemPrompt = determineSystemPrompt(intentHint, conversationHistory, message);
+        const knowledgeClient = createKnowledgeClient(params);
+        const { prompt: basePrompt, isDocumentation } = determineSystemPromptWithMeta(intentHint, conversationHistory, message);
+        const systemPrompt = await enhanceWithRAG(basePrompt, message, knowledgeClient, isDocumentation);
 
         const enrichedContext = enrichContextWithSurface(context);
 
@@ -173,7 +229,7 @@ async function main(params) {
             return {
                 statusCode: 500,
                 headers: {
-                    ...getCorsHeaders(),
+                    ...getResponseHeaders(),
                 },
                 body: {
                     error: 'Failed to get AI response',
@@ -199,7 +255,7 @@ async function main(params) {
                 return {
                     statusCode: 200,
                     headers: {
-                        ...getCorsHeaders(),
+                        ...getResponseHeaders(),
                     },
                     body: {
                         type: 'mcp_operation',
@@ -220,7 +276,7 @@ async function main(params) {
             return {
                 statusCode: 200,
                 headers: {
-                    ...getCorsHeaders(),
+                    ...getResponseHeaders(),
                 },
                 body: {
                     ...operationResult,
@@ -243,12 +299,13 @@ async function main(params) {
             return {
                 statusCode: 200,
                 headers: {
-                    ...getCorsHeaders(),
+                    ...getResponseHeaders(),
                 },
                 body: {
                     type: 'card',
                     message: parsedResponse.message,
                     cardConfig: parsedResponse.cardConfig,
+                    isDocumentation,
                     validation: {
                         valid: validation.valid,
                         errors: validation.errors,
@@ -271,7 +328,7 @@ async function main(params) {
                 return {
                     statusCode: 200,
                     headers: {
-                        ...getCorsHeaders(),
+                        ...getResponseHeaders(),
                     },
                     body: {
                         type: 'error',
@@ -289,7 +346,7 @@ async function main(params) {
             return {
                 statusCode: 200,
                 headers: {
-                    ...getCorsHeaders(),
+                    ...getResponseHeaders(),
                 },
                 body: {
                     type: 'collection',
@@ -313,7 +370,7 @@ async function main(params) {
             return {
                 statusCode: 200,
                 headers: {
-                    ...getCorsHeaders(),
+                    ...getResponseHeaders(),
                 },
                 body: {
                     type: 'collection-selection',
@@ -332,7 +389,7 @@ async function main(params) {
             return {
                 statusCode: 200,
                 headers: {
-                    ...getCorsHeaders(),
+                    ...getResponseHeaders(),
                 },
                 body: {
                     type: 'collection-preview',
@@ -352,7 +409,7 @@ async function main(params) {
         return {
             statusCode: 200,
             headers: {
-                ...getCorsHeaders(),
+                ...getResponseHeaders(),
             },
             body: {
                 type: 'message',
@@ -370,7 +427,7 @@ async function main(params) {
         return {
             statusCode: 500,
             headers: {
-                ...getCorsHeaders(),
+                ...getResponseHeaders(),
             },
             body: {
                 error: 'Internal server error',
@@ -386,19 +443,19 @@ async function main(params) {
  * @param {string} intentHint - Optional hint ('card', 'collection', or 'documentation')
  * @param {Array} conversationHistory - Previous messages
  * @param {string} message - Current user message
- * @returns {string} - System prompt
+ * @returns {Object} - { prompt: string, isDocumentation: boolean }
  */
-function determineSystemPrompt(intentHint, conversationHistory, message) {
+function determineSystemPromptWithMeta(intentHint, conversationHistory, message) {
     if (intentHint === 'documentation') {
-        return buildDocumentationPrompt(message);
+        return { prompt: buildDocumentationPrompt(message), isDocumentation: true };
     }
 
     if (intentHint === 'collection') {
-        return COLLECTION_CREATION_SYSTEM_PROMPT;
+        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false };
     }
 
     if (intentHint === 'card') {
-        return CARD_CREATION_SYSTEM_PROMPT;
+        return { prompt: CARD_CREATION_SYSTEM_PROMPT, isDocumentation: false };
     }
 
     const lowerMessage = message.toLowerCase();
@@ -435,17 +492,25 @@ function determineSystemPrompt(intentHint, conversationHistory, message) {
         'documentation',
         'docs',
         'guide',
+        'version',
+        'history',
+        'restore',
+        'variation',
+        'locale',
+        'regional',
+        'inherit',
+        'override',
     ];
     const hasDocumentationKeyword = documentationKeywords.some((keyword) => lowerMessage.includes(keyword));
 
     const isQuestion =
         lowerMessage.trim().endsWith('?') || /^(what|how|why|where|when|which|who|can|does|is|are)\b/i.test(lowerMessage);
 
-    const cardCreationKeywords = ['create', 'make', 'generate', 'card', 'collection'];
+    const cardCreationKeywords = ['create', 'make', 'generate'];
     const hasCardCreationKeyword = cardCreationKeywords.some((keyword) => lowerMessage.includes(keyword));
 
     if ((hasDocumentationKeyword || isQuestion) && !hasCardCreationKeyword) {
-        return buildDocumentationPrompt(message);
+        return { prompt: buildDocumentationPrompt(message), isDocumentation: true };
     }
 
     const operationKeywords = [
@@ -464,11 +529,11 @@ function determineSystemPrompt(intentHint, conversationHistory, message) {
     const hasOperationKeyword = operationKeywords.some((keyword) => lowerMessage.includes(keyword));
 
     if (hasOperationKeyword) {
-        return CARD_CREATION_SYSTEM_PROMPT + '\n\n' + OPERATIONS_SYSTEM_PROMPT;
+        return { prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${OPERATIONS_SYSTEM_PROMPT}`, isDocumentation: false };
     }
 
     if (lowerMessage.includes('collection') || lowerMessage.includes('multiple cards')) {
-        return COLLECTION_CREATION_SYSTEM_PROMPT;
+        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false };
     }
 
     const recentAssistantMessages = conversationHistory
@@ -478,10 +543,10 @@ function determineSystemPrompt(intentHint, conversationHistory, message) {
         .join(' ');
 
     if (recentAssistantMessages.includes('collection')) {
-        return COLLECTION_CREATION_SYSTEM_PROMPT;
+        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false };
     }
 
-    return CARD_CREATION_SYSTEM_PROMPT + '\n\n' + OPERATIONS_SYSTEM_PROMPT;
+    return { prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${OPERATIONS_SYSTEM_PROMPT}`, isDocumentation: false };
 }
 
 export { main };

@@ -1,4 +1,4 @@
-import { AuthManager } from './auth-manager.js';
+import { AuthManager } from '../../../io/mcp-server/src/lib/auth-manager.js';
 import { DEFAULT_AOS_PARAMS } from '../config/constants.js';
 
 /**

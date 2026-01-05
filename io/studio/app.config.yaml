@@ -46,6 +46,8 @@ application:
                             AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
                             AWS_REGION: $AWS_REGION
                             BEDROCK_MODEL_ID: $BEDROCK_MODEL_ID
+                            RAG_ENABLED: $RAG_ENABLED
+                            KNOWLEDGE_SERVICE_URL: $KNOWLEDGE_SERVICE_URL
                         annotations:
                             require-adobe-auth: false
                             final: true

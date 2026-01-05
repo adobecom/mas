@@ -1,6 +1,6 @@
+import { StudioURLBuilder } from '../../../io/mcp-server/src/lib/studio-url-builder.js';
 import { AOSClient } from '../services/aos-client.js';
 import { ProductCatalog } from '../services/product-catalog.js';
-import { StudioURLBuilder } from '../utils/studio-url-builder.js';
 
 /**
  * Offer Discovery Tools

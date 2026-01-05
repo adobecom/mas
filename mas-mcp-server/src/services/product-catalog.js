@@ -1,4 +1,4 @@
-import { AuthManager } from './auth-manager.js';
+import { AuthManager } from '../../../io/mcp-server/src/lib/auth-manager.js';
 
 /**
  * Product Catalog Service

@@ -47,8 +47,9 @@ export class AnthropicClient {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(
-                    `Anthropic API error: ${response.status} ${response.statusText}` +
-                        (errorData.error?.message ? ` - ${errorData.error.message}` : ''),
+                    `Anthropic API error: ${response.status} ${response.statusText}${
+                        errorData.error?.message ? ` - ${errorData.error.message}` : ''
+                    }`,
                 );
             }
 

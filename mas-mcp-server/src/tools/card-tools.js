@@ -1,5 +1,5 @@
-import { AEMClient } from '../services/aem-client.js';
-import { StudioURLBuilder } from '../utils/studio-url-builder.js';
+import { AEMClient } from '../../../io/mcp-server/src/lib/aem-client.js';
+import { StudioURLBuilder } from '../../../io/mcp-server/src/lib/studio-url-builder.js';
 import { TAG_MODEL_ID_MAPPING, SURFACE_PATHS } from '../config/constants.js';
 
 /**

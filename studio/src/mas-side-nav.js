@@ -244,7 +244,7 @@ class MasSideNav extends LitElement {
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
             <mas-side-nav-item
-                label="AI Assistant"
+                label="Cosmocat AI"
                 ?selected=${Store.page.get() === PAGE_NAMES.AI_ASSISTANT}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)}"
             >

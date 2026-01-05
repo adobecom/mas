@@ -1,5 +1,5 @@
+import { StudioURLBuilder } from '../../../io/mcp-server/src/lib/studio-url-builder.js';
 import { AOSClient } from '../services/aos-client.js';
-import { StudioURLBuilder } from '../utils/studio-url-builder.js';
 
 /**
  * Offer Selector Tools

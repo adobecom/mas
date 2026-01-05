@@ -1,0 +1,37 @@
+application:
+    actions: actions
+    hooks:
+        test: npm run test
+    runtimeManifest:
+        packages:
+            MerchAtScaleKnowledge:
+                license: Apache-2.0
+                actions:
+                    query:
+                        function: src/query/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                            AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                            AWS_REGION: $AWS_REGION
+                            OPENSEARCH_ENDPOINT: $OPENSEARCH_ENDPOINT
+                            OPENSEARCH_REGION: $OPENSEARCH_REGION
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    index-docs:
+                        function: src/index-docs/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                            AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                            AWS_REGION: $AWS_REGION
+                            OPENSEARCH_ENDPOINT: $OPENSEARCH_ENDPOINT
+                            OPENSEARCH_REGION: $OPENSEARCH_REGION
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            require-adobe-auth: true
+                            final: true

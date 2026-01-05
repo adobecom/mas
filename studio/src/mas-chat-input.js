@@ -15,6 +15,7 @@ export class MasChatInput extends LitElement {
         selectedOffer: { type: Object },
         message: { type: String },
         selectedCards: { type: Array },
+        placeholder: { type: String },
     };
 
     constructor() {
@@ -24,6 +25,7 @@ export class MasChatInput extends LitElement {
         this.selectedOffer = null;
         this.message = '';
         this.selectedCards = [];
+        this.placeholder = "Type your message... (e.g., 'Create a fries card for Photoshop')";
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
         this.boundHandleOfferSelect = this.handleOfferSelect.bind(this);
         this.boundHandleEscKey = this.handleEscKey.bind(this);
@@ -149,37 +151,39 @@ export class MasChatInput extends LitElement {
     render() {
         return html`
             <div class="input-container">
+                ${this.selectedOsi
+                    ? html`
+                          <div class="selected-offer-badge">
+                              <sp-icon-shopping-cart></sp-icon-shopping-cart>
+                              <span class="offer-id">${this.selectedOsi}</span>
+                              <sp-action-button quiet size="xs" @click=${this.handleRemoveOffer} title="Remove offer">
+                                  <sp-icon-close slot="icon"></sp-icon-close>
+                              </sp-action-button>
+                          </div>
+                      `
+                    : ''}
+                ${this.selectedCards.length > 0
+                    ? html`
+                          <div class="selected-cards-badges">
+                              ${this.selectedCards.map(
+                                  (cardId) => html`
+                                      <sp-tag size="m" deletable @delete=${() => this.handleRemoveCard(cardId)}>
+                                          ${cardId.split('/').pop()}
+                                      </sp-tag>
+                                  `,
+                              )}
+                          </div>
+                      `
+                    : ''}
                 <div class="rte-wrapper">
-                    ${this.selectedOsi
-                        ? html`
-                              <div class="selected-offer-badge">
-                                  Selected offer: ${this.selectedOsi}
-                                  <sp-action-button quiet size="xs" @click=${this.handleRemoveOffer} title="Remove offer">
-                                      <sp-icon-close slot="icon"></sp-icon-close>
-                                  </sp-action-button>
-                              </div>
-                          `
-                        : ''}
-                    ${this.selectedCards.length > 0
-                        ? html`
-                              <div class="selected-cards-badges">
-                                  ${this.selectedCards.map(
-                                      (cardId) => html`
-                                          <sp-tag size="m" deletable @delete=${() => this.handleRemoveCard(cardId)}>
-                                              ${cardId.split('/').pop()}
-                                          </sp-tag>
-                                      `,
-                                  )}
-                              </div>
-                          `
-                        : ''}
-
                     <rte-field
                         inline="true"
-                        hideOfferSelector="true"
-                        hideCounter="true"
+                        hide-offer-selector="true"
+                        hide-toolbar="true"
+                        hide-counter="true"
+                        no-border="true"
                         maxLength="500"
-                        placeholder="Type your message... (e.g., 'Create a fries card for Photoshop')"
+                        placeholder="${this.placeholder}"
                         @change=${this.handleRteChange}
                         @keydown=${this.handleRteKeyDown}
                         ?disabled=${this.disabled}

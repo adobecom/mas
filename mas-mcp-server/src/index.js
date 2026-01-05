@@ -4,11 +4,13 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
-import { AuthManager } from './services/auth-manager.js';
-import { AEMClient } from './services/aem-client.js';
+import { AuthManager } from '../../io/mcp-server/src/lib/auth-manager.js';
+import { AEMClient } from '../../io/mcp-server/src/lib/aem-client.js';
+import { StudioURLBuilder } from '../../io/mcp-server/src/lib/studio-url-builder.js';
+import { StudioOperations } from '../../io/mcp-server/src/lib/studio-operations.js';
+
 import { AOSClient } from './services/aos-client.js';
 import { ProductCatalog } from './services/product-catalog.js';
-import { StudioURLBuilder } from './utils/studio-url-builder.js';
 
 import { CardTools } from './tools/card-tools.js';
 import { CollectionTools } from './tools/collection-tools.js';
@@ -16,7 +18,6 @@ import { OfferTools } from './tools/offer-tools.js';
 import { OfferSelectorTools } from './tools/offer-selector-tools.js';
 import { PricingTools } from './tools/pricing-tools.js';
 import { CardOfferTools } from './tools/card-offer-tools.js';
-import { StudioOperations } from './tools/studio-operations.js';
 import { SURFACES } from './config/constants.js';
 
 /**

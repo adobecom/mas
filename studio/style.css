@@ -1,4 +1,5 @@
 @import './mas-fragment-render.css';
+@import './src/styles/chat.css';
 
 :root {
     --mas-nav-height: 50px;
@@ -1082,7 +1083,6 @@ mas-chat {
     flex-shrink: 0;
     padding: 16px 0 24px;
     border-top: 1px solid var(--spectrum-gray-200);
-    background: var(--spectrum-gray-50);
 }
 
 /* Chat Message Styles */
@@ -1489,6 +1489,7 @@ mas-chat-input {
     min-height: 40px;
     max-height: 120px;
     overflow-y: auto;
+    padding: 4px;
 }
 
 .rte-wrapper rte-field .ProseMirror {
@@ -1537,7 +1538,7 @@ mas-chat-input {
     flex-shrink: 0;
 }
 
-.input-actions sp-action-button[variant="accent"] {
+.input-actions sp-action-button[variant='accent'] {
     --spectrum-actionbutton-background-color-default: var(--spectrum-accent-background-color-default);
     --spectrum-actionbutton-background-color-hover: var(--spectrum-accent-background-color-hover);
     --spectrum-actionbutton-background-color-active: var(--spectrum-accent-background-color-down);
@@ -1690,4 +1691,47 @@ mas-prompt-suggestions {
     text-align: center;
     color: var(--spectrum-gray-500);
     font-size: 13px;
+}
+
+/* Search Results Card Grid */
+.search-results-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spectrum-global-dimension-size-400);
+    margin-top: var(--spectrum-global-dimension-size-250);
+    width: 100%;
+    grid-auto-rows: min-content;
+    align-items: start;
+}
+
+.search-results-cards-grid .card-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    contain: layout;
+    position: relative;
+    padding: var(--spectrum-global-dimension-size-300);
+    background: var(--spectrum-gray-50);
+    border-radius: var(--spectrum-global-dimension-size-100);
+    border: 1px solid var(--spectrum-gray-200);
+}
+
+.search-results-cards-grid .card-wrapper merch-card,
+.search-results-cards-grid .card-wrapper merch-card-collection {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+}
+
+.search-results-cards-grid .card-wrapper.collection-item merch-card-collection {
+    display: block;
+    width: 100%;
+}
+
+.search-results-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--spectrum-global-dimension-size-300);
+    padding-top: var(--spectrum-global-dimension-size-200);
+    border-top: 1px solid var(--spectrum-gray-300);
 }

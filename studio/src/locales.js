@@ -117,7 +117,7 @@ const LOCALES = [
     { lang: 'fil', country: 'PH', region: ACOM_SURFACES },
     { lang: 'fr', country: 'FR', default: ALL_SURFACES },
     { lang: 'fr', country: 'BE', region: ALL_SURFACES },
-    { lang: 'fr', country: 'CA', region: ['acom', 'express', 'ccd'] },
+    { lang: 'fr', country: 'CA', region: ['acom', 'express', 'ccd', 'sandbox'] },
     { lang: 'fr', country: 'CH', region: ALL_SURFACES },
     { lang: 'de', country: 'DE', default: ALL_SURFACES },
     { lang: 'de', country: 'LU', region: ALL_SURFACES },
@@ -253,12 +253,13 @@ export function isRegionLocale(locale, surface, language, includeDefault = true)
 }
 
 export function getRegionLocales(surface, language, includeDefault) {
-    if (!regionLocalesCache[`${surface}-${language}`]) {
-        regionLocalesCache[`${surface}-${language}`] = LOCALES.filter((locale) =>
+    const cacheKey = `${surface}-${language}-${includeDefault}`;
+    if (!regionLocalesCache[cacheKey]) {
+        regionLocalesCache[cacheKey] = LOCALES.filter((locale) =>
             isRegionLocale(locale, surface, language, includeDefault),
         ).sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)));
     }
-    return regionLocalesCache[`${surface}-${language}`];
+    return regionLocalesCache[cacheKey];
 }
 
 export function getLanguageName(lang) {

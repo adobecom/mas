@@ -558,10 +558,20 @@ class MasFragmentPicker extends LitElement {
     getTruncatedOfferId(offerId) {
         if (!offerId || offerId.length <= 5) return offerId;
         return `...${offerId.slice(-5)}`;
-    }s
+    }
 
     handleSelectionChange({ target: { selected } }) {
         this.selectedFragments = selected?.length ? selected.map((id) => this.fragmentsById.get(id)).filter(Boolean) : [];
+    }
+
+    unselectFragment(fragmentId) {
+        if (!fragmentId) return;
+        this.selectedFragments = this.selectedFragments.filter((fragment) => fragment.id !== fragmentId);
+        const table = this.shadowRoot.querySelector('sp-table');
+        if (table) {
+            const currentSelected = Array.from(table.selected || []);
+            table.selected = currentSelected.filter((id) => id !== fragmentId);
+        }
     }
 
     async copyOfferIdToClipboard(e, offerId) {
@@ -590,11 +600,45 @@ class MasFragmentPicker extends LitElement {
         </sp-table-cell>`;
     }
 
-    renderTable() {
-        return html` <div class="container">
+    render() {
+        return html`
+            <div class="search">
+                <sp-search size="m" placeholder="Search" disabled></sp-search>
+                <div>1507 result(s)</div>
+            </div>
+
+            <div class="filters">
+                <sp-picker>
+                    <span slot="label">Template</span>
+                    <sp-menu-item>Template 1</sp-menu-item>
+                    <sp-menu-item>Template 2</sp-menu-item>
+                    <sp-menu-item>Template 3</sp-menu-item>
+                </sp-picker>
+
+                <sp-picker>
+                    <span slot="label">Segment</span>
+                    <sp-menu-item>Segment 1</sp-menu-item>
+                    <sp-menu-item>Segment 2</sp-menu-item>
+                    <sp-menu-item>Segment 3</sp-menu-item>
+                </sp-picker>
+
+                <sp-picker>
+                    <span slot="label">Product</span>
+                    <sp-menu-item>Product 1</sp-menu-item>
+                    <sp-menu-item>Product 2</sp-menu-item>
+                    <sp-menu-item>Product 3</sp-menu-item>
+                </sp-picker>
+            </div>
+            <div class="container">
                 ${this.loading
                     ? html`<div class="loading-container">${this.loadingIndicator}</div>`
-                    : html`<sp-table class="fragments-table" emphasized scroller selects="multiple" @change=${this.handleSelectionChange}>
+                    : html`<sp-table
+                          class="fragments-table"
+                          emphasized
+                          scroller
+                          selects="multiple"
+                          @change=${this.handleSelectionChange}
+                      >
                           <sp-table-head>
                               <sp-table-head-cell sortable>Offer</sp-table-head-cell>
                               <sp-table-head-cell>Fragment title</sp-table-head-cell>
@@ -639,7 +683,12 @@ class MasFragmentPicker extends LitElement {
                                   html`<li class="file">
                                       <h3 class="title">${fragment.title}</h3>
                                       <div class="details">Default fragment: ${fragment.locale}</div>
-                                      <sp-button variant="secondary" size="l" icon-only>
+                                      <sp-button
+                                          variant="secondary"
+                                          size="l"
+                                          icon-only
+                                          @click=${() => this.unselectFragment(fragment.id)}
+                                      >
                                           <sp-icon-close slot="icon"></sp-icon-close>
                                       </sp-button>
                                   </li>`,
@@ -648,39 +697,7 @@ class MasFragmentPicker extends LitElement {
                     : ''}
             </div>
 
-            <div class="selected-files-count">Selected files (${this.selectedFragments.length})</div>`;
-    }
-
-    render() {
-        return html`
-            <div class="search">
-                <sp-search size="m" placeholder="Search" disabled></sp-search>
-                <div>1507 result(s)</div>
-            </div>
-
-            <div class="filters">
-                <sp-picker>
-                    <span slot="label">Template</span>
-                    <sp-menu-item>Template 1</sp-menu-item>
-                    <sp-menu-item>Template 2</sp-menu-item>
-                    <sp-menu-item>Template 3</sp-menu-item>
-                </sp-picker>
-
-                <sp-picker>
-                    <span slot="label">Segment</span>
-                    <sp-menu-item>Segment 1</sp-menu-item>
-                    <sp-menu-item>Segment 2</sp-menu-item>
-                    <sp-menu-item>Segment 3</sp-menu-item>
-                </sp-picker>
-
-                <sp-picker>
-                    <span slot="label">Product</span>
-                    <sp-menu-item>Product 1</sp-menu-item>
-                    <sp-menu-item>Product 2</sp-menu-item>
-                    <sp-menu-item>Product 3</sp-menu-item>
-                </sp-picker>
-            </div>
-            ${this.renderTable()}
+            <div class="selected-files-count">Selected files (${this.selectedFragments.length})</div>
         `;
     }
 }

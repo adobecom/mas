@@ -12,7 +12,7 @@ export default {
             name: '@studio-direct-search',
             path: '/studio.html',
             data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio',
@@ -22,7 +22,7 @@ export default {
             name: '@studio-search-field',
             path: '/studio.html',
             data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#path=nala&page=content',
             tags: '@mas-studio',
@@ -48,7 +48,7 @@ export default {
             name: '@studio-ccd-suggested-editor',
             path: '/studio.html',
             data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested',
@@ -78,7 +78,7 @@ export default {
             name: '@studio-card-dblclick-info',
             path: '/studio.html',
             data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio',

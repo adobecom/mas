@@ -17,9 +17,13 @@ export class PreviewFragmentStore extends FragmentStore {
      * @param {{ skipAutoResolve?: boolean }} options
      */
     constructor(initialValue, validator, options = {}) {
-        const fragmentInstance = initialValue instanceof Fragment ? initialValue : new Fragment(initialValue);
+        const clonedValue = structuredClone(initialValue);
+        const fragmentInstance = new Fragment(clonedValue);
         super(fragmentInstance, validator);
         this.holdResolution = options.skipAutoResolve || false;
+
+        this.captureEssentialProps(clonedValue);
+        this.restoreEssentialProps();
 
         this.placeholderUnsubscribe = Store.placeholders.preview.subscribe(() => {
             if (!this.resolved && Store.placeholders.preview.value) {
@@ -35,12 +39,13 @@ export class PreviewFragmentStore extends FragmentStore {
     set(value) {
         /* IMPORTANT! This store's value should NOT be re-assigned!
            We generally get here from the source store's "set" function, but there, the value
-           that is passed is actually (or should be!) the underlying value of the source store, 
-           which is DIFFERENT from the underlying value of this store - which again should not change, 
-           only use replaceFrom/refreshFrom to keep the object reference, 
+           that is passed is actually (or should be!) the underlying value of the source store,
+           which is DIFFERENT from the underlying value of this store - which again should not change,
+           only use replaceFrom/refreshFrom to keep the object reference,
            rather than (in this case) "super.set(value)"
         */
         this.value.replaceFrom(value, false);
+        this.restoreEssentialProps();
         this.resolveFragment();
     }
 
@@ -55,7 +60,9 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     refreshFrom(value) {
+        this.captureEssentialProps(value);
         this.value.refreshFrom(value);
+        this.restoreEssentialProps();
         this.resolveFragment();
     }
 
@@ -109,7 +116,6 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         if (!this.value) {
-            console.warn('[PreviewFragmentStore] Cannot resolve: no fragment value');
             this.resolved = true;
             this.refreshAemFragment(true);
             this.notify();
@@ -117,10 +123,6 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         if (!this.value?.model?.path) {
-            console.warn('[PreviewFragmentStore] Cannot resolve: invalid fragment model', {
-                fragmentId: this.value?.id,
-                hasModel: !!this.value?.model,
-            });
             this.resolved = true;
             this.refreshAemFragment(true);
             this.notify();
@@ -163,8 +165,8 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     async getResolvedFragment() {
-        /* Transform fields to publish */
         const body = structuredClone(this.value);
+
         const originalFields = body.fields;
         body.fields = {};
         for (const field of originalFields) {
@@ -178,30 +180,16 @@ export class PreviewFragmentStore extends FragmentStore {
         };
         const result = await previewStudioFragment(body, context);
 
-        /* Transform fields back to author */
         for (const field of originalFields) {
             const resolvedField = result.fields[field.name];
             field.values = field.multiple ? resolvedField : [resolvedField];
         }
         result.fields = originalFields;
 
-        const essentialProps = [
-            'path',
-            'id',
-            'etag',
-            'model',
-            'title',
-            'description',
-            'status',
-            'created',
-            'modified',
-            'published',
-            'tags',
-            'references',
-        ];
-        for (const prop of essentialProps) {
-            if (this.value[prop] !== undefined && result[prop] === undefined) {
-                result[prop] = this.value[prop];
+        for (const prop of FragmentStore.ESSENTIAL_PROPS) {
+            const storedValue = this.getStoredEssentialProp(prop);
+            if (storedValue !== undefined && (result[prop] === undefined || result[prop] === null)) {
+                result[prop] = storedValue;
             }
         }
 
@@ -210,12 +198,16 @@ export class PreviewFragmentStore extends FragmentStore {
 
     replaceFrom(value) {
         this.value.replaceFrom(value);
+        this.restoreEssentialProps();
         this.resolved = true;
         this.populateGlobalCache();
         this.notify();
     }
 
     populateGlobalCache() {
+        if (!this.value?.model?.path) {
+            return;
+        }
         const AemFragment = customElements.get('aem-fragment');
         if (AemFragment?.cache) {
             AemFragment.cache.remove(this.value.id);

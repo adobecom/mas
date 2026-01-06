@@ -2,8 +2,56 @@ import { COLLECTION_MODEL_PATH } from '../constants.js';
 import { ReactiveStore } from './reactive-store.js';
 
 export class FragmentStore extends ReactiveStore {
+    static ESSENTIAL_PROPS = [
+        'path',
+        'id',
+        'etag',
+        'model',
+        'title',
+        'description',
+        'status',
+        'created',
+        'modified',
+        'published',
+        'tags',
+        'references',
+    ];
+
+    static essentialPropsCache = new Map();
+
     loading = false;
     #refreshDebounceTimer = null;
+    #storedEssentialProps = {};
+
+    captureEssentialProps(source) {
+        const fragmentId = source?.id;
+        if (!fragmentId) return;
+
+        const cachedProps = FragmentStore.essentialPropsCache.get(fragmentId) || {};
+
+        for (const prop of FragmentStore.ESSENTIAL_PROPS) {
+            if (source && prop in source && source[prop] !== undefined) {
+                this.#storedEssentialProps[prop] = source[prop];
+                cachedProps[prop] = source[prop];
+            } else if (cachedProps[prop] !== undefined) {
+                this.#storedEssentialProps[prop] = cachedProps[prop];
+            }
+        }
+
+        FragmentStore.essentialPropsCache.set(fragmentId, cachedProps);
+    }
+
+    restoreEssentialProps() {
+        for (const prop of FragmentStore.ESSENTIAL_PROPS) {
+            if (prop in this.#storedEssentialProps && (this.value[prop] === undefined || this.value[prop] === null)) {
+                this.value[prop] = this.#storedEssentialProps[prop];
+            }
+        }
+    }
+
+    getStoredEssentialProp(prop) {
+        return this.#storedEssentialProps[prop];
+    }
 
     set(value) {
         super.set(value);

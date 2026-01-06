@@ -11,13 +11,18 @@ export class SourceFragmentStore extends FragmentStore {
      * @param {(value: any) => any} validator
      */
     constructor(previewStore, validator) {
-        const initialValue = new Fragment(structuredClone(previewStore.value));
+        const clonedValue = structuredClone(previewStore.value);
+        const initialValue = new Fragment(clonedValue);
         super(initialValue, validator);
         this.previewStore = previewStore;
+        this.captureEssentialProps(clonedValue);
+        this.restoreEssentialProps();
     }
 
     set(value) {
+        this.captureEssentialProps(value);
         super.set(value);
+        this.restoreEssentialProps();
         this.previewStore.set(value);
     }
 
@@ -34,9 +39,12 @@ export class SourceFragmentStore extends FragmentStore {
     }
 
     refreshFrom(value) {
+        this.captureEssentialProps(value);
         this.value.refreshFrom(value);
+        this.restoreEssentialProps();
+        const clonedValue = structuredClone(value);
         this.notify();
-        this.previewStore.refreshFrom(structuredClone(value));
+        this.previewStore.refreshFrom(clonedValue);
     }
 
     discardChanges() {

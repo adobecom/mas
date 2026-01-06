@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Auth state (contains session tokens)
+.auth/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Logs
+*.log

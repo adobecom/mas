@@ -32,6 +32,7 @@ application:
                             OPENSEARCH_REGION: $OPENSEARCH_REGION
                         limits:
                             timeout: 300000
+                            memory: 1024
                         annotations:
                             require-adobe-auth: true
                             final: true

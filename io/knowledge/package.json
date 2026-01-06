@@ -17,7 +17,10 @@
     "knowledge:extract:components": "node scripts/extract-knowledge/index.js --components",
     "knowledge:extract:editor": "node scripts/extract-knowledge/index.js --editor",
     "knowledge:extract:docs": "node scripts/extract-knowledge/index.js --docs",
-    "knowledge:preview": "node scripts/extract-knowledge/index.js --all --dry-run --verbose"
+    "knowledge:preview": "node scripts/extract-knowledge/index.js --all --dry-run --verbose",
+    "knowledge:generate": "node scripts/generate-chunks.js",
+    "scrape:confluence": "node scripts/scrape-confluence.js",
+    "scrape:mas-docs": "node scripts/scrape-mas-docs.js"
   },
   "dependencies": {
     "@adobe/aio-lib-ims": "^7.0.2",
@@ -30,6 +33,7 @@
     "dotenv": "^17.2.3",
     "esbuild": "^0.27.2",
     "eslint": "^8",
-    "mocha": "^10"
+    "mocha": "^10",
+    "playwright": "^1.49.0"
   }
 }

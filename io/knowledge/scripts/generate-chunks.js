@@ -25,7 +25,13 @@ dotenv.config();
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(CURRENT_DIR, '..');
 const CHUNKS_DIR = join(PROJECT_ROOT, 'src/knowledge-chunks');
+const CONFLUENCE_DIR = join(PROJECT_ROOT, 'scraped-docs/confluence');
 const OUTPUT_FILE = join(PROJECT_ROOT, 'src/index-docs/embedded-chunks.js');
+
+const SOURCE_DIRS = [
+    { path: CHUNKS_DIR, categoryPrefix: '' },
+    { path: CONFLUENCE_DIR, categoryPrefix: 'confluence' },
+];
 
 const MIN_CHUNK_LENGTH = 50;
 const MAX_CHUNK_LENGTH = 4000;
@@ -53,10 +59,11 @@ function getMarkdownFiles(dir) {
     return files;
 }
 
-function splitIntoChunks(content, filePath) {
+function splitIntoChunks(content, filePath, baseDir, categoryPrefix = '') {
     const chunks = [];
-    const relativePath = relative(CHUNKS_DIR, filePath);
-    const category = dirname(relativePath);
+    const relativePath = relative(baseDir, filePath);
+    const dirCategory = dirname(relativePath);
+    const category = categoryPrefix ? (dirCategory === '.' ? categoryPrefix : `${categoryPrefix}-${dirCategory}`) : dirCategory;
     const baseId = basename(relativePath, '.md').replace(/[^a-zA-Z0-9-]/g, '-');
 
     const sections = content.split(/(?=^##\s+)/m).filter(Boolean);
@@ -180,41 +187,38 @@ async function main() {
 
     console.log('=== Knowledge Chunk Generator ===\n');
 
-    if (!existsSync(CHUNKS_DIR)) {
-        console.log(`Creating knowledge chunks directory: ${CHUNKS_DIR}`);
-        console.log('Add markdown files to src/knowledge-chunks/ and run again.\n');
-        console.log('Directory structure:');
-        console.log('  src/knowledge-chunks/');
-        console.log('    authoring/');
-        console.log('      version-history.md');
-        console.log('      locale-variations.md');
-        console.log('    variants/');
-        console.log('      catalog.md');
-        console.log('    api/');
-        console.log('      fragment-api.md');
-        console.log('    troubleshooting/');
-        console.log('      common-errors.md');
-        return;
-    }
-
-    const mdFiles = getMarkdownFiles(CHUNKS_DIR);
-
-    if (mdFiles.length === 0) {
-        console.log('No markdown files found in src/knowledge-chunks/');
-        console.log('Add .md files and run again.');
-        return;
-    }
-
-    console.log(`Found ${mdFiles.length} markdown file(s):`);
-    mdFiles.forEach((f) => console.log(`  - ${relative(CHUNKS_DIR, f)}`));
-    console.log();
-
     const allChunks = [];
-    for (const file of mdFiles) {
-        const content = readFileSync(file, 'utf-8');
-        const chunks = splitIntoChunks(content, file);
-        console.log(`  ${relative(CHUNKS_DIR, file)}: ${chunks.length} chunks`);
-        allChunks.push(...chunks);
+    let totalFiles = 0;
+
+    for (const sourceDir of SOURCE_DIRS) {
+        if (!existsSync(sourceDir.path)) {
+            console.log(`⚠️  Directory not found: ${sourceDir.path}`);
+            continue;
+        }
+
+        const mdFiles = getMarkdownFiles(sourceDir.path);
+        if (mdFiles.length === 0) {
+            console.log(`⚠️  No markdown files in: ${sourceDir.path}`);
+            continue;
+        }
+
+        const sourceName = sourceDir.categoryPrefix || 'knowledge-chunks';
+        console.log(`\n📁 ${sourceName}/ (${mdFiles.length} files):`);
+
+        for (const file of mdFiles) {
+            const content = readFileSync(file, 'utf-8');
+            const chunks = splitIntoChunks(content, file, sourceDir.path, sourceDir.categoryPrefix);
+            console.log(`  ${relative(sourceDir.path, file)}: ${chunks.length} chunks`);
+            allChunks.push(...chunks);
+        }
+
+        totalFiles += mdFiles.length;
+    }
+
+    if (totalFiles === 0) {
+        console.log('\n❌ No markdown files found in any source directory.');
+        console.log('Add .md files to src/knowledge-chunks/ or run scrape:confluence first.');
+        return;
     }
 
     console.log(`\nTotal chunks: ${allChunks.length}`);

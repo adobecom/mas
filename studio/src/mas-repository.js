@@ -67,15 +67,8 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
         return field;
     });
 
-    const cacheData = {
-        id: previewFragment.id,
-        fields: normalizedFields,
-        tags: previewFragment.tags || [],
-        settings: previewFragment.settings || {},
-        priceLiterals: previewFragment.priceLiterals || {},
-        dictionary: previewFragment.dictionary || {},
-        placeholders: previewFragment.placeholders || {},
-    };
+    const cacheData = new Fragment(previewFragment);
+    cacheData.fields = normalizedFields;
 
     fragmentCache.add(cacheData);
 }

@@ -117,7 +117,7 @@ const LOCALES = [
     { lang: 'fil', country: 'PH', region: ACOM_SURFACES },
     { lang: 'fr', country: 'FR', default: ALL_SURFACES },
     { lang: 'fr', country: 'BE', region: ALL_SURFACES },
-    { lang: 'fr', country: 'CA', region: ['acom', 'express', 'ccd', 'sandbox'] },
+    { lang: 'fr', country: 'CA', region: ALL_SURFACES },
     { lang: 'fr', country: 'CH', region: ALL_SURFACES },
     { lang: 'de', country: 'DE', default: ALL_SURFACES },
     { lang: 'de', country: 'LU', region: ALL_SURFACES },

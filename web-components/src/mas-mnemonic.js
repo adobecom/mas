@@ -14,6 +14,8 @@ function hasSpectrumTooltip() {
  * Automatically detects if Spectrum Web Components are available and renders appropriately
  */
 export default class MasMnemonic extends LitElement {
+    static activeTooltip = null;
+
     static properties = {
         content: { type: String },
         placement: { type: String },
@@ -26,6 +28,8 @@ export default class MasMnemonic extends LitElement {
         // Support studio's mnemonic attribute names
         mnemonicText: { type: String, attribute: 'mnemonic-text' },
         mnemonicPlacement: { type: String, attribute: 'mnemonic-placement' },
+        // Tooltip visibility state
+        tooltipVisible: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -51,9 +55,13 @@ export default class MasMnemonic extends LitElement {
             border-radius: 4px;
             white-space: normal;
             width: max-content;
+            max-width: 200px;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.3s ease,
+                visibility 0.3s ease;
             font-size: 12px;
             line-height: 1.4;
             text-align: center;
@@ -67,15 +75,21 @@ export default class MasMnemonic extends LitElement {
             height: 0;
             border: 6px solid transparent;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.3s ease,
+                visibility 0.3s ease;
         }
 
+        .css-tooltip.tooltip-visible[data-tooltip]::before,
+        .css-tooltip.tooltip-visible[data-tooltip]::after,
         .css-tooltip:hover[data-tooltip]::before,
         .css-tooltip:hover[data-tooltip]::after,
         .css-tooltip:focus[data-tooltip]::before,
         .css-tooltip:focus[data-tooltip]::after {
             opacity: 1;
+            visibility: visible;
         }
 
         /* Position variants */
@@ -114,6 +128,7 @@ export default class MasMnemonic extends LitElement {
             top: 50%;
             transform: translateY(-50%);
             margin-right: 10px;
+            left: var(--tooltip-left-offset, auto);
         }
 
         .css-tooltip.left[data-tooltip]::after {
@@ -122,6 +137,11 @@ export default class MasMnemonic extends LitElement {
             transform: translateY(-50%);
             margin-right: 5px;
             border-left-color: var(--spectrum-gray-800, #323232);
+        }
+
+        /* Prevent tooltip cutoff on edges */
+        .css-tooltip.top[data-tooltip]::before {
+            max-width: min(200px, calc(100vw - 32px));
         }
 
         .css-tooltip.right[data-tooltip]::before {
@@ -146,6 +166,31 @@ export default class MasMnemonic extends LitElement {
         this.placement = 'top';
         this.variant = 'info';
         this.size = 'xs';
+        this.tooltipVisible = false;
+    }
+
+    showTooltip() {
+        if (MasMnemonic.activeTooltip && MasMnemonic.activeTooltip !== this) {
+            MasMnemonic.activeTooltip.hideTooltip();
+        }
+        MasMnemonic.activeTooltip = this;
+        this.tooltipVisible = true;
+    }
+
+    hideTooltip() {
+        if (MasMnemonic.activeTooltip === this) {
+            MasMnemonic.activeTooltip = null;
+        }
+        this.tooltipVisible = false;
+    }
+
+    handleTouchStart(e) {
+        e.preventDefault();
+        if (this.tooltipVisible) {
+            this.hideTooltip();
+        } else {
+            this.showTooltip();
+        }
     }
 
     get effectiveContent() {
@@ -194,14 +239,21 @@ export default class MasMnemonic extends LitElement {
                 </overlay-trigger>
             `;
         } else {
-            // Use CSS tooltip
+            // Use CSS tooltip with dismiss logic
             return html`
                 <span
-                    class="css-tooltip ${placement}"
+                    class="css-tooltip ${placement} ${this.tooltipVisible
+                        ? 'tooltip-visible'
+                        : ''}"
                     data-tooltip="${content}"
                     tabindex="0"
                     role="img"
                     aria-label="${content}"
+                    @mouseenter=${() => this.showTooltip()}
+                    @mouseleave=${() => this.hideTooltip()}
+                    @focus=${() => this.showTooltip()}
+                    @blur=${() => this.hideTooltip()}
+                    @touchstart=${(e) => this.handleTouchStart(e)}
                 >
                     ${this.renderIcon()}
                 </span>

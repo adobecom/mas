@@ -75,6 +75,10 @@ export class FullPricingExpress extends VariantLayout {
         return '[slot="heading-xs"]';
     }
 
+    get badge() {
+        return this.card.querySelector('[slot="badge"]');
+    }
+
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
 
@@ -133,9 +137,11 @@ export class FullPricingExpress extends VariantLayout {
 
     renderLayout() {
         return html`
-            <div class="badge-wrapper">
-                <slot name="badge"></slot>
-            </div>
+            ${this.badge
+                ? html`<div class="badge-wrapper">
+                      <slot name="badge"></slot>
+                  </div>`
+                : html`<slot name="badge" hidden></slot>`}
             <div class="card-content">
                 <div class="header">
                     <slot name="heading-xs"></slot>

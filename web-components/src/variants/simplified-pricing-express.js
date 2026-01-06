@@ -69,6 +69,10 @@ export class SimplifiedPricingExpress extends VariantLayout {
         return '[slot="heading-xs"]';
     }
 
+    get badge() {
+        return this.card.querySelector('[slot="badge"]');
+    }
+
     syncHeights() {
         if (this.card.getBoundingClientRect().width === 0) {
             return;
@@ -170,9 +174,20 @@ export class SimplifiedPricingExpress extends VariantLayout {
     handleChevronClick(e) {
         e.preventDefault();
         e.stopPropagation();
+        this.toggleExpanded();
+    }
 
+    handleHeaderClick(e) {
+        if (e.target.closest('.chevron-button')) {
+            return;
+        }
+        e.preventDefault();
+        this.toggleExpanded();
+    }
+
+    toggleExpanded() {
         const merchCard = this.card;
-        if (!merchCard || !!isDesktop()) {
+        if (!merchCard || isDesktop()) {
             return;
         }
 
@@ -185,11 +200,13 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
     renderLayout() {
         return html`
-            <div class="badge-wrapper">
-                <slot name="badge"></slot>
-            </div>
+            ${this.badge
+                ? html`<div class="badge-wrapper">
+                      <slot name="badge"></slot>
+                  </div>`
+                : html`<slot name="badge" hidden></slot>`}
             <div class="card-content">
-                <div class="header">
+                <div class="header" @click=${(e) => this.handleHeaderClick(e)}>
                     <slot name="heading-xs"></slot>
                     <slot name="trial-badge"></slot>
                     <button
@@ -288,15 +305,6 @@ export class SimplifiedPricingExpress extends VariantLayout {
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        :host(
-                [variant='simplified-pricing-express']:not(
-                        :has([slot='badge']:not(:empty))
-                    )
-            )
-            .badge-wrapper {
-            display: none;
         }
 
         :host([variant='simplified-pricing-express']) .card-content {

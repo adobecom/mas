@@ -23,11 +23,12 @@ merch-card-collection.full-pricing-express {
     padding: 0 16px;
 }
 
-/* Tablet - 2 columns */
-@media screen and (min-width: 1025px) and (max-width: 1199px) {
+/* Tablet - 2 columns (768px-1199px) */
+@media screen and (min-width: 768px) and (max-width: 1199px) {
     merch-card-collection.full-pricing-express {
         grid-template-columns: repeat(2, 1fr);
         max-width: calc(2 * var(--merch-card-full-pricing-express-width) + 16px);
+        padding: 0 32px;
     }
 }
 
@@ -90,6 +91,18 @@ merch-card[variant="full-pricing-express"] [slot="icons"] merch-icon {
     --img-width: 20px;
     --img-height: 20px;
 }
+
+/* Premium/crown icon sizing on mobile and tablet (14x14px) */
+@media (max-width: 1199px) {
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] merch-icon,
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic merch-icon {
+        --img-width: 14px;
+        --img-height: 14px;
+        width: 14px;
+        height: 14px;
+    }
+}
+
 
 merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
     position: absolute;
@@ -156,6 +169,15 @@ merch-card[variant="full-pricing-express"] [slot="body-s"] p {
 merch-card[variant="full-pricing-express"] [slot="body-s"] p a {
     color: var(--spectrum-indigo-900);
     font-weight: 700;
+    text-decoration: underline;
+}
+
+/* Feature list hyperlinks should be underlined */
+merch-card[variant="full-pricing-express"] [slot="body-s"] ul a,
+merch-card[variant="full-pricing-express"] [slot="body-s"] li a,
+merch-card[variant="full-pricing-express"] [slot="body-xs"] a {
+    color: var(--spectrum-indigo-900);
+    text-decoration: underline;
 }
 
 merch-card[variant="full-pricing-express"] [slot="body-s"] .button-container {
@@ -319,14 +341,18 @@ merch-card[variant="full-pricing-express"] [slot="cta"] {
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="full-pricing-express"] [slot="cta"] button,
 merch-card[variant="full-pricing-express"] [slot="cta"] a.button {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
+    height: 48px;
+    min-height: 48px;
     box-sizing: border-box;
     font-weight: 700;
     font-size: 18px;
     line-height: 23.4px;
     margin: 0;
-    padding: 12px 24px 13px 24px;
+    padding: 0 24px;
     border-radius: 26px;
 }
 
@@ -354,8 +380,8 @@ merch-card[variant="full-pricing-express"] merch-badge {
     line-height: 20.8px;
 }
 
-/* Mobile-specific selective display of body-s */
-@media (max-width: 1024px) {
+/* Mobile-specific selective display of body-s (under 768px) */
+@media (max-width: 767px) {
     /* Show body-s container */
     merch-card[variant="full-pricing-express"] [slot="body-s"] {
         display: block;
@@ -376,11 +402,11 @@ merch-card[variant="full-pricing-express"] merch-badge {
     merch-card[variant="full-pricing-express"] [slot="body-s"] > p:last-child {
         display: block;
     }
-    
+
     merch-card[variant="full-pricing-express"] {
         max-width: 365px;
     }
-    
+
     /* Price font size on mobile */
     merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol,
     merch-card[variant="full-pricing-express"] [slot="price"] .price-integer,
@@ -392,19 +418,19 @@ merch-card[variant="full-pricing-express"] merch-badge {
     merch-card[variant="full-pricing-express"] [slot="price"] .price-tax-inclusivity {
         font-size: 22px;
     }
-    
+
     /* Badge alignment on mobile */
     merch-card[variant="full-pricing-express"] [slot="badge"] {
         font-size: 16px;
         font-weight: 400;
     }
-    
+
     /* Trial badge alignment on mobile */
     merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
         margin-left: 0;
         align-self: flex-start;
     }
-    
+
     merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
         font-size: 12px;
         line-height: 20.8px;
@@ -434,8 +460,8 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
     padding-top: 16px;
 }
 
-/* Responsive rules for desktop/tablet */
-@media (min-width: 1025px) {
+/* Responsive rules for tablet and desktop (768px+) */
+@media (min-width: 768px) {
     merch-card[variant="full-pricing-express"] [slot="body-s"] {
         display: flex;
         flex-direction: column;

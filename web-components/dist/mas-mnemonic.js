@@ -1,7 +1,7 @@
-var a=Object.defineProperty;var s=(o,t,e)=>t in o?a(o,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):o[t]=e;var n=(o,t,e)=>s(o,typeof t!="symbol"?t+"":t,e);import{LitElement as p,html as i,css as l}from"./lit-all.min.js";function c(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var r=class extends p{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs"}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?i`<merch-icon
+var n=Object.defineProperty;var p=(i,t,e)=>t in i?n(i,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):i[t]=e;var s=(i,t,e)=>p(i,typeof t!="symbol"?t+"":t,e);import{LitElement as c,html as r,css as m}from"./lit-all.min.js";function f(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o=class o extends c{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&o.activeTooltip.hideTooltip(),o.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTouchStart(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?r`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:i`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;return t?c()?i`
+        ></merch-icon>`:r`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;return t?f()?r`
                 <overlay-trigger placement="${e}">
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
@@ -11,17 +11,22 @@ var a=Object.defineProperty;var s=(o,t,e)=>t in o?a(o,t,{enumerable:!0,configura
                         ${t}
                     </sp-tooltip>
                 </overlay-trigger>
-            `:i`
+            `:r`
                 <span
-                    class="css-tooltip ${e}"
+                    class="css-tooltip ${e} ${this.tooltipVisible?"tooltip-visible":""}"
                     data-tooltip="${t}"
                     tabindex="0"
                     role="img"
                     aria-label="${t}"
+                    @mouseenter=${()=>this.showTooltip()}
+                    @mouseleave=${()=>this.hideTooltip()}
+                    @focus=${()=>this.showTooltip()}
+                    @blur=${()=>this.hideTooltip()}
+                    @touchstart=${l=>this.handleTouchStart(l)}
                 >
                     ${this.renderIcon()}
                 </span>
-            `:this.renderIcon()}};n(r,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"}}),n(r,"styles",l`
+            `:this.renderIcon()}};s(o,"activeTooltip",null),s(o,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),s(o,"styles",m`
         :host {
             display: contents;
             overflow: visible;
@@ -44,9 +49,13 @@ var a=Object.defineProperty;var s=(o,t,e)=>t in o?a(o,t,{enumerable:!0,configura
             border-radius: 4px;
             white-space: normal;
             width: max-content;
+            max-width: 200px;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.3s ease,
+                visibility 0.3s ease;
             font-size: 12px;
             line-height: 1.4;
             text-align: center;
@@ -60,15 +69,21 @@ var a=Object.defineProperty;var s=(o,t,e)=>t in o?a(o,t,{enumerable:!0,configura
             height: 0;
             border: 6px solid transparent;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.3s ease,
+                visibility 0.3s ease;
         }
 
+        .css-tooltip.tooltip-visible[data-tooltip]::before,
+        .css-tooltip.tooltip-visible[data-tooltip]::after,
         .css-tooltip:hover[data-tooltip]::before,
         .css-tooltip:hover[data-tooltip]::after,
         .css-tooltip:focus[data-tooltip]::before,
         .css-tooltip:focus[data-tooltip]::after {
             opacity: 1;
+            visibility: visible;
         }
 
         /* Position variants */
@@ -107,6 +122,7 @@ var a=Object.defineProperty;var s=(o,t,e)=>t in o?a(o,t,{enumerable:!0,configura
             top: 50%;
             transform: translateY(-50%);
             margin-right: 10px;
+            left: var(--tooltip-left-offset, auto);
         }
 
         .css-tooltip.left[data-tooltip]::after {
@@ -115,6 +131,11 @@ var a=Object.defineProperty;var s=(o,t,e)=>t in o?a(o,t,{enumerable:!0,configura
             transform: translateY(-50%);
             margin-right: 5px;
             border-left-color: var(--spectrum-gray-800, #323232);
+        }
+
+        /* Prevent tooltip cutoff on edges */
+        .css-tooltip.top[data-tooltip]::before {
+            max-width: min(200px, calc(100vw - 32px));
         }
 
         .css-tooltip.right[data-tooltip]::before {
@@ -131,4 +152,4 @@ var a=Object.defineProperty;var s=(o,t,e)=>t in o?a(o,t,{enumerable:!0,configura
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);customElements.define("mas-mnemonic",r);export{r as default};
+    `);var a=o;customElements.define("mas-mnemonic",a);export{a as default};

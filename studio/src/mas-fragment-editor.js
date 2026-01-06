@@ -1238,16 +1238,6 @@ export default class MasFragmentEditor extends LitElement {
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
 
-        getService().remove();
-        const masServiceElement = document.createElement('mas-commerce-service');
-        masServiceElement.setAttribute('locale', Store.localeOrRegion());
-        document.body.prepend(masServiceElement);
-        document.querySelectorAll('rte-field').forEach((rte) =>
-            rte.shadowRoot.querySelectorAll('[data-wcs-osi]').forEach((el) => {
-                if (el.requestUpdate) el.requestUpdate(true);
-            }),
-        );
-
         return html`
             <div id="preview-column">
                 ${this.editorContextStore.isVariation(this.fragment.id)

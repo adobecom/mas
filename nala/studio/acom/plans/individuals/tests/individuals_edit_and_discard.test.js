@@ -486,7 +486,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.calloutRTE).toContainText(data.calloutText.original);
             await expect(editor.calloutRTE).toBeVisible();
             await editor.calloutRTE.scrollIntoViewIfNeeded();
-            await editor.calloutRTE.click();
             await page.waitForTimeout(500);
             await editor.calloutRTE.fill('');
             await page.waitForTimeout(1000);

@@ -81,6 +81,12 @@ class MasStudio extends LitElement {
                 this.renderCommerceService();
             }
         };
+        const regionSubscription = (value, oldValue) => {
+            if (value.region !== oldValue.region) {
+                this.renderCommerceService();
+            }
+        };
+        Store.search.subscribe(regionSubscription);
         Store.filters.subscribe(subscription);
         this.#unsubscribeLocaleObserver = () => Store.filters.unsubscribe(subscription);
     }

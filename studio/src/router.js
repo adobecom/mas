@@ -83,7 +83,6 @@ export class Router extends EventTarget {
                         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
                     }
                     Store.viewMode.set('default');
-                    Store.removeRegionOverride();
                     Store.page.set(value);
                 }
             } finally {
@@ -336,6 +335,8 @@ export class Router extends EventTarget {
             } else if (Store.viewMode.value === 'editing') {
                 Store.viewMode.set('default');
             }
+
+            Store.removeRegionOverride();
 
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {

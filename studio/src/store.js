@@ -89,7 +89,9 @@ const Store = {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';
     },
     removeRegionOverride: function () {
-        Store.search.set((prev) => ({ ...prev, region: null }));
+        if (Store.search.value.region) {
+            Store.search.set((prev) => ({ ...prev, region: null }));
+        }
     },
     surface: function () {
         return Store.search.value.path;

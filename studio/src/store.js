@@ -88,6 +88,17 @@ const Store = {
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
     },
+    localeOrRegion: function () {
+        return Store.search.value.region || Store.filters.value.locale || 'en_US';
+    },
+    removeRegionOverride: function () {
+        if (Store.search.value.region) {
+            Store.search.set((prev) => ({ ...prev, region: null }));
+        }
+    },
+    surface: function () {
+        return Store.search.value.path;
+    },
     translationProjects: {
         list: {
             data: new ReactiveStore([]),
@@ -223,5 +234,20 @@ Store.placeholders.preview.subscribe(() => {
         if (fragmentStore) {
             fragmentStore.resolvePreviewFragment();
         }
+    }
+});
+
+Store.filters.subscribe(() => {
+    const regionLocale = Store.search.value.region;
+    if (!regionLocale) return;
+    const currentLocale = Store.filters.value.locale;
+    const main = currentLocale.split('_')[0];
+    const region = regionLocale.split('_')[0];
+    if (region !== main) {
+        // If region language doesn't match filter language, reset filter language
+        Store.search.set((prev) => ({
+            ...prev,
+            region: undefined,
+        }));
     }
 });

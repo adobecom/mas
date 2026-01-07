@@ -114,7 +114,7 @@ export class Router extends EventTarget {
         try {
             // Set locale BEFORE setting page to include it in the first URL change
             if (locale && locale !== Store.filters.value.locale) {
-                Store.filters.set((prev) => ({ ...prev, locale }));
+                Store.search.set((prev) => ({ ...prev, region: locale }));
             }
 
             // Check if this is a collection to use editor-panel instead
@@ -341,6 +341,8 @@ export class Router extends EventTarget {
             } else if (Store.viewMode.value === 'editing') {
                 Store.viewMode.set('default');
             }
+
+            Store.removeRegionOverride();
 
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {

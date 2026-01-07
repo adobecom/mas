@@ -1,5 +1,6 @@
 import { LitElement, html, nothing, repeat } from 'lit';
 import { styles } from './mas-fragment-picker.css.js';
+import './mas-fragment-picker-row.js';
 import Store from './store.js';
 import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS } from './constants.js';
 import { showToast } from './utils.js';
@@ -9,7 +10,7 @@ class MasFragmentPicker extends LitElement {
 
     static properties = {
         translationProject: { type: Object },
-        selectedFragments: { type: Array },
+        selectedFragments: { type: Array, state: true },
         fragments: { type: Array, state: true },
         loading: { type: Boolean, state: true },
         error: { type: String, state: true },
@@ -72,56 +73,30 @@ class MasFragmentPicker extends LitElement {
 
         this.fragments = [
             {
-                path: '/content/dam/mas/sandbox/en_US/angelo/ccd-slice-wide-cc-all-app312',
-                title: 'Acom Plans CC All Apps',
-                description: 'test card for plans',
-                id: 'e717cb6f-510d-45a1-8c90-6e7f834c2850',
-                created: {
-                    at: '2025-03-04T13:57:08.268Z',
-                    by: 'cod23684@adobe.com',
-                    fullName: 'cod23684@adobe.com',
-                },
-                modified: {
-                    at: '2025-12-24T14:41:31.676Z',
-                    by: 'cod23684@adobe.com',
-                    fullName: 'cod23684@adobe.com',
-                },
-                published: {
-                    at: '2025-12-04T11:44:45.478Z',
-                    by: 'cod23684@adobe.com',
-                    fullName: 'cod23684@adobe.com',
-                },
+                path: '/content/dam/mas/acom/en_US/creative-cloud-pro',
+                hasChanges: false,
                 status: 'MODIFIED',
-                previewReplicationStatus: 'NEVER_PUBLISHED',
-                model: {
-                    id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
-                    path: '/conf/mas/settings/dam/cfm/models/card',
-                    name: 'Card',
-                    title: 'Card',
-                    description: 'universal m@s card model',
-                },
-                validationStatus: [],
                 fields: [
                     {
                         name: 'variant',
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['plans'],
+                        values: ['catalog'],
                     },
                     {
                         name: 'osi',
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ'],
+                        values: ['r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8'],
                     },
                     {
                         name: 'size',
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['super-wide'],
+                        values: ['Default'],
                     },
                     {
                         name: 'mnemonicIcon',
@@ -135,14 +110,14 @@ class MasFragmentPicker extends LitElement {
                         type: 'text',
                         multiple: true,
                         locked: false,
-                        values: [''],
+                        values: ['{{creative-cloud-pro}}'],
                     },
                     {
                         name: 'mnemonicLink',
                         type: 'text',
                         multiple: true,
                         locked: false,
-                        values: ['http://www.adobe.com/creativecloud/plans.html'],
+                        values: ['https://www.adobe.com/creativecloud/all-apps.html'],
                     },
                     {
                         name: 'badge',
@@ -150,9 +125,7 @@ class MasFragmentPicker extends LitElement {
                         multiple: false,
                         locked: false,
                         mimeType: 'text/html',
-                        values: [
-                            '<merch-badge background-color="spectrum-green-900-plans" color="#fff" border-color="spectrum-yellow-300-plans" variant="plans">badge</merch-badge>',
-                        ],
+                        values: [],
                     },
                     {
                         name: 'trialBadge',
@@ -174,16 +147,14 @@ class MasFragmentPicker extends LitElement {
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['spectrum-gray-300-plans'],
+                        values: [],
                     },
                     {
                         name: 'backgroundImage',
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: [
-                            'https://main--milo--adobecom.hlx.page/drafts/axel/media_144906e76fce812811940ce88ceded4f8d12098b5.png?width=2000&format=webply&optimize=medium',
-                        ],
+                        values: [],
                     },
                     {
                         name: 'backgroundImageAltText',
@@ -197,7 +168,9 @@ class MasFragmentPicker extends LitElement {
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['Mili Test Cardssea'],
+                        values: [
+                            '<a class="primary-outline" href="https://www.adobe.com/creativecloud/all-apps.html" target="_self">{{creative-cloud-pro}}</a>',
+                        ],
                     },
                     {
                         name: 'cardName',
@@ -211,14 +184,14 @@ class MasFragmentPicker extends LitElement {
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: [],
+                        values: ['https://www.adobe.com/creativecloud/all-apps.html'],
                     },
                     {
                         name: 'subtitle',
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['blahasdasdaaaa'],
+                        values: [],
                     },
                     {
                         name: 'prices',
@@ -226,9 +199,7 @@ class MasFragmentPicker extends LitElement {
                         multiple: false,
                         locked: false,
                         mimeType: 'text/html',
-                        values: [
-                            '<span is="inline-price" data-display-per-unit="true" data-display-tax="true" data-promotion-code="UMRM2MUSPr501YOC" data-template="price" data-wcs-osi="yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg"></span>',
-                        ],
+                        values: [],
                     },
                     {
                         name: 'shortDescription',
@@ -236,14 +207,16 @@ class MasFragmentPicker extends LitElement {
                         multiple: false,
                         locked: false,
                         mimeType: 'text/html',
-                        values: [],
+                        values: [
+                            '<p><strong>Device types</strong>:</p><ul><li>Desktop, mobile, web</li></ul><p><strong>Recommended for:</strong></p><ul><li>Illustration</li><li>UI and UX</li><li>Acrobat and PDF</li><li>Social media</li></ul>',
+                        ],
                     },
                     {
                         name: 'promoText',
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['test promo text new July 16th again'],
+                        values: [],
                     },
                     {
                         name: 'promoCode',
@@ -259,7 +232,7 @@ class MasFragmentPicker extends LitElement {
                         locked: false,
                         mimeType: 'text/html',
                         values: [
-                            '<p>Body XS/Regular Get 20+ apps for all kinds of creative work, from editing photos and videos to designing logos and more.. <a class="secondary-link" href="tel:01234567" title="text" target="_self">01234567</a></p><p><strong><span is="inline-price" data-template="price" data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"></span> </strong><span is="inline-price" data-display-tax="true" data-template="legal" data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"></span></p><p><a class="primary-link" href="https://example.com" target="_self">Learn more</a></p>',
+                            '<p>Get 20+ apps, including {{acrobat-pro}}, {{photoshop}}, and {{premiere-pro}}, plus {{adobe-firefly}} creative AI for images, video, and audio.<br><a class="primary-link" href="/cc-shared/fragments/modals/see-whats-included/cc-all-apps-see-whats-included-buy#modal-see-whats-included">See what\'s included</a> | <a class="primary-link" href="https://www.adobe.com/creativecloud/all-apps.html">Learn more</a></p>',
                         ],
                     },
                     {
@@ -268,7 +241,7 @@ class MasFragmentPicker extends LitElement {
                         multiple: false,
                         locked: false,
                         mimeType: 'text/html',
-                        values: ['<p>This is some callout text...</p>'],
+                        values: [],
                     },
                     {
                         name: 'showSecureLabel',
@@ -289,16 +262,14 @@ class MasFragmentPicker extends LitElement {
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: [
-                            '<merch-quantity-select title="Select quantity:" min="2" max="10" step="2"></merch-quantity-select>',
-                        ],
+                        values: [],
                     },
                     {
                         name: 'addon',
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['{{addon-mili-test}}'],
+                        values: [],
                     },
                     {
                         name: 'addonConfirmation',
@@ -314,7 +285,7 @@ class MasFragmentPicker extends LitElement {
                         locked: false,
                         mimeType: 'text/html',
                         values: [
-                            '<a class="accent" data-extra-options="{&quot;mv&quot;:&quot;1&quot;,&quot;cs&quot;:&quot;tr&quot;,&quot;ms&quot;:&quot;ind&quot;,&quot;promoid&quot;:&quot;12345&quot;,&quot;mv2&quot;:&quot;2&quot;}" data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M" data-template="checkoutUrl" target="_self" data-analytics-id="buy-now">Buy now</a>',
+                            '<p><a class="accent" target="_self" data-checkout-workflow="UCv3" data-checkout-workflow-step="segmentation" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8" data-template="checkoutUrl" data-analytics-id="buy-now" data-modal="d2p" data-entitlement="true" data-upgrade="true">{{buy-now}}</a> <a class="primary-outline" data-checkout-workflow="UCv3" data-checkout-workflow-step="segmentation" data-wcs-osi="JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg" data-template="checkoutUrl" data-analytics-id="free-trial" data-modal="twp" data-entitlement="true" data-upgrade="true">{{free-trial}}</a></p>',
                         ],
                     },
                     {
@@ -322,7 +293,7 @@ class MasFragmentPicker extends LitElement {
                         type: 'content-fragment',
                         multiple: true,
                         locked: false,
-                        values: [],
+                        values: ['/content/dam/mas/acom/en_AU/creative-cloud-pro'],
                     },
                     {
                         name: 'product',
@@ -336,9 +307,7 @@ class MasFragmentPicker extends LitElement {
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: [
-                            '<merch-whats-included><div slot="heading">List of items:</div><div slot="content"><merch-mnemonic-list><div slot="icon"><merch-icon size="s" src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg" alt="Creative Cloud"></merch-icon></div><p slot="description"><strong>Creative Cloud</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot="icon"><merch-icon size="s" src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg" alt="Photoshop"></merch-icon></div><p slot="description"><strong>Photoshop</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot="icon"><merch-icon size="s" src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg" alt="Illustrator"></merch-icon></div><p slot="description"><strong>Illustrator</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot="icon"><merch-icon size="s" src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/indesign.svg" alt="InDesign"></merch-icon></div><p slot="description"><strong>InDesign</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot="icon"><merch-icon size="s" src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg" alt="Acrobat Pro"></merch-icon></div><p slot="description"><strong>Acrobat Pro</strong></p></merch-mnemonic-list></div></merch-whats-included>',
-                        ],
+                        values: [],
                     },
                     {
                         name: 'tags',
@@ -346,13 +315,14 @@ class MasFragmentPicker extends LitElement {
                         multiple: true,
                         locked: false,
                         values: [
-                            'mas:product_family',
                             'mas:offer_type/base',
-                            'mas:commitment/access_pass',
-                            'mas:market_segments/com',
                             'mas:plan_type/abm',
                             'mas:customer_segment/individual',
-                            'mas:promotion/back-to-school',
+                            'mas:product_code/ccsn',
+                            'mas:market_segments/com',
+                            'mas:types/desktop',
+                            'mas:types/mobile',
+                            'mas:types/web',
                         ],
                     },
                     {
@@ -367,156 +337,1214 @@ class MasFragmentPicker extends LitElement {
                         type: 'text',
                         multiple: false,
                         locked: false,
-                        values: ['e717cb6f-510d-45a1-8c90-6e7f834c2850'],
+                        values: ['98c07a82-d72c-41e3-8cdc-9db8dedd69bc'],
                     },
                     {
                         name: 'locReady',
                         type: 'boolean',
                         multiple: false,
                         locked: false,
-                        values: [false],
+                        values: [],
                     },
                 ],
-                variations: [],
-                tags: [
-                    {
-                        id: 'mas:product_family',
-                        title: 'Product family',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Product family',
-                        name: 'product_family',
-                        path: '/content/cq:tags/mas/product_family',
+                selected: false,
+                initialValue: {
+                    path: '/content/dam/mas/acom/en_US/creative-cloud-pro',
+                    hasChanges: false,
+                    status: 'MODIFIED',
+                    fields: [
+                        {
+                            name: 'variant',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: ['catalog'],
+                        },
+                        {
+                            name: 'osi',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: ['r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8'],
+                        },
+                        {
+                            name: 'size',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: ['Default'],
+                        },
+                        {
+                            name: 'mnemonicIcon',
+                            type: 'text',
+                            multiple: true,
+                            locked: false,
+                            values: ['https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg'],
+                        },
+                        {
+                            name: 'mnemonicAlt',
+                            type: 'text',
+                            multiple: true,
+                            locked: false,
+                            values: ['{{creative-cloud-pro}}'],
+                        },
+                        {
+                            name: 'mnemonicLink',
+                            type: 'text',
+                            multiple: true,
+                            locked: false,
+                            values: ['https://www.adobe.com/creativecloud/all-apps.html'],
+                        },
+                        {
+                            name: 'badge',
+                            type: 'long-text',
+                            multiple: false,
+                            locked: false,
+                            mimeType: 'text/html',
+                            values: [],
+                        },
+                        {
+                            name: 'trialBadge',
+                            type: 'long-text',
+                            multiple: false,
+                            locked: false,
+                            mimeType: 'text/html',
+                            values: [],
+                        },
+                        {
+                            name: 'backgroundColor',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'borderColor',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'backgroundImage',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'backgroundImageAltText',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'cardTitle',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [
+                                '<a class="primary-outline" href="https://www.adobe.com/creativecloud/all-apps.html" target="_self">{{creative-cloud-pro}}</a>',
+                            ],
+                        },
+                        {
+                            name: 'cardName',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'cardTitleLink',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: ['https://www.adobe.com/creativecloud/all-apps.html'],
+                        },
+                        {
+                            name: 'subtitle',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'prices',
+                            type: 'long-text',
+                            multiple: false,
+                            locked: false,
+                            mimeType: 'text/html',
+                            values: [],
+                        },
+                        {
+                            name: 'shortDescription',
+                            type: 'long-text',
+                            multiple: false,
+                            locked: false,
+                            mimeType: 'text/html',
+                            values: [
+                                '<p><strong>Device types</strong>:</p><ul><li>Desktop, mobile, web</li></ul><p><strong>Recommended for:</strong></p><ul><li>Illustration</li><li>UI and UX</li><li>Acrobat and PDF</li><li>Social media</li></ul>',
+                            ],
+                        },
+                        {
+                            name: 'promoText',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'promoCode',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'description',
+                            type: 'long-text',
+                            multiple: false,
+                            locked: false,
+                            mimeType: 'text/html',
+                            values: [
+                                '<p>Get 20+ apps, including {{acrobat-pro}}, {{photoshop}}, and {{premiere-pro}}, plus {{adobe-firefly}} creative AI for images, video, and audio.<br><a class="primary-link" href="/cc-shared/fragments/modals/see-whats-included/cc-all-apps-see-whats-included-buy#modal-see-whats-included">See what\'s included</a> | <a class="primary-link" href="https://www.adobe.com/creativecloud/all-apps.html">Learn more</a></p>',
+                            ],
+                        },
+                        {
+                            name: 'callout',
+                            type: 'long-text',
+                            multiple: false,
+                            locked: false,
+                            mimeType: 'text/html',
+                            values: [],
+                        },
+                        {
+                            name: 'showSecureLabel',
+                            type: 'boolean',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'showPlanType',
+                            type: 'boolean',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'quantitySelect',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'addon',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'addonConfirmation',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'ctas',
+                            type: 'long-text',
+                            multiple: false,
+                            locked: false,
+                            mimeType: 'text/html',
+                            values: [
+                                '<p><a class="accent" target="_self" data-checkout-workflow="UCv3" data-checkout-workflow-step="segmentation" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8" data-template="checkoutUrl" data-analytics-id="buy-now" data-modal="d2p" data-entitlement="true" data-upgrade="true">{{buy-now}}</a> <a class="primary-outline" data-checkout-workflow="UCv3" data-checkout-workflow-step="segmentation" data-wcs-osi="JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg" data-template="checkoutUrl" data-analytics-id="free-trial" data-modal="twp" data-entitlement="true" data-upgrade="true">{{free-trial}}</a></p>',
+                            ],
+                        },
+                        {
+                            name: 'variations',
+                            type: 'content-fragment',
+                            multiple: true,
+                            locked: false,
+                            values: ['/content/dam/mas/acom/en_AU/creative-cloud-pro'],
+                        },
+                        {
+                            name: 'product',
+                            type: 'content-reference',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'whatsIncluded',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'tags',
+                            type: 'tag',
+                            multiple: true,
+                            locked: false,
+                            values: [
+                                'mas:offer_type/base',
+                                'mas:plan_type/abm',
+                                'mas:customer_segment/individual',
+                                'mas:product_code/ccsn',
+                                'mas:market_segments/com',
+                                'mas:types/desktop',
+                                'mas:types/mobile',
+                                'mas:types/web',
+                            ],
+                        },
+                        {
+                            name: 'perUnitLabel',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                        {
+                            name: 'originalId',
+                            type: 'text',
+                            multiple: false,
+                            locked: false,
+                            values: ['98c07a82-d72c-41e3-8cdc-9db8dedd69bc'],
+                        },
+                        {
+                            name: 'locReady',
+                            type: 'boolean',
+                            multiple: false,
+                            locked: false,
+                            values: [],
+                        },
+                    ],
+                    selected: false,
+                    id: '98c07a82-d72c-41e3-8cdc-9db8dedd69bc',
+                    model: {
+                        id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+                        path: '/conf/mas/settings/dam/cfm/models/card',
+                        name: 'Card',
+                        title: 'Card',
+                        description: 'universal m@s card model',
                     },
-                    {
-                        id: 'mas:offer_type/base',
-                        title: 'Base',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Offer type / Base',
-                        name: 'base',
-                        path: '/content/cq:tags/mas/offer_type/base',
+                    etag: '"d3b7b01f551fc0e8fd1367be6037f661"',
+                    name: 'creative-cloud-pro',
+                    title: 'CC Catalog Merch Card: Creative Cloud Pro: Individuals: default',
+                    description: 'Catalog Merch Card: Creative Cloud Pro: Individuals: default',
+                    created: {
+                        at: '2025-11-13T20:41:34.728Z',
+                        by: 'tsay@adobe.com',
+                        fullName: 'tsay@adobe.com',
                     },
-                    {
-                        id: 'mas:commitment/access_pass',
-                        title: 'ACCESS_PASS',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Commitment / ACCESS_PASS',
-                        name: 'access_pass',
-                        path: '/content/cq:tags/mas/commitment/access_pass',
-                        description: '',
+                    modified: {
+                        at: '2025-12-12T19:49:45.258Z',
+                        by: 'ste64484@adobe.com',
+                        fullName: 'ste64484@adobe.com',
                     },
-                    {
-                        id: 'mas:market_segments/com',
-                        title: 'COM',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Market segments / COM',
-                        name: 'com',
-                        path: '/content/cq:tags/mas/market_segments/com',
-                        description: '',
+                    published: {
+                        at: '2025-12-12T17:33:35.059Z',
+                        by: 'fwelterlin@adobe.com',
+                        fullName: 'fwelterlin@adobe.com',
                     },
-                    {
-                        id: 'mas:plan_type/abm',
-                        title: 'ABM',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Plan type / ABM',
-                        name: 'abm',
-                        path: '/content/cq:tags/mas/plan_type/abm',
-                        description: '',
-                    },
-                    {
-                        id: 'mas:promotion/back-to-school',
-                        title: 'Back To School',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Promotion / Back To School',
-                        name: 'back-to-school',
-                        path: '/content/cq:tags/mas/promotion/back-to-school',
-                        description: '',
-                    },
-                    {
-                        id: 'mas:customer_segment/individual',
-                        title: 'Individual',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Customer segment / Individual',
-                        name: 'individual',
-                        path: '/content/cq:tags/mas/customer_segment/individual',
-                    },
-                ],
-                references: [],
-                fieldTags: [
-                    {
-                        id: 'mas:product_family',
-                        title: 'Product family',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Product family',
-                        name: 'product_family',
-                        path: '/content/cq:tags/mas/product_family',
-                    },
-                    {
-                        id: 'mas:offer_type/base',
-                        title: 'Base',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Offer type / Base',
-                        name: 'base',
-                        path: '/content/cq:tags/mas/offer_type/base',
-                    },
-                    {
-                        id: 'mas:commitment/access_pass',
-                        title: 'ACCESS_PASS',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Commitment / ACCESS_PASS',
-                        name: 'access_pass',
-                        path: '/content/cq:tags/mas/commitment/access_pass',
-                        description: '',
-                    },
-                    {
-                        id: 'mas:market_segments/com',
-                        title: 'COM',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Market segments / COM',
-                        name: 'com',
-                        path: '/content/cq:tags/mas/market_segments/com',
-                        description: '',
-                    },
-                    {
-                        id: 'mas:plan_type/abm',
-                        title: 'ABM',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Plan type / ABM',
-                        name: 'abm',
-                        path: '/content/cq:tags/mas/plan_type/abm',
-                        description: '',
-                    },
-                    {
-                        id: 'mas:customer_segment/individual',
-                        title: 'Individual',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Customer segment / Individual',
-                        name: 'individual',
-                        path: '/content/cq:tags/mas/customer_segment/individual',
-                    },
-                    {
-                        id: 'mas:promotion/back-to-school',
-                        title: 'Back To School',
-                        i18n: [],
-                        titlePath: 'Merch at Scale : Promotion / Back To School',
-                        name: 'back-to-school',
-                        path: '/content/cq:tags/mas/promotion/back-to-school',
-                        description: '',
-                    },
-                ],
-                etag: '"824d3c90739afcee5864e58dc7964de3"',
-                tagsCount: 7,
-                card: {
-                    assets: [],
-                    texts: [
-                        'plans',
-                        'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
-                        'super-wide',
-                        'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg',
-                        'http://www.adobe.com/creativecloud/plans.html',
-                        'badge',
-                        'spectrum-gray-300-plans',
+                    tags: [
+                        {
+                            id: 'mas:types/desktop',
+                            title: 'Desktop',
+                            i18n: [],
+                            titlePath: 'Merch at Scale : Types / Desktop',
+                            name: 'desktop',
+                            path: '/content/cq:tags/mas/types/desktop',
+                            description: '',
+                        },
+                        {
+                            id: 'mas:product_code/ccsn',
+                            title: 'Creative Cloud Individual',
+                            i18n: [],
+                            titlePath: 'Merch at Scale : Product code / Creative Cloud Individual',
+                            name: 'ccsn',
+                            path: '/content/cq:tags/mas/product_code/ccsn',
+                        },
+                        {
+                            id: 'mas:offer_type/base',
+                            title: 'Base',
+                            i18n: [],
+                            titlePath: 'Merch at Scale : Offer type / Base',
+                            name: 'base',
+                            path: '/content/cq:tags/mas/offer_type/base',
+                        },
+                        {
+                            id: 'mas:market_segments/com',
+                            title: 'COM',
+                            i18n: [],
+                            titlePath: 'Merch at Scale : Market segments / COM',
+                            name: 'com',
+                            path: '/content/cq:tags/mas/market_segments/com',
+                            description: '',
+                        },
+                        {
+                            id: 'mas:plan_type/abm',
+                            title: 'ABM',
+                            i18n: [],
+                            titlePath: 'Merch at Scale : Plan type / ABM',
+                            name: 'abm',
+                            path: '/content/cq:tags/mas/plan_type/abm',
+                            description: '',
+                        },
+                        {
+                            id: 'mas:types/web',
+                            title: 'Web',
+                            i18n: [],
+                            titlePath: 'Merch at Scale : Types / Web',
+                            name: 'web',
+                            path: '/content/cq:tags/mas/types/web',
+                            description: '',
+                        },
+                        {
+                            id: 'mas:types/mobile',
+                            title: 'Mobile',
+                            i18n: [],
+                            titlePath: 'Merch at Scale : Types / Mobile',
+                            name: 'mobile',
+                            path: '/content/cq:tags/mas/types/mobile',
+                            description: '',
+                        },
+                        {
+                            id: 'mas:customer_segment/individual',
+                            title: 'Individual',
+                            i18n: [],
+                            titlePath: 'Merch at Scale : Customer segment / Individual',
+                            name: 'individual',
+                            path: '/content/cq:tags/mas/customer_segment/individual',
+                        },
+                    ],
+                    references: [
+                        {
+                            name: 'creative-cloud-pro',
+                            fieldName: 'variations',
+                            type: 'content-fragment',
+                            title: 'CC Catalog Merch Card: Creative Cloud Pro: Individuals: default',
+                            path: '/content/dam/mas/acom/en_AU/creative-cloud-pro',
+                            created: {
+                                at: '2025-12-03T19:14:36.881Z',
+                                by: 'axel@adobe.com',
+                                fullName: 'axel@adobe.com',
+                            },
+                            modified: {
+                                at: '2025-12-03T19:14:39.154Z',
+                                by: 'axel@adobe.com',
+                                fullName: 'axel@adobe.com',
+                            },
+                            published: {
+                                at: '2025-12-08T17:18:49.966Z',
+                                by: 'fwelterlin@adobe.com',
+                                fullName: 'fwelterlin@adobe.com',
+                            },
+                            status: 'PUBLISHED',
+                            previewReplicationStatus: 'NEVER_PUBLISHED',
+                            id: '03b5d858-aaae-403d-bd41-7f95dbf8ef8e',
+                            references: [],
+                            model: {
+                                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+                                path: '/conf/mas/settings/dam/cfm/models/card',
+                                name: 'Card',
+                                title: 'Card',
+                                description: 'universal m@s card model',
+                            },
+                            description: 'Catalog Merch Card: Creative Cloud Pro: Individuals: default',
+                            fields: [
+                                {
+                                    name: 'variant',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'osi',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'size',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'mnemonicIcon',
+                                    type: 'text',
+                                    multiple: true,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'mnemonicAlt',
+                                    type: 'text',
+                                    multiple: true,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'mnemonicLink',
+                                    type: 'text',
+                                    multiple: true,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'badge',
+                                    type: 'long-text',
+                                    multiple: false,
+                                    locked: false,
+                                    mimeType: 'text/html',
+                                    values: [],
+                                },
+                                {
+                                    name: 'trialBadge',
+                                    type: 'long-text',
+                                    multiple: false,
+                                    locked: false,
+                                    mimeType: 'text/html',
+                                    values: [],
+                                },
+                                {
+                                    name: 'backgroundColor',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'borderColor',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'backgroundImage',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'backgroundImageAltText',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'cardTitle',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'cardName',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'cardTitleLink',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'subtitle',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'prices',
+                                    type: 'long-text',
+                                    multiple: false,
+                                    locked: false,
+                                    mimeType: 'text/html',
+                                    values: [],
+                                },
+                                {
+                                    name: 'shortDescription',
+                                    type: 'long-text',
+                                    multiple: false,
+                                    locked: false,
+                                    mimeType: 'text/html',
+                                    values: [],
+                                },
+                                {
+                                    name: 'promoText',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'promoCode',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'description',
+                                    type: 'long-text',
+                                    multiple: false,
+                                    locked: false,
+                                    mimeType: 'text/html',
+                                    values: [],
+                                },
+                                {
+                                    name: 'callout',
+                                    type: 'long-text',
+                                    multiple: false,
+                                    locked: false,
+                                    mimeType: 'text/html',
+                                    values: [],
+                                },
+                                {
+                                    name: 'showSecureLabel',
+                                    type: 'boolean',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'showPlanType',
+                                    type: 'boolean',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'quantitySelect',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'addon',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'addonConfirmation',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'ctas',
+                                    type: 'long-text',
+                                    multiple: false,
+                                    locked: false,
+                                    mimeType: 'text/html',
+                                    values: [],
+                                },
+                                {
+                                    name: 'variations',
+                                    type: 'content-fragment',
+                                    multiple: true,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'product',
+                                    type: 'content-reference',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'whatsIncluded',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'tags',
+                                    type: 'tag',
+                                    multiple: true,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'perUnitLabel',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'originalId',
+                                    type: 'text',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                                {
+                                    name: 'locReady',
+                                    type: 'boolean',
+                                    multiple: false,
+                                    locked: false,
+                                    values: [],
+                                },
+                            ],
+                            variations: [],
+                            tags: [
+                                {
+                                    id: 'mas:types/desktop',
+                                    title: 'Desktop',
+                                    i18n: [],
+                                    titlePath: 'Merch at Scale : Types / Desktop',
+                                    name: 'desktop',
+                                    path: '/content/cq:tags/mas/types/desktop',
+                                    description: '',
+                                },
+                                {
+                                    id: 'mas:product_code/ccsn',
+                                    title: 'Creative Cloud Individual',
+                                    i18n: [],
+                                    titlePath: 'Merch at Scale : Product code / Creative Cloud Individual',
+                                    name: 'ccsn',
+                                    path: '/content/cq:tags/mas/product_code/ccsn',
+                                },
+                                {
+                                    id: 'mas:offer_type/base',
+                                    title: 'Base',
+                                    i18n: [],
+                                    titlePath: 'Merch at Scale : Offer type / Base',
+                                    name: 'base',
+                                    path: '/content/cq:tags/mas/offer_type/base',
+                                },
+                                {
+                                    id: 'mas:market_segments/com',
+                                    title: 'COM',
+                                    i18n: [],
+                                    titlePath: 'Merch at Scale : Market segments / COM',
+                                    name: 'com',
+                                    path: '/content/cq:tags/mas/market_segments/com',
+                                    description: '',
+                                },
+                                {
+                                    id: 'mas:plan_type/abm',
+                                    title: 'ABM',
+                                    i18n: [],
+                                    titlePath: 'Merch at Scale : Plan type / ABM',
+                                    name: 'abm',
+                                    path: '/content/cq:tags/mas/plan_type/abm',
+                                    description: '',
+                                },
+                                {
+                                    id: 'mas:types/web',
+                                    title: 'Web',
+                                    i18n: [],
+                                    titlePath: 'Merch at Scale : Types / Web',
+                                    name: 'web',
+                                    path: '/content/cq:tags/mas/types/web',
+                                    description: '',
+                                },
+                                {
+                                    id: 'mas:types/mobile',
+                                    title: 'Mobile',
+                                    i18n: [],
+                                    titlePath: 'Merch at Scale : Types / Mobile',
+                                    name: 'mobile',
+                                    path: '/content/cq:tags/mas/types/mobile',
+                                    description: '',
+                                },
+                                {
+                                    id: 'mas:customer_segment/individual',
+                                    title: 'Individual',
+                                    i18n: [],
+                                    titlePath: 'Merch at Scale : Customer segment / Individual',
+                                    name: 'individual',
+                                    path: '/content/cq:tags/mas/customer_segment/individual',
+                                },
+                            ],
+                        },
                     ],
                 },
+                id: '98c07a82-d72c-41e3-8cdc-9db8dedd69bc',
+                model: {
+                    id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+                    path: '/conf/mas/settings/dam/cfm/models/card',
+                    name: 'Card',
+                    title: 'Card',
+                    description: 'universal m@s card model',
+                },
+                etag: '"d3b7b01f551fc0e8fd1367be6037f661"',
+                name: 'creative-cloud-pro',
+                title: 'CC Catalog Merch Card: Creative Cloud Pro: Individuals: default',
+                description: 'Catalog Merch Card: Creative Cloud Pro: Individuals: default',
+                created: {
+                    at: '2025-11-13T20:41:34.728Z',
+                    by: 'tsay@adobe.com',
+                    fullName: 'tsay@adobe.com',
+                },
+                modified: {
+                    at: '2025-12-12T19:49:45.258Z',
+                    by: 'ste64484@adobe.com',
+                    fullName: 'ste64484@adobe.com',
+                },
+                published: {
+                    at: '2025-12-12T17:33:35.059Z',
+                    by: 'fwelterlin@adobe.com',
+                    fullName: 'fwelterlin@adobe.com',
+                },
+                tags: [
+                    {
+                        id: 'mas:types/desktop',
+                        title: 'Desktop',
+                        i18n: [],
+                        titlePath: 'Merch at Scale : Types / Desktop',
+                        name: 'desktop',
+                        path: '/content/cq:tags/mas/types/desktop',
+                        description: '',
+                    },
+                    {
+                        id: 'mas:product_code/ccsn',
+                        title: 'Creative Cloud Individual',
+                        i18n: [],
+                        titlePath: 'Merch at Scale : Product code / Creative Cloud Individual',
+                        name: 'ccsn',
+                        path: '/content/cq:tags/mas/product_code/ccsn',
+                    },
+                    {
+                        id: 'mas:offer_type/base',
+                        title: 'Base',
+                        i18n: [],
+                        titlePath: 'Merch at Scale : Offer type / Base',
+                        name: 'base',
+                        path: '/content/cq:tags/mas/offer_type/base',
+                    },
+                    {
+                        id: 'mas:market_segments/com',
+                        title: 'COM',
+                        i18n: [],
+                        titlePath: 'Merch at Scale : Market segments / COM',
+                        name: 'com',
+                        path: '/content/cq:tags/mas/market_segments/com',
+                        description: '',
+                    },
+                    {
+                        id: 'mas:plan_type/abm',
+                        title: 'ABM',
+                        i18n: [],
+                        titlePath: 'Merch at Scale : Plan type / ABM',
+                        name: 'abm',
+                        path: '/content/cq:tags/mas/plan_type/abm',
+                        description: '',
+                    },
+                    {
+                        id: 'mas:types/web',
+                        title: 'Web',
+                        i18n: [],
+                        titlePath: 'Merch at Scale : Types / Web',
+                        name: 'web',
+                        path: '/content/cq:tags/mas/types/web',
+                        description: '',
+                    },
+                    {
+                        id: 'mas:types/mobile',
+                        title: 'Mobile',
+                        i18n: [],
+                        titlePath: 'Merch at Scale : Types / Mobile',
+                        name: 'mobile',
+                        path: '/content/cq:tags/mas/types/mobile',
+                        description: '',
+                    },
+                    {
+                        id: 'mas:customer_segment/individual',
+                        title: 'Individual',
+                        i18n: [],
+                        titlePath: 'Merch at Scale : Customer segment / Individual',
+                        name: 'individual',
+                        path: '/content/cq:tags/mas/customer_segment/individual',
+                    },
+                ],
+                references: [
+                    {
+                        name: 'creative-cloud-pro',
+                        fieldName: 'variations',
+                        type: 'content-fragment',
+                        title: 'CC Catalog Merch Card: Creative Cloud Pro: Individuals: default',
+                        path: '/content/dam/mas/acom/en_AU/creative-cloud-pro',
+                        created: {
+                            at: '2025-12-03T19:14:36.881Z',
+                            by: 'axel@adobe.com',
+                            fullName: 'axel@adobe.com',
+                        },
+                        modified: {
+                            at: '2025-12-03T19:14:39.154Z',
+                            by: 'axel@adobe.com',
+                            fullName: 'axel@adobe.com',
+                        },
+                        published: {
+                            at: '2025-12-08T17:18:49.966Z',
+                            by: 'fwelterlin@adobe.com',
+                            fullName: 'fwelterlin@adobe.com',
+                        },
+                        status: 'PUBLISHED',
+                        previewReplicationStatus: 'NEVER_PUBLISHED',
+                        id: '03b5d858-aaae-403d-bd41-7f95dbf8ef8e',
+                        references: [],
+                        model: {
+                            id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+                            path: '/conf/mas/settings/dam/cfm/models/card',
+                            name: 'Card',
+                            title: 'Card',
+                            description: 'universal m@s card model',
+                        },
+                        description: 'Catalog Merch Card: Creative Cloud Pro: Individuals: default',
+                        fields: [
+                            {
+                                name: 'variant',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'osi',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'size',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'mnemonicIcon',
+                                type: 'text',
+                                multiple: true,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'mnemonicAlt',
+                                type: 'text',
+                                multiple: true,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'mnemonicLink',
+                                type: 'text',
+                                multiple: true,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'badge',
+                                type: 'long-text',
+                                multiple: false,
+                                locked: false,
+                                mimeType: 'text/html',
+                                values: [],
+                            },
+                            {
+                                name: 'trialBadge',
+                                type: 'long-text',
+                                multiple: false,
+                                locked: false,
+                                mimeType: 'text/html',
+                                values: [],
+                            },
+                            {
+                                name: 'backgroundColor',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'borderColor',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'backgroundImage',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'backgroundImageAltText',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'cardTitle',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'cardName',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'cardTitleLink',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'subtitle',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'prices',
+                                type: 'long-text',
+                                multiple: false,
+                                locked: false,
+                                mimeType: 'text/html',
+                                values: [],
+                            },
+                            {
+                                name: 'shortDescription',
+                                type: 'long-text',
+                                multiple: false,
+                                locked: false,
+                                mimeType: 'text/html',
+                                values: [],
+                            },
+                            {
+                                name: 'promoText',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'promoCode',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'description',
+                                type: 'long-text',
+                                multiple: false,
+                                locked: false,
+                                mimeType: 'text/html',
+                                values: [],
+                            },
+                            {
+                                name: 'callout',
+                                type: 'long-text',
+                                multiple: false,
+                                locked: false,
+                                mimeType: 'text/html',
+                                values: [],
+                            },
+                            {
+                                name: 'showSecureLabel',
+                                type: 'boolean',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'showPlanType',
+                                type: 'boolean',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'quantitySelect',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'addon',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'addonConfirmation',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'ctas',
+                                type: 'long-text',
+                                multiple: false,
+                                locked: false,
+                                mimeType: 'text/html',
+                                values: [],
+                            },
+                            {
+                                name: 'variations',
+                                type: 'content-fragment',
+                                multiple: true,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'product',
+                                type: 'content-reference',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'whatsIncluded',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'tags',
+                                type: 'tag',
+                                multiple: true,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'perUnitLabel',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'originalId',
+                                type: 'text',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                            {
+                                name: 'locReady',
+                                type: 'boolean',
+                                multiple: false,
+                                locked: false,
+                                values: [],
+                            },
+                        ],
+                        variations: [],
+                        tags: [
+                            {
+                                id: 'mas:types/desktop',
+                                title: 'Desktop',
+                                i18n: [],
+                                titlePath: 'Merch at Scale : Types / Desktop',
+                                name: 'desktop',
+                                path: '/content/cq:tags/mas/types/desktop',
+                                description: '',
+                            },
+                            {
+                                id: 'mas:product_code/ccsn',
+                                title: 'Creative Cloud Individual',
+                                i18n: [],
+                                titlePath: 'Merch at Scale : Product code / Creative Cloud Individual',
+                                name: 'ccsn',
+                                path: '/content/cq:tags/mas/product_code/ccsn',
+                            },
+                            {
+                                id: 'mas:offer_type/base',
+                                title: 'Base',
+                                i18n: [],
+                                titlePath: 'Merch at Scale : Offer type / Base',
+                                name: 'base',
+                                path: '/content/cq:tags/mas/offer_type/base',
+                            },
+                            {
+                                id: 'mas:market_segments/com',
+                                title: 'COM',
+                                i18n: [],
+                                titlePath: 'Merch at Scale : Market segments / COM',
+                                name: 'com',
+                                path: '/content/cq:tags/mas/market_segments/com',
+                                description: '',
+                            },
+                            {
+                                id: 'mas:plan_type/abm',
+                                title: 'ABM',
+                                i18n: [],
+                                titlePath: 'Merch at Scale : Plan type / ABM',
+                                name: 'abm',
+                                path: '/content/cq:tags/mas/plan_type/abm',
+                                description: '',
+                            },
+                            {
+                                id: 'mas:types/web',
+                                title: 'Web',
+                                i18n: [],
+                                titlePath: 'Merch at Scale : Types / Web',
+                                name: 'web',
+                                path: '/content/cq:tags/mas/types/web',
+                                description: '',
+                            },
+                            {
+                                id: 'mas:types/mobile',
+                                title: 'Mobile',
+                                i18n: [],
+                                titlePath: 'Merch at Scale : Types / Mobile',
+                                name: 'mobile',
+                                path: '/content/cq:tags/mas/types/mobile',
+                                description: '',
+                            },
+                            {
+                                id: 'mas:customer_segment/individual',
+                                title: 'Individual',
+                                i18n: [],
+                                titlePath: 'Merch at Scale : Customer segment / Individual',
+                                name: 'individual',
+                                path: '/content/cq:tags/mas/customer_segment/individual',
+                            },
+                        ],
+                    },
+                ],
             },
         ];
         this.fragmentsById = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
@@ -555,49 +1583,16 @@ class MasFragmentPicker extends LitElement {
         // }
     }
 
-    getTruncatedOfferId(offerId) {
-        if (!offerId || offerId.length <= 5) return offerId;
-        return `...${offerId.slice(-5)}`;
-    }
-
-    handleSelectionChange({ target: { selected } }) {
-        this.selectedFragments = selected?.length ? selected.map((id) => this.fragmentsById.get(id)).filter(Boolean) : [];
-    }
-
-    unselectFragment(fragmentId) {
-        if (!fragmentId) return;
-        this.selectedFragments = this.selectedFragments.filter((fragment) => fragment.id !== fragmentId);
-        const table = this.shadowRoot.querySelector('sp-table');
-        if (table) {
-            const currentSelected = Array.from(table.selected || []);
-            table.selected = currentSelected.filter((id) => id !== fragmentId);
+    updateSelectedFragments({ detail: { fragment, selected } }) {
+        if (selected) {
+            this.selectedFragments = [...this.selectedFragments, fragment];
+        } else {
+            this.selectedFragments = this.selectedFragments.filter((frag) => frag.id !== fragment.id);
         }
     }
 
-    async copyOfferIdToClipboard(e, offerId) {
-        e?.stopPropagation();
-        if (!offerId) return;
-        try {
-            await navigator.clipboard.writeText(offerId);
-            showToast('Offer ID copied to clipboard', 'positive');
-        } catch (err) {
-            console.error('Failed to copy offer ID:', err);
-            showToast('Failed to copy Offer ID', 'negative');
-        }
-    }
-
-    renderStatus(status) {
-        if (!status) return nothing;
-        let statusClass = '';
-        if (status === 'PUBLISHED') {
-            statusClass = 'green';
-        } else if (status === 'MODIFIED') {
-            statusClass = 'blue';
-        }
-        return html`<sp-table-cell class="status-cell">
-            <div class="status-dot ${statusClass}"></div>
-            ${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}
-        </sp-table-cell>`;
+    isFragmentSelected(fragment) {
+        return this.selectedFragments.some((frag) => frag.id === fragment.id);
     }
 
     render() {
@@ -632,14 +1627,10 @@ class MasFragmentPicker extends LitElement {
             <div class="container">
                 ${this.loading
                     ? html`<div class="loading-container">${this.loadingIndicator}</div>`
-                    : html`<sp-table
-                          class="fragments-table"
-                          emphasized
-                          scroller
-                          selects="multiple"
-                          @change=${this.handleSelectionChange}
-                      >
+                    : html`<sp-table class="fragments-table" emphasized scroller>
                           <sp-table-head>
+                              <sp-table-head-cell></sp-table-head-cell>
+                              <sp-table-head-cell></sp-table-head-cell>
                               <sp-table-head-cell sortable>Offer</sp-table-head-cell>
                               <sp-table-head-cell>Fragment title</sp-table-head-cell>
                               <sp-table-head-cell>Offer ID</sp-table-head-cell>
@@ -650,27 +1641,13 @@ class MasFragmentPicker extends LitElement {
                               ${repeat(
                                   this.fragments,
                                   (fragment) => fragment.id,
-                                  (fragment) => {
-                                      const offerId = fragment.fields?.find(({ name }) => name === 'osi')?.values?.[0];
-                                      return html`<sp-table-row value=${fragment.id}>
-                                          <sp-table-cell>${fragment.title}</sp-table-cell>
-                                          <sp-table-cell>${fragment.title}</sp-table-cell>
-                                          <sp-table-cell class="offer-id">
-                                              <div>${this.getTruncatedOfferId(offerId)}</div>
-                                              ${offerId
-                                                  ? html`<sp-button
-                                                        icon-only
-                                                        aria-label="Copy Offer ID to clipboard"
-                                                        @click=${(e) => this.copyOfferIdToClipboard(e, offerId)}
-                                                    >
-                                                        <sp-icon-copy slot="icon"></sp-icon-copy>
-                                                    </sp-button>`
-                                                  : ''}
-                                          </sp-table-cell>
-                                          <sp-table-cell class="path">${fragment.path}</sp-table-cell>
-                                          ${this.renderStatus(fragment.status)}
-                                      </sp-table-row>`;
-                                  },
+                                  (fragment) =>
+                                      html`<mas-fragment-picker-row
+                                          .fragment=${fragment}
+                                          .selected=${this.isFragmentSelected(fragment)}
+                                          @checkbox-change=${this.updateSelectedFragments}
+                                          @selected-locale-fragments-change=${this.updateSelectedFragments}
+                                      ></mas-fragment-picker-row>`,
                               )}
                           </sp-table-body>
                       </sp-table>`}
@@ -687,7 +1664,8 @@ class MasFragmentPicker extends LitElement {
                                           variant="secondary"
                                           size="l"
                                           icon-only
-                                          @click=${() => this.unselectFragment(fragment.id)}
+                                          @click=${() =>
+                                              this.updateSelectedFragments({ detail: { fragment, selected: false } })}
                                       >
                                           <sp-icon-close slot="icon"></sp-icon-close>
                                       </sp-button>

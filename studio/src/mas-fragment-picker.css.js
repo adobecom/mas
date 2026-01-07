@@ -4,6 +4,7 @@ export const styles = css`
     :host {
         --link-color: #3b63fb;
         --link-hover-color: #1d3ecf;
+        --table-row-background-color-rgba: 229, 240, 254;
 
         .search {
             display: flex;
@@ -16,6 +17,11 @@ export const styles = css`
             display: flex;
             gap: 12px;
             margin-bottom: 20px;
+            sp-picker {
+                --system-picker-background-color-default: transparent;
+                border: 1px solid var(--spectrum-gray-300);
+                border-radius: 12px;
+            }
         }
 
         .container {
@@ -33,6 +39,11 @@ export const styles = css`
 
             .fragments-table {
                 --spectrum-table-header-background-color: var(--spectrum-gray-50);
+                --spectrum-gray-900-rgb: var(--table-row-background-color-rgba);
+                --spectrum-blue-900-rgb: var(--table-row-background-color-rgba);
+                --spectrum-table-row-hover-opacity: 1;
+                --spectrum-table-selected-row-background-opacity: 1;
+                --spectrum-table-selected-row-background-opacity-hover: 1;
                 --spectrum-table-border-radius: 0;
 
                 sp-table-head {
@@ -47,60 +58,26 @@ export const styles = css`
                     border-left: 1px solid var(--spectrum-gray-300);
                     border-right: 1px solid var(--spectrum-gray-300);
 
-                    sp-table-checkbox-cell:first-of-type {
+                    sp-table-head-cell:first-of-type {
                         border-top-left-radius: 12px;
+                        max-width: 40px;
+                        min-width: 40px;
                     }
-                }
 
-                sp-table-head-cell:last-of-type {
-                    align-content: center;
-                    border-top-right-radius: 12px;
+                    sp-table-head-cell:nth-of-type(2) {
+                        max-width: 40px;
+                        min-width: 40px;
+                    }
+
+                    sp-table-head-cell:last-of-type {
+                        align-content: center;
+                        border-top-right-radius: 12px;
+                    }
                 }
 
                 sp-table-head-cell,
                 sp-table-cell {
                     align-content: center;
-                }
-            }
-
-            .offer-id {
-                display: flex;
-                align-items: center;
-                color: var(--link-color);
-
-                sp-button {
-                    --spectrum-accent-background-color-default: transparent;
-                    --spectrum-button-background-color-hover: transparent;
-                    color: var(--link-color);
-
-                    &:hover {
-                        color: var(--link-hover-color);
-                    }
-                }
-            }
-
-            .path {
-                word-break: break-word;
-            }
-
-            .status-cell {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-
-                .status-dot {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    background-color: var(--spectrum-gray-500);
-                }
-
-                .status-dot.green {
-                    background-color: var(--spectrum-green-700);
-                }
-
-                .status-dot.blue {
-                    background-color: var(--spectrum-blue-800);
                 }
             }
 
@@ -116,7 +93,7 @@ export const styles = css`
 
                 .file {
                     display: grid;
-                    grid-template-columns: max-content auto;
+                    grid-template-columns: 160px auto;
                     grid-template-rows: max-content max-content;
                     padding: 12px;
                     gap: 4px;

@@ -1,8 +1,7 @@
 import { LitElement, html, css } from 'lit';
-import { EVENT_KEYDOWN } from './constants.js';
+import { EVENT_KEYDOWN, LOCALES } from './constants.js';
 import { showToast, extractLocaleFromPath } from './utils.js';
 import Store from './store.js';
-import { getCountryName, getLocaleCode, getRegionLocales } from './locales.js';
 
 export class MasVariationDialog extends LitElement {
     static properties = {
@@ -132,16 +131,22 @@ export class MasVariationDialog extends LitElement {
     }
 
     get availableTargetLocales() {
-        const [sourceLanguage] = (this.sourceLocale || 'en_US').split('_');
-        return getRegionLocales(Store.surface(), sourceLanguage, false).map((locale) => ({
+        const sourceLocale = this.sourceLocale;
+        if (!sourceLocale) return LOCALES.map((l) => ({ ...l, disabled: false }));
+
+        const [sourceLanguage] = sourceLocale.split('_');
+        return LOCALES.filter((locale) => {
+            const [lang] = locale.code.split('_');
+            return lang === sourceLanguage && locale.code !== sourceLocale;
+        }).map((locale) => ({
             ...locale,
-            disabled: this.existingVariationLocales.includes(getLocaleCode(locale)),
+            disabled: this.existingVariationLocales.includes(locale.code),
         }));
     }
 
     get firstAvailableLocale() {
         const available = this.availableTargetLocales.find((l) => !l.disabled);
-        return getLocaleCode(available);
+        return available?.code || '';
     }
 
     updated(changedProperties) {
@@ -179,7 +184,7 @@ export class MasVariationDialog extends LitElement {
 
             showToast('Variation created successfully', 'positive');
 
-            Store.search.set((prev) => ({ ...prev, region: this.selectedLocale }));
+            Store.filters.set((prev) => ({ ...prev, locale: this.selectedLocale }));
 
             this.dispatchEvent(
                 new CustomEvent('fragment-copied', {
@@ -235,9 +240,8 @@ export class MasVariationDialog extends LitElement {
                         >
                             ${localeOptions.map(
                                 (locale) => html`
-                                    <sp-menu-item value="${getLocaleCode(locale)}" ?disabled=${locale.disabled}>
-                                        ${getCountryName(locale.country)}
-                                        (${locale.country})${locale.disabled ? ' (exists)' : ''}
+                                    <sp-menu-item value="${locale.code}" ?disabled=${locale.disabled}>
+                                        ${locale.name} (${locale.code.split('_')[1]})${locale.disabled ? ' (exists)' : ''}
                                     </sp-menu-item>
                                 `,
                             )}

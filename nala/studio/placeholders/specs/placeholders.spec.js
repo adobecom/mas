@@ -14,7 +14,6 @@ export default {
             name: '@studio-placeholders-locale-picker',
             path: '/studio.html',
             data: {
-                localePicker: 'French (FR)',
                 locale: 'fr_FR',
             },
             browserParams: '#page=placeholders&path=nala&locale=en_US',

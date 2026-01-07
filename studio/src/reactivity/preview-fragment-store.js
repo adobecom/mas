@@ -134,7 +134,7 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
-        if (!Store.surface()) {
+        if (!Store.search.value.path) {
             this.resolved = true;
             this.refreshAemFragment(true);
             this.notify();
@@ -172,8 +172,8 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         const context = {
-            locale: Store.localeOrRegion(),
-            surface: Store.surface(),
+            locale: Store.filters.value.locale,
+            surface: Store.search.value.path,
             dictionary: Store.placeholders.preview.value,
         };
         const result = await previewStudioFragment(body, context);

@@ -108,7 +108,7 @@ describe('MasTopNav', () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
-            const localePicker = el.querySelector('mas-locale-picker');
+            const localePicker = el.querySelector('mas-nav-locale-picker');
             expect(localePicker).to.exist;
             expect(localePicker.hasAttribute('disabled')).to.be.true;
         });
@@ -117,7 +117,7 @@ describe('MasTopNav', () => {
             Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
-            const localePicker = el.querySelector('mas-locale-picker');
+            const localePicker = el.querySelector('mas-nav-locale-picker');
             expect(localePicker).to.exist;
             expect(localePicker.hasAttribute('disabled')).to.be.true;
         });
@@ -126,7 +126,7 @@ describe('MasTopNav', () => {
             Store.page.value = PAGE_NAMES.TRANSLATIONS;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
-            const localePicker = el.querySelector('mas-locale-picker');
+            const localePicker = el.querySelector('mas-nav-locale-picker');
             expect(localePicker).to.exist;
             expect(localePicker.hasAttribute('disabled')).to.be.true;
         });
@@ -135,7 +135,7 @@ describe('MasTopNav', () => {
             Store.page.value = PAGE_NAMES.CONTENT;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
-            const localePicker = el.querySelector('mas-locale-picker');
+            const localePicker = el.querySelector('mas-nav-locale-picker');
             expect(localePicker).to.exist;
             expect(localePicker.hasAttribute('disabled')).to.be.false;
         });

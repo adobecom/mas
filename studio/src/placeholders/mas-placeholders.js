@@ -95,6 +95,10 @@ class MasPlaceholders extends LitElement {
         return Store.placeholders.list.data.get();
     }
 
+    get locale() {
+        return Store.filters.get().locale;
+    }
+
     get loading() {
         return Store.placeholders.list.loading.get();
     }
@@ -286,7 +290,14 @@ class MasPlaceholders extends LitElement {
             <div class="placeholders-container">
                 <div class="placeholders-header">
                     <div class="header-left">
-                        <h2>Placeholders</h2>
+                        <mas-locale-picker
+                            @locale-changed=${(event) =>
+                                Store.filters.set((prev) => ({
+                                    ...prev,
+                                    locale: event.detail.locale,
+                                }))}
+                            .value=${this.locale}
+                        ></mas-locale-picker>
                     </div>
                     <sp-button variant="primary" @click=${this.toggleCreationModal} class="create-button">
                         <sp-icon-add slot="icon"></sp-icon-add>
@@ -297,18 +308,6 @@ class MasPlaceholders extends LitElement {
                 ${this.errorMessage}
 
                 <div class="search-filters-container">
-                    <mas-locale-picker
-                        surface=${Store.surface()}
-                        label="Region"
-                        locale=${Store.localeOrRegion()}
-                        @locale-changed=${(event) =>
-                            Store.search.set((prev) => ({
-                                ...prev,
-                                region: event.detail.locale,
-                            }))}
-                        mode="region"
-                        searchplaceholder="Search region"
-                    ></mas-locale-picker>
                     <div class="placeholders-title">
                         <h2>Total Placeholders: ${this.totalPlaceholders}</h2>
                     </div>

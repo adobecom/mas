@@ -58,6 +58,70 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 export const EVENT_OST_SELECT = 'ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 
+export const LOCALES = [
+    { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
+    { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
+    { code: 'en_CA', flag: '🇨🇦', name: 'Canada (English)' },
+    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada (French)' },
+    { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
+    { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
+    { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },
+    { code: 'fi_FI', flag: '🇫🇮', name: 'Finland' },
+    { code: 'fr_FR', flag: '🇫🇷', name: 'France' },
+    { code: 'de_DE', flag: '🇩🇪', name: 'Germany' },
+    { code: 'hu_HU', flag: '🇭🇺', name: 'Hungary' },
+    { code: 'id_ID', flag: '🇮🇩', name: 'Indonesia' },
+    { code: 'it_IT', flag: '🇮🇹', name: 'Italy' },
+    { code: 'ja_JP', flag: '🇯🇵', name: 'Japan' },
+    { code: 'es_MX', flag: '🇲🇽', name: 'Mexico' },
+    { code: 'nl_NL', flag: '🇳🇱', name: 'Netherlands' },
+    { code: 'nb_NO', flag: '🇳🇴', name: 'Norway' },
+    { code: 'pl_PL', flag: '🇵🇱', name: 'Poland' },
+    { code: 'ru_RU', flag: '🇷🇺', name: 'Russia' },
+    { code: 'ko_KR', flag: '🇰🇷', name: 'South Korea' },
+    { code: 'es_ES', flag: '🇪🇸', name: 'Spain' },
+    { code: 'sv_SE', flag: '🇸🇪', name: 'Sweden' },
+    { code: 'th_TH', flag: '🇹🇭', name: 'Thailand' },
+    { code: 'tr_TR', flag: '🇹🇷', name: 'Türkiye' },
+    { code: 'uk_UA', flag: '🇺🇦', name: 'Ukraine' },
+    { code: 'en_US', flag: '🇺🇸', name: 'United States' },
+    { code: 'vi_VN', flag: '🇻🇳', name: 'Vietnam' },
+    { code: 'zh_TW', flag: '🇹🇼', name: 'Taiwan' },
+];
+
+export const LOCALE_DEFAULTS = [
+    'ar_MENA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_DE',
+    'en_US',
+    'es_ES',
+    'fi_FI',
+    'fr_FR',
+    'he_IL',
+    'hu_HU',
+    'id_ID',
+    'it_IT',
+    'ja_JP',
+    'ko_KR',
+    'nb_NO',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'ro_RO',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'vi_VN',
+    'zh_CN',
+    'zh_TW',
+];
+
 export const OPERATIONS = {
     CREATE: 'create',
     DELETE: 'delete',
@@ -95,6 +159,8 @@ export const ENVS = {
         pdfViewerClientId: '3c0a5ddf2cc04d3198d9e48efc390fa9',
     },
 };
+
+export const LOCALE_DEFAULT = 'en_US';
 
 export const STATUS_PUBLISHED = 'PUBLISHED';
 export const STATUS_DRAFT = 'DRAFT';

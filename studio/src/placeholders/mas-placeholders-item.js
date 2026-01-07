@@ -71,6 +71,10 @@ class MasPlaceholdersItem extends LitElement {
         return this.placeholderStore.get();
     }
 
+    get locale() {
+        return Store.filters.get().locale;
+    }
+
     // #region Handlers
 
     handleKeyChange(event) {
@@ -142,7 +146,7 @@ class MasPlaceholdersItem extends LitElement {
 
         return html`
             <sp-table-row value=${this.placeholder.key}>
-                ${this.keyCell} ${this.valueCell} ${this.statusCell} ${this.renderTableCell(Store.localeOrRegion(), 'right')}
+                ${this.keyCell} ${this.valueCell} ${this.statusCell} ${this.renderTableCell(this.locale, 'right')}
                 ${this.renderTableCell(this.placeholder.updatedBy, 'right', 'updated-by', true)}
                 ${this.renderTableCell(this.placeholder.updatedAt, 'right')} ${this.actionCell}
             </sp-table-row>

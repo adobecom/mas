@@ -14,6 +14,7 @@ import { transformer as customize, LOCALE_DEFAULTS } from '../../io/www/src/frag
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
+
 class LocaleStorageState {
     constructor() {        
     }
@@ -34,24 +35,30 @@ class LocaleStorageState {
     }
 }
 
-const DEFAULT_CONTEXT = {
-    status: 200,
-    preview:{
-        url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
-    },
-    requestId: 'preview',
-    state: new LocaleStorageState(),
-    networkConfig: {
-        mainTimeout: 15000,
-        fetchTimeout: 10000,
-        retries: 3,
-    },
-    api_key: 'n/a',
-    locale: 'en_US',
-};
-
 async function previewFragment(id, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, id };
+    const {
+        locale = 'en_US',
+        country,
+        preview = {
+            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        },
+        surface,
+    } = options;
+    let context = {
+        id,
+        status: 200,
+        preview,
+        state: new LocaleStorageState(),
+        requestId: 'preview',
+        networkConfig: {
+            mainTimeout: 15000,
+            fetchTimeout: 10000,
+            retries: 3,
+        },
+        api_key: 'n/a',
+        locale,
+        surface,
+    };
     const initPromises = {};    
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
@@ -87,7 +94,27 @@ async function previewFragment(id, options) {
 }
 
 async function previewFragmentForEditor(id, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, id };
+    const {
+        locale = 'en_US',
+        preview = {
+            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        },
+        surface,
+    } = options;
+    let context = {
+        id,
+        status: 200,
+        preview,
+        requestId: 'preview',
+        networkConfig: {
+            mainTimeout: 15000,
+            fetchTimeout: 10000,
+            retries: 3,
+        },
+        api_key: 'n/a',
+        locale,
+        surface,
+    };
     const initPromises = {};
     context.fragmentsIds = context.fragmentsIds || {};
     for (const transformer of PIPELINE) {
@@ -118,8 +145,31 @@ async function previewFragmentForEditor(id, options) {
 
 /* c8 ignore next 38 */
 async function previewStudioFragment(body, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, body };
-    context.hasExternalDictionary = Boolean(context.dictionary);
+    const {
+        locale = 'en_US',
+        preview = {
+            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        },
+        dictionary,
+        ...rest
+    } = options;
+    let context = {
+        body,
+        state: new LocaleStorageState(),
+        status: 200,        
+        preview,
+        requestId: 'preview',
+        networkConfig: {
+            mainTimeout: 15000,
+            fetchTimeout: 10000,
+            retries: 3,
+        },
+        api_key: 'n/a',
+        locale,
+        dictionary,
+        hasExternalDictionary: Boolean(dictionary),
+        ...rest,
+    };
     for (const transformer of [settings, replace, corrector]) {
         if (context.status != 200) {
             logError(context.message, context);

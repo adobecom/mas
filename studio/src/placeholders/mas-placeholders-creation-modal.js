@@ -1,7 +1,6 @@
 import { LitElement, html } from 'lit';
 import { MasRepository } from '../mas-repository.js';
 import { normalizeKey, showToast } from '../utils.js';
-import Store from '../store.js';
 
 const initialPlaceholder = {
     key: '',
@@ -111,8 +110,6 @@ class MasPlaceholdersCreationModal extends LitElement {
                             <sp-field-label for="placeholder-locale" required> Locale </sp-field-label>
                             <mas-locale-picker
                                 id="placeholder-locale"
-                                locale=${Store.localeOrRegion()}
-                                mode="region"
                                 ?disabled=${this.saving}
                                 @locale-changed=${this.handleLocaleChange}
                             ></mas-locale-picker>

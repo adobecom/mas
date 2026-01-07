@@ -13,44 +13,23 @@ export class Fragment {
     /**
      * @param {*} AEM Fragment JSON object
      */
-    constructor({
-        id,
-        dictionary,
-        etag,
-        fields,
-        model,
-        path,
-        title,
-        description,
-        status,
-        created,
-        modified,
-        placeholders,
-        priceLiterals,
-        published,
-        references,
-        settings,
-        tags,
-    }) {
-        this.model = model;
-        this.description = description;
-        this.dictionary = dictionary;
-        this.etag = etag;
-        this.fields = fields;
+    constructor({ id, etag, model, path, title, description, status, created, modified, published, fields, tags, references }) {
         this.id = id;
-        this.initialValue = structuredClone(this);
+        this.model = model;
+        this.etag = etag;
+        this.path = path;
+        this.name = path?.split('/')?.pop();
+        this.title = title;
+        this.description = description;
         this.status = status;
         this.created = created;
         this.modified = modified;
-        this.name = path?.split('/')?.pop();
-        this.path = path;
-        this.placeholders = placeholders || {};
-        this.priceLiterals = priceLiterals || {};
         this.published = published;
+        this.tags = tags;
+        this.fields = fields;
         this.references = references;
-        this.settings = settings || {};
         this.tags = tags || [];
-        this.title = title;
+        this.initialValue = structuredClone(this);
     }
 
     get variant() {

@@ -3,8 +3,8 @@ export default class PlaceholdersPage {
         this.page = page;
 
         // Header elements
-        this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.regionPicker = page.locator('mas-locale-picker[mode="region"] sp-action-menu');
+        // this.localePicker = page.locator('mas-nav sp-button:has-text("en_US")');
+        this.localePicker = page.locator('mas-nav-locale-picker sp-action-menu');
 
         this.createButton = page.locator('sp-button.create-button');
         this.searchInput = page.getByRole('searchbox', { name: 'Search' });

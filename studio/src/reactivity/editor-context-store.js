@@ -1,6 +1,5 @@
 import { ReactiveStore } from './reactive-store.js';
-import { previewFragmentForEditor } from 'fragment-client';
-import { getDefaultLocale, getLocaleByCode, isDefaultLocale } from '../locales.js';
+import { previewFragmentForEditor, LOCALE_DEFAULTS } from 'fragment-client';
 import Store from '../store.js';
 
 export class EditorContextStore extends ReactiveStore {
@@ -19,14 +18,14 @@ export class EditorContextStore extends ReactiveStore {
         if (!fragmentPath) return { isVariation: false, defaultLocale: null };
         const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
         if (!pathMatch) return { isVariation: false, defaultLocale: null };
-        const localCode = pathMatch[1];
-        const locale = getLocaleByCode(localCode);
-        if (isDefaultLocale(locale, Store.surface())) {
+        const pathLocale = pathMatch[1];
+        if (LOCALE_DEFAULTS.includes(pathLocale)) {
             return { isVariation: false, defaultLocale: null };
         }
-        const expectedDefault = getDefaultLocale(locale.code, Store.surface())?.code;
-        if (expectedDefault && expectedDefault !== localCode) {
-            return { isVariation: true, defaultLocale: expectedDefault, pathLocale: localCode };
+        const language = pathLocale.split('_')[0];
+        const expectedDefault = LOCALE_DEFAULTS.find((l) => l.startsWith(`${language}_`));
+        if (expectedDefault && expectedDefault !== pathLocale) {
+            return { isVariation: true, defaultLocale: expectedDefault, pathLocale };
         }
         return { isVariation: false, defaultLocale: null };
     }
@@ -42,7 +41,7 @@ export class EditorContextStore extends ReactiveStore {
         let notified = false;
 
         try {
-            let surface = Store.surface();
+            let surface = Store.search.value.path;
             if (!surface && fragmentPath) {
                 const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/([^/]+)\//);
                 if (pathMatch) {

@@ -1,10 +1,11 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_PUBLISHED, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
 import Store from './store.js';
+import { getService } from './utils.js';
 import StoreController from './reactivity/store-controller.js';
 import './mas-nav-folder-picker.js';
-import './mas-locale-picker.js';
+import './filters/mas-nav-locale-picker.js';
 
 class MasTopNav extends LitElement {
     page = new StoreController(this, Store.page);
@@ -84,9 +85,6 @@ class MasTopNav extends LitElement {
         super();
         this.aemEnv = 'prod';
         this.showPickers = true;
-        Store.search.subscribe(() => {
-            this.requestUpdate();
-        });
     }
 
     get envIndicator() {
@@ -146,17 +144,11 @@ class MasTopNav extends LitElement {
                               <mas-nav-folder-picker
                                   ?disabled=${this.isFragmentEditorPage || this.isTranslationEditorPage}
                               ></mas-nav-folder-picker>
-                              <mas-locale-picker
-                                  displayMode="strong"
-                                  @locale-changed=${(e) => {
-                                      Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
-                                  }}
+                              <mas-nav-locale-picker
                                   ?disabled=${this.isFragmentEditorPage ||
                                   this.isTranslationEditorPage ||
                                   this.isTranslationsPage}
-                                  surface=${Store.surface()}
-                              >
-                              </mas-locale-picker>
+                              ></mas-nav-locale-picker>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

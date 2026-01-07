@@ -84,7 +84,7 @@ test.describe('M@S Studio Placeholders Test Suite', () => {
         });
 
         await test.step('step-3: Change the placeholder locale', async () => {
-            await placeholders.selectLocale(data.localePicker);
+            await placeholders.selectLocale(data.locale);
         });
 
         await test.step('step-4: Validate different locale placeholders are loaded', async () => {

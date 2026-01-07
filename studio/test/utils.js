@@ -153,18 +153,15 @@ export function triggerRteInput(element, value) {
 
 export function initElementFromTemplate(templateId, title) {
     const spTheme = document.querySelector('sp-theme');
-    const templateEl = document.getElementById(templateId);
-    const sectionParent = templateEl?.closest('.test-item') || spTheme;
     const [root] = getTemplateContent(templateId);
-
     if (title) {
         const container = document.createElement('div');
         const header = document.createElement('h3');
         header.textContent = title;
         container.append(header, root);
-        sectionParent.append(container);
+        spTheme.append(container);
     } else {
-        sectionParent.append(root);
+        spTheme.append(root);
     }
     return root;
 }

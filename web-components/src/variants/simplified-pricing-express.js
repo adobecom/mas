@@ -1,7 +1,7 @@
 import { html, css } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './simplified-pricing-express.css.js';
-import { isDesktop, MOBILE_LANDSCAPE } from '../media.js';
+import Media, { isDesktop, MOBILE_LANDSCAPE } from '../media.js';
 
 export const SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
     title: {
@@ -87,6 +87,13 @@ export class SimplifiedPricingExpress extends VariantLayout {
         if (priceSlot) {
             this.updateCardElementMinHeight(priceSlot, 'price');
         }
+
+        const iconRow = this.card.querySelector(
+            '[slot="body-xs"] p:has(mas-mnemonic)',
+        );
+        if (iconRow) {
+            this.updateCardElementMinHeight(iconRow, 'icons');
+        }
     }
 
     async postCardUpdateHook() {
@@ -99,29 +106,16 @@ export class SimplifiedPricingExpress extends VariantLayout {
             );
         }
 
-        if (isDesktop()) {
+        if (Media.isDesktopOrUp) {
             const container = this.getContainer();
             if (!container) return;
 
-            const prefix = `--consonant-merch-card-${this.card.variant}`;
-            const hasExistingVars = container.style.getPropertyValue(
-                `${prefix}-description-height`,
-            );
-
-            if (!hasExistingVars) {
-                requestAnimationFrame(() => {
-                    const cards = container.querySelectorAll(
-                        `merch-card[variant="${this.card.variant}"]`,
-                    );
-                    cards.forEach((card) =>
-                        card.variantLayout?.syncHeights?.(),
-                    );
-                });
-            } else {
-                requestAnimationFrame(() => {
-                    this.syncHeights();
-                });
-            }
+            requestAnimationFrame(() => {
+                const cards = container.querySelectorAll(
+                    `merch-card[variant="${this.card.variant}"]`,
+                );
+                cards.forEach((card) => card.variantLayout?.syncHeights?.());
+            });
         }
     }
 

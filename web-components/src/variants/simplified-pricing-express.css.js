@@ -53,6 +53,7 @@ merch-card-collection.simplified-pricing-express p {
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:has(mas-mnemonic) {
         margin-top: auto;
         padding-top: 16px;
+        min-height: var(--consonant-merch-card-simplified-pricing-express-icons-height);
     }
 
     /* Fallback for browsers without :has() support - target last paragraph */

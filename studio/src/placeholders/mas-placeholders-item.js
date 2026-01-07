@@ -71,10 +71,6 @@ class MasPlaceholdersItem extends LitElement {
         return this.placeholderStore.get();
     }
 
-    get locale() {
-        return Store.filters.get().locale;
-    }
-
     // #region Handlers
 
     handleKeyChange(event) {
@@ -146,7 +142,7 @@ class MasPlaceholdersItem extends LitElement {
 
         return html`
             <sp-table-row value=${this.placeholder.key}>
-                ${this.keyCell} ${this.valueCell} ${this.statusCell} ${this.renderTableCell(this.locale, 'right')}
+                ${this.keyCell} ${this.valueCell} ${this.statusCell} ${this.renderTableCell(Store.localeOrRegion(), 'right')}
                 ${this.renderTableCell(this.placeholder.updatedBy, 'right', 'updated-by', true)}
                 ${this.renderTableCell(this.placeholder.updatedAt, 'right')} ${this.actionCell}
             </sp-table-row>
@@ -162,7 +158,7 @@ class MasPlaceholdersItem extends LitElement {
         const needsTooltip = forceTooltip || content.length > 50;
         const value = content.length > 50 ? `${content.substring(0, 47)}...` : content;
         return html`
-            <sp-table-cell class=${className} style="${align === 'right' ? 'text-align: right;' : ''}"
+            <sp-table-cell class="${className} ${align === 'right' ? 'align-right' : ''}"
                 >${html`<overlay-trigger placement="top"
                     ><div class="cell-content" slot="trigger">${value}</div>
                     ${needsTooltip

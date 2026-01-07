@@ -171,10 +171,6 @@ class RteMnemonicEditor extends LitElement {
         this.mnemonicPlacement = 'top';
         this.selectedTab = 'product-icon';
         this.selectedProductId = null;
-
-        this.addEventListener('change', (e) => {
-            e.stopImmediatePropagation();
-        });
     }
 
     connectedCallback() {
@@ -232,6 +228,7 @@ class RteMnemonicEditor extends LitElement {
     }
 
     #handleTabChange(e) {
+        if (e.target.nodeName !== 'SP-TABS') return;
         this.selectedTab = e.currentTarget.selected;
         this.requestUpdate();
         setTimeout(() => this.#updateInputReferences(), 0);
@@ -316,9 +313,7 @@ class RteMnemonicEditor extends LitElement {
                         id="product-alt"
                         placeholder="Descriptive text for accessibility"
                         value="${this.altText}"
-                        @input=${(e) => {
-                            this.altText = e.target.value;
-                        }}
+                        @input=${(e) => (this.altText = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -338,9 +333,7 @@ class RteMnemonicEditor extends LitElement {
                         id="mnemonicText"
                         placeholder="Enter mnemonic text (optional)"
                         .value=${this.mnemonicText}
-                        @input=${(e) => {
-                            this.mnemonicText = e.target.value;
-                        }}
+                        @input=${(e) => (this.mnemonicText = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -375,9 +368,7 @@ class RteMnemonicEditor extends LitElement {
                         required
                         placeholder="https://example.com/icon.svg"
                         value="${this.imageUrl}"
-                        @input=${(e) => {
-                            this.imageUrl = e.target.value;
-                        }}
+                        @input=${(e) => (this.imageUrl = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -387,9 +378,7 @@ class RteMnemonicEditor extends LitElement {
                         id="altText"
                         placeholder="Descriptive text for accessibility"
                         .value=${this.altText}
-                        @input=${(e) => {
-                            this.altText = e.target.value;
-                        }}
+                        @input=${(e) => (this.altText = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -409,9 +398,7 @@ class RteMnemonicEditor extends LitElement {
                         id="mnemonicText"
                         placeholder="Enter mnemonic text (optional)"
                         .value=${this.mnemonicText}
-                        @input=${(e) => {
-                            this.mnemonicText = e.target.value;
-                        }}
+                        @input=${(e) => (this.mnemonicText = e.target.value)}
                     ></sp-textfield>
                 </div>
 
@@ -439,7 +426,7 @@ class RteMnemonicEditor extends LitElement {
     get #editor() {
         const isEditing = !!this.imageUrl;
         return html`
-            <sp-dialog close=${this.#handleClose}>
+            <sp-dialog>
                 <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Inline Mnemonic</h2>
 
                 <form @submit=${this.#handleSubmit}>

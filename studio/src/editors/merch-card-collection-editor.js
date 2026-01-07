@@ -1,10 +1,10 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { Fragment } from '../aem/fragment.js';
-import { FragmentStore } from '../reactivity/fragment-store.js';
 import { styles } from './merch-card-collection-editor.css.js';
 import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH, VARIANT_CAPABILITIES } from '../constants.js';
-import Store, { editFragment } from '../store.js';
+import Store from '../store.js';
+import router from '../router.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -96,9 +96,14 @@ class MerchCardCollectionEditor extends LitElement {
         }
     }
 
-    editFragment(item) {
+    async editFragment(item) {
         const fragmentStore = this.#fragmentReferencesMap.get(item);
-        if (fragmentStore) editFragment(fragmentStore);
+        if (fragmentStore) {
+            const fragment = fragmentStore.get();
+            if (fragment?.id) {
+                await router.navigateToFragmentEditor(fragment.id);
+            }
+        }
     }
 
     #getFieldValue(fieldName) {
@@ -917,9 +922,11 @@ class MerchCardCollectionEditor extends LitElement {
 
         const container = document.createElement('div');
         container.className = 'preview-container';
+        const positionClass = position.left !== undefined ? 'position-left' : 'position-right';
+        const positionValue = position.left !== undefined ? position.left : position.right;
         container.innerHTML = `
             <div class="preview-backdrop"></div>
-            <div class="preview-popover" style="${position.left !== undefined ? `left: ${position.left}px` : `right: ${position.right}px`}">
+            <div class="preview-popover ${positionClass}" style="--popover-position: ${positionValue}px">
                 <div class="preview-content">
                     <merch-card>
                         <aem-fragment author ims fragment="${previewItem.id}"></aem-fragment>
@@ -931,9 +938,18 @@ class MerchCardCollectionEditor extends LitElement {
 
         document.body.appendChild(container);
 
-        await container.querySelector('aem-fragment').updateComplete;
-        await container.querySelector('merch-card').checkReady();
-        container.querySelector('sp-progress-circle').remove();
+        try {
+            await container.querySelector('aem-fragment').updateComplete;
+            await container.querySelector('merch-card').checkReady();
+            container.querySelector('sp-progress-circle')?.remove();
+        } catch (error) {
+            console.error('Failed to load preview card:', error);
+            container.querySelector('sp-progress-circle')?.remove();
+            const errorMsg = document.createElement('div');
+            errorMsg.textContent = 'Failed to load preview';
+            errorMsg.style.color = 'var(--spectrum-global-color-red-600)';
+            container.querySelector('.preview-content').appendChild(errorMsg);
+        }
     }
 
     get #form() {

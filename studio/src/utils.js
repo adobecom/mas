@@ -174,12 +174,12 @@ export function getService() {
     return document.querySelector('mas-commerce-service');
 }
 
-const MODEL_WEB_COMPONENT_MAPPING = {
+export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
-function getFragmentPartsToUse(fragment, path) {
+export function getFragmentPartsToUse(fragment, path) {
     let fragmentParts = '';
     let title = '';
     const surface = path?.toUpperCase();
@@ -244,4 +244,17 @@ export function showToast(message, variant = 'info') {
         variant,
         content: message,
     });
+}
+
+/**
+ * Extracts the locale code from a fragment path
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @returns {string | null} - The locale code (e.g., 'en_US') or null if not found
+ */
+export function extractLocaleFromPath(fragmentPath) {
+    if (!fragmentPath) return null;
+    const parts = fragmentPath.split('/');
+    const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
+    return parts.find((part) => localePattern.test(part)) || null;
 }

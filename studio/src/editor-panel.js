@@ -4,13 +4,21 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, OPERATIONS } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    EVENT_KEYDOWN,
+    EVENT_OST_OFFER_SELECT,
+    OPERATIONS,
+    PAGE_NAMES,
+} from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse } from './utils.js';
+import { generateCodeToUse, showToast, extractLocaleFromPath } from './utils.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import './editors/version-panel.js';
+import router from './router.js';
 
 export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -61,10 +69,22 @@ export default class EditorPanel extends LitElement {
         showDeleteDialog: { type: Boolean, state: true },
         showDiscardDialog: { type: Boolean, state: true },
         showCloneDialog: { type: Boolean, state: true },
-        showEditor: { type: Boolean, state: true }, // Used to force re-rendering of the editor
+        showEditor: { type: Boolean, state: true },
+        // MWPW-182720: Drag/resize properties
+        dragX: { type: Number, state: true },
+        dragY: { type: Number, state: true },
+        isDragging: { type: Boolean, state: true },
+        editorWidth: { type: Number, state: true },
+        editorHeight: { type: Number, state: true },
+        isResizing: { type: Boolean, state: true },
+        resizeDirection: { type: String, state: true },
+        // Main: Fragment versions and locale variation
         fragmentVersions: { type: Array, state: true },
         selectedVersion: { type: String, state: true },
         versionsLoading: { type: Boolean, state: true },
+        localeDefaultFragment: { type: Object, state: true },
+        localeDefaultFragmentLoading: { type: Boolean, state: true },
+        variationsToDelete: { type: Array, state: true },
     };
 
     static styles = css`
@@ -96,14 +116,23 @@ export default class EditorPanel extends LitElement {
             background: var(--spectrum-white);
             border-radius: 16px;
         }
+
+        #author-path {
+            margin: 8px 0;
+            font-size: 14px;
+            color: var(--spectrum-gray-700);
+        }
     `;
 
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
+    page = Store.page;
 
     reactiveController = new ReactiveController(this);
+    editorContextStore = Store.fragmentEditor.editorContext;
 
     #discardPromiseResolver;
+    #pendingDiscardPromise = null;
 
     constructor() {
         super();
@@ -112,14 +141,38 @@ export default class EditorPanel extends LitElement {
         this.showCloneDialog = false;
         this.cloneInProgress = false;
         this.showEditor = true;
-        // Used to resolve the discard confirmation promise.
         this.#discardPromiseResolver = null;
+        this.#pendingDiscardPromise = null;
         this.titleClone = '';
         this.tagsClone = [];
         this.osiClone = null;
+
+        // Main: Fragment versions and locale variation
         this.fragmentVersions = [];
         this.selectedVersion = '';
         this.versionsLoading = false;
+        this.localeDefaultFragment = null;
+        this.localeDefaultFragmentLoading = false;
+        this.variationsToDelete = [];
+
+        // MWPW-182720: Drag properties
+        this.dragX = window.innerWidth - 480;
+        this.dragY = 20;
+        this.isDragging = false;
+        this.dragStartX = 0;
+        this.dragStartY = 0;
+
+        // MWPW-182720: Resize properties
+        this.editorWidth = 460;
+        this.editorHeight = null;
+        this.isResizing = false;
+        this.resizeDirection = null;
+        this.resizeStartX = 0;
+        this.resizeStartY = 0;
+        this.resizeStartWidth = 0;
+        this.resizeStartHeight = 0;
+        this.resizeStartDragX = 0;
+        this.resizeStartDragY = 0;
 
         // Bind methods
         this.handleClose = this.handleClose.bind(this);
@@ -131,10 +184,23 @@ export default class EditorPanel extends LitElement {
         this.discardConfirmed = this.discardConfirmed.bind(this);
         this.cancelDiscard = this.cancelDiscard.bind(this);
         this.onToolbarDiscard = this.onToolbarDiscard.bind(this);
+
+        // MWPW-182720: Drag/resize bindings
+        this.startDrag = this.startDrag.bind(this);
+        this.drag = this.drag.bind(this);
+        this.endDrag = this.endDrag.bind(this);
+        this.startResize = this.startResize.bind(this);
+        this.resize = this.resize.bind(this);
+        this.endResize = this.endResize.bind(this);
+        this.positionNextToCard = this.positionNextToCard.bind(this);
+
+        // Main: Version and locale bindings
         this.loadFragmentVersions = this.loadFragmentVersions.bind(this);
         this.handleVersionChange = this.handleVersionChange.bind(this);
         this.handleVersionUpdated = this.handleVersionUpdated.bind(this);
         this.handleVersionUpdateError = this.handleVersionUpdateError.bind(this);
+        this.fetchLocaleDefaultFragment = this.fetchLocaleDefaultFragment.bind(this);
+        this.navigateToLocaleDefaultFragment = this.navigateToLocaleDefaultFragment.bind(this);
     }
 
     createRenderRoot() {
@@ -169,6 +235,164 @@ export default class EditorPanel extends LitElement {
         this.style.setProperty('--editor-left', position === 'left' ? '0' : 'inherit');
         this.style.setProperty('--editor-right', position === 'right' ? '0' : 'inherit');
         this.setAttribute('position', position);
+        this.position = position;
+    }
+
+    startDrag(e) {
+        if (e.button !== 0) return;
+        this.isDragging = true;
+        this.dragStartX = e.clientX - this.dragX;
+        this.dragStartY = e.clientY - this.dragY;
+        document.addEventListener('mousemove', this.drag);
+        document.addEventListener('mouseup', this.endDrag);
+        e.preventDefault();
+    }
+
+    drag(e) {
+        if (!this.isDragging) return;
+        const newX = e.clientX - this.dragStartX;
+        const newY = e.clientY - this.dragStartY;
+
+        const editorElement = this.querySelector('#editor');
+        const editorWidth = editorElement?.offsetWidth || this.editorWidth;
+        const editorHeight = editorElement?.offsetHeight || 600;
+        const maxX = window.innerWidth - editorWidth;
+        const maxY = window.innerHeight - editorHeight;
+
+        this.dragX = Math.max(0, Math.min(newX, maxX));
+        this.dragY = Math.max(0, Math.min(newY, maxY));
+        this.requestUpdate();
+    }
+
+    endDrag() {
+        this.isDragging = false;
+        document.removeEventListener('mousemove', this.drag);
+        document.removeEventListener('mouseup', this.endDrag);
+    }
+
+    startResize(direction, e) {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        e.preventDefault();
+
+        this.isResizing = true;
+        this.resizeDirection = direction;
+        this.resizeStartX = e.clientX;
+        this.resizeStartY = e.clientY;
+
+        const editorElement = this.querySelector('#editor');
+        this.resizeStartWidth = editorElement?.offsetWidth || this.editorWidth;
+        this.resizeStartHeight = editorElement?.offsetHeight || 600;
+        this.resizeStartDragX = this.dragX;
+        this.resizeStartDragY = this.dragY;
+
+        document.addEventListener('mousemove', this.resize);
+        document.addEventListener('mouseup', this.endResize);
+    }
+
+    resize(e) {
+        if (!this.isResizing) return;
+
+        const deltaX = e.clientX - this.resizeStartX;
+        const deltaY = e.clientY - this.resizeStartY;
+
+        const minWidth = 360;
+        const maxWidth = 800;
+        const minHeight = 400;
+        const maxHeight = window.innerHeight - 40;
+
+        let newWidth = this.resizeStartWidth;
+        let newHeight = this.resizeStartHeight;
+        let newX = this.resizeStartDragX;
+        let newY = this.resizeStartDragY;
+
+        if (this.resizeDirection.includes('e')) {
+            newWidth = Math.max(minWidth, Math.min(maxWidth, this.resizeStartWidth + deltaX));
+        }
+        if (this.resizeDirection.includes('w')) {
+            const proposedWidth = this.resizeStartWidth - deltaX;
+            newWidth = Math.max(minWidth, Math.min(maxWidth, proposedWidth));
+            const actualDeltaX = this.resizeStartWidth - newWidth;
+            newX = this.resizeStartDragX + actualDeltaX;
+        }
+        if (this.resizeDirection.includes('s')) {
+            newHeight = Math.max(minHeight, Math.min(maxHeight, this.resizeStartHeight + deltaY));
+        }
+        if (this.resizeDirection.includes('n')) {
+            const proposedHeight = this.resizeStartHeight - deltaY;
+            newHeight = Math.max(minHeight, Math.min(maxHeight, proposedHeight));
+            const actualDeltaY = this.resizeStartHeight - newHeight;
+            newY = this.resizeStartDragY + actualDeltaY;
+        }
+
+        this.editorWidth = newWidth;
+        this.editorHeight = newHeight;
+
+        if (this.resizeDirection.includes('w')) {
+            const maxX = window.innerWidth - newWidth;
+            this.dragX = Math.max(0, Math.min(newX, maxX));
+        }
+
+        if (this.resizeDirection.includes('n')) {
+            const maxY = window.innerHeight - newHeight;
+            this.dragY = Math.max(0, Math.min(newY, maxY));
+        }
+
+        this.requestUpdate();
+    }
+
+    endResize() {
+        this.isResizing = false;
+        this.resizeDirection = null;
+        document.removeEventListener('mousemove', this.resize);
+        document.removeEventListener('mouseup', this.endResize);
+    }
+
+    positionNextToCard() {
+        if (!this.fragment?.id) return;
+
+        const cardElement = document.querySelector(`[data-id="${this.fragment.id}"]`);
+        if (!cardElement) {
+            console.warn('Card element not found');
+            return;
+        }
+
+        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => {
+            const cardRect = cardElement.getBoundingClientRect();
+            const editorElement = this.querySelector('#editor');
+            const editorWidth = editorElement?.offsetWidth || this.editorWidth;
+            const editorHeight = editorElement?.offsetHeight || 600;
+            const gap = 16;
+
+            const spaceOnRight = window.innerWidth - (cardRect.right + gap + editorWidth);
+            const spaceOnLeft = cardRect.left - gap - editorWidth;
+
+            let newX;
+
+            if (spaceOnRight >= 0) {
+                newX = cardRect.right + gap;
+            } else if (spaceOnLeft >= 0) {
+                newX = cardRect.left - gap - editorWidth;
+            } else {
+                if (spaceOnRight > spaceOnLeft) {
+                    newX = cardRect.right + gap;
+                } else {
+                    newX = cardRect.left - gap - editorWidth;
+                }
+            }
+
+            const newY = cardRect.top + cardRect.height / 2 - editorHeight / 2;
+
+            const maxX = window.innerWidth - editorWidth;
+            const maxY = window.innerHeight - editorHeight;
+
+            this.dragX = Math.max(0, Math.min(newX, maxX));
+            this.dragY = Math.max(0, Math.min(newY, maxY));
+
+            this.requestUpdate();
+        }, 300);
     }
 
     needsMask(fragment) {
@@ -195,8 +419,6 @@ export default class EditorPanel extends LitElement {
         const currentId = this.fragment?.id;
         if (id === currentId) return;
         const wasEmpty = !currentId;
-        // If there is an existing fragment and unsaved changes,
-        // prompt to discard before switching.
         if (!wasEmpty && !(await this.closeEditor())) return;
         if (Number.isInteger(x)) {
             const newPosition = x > window.innerWidth / 2 ? 'left' : 'right';
@@ -208,15 +430,89 @@ export default class EditorPanel extends LitElement {
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
-        // Load fragment versions when opening a fragment
         this.loadFragmentVersions();
+        await this.loadLocaleDefaultFragmentContext(id);
+    }
+
+    async loadLocaleDefaultFragmentContext(fragmentId) {
+        this.editorContextStore.reset();
+        this.localeDefaultFragment = null;
+        this.localeDefaultFragmentLoading = false;
+
+        try {
+            await this.editorContextStore.loadFragmentContext(fragmentId);
+            if (this.editorContextStore.isVariation(fragmentId)) {
+                await this.fetchLocaleDefaultFragment();
+                const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
+                if (fragmentLocale && fragmentLocale !== Store.filters.value.locale) {
+                    Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
+                    await this.repository.loadPreviewPlaceholders();
+                    this.fragmentStore?.resolvePreviewFragment?.();
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load fragment context:', error);
+        }
+    }
+
+    async fetchLocaleDefaultFragment() {
+        const defaultLocaleId = this.editorContextStore.getDefaultLocaleId();
+        if (!defaultLocaleId || defaultLocaleId === this.fragment?.id) {
+            this.localeDefaultFragment = null;
+            this.localeDefaultFragmentLoading = false;
+            return;
+        }
+
+        this.localeDefaultFragmentLoading = true;
+        try {
+            const parentData = await this.repository.aem.sites.cf.fragments.getById(defaultLocaleId);
+            this.localeDefaultFragment = new Fragment(parentData);
+        } catch (error) {
+            console.error('Failed to fetch locale default fragment:', error);
+            showToast(`Failed to load locale default fragment: ${error.message}`, 'negative');
+            this.localeDefaultFragment = null;
+        } finally {
+            this.localeDefaultFragmentLoading = false;
+        }
+    }
+
+    async navigateToLocaleDefaultFragment() {
+        if (!this.localeDefaultFragment) return;
+        const parentLocale = extractLocaleFromPath(this.localeDefaultFragment.path);
+        if (parentLocale) {
+            Store.filters.set((prev) => ({ ...prev, locale: parentLocale }));
+        }
+        await this.closeEditor();
+        await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
 
     handleKeyDown(event) {
         if (event.code === 'Escape') this.closeEditor();
         if (!event.ctrlKey) return;
+
         if (event.code === 'ArrowLeft' && event.shiftKey) this.updatePosition('left');
         if (event.code === 'ArrowRight' && event.shiftKey) this.updatePosition('right');
+
+        if (event.code === 'KeyS') {
+            event.preventDefault();
+            if (Store.editor.hasChanges) this.saveFragment();
+        }
+        if (event.code === 'KeyU') {
+            event.preventDefault();
+            this.publishFragment();
+        }
+        if (event.code === 'KeyL') {
+            event.preventDefault();
+            this.showClone();
+        }
+        if (event.code === 'KeyK') {
+            event.preventDefault();
+            this.copyToUse();
+        }
+        if (event.code === 'Backspace') {
+            event.preventDefault();
+            this.deleteFragment();
+        }
     }
 
     handleClose(e) {
@@ -277,7 +573,7 @@ export default class EditorPanel extends LitElement {
     }
 
     async deleteFragment() {
-        // Ask for confirmation using sp-underlay and sp-dialog
+        this.variationsToDelete = this.fragment?.getVariations() || [];
         this.showDeleteDialog = true;
     }
 
@@ -305,11 +601,11 @@ export default class EditorPanel extends LitElement {
             this.cloneInProgress = true;
             await this.repository.copyFragment(this.titleClone, this.osiClone, this.tagsClone);
             this.cancelClone();
-            this.cloneInProgress = false;
             await this.closeEditor();
         } catch (error) {
-            this.cloneInProgress = false;
             console.error('Error cloning fragment:', error);
+        } finally {
+            this.cloneInProgress = false;
         }
     }
 
@@ -334,12 +630,17 @@ export default class EditorPanel extends LitElement {
      * Prompts the user to confirm discarding changes.
      * Returns a Promise that resolves with true if the user confirms,
      * or false if the user cancels.
+     * Uses a guard to prevent multiple concurrent dialog prompts.
      */
     promptDiscardChanges() {
-        return new Promise((resolve) => {
+        if (this.#pendingDiscardPromise) {
+            return this.#pendingDiscardPromise;
+        }
+        this.#pendingDiscardPromise = new Promise((resolve) => {
             this.#discardPromiseResolver = resolve;
             this.showDiscardDialog = true;
         });
+        return this.#pendingDiscardPromise;
     }
 
     /**
@@ -352,6 +653,7 @@ export default class EditorPanel extends LitElement {
             this.#discardPromiseResolver(true);
             this.#discardPromiseResolver = null;
         }
+        this.#pendingDiscardPromise = null;
     }
 
     /**
@@ -363,6 +665,7 @@ export default class EditorPanel extends LitElement {
             this.#discardPromiseResolver(false);
             this.#discardPromiseResolver = null;
         }
+        this.#pendingDiscardPromise = null;
     }
 
     saveFragment() {
@@ -505,16 +808,6 @@ export default class EditorPanel extends LitElement {
         return html`
             <div id="editor-toolbar">
                 <sp-action-group aria-label="Fragment actions" role="group" size="l" compact emphasized quiet>
-                    <sp-action-button
-                        label="Move left"
-                        title="Move left"
-                        value="left"
-                        id="move-left"
-                        @click="${() => this.updatePosition('left')}"
-                    >
-                        <sp-icon-chevron-left slot="icon"></sp-icon-chevron-left>
-                        <sp-tooltip self-managed placement="bottom">Move left</sp-tooltip>
-                    </sp-action-button>
                     <version-history
                         .versions="${this.fragmentVersions}"
                         .selectedVersion="${this.selectedVersion}"
@@ -527,7 +820,7 @@ export default class EditorPanel extends LitElement {
                     ></version-history>
                     <sp-action-button
                         label="Save"
-                        title="Save changes"
+                        title="Save changes (Ctrl+S)"
                         value="save"
                         ?disabled="${!Store.editor.hasChanges}"
                         @click="${this.saveFragment}"
@@ -535,7 +828,7 @@ export default class EditorPanel extends LitElement {
                         ${this.operation.equals(OPERATIONS.SAVE)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html`<sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>`}
-                        <sp-tooltip self-managed placement="bottom">Save changes</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Save changes (Ctrl+S)</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Discard"
@@ -547,18 +840,18 @@ export default class EditorPanel extends LitElement {
                         <sp-icon-undo slot="icon"></sp-icon-undo>
                         <sp-tooltip self-managed placement="bottom">Discard changes</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Clone" value="clone" @click="${this.showClone}">
+                    <sp-action-button label="Clone" title="Clone (Ctrl+L)" value="clone" @click="${this.showClone}">
                         ${this.operation.equals(OPERATIONS.CLONE)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html` <sp-icon-duplicate slot="icon"></sp-icon-duplicate>`}
 
-                        <sp-tooltip self-managed placement="bottom">Clone</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Clone (Ctrl+L)</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Publish" value="publish" @click="${this.publishFragment}">
+                    <sp-action-button label="Publish" title="Publish (Ctrl+U)" value="publish" @click="${this.publishFragment}">
                         ${this.operation.equals(OPERATIONS.PUBLISH)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html` <sp-icon-publish slot="icon"></sp-icon-publish>`}
-                        <sp-tooltip self-managed placement="bottom">Publish</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Publish (Ctrl+U)</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button
                         label="Unpublish"
@@ -569,30 +862,29 @@ export default class EditorPanel extends LitElement {
                         <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
                         <sp-tooltip self-managed placement="bottom">Unpublish</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Use" value="use" @click="${this.copyToUse}">
+                    <sp-action-button label="Use" title="Use (Ctrl+K)" value="use" @click="${this.copyToUse}">
                         <sp-icon-code slot="icon"></sp-icon-code>
-                        <sp-tooltip self-managed placement="bottom">Use</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Use (Ctrl+K)</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button label="Delete fragment" value="delete" @click="${this.deleteFragment}">
+                    <sp-action-button
+                        label="Delete fragment"
+                        title="Delete fragment (Ctrl+Backspace)"
+                        value="delete"
+                        @click="${this.deleteFragment}"
+                    >
                         ${this.operation.equals(OPERATIONS.DELETE)
                             ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                             : html` <sp-icon-delete slot="icon"></sp-icon-delete>`}
 
-                        <sp-tooltip self-managed placement="bottom">Delete fragment</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Delete fragment (Ctrl+Backspace)</sp-tooltip>
                     </sp-action-button>
-                    <sp-action-button title="Close" label="Close" value="close" @click="${this.closeEditor}">
+                    <sp-action-button label="Position next to card" value="position" @click="${this.positionNextToCard}">
+                        <sp-icon-move slot="icon"></sp-icon-move>
+                        <sp-tooltip self-managed placement="bottom">Position next to card</sp-tooltip>
+                    </sp-action-button>
+                    <sp-action-button title="Close (Esc)" label="Close" value="close" @click="${this.closeEditor}">
                         <sp-icon-close-circle slot="icon"></sp-icon-close-circle>
-                        <sp-tooltip self-managed placement="bottom">Close</sp-tooltip>
-                    </sp-action-button>
-                    <sp-action-button
-                        label="Move right"
-                        title="Move right"
-                        value="right"
-                        id="move-right"
-                        @click="${() => this.updatePosition('right')}"
-                    >
-                        <sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>
-                        <sp-tooltip self-managed placement="bottom">Move right</sp-tooltip>
+                        <sp-tooltip self-managed placement="bottom">Close (Esc)</sp-tooltip>
                     </sp-action-button>
                 </sp-action-group>
             </div>
@@ -601,6 +893,14 @@ export default class EditorPanel extends LitElement {
 
     get deleteConfirmationDialog() {
         if (!this.showDeleteDialog) return nothing;
+        const hasVariations = this.variationsToDelete.length > 0;
+        const message = hasVariations
+            ? html`<p>Are you sure you want to delete this fragment?</p>
+                  <p>
+                      <strong>Warning:</strong> This will also delete ${this.variationsToDelete.length} locale variation(s).
+                      This action cannot be undone.
+                  </p>`
+            : html`<p>Are you sure you want to delete this fragment? This action cannot be undone.</p>`;
         return html`
             <sp-underlay open @click="${this.cancelDelete}"></sp-underlay>
             <sp-dialog
@@ -610,7 +910,7 @@ export default class EditorPanel extends LitElement {
                 @sp-dialog-dismiss="${this.cancelDelete}"
             >
                 <h1 slot="heading">Confirm Deletion</h1>
-                <p>Are you sure you want to delete this fragment? This action cannot be undone.</p>
+                ${message}
                 <sp-button slot="button" variant="secondary" @click="${this.cancelDelete}"> Cancel </sp-button>
                 <sp-button slot="button" variant="accent" @click="${this.confirmDelete}"> Delete </sp-button>
             </sp-dialog>
@@ -719,43 +1019,105 @@ export default class EditorPanel extends LitElement {
         `;
     }
 
+    get localeDefaultLocaleLabel() {
+        if (!this.localeDefaultFragment) return '';
+        const localeCode = extractLocaleFromPath(this.localeDefaultFragment.path);
+        if (!localeCode) return '';
+        const [lang, country] = localeCode.split('_');
+        return `: Default ${country} (${lang.toUpperCase()})`;
+    }
+
+    get derivedFromContainer() {
+        if (!this.fragment || !this.localeDefaultFragment || this.localeDefaultFragment.id === this.fragment.id) {
+            return nothing;
+        }
+
+        return html`
+            <div class="derived-from-container">
+                <div class="derived-from-header">
+                    <div class="derived-from-label">
+                        <sp-icon-link size="s"></sp-icon-link>
+                        <span>Derived from</span>
+                    </div>
+                    <a @click="${this.navigateToLocaleDefaultFragment}" class="derived-from-link clickable">
+                        <span>View fragment</span>
+                        <sp-icon-open-in size="s"></sp-icon-open-in>
+                    </a>
+                </div>
+                <a @click="${this.navigateToLocaleDefaultFragment}" class="derived-from-content clickable">
+                    ${this.localeDefaultFragment.title}${this.localeDefaultLocaleLabel}
+                </a>
+            </div>
+        `;
+    }
+
     get authorPath() {
-        return generateCodeToUse(this.fragment, Store.search.get().path, Store.page.get()).authorPath;
+        if (!this.fragment) return nothing;
+        const { fragmentParts } = getFragmentPartsToUse(Store, this.fragment);
+        if (!fragmentParts) return nothing;
+        const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
+        return html`
+            <div>
+                <p id="author-path">${modelName}: ${fragmentParts}</p>
+            </div>
+        `;
     }
 
     render() {
+        if (this.page.get() === PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
         if (!this.fragment) return nothing;
         if (this.fragment.loading) return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
+
+        // CRITICAL: Only render side panel for collections
+        // Merch cards use the full-page fragment editor
+        if (this.fragment.model.path === CARD_MODEL_PATH) {
+            return nothing;
+        }
 
         let editor = nothing;
         if (this.showEditor) {
             switch (this.fragment.model.path) {
-                case CARD_MODEL_PATH:
-                    editor = html` <merch-card-editor
-                        .fragmentStore=${this.fragmentStore}
-                        .updateFragment=${this.updateFragment}
-                    ></merch-card-editor>`;
-                    break;
                 case COLLECTION_MODEL_PATH:
                     editor = html` <merch-card-collection-editor
                         .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
+                        .localeDefaultFragment=${this.localeDefaultFragment}
                     ></merch-card-collection-editor>`;
                     break;
             }
         }
+        const editorStyles = `
+            position: fixed;
+            left: ${this.dragX}px;
+            top: ${this.dragY}px;
+            width: ${this.editorWidth}px;
+            ${this.editorHeight ? `height: ${this.editorHeight}px;` : 'max-height: calc(100vh - 100px);'}
+        `;
+
         return html`
-            <div id="editor">
-                ${this.fragmentEditorToolbar}
-                <sp-divider size="s"></sp-divider>
-                <div>
-                    <p id="author-path">${this.authorPath}</p>
+            <div id="editor" style="${editorStyles}">
+                <div class="editor-content">
+                    <div class="editor-drag-section">
+                        <div class="drag-handle" @mousedown="${this.startDrag}"></div>
+                        ${this.fragmentEditorToolbar}
+                    </div>
+                    <sp-divider size="s"></sp-divider>
+                    ${this.authorPath}
+                    <sp-divider size="s"></sp-divider>
+                    ${editor}
+                    <sp-divider size="s"></sp-divider>
+                    ${this.fragmentEditor}
                 </div>
-                <sp-divider size="s"></sp-divider>
-                ${editor}
-                <sp-divider size="s"></sp-divider>
-                ${this.fragmentEditor} ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog}
-                ${this.cloneConfirmationDialog}
+                ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
+
+                <div class="resize-handle resize-n" @mousedown="${(e) => this.startResize('n', e)}"></div>
+                <div class="resize-handle resize-s" @mousedown="${(e) => this.startResize('s', e)}"></div>
+                <div class="resize-handle resize-e" @mousedown="${(e) => this.startResize('e', e)}"></div>
+                <div class="resize-handle resize-w" @mousedown="${(e) => this.startResize('w', e)}"></div>
+                <div class="resize-handle resize-ne" @mousedown="${(e) => this.startResize('ne', e)}"></div>
+                <div class="resize-handle resize-nw" @mousedown="${(e) => this.startResize('nw', e)}"></div>
+                <div class="resize-handle resize-se" @mousedown="${(e) => this.startResize('se', e)}"></div>
+                <div class="resize-handle resize-sw" @mousedown="${(e) => this.startResize('sw', e)}"></div>
             </div>
         `;
     }

@@ -1,5 +1,4 @@
 import { html, LitElement, nothing } from 'lit';
-import './editor-panel.js';
 import './rte/rte-field.js';
 import './rte/rte-link-editor.js';
 import './rte/rte-icon-editor.js';
@@ -9,19 +8,20 @@ import './mas-toolbar.js';
 import './mas-content.js';
 import './mas-promotions.js';
 import './mas-promotions-editor.js';
+import './mas-translation.js';
+import './mas-translation-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
-import './filters/locale-picker.js';
 import './fields/user-picker.js';
 import './mas-recently-updated.js';
+import './mas-nav-folder-picker.js';
+import './mas-fragment-editor.js';
+import './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
-import './mas-recently-updated.js';
-import './editors/merch-card-editor.js';
-import './editors/merch-card-collection-editor.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
 import StoreController from './reactivity/store-controller.js';
@@ -59,8 +59,13 @@ class MasStudio extends LitElement {
         this.initMasJs();
         this.subscribeLandscapeObserver();
         this.subscribeConsumerObserver();
+        this.addEventListener('fragment-loaded', this.handleFragmentLoaded);
         initUsers();
     }
+
+    handleFragmentLoaded = () => {
+        this.requestUpdate();
+    };
 
     initMasJs() {
         customElements.whenDefined('mas-commerce-service').then(() => (this.masJsReady = true));
@@ -76,6 +81,12 @@ class MasStudio extends LitElement {
                 this.renderCommerceService();
             }
         };
+        const regionSubscription = (value, oldValue) => {
+            if (value.region !== oldValue.region) {
+                this.renderCommerceService();
+            }
+        };
+        Store.search.subscribe(regionSubscription);
         Store.filters.subscribe(subscription);
         this.#unsubscribeLocaleObserver = () => Store.filters.unsubscribe(subscription);
     }
@@ -105,6 +116,7 @@ class MasStudio extends LitElement {
         this.#unsubscribeLocaleObserver();
         this.#unsubscribeLandscapeObserver();
         this.#unsubscribeConsumerObserver();
+        this.removeEventListener('fragment-loaded', this.handleFragmentLoaded);
     }
 
     createRenderRoot() {
@@ -117,6 +129,7 @@ class MasStudio extends LitElement {
 
     page = new StoreController(this, Store.page);
     landscape = new StoreController(this, Store.landscape);
+    viewMode = new StoreController(this, Store.viewMode);
 
     get content() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
@@ -136,6 +149,34 @@ class MasStudio extends LitElement {
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
+    get fragmentEditor() {
+        if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
+        return html`<mas-fragment-editor></mas-fragment-editor>`;
+    }
+
+    get breadcrumbs() {
+        if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
+
+        const editor = document.querySelector('mas-fragment-editor');
+        if (!editor || !editor.fragment || editor.fragmentStore?.loading) {
+            return nothing;
+        }
+
+        const handleBackToBreadcrumb = async () => {
+            Store.viewMode.set('default');
+            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+        };
+
+        return html`
+            <div class="breadcrumbs-container">
+                <sp-breadcrumbs>
+                    <sp-breadcrumb-item @click="${handleBackToBreadcrumb}">Fragments table</sp-breadcrumb-item>
+                    <sp-breadcrumb-item>Editor</sp-breadcrumb-item>
+                </sp-breadcrumbs>
+            </div>
+        `;
+    }
+
     get promotions() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS) return nothing;
         return html`<mas-promotions></mas-promotions>`;
@@ -146,9 +187,19 @@ class MasStudio extends LitElement {
         return html`<mas-promotions-editor></mas-promotions-editor>`;
     }
 
+    get translation() {
+        if (this.page.value !== PAGE_NAMES.TRANSLATIONS) return nothing;
+        return html`<mas-translation></mas-translation>`;
+    }
+
+    get translationEditor() {
+        if (this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR) return nothing;
+        return html`<mas-translation-editor></mas-translation-editor>`;
+    }
+
     renderCommerceService() {
-        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
+        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {
@@ -174,22 +225,28 @@ class MasStudio extends LitElement {
         this.renderCommerceService();
     }
 
+    get topNav() {
+        return html`<mas-top-nav aem-env="${this.aemEnv}" show-pickers></mas-top-nav>`;
+    }
+
+    get sideNav() {
+        return html`<mas-side-nav></mas-side-nav>`;
+    }
+
     render() {
-        if (this.masJsReady) {
-            console.log('mas.js is ready', this.masJsReady);
-        }
         return html`
-            <mas-top-nav aem-env="${this.aemEnv}"></mas-top-nav>
+            ${this.topNav}
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
-                <mas-side-nav></mas-side-nav>
+                ${this.sideNav} ${this.breadcrumbs}
                 ${this.masJsReady
                     ? html`<div class="main-container">
-                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.promotions} ${this.promotionsEditor}
+                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
+                          ${this.promotionsEditor} ${this.translation} ${this.translationEditor}
+                          <editor-panel></editor-panel>
                       </div>`
                     : nothing}
             </div>
-            <editor-panel></editor-panel>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
             <mas-card-preview></mas-card-preview>

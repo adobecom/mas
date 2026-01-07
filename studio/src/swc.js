@@ -1,3 +1,5 @@
+window.__swc = window.__swc || {};
+
 import '@spectrum-web-components/action-bar/sp-action-bar.js';
 import '@spectrum-web-components/action-button/sp-action-button.js';
 import '@spectrum-web-components/action-group/sp-action-group.js';
@@ -60,9 +62,11 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-label.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-link-out-light.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-link-page.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-link.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-lock-closed.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-market.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-money.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-more.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-move.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-new-item.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-offer.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-open-in.js';

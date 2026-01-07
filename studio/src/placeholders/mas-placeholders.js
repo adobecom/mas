@@ -95,10 +95,6 @@ class MasPlaceholders extends LitElement {
         return Store.placeholders.list.data.get();
     }
 
-    get locale() {
-        return Store.filters.get().locale;
-    }
-
     get loading() {
         return Store.placeholders.list.loading.get();
     }
@@ -290,14 +286,7 @@ class MasPlaceholders extends LitElement {
             <div class="placeholders-container">
                 <div class="placeholders-header">
                     <div class="header-left">
-                        <mas-locale-picker
-                            @locale-changed=${(event) =>
-                                Store.filters.set((prev) => ({
-                                    ...prev,
-                                    locale: event.detail.locale,
-                                }))}
-                            .value=${this.locale}
-                        ></mas-locale-picker>
+                        <h2>Placeholders</h2>
                     </div>
                     <sp-button variant="primary" @click=${this.toggleCreationModal} class="create-button">
                         <sp-icon-add slot="icon"></sp-icon-add>
@@ -308,6 +297,18 @@ class MasPlaceholders extends LitElement {
                 ${this.errorMessage}
 
                 <div class="search-filters-container">
+                    <mas-locale-picker
+                        surface=${Store.surface()}
+                        label="Region"
+                        locale=${Store.localeOrRegion()}
+                        @locale-changed=${(event) =>
+                            Store.search.set((prev) => ({
+                                ...prev,
+                                region: event.detail.locale,
+                            }))}
+                        mode="region"
+                        searchplaceholder="Search region"
+                    ></mas-locale-picker>
                     <div class="placeholders-title">
                         <h2>Total Placeholders: ${this.totalPlaceholders}</h2>
                     </div>
@@ -341,7 +342,7 @@ class MasPlaceholders extends LitElement {
 
     loadingIndicator() {
         if (!this.loading) return nothing;
-        return html`<sp-progress-circle style="top:-60px" indeterminate size="l"></sp-progress-circle>`;
+        return html`<sp-progress-circle class="loading-indicator" indeterminate size="l"></sp-progress-circle>`;
     }
 
     // #region Table
@@ -386,10 +387,9 @@ class MasPlaceholders extends LitElement {
                     ${columns.map(
                         ({ key, label, sortable, align }) => html`
                             <sp-table-head-cell
-                                class=${key}
+                                class="${key} ${align === 'right' ? 'align-right' : ''}"
                                 ?sortable=${sortable}
                                 @click=${sortable ? () => this.updateSort(key) : undefined}
-                                style="${align === 'right' ? 'text-align: right;' : ''}"
                             >
                                 ${label}
                             </sp-table-head-cell>

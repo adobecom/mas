@@ -14,7 +14,6 @@ import { transformer as customize, LOCALE_DEFAULTS } from '../../io/www/src/frag
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
-
 class LocaleStorageState {
     constructor() {        
     }
@@ -35,28 +34,24 @@ class LocaleStorageState {
     }
 }
 
+const DEFAULT_CONTEXT = {
+    status: 200,
+    preview:{
+        url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+    },
+    requestId: 'preview',
+    state: new LocaleStorageState(),
+    networkConfig: {
+        mainTimeout: 15000,
+        fetchTimeout: 10000,
+        retries: 3,
+    },
+    api_key: 'n/a',
+    locale: 'en_US',
+};
+
 async function previewFragment(id, options) {
-    const {
-        locale = 'en_US',
-        country,
-        preview = {
-            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
-        },
-    } = options;
-    let context = {
-        id,
-        status: 200,
-        preview,
-        state: new LocaleStorageState(),
-        requestId: 'preview',
-        networkConfig: {
-            mainTimeout: 15000,
-            fetchTimeout: 10000,
-            retries: 3,
-        },
-        api_key: 'n/a',
-        locale,
-    };
+    let context = { ...DEFAULT_CONTEXT, ...options, id };
     const initPromises = {};    
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
@@ -91,33 +86,40 @@ async function previewFragment(id, options) {
     return context.body;
 }
 
+async function previewFragmentForEditor(id, options) {
+    let context = { ...DEFAULT_CONTEXT, ...options, id };
+    const initPromises = {};
+    context.fragmentsIds = context.fragmentsIds || {};
+    for (const transformer of PIPELINE) {
+        if (transformer.init) {
+            const initContext = {
+                ...structuredClone(context),
+                promises: initPromises,
+                fragmentsIds: context.fragmentsIds,
+            };
+            initContext.loggedTransformer = `${transformer.name}-init`;
+            initPromises[transformer.name] = transformer.init(initContext);
+        }
+    }
+    context.promises = initPromises;
+    for (const transformer of PIPELINE) {
+        if (context.status != 200) {
+            logError(context.message, context);
+            break;
+        }
+        context.loggedTransformer = transformer.name;
+        context = await transformer.process(context);
+    }
+    if (context.status != 200) {
+        logError(context.message, context);
+    }
+    return context;
+}
+
 /* c8 ignore next 38 */
 async function previewStudioFragment(body, options) {
-    const {
-        locale = 'en_US',
-        preview = {
-            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
-        },
-        dictionary,
-        ...rest
-    } = options;
-    let context = {
-        body,
-        state: new LocaleStorageState(),
-        status: 200,        
-        preview,
-        requestId: 'preview',
-        networkConfig: {
-            mainTimeout: 15000,
-            fetchTimeout: 10000,
-            retries: 3,
-        },
-        api_key: 'n/a',
-        locale,
-        dictionary,
-        hasExternalDictionary: Boolean(dictionary),
-        ...rest,
-    };
+    let context = { ...DEFAULT_CONTEXT, ...options, body };
+    context.hasExternalDictionary = Boolean(context.dictionary);
     for (const transformer of [settings, replace, corrector]) {
         if (context.status != 200) {
             logError(context.message, context);
@@ -132,4 +134,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector, LOCALE_DEFAULTS };
+export { previewFragment, previewFragmentForEditor, previewStudioFragment, customize, settings, replace, getDictionary, corrector, LOCALE_DEFAULTS };

@@ -1,10 +1,12 @@
 import { html, css, LitElement } from 'lit';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
+import { PAGE_NAMES } from './constants.js';
 
 export class MasNavFolderPicker extends LitElement {
     static properties = {
         disabled: { type: Boolean },
+        disabledFolders: { type: Set },
     };
 
     static styles = css`
@@ -36,14 +38,14 @@ export class MasNavFolderPicker extends LitElement {
         :host([disabled]) sp-action-menu {
             cursor: not-allowed;
             pointer-events: none;
-            opacity: 1 !important;
-            filter: none !important;
+            opacity: 0.4;
+            filter: none;
             color: var(--spectrum-gray-900, #1e1e1e);
         }
 
         :host([disabled]) sp-action-menu [slot='icon'] {
-            color: var(--spectrum-gray-900, #1e1e1e) !important;
-            opacity: 1 !important;
+            color: var(--spectrum-gray-900, #1e1e1e);
+            opacity: 0.4;
         }
 
         :host([disabled]) .folder-label {
@@ -85,9 +87,48 @@ export class MasNavFolderPicker extends LitElement {
         }
     `;
 
+    #pageUnsubscribe = null;
+
+    constructor() {
+        super();
+        this.disabledFolders = new Set();
+    }
+
     foldersLoaded = new StoreController(this, Store.folders.loaded);
     folders = new StoreController(this, Store.folders.data);
     search = new StoreController(this, Store.search);
+    page = new StoreController(this, Store.page);
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.#pageUnsubscribe = Store.page.subscribe((page) => {
+            this.updateDisabledFolders(page);
+        });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this.#pageUnsubscribe) {
+            this.#pageUnsubscribe();
+            this.#pageUnsubscribe = null;
+        }
+    }
+
+    updateDisabledFolders(page) {
+        if (page === PAGE_NAMES.TRANSLATIONS) {
+            this.disabledFolders.add('adobe-home');
+            this.disabledFolders.add('ccd');
+            this.disabledFolders.add('commerce');
+            this.disabledFolders.add('docs');
+            this.disabledFolders.add('nala');
+        } else {
+            this.disabledFolders.delete('adobe-home');
+            this.disabledFolders.delete('ccd');
+            this.disabledFolders.delete('commerce');
+            this.disabledFolders.delete('docs');
+            this.disabledFolders.delete('nala');
+        }
+    }
 
     handleSelection(selectedValue) {
         Store.search.set((prev) => ({ ...prev, path: selectedValue }));
@@ -132,6 +173,7 @@ export class MasNavFolderPicker extends LitElement {
                                 <sp-menu-item
                                     .value=${value}
                                     ?selected=${this.search.value.path === value}
+                                    ?disabled=${this.disabledFolders.has(value)}
                                     @click=${() => this.handleSelection(value)}
                                 >
                                     ${label}

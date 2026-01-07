@@ -58,37 +58,6 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 export const EVENT_OST_SELECT = 'ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
 
-export const LOCALES = [
-    { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
-    { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
-    { code: 'en_CA', flag: '🇨🇦', name: 'Canada (English)' },
-    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada (French)' },
-    { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
-    { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
-    { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },
-    { code: 'fi_FI', flag: '🇫🇮', name: 'Finland' },
-    { code: 'fr_FR', flag: '🇫🇷', name: 'France' },
-    { code: 'de_DE', flag: '🇩🇪', name: 'Germany' },
-    { code: 'hu_HU', flag: '🇭🇺', name: 'Hungary' },
-    { code: 'id_ID', flag: '🇮🇩', name: 'Indonesia' },
-    { code: 'it_IT', flag: '🇮🇹', name: 'Italy' },
-    { code: 'ja_JP', flag: '🇯🇵', name: 'Japan' },
-    { code: 'es_MX', flag: '🇲🇽', name: 'Mexico' },
-    { code: 'nl_NL', flag: '🇳🇱', name: 'Netherlands' },
-    { code: 'nb_NO', flag: '🇳🇴', name: 'Norway' },
-    { code: 'pl_PL', flag: '🇵🇱', name: 'Poland' },
-    { code: 'ru_RU', flag: '🇷🇺', name: 'Russia' },
-    { code: 'ko_KR', flag: '🇰🇷', name: 'South Korea' },
-    { code: 'es_ES', flag: '🇪🇸', name: 'Spain' },
-    { code: 'sv_SE', flag: '🇸🇪', name: 'Sweden' },
-    { code: 'th_TH', flag: '🇹🇭', name: 'Thailand' },
-    { code: 'tr_TR', flag: '🇹🇷', name: 'Türkiye' },
-    { code: 'uk_UA', flag: '🇺🇦', name: 'Ukraine' },
-    { code: 'en_US', flag: '🇺🇸', name: 'United States' },
-    { code: 'vi_VN', flag: '🇻🇳', name: 'Vietnam' },
-    { code: 'zh_TW', flag: '🇹🇼', name: 'Taiwan' },
-];
-
 export const OPERATIONS = {
     CREATE: 'create',
     DELETE: 'delete',
@@ -127,8 +96,6 @@ export const ENVS = {
     },
 };
 
-export const LOCALE_DEFAULT = 'en_US';
-
 export const STATUS_PUBLISHED = 'PUBLISHED';
 export const STATUS_DRAFT = 'DRAFT';
 export const STATUS_MODIFIED = 'MODIFIED';
@@ -137,8 +104,11 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
+    FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
+    TRANSLATIONS: 'translations',
+    TRANSLATION_EDITOR: 'translation-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -151,6 +121,7 @@ export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW
 export const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
 
 export const PROMOTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3Byb21vdGlvbg==';
+export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3RyYW5zbGF0aW9uLXByb2plY3Q=';
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
@@ -183,7 +154,12 @@ export const VARIANT_CAPABILITIES = {
         helpText: 'Drag a card here to set as default',
     },
 };
+
 export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+
+export const VARIATION_TYPES = {
+    LOCALE: 'Locale',
+};
 
 export const SURFACES = {
     ACOM: {
@@ -214,4 +190,15 @@ export const SURFACES = {
         label: 'Sandbox',
         name: 'sandbox',
     },
+};
+
+export const QUICK_ACTION = {
+    SAVE: 'save',
+    DUPLICATE: 'duplicate',
+    PUBLISH: 'publish',
+    CANCEL: 'cancel',
+    COPY: 'copy',
+    LOCK: 'lock',
+    DISCARD: 'discard',
+    DELETE: 'delete',
 };

@@ -66,16 +66,15 @@ merch-card[variant="full-pricing-express"] [slot="heading-xs"] {
 /* Inline mnemonics inside heading */
 merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic {
     display: inline-flex;
-    width: 14px;
-    height: 14px;
-    vertical-align: middle;
+    --mod-img-width: 20px;
+    --mod-img-height: 20px;
     margin-right: 8px;
-    align-items: flex-end;
+    align-items: center;
 }
 
 merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic img {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     object-fit: contain;
 }
 
@@ -87,17 +86,21 @@ merch-card[variant="full-pricing-express"] [slot="icons"] {
     flex-shrink: 0;
 }
 
-merch-card[variant="full-pricing-express"] [slot="icons"] merch-icon {
-    --img-width: 20px;
-    --img-height: 20px;
+merch-card[variant="full-pricing-express"] merch-icon[slot="icons"] {
+    --mod-img-width: auto;
+    --mod-img-height: 21px;
 }
 
 /* Premium/crown icon sizing on mobile and tablet (14x14px) */
 @media (max-width: 1199px) {
     merch-card[variant="full-pricing-express"] [slot="heading-xs"] merch-icon,
-    merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic merch-icon {
-        --img-width: 14px;
-        --img-height: 14px;
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic merch-icon,
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic {
+        --mod-img-width: 14px;
+        --mod-img-height: 14px;
+    }
+
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic img {
         width: 14px;
         height: 14px;
     }
@@ -263,7 +266,7 @@ merch-card[variant="full-pricing-express"] [slot="price"] > p span[is="inline-pr
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template="strikethrough"] + span[is="inline-price"] {
-    color: var(--spectrum-indigo-900);
+    color: var(--spectrum-gray-800);
 }
 
 /* Target inline prices in paragraphs that are not the first paragraph */
@@ -295,12 +298,14 @@ merch-card[variant="full-pricing-express"] [slot="price"] p a {
 }
 
 /* Strikethrough price styling */
+merch-card[variant="full-pricing-express"] span[is="inline-price"] .price-unit-type,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-strikethrough,
 merch-card[variant="full-pricing-express"] span.placeholder-resolved[data-template='strikethrough'] {
     text-decoration: none;
     font-size: 12px;
     line-height: 15.6px;
+    font-weight: bold;
 }
 
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price {

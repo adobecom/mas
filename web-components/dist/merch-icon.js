@@ -1,7 +1,7 @@
-var d=Object.defineProperty;var b=(i,t,e)=>t in i?d(i,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):i[t]=e;var v=(i,t)=>()=>(i&&(t=i(i=0)),t);var x=(i,t)=>{for(var e in t)d(i,e,{get:t[e],enumerable:!0})};var r=(i,t,e)=>b(i,typeof t!="symbol"?t+"":t,e);var g={};x(g,{default:()=>p});import{LitElement as y,html as c,css as T}from"./lit-all.min.js";function S(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o,p,f=v(()=>{o=class o extends y{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&o.activeTooltip.hideTooltip(),o.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTouchStart(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?c`<merch-icon
+var d=Object.defineProperty;var b=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):o[t]=e;var v=(o,t)=>()=>(o&&(t=o(o=0)),t);var x=(o,t)=>{for(var e in t)d(o,e,{get:t[e],enumerable:!0})};var r=(o,t,e)=>b(o,typeof t!="symbol"?t+"":t,e);var g={};x(g,{default:()=>n});import{LitElement as y,html as p,css as T}from"./lit-all.min.js";function w(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var i,n,u=v(()=>{i=class i extends y{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let e=t.composedPath();i.activeTooltip===this&&!e.includes(this)&&this.hideTooltip()}showTooltip(){i.activeTooltip&&i.activeTooltip!==this&&(i.activeTooltip.tooltipVisible=!1,i.activeTooltip=null),i.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){i.activeTooltip===this&&(i.activeTooltip=null),this.tooltipVisible=!1}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?p`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:c`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;return t?S()?c`
+        ></merch-icon>`:p`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;return t?w()?p`
                 <overlay-trigger placement="${e}">
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
@@ -11,22 +11,21 @@ var d=Object.defineProperty;var b=(i,t,e)=>t in i?d(i,t,{enumerable:!0,configura
                         ${t}
                     </sp-tooltip>
                 </overlay-trigger>
-            `:c`
+            `:p`
                 <span
                     class="css-tooltip ${e} ${this.tooltipVisible?"tooltip-visible":""}"
                     data-tooltip="${t}"
                     tabindex="0"
                     role="img"
                     aria-label="${t}"
-                    @mouseenter=${()=>this.showTooltip()}
-                    @mouseleave=${()=>this.hideTooltip()}
+                    @pointerenter=${()=>this.showTooltip()}
+                    @pointerleave=${()=>this.hideTooltip()}
                     @focus=${()=>this.showTooltip()}
                     @blur=${()=>this.hideTooltip()}
-                    @touchstart=${n=>this.handleTouchStart(n)}
                 >
                     ${this.renderIcon()}
                 </span>
-            `:this.renderIcon()}};r(o,"activeTooltip",null),r(o,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),r(o,"styles",T`
+            `:this.renderIcon()}};r(i,"activeTooltip",null),r(i,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),r(i,"styles",T`
         :host {
             display: contents;
             overflow: visible;
@@ -78,12 +77,18 @@ var d=Object.defineProperty;var b=(i,t,e)=>t in i?d(i,t,{enumerable:!0,configura
 
         .css-tooltip.tooltip-visible[data-tooltip]::before,
         .css-tooltip.tooltip-visible[data-tooltip]::after,
-        .css-tooltip:hover[data-tooltip]::before,
-        .css-tooltip:hover[data-tooltip]::after,
         .css-tooltip:focus[data-tooltip]::before,
         .css-tooltip:focus[data-tooltip]::after {
             opacity: 1;
             visibility: visible;
+        }
+
+        @media (hover: hover) {
+            .css-tooltip:hover[data-tooltip]::before,
+            .css-tooltip:hover[data-tooltip]::after {
+                opacity: 1;
+                visibility: visible;
+            }
         }
 
         /* Position variants */
@@ -152,17 +157,17 @@ var d=Object.defineProperty;var b=(i,t,e)=>t in i?d(i,t,{enumerable:!0,configura
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);p=o;customElements.define("mas-mnemonic",p)});import{LitElement as $,html as u,css as w}from"./lit-all.min.js";function z(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var a=class extends ${constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(z())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let l="",n="top";if(e.tagName==="SP-TOOLTIP")l=e.textContent,n=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let s=e.querySelector("sp-tooltip");s&&(l=s.textContent,n=s.getAttribute("placement")||e.getAttribute("placement")||"top")}if(l){let s=document.createElement("mas-mnemonic");s.setAttribute("content",l),s.setAttribute("placement",n);let h=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(h)?s.appendChild(m):h&&s.appendChild(h),this.innerHTML="",this.appendChild(s),Promise.resolve().then(()=>f())}e.remove()})}render(){let{href:t}=this;return t?u`<a href="${t}">
+    `);n=i;customElements.define("mas-mnemonic",n)});import{LitElement as S,html as f,css as $}from"./lit-all.min.js";function C(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var l=class extends S{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(C())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let a="",c="top";if(e.tagName==="SP-TOOLTIP")a=e.textContent,c=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let s=e.querySelector("sp-tooltip");s&&(a=s.textContent,c=s.getAttribute("placement")||e.getAttribute("placement")||"top")}if(a){let s=document.createElement("mas-mnemonic");s.setAttribute("content",a),s.setAttribute("placement",c);let h=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(h)?s.appendChild(m):h&&s.appendChild(h),this.innerHTML="",this.appendChild(s),Promise.resolve().then(()=>u())}e.remove()})}render(){let{href:t}=this;return t?f`<a href="${t}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>`:u` <img
+              </a>`:f` <img
                   src="${this.src}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`}};r(a,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),r(a,"styles",w`
+              />`}};r(l,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),r(l,"styles",$`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -200,4 +205,4 @@ var d=Object.defineProperty;var b=(i,t,e)=>t in i?d(i,t,{enumerable:!0,configura
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `);customElements.define("merch-icon",a);export{a as default};
+    `);customElements.define("merch-icon",l);export{l as default};

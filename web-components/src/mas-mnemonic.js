@@ -84,12 +84,18 @@ export default class MasMnemonic extends LitElement {
 
         .css-tooltip.tooltip-visible[data-tooltip]::before,
         .css-tooltip.tooltip-visible[data-tooltip]::after,
-        .css-tooltip:hover[data-tooltip]::before,
-        .css-tooltip:hover[data-tooltip]::after,
         .css-tooltip:focus[data-tooltip]::before,
         .css-tooltip:focus[data-tooltip]::after {
             opacity: 1;
             visibility: visible;
+        }
+
+        @media (hover: hover) {
+            .css-tooltip:hover[data-tooltip]::before,
+            .css-tooltip:hover[data-tooltip]::after {
+                opacity: 1;
+                visibility: visible;
+            }
         }
 
         /* Position variants */
@@ -167,11 +173,30 @@ export default class MasMnemonic extends LitElement {
         this.variant = 'info';
         this.size = 'xs';
         this.tooltipVisible = false;
+        this.handleClickOutside = this.handleClickOutside.bind(this);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        window.addEventListener('mousedown', this.handleClickOutside);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        window.removeEventListener('mousedown', this.handleClickOutside);
+    }
+
+    handleClickOutside(event) {
+        const path = event.composedPath();
+        if (MasMnemonic.activeTooltip === this && !path.includes(this)) {
+            this.hideTooltip();
+        }
     }
 
     showTooltip() {
         if (MasMnemonic.activeTooltip && MasMnemonic.activeTooltip !== this) {
-            MasMnemonic.activeTooltip.hideTooltip();
+            MasMnemonic.activeTooltip.tooltipVisible = false;
+            MasMnemonic.activeTooltip = null;
         }
         MasMnemonic.activeTooltip = this;
         this.tooltipVisible = true;
@@ -182,15 +207,6 @@ export default class MasMnemonic extends LitElement {
             MasMnemonic.activeTooltip = null;
         }
         this.tooltipVisible = false;
-    }
-
-    handleTouchStart(e) {
-        e.preventDefault();
-        if (this.tooltipVisible) {
-            this.hideTooltip();
-        } else {
-            this.showTooltip();
-        }
     }
 
     get effectiveContent() {
@@ -249,11 +265,10 @@ export default class MasMnemonic extends LitElement {
                     tabindex="0"
                     role="img"
                     aria-label="${content}"
-                    @mouseenter=${() => this.showTooltip()}
-                    @mouseleave=${() => this.hideTooltip()}
+                    @pointerenter=${() => this.showTooltip()}
+                    @pointerleave=${() => this.hideTooltip()}
                     @focus=${() => this.showTooltip()}
                     @blur=${() => this.hideTooltip()}
-                    @touchstart=${(e) => this.handleTouchStart(e)}
                 >
                     ${this.renderIcon()}
                 </span>

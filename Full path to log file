@@ -1,0 +1,353 @@
+2026-01-06T17:09:48.849Z: Constructing new auth header with email:token format
+2026-01-06T17:09:48.851Z: Making request to: https://jira.corp.adobe.com/rest/api/2/search?jql=key+%3D+MWPW-183848&fields=summary%2Cdescription%2Cstatus%2Cpriority%2Cassignee%2Creporter%2Ccreated%2Cupdated%2Ccomponents%2Clabels%2Csubtasks%2Cissuelinks%2Ccomment
+2026-01-06T17:09:48.851Z: Method: GET
+2026-01-06T17:09:48.851Z: Headers: {
+  "Content-Type": "application/json",
+  "Accept": "application/json",
+  "X-Atlassian-Token": "no-check",
+  "User-Agent": "modelcontextprotocol/servers/jira/v0.1.0 Node.js/22",
+  "Authorization": "[REDACTED]"
+}
+2026-01-06T17:09:49.708Z: Response status: 200 
+2026-01-06T17:09:49.708Z: Response headers: {
+  "cache-control": "no-cache, no-store, no-transform",
+  "connection": "keep-alive",
+  "content-encoding": "gzip",
+  "content-security-policy": "sandbox",
+  "content-type": "application/json;charset=UTF-8",
+  "date": "Tue, 06 Jan 2026 17:09:49 GMT",
+  "keep-alive": "timeout=60",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "retry-after": "0",
+  "server": "Application Server",
+  "set-cookie": "JiraDC-BigIP=1575105034.57646.0000; expires=Tue, 06-Jan-2026 22:09:49 GMT; path=/; Httponly; Secure",
+  "strict-transport-security": "max-age=31536000",
+  "transfer-encoding": "chunked",
+  "vary": "User-Agent",
+  "x-anodeid": "or1dra093.corp.adobe.com",
+  "x-arequestid": "1029x3321054x2",
+  "x-asessionid": "y8opm1",
+  "x-ausername": "axel",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "SAMEORIGIN",
+  "x-ratelimit-fillrate": "35",
+  "x-ratelimit-interval-seconds": "1",
+  "x-ratelimit-limit": "35",
+  "x-ratelimit-remaining": "34",
+  "x-seraph-loginreason": "OK",
+  "x-xss-protection": "1; mode=block"
+}
+2026-01-06T17:09:49.713Z: Response body: {
+  "expand": "names,schema",
+  "startAt": 0,
+  "maxResults": 50,
+  "total": 1,
+  "issues": [
+    {
+      "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+      "id": "18682696",
+      "self": "https://jira.corp.adobe.com/rest/api/2/issue/18682696",
+      "key": "MWPW-183848",
+      "fields": {
+        "summary": "[M@S Express] Design QA - Simplified & Full Size Cards",
+        "components": [
+          {
+            "self": "https://jira.corp.adobe.com/rest/api/2/component/258404",
+            "id": "258404",
+            "name": "Merch Cards (M@S)",
+            "description": "DMe cards content https://wiki.corp.adobe.com/x/sBpaxQ"
+          }
+        ],
+        "subtasks": [],
+        "created": "2025-11-13T16:45:07.000+0000",
+        "description": "+*Requirement:*+\r\n\r\n Please update the requested UI & functional fixes below to meet the current Express/Milo design requirements\r\n * *P0: Major UI, Functional, or Accessibility*\r\n ** *Simplified Cards*\r\n *** The width of cards for tablet is set to mobile fixed width currently such that cards are displaying as mobile size not tablet size. They should take up 8 of 12 columns in a grid system.\r\n *** Icon tooltips:\r\n **** Icon tooltips remain visible on click/tap and do not disappear when another icon is hovered/clicked causing overlap.\r\n!Screenshot 2026-01-05 at 9.43.36 PM.png|width=225,height=205!\r\n **** The arrow of each icon tooltip does not disappear as quickly as rest of tooltip when cursor is moved\r\n *** All icons should be aligned across cards no matter the text height {color:#ff0000}(raised in another JIRA){color}\r\n *** On mobile:\r\n **** the expansion and collapsing of cards goes too quickly, should be a slower animation.\r\n **** user should be able to click anywhere in the card to expand or collapse, not just the carrot.\r\n **** darkest left icon tooltip gets cut off outside of card\r\n **** width of the cards shouldn't be fixed but responsive to viewport with 16px margins.\r\n\r\n * \r\n ** *Full Size Cards*\r\n *** On tablet, cards are displaying as mobile size not tablet size\r\n *** Need ability to have card border color without the colored cap at the top of card.\r\n!Screenshot 2026-01-05 at 10.32.50 PM.png|width=599,height=246!\r\n *** Premium icon (crown) is not using correct gradient color, also size of icon should be 14px by 14px on mobile/tablet.\r\n *** Seat number icons (2+ & 100+) are different sizes, please match to the 100+ size)\r\n *** CTAs are too big. They should use button size - large or 48px height (documentation provided in figma comment)\r\n *** Secondary CTAs should use grey color as per figma {color:#ff0000}(raised in another JIRA){color}\r\n *** {color:#172b4d}/mo per license font size and color needs fixed  - should be 12px bold specs provided in figma comment (raised in another JIRA){color}\r\n *** hyperlinked text under feature list is not displaying as underlined text\r\n\r\n!Screenshot 2025-11-17 at 10.41.30 PM.png|width=190,height=313! Vs  !Screenshot 2025-11-17 at 10.43.33 PM.png|width=174,height=222!\r\n\r\n \r\n * *P1 items - please look at MWPW-185783: Typography, Spacing, Padding*\r\n\r\n \r\n\r\n*Figma with annotations*\r\n\r\n[https://www.figma.com/design/rHeuOYAwNriEkl6Nr5HIQ5/Firefly-Pro-Pricing-Updates?node-id=2795-232057&t=0qhwrSZdGg3vTwUp-4] \r\n\r\n*Test pages for reference:*\r\n - Homepage (Simplified Cards) - [https://main--da-express-milo--adobecom.aem.page/express/pre-launch/mas/homepage-poc?tab=3] \r\n - Pricing Page (Full Size cards) - [https://main--da-express-milo--adobecom.aem.page/express/pre-launch/mas/pricing-poc-2?tab=2] \r\n\r\n \r\n\r\n*Acceptance:*\r\n - All issues described above are resolved",
+        "reporter": {
+          "self": "https://jira.corp.adobe.com/rest/api/2/user?username=all76184",
+          "name": "all76184",
+          "key": "JIRAUSER331116",
+          "emailAddress": "all76184@adobe.com",
+          "avatarUrls": {
+            "48x48": "https://jira.corp.adobe.com/secure/useravatar?avatarId=10122",
+            "24x24": "https://jira.corp.adobe.com/secure/useravatar?size=small&avatarId=10122",
+            "16x16": "https://jira.corp.adobe.com/secure/useravatar?size=xsmall&avatarId=10122",
+            "32x32": "https://jira.corp.adobe.com/secure/useravatar?size=medium&avatarId=10122"
+          },
+          "displayName": "Jeanette Frascello",
+          "active": true,
+          "timeZone": "Etc/UTC"
+        },
+        "priority": {
+          "self": "https://jira.corp.adobe.com/rest/api/2/priority/8",
+          "iconUrl": "https://jira.corp.adobe.com/images/icons/priorities/normal.png",
+          "name": "Normal",
+          "id": "8"
+        },
+        "labels": [],
+        "issuelinks": [
+          {
+            "id": "16674831",
+            "self": "https://jira.corp.adobe.com/rest/api/2/issueLink/16674831",
+            "type": {
+              "id": "10001",
+              "name": "Cloners",
+              "inward": "is cloned by",
+              "outward": "clones",
+              "self": "https://jira.corp.adobe.com/rest/api/2/issueLinkType/10001"
+            },
+            "outwardIssue": {
+              "id": "18574903",
+              "key": "MWPW-183250",
+              "self": "https://jira.corp.adobe.com/rest/api/2/issue/18574903",
+              "fields": {
+                "summary": "[M@S Express] UI bugs - CTAs / price literals styling",
+                "status": {
+                  "self": "https://jira.corp.adobe.com/rest/api/2/status/12685",
+                  "description": "",
+                  "iconUrl": "https://jira.corp.adobe.com/images/icons/statuses/generic.png",
+                  "name": "Code Review",
+                  "id": "12685",
+                  "statusCategory": {
+                    "self": "https://jira.corp.adobe.com/rest/api/2/statuscategory/4",
+                    "id": 4,
+                    "key": "indeterminate",
+                    "colorName": "inprogress",
+                    "name": "In Progress"
+                  }
+                },
+                "priority": {
+                  "self": "https://jira.corp.adobe.com/rest/api/2/priority/8",
+                  "iconUrl": "https://jira.corp.adobe.com/images/icons/priorities/normal.png",
+                  "name": "Normal",
+                  "id": "8"
+                },
+                "issuetype": {
+                  "self": "https://jira.corp.adobe.com/rest/api/2/issuetype/1",
+                  "id": "1",
+                  "description": "A problem which impairs or prevents the functions of the product.",
+                  "iconUrl": "https://jira.corp.adobe.com/secure/viewavatar?size=xsmall&avatarId=18803&avatarType=issuetype",
+                  "name": "Bug",
+                  "subtask": false,
+                  "avatarId": 18803
+                }
+              }
+            }
+          },
+          {
+            "id": "16967121",
+            "self": "https://jira.corp.adobe.com/rest/api/2/issueLink/16967121",
+            "type": {
+              "id": "10001",
+              "name": "Cloners",
+              "inward": "is cloned by",
+              "outward": "clones",
+              "self": "https://jira.corp.adobe.com/rest/api/2/issueLinkType/10001"
+            },
+            "inwardIssue": {
+              "id": "18973603",
+              "key": "MWPW-185783",
+              "self": "https://jira.corp.adobe.com/rest/api/2/issue/18973603",
+              "fields": {
+                "summary": "[M@S Express] Design QA Part 2 - Simplified & Full Size Cards",
+                "status": {
+                  "self": "https://jira.corp.adobe.com/rest/api/2/status/1",
+                  "description": "",
+                  "iconUrl": "https://jira.corp.adobe.com/images/icons/statuses/open.png",
+                  "name": "Open",
+                  "id": "1",
+                  "statusCategory": {
+                    "self": "https://jira.corp.adobe.com/rest/api/2/statuscategory/2",
+                    "id": 2,
+                    "key": "new",
+                    "colorName": "default",
+                    "name": "To Do"
+                  }
+                },
+                "priority": {
+                  "self": "https://jira.corp.adobe.com/rest/api/2/priority/8",
+                  "iconUrl": "https://jira.corp.adobe.com/images/icons/priorities/normal.png",
+                  "name": "Normal",
+                  "id": "8"
+                },
+                "issuetype": {
+                  "self": "https://jira.corp.adobe.com/rest/api/2/issuetype/1",
+                  "id": "1",
+                  "description": "A problem which impairs or prevents the functions of the product.",
+                  "iconUrl": "https://jira.corp.adobe.com/secure/viewavatar?size=xsmall&avatarId=18803&avatarType=issuetype",
+                  "name": "Bug",
+                  "subtask": false,
+                  "avatarId": 18803
+                }
+              }
+            }
+          }
+        ],
+        "comment": {
+          "comments": [
+            {
+              "self": "https://jira.corp.adobe.com/rest/api/2/issue/18682696/comment/51898619",
+              "id": "51898619",
+              "author": {
+                "self": "https://jira.corp.adobe.com/rest/api/2/user?username=lsogard",
+                "name": "lsogard",
+                "key": "lsogard",
+                "emailAddress": "lsogard@adobe.com",
+                "avatarUrls": {
+                  "48x48": "https://jira.corp.adobe.com/secure/useravatar?ownerId=lsogard&avatarId=61903",
+                  "24x24": "https://jira.corp.adobe.com/secure/useravatar?size=small&ownerId=lsogard&avatarId=61903",
+                  "16x16": "https://jira.corp.adobe.com/secure/useravatar?size=xsmall&ownerId=lsogard&avatarId=61903",
+                  "32x32": "https://jira.corp.adobe.com/secure/useravatar?size=medium&ownerId=lsogard&avatarId=61903"
+                },
+                "displayName": "Lucy Sogard",
+                "active": true,
+                "timeZone": "America/New_York"
+              },
+              "body": "pending consolidation of feedback :) ",
+              "updateAuthor": {
+                "self": "https://jira.corp.adobe.com/rest/api/2/user?username=lsogard",
+                "name": "lsogard",
+                "key": "lsogard",
+                "emailAddress": "lsogard@adobe.com",
+                "avatarUrls": {
+                  "48x48": "https://jira.corp.adobe.com/secure/useravatar?ownerId=lsogard&avatarId=61903",
+                  "24x24": "https://jira.corp.adobe.com/secure/useravatar?size=small&ownerId=lsogard&avatarId=61903",
+                  "16x16": "https://jira.corp.adobe.com/secure/useravatar?size=xsmall&ownerId=lsogard&avatarId=61903",
+                  "32x32": "https://jira.corp.adobe.com/secure/useravatar?size=medium&ownerId=lsogard&avatarId=61903"
+                },
+                "displayName": "Lucy Sogard",
+                "active": true,
+                "timeZone": "America/New_York"
+              },
+              "created": "2025-12-23T18:42:34.000+0000",
+              "updated": "2025-12-23T18:42:34.000+0000"
+            }
+          ],
+          "maxResults": 1,
+          "total": 1,
+          "startAt": 0
+        },
+        "assignee": {
+          "self": "https://jira.corp.adobe.com/rest/api/2/user?username=axel",
+          "name": "axel",
+          "key": "JIRAUSER279234",
+          "emailAddress": "axel@adobe.com",
+          "avatarUrls": {
+            "48x48": "https://jira.corp.adobe.com/secure/useravatar?ownerId=JIRAUSER279234&avatarId=165109",
+            "24x24": "https://jira.corp.adobe.com/secure/useravatar?size=small&ownerId=JIRAUSER279234&avatarId=165109",
+            "16x16": "https://jira.corp.adobe.com/secure/useravatar?size=xsmall&ownerId=JIRAUSER279234&avatarId=165109",
+            "32x32": "https://jira.corp.adobe.com/secure/useravatar?size=medium&ownerId=JIRAUSER279234&avatarId=165109"
+          },
+          "displayName": "Axel Cureno Basurto",
+          "active": true,
+          "timeZone": "America/Los_Angeles"
+        },
+        "updated": "2026-01-06T17:00:11.000+0000",
+        "status": {
+          "self": "https://jira.corp.adobe.com/rest/api/2/status/10060",
+          "description": "The issue is in development",
+          "iconUrl": "https://jira.corp.adobe.com/images/icons/statuses/inprogress.png",
+          "name": "In Development",
+          "id": "10060",
+          "statusCategory": {
+            "self": "https://jira.corp.adobe.com/rest/api/2/statuscategory/4",
+            "id": 4,
+            "key": "indeterminate",
+            "colorName": "inprogress",
+            "name": "In Progress"
+          }
+        }
+      }
+    }
+  ]
+}
+2026-01-06T17:21:09.654Z: Constructing new auth header with email:token format
+2026-01-06T17:21:09.655Z: Making request to: https://jira.corp.adobe.com/rest/api/2/search?jql=key+%3D+MWPW-183848&fields=summary%2Cdescription%2Cstatus%2Cassignee%2Cpriority
+2026-01-06T17:21:09.655Z: Method: GET
+2026-01-06T17:21:09.655Z: Headers: {
+  "Content-Type": "application/json",
+  "Accept": "application/json",
+  "X-Atlassian-Token": "no-check",
+  "User-Agent": "modelcontextprotocol/servers/jira/v0.1.0 Node.js/22",
+  "Authorization": "[REDACTED]"
+}
+2026-01-06T17:21:10.230Z: Response status: 200 
+2026-01-06T17:21:10.231Z: Response headers: {
+  "cache-control": "no-cache, no-store, no-transform",
+  "connection": "keep-alive",
+  "content-encoding": "gzip",
+  "content-security-policy": "sandbox",
+  "content-type": "application/json;charset=UTF-8",
+  "date": "Tue, 06 Jan 2026 17:21:10 GMT",
+  "keep-alive": "timeout=60",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "retry-after": "0",
+  "server": "Application Server",
+  "set-cookie": "JiraDC-BigIP=1575105034.57646.0000; expires=Tue, 06-Jan-2026 22:21:10 GMT; path=/; Httponly; Secure",
+  "strict-transport-security": "max-age=31536000",
+  "transfer-encoding": "chunked",
+  "vary": "User-Agent",
+  "x-anodeid": "or1dra093.corp.adobe.com",
+  "x-arequestid": "1041x3337308x4",
+  "x-asessionid": "17ci4s4",
+  "x-ausername": "axel",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "SAMEORIGIN",
+  "x-ratelimit-fillrate": "35",
+  "x-ratelimit-interval-seconds": "1",
+  "x-ratelimit-limit": "35",
+  "x-ratelimit-remaining": "34",
+  "x-seraph-loginreason": "OK",
+  "x-xss-protection": "1; mode=block"
+}
+2026-01-06T17:21:10.237Z: Response body: {
+  "expand": "names,schema",
+  "startAt": 0,
+  "maxResults": 50,
+  "total": 1,
+  "issues": [
+    {
+      "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+      "id": "18682696",
+      "self": "https://jira.corp.adobe.com/rest/api/2/issue/18682696",
+      "key": "MWPW-183848",
+      "fields": {
+        "summary": "[M@S Express] Design QA - Simplified & Full Size Cards",
+        "description": "+*Requirement:*+\r\n\r\n Please update the requested UI & functional fixes below to meet the current Express/Milo design requirements\r\n * *P0: Major UI, Functional, or Accessibility*\r\n ** *Simplified Cards*\r\n *** The width of cards for tablet is set to mobile fixed width currently such that cards are displaying as mobile size not tablet size. They should take up 8 of 12 columns in a grid system.\r\n *** Icon tooltips:\r\n **** Icon tooltips remain visible on click/tap and do not disappear when another icon is hovered/clicked causing overlap.\r\n!Screenshot 2026-01-05 at 9.43.36 PM.png|width=225,height=205!\r\n **** The arrow of each icon tooltip does not disappear as quickly as rest of tooltip when cursor is moved\r\n *** All icons should be aligned across cards no matter the text height {color:#ff0000}(raised in another JIRA){color}\r\n *** On mobile:\r\n **** the expansion and collapsing of cards goes too quickly, should be a slower animation.\r\n **** user should be able to click anywhere in the card to expand or collapse, not just the carrot.\r\n **** darkest left icon tooltip gets cut off outside of card\r\n **** width of the cards shouldn't be fixed but responsive to viewport with 16px margins.\r\n\r\n * \r\n ** *Full Size Cards*\r\n *** On tablet, cards are displaying as mobile size not tablet size\r\n *** Need ability to have card border color without the colored cap at the top of card.\r\n!Screenshot 2026-01-05 at 10.32.50 PM.png|width=599,height=246!\r\n *** Premium icon (crown) is not using correct gradient color, also size of icon should be 14px by 14px on mobile/tablet.\r\n *** Seat number icons (2+ & 100+) are different sizes, please match to the 100+ size)\r\n *** CTAs are too big. They should use button size - large or 48px height (documentation provided in figma comment)\r\n *** Secondary CTAs should use grey color as per figma {color:#ff0000}(raised in another JIRA){color}\r\n *** {color:#172b4d}/mo per license font size and color needs fixed  - should be 12px bold specs provided in figma comment (raised in another JIRA){color}\r\n *** hyperlinked text under feature list is not displaying as underlined text\r\n\r\n!Screenshot 2025-11-17 at 10.41.30 PM.png|width=190,height=313! Vs  !Screenshot 2025-11-17 at 10.43.33 PM.png|width=174,height=222!\r\n\r\n \r\n * *P1 items - please look at MWPW-185783: Typography, Spacing, Padding*\r\n\r\n \r\n\r\n*Figma with annotations*\r\n\r\n[https://www.figma.com/design/rHeuOYAwNriEkl6Nr5HIQ5/Firefly-Pro-Pricing-Updates?node-id=2795-232057&t=0qhwrSZdGg3vTwUp-4] \r\n\r\n*Test pages for reference:*\r\n - Homepage (Simplified Cards) - [https://main--da-express-milo--adobecom.aem.page/express/pre-launch/mas/homepage-poc?tab=3] \r\n - Pricing Page (Full Size cards) - [https://main--da-express-milo--adobecom.aem.page/express/pre-launch/mas/pricing-poc-2?tab=2] \r\n\r\n \r\n\r\n*Acceptance:*\r\n - All issues described above are resolved",
+        "assignee": {
+          "self": "https://jira.corp.adobe.com/rest/api/2/user?username=axel",
+          "name": "axel",
+          "key": "JIRAUSER279234",
+          "emailAddress": "axel@adobe.com",
+          "avatarUrls": {
+            "48x48": "https://jira.corp.adobe.com/secure/useravatar?ownerId=JIRAUSER279234&avatarId=165109",
+            "24x24": "https://jira.corp.adobe.com/secure/useravatar?size=small&ownerId=JIRAUSER279234&avatarId=165109",
+            "16x16": "https://jira.corp.adobe.com/secure/useravatar?size=xsmall&ownerId=JIRAUSER279234&avatarId=165109",
+            "32x32": "https://jira.corp.adobe.com/secure/useravatar?size=medium&ownerId=JIRAUSER279234&avatarId=165109"
+          },
+          "displayName": "Axel Cureno Basurto",
+          "active": true,
+          "timeZone": "America/Los_Angeles"
+        },
+        "priority": {
+          "self": "https://jira.corp.adobe.com/rest/api/2/priority/8",
+          "iconUrl": "https://jira.corp.adobe.com/images/icons/priorities/normal.png",
+          "name": "Normal",
+          "id": "8"
+        },
+        "status": {
+          "self": "https://jira.corp.adobe.com/rest/api/2/status/10060",
+          "description": "The issue is in development",
+          "iconUrl": "https://jira.corp.adobe.com/images/icons/statuses/inprogress.png",
+          "name": "In Development",
+          "id": "10060",
+          "statusCategory": {
+            "self": "https://jira.corp.adobe.com/rest/api/2/statuscategory/4",
+            "id": 4,
+            "key": "indeterminate",
+            "colorName": "inprogress",
+            "name": "In Progress"
+          }
+        }
+      }
+    }
+  ]
+}

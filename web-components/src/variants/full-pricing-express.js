@@ -137,11 +137,12 @@ export class FullPricingExpress extends VariantLayout {
 
     renderLayout() {
         return html`
-            ${this.badge
-                ? html`<div class="badge-wrapper">
-                      <slot name="badge"></slot>
-                  </div>`
-                : html`<slot name="badge" hidden></slot>`}
+            <div
+                class="badge-wrapper"
+                style="${this.badge ? '' : 'visibility: hidden'}"
+            >
+                <slot name="badge"></slot>
+            </div>
             <div class="card-content">
                 <div class="header">
                     <slot name="heading-xs"></slot>

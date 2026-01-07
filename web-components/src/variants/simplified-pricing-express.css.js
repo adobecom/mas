@@ -132,11 +132,7 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child 
 merch-card[variant="simplified-pricing-express"] [slot="price"] span[is="inline-price"] {
   font-size: var(--merch-card-simplified-pricing-express-price-p-font-size);
   line-height: var(--merch-card-simplified-pricing-express-price-p-line-height);
-}
-
-merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"] {
-  font-size: var(--merch-card-simplified-pricing-express-price-font-size);
-  line-height: var(--merch-card-simplified-pricing-express-price-line-height);
+  font-weight: bold;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] span[is="inline-price"][data-template="optical"] {
@@ -218,7 +214,8 @@ merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-te
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-integer,
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals-delimiter,
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals,
-merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-recurrence {
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-recurrence,
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-unit-type {
   font-size: var(--merch-card-simplified-pricing-express-price-p-font-size);
   font-weight: var(--merch-card-simplified-pricing-express-price-p-font-weight);
   line-height: var(--merch-card-simplified-pricing-express-price-p-line-height);
@@ -258,14 +255,19 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 
 /* Mobile styles */
 @media screen and ${MOBILE_LANDSCAPE} {
+  .collection-container.simplified-pricing-express {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
   merch-card-collection.simplified-pricing-express {
     gap: 8px;
-    padding: 0 16px;
+    width: 100%;
     max-width: 100%;
   }
 
   merch-card[variant="simplified-pricing-express"] {
-    width: calc(100% - 32px);
+    width: 100%;
     max-width: none;
     margin: 0 auto;
   }
@@ -294,12 +296,11 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
   }
 }
 
-/* Collapse/expand styles for all tablet and mobile viewports */
-@media screen and ${TABLET_DOWN} {
+/* Collapse/expand styles for mobile only */
+@media screen and ${MOBILE_LANDSCAPE} {
   /* Base transition for smooth animation */
   merch-card[variant="simplified-pricing-express"] {
     transition: max-height 0.3s ease-out;
-    overflow: hidden;
   }
 
   merch-card[variant="simplified-pricing-express"] [slot="body-xs"],
@@ -328,7 +329,6 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
   merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="price"],
   merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="cta"] {
     opacity: 1;
-    max-height: 1000px;
     pointer-events: auto;
   }
 
@@ -344,27 +344,28 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
   merch-card[variant="simplified-pricing-express"][gradient-border="true"]:not([data-expanded="true"]) {
     max-height: 85px;
   }
-
-  /* Expanded card has no max-height restriction */
-  merch-card[variant="simplified-pricing-express"][data-expanded="true"] {
-    max-height: 2000px;
-  }
 }
 
-/* Tablet styles - 8/12 column width (66.67%) */
+/* Tablet styles - responsive full width with padding */
 @media screen and ${TABLET_UP} and ${TABLET_DOWN} {
-  merch-card-collection.simplified-pricing-express {
-    padding: var(--spacing-m) 32px;
-    grid-template-columns: 1fr;
-    gap: 24px;
-    max-width: 66.67%;
+  .collection-container.simplified-pricing-express {
+    display: block;
     width: 100%;
-    margin: 0 auto;
+    padding: 0 32px;
+    box-sizing: border-box;
+  }
+
+  merch-card-collection.simplified-pricing-express {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
   }
 
   merch-card[variant="simplified-pricing-express"] {
       width: 100%;
       min-width: unset;
+      max-width: 100%;
   }
 }
 

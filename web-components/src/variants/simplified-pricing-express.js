@@ -1,7 +1,7 @@
 import { html, css } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './simplified-pricing-express.css.js';
-import { isDesktop, TABLET_DOWN } from '../media.js';
+import { isDesktop, MOBILE_LANDSCAPE } from '../media.js';
 
 export const SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
     title: {
@@ -157,7 +157,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
         updateExpandedState();
 
-        const mediaQuery = window.matchMedia(TABLET_DOWN);
+        const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
         this.mediaQueryListener = () => {
             updateExpandedState();
         };
@@ -166,7 +166,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
     disconnectedCallbackHook() {
         if (this.mediaQueryListener) {
-            const mediaQuery = window.matchMedia(TABLET_DOWN);
+            const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
             mediaQuery.removeEventListener('change', this.mediaQueryListener);
         }
     }
@@ -177,8 +177,12 @@ export class SimplifiedPricingExpress extends VariantLayout {
         this.toggleExpanded();
     }
 
-    handleHeaderClick(e) {
-        if (e.target.closest('.chevron-button')) {
+    handleCardClick(e) {
+        if (
+            e.target.closest(
+                '.chevron-button, mas-mnemonic, button, a, [role="button"]',
+            )
+        ) {
             return;
         }
         e.preventDefault();
@@ -200,13 +204,14 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
     renderLayout() {
         return html`
-            ${this.badge
-                ? html`<div class="badge-wrapper">
-                      <slot name="badge"></slot>
-                  </div>`
-                : html`<slot name="badge" hidden></slot>`}
-            <div class="card-content">
-                <div class="header" @click=${(e) => this.handleHeaderClick(e)}>
+            <div
+                class="badge-wrapper"
+                style="${this.badge ? '' : 'visibility: hidden'}"
+            >
+                <slot name="badge"></slot>
+            </div>
+            <div class="card-content" @click=${(e) => this.handleCardClick(e)}>
+                <div class="header">
                     <slot name="heading-xs"></slot>
                     <slot name="trial-badge"></slot>
                     <button
@@ -333,15 +338,6 @@ export class SimplifiedPricingExpress extends VariantLayout {
                     --consonant-merch-card-border-color,
                     var(--spectrum-gray-100)
                 );
-        }
-
-        :host(
-                [variant='simplified-pricing-express']:not(
-                        [gradient-border='true']
-                    )[data-expanded='false']
-            )
-            .card-content {
-            overflow: hidden;
         }
 
         :host(
@@ -528,11 +524,44 @@ export class SimplifiedPricingExpress extends VariantLayout {
             transform: rotate(180deg);
         }
 
-        /* Mobile and Tablet styles */
-        @media (max-width: 1199px) {
+        /* Tablet styles - full width, no accordion */
+        @media (min-width: 768px) and (max-width: 1199px) {
             :host([variant='simplified-pricing-express']) {
-                width: 311px;
-                max-width: 311px;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            :host(
+                    [variant='simplified-pricing-express'][gradient-border='true']
+                )
+                .card-content,
+            :host(
+                    [variant='simplified-pricing-express']:not(
+                            [gradient-border='true']
+                        )
+                )
+                .card-content {
+                padding: var(
+                    --merch-card-simplified-pricing-express-padding-mobile
+                );
+            }
+
+            /* Hide badge-wrapper on tablet except for gradient borders */
+            :host(
+                    [variant='simplified-pricing-express']:not(
+                            [gradient-border='true']
+                        )
+                )
+                .badge-wrapper {
+                display: none;
+            }
+        }
+
+        /* Mobile only styles - accordion behavior */
+        @media (max-width: 767px) {
+            :host([variant='simplified-pricing-express']) {
+                width: 100%;
+                max-width: 100%;
                 min-height: auto;
                 cursor: pointer;
                 transition: all 0.3s ease;
@@ -569,7 +598,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 );
             }
 
-            /* Hide badge-wrapper on mobile/tablet except for gradient borders */
+            /* Hide badge-wrapper on mobile except for gradient borders */
             :host(
                     [variant='simplified-pricing-express']:not(
                             [gradient-border='true']
@@ -579,11 +608,23 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 display: none;
             }
 
+            /* Non-gradient border collapsed state - limit card-content height */
+            :host(
+                    [variant='simplified-pricing-express']:not(
+                            [gradient-border='true']
+                        )[data-expanded='false']
+                )
+                .card-content {
+                max-height: 50px;
+                overflow: hidden;
+            }
+
             /* Gradient border collapsed state - limit badge-wrapper height */
             :host(
                     [variant='simplified-pricing-express'][gradient-border='true'][data-expanded='false']
                 )
                 .card-content {
+                max-height: 50px;
                 overflow: hidden;
                 padding: 16px 16px 35px 16px;
             }

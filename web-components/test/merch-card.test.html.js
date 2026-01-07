@@ -98,4 +98,59 @@ runTests(async () => {
         expect(borderColor).to.exist;
         expect(borderColor).to.not.equal('');
     });
+
+    describe('variant stylesheet handling', () => {
+        it('should apply variant stylesheet to shadowRoot.adoptedStyleSheets', async () => {
+            const plansCard = document.querySelector(
+                'merch-card[variant="plans"]',
+            );
+            expect(plansCard.shadowRoot.adoptedStyleSheets).to.be.an('array');
+            expect(
+                plansCard.shadowRoot.adoptedStyleSheets.length,
+            ).to.be.greaterThan(0);
+        });
+
+        it('should cache stylesheet for same variant cards', async () => {
+            const plansCards = document.querySelectorAll(
+                'merch-card[variant="plans"]',
+            );
+            expect(plansCards.length).to.be.greaterThan(1);
+            const sheets1 = plansCards[0].shadowRoot.adoptedStyleSheets;
+            const sheets2 = plansCards[1].shadowRoot.adoptedStyleSheets;
+            const variantSheet1 = sheets1[sheets1.length - 1];
+            const variantSheet2 = sheets2[sheets2.length - 1];
+            expect(variantSheet1).to.equal(variantSheet2);
+        });
+
+        it('should not have duplicate stylesheets in adoptedStyleSheets', async () => {
+            const plansCard = document.querySelector(
+                'merch-card[variant="plans"]',
+            );
+            const sheets = plansCard.shadowRoot.adoptedStyleSheets;
+            const uniqueSheets = new Set(sheets);
+            expect(sheets.length).to.equal(uniqueSheets.size);
+        });
+
+        it('should have different stylesheets for different variants', async () => {
+            const plansCard = document.querySelector(
+                'merch-card[variant="plans"]',
+            );
+            const segmentCard = document.querySelector(
+                'merch-card[variant="segment"]',
+            );
+            const plansSheets = plansCard.shadowRoot.adoptedStyleSheets;
+            const segmentSheets = segmentCard.shadowRoot.adoptedStyleSheets;
+            const plansVariantSheet = plansSheets[plansSheets.length - 1];
+            const segmentVariantSheet = segmentSheets[segmentSheets.length - 1];
+            expect(plansVariantSheet).to.not.equal(segmentVariantSheet);
+        });
+
+        it('should have variantLayout property set on card', async () => {
+            const plansCard = document.querySelector(
+                'merch-card[variant="plans"]',
+            );
+            expect(plansCard.variantLayout).to.exist;
+            expect(plansCard.variantLayout.card).to.equal(plansCard);
+        });
+    });
 });

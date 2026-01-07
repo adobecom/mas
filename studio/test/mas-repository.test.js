@@ -82,16 +82,6 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
-    describe('getFallbackLocale', () => {
-        it('returns fallback locale or null', () => {
-            const repository = createRepository();
-
-            expect(repository.getFallbackLocale('fr_CA')).to.equal('fr_FR');
-            expect(repository.getFallbackLocale('ja_JP')).to.be.null;
-            expect(repository.getFallbackLocale()).to.be.null;
-        });
-    });
-
     describe('ensureDictionaryFolder', () => {
         it('handles invalid paths and existing folders', async () => {
             const repository = createRepository();

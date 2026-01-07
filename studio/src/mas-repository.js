@@ -25,7 +25,8 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
+import { getDefaultLocale, getLocaleCode } from './locales.js';
+import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
 import { TranslationProject } from './translation/translation-project.js';
@@ -66,15 +67,8 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
         return field;
     });
 
-    const cacheData = {
-        id: previewFragment.id,
-        fields: normalizedFields,
-        tags: previewFragment.tags || [],
-        settings: previewFragment.settings || {},
-        priceLiterals: previewFragment.priceLiterals || {},
-        dictionary: previewFragment.dictionary || {},
-        placeholders: previewFragment.placeholders || {},
-    };
+    const cacheData = new Fragment(previewFragment);
+    cacheData.fields = normalizedFields;
 
     fragmentCache.add(cacheData);
 }
@@ -522,6 +516,11 @@ export class MasRepository extends LitElement {
             },
             locale: this.filters.value.locale,
             surface: this.search.value.path,
+            networkConfig: {
+                mainTimeout: 15000,
+                fetchTimeout: 10000,
+                retries: 3,
+            },
         };
 
         // Pass abort signal if available (fragment-client may support it)
@@ -563,7 +562,7 @@ export class MasRepository extends LitElement {
     }
 
     getDictionaryPath() {
-        return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+        return `${ROOT_PATH}/${Store.surface()}/${Store.localeOrRegion()}/dictionary`;
     }
 
     parseDictionaryPath(dictionaryPath) {
@@ -589,14 +588,6 @@ export class MasRepository extends LitElement {
         const trimmedSurface = surfacePath?.replace(/^\/+|\/+$/g, '') ?? '';
         const prefix = trimmedSurface ? `${ROOT_PATH}/${trimmedSurface}` : ROOT_PATH;
         return `${prefix}/${locale}/dictionary`;
-    }
-
-    getFallbackLocale(locale) {
-        if (!locale) return null;
-        const [languageCode] = locale.split('_');
-        const match = LOCALE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
-        if (!match || match === locale) return null;
-        return match;
     }
 
     async ensureDictionaryFolder(dictionaryPath) {
@@ -754,8 +745,7 @@ export class MasRepository extends LitElement {
         const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
 
         let parentReference = null;
-
-        const fallbackLocale = this.getFallbackLocale(locale);
+        const fallbackLocale = getLocaleCode(getDefaultLocale(locale, surfaceRoot));
         const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
         const acomFallbackLocale = fallbackLocale ?? locale;
 

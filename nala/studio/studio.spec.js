@@ -112,6 +112,10 @@ export default {
         {
             tcid: '12',
             name: '@studio-locale-change',
+            data: {
+                localePicker: 'French (FR)',
+                locale: 'fr_FR',
+            },
             path: '/studio.html',
             tags: '@mas-studio',
         },
@@ -120,6 +124,17 @@ export default {
             name: '@studio-table-view',
             path: '/studio.html',
             browserParams: '#page=content&path=nala',
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '14',
+            name: '@studio-create-fragment',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala',
+            data: {
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                variant: 'plans',
+            },
             tags: '@mas-studio',
         },
     ],

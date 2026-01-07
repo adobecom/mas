@@ -13,8 +13,6 @@ import './mas-translation-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
-import './filters/locale-picker.js';
-import './filters/mas-nav-locale-picker.js';
 import './fields/user-picker.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
@@ -83,6 +81,12 @@ class MasStudio extends LitElement {
                 this.renderCommerceService();
             }
         };
+        const regionSubscription = (value, oldValue) => {
+            if (value.region !== oldValue.region) {
+                this.renderCommerceService();
+            }
+        };
+        Store.search.subscribe(regionSubscription);
         Store.filters.subscribe(subscription);
         this.#unsubscribeLocaleObserver = () => Store.filters.unsubscribe(subscription);
     }
@@ -194,8 +198,8 @@ class MasStudio extends LitElement {
     }
 
     renderCommerceService() {
-        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
+        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {

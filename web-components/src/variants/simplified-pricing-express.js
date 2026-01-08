@@ -500,14 +500,14 @@ export class SimplifiedPricingExpress extends VariantLayout {
             border: none;
             padding: 0;
             cursor: pointer;
-            transition: transform 0.3s ease;
+            transition: transform 0.5s ease;
         }
 
         :host([variant='simplified-pricing-express']) .chevron-icon {
             width: 24px;
             height: 24px;
             color: var(--spectrum-gray-800);
-            transition: transform 0.3s ease;
+            transition: transform 0.5s ease;
         }
 
         /* Chevron rotation based on parent card's data-expanded attribute */
@@ -558,7 +558,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 max-width: 100%;
                 min-height: auto;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: all 0.5s ease;
             }
 
             :host([variant='simplified-pricing-express']) .header {
@@ -590,6 +590,9 @@ export class SimplifiedPricingExpress extends VariantLayout {
                         ) +
                         2px
                 );
+                transition:
+                    max-height 0.5s ease-out,
+                    padding 0.5s ease-out;
             }
 
             /* Hide badge-wrapper on mobile except for gradient borders */
@@ -611,6 +614,9 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 .card-content {
                 max-height: 50px;
                 overflow: hidden;
+                transition:
+                    max-height 0.5s ease-out,
+                    padding 0.5s ease-out;
             }
 
             /* Gradient border collapsed state - limit badge-wrapper height */
@@ -621,6 +627,15 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 max-height: 50px;
                 overflow: hidden;
                 padding: 16px 16px 35px 16px;
+                transition:
+                    max-height 0.5s ease-out,
+                    padding 0.5s ease-out;
+            }
+
+            /* Expanded state - explicit max-height for animation (CSS can't animate to 'auto') */
+            :host([variant='simplified-pricing-express'][data-expanded='true'])
+                .card-content {
+                max-height: 1000px;
             }
         }
     `;

@@ -3337,13 +3337,13 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 @media screen and ${O} {
   /* Base transition for smooth animation */
   merch-card[variant="simplified-pricing-express"] {
-    transition: max-height 0.3s ease-out;
+    transition: max-height 0.5s ease-out;
   }
 
   merch-card[variant="simplified-pricing-express"] [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"] [slot="price"],
   merch-card[variant="simplified-pricing-express"] [slot="cta"] {
-    transition: opacity 0.3s ease-out, max-height 0.3s ease-out;
+    transition: opacity 0.5s ease-out, max-height 0.5s ease-out;
   }
 
   /* Collapsed state - hide content sections with animation */
@@ -3720,14 +3720,14 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
             border: none;
             padding: 0;
             cursor: pointer;
-            transition: transform 0.3s ease;
+            transition: transform 0.5s ease;
         }
 
         :host([variant='simplified-pricing-express']) .chevron-icon {
             width: 24px;
             height: 24px;
             color: var(--spectrum-gray-800);
-            transition: transform 0.3s ease;
+            transition: transform 0.5s ease;
         }
 
         /* Chevron rotation based on parent card's data-expanded attribute */
@@ -3778,7 +3778,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 max-width: 100%;
                 min-height: auto;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: all 0.5s ease;
             }
 
             :host([variant='simplified-pricing-express']) .header {
@@ -3810,6 +3810,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                         ) +
                         2px
                 );
+                transition: max-height 0.5s ease-out, padding 0.5s ease-out;
             }
 
             /* Hide badge-wrapper on mobile except for gradient borders */
@@ -3831,6 +3832,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 .card-content {
                 max-height: 50px;
                 overflow: hidden;
+                transition: max-height 0.5s ease-out, padding 0.5s ease-out;
             }
 
             /* Gradient border collapsed state - limit badge-wrapper height */
@@ -3841,6 +3843,13 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 max-height: 50px;
                 overflow: hidden;
                 padding: 16px 16px 35px 16px;
+                transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+            }
+
+            /* Expanded state - explicit max-height for animation (CSS can't animate to 'auto') */
+            :host([variant='simplified-pricing-express'][data-expanded='true'])
+                .card-content {
+                max-height: 1000px;
             }
         }
     `);import{html as as,css as ns}from"./lit-all.min.js";var ua=`

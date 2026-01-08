@@ -307,13 +307,13 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 @media screen and ${MOBILE_LANDSCAPE} {
   /* Base transition for smooth animation */
   merch-card[variant="simplified-pricing-express"] {
-    transition: max-height 0.3s ease-out;
+    transition: max-height 0.5s ease-out;
   }
 
   merch-card[variant="simplified-pricing-express"] [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"] [slot="price"],
   merch-card[variant="simplified-pricing-express"] [slot="cta"] {
-    transition: opacity 0.3s ease-out, max-height 0.3s ease-out;
+    transition: opacity 0.5s ease-out, max-height 0.5s ease-out;
   }
 
   /* Collapsed state - hide content sections with animation */

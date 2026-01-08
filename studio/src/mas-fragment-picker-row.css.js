@@ -39,9 +39,15 @@ export const styles = css`
     }
 
     .offer-id {
-        display: flex;
-        align-items: center;
         color: var(--link-color);
+
+        div {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            max-width: 80px;
+            overflow: hidden;
+        }
 
         sp-button {
             --spectrum-accent-background-color-default: transparent;
@@ -84,37 +90,16 @@ export const styles = css`
         padding: 0 20px 16px 44px;
         border-top: 1px solid var(--spectrum-gray-300);
 
-        sp-table,
-        sp-table-body,
-        sp-table-row {
-            position: initial;
+        sp-table {
+            position: relative;
+            z-index: 1;
         }
 
-        sp-table-row::before {
-            content: '';
+        .tree-connectors {
             position: absolute;
-            left: 30px;
-            top: 0;
-            bottom: 0;
-            width: 1px;
-            background-color: var(--spectrum-gray-300);
+            inset: 0;
             pointer-events: none;
-        }
-
-        sp-table-row::after {
-            content: '';
-            position: absolute;
-            left: 30px;
-            top: 60%;
-            width: 12px;
-            height: 1px;
-            background-color: var(--spectrum-gray-300);
-            transform: translateY(-0.5px);
-            pointer-events: none;
-        }
-
-        sp-table-row.is-last::before {
-            bottom: 40%;
+            z-index: 0;
         }
     }
 `;

@@ -124,8 +124,20 @@ export const styles = css`
         }
 
         .selected-files-count {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 6px;
             margin-bottom: 32px;
-            text-align: end;
+
+            sp-button {
+                background-color: transparent;
+            }
+
+            sp-icon-export {
+                transform: rotate(180deg);
+                transition: transform 0.3s ease-in-out;
+            }
         }
     }
 `;

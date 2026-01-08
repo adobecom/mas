@@ -101,6 +101,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-unlink.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-user.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-view-grid-fluid.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-history.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-export.js';
 import '@spectrum-web-components/link/sp-link.js';
 import '@spectrum-web-components/menu/sp-menu-divider.js';
 import '@spectrum-web-components/menu/sp-menu-group.js';

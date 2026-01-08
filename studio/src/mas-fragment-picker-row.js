@@ -41,11 +41,6 @@ class MasFragmentPickerRow extends LitElement {
         return this.fragment.fields?.find(({ name }) => name === 'osi')?.values?.[0];
     }
 
-    get truncatedOfferId() {
-        if (!this.offerData?.offerId || this.offerData?.offerId.length <= 5) return this.offerData?.offerId;
-        return `...${this.offerData?.offerId.slice(-5)}`;
-    }
-
     async copyOfferIdToClipboard(e) {
         e.stopPropagation();
         const offerId = this.offerData?.offerId;
@@ -140,7 +135,7 @@ class MasFragmentPickerRow extends LitElement {
                 <sp-table-cell>${this.offerData?.productArrangement?.productFamily}</sp-table-cell>
                 <sp-table-cell>${this.fragment.title}</sp-table-cell>
                 <sp-table-cell class="offer-id" title=${this.offerData?.offerId}>
-                    <div>${this.truncatedOfferId}</div>
+                    <div>${this.offerData?.offerId}</div>
                     ${this.offerId
                         ? html`<sp-button
                               icon-only
@@ -162,31 +157,26 @@ class MasFragmentPickerRow extends LitElement {
                             this.fragment.references || [],
                             (reference) => reference.id,
                             (reference) =>
-                                (references => references.map((reference, idx, arr) =>
-                                    html`<sp-table-row
-                                        value=${reference.id}
-                                        class=${idx === arr.length - 1 ? 'is-last' : ''}
-                                    >
-                                        <sp-table-cell>
-                                            ${this.offerData?.productArrangement?.productFamily} ${reference.locale}
-                                        </sp-table-cell>
-                                        <sp-table-cell>${reference.title}</sp-table-cell>
-                                        <sp-table-cell class="offer-id" title=${this.offerData?.offerId}>
-                                            <div>${this.truncatedOfferId}</div>
-                                            ${this.offerId
-                                                ? html`<sp-button
-                                                      icon-only
-                                                      aria-label="Copy Offer ID to clipboard"
-                                                      @click=${this.copyOfferIdToClipboard}
-                                                  >
-                                                      <sp-icon-copy slot="icon"></sp-icon-copy>
-                                                  </sp-button>`
-                                                : ''}
-                                        </sp-table-cell>
-                                        <sp-table-cell>${reference.path}</sp-table-cell>
-                                        ${this.renderStatus(this.fragment.status)}
-                                    </sp-table-row>`
-                                ))(this.fragment.references || [])
+                                html` <sp-table-row value=${reference.id}>
+                                    <sp-table-cell>
+                                        ${this.offerData?.productArrangement?.productFamily} ${reference.locale}
+                                    </sp-table-cell>
+                                    <sp-table-cell>${reference.title}</sp-table-cell>
+                                    <sp-table-cell class="offer-id" title=${this.offerData?.offerId}>
+                                        <div>${this.offerData?.offerId}</div>
+                                        ${this.offerId
+                                            ? html`<sp-button
+                                                  icon-only
+                                                  aria-label="Copy Offer ID to clipboard"
+                                                  @click=${this.copyOfferIdToClipboard}
+                                              >
+                                                  <sp-icon-copy slot="icon"></sp-icon-copy>
+                                              </sp-button>`
+                                            : ''}
+                                    </sp-table-cell>
+                                    <sp-table-cell>${reference.path}</sp-table-cell>
+                                    ${this.renderStatus(this.fragment.status)}
+                                </sp-table-row>`
                         )}
                     </sp-table-body>
                 </sp-table>

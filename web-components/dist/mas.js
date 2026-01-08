@@ -7310,7 +7310,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     merch-card[variant="ah-try-buy-widget"] [slot="image"] {
       display: none;
     }
-    
+
     merch-card[variant="ah-try-buy-widget"][size='single'] [slot="image"] {
       display: flex;
       width: 199px;
@@ -7329,12 +7329,12 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
 
     .spectrum--dark merch-card[variant="ah-try-buy-widget"][background-color='gray'],
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"][background-color='gray'] {
-      --merch-card-ah-try-buy-widget-gray-background: rgb(27, 27, 27);
+      --merch-card-ah-try-buy-widget-gray-background: rgb(34, 34, 34);
     }
 
     .spectrum--dark merch-card[variant="ah-try-buy-widget"],
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"] {
-      --consonant-merch-card-background-color:rgb(17, 17, 17);
+      --consonant-merch-card-background-color:rgb(34, 34, 34);
       --consonant-merch-card-heading-xxxs-color:rgb(242, 242, 242);
       --consonant-merch-card-body-xxs-color:rgb(219, 219, 219);
     }
@@ -7343,7 +7343,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"]:hover {
       --consonant-merch-card-border-color:rgb(73, 73, 73);
     }
-`;var Ra={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"fuchsia"},allowedBadgeColors:["fuchsia"],description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{}},allowedColors:{gray:"--spectrum-gray-100"},size:["single","double","triple"]},ar=class extends T{getGlobalCSS(){return qc}get aemFragmentMapping(){return Ra}renderLayout(){return f`
+`;var Ra={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"fuchsia"},allowedBadgeColors:["fuchsia"],description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{gradient:"linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)"}},allowedColors:{gray:"--spectrum-gray-75"},size:["single","double","triple"]},ar=class extends T{getGlobalCSS(){return qc}get aemFragmentMapping(){return Ra}renderLayout(){return f`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -7387,6 +7387,26 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             gap: 16px;
             justify-content: space-between;
             box-sizing: border-box !important;
+        }
+
+        :host([variant='ah-try-buy-widget'][gradient-border='true']) {
+            border: none;
+            padding: 15px !important;
+            background-origin: padding-box, border-box;
+            background-clip: padding-box, border-box;
+            background-image: linear-gradient(
+                    to bottom,
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    ),
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    )
+                ),
+                linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%);
+            border: 1px solid transparent;
         }
 
         :host([variant='ah-try-buy-widget'][size='single']) {

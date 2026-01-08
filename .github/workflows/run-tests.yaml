@@ -1,36 +1,33 @@
 name: Unit Tests
 on:
-    push:
-        branches:
-            - main
-    pull_request:
-        types: [opened, synchronize, reopened]
-    workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 jobs:
-    run-tests:
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                node-version: [20.x]
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 2
+  run-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-            - name: Set up Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v4
-              with:
-                  node-version: ${{ matrix.node-version }}
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
-            - name: run npm clean install
-              run: npm ci
+      - name: run npm clean install
+        run: npm ci
 
-            - name: Force update @adobecom/milo dependency
-              run: npm add github:adobecom/milo#stage
+      - name: Install XVFB
+        run: sudo apt-get install xvfb
 
-            - name: Install XVFB
-              run: sudo apt-get install xvfb
-
-            - name: Run the tests
-              run: xvfb-run -a npm test
+      - name: Run the tests
+        run: xvfb-run -a npm test

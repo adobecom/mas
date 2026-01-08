@@ -23,7 +23,6 @@
         "url": "git@github.com:adobecom/mas.git"
     },
     "dependencies": {
-        "@adobecom/milo": "github:adobecom/milo#stage",
         "@playwright/test": "^1.56.1",
         "@spectrum-css/button": "^13.5.0",
         "@spectrum-css/link": "^5.2.0",

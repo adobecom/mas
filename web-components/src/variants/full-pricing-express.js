@@ -75,8 +75,19 @@ export class FullPricingExpress extends VariantLayout {
         return '[slot="heading-xs"]';
     }
 
-    get badge() {
+    get badgeElement() {
         return this.card.querySelector('[slot="badge"]');
+    }
+
+    get badge() {
+        return html`
+            <div
+                class="badge-wrapper"
+                style="${this.badgeElement ? '' : 'visibility: hidden'}"
+            >
+                <slot name="badge"></slot>
+            </div>
+        `;
     }
 
     syncHeights() {
@@ -137,12 +148,7 @@ export class FullPricingExpress extends VariantLayout {
 
     renderLayout() {
         return html`
-            <div
-                class="badge-wrapper"
-                style="${this.badge ? '' : 'visibility: hidden'}"
-            >
-                <slot name="badge"></slot>
-            </div>
+            ${this.badge}
             <div class="card-content">
                 <div class="header">
                     <slot name="heading-xs"></slot>

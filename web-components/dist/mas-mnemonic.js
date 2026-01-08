@@ -48,7 +48,7 @@ var r=Object.defineProperty;var n=(i,t,o)=>t in i?r(i,t,{enumerable:!0,configura
             border-radius: 4px;
             white-space: normal;
             width: max-content;
-            max-width: 200px;
+            max-width: 60px;
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
@@ -136,11 +136,6 @@ var r=Object.defineProperty;var n=(i,t,o)=>t in i?r(i,t,{enumerable:!0,configura
             transform: translateY(-50%);
             margin-right: 5px;
             border-left-color: var(--spectrum-gray-800, #323232);
-        }
-
-        /* Prevent tooltip cutoff on edges */
-        .css-tooltip.top[data-tooltip]::before {
-            max-width: min(200px, calc(100vw - 32px));
         }
 
         .css-tooltip.right[data-tooltip]::before {

@@ -807,6 +807,18 @@ export class MerchCard extends LitElement {
             ?.textContent?.trim();
     }
 
+    get unitText() {
+        const unitTextSelector = '.price-unit-type';
+        return (
+            this.#legal?.querySelector(unitTextSelector)?.textContent?.trim() ??
+            this.#regularPrice
+                ?.querySelector(unitTextSelector)
+                ?.textContent?.trim() ??
+            this.querySelector(unitTextSelector)?.textContent?.trim() ??
+            undefined
+        );
+    }
+
     get planTypeText() {
         return this.querySelector(
             '[is="inline-price"][data-template="legal"] span.price-plan-type',

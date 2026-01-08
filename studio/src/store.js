@@ -69,6 +69,9 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    version: {
+        fragmentId: new ReactiveStore(null),
+    },
     promotions: {
         list: {
             loading: new ReactiveStore(true),
@@ -136,6 +139,7 @@ function pageValidator(value) {
         PAGE_NAMES.WELCOME,
         PAGE_NAMES.CONTENT,
         PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.VERSION,
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,

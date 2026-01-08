@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
     <head>
+        <script>
+            window.__swc = { warn: () => {} };
+        </script>
         <script type="module">
             window.process = { env: {} };
             window.__swc = { warn: () => {} };
@@ -50,6 +53,7 @@
 
             runTests(async () => {
                 await mockFetch(withWcs);
+                // Ensure settings and featureFlags are available for tests
                 await customElements.whenDefined('mas-commerce-service');
                 const masCommerceService = document.querySelector('mas-commerce-service');
 
@@ -79,7 +83,6 @@
                             configurable: true,
                         });
                     }
-                } else {
                 }
 
                 const openLinkEditor = async function (rte) {

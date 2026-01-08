@@ -104,6 +104,7 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
+    VERSION: 'version',
     FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',

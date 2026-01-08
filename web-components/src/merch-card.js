@@ -569,7 +569,7 @@ export class MerchCard extends LitElement {
         if (!this.isConnected) return;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
-            if (VARIANTS_WITH_HEIGHT_SYNC.includes(this.variantLayout)) {
+            if (VARIANTS_WITH_HEIGHT_SYNC.includes(this.variant)) {
                 intersectionObserver.observe(this);
             }
             this.#hydrationPromise = undefined;

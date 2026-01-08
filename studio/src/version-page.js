@@ -51,6 +51,7 @@ class VersionPage extends LitElement {
         callout: { label: 'Callout', visible: true },
         whatsIncluded: { label: 'Whats included', visible: true },
         perUnitLabel: { label: 'Per unit label', visible: true },
+        quantitySelect: { label: 'Quantity select', visible: true },
         // Not visible on card
         variant: { label: 'Variant', visible: false },
         osi: { label: 'OSI', visible: false },
@@ -63,7 +64,6 @@ class VersionPage extends LitElement {
         promoCode: { label: 'Promo code', visible: false },
         showSecureLabel: { label: 'Show secure label', visible: false },
         showPlanType: { label: 'Show plan type', visible: false },
-        quantitySelect: { label: 'Quantity select', visible: false },
         addon: { label: 'Addon', visible: false },
         addonConfirmation: { label: 'Addon confirmation', visible: false },
         variations: { label: 'Variations', visible: false },

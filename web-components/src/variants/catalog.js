@@ -40,9 +40,11 @@ export class Catalog extends VariantLayout {
     }
 
     setIconVisibility(visible) {
-        if (isMobileOrTablet() && this.card.actionMenu) return;
-        this.actionMenu?.classList.toggle('invisible', !visible);
-        this.actionMenu?.classList.toggle('always-visible', visible);
+        if (this.slottedContent) {
+            if (isMobileOrTablet() && this.card.actionMenu) return;
+            this.actionMenu?.classList.toggle('invisible', !visible);
+            this.actionMenu?.classList.toggle('always-visible', visible);
+        }
     }
 
     setMenuVisibility(open) {
@@ -67,9 +69,11 @@ export class Catalog extends VariantLayout {
                     <slot name="icons"></slot> ${this.badge}
                     <div
                         class="action-menu
-                ${isMobileOrTablet() && this.card.actionMenu
-                            ? 'always-visible'
-                            : 'invisible'}"
+                ${this.slottedContent
+                            ? isMobileOrTablet() && this.card.actionMenu
+                                ? 'always-visible'
+                                : 'invisible'
+                            : 'hidden'}"
                         @click="${this.toggleActionMenu}"
                         @keypress="${this.toggleActionMenu}"
                         @focus="${this.showActionMenuOnHover}"

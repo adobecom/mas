@@ -99,6 +99,15 @@ function parseArgs(args) {
         }
     }
 
+    // Determine SKIP_AUTH
+    if (!process.env.SKIP_AUTH) {
+        if (parsedParams.test.includes('docs/')) {
+            process.env.SKIP_AUTH = 'true';
+        } else {
+            process.env.SKIP_AUTH = 'false';
+        }
+    }
+
     return parsedParams;
 }
 

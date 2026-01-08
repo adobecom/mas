@@ -102,7 +102,7 @@ const defaultTaxExcluded = (segment) =>
  * @param {string} country country code
  * @param {string} language language code
  * @param {boolean} isArray true if map is an array, otherwise it is an object
- * @returns 
+ * @returns
  */
 function getTaxConfigFromMap(map, country, language, isArray) {
     if (map[country]) return map[country];
@@ -111,9 +111,11 @@ function getTaxConfigFromMap(map, country, language, isArray) {
 
     let result;
     if (isArray) {
-        result = map.find(item => item.startsWith(`${country}_`));
+        result = map.find((item) => item.startsWith(`${country}_`));
     } else {
-        const resultKey = Object.keys(map).find(key => key.startsWith(`${country}_`));
+        const resultKey = Object.keys(map).find((key) =>
+            key.startsWith(`${country}_`),
+        );
         result = resultKey ? map[resultKey] : null;
     }
     return result;

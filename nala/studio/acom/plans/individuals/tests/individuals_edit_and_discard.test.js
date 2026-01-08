@@ -483,12 +483,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Remove callout field', async () => {
             await expect(await editor.calloutRTE).toBeVisible();
+            await editor.calloutRTE.scrollIntoViewIfNeeded();
+            await page.waitForTimeout(500);
             await expect(await editor.calloutRTE).toContainText(data.calloutText.original);
             await editor.calloutRTE.click();
-            await expect(editor.calloutRTE).toBeVisible();
-            await editor.calloutRTE.fill('');
+            await page.waitForTimeout(500);
+            await editor.calloutRTE.clear();
             await page.waitForTimeout(1000);
-            await expect(editor.calloutRTE).toHaveText('');
+            await expect(await editor.calloutRTE).toHaveText('');
         });
 
         await test.step('step-4: Validate callout field is removed', async () => {

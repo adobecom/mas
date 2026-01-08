@@ -1,4 +1,5 @@
 import { test, expect, studio, editor, miloLibs, setTestPage } from '../libs/mas-test.js';
+import { getCurrentRunId } from '../utils/fragment-tracker.js';
 import StudioSpec from './studio.spec.js';
 
 const { features } = StudioSpec;
@@ -365,6 +366,7 @@ test.describe('M@S Studio feature test suite', () => {
 
     // @studio-locale-change - Validate locale change in mas studio
     test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[12];
         const testPage = `${baseURL}${features[12].path}${miloLibs}`;
         setTestPage(testPage);
 
@@ -377,13 +379,14 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.localePicker).toBeVisible();
             await expect(await studio.localePicker).toHaveAttribute('value', 'en_US');
             await studio.localePicker.click();
-            await page.getByRole('menuitem', { name: 'fr_FR' }).click();
+            await page.waitForTimeout(500);
+            await page.getByRole('menuitem', { name: `${data.localePicker}` }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-3: Validate locale change', async () => {
-            await expect(await studio.localePicker).toHaveAttribute('value', 'fr_FR');
-            await expect(page).toHaveURL(`${testPage}#locale=fr_FR&page=welcome&path=acom`);
+            await expect(await studio.localePicker).toHaveAttribute('value', data.locale);
+            await expect(page).toHaveURL(`${testPage}#locale=${data.locale}&page=welcome&path=acom`);
             await expect(await studio.sideNav).toBeVisible();
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();
@@ -424,6 +427,81 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-4: Validate card editing in table view', async () => {
             await studio.tableView.locator('mas-fragment').first().dblclick();
             await expect(await editor.panel).toBeVisible();
+        });
+    });
+
+    // @studio-create-fragment - Validate creating a new fragment
+    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[14];
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}`;
+        setTestPage(testPage);
+        let fragmentId;
+        const runId = getCurrentRunId();
+        const expectedTitle = `MAS Nala Automation Fragment [${runId}]`;
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-2: Create fragment', async () => {
+            fragmentId = await studio.createFragment(
+                {
+                    osi: data.osi,
+                    variant: data.variant,
+                },
+                editor,
+            );
+            expect(fragmentId).toBeTruthy();
+            await page.waitForTimeout(3000);
+        });
+
+        await test.step('step-3: Verify fragment is visible in content page', async () => {
+            await expect(studio.fragmentsTable).toBeVisible();
+            await studio.fragmentsTable.scrollIntoViewIfNeeded();
+            await studio.fragmentsTable.click();
+            await page.waitForTimeout(2000);
+            await expect(studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-4: Verify fragment has correct variant', async () => {
+            const createdCard = await studio.getCard(fragmentId);
+            await expect(createdCard).toBeVisible();
+            await expect(createdCard).toHaveAttribute('variant', data.variant);
+        });
+
+        await test.step('step-5: Switch to table view and verify fragment details', async () => {
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+
+            // Find the fragment row by data-id attribute on mas-fragment-table
+            const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
+            await expect(fragmentRow).toBeVisible();
+
+            // Get the path cell (class "name")
+            const pathCell = studio.tableViewPathCell(fragmentRow);
+            const fragmentPath = await pathCell.textContent();
+            expect(fragmentPath).toBeTruthy();
+            expect(fragmentPath).not.toContain('undefined');
+            expect(fragmentPath.trim().length).toBeGreaterThan(0);
+
+            // Get the title cell (class "title")
+            const titleCell = studio.tableViewTitleCell(fragmentRow);
+            const fragmentTitle = await titleCell.textContent();
+            expect(fragmentTitle).toBeTruthy();
+            expect(fragmentTitle.trim().length).toBeGreaterThan(0);
+            expect(fragmentTitle.trim()).toBe(expectedTitle);
+        });
+
+        await test.step('step-6: Open editor from table view and verify fragment details', async () => {
+            const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
+            await fragmentRow.dblclick();
+            await expect(await editor.panel).toBeVisible({ timeout: 30000 });
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('default-value', data.variant);
+            await expect(await editor.OSI).toBeVisible();
+            await expect(await editor.OSI).toContainText(data.osi);
         });
     });
 });

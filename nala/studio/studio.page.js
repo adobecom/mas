@@ -21,6 +21,11 @@ export default class StudioPage {
         this.renderView = page.locator('#render');
         this.tableView = page.locator('sp-table');
         this.tableViewHeaders = page.locator('sp-table-head');
+        this.tableViewRows = this.tableView.locator('sp-table-row');
+        this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);
+        this.tableViewRowByFragmentId = (fragmentId) => this.tableView.locator(`sp-table-row[value="${fragmentId}"]`);
+        this.tableViewPathCell = (row) => row.locator('sp-table-cell.name');
+        this.tableViewTitleCell = (row) => row.locator('sp-table-cell.title');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('mas-fragment-editor > #fragment-editor #editor-content');
         this.confirmationDialog = page.locator('sp-dialog[variant="confirmation"]');
@@ -46,7 +51,7 @@ export default class StudioPage {
         // Topnav panel
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
-        this.localePicker = page.locator('mas-nav-locale-picker sp-action-menu');
+        this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
         this.fragmentsTable = page.locator('.breadcrumbs-container sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
@@ -60,6 +65,13 @@ export default class StudioPage {
         this.collectionsButton = this.sideNav.locator('mas-side-nav-item[label="Collections"]');
         this.placeholdersButton = this.sideNav.locator('mas-side-nav-item[label="Placeholders"]');
         this.supportButton = this.sideNav.locator('mas-side-nav-item[label="Support"]');
+        // Create dialog elements
+        this.createButton = page.locator('sp-button:has-text("Create")').first();
+        this.createDialog = page.locator('mas-create-dialog');
+        this.createDialogTitleInput = this.createDialog.locator('sp-textfield#fragment-title input');
+        this.createDialogOSIButton = this.createDialog.locator('osi-field#osi #offerSelectorToolButtonOSI');
+        this.createDialogCreateButton = this.createDialog.locator('sp-button:has-text("Create")');
+        this.createDialogMerchCardOption = page.getByRole('menuitem', { name: 'Merch Card', exact: true }).first();
     }
 
     async getCard(id, cloned, secondID) {
@@ -446,5 +458,128 @@ export default class StudioPage {
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
+    }
+
+    /**
+     * Switch to table view
+     */
+    async switchToTableView() {
+        await expect(this.previewMenu).toBeVisible({ timeout: 10000 });
+        await this.previewMenu.scrollIntoViewIfNeeded();
+        await this.previewMenu.click();
+        await this.page.waitForTimeout(500);
+        await expect(this.tableViewOption).toBeVisible({ timeout: 10000 });
+        await this.tableViewOption.click();
+        await this.page.waitForTimeout(2000);
+        await expect(this.tableView).toBeVisible({ timeout: 15000 });
+    }
+
+    /**
+     * Create a new fragment
+     * Fragment title and card title are automatically generated with run ID (similar to cloneCard) to be cleaned up after execution of the test
+     * @param {Object} options - Configuration options
+     * @param {string} options.osi - OSI to search and select
+     * @param {string} options.variant - Variant type to select in the editor (e.g., 'ccd-suggested', 'ccd-slice', 'plans', 'ah-try-buy-widget')
+     * @param {EditorPage} editor - Editor page object instance
+     * @returns {Promise<string>} The fragment ID of the created card
+     */
+    async createFragment({ osi, variant }, editor) {
+        if (!osi) {
+            throw new Error('osi is required parameter');
+        }
+        if (!variant) {
+            throw new Error('variant is required parameter');
+        }
+
+        await expect(this.createButton).toBeVisible({ timeout: 10000 });
+        await this.createButton.click();
+
+        await expect(this.createDialogMerchCardOption).toBeVisible({ timeout: 10000 });
+        await this.createDialogMerchCardOption.click();
+
+        await expect(this.createDialog).toBeVisible({ timeout: 15000 });
+        await this.page.waitForTimeout(500);
+
+        await expect(this.createDialogTitleInput).toBeVisible({ timeout: 10000 });
+        const runId = getCurrentRunId();
+        const titleWithRunId = `MAS Nala Automation Fragment [${runId}]`;
+        await this.createDialogTitleInput.fill(titleWithRunId);
+
+        await expect(this.createDialogOSIButton).toBeVisible({ timeout: 10000 });
+        await this.createDialogOSIButton.click();
+
+        await expect(this.ost.searchField).toBeVisible({ timeout: 15000 });
+        await this.ost.searchField.fill(osi);
+        await this.ost.nextButton.click();
+        await expect(this.ost.priceUse).toBeVisible({ timeout: 10000 });
+        await this.ost.priceUse.click();
+        await this.page.waitForTimeout(1000);
+
+        await expect(this.createDialogCreateButton).toBeVisible({ timeout: 10000 });
+        await this.createDialogCreateButton.click();
+
+        // Wait for positive toast to appear and then disappear after fragment creation
+        await this.toastPositive.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {
+            // If toast doesn't appear, continue
+        });
+        await this.toastPositive.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
+            // If toast disappears quickly or doesn't appear, continue
+        });
+
+        await this.editorPanel.waitFor({
+            state: 'visible',
+            timeout: 30000,
+        });
+        await this.page.waitForTimeout(1000);
+
+        await expect(editor.variant).toBeVisible({ timeout: 10000 });
+        await editor.variant.locator('sp-picker').first().click();
+        await this.page.locator(`sp-menu-item[value="${variant}"]`).first().click();
+        await this.page.waitForTimeout(1000);
+
+        // Wait for sidenav elements to be enabled before interacting with card fields
+        // This ensures the variant has been fully processed
+        // Check that the disabled attribute is not present (mas-side-nav-item uses disabled attribute)
+        await expect(this.deleteCardButton).not.toHaveAttribute('disabled', { timeout: 30000 });
+        await expect(this.saveCardButton).not.toHaveAttribute('disabled', { timeout: 30000 });
+
+        // Enter card title (auto-generated with run ID, same as fragment title)
+        await expect(editor.title).toBeVisible({ timeout: 10000 });
+        await editor.title.fill(titleWithRunId);
+
+        await expect(editor.prices).toBeVisible({ timeout: 10000 });
+        const pricesOSTButton = editor.prices.locator(editor.OSTButton);
+        await expect(pricesOSTButton).toBeVisible({ timeout: 10000 });
+        await pricesOSTButton.click();
+
+        await expect(this.ost.priceUse).toBeVisible({ timeout: 15000 });
+        await this.ost.priceUse.click();
+        await this.page.waitForTimeout(1000);
+
+        await this.saveCard();
+
+        // Wait for positive toast to disappear before navigating away
+        await this.toastPositive.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
+            // If toast doesn't appear or disappears quickly, continue
+        });
+
+        const currentUrl = this.page.url();
+        const fragmentIdMatch = currentUrl.match(/fragment=([^&]+)/);
+        let fragmentId = fragmentIdMatch ? fragmentIdMatch[1] : null;
+
+        // If not in URL, get from card preview in editor
+        if (!fragmentId) {
+            fragmentId = await this.page
+                .locator('aem-fragment[fragment]')
+                .first()
+                .getAttribute('fragment')
+                .catch(() => null);
+        }
+
+        if (!fragmentId) {
+            throw new Error('Failed to retrieve fragment ID from URL or card preview');
+        }
+
+        return fragmentId;
     }
 }

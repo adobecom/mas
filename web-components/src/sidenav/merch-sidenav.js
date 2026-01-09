@@ -275,6 +275,10 @@ export class MerchSideNav extends LitElement {
             margin: 0;
         }
 
+        :host(:dir(rtl)) h2 {
+            text-align: right;
+        }
+
         #content {
             width: 100%;
             height: 100%;

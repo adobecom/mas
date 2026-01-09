@@ -251,5 +251,10 @@ export class Catalog extends VariantLayout {
             margin-left: var(--consonant-merch-spacing-xxs);
             box-sizing: border-box;
         }
+
+        :host([variant='catalog']) .action-menu:dir(rtl) {
+            right: initial;
+            left: 16px;
+        }
     `;
 }

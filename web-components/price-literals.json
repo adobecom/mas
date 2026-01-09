@@ -12,7 +12,7 @@
             "freeLabel": "مجانًا",
             "freeAriaLabel": "مجانًا",
             "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {باستثناء ضريبة} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {شاملاً الضريبة} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {بالضريبة} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "أو بدلاً من ذلك بقيمة {alternativePrice}",
             "strikethroughAriaLabel": "بشكل منتظم بقيمة {strikethroughPrice}"
         },
@@ -25,7 +25,7 @@
             "freeLabel": "Безплатно",
             "freeAriaLabel": "Безплатно",
             "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {без ДДС} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {с включен ДДС} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {вкл. ДДС} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Алтернативно на {alternativePrice}",
             "strikethroughAriaLabel": "Редовно на {strikethroughPrice}"
         },
@@ -154,7 +154,7 @@
             "perUnitAriaLabel": "{perUnit, select, LICENSE {per licenza} other {}}",
             "freeLabel": "Gratuito",
             "freeAriaLabel": "Gratuito",
-            "taxExclusiveLabel": "{taxTerm, select, GST {escl. GST} VAT {escl. IVA} TAX {escl. imposte} IVA {escl. IVA} SST {escl. SST} KDV {escl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {escl. GST} VAT {escl. IVA.} TAX {escl. imposte} IVA {escl. IVA} SST {escl. SST} KDV {escl. KDV} other {}}",
             "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. IVA} TAX {incl. imposte} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "In alternativa a {alternativePrice}",
             "strikethroughAriaLabel": "Regolarmente a {strikethroughPrice}"
@@ -440,8 +440,8 @@
             "perUnitAriaLabel": "{perUnit, select, LICENSE {ανά άδεια χρήσης} other {}}",
             "freeLabel": "Δωρεάν",
             "freeAriaLabel": "Δωρεάν",
-            "taxExclusiveLabel": "{taxTerm, select, GST {(μη συμπεριλαμβανομένου GST)} VAT {(εξαιρ. ΦΠΑ)} TAX {(μη συμπεριλαμβανομένου φόρο)} IVA {(μη συμπεριλαμβανομένου IVA)} SST {(μη συμπεριλαμβανομένου SST)} KDV {(μη συμπεριλαμβανομένου KDV)} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {(συμπεριλαμβανομένου του GST)} VAT {(συμπερ. ΦΠΑ)} TAX {(συμπεριλαμβανομένου του φόρου)} IVA {(συμπεριλαμβανομένου του IVA)} SST {(συμπεριλαμβανομένου του SST)} KDV {(συμπεριλαμβανομένου του KDV)} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {(μη συμπεριλαμβανομένου GST)} VAT {εξαιρ. ΦΠΑ} TAX {(μη συμπεριλαμβανομένου φόρο)} IVA {(μη συμπεριλαμβανομένου IVA)} SST {(μη συμπεριλαμβανομένου SST)} KDV {(μη συμπεριλαμβανομένου KDV)} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {(συμπεριλαμβανομένου του GST)} VAT {συμπερ. ΦΠΑ} TAX {(συμπεριλαμβανομένου του φόρου)} IVA {(συμπεριλαμβανομένου του IVA)} SST {(συμπεριλαμβανομένου του SST)} KDV {(συμπεριλαμβανομένου του KDV)} other {}}",
             "alternativePriceAriaLabel": "Διαφορετικά, {alternativePrice}",
             "strikethroughAriaLabel": "Κανονική τιμή {strikethroughPrice}"
         },

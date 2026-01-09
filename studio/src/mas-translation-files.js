@@ -89,11 +89,11 @@ class MasTranslationFiles extends LitElement {
                 >
                     <sp-icon-export
                         slot="icon"
-                        label=${this.showSelected ? 'Hide selection' : 'Selected files'}
-                        class=${this.showSelected ? 'flipped' : ''}
+                        label=${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected files'}
+                        class=${this.showSelected && this.selectedCount ? 'flipped' : ''}
                     ></sp-icon-export>
                 </sp-button>
-                ${this.showSelected ? 'Hide selection' : 'Selected files'} (${this.selectedCount})
+                ${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected files'} (${this.selectedCount})
             </div>
         `;
     }

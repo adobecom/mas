@@ -9,79 +9,74 @@ class MasTranslationFiles extends LitElement {
     static properties = {
         translationProject: { type: Object },
         showSelected: { type: Boolean, state: true },
-        selectedFragments: { type: Set, state: true },
-        selectedCollections: { type: Set, state: true },
-        selectedPlaceholders: { type: Set, state: true },
+        selectedItems: { type: Array, state: true },
     };
 
     constructor() {
         super();
         this.translationProject = null;
-        this.selectedFragments = new Set();
-        this.selectedCollections = new Set();
-        this.selectedPlaceholders = new Set();
         this.showSelected = false;
+        this.selectedItems = {
+            fragments: [],
+            collections: [],
+            placeholders: [],
+        };
     }
 
     get selectedCount() {
-        return this.selectedFragments.size + this.selectedCollections.size + this.selectedPlaceholders.size;
+        const { fragments, collections, placeholders } = this.selectedItems;
+        return fragments.length + collections.length + placeholders.length;
     }
 
-    get allSelected() {
-        return new Set([...this.selectedFragments, ...this.selectedCollections, ...this.selectedPlaceholders]);
+    updateSelected({ detail: { selected, type } }) {
+        if (!selected || !type) return;
+        const currentById = new Map(this.selectedItems[type].map((obj) => [obj.id, obj]));
+        this.selectedItems = {
+            ...this.selectedItems,
+            [type]: selected.map((obj) => currentById.get(obj.id) ?? obj),
+        };
     }
 
-    updateSelected({ detail: { selected, source } }) {
-        if (!selected) return;
-        switch (source) {
-            case 'fragments':
-                this.selectedFragments = new Set(selected);
-                break;
-            case 'collections':
-                this.selectedCollections = new Set(selected);
-                break;
-            case 'placeholders':
-                this.selectedPlaceholders = new Set(selected);
-                break;
-        }
-    }
-
-    removeItem({ detail: { itemId } }) {
-        if (this.selectedFragments.has(itemId)) {
-            this.selectedFragments = new Set([...this.selectedFragments].filter((id) => id !== itemId));
-        } else if (this.selectedCollections.has(itemId)) {
-            this.selectedCollections = new Set([...this.selectedCollections].filter((id) => id !== itemId));
-        } else if (this.selectedPlaceholders.has(itemId)) {
-            this.selectedPlaceholders = new Set([...this.selectedPlaceholders].filter((id) => id !== itemId));
-        }
+    removeItem({ detail: { itemId, type } }) {
+        if (!itemId || !type) return;
+        const currentItems = this.selectedItems[type];
+        if (!currentItems) return;
+        const newItems = currentItems.filter((item) => item.id !== itemId);
+        this.selectedItems = {
+            ...this.selectedItems,
+            [type]: newItems,
+        };
     }
 
     render() {
         return html`
-            <sp-tabs quiet selected="fragments" @remove-item=${this.removeItem}>
+            <sp-tabs quiet selected="fragments">
                 <sp-tab value="fragments" label="Fragments">Fragments</sp-tab>
                 <sp-tab value="collections" label="Collections" disabled>Collections</sp-tab>
                 <sp-tab value="placeholders" label="Placeholders" disabled>Placeholders</sp-tab>
 
                 <sp-tab-panel value="fragments">
                     <mas-fragment-picker
-                        @selected=${this.updateSelected}
-                        .allSelected=${this.selectedFragments}
+                        .selectedItems=${this.selectedItems.fragments}
                         .showSelected=${this.showSelected}
+                        @selected=${this.updateSelected}
+                        @remove-item=${this.removeItem}
                     ></mas-fragment-picker>
                 </sp-tab-panel>
                 <sp-tab-panel value="collections">
                     <mas-collection-picker
-                        @selected=${this.updateSelected}
-                        .allSelected=${this.selectedCollections}
+                        .selectedItems=${this.selectedItems.collections}
                         .showSelected=${this.showSelected}
+                        @selected=${this.updateSelected}
+                        @remove-item=${this.removeItem}
                     ></mas-collection-picker>
                 </sp-tab-panel>
                 <sp-tab-panel value="placeholders">
                     <mas-placeholder-picker
-                        @selected=${this.updateSelected}
-                        .allSelected=${this.selectedPlaceholders}
+                        .selectedItems=${this.selectedItems.placeholders}
                         .showSelected=${this.showSelected}
+                        @selected=${this.updateSelected}
+                        @remove-item=${this.removeItem}
                     ></mas-placeholder-picker>
                 </sp-tab-panel>
             </sp-tabs>

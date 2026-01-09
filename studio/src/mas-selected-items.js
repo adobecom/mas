@@ -6,21 +6,20 @@ class MasSelectedItems extends LitElement {
     static styles = styles;
 
     static properties = {
-        allSelected: { type: Array },
+        selectedItems: { type: Array },
+        type: { type: String },
     };
 
-    /** @type {Array<{id: string, offer: string, path: string}>} */
-    allSelected;
-
-    constructor() {
-        super();
-        this.allSelected = [];
+    getTitle(item) {
+        if (this.type === 'fragments') {
+            return item.tags?.find(({ id }) => id === 'mas:product_code/ccsn')?.title;
+        }
     }
 
     removeItem(itemId) {
         this.dispatchEvent(
             new CustomEvent('remove-item', {
-                detail: { itemId },
+                detail: { itemId, type: this.type },
                 bubbles: true,
                 composed: true,
             }),
@@ -30,11 +29,11 @@ class MasSelectedItems extends LitElement {
     render() {
         return html`<ul class="selected-items">
             ${repeat(
-                this.allSelected,
+                this.selectedItems,
                 (item) => item.id,
                 (item) =>
                     html`<li class="file">
-                        <h3 class="title">${item.offer}</h3>
+                        <h3 class="title">${this.getTitle(item)}</h3>
                         <div class="details">Default fragment:</div>
                         <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item.id)}>
                             <sp-icon-close slot="icon"></sp-icon-close>

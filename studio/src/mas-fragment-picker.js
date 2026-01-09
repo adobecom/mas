@@ -10,20 +10,20 @@ class MasFragmentPicker extends LitElement {
 
     static properties = {
         translationProject: { type: Object },
-        selectedFragments: { type: Array, state: true },
+        selectedItems: { type: Array, state: true },
         fragments: { type: Array, state: true },
         loading: { type: Boolean, state: true },
         error: { type: String, state: true },
         fragmentsById: { type: Map, state: true },
         columnsToShow: { type: Set, state: true },
-        allSelected: { type: Set },
         showSelected: { type: Boolean },
+        selectedInTable: { type: Array, state: true },
     };
 
     constructor() {
         super();
         this.translationProject = null;
-        this.selectedFragments = [];
+        this.selectedInTable = [];
         this.fragments = [];
         this.fragmentsById = new Map();
         this.loading = false;
@@ -37,7 +37,6 @@ class MasFragmentPicker extends LitElement {
             { label: 'Path', key: 'path' },
             { label: 'Status', key: 'status' },
         ]);
-        this.selectedFragments = [];
     }
 
     connectedCallback() {
@@ -65,21 +64,6 @@ class MasFragmentPicker extends LitElement {
     get loadingIndicator() {
         if (!this.loading) return nothing;
         return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
-    }
-
-    get selectedItems() {
-        if (!this.allSelected?.size) return [];
-        const items = [];
-        for (const id of this.allSelected) {
-            const { tags, path } = this.fragmentsById.get(id) || {};
-            if (!tags || !path) continue;
-            items.push({
-                id,
-                offer: tags?.find(({ id }) => id === 'mas:product_code/ccsn')?.title,
-                path,
-            });
-        }
-        return items;
     }
 
     async fetchFragments() {
@@ -5290,14 +5274,21 @@ class MasFragmentPicker extends LitElement {
     }
 
     updateSelected({ target: { selected } }) {
+        this.selectedInTable = selected;
         this.dispatchEvent(
             new CustomEvent('selected', {
                 detail: {
-                    selected,
-                    source: 'fragments',
+                    selected: selected.map((item) => this.fragmentsById.get(item)),
+                    type: 'fragments',
                 },
+                bubbles: true,
+                composed: true,
             }),
         );
+    }
+
+    removeItem({ detail: { itemId } }) {
+        this.selectedInTable = this.selectedInTable.filter((id) => id !== itemId);
     }
 
     renderTableHeader() {
@@ -5373,7 +5364,7 @@ class MasFragmentPicker extends LitElement {
                           emphasized
                           scroller
                           selects="multiple"
-                          .selected=${this.allSelected ? [...this.allSelected] : []}
+                          .selected=${this.selectedInTable}
                           @change=${this.updateSelected}
                       >
                           ${this.renderTableHeader()}
@@ -5382,7 +5373,7 @@ class MasFragmentPicker extends LitElement {
                                   this.fragments,
                                   (fragment) => fragment.id,
                                   (fragment) =>
-                                      html`<sp-table-row value=${fragment.id} ?selected=${this.allSelected?.has(fragment.id)}>
+                                      html`<sp-table-row value=${fragment.id}>
                                           <sp-table-cell>
                                               ${fragment.tags?.find(({ id }) => id === 'mas:product_code/ccsn')?.title}
                                           </sp-table-cell>
@@ -5405,8 +5396,12 @@ class MasFragmentPicker extends LitElement {
                               )}
                           </sp-table-body>
                       </sp-table>`}
-                ${this.showSelected
-                    ? html`<mas-selected-items .allSelected=${this.selectedItems}></mas-selected-items>`
+                ${this.showSelected && this.selectedInTable.length
+                    ? html`<mas-selected-items
+                          .selectedItems=${this.selectedItems}
+                          @remove-item=${this.removeItem}
+                          type="fragments"
+                      ></mas-selected-items>`
                     : nothing}
             </div>
         `;

@@ -83,7 +83,6 @@ class MasTranslationFiles extends LitElement {
             <div class="selected-files-count">
                 <sp-button
                     variant="secondary"
-                    icon-only
                     @click=${() => (this.showSelected = !this.showSelected)}
                     ?disabled=${!this.selectedCount}
                 >
@@ -92,8 +91,8 @@ class MasTranslationFiles extends LitElement {
                         label=${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected files'}
                         class=${this.showSelected && this.selectedCount ? 'flipped' : ''}
                     ></sp-icon-export>
+                    ${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected files'} (${this.selectedCount})
                 </sp-button>
-                ${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected files'} (${this.selectedCount})
             </div>
         `;
     }

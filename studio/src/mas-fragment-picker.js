@@ -5289,6 +5289,7 @@ class MasFragmentPicker extends LitElement {
 
     removeItem({ detail: { itemId } }) {
         this.selectedInTable = this.selectedInTable.filter((id) => id !== itemId);
+        console.log('removeItem', { itemId, selectedInTable: this.selectedInTable });
     }
 
     renderTableHeader() {
@@ -5384,7 +5385,7 @@ class MasFragmentPicker extends LitElement {
                                                   ? html`<sp-button
                                                         icon-only
                                                         aria-label="Copy Offer ID to clipboard"
-                                                        @click=${(e) => this.copyToClipboard(e, fragment.offerData?.offerId)}
+                                                        @click=${(e) => copyToClipboard(e, fragment.offerData?.offerId)}
                                                     >
                                                         <sp-icon-copy slot="icon"></sp-icon-copy>
                                                     </sp-button>`

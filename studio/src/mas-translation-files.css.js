@@ -10,6 +10,7 @@ export const styles = css`
 
         sp-button {
             background-color: transparent;
+            font-weight: 500;
         }
 
         sp-icon-export {

@@ -28,115 +28,102 @@ export const styles = css`
             display: flex;
             gap: 12px;
             padding-bottom: 32px;
-
-            .loading-container {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-
-            .fragments-table {
-                --spectrum-table-header-background-color: var(--spectrum-gray-50);
-                --spectrum-gray-900-rgb: var(--table-row-background-color-rgba);
-                --spectrum-blue-900-rgb: var(--table-row-background-color-rgba);
-                --spectrum-table-row-hover-opacity: 1;
-                --spectrum-table-selected-row-background-opacity: 1;
-                --spectrum-table-selected-row-background-opacity-hover: 1;
-                --spectrum-table-border-radius: 0;
-
-                sp-table-head {
-                    border-top: 1px solid var(--spectrum-gray-300);
-                    border-left: 1px solid var(--spectrum-gray-300);
-                    border-right: 1px solid var(--spectrum-gray-300);
-                    border-radius: 12px 12px 0 0;
-                }
-
-                sp-table-head {
-                    border-top: 1px solid var(--spectrum-gray-300);
-                    border-left: 1px solid var(--spectrum-gray-300);
-                    border-right: 1px solid var(--spectrum-gray-300);
-
-                    sp-table-head-cell:first-of-type {
-                        border-top-left-radius: 12px;
-                        max-width: 40px;
-                        min-width: 40px;
-                    }
-
-                    sp-table-head-cell:nth-of-type(2) {
-                        max-width: 40px;
-                        min-width: 40px;
-                    }
-
-                    sp-table-head-cell:last-of-type {
-                        align-content: center;
-                        border-top-right-radius: 12px;
-                    }
-                }
-
-                sp-table-head-cell,
-                sp-table-cell {
-                    align-content: center;
-                }
-            }
-
-            .selected-files {
-                display: flex;
-                flex-direction: column;
-                padding: 12px;
-                margin: 0;
-                gap: 12px;
-                border: 1px solid var(--spectrum-gray-300);
-                border-radius: 12px;
-                background: var(--spectrum-gray-50);
-
-                .file {
-                    display: grid;
-                    grid-template-columns: 160px auto;
-                    grid-template-rows: max-content max-content;
-                    padding: 12px;
-                    gap: 4px;
-                    border: 1px solid var(--spectrum-gray-300);
-                    border-radius: 12px;
-                    background: var(--spectrum-white);
-
-                    h3 {
-                        grid-column: 1;
-                        grid-row: 1;
-                        margin: 0;
-                    }
-
-                    div {
-                        grid-column: 1;
-                        grid-row: 2;
-                        font-size: 0.875em;
-                    }
-
-                    sp-button {
-                        grid-column: 2;
-                        grid-row: 1 / 3;
-                        align-self: center;
-                        --system-button-secondary-background-color-default: transparent;
-                    }
-                }
-            }
         }
 
-        .selected-files-count {
+        .loading-container {
+            width: 100%;
+            height: 100%;
             display: flex;
-            justify-content: flex-end;
+            justify-content: center;
             align-items: center;
-            gap: 6px;
-            margin-bottom: 32px;
+        }
 
-            sp-button {
-                background-color: transparent;
+        .fragments-table {
+            --spectrum-table-header-background-color: var(--spectrum-gray-50);
+            --spectrum-gray-900-rgb: var(--table-row-background-color-rgba);
+            --spectrum-blue-900-rgb: var(--table-row-background-color-rgba);
+            --spectrum-table-row-hover-opacity: 1;
+            --spectrum-table-selected-row-background-opacity: 1;
+            --spectrum-table-selected-row-background-opacity-hover: 1;
+            --spectrum-table-border-radius: 0;
+
+            sp-table-head {
+                border-top: 1px solid var(--spectrum-gray-300);
+                border-left: 1px solid var(--spectrum-gray-300);
+                border-right: 1px solid var(--spectrum-gray-300);
+                border-radius: 12px 12px 0 0;
             }
 
-            sp-icon-export {
-                transform: rotate(180deg);
-                transition: transform 0.3s ease-in-out;
+            sp-table-head {
+                border-top: 1px solid var(--spectrum-gray-300);
+                border-left: 1px solid var(--spectrum-gray-300);
+                border-right: 1px solid var(--spectrum-gray-300);
+
+                sp-table-head-cell {
+                    align-content: center;
+                }
+
+                sp-table-checkbox-cell:first-of-type {
+                    border-top-left-radius: 12px;
+                }
+
+                sp-table-head-cell:last-of-type {
+                    align-content: center;
+                    border-top-right-radius: 12px;
+                }
+            }
+
+            sp-table-cell {
+                display: flex;
+                align-items: center;
+                word-break: break-word;
+            }
+
+            .offer-id {
+                color: var(--link-color);
+
+                div {
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    max-width: 80px;
+                    overflow: hidden;
+                }
+
+                sp-button {
+                    --spectrum-accent-background-color-default: transparent;
+                    --spectrum-button-background-color-hover: transparent;
+                    color: var(--link-color);
+
+                    &:hover {
+                        color: var(--link-hover-color);
+                    }
+                }
+            }
+
+            .path {
+                word-break: break-word;
+            }
+
+            .status-cell {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+
+                .status-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background-color: var(--spectrum-gray-500);
+                }
+
+                .status-dot.green {
+                    background-color: var(--spectrum-green-700);
+                }
+
+                .status-dot.blue {
+                    background-color: var(--spectrum-blue-800);
+                }
             }
         }
     }

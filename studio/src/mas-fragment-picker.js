@@ -1,9 +1,9 @@
 import { LitElement, html, nothing, repeat } from 'lit';
 import { styles } from './mas-fragment-picker.css.js';
-import './mas-fragment-picker-row.js';
+import './mas-selected-items.js';
 import Store from './store.js';
 import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS } from './constants.js';
-import { showToast } from './utils.js';
+import { getService, showToast, copyToClipboard } from './utils.js';
 
 class MasFragmentPicker extends LitElement {
     static styles = styles;
@@ -16,7 +16,8 @@ class MasFragmentPicker extends LitElement {
         error: { type: String, state: true },
         fragmentsById: { type: Map, state: true },
         columnsToShow: { type: Set, state: true },
-        showSelected: { type: Boolean, state: true },
+        allSelected: { type: Set },
+        showSelected: { type: Boolean },
     };
 
     constructor() {
@@ -36,7 +37,7 @@ class MasFragmentPicker extends LitElement {
             { label: 'Path', key: 'path' },
             { label: 'Status', key: 'status' },
         ]);
-        this.showSelected = false;
+        this.selectedFragments = [];
     }
 
     connectedCallback() {
@@ -66,8 +67,19 @@ class MasFragmentPicker extends LitElement {
         return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
     }
 
-    get selectedCount() {
-        return this.selectedFragments.length;
+    get selectedItems() {
+        if (!this.allSelected?.size) return [];
+        const items = [];
+        for (const id of this.allSelected) {
+            const { tags, path } = this.fragmentsById.get(id) || {};
+            if (!tags || !path) continue;
+            items.push({
+                id,
+                offer: tags?.find(({ id }) => id === 'mas:product_code/ccsn')?.title,
+                path,
+            });
+        }
+        return items;
     }
 
     async fetchFragments() {
@@ -1099,7 +1111,7 @@ class MasFragmentPicker extends LitElement {
                         },
                     ],
                 },
-                id: '98c07a82-d72c-41e3-8cdc-9db8dedd69bc',
+                id: '98c07a82-d72c-41e3-8cdc-9db8dedd6111',
                 model: {
                     id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
                     path: '/conf/mas/settings/dam/cfm/models/card',
@@ -3293,7 +3305,7 @@ class MasFragmentPicker extends LitElement {
                         },
                     ],
                 },
-                id: '98c07a82-d72c-41e3-8cdc-9db8dedd69bc',
+                id: '98c07a82-d72c-41e3-8cdc-9db8dedd6222',
                 model: {
                     id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
                     path: '/conf/mas/settings/dam/cfm/models/card',
@@ -4767,7 +4779,7 @@ class MasFragmentPicker extends LitElement {
                         },
                     ],
                 },
-                id: '98c07a82-d72c-41e3-8cdc-9db8dedd69bc',
+                id: '98c07a82-d72c-41e3-8cdc-9db8dedd3333',
                 model: {
                     id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
                     path: '/conf/mas/settings/dam/cfm/models/card',
@@ -4806,7 +4818,7 @@ class MasFragmentPicker extends LitElement {
                     },
                     {
                         id: 'mas:product_code/ccsn',
-                        title: 'Creative Cloud Individual',
+                        title: 'Photoshop',
                         i18n: [],
                         titlePath: 'Merch at Scale : Product code / Creative Cloud Individual',
                         name: 'ccsn',
@@ -5166,7 +5178,7 @@ class MasFragmentPicker extends LitElement {
                             },
                             {
                                 id: 'mas:product_code/ccsn',
-                                title: 'Creative Cloud Individual',
+                                title: 'Illustrator',
                                 i18n: [],
                                 titlePath: 'Merch at Scale : Product code / Creative Cloud Individual',
                                 name: 'ccsn',
@@ -5229,7 +5241,14 @@ class MasFragmentPicker extends LitElement {
                 ],
             },
         ];
-        this.fragmentsById = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
+        const fragmentsWithOfferData = await Promise.all(
+            this.fragments.map(async (fragment) => ({
+                ...fragment,
+                offerData: await this.loadOfferData(fragment),
+            })),
+        );
+        this.fragments = fragmentsWithOfferData;
+        this.fragmentsById = new Map(fragmentsWithOfferData.map((fragment) => [fragment.id, fragment]));
         console.log('fragments', this.fragments);
         console.log('fragmentsById', this.fragmentsById);
 
@@ -5252,8 +5271,13 @@ class MasFragmentPicker extends LitElement {
         //             fetchedFragments.push(item);
         //         }
         //     }
-        //     this.fragments = fetchedFragments;
-        //     this.fragmentsById = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
+        // const fragmentsWithOfferData = await Promise.all(
+        //     this.fragments.map(async (fragment) => ({
+        //         ...fragment,
+        //         offerData: await this.loadOfferData(fragment),
+        //     })),
+        // );
+        // this.fragmentsById = new Map(fragmentsWithOfferData.map((fragment) => [fragment.id, fragment]));
         // } catch (err) {
         //     if (err.name !== 'AbortError') {
         //         console.error('Failed to fetch fragments:', err);
@@ -5265,35 +5289,52 @@ class MasFragmentPicker extends LitElement {
         // }
     }
 
-    updateSelectedFragments({ detail: { fragment, selected } }) {
-        if (selected) {
-            this.selectedFragments = [...this.selectedFragments, fragment];
-        } else {
-            this.selectedFragments = this.selectedFragments.filter((frag) => frag.id !== fragment.id);
-        }
-    }
-
-    isFragmentSelected(fragment) {
-        return this.selectedFragments.some((frag) => frag.id === fragment.id);
+    updateSelected({ target: { selected } }) {
+        this.dispatchEvent(
+            new CustomEvent('selected', {
+                detail: {
+                    selected,
+                    source: 'fragments',
+                },
+            }),
+        );
     }
 
     renderTableHeader() {
         return html`
             <sp-table-head>
-                <sp-table-head-cell></sp-table-head-cell>
-                <sp-table-head-cell></sp-table-head-cell>
                 ${repeat(
                     this.columnsToShow,
                     (column) => column.key,
-                    (column) => html`<sp-table-head-cell ?sortable=${column.sortable}> ${column.label} </sp-table-head-cell>`,
+                    (column) => html`<sp-table-head-cell> ${column.label} </sp-table-head-cell>`,
                 )}
             </sp-table-head>
         `;
     }
 
-    toggleShowSelected() {
-        console.log('toggleShowSelected', this.showSelected);
-        this.showSelected = !this.showSelected;
+    async loadOfferData(fragment) {
+        const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0];
+        if (!wcsOsi) return;
+        const service = getService();
+        const priceOptions = service.collectPriceOptions({ wcsOsi });
+        const [offersPromise] = service.resolveOfferSelectors(priceOptions);
+        if (!offersPromise) return;
+        const [offer] = await offersPromise;
+        return offer;
+    }
+
+    renderStatus(status) {
+        if (!status) return nothing;
+        let statusClass = '';
+        if (status === 'PUBLISHED') {
+            statusClass = 'green';
+        } else if (status === 'MODIFIED') {
+            statusClass = 'blue';
+        }
+        return html`<sp-table-cell class="status-cell">
+            <div class="status-dot ${statusClass}"></div>
+            ${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}
+        </sp-table-cell>`;
     }
 
     render() {
@@ -5324,58 +5365,49 @@ class MasFragmentPicker extends LitElement {
                     <sp-menu-item>TODO</sp-menu-item>
                 </sp-picker>
             </div>
-
             <div class="container">
                 ${this.loading
                     ? html`<div class="loading-container">${this.loadingIndicator}</div>`
-                    : html` <sp-table class="fragments-table" emphasized scroller>
+                    : html` <sp-table
+                          class="fragments-table"
+                          emphasized
+                          scroller
+                          selects="multiple"
+                          .selected=${this.allSelected ? [...this.allSelected] : []}
+                          @change=${this.updateSelected}
+                      >
                           ${this.renderTableHeader()}
                           <sp-table-body>
                               ${repeat(
                                   this.fragments,
                                   (fragment) => fragment.id,
                                   (fragment) =>
-                                      html`<mas-fragment-picker-row
-                                          .fragment=${fragment}
-                                          .selected=${this.isFragmentSelected(fragment)}
-                                          @checkbox-change=${this.updateSelectedFragments}
-                                          @selected-locale-fragments-change=${this.updateSelectedFragments}
-                                      ></mas-fragment-picker-row>`,
+                                      html`<sp-table-row value=${fragment.id} ?selected=${this.allSelected?.has(fragment.id)}>
+                                          <sp-table-cell>
+                                              ${fragment.tags?.find(({ id }) => id === 'mas:product_code/ccsn')?.title}
+                                          </sp-table-cell>
+                                          <sp-table-cell>${fragment.title}</sp-table-cell>
+                                          <sp-table-cell class="offer-id" title=${fragment.offerData?.offerId}>
+                                              <div>${fragment.offerData?.offerId}</div>
+                                              ${fragment.offerData?.offerId
+                                                  ? html`<sp-button
+                                                        icon-only
+                                                        aria-label="Copy Offer ID to clipboard"
+                                                        @click=${(e) => this.copyToClipboard(e, fragment.offerData?.offerId)}
+                                                    >
+                                                        <sp-icon-copy slot="icon"></sp-icon-copy>
+                                                    </sp-button>`
+                                                  : ''}
+                                          </sp-table-cell>
+                                          <sp-table-cell>${fragment.path}</sp-table-cell>
+                                          ${this.renderStatus(fragment.status)}
+                                      </sp-table-row>`,
                               )}
                           </sp-table-body>
                       </sp-table>`}
                 ${this.showSelected
-                    ? html`<ul class="selected-files">
-                          ${repeat(
-                              this.selectedFragments,
-                              (fragment) => fragment.id,
-                              (fragment) =>
-                                  html`<li class="file">
-                                      <h3 class="title">${fragment.title}</h3>
-                                      <div class="details">Default fragment: ${fragment.locale}</div>
-                                      <sp-button
-                                          variant="secondary"
-                                          size="l"
-                                          icon-only
-                                          @click=${() =>
-                                              this.updateSelectedFragments({ detail: { fragment, selected: false } })}
-                                      >
-                                          <sp-icon-close slot="icon"></sp-icon-close>
-                                      </sp-button>
-                                  </li>`,
-                          )}
-                      </ul>`
-                    : ''}
-            </div>
-
-            <div class="selected-files-count">
-                <sp-button variant="secondary" icon-only @click=${this.toggleShowSelected} ?disabled=${!this.selectedCount}>
-                    <sp-icon-export
-                        slot="icon"
-                        label="Show selected"
-                    ></sp-icon-export>
-                </sp-button>
-                Selected files (${this.selectedCount})
+                    ? html`<mas-selected-items .allSelected=${this.selectedItems}></mas-selected-items>`
+                    : nothing}
             </div>
         `;
     }

@@ -7,9 +7,11 @@ It extends `HTMLAnchorElement` and will automatically generate the correct `href
 
 The link will point to the promo terms page with offer information resolved from WCS.
 
+If a custom `href` is provided (not `#` or empty), the component will preserve it instead of auto-generating the URL. This allows you to override the default promo terms URL when needed. Custom href can be authored in MAS Studio.
+
 See [MAS](mas.html#terminology) to learn more.
 
-### Example
+### Example (auto-generated href)
 
 ```html {.demo}
 <a
@@ -21,13 +23,25 @@ See [MAS](mas.html#terminology) to learn more.
 >
 ```
 
+### Example (custom href override)
+
+```html {.demo}
+<a
+    href="https://www.adobe.com/custom-promo-terms.html"
+    is="upt-link"
+    data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+    >See terms</a
+>
+```
+
 ## Attributes {#attributes}
 
-| Attribute             | Description                                                                                                   | Default Value | Required | Provider                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- | ------------- | -------- | ----------------------- |
-| `data-wcs-osi`        | Offer Selector ID. Can be only one.                                                                           |               | `true`   | mas.js or consumer code |
-| `data-promotion-code` | Flex promotion code, if applicable.                                                                           |               | `false`  | mas.js or consumer code |
-| `data-ims-country`    | The IMS country to code of the user if signed in, overrides the locale country in the generated checkout url. |               | `false`  | mas.js or consumer code |
+| Attribute             | Description                                                                                                                                                     | Default Value | Required | Provider                |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------- | ----------------------- |
+| `href`                | The link URL. Leave empty or set to `#` to auto-generate the promo terms URL, or provide a custom URL to override the auto-generated link.                     | `#`           | `true`   | mas.js or consumer code |
+| `data-wcs-osi`        | Offer Selector ID. Can be only one.                                                                                                                             |               | `true`   | mas.js or consumer code |
+| `data-promotion-code` | Flex promotion code, if applicable. Only used when href is auto-generated.                                                                                      |               | `false`  | mas.js or consumer code |
+| `data-ims-country`    | The IMS country code of the user if signed in, overrides the locale country in the generated URL. Only used when href is auto-generated.                       |               | `false`  | mas.js or consumer code |
 
 ## Properties {#properties}
 

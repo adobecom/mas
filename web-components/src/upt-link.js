@@ -84,14 +84,22 @@ export class UptLink extends HTMLAnchorElement {
         const version = this.masElement.togglePending(options);
         const promises = service.resolveOfferSelectors(options);
 
+        // Check if a custom href is provided (not # or empty)
+        const currentHref = this.getAttribute('href');
+        const hasCustomHref =
+            currentHref && currentHref !== '#' && !currentHref.startsWith('#');
+
         try {
             const [[offer]] = await Promise.all(promises);
-            const { country, language, env } = options;
-            let params = `locale=${language}_${country}&country=${country}&offer_id=${offer.offerId}`;
-            const promotionCode = this.getAttribute('data-promotion-code');
-            if (promotionCode)
-                params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
-            this.href = `${getPromoTermsUrl(env)}?${params}`;
+            // Only generate URL if no custom href is provided
+            if (!hasCustomHref) {
+                const { country, language, env } = options;
+                let params = `locale=${language}_${country}&country=${country}&offer_id=${offer.offerId}`;
+                const promotionCode = this.getAttribute('data-promotion-code');
+                if (promotionCode)
+                    params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
+                this.href = `${getPromoTermsUrl(env)}?${params}`;
+            }
             this.masElement.toggleResolved(version, offer, options);
         } catch (error) {
             const masError = new Error(

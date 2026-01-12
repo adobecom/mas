@@ -401,6 +401,35 @@ class RteField extends LitElement {
                     border-radius: 16px;
                 }
 
+                .ProseMirror span[is='inline-price'].placeholder-failed {
+                    display: inline-flex;
+                    align-items: flex-start;
+                    gap: 6px;
+                }
+
+                .ProseMirror span[is='inline-price'].placeholder-failed svg {
+                    flex-shrink: 0;
+                    margin-top: 2px;
+                }
+
+                .ProseMirror span[is='inline-price'].placeholder-failed .price-error-content {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .ProseMirror span[is='inline-price'].placeholder-failed .price-error-title {
+                    color: var(--merch-color-error);
+                    font-weight: 800;
+                    background: none;
+                }
+
+                .ProseMirror span[is='inline-price'].placeholder-failed .price-error-message {
+                    color: var(--merch-color-error);
+                    font-size: var(--consonant-merch-card-body-xs-font-size, 14px);
+                    line-height: var(--consonant-merch-card-body-xs-line-height, 21px);
+                    font-weight: 400;
+                }
+
                 div.ProseMirror-focused .ProseMirror-selectednode.mnemonic merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode {

@@ -440,6 +440,10 @@ sp-table-row {
     border-bottom: 1px solid var(--spectrum-gray-100);
 }
 
+sp-table-row.price-failed {
+    background-color: #ffebe8 !important;
+}
+
 sp-table-cell {
     display: flex;
     align-items: center;

@@ -194,7 +194,8 @@ describe('class "InlinePrice"', () => {
         await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
             ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
-        expect(inlinePrice.innerHTML).to.equal('');
+        expect(inlinePrice.innerHTML).to.include('price-error-title');
+        expect(inlinePrice.innerHTML).to.include('Price unavailable');
     });
 
     it('does not override missing offer with strikethrough', async () => {
@@ -212,7 +213,8 @@ describe('class "InlinePrice"', () => {
         await expect(failedPrice.onceSettled()).to.be.eventually.rejectedWith(
             ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
-        expect(failedPrice.innerHTML).to.equal('');
+        expect(failedPrice.innerHTML).to.include('price-error-title');
+        expect(failedPrice.innerHTML).to.include('Price unavailable');
     });
 
     it('renders perpetual offer', async () => {

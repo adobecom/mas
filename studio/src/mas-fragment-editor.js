@@ -121,7 +121,7 @@ export default class MasFragmentEditor extends LitElement {
         #preview-column:has(a[is='checkout-link'].placeholder-failed)::after {
             content: 'CTA has an invalid offer';
             display: block;
-            color: var(--merch-color-error)
+            color: var(--merch-color-error);
             font-size: 14px;
             padding: 8px 16px;
             text-align: center;

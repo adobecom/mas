@@ -34,10 +34,19 @@ export default class MerchBadge extends LitElement {
             `var(--${this.backgroundColor})`,
         );
 
-        if ((!this.borderColor || this.borderColor === 'transparent') && this.backgroundColor.startsWith('gradient-')) {
-            this.style.setProperty('--merch-badge-padding', '3px 11px 4px 11px');
+        if (
+            (!this.borderColor || this.borderColor === 'transparent') &&
+            this.backgroundColor.startsWith('gradient-')
+        ) {
+            this.style.setProperty(
+                '--merch-badge-padding',
+                '3px 11px 4px 11px',
+            );
         } else {
-            this.style.setProperty('--merch-badge-padding', '2px 10px 3px 10px');
+            this.style.setProperty(
+                '--merch-badge-padding',
+                '2px 10px 3px 10px',
+            );
         }
 
         this.style.setProperty('--merch-badge-color', this.color);

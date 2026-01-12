@@ -1493,7 +1493,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #removeGradientColors(colors) {
-        return colors.filter(color => !color.startsWith('gradient-'));
+        return colors.filter((color) => !color.startsWith('gradient-'));
     }
 
     #renderBadgeColors() {

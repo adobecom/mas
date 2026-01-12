@@ -116,6 +116,7 @@ styles.innerHTML = `
     --spectrum-gray-300-plans: #DADADA;
     --spectrum-gray-700-plans: #505050;
     --spectrum-red-700-plans: #EB1000;
+    --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
 
     /* simplified-pricing-express colors */
     --spectrum-gray-50: #FFFFFF;

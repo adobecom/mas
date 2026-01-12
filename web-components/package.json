@@ -1,6 +1,6 @@
 {
     "name": "@adobecom/mas",
-    "version": "0.6.0-beta.1",
+    "version": "0.6.0",
     "type": "module",
     "main": "dist/mas.js",
     "private": true,
@@ -17,7 +17,6 @@
         "libs": "npm run build:bundle && (cd .. && aem up --port 3030)"
     },
     "devDependencies": {
-        "@adobecom/milo": "github:adobecom/milo#stage",
         "@dexter/tacocat-core": "file:./internal/tacocat-core-1.13.1.tgz",
         "@esm-bundle/chai": "4.3.4-fix.0",
         "@esm-bundle/chai-as-promised": "7.1.1",

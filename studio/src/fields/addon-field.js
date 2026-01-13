@@ -43,6 +43,16 @@ export class AddonField extends LitElement {
                 width: 100%;
                 margin-block-end: 16px;
             }
+
+            :host([data-field-state='overridden']) sp-switch[checked] {
+                --mod-switch-background-color-selected-default: var(--spectrum-blue-500);
+                --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
+            }
+
+            :host([data-field-state='overridden']) sp-combobox {
+                --mod-combobox-border-color: var(--spectrum-blue-400);
+                --mod-combobox-background-color: var(--spectrum-blue-100);
+            }
         `;
     }
 

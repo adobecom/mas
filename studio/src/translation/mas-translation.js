@@ -1,12 +1,12 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-translation.css.js';
-import router from './router.js';
-import Store from './store.js';
-import ReactiveController from './reactivity/reactive-controller.js';
-import { MasRepository } from './mas-repository.js';
-import { PAGE_NAMES } from './constants.js';
-import { showToast } from './utils.js';
+import router from '../router.js';
+import Store from '../store.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
+import { MasRepository } from '../mas-repository.js';
+import { PAGE_NAMES } from '../constants.js';
+import { showToast } from '../utils.js';
 
 const ALLOWED_PATHS = ['acom', 'express', 'sandbox'];
 

@@ -1,0 +1,48 @@
+import { css } from 'lit';
+
+export const styles = css`
+    :host {
+        display: flex;
+    }
+
+    .selected-items {
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        margin: 0;
+        gap: 12px;
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 12px;
+        background: var(--spectrum-gray-50);
+
+        .file {
+            display: grid;
+            grid-template-columns: 160px auto;
+            grid-template-rows: max-content max-content;
+            padding: 12px;
+            gap: 4px;
+            border: 1px solid var(--spectrum-gray-300);
+            border-radius: 12px;
+            background: var(--spectrum-white);
+
+            h3 {
+                grid-column: 1;
+                grid-row: 1;
+                margin: 0;
+            }
+
+            div {
+                grid-column: 1;
+                grid-row: 2;
+                font-size: 0.875em;
+            }
+
+            sp-button {
+                grid-column: 2;
+                grid-row: 1 / 3;
+                align-self: center;
+                --system-button-secondary-background-color-default: transparent;
+            }
+        }
+    }
+`;

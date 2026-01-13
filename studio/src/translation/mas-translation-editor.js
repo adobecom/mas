@@ -1,14 +1,15 @@
 import { LitElement, html, nothing } from 'lit';
-import Store from './store.js';
-import StoreController from './reactivity/store-controller.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
-import { MasRepository } from './mas-repository.js';
+import Store from '../store.js';
+import StoreController from '../reactivity/store-controller.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
+import { MasRepository } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
-import router from './router.js';
-import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from './constants.js';
-import { normalizeKey, showToast } from './utils.js';
-import { TranslationProject } from './translation/translation-project.js';
-import './mas-quick-actions.js';
+import router from '../router.js';
+import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../constants.js';
+import { normalizeKey, showToast } from '../utils.js';
+import { TranslationProject } from './translation-project.js';
+import './mas-translation-files.js';
+import '../mas-quick-actions.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -18,12 +19,14 @@ class MasTranslationEditor extends LitElement {
         isNewTranslationProject: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
-        disabledActions: { type: Set },
+        disabledActions: { type: Object, state: true },
+        selectedItemsSnapshot: { type: Object, state: true },
     };
 
     inEdit = Store.translationProjects.inEdit;
     translationProjectId = Store.translationProjects.translationProjectId;
     storeController = null;
+    selectedItemsSnapshot = null;
 
     constructor() {
         super();
@@ -31,6 +34,7 @@ class MasTranslationEditor extends LitElement {
         this.isNewTranslationProject = false;
         this.confirmDialogConfig = null;
         this.isDialogOpen = false;
+        this.selectedItemsSnapshot = null;
         this.disabledActions = new Set([
             QUICK_ACTION.SAVE,
             QUICK_ACTION.DISCARD,
@@ -271,7 +275,41 @@ class MasTranslationEditor extends LitElement {
         });
     }
 
-    #handleCloseAddFilesDialog = (event) => {
+    #handleOpenAddFilesDialog = () => {
+        const fragmentsField = this.fragment?.getFieldValue('fragments');
+        const collectionsField = this.fragment?.getFieldValue('collections');
+        const placeholdersField = this.fragment?.getFieldValue('placeholders');
+
+        this.selectedItemsSnapshot = {
+            fragments: fragmentsField || null,
+            collections: collectionsField || null,
+            placeholders: placeholdersField || null,
+        };
+    };
+
+    #handleConfirmAddFilesDialog = ({ target }) => {
+        this.selectedItemsSnapshot = null;
+        const closeEvent = new Event('close', { bubbles: true, composed: true });
+        target.dispatchEvent(closeEvent);
+    };
+
+    #handleCancelAddFilesDialog = (event) => {
+        if (this.selectedItemsSnapshot) {
+            const fieldNames = ['fragments', 'collections', 'placeholders'];
+
+            fieldNames.forEach((fieldName) => {
+                if (this.selectedItemsSnapshot[fieldName] !== null) {
+                    this.fragmentStore.updateField(fieldName, [this.selectedItemsSnapshot[fieldName]]);
+                } else {
+                    const fieldIndex = this.fragment.fields.findIndex((field) => field.name === fieldName);
+                    if (fieldIndex !== -1) {
+                        this.fragment.fields.splice(fieldIndex, 1);
+                    }
+                }
+            });
+        }
+
+        this.selectedItemsSnapshot = null;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         event.target.dispatchEvent(closeEvent);
     };
@@ -283,15 +321,17 @@ class MasTranslationEditor extends LitElement {
     renderAddFilesDialog() {
         return html`
             <sp-dialog-wrapper
+                class="add-files-dialog"
                 slot="click-content"
                 headline="Select files"
-                confirm-label="Done"
+                confirm-label="Add selected files"
                 cancel-label="Cancel"
-                size="l"
                 underlay
-                @confirm=${this.#handleCloseAddFilesDialog}
+                no-divider
+                @confirm=${this.#handleConfirmAddFilesDialog}
+                @cancel=${this.#handleCancelAddFilesDialog}
             >
-                To be implemented...
+                <mas-translation-files .translationProject=${this.fragment}></mas-translation-files>
             </sp-dialog-wrapper>
         `;
     }
@@ -379,7 +419,13 @@ class MasTranslationEditor extends LitElement {
                         <div class="icon">
                             <overlay-trigger type="modal" id="add-files-overlay">
                                 ${this.renderAddFilesDialog()}
-                                <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
+                                <sp-button 
+                                    slot="trigger" 
+                                    variant="secondary" 
+                                    size="xl" 
+                                    icon-only
+                                    @click=${this.#handleOpenAddFilesDialog}
+                                >
                                     <sp-icon-add size="xxl" slot="icon" label="Add Files"></sp-icon-add>
                                 </sp-button>
                             </overlay-trigger>

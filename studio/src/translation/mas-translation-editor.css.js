@@ -71,5 +71,9 @@ export const styles = css`
             border: 1px dashed var(--spectrum-gray-800);
             border-radius: 10px;
         }
+
+        .add-files-dialog {
+            --mod-dialog-confirm-buttongroup-padding-top: 82px;
+        }
     }
 `;

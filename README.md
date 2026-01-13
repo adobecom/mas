@@ -73,7 +73,7 @@ documented in .github/README.md
 Please reach out to us in `#merch-at-scale` for any questions.
 
 Getting issues commiting changes in /io/www?
-Make sure to install node >22.16 and set it as default. Husky precommit hook will try to run tests and build:client script. Be careful if you have 22 node lower then 22.16 - it will not work.
+Make sure to install node >22.16 and set it as default. Husky precommit hook will try to run tests and build:client script. Be careful if you have 22 node lower then 22.16 - it will not work..
 
 ```sh
 nvm install 22

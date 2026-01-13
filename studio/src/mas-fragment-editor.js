@@ -5,14 +5,14 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, LOCALES, PAGE_NAMES } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
+import { generateCodeToUse, getFragmentMapping, getService, showToast } from './utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
-import './editors/version-panel.js';
 import './mas-variation-dialog.js';
+import { getCountryName, getLocaleByCode } from './locales.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -284,9 +284,6 @@ export default class MasFragmentEditor extends LitElement {
         previewResolved: { type: Boolean, state: true },
         previewLazyLoaded: { type: Boolean, state: true },
         variationsToDelete: { type: Array, state: true },
-        fragmentVersions: { type: Array, state: true },
-        selectedVersion: { type: String, state: true },
-        versionsLoading: { type: Boolean, state: true },
         contextLoaded: { type: Boolean, state: true },
         initializingFragment: { type: Boolean, state: true },
         initializationComplete: { type: Boolean, state: true },
@@ -318,9 +315,6 @@ export default class MasFragmentEditor extends LitElement {
         this.previewLazyLoadTimer = null;
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
-        this.fragmentVersions = [];
-        this.selectedVersion = '';
-        this.versionsLoading = false;
         this.contextLoaded = false;
         this.initializingFragment = false;
         this.initializationComplete = false;
@@ -597,6 +591,10 @@ export default class MasFragmentEditor extends LitElement {
                 return;
             }
         }
+        const locale = this.extractLocaleFromPath(fragmentStore.get().path);
+        if (Store.localeOrRegion() !== locale) {
+            Store.search.set((prev) => ({ ...prev, region: locale }));
+        }
 
         this.initializingFragment = true;
         this.requestUpdate();
@@ -627,8 +625,9 @@ export default class MasFragmentEditor extends LitElement {
 
             if (isVariation) {
                 const fragmentLocale = this.extractLocaleFromPath(fragmentStore?.get()?.path);
-                if (fragmentLocale && fragmentLocale !== Store.filters.value.locale) {
-                    Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
+                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+
                     await this.repository.loadPreviewPlaceholders();
                     fragmentStore.resolvePreviewFragment();
                 }
@@ -644,8 +643,6 @@ export default class MasFragmentEditor extends LitElement {
             this.localeDefaultFragmentLoading = false;
             this.requestUpdate();
         });
-
-        this.loadFragmentVersions();
     }
 
     dispatchFragmentLoaded() {
@@ -733,7 +730,7 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.localeDefaultFragment) return;
         const parentLocale = this.extractLocaleFromPath(this.localeDefaultFragment.path);
         if (parentLocale) {
-            Store.filters.set((prev) => ({ ...prev, locale: parentLocale }));
+            Store.removeRegionOverride();
         }
         await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
@@ -928,60 +925,6 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
-    async loadFragmentVersions() {
-        if (!this.fragment?.id) return;
-        this.versionsLoading = true;
-        try {
-            const versions = await this.repository.aem.sites.cf.fragments.getVersions(this.fragment.id);
-            this.fragmentVersions = versions.items || [];
-            if (this.fragmentVersions.length > 0) {
-                this.selectedVersion = this.fragmentVersions[0].id;
-            }
-        } catch (error) {
-            console.error('Failed to load fragment versions:', error);
-            this.fragmentVersions = [];
-            showToast('Failed to load fragment versions', 'negative');
-        } finally {
-            this.versionsLoading = false;
-        }
-    }
-
-    async handleVersionChange(event) {
-        const { versionId, version } = event.detail;
-        this.selectedVersion = versionId;
-
-        if (version && versionId) {
-            try {
-                const versionFragment = await this.repository.aem.sites.cf.fragments.getVersion(this.fragment.id, versionId);
-                if (versionFragment) {
-                    this.fragmentStore.refreshFrom(versionFragment);
-                    this.fragmentStore.value.hasChanges = true;
-                    this.fragmentStore.notify();
-                    showToast(`Switched to version ${version.title || versionId}. Save to apply changes.`, 'positive');
-                }
-            } catch (error) {
-                console.error('Failed to load fragment version:', error);
-                showToast('Failed to load fragment version', 'negative');
-            }
-        }
-    }
-
-    handleVersionUpdated(event) {
-        const { version } = event.detail;
-        const versionIndex = this.fragmentVersions.findIndex((v) => v.id === version.id);
-        if (versionIndex !== -1) {
-            this.fragmentVersions[versionIndex] = version;
-            this.fragmentVersions = [...this.fragmentVersions];
-        }
-        showToast(`Version "${version.title}" updated successfully`, 'positive');
-    }
-
-    handleVersionUpdateError(event) {
-        const { error } = event.detail;
-        console.error('Version update failed:', error);
-        showToast(`Failed to update version: ${error}`, 'negative');
-    }
-
     get deleteConfirmationDialog() {
         if (!this.showDeleteDialog) return nothing;
         const hasVariations = this.variationsToDelete.length > 0;
@@ -1115,30 +1058,20 @@ export default class MasFragmentEditor extends LitElement {
         return parts[localeIndex] || null;
     }
 
-    getLocaleInfo(localeCode) {
-        if (!localeCode) return null;
-        return LOCALES.find((locale) => locale.code === localeCode);
+    displayRegionalVarationInfo(clazz) {
+        const localeCode = this.extractLocaleFromPath(this.fragment.path);
+        const locale = localeCode ? getLocaleByCode(localeCode) : null;
+        if (!locale) return nothing;
+        return html`<div class="${clazz}">
+            <span>Regional variation: <strong>${getCountryName(locale.country)} (${locale.lang.toUpperCase()})</strong></span>
+        </div>`;
     }
 
     get localeVariationHeader() {
         if (!this.fragment || !this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
         }
-
-        const localeCode = this.extractLocaleFromPath(this.fragment.path);
-        if (!localeCode) return nothing;
-
-        const localeInfo = this.getLocaleInfo(localeCode);
-        if (!localeInfo) return nothing;
-
-        return html`
-            <div class="locale-variation-header">
-                <span
-                    >Regional variation:
-                    <strong>${localeInfo.name?.split(' (')[0]} (${localeCode?.split('_')[0].toUpperCase()})</strong></span
-                >
-            </div>
-        `;
+        return this.displayRegionalVarationInfo('locale-variation-header');
     }
 
     get localeDefaultLocaleLabel() {
@@ -1239,25 +1172,13 @@ export default class MasFragmentEditor extends LitElement {
         const borderAttrs = this.previewBorderColorAttributes;
         const cssProps = this.previewCSSCustomProperties;
 
-        const localeCode = this.extractLocaleFromPath(this.fragment.path);
-        const localeInfo = this.getLocaleInfo(localeCode);
-
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
 
         return html`
             <div id="preview-column">
                 ${this.editorContextStore.isVariation(this.fragment.id)
-                    ? html`
-                          <div class="preview-header">
-                              <div class="preview-header-title">
-                                  Regional variation:
-                                  <strong
-                                      >${localeInfo?.name?.split(' (')[0]} (${localeCode?.split('_')[0].toUpperCase()})</strong
-                                  >
-                              </div>
-                          </div>
-                      `
+                    ? this.displayRegionalVarationInfo('preview-header')
                     : nothing}
                 <div class="preview-content columns mas-fragment">
                     <merch-card
@@ -1312,17 +1233,6 @@ export default class MasFragmentEditor extends LitElement {
                 </div>
                 ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
                 ${this.copyVariationDialog}
-                <version-history
-                    hide-button
-                    .versions="${this.fragmentVersions}"
-                    .selectedVersion="${this.selectedVersion}"
-                    .loading="${this.versionsLoading}"
-                    .fragmentId="${this.fragment.id}"
-                    .repository="${this.repository}"
-                    @version-change="${this.handleVersionChange}"
-                    @version-updated="${this.handleVersionUpdated}"
-                    @version-update-error="${this.handleVersionUpdateError}"
-                ></version-history>
             </div>
         `;
     }

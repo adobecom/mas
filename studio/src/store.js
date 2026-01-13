@@ -69,6 +69,9 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    version: {
+        fragmentId: new ReactiveStore(null),
+    },
     promotions: {
         list: {
             loading: new ReactiveStore(true),
@@ -84,6 +87,17 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
+    },
+    localeOrRegion: function () {
+        return Store.search.value.region || Store.filters.value.locale || 'en_US';
+    },
+    removeRegionOverride: function () {
+        if (Store.search.value.region) {
+            Store.search.set((prev) => ({ ...prev, region: null }));
+        }
+    },
+    surface: function () {
+        return Store.search.value.path;
     },
     translationProjects: {
         list: {
@@ -125,6 +139,7 @@ function pageValidator(value) {
         PAGE_NAMES.WELCOME,
         PAGE_NAMES.CONTENT,
         PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.VERSION,
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,
@@ -219,5 +234,20 @@ Store.placeholders.preview.subscribe(() => {
         if (fragmentStore) {
             fragmentStore.resolvePreviewFragment();
         }
+    }
+});
+
+Store.filters.subscribe(() => {
+    const regionLocale = Store.search.value.region;
+    if (!regionLocale) return;
+    const currentLocale = Store.filters.value.locale;
+    const main = currentLocale.split('_')[0];
+    const region = regionLocale.split('_')[0];
+    if (region !== main) {
+        // If region language doesn't match filter language, reset filter language
+        Store.search.set((prev) => ({
+            ...prev,
+            region: undefined,
+        }));
     }
 });

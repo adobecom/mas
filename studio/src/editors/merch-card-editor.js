@@ -104,17 +104,14 @@ class MerchCardEditor extends LitElement {
         return ownTags === parentTags ? 'same-as-parent' : 'overridden';
     }
 
-    renderTagsStatusIndicator() {
-        if (!this.effectiveIsVariation) return nothing;
-        const state = this.getTagsFieldState();
-        if (state !== 'overridden') return nothing;
+    #renderOverrideIndicatorLink(resetCallback) {
         return html`
             <div class="field-status-indicator">
                 <a
                     href="javascript:void(0)"
                     @click=${(e) => {
                         e.preventDefault();
-                        this.resetTagsToParent();
+                        resetCallback();
                     }}
                 >
                     <sp-icon-unlink></sp-icon-unlink>
@@ -122,6 +119,12 @@ class MerchCardEditor extends LitElement {
                 </a>
             </div>
         `;
+    }
+
+    renderTagsStatusIndicator() {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getTagsFieldState() !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetTagsToParent());
     }
 
     async resetTagsToParent() {
@@ -148,27 +151,9 @@ class MerchCardEditor extends LitElement {
     }
 
     renderFieldStatusIndicator(fieldName) {
-        if (!this.effectiveIsVariation) {
-            return nothing;
-        }
-        const state = this.getFieldState(fieldName);
-        if (state !== 'overridden') {
-            return nothing;
-        }
-        return html`
-            <div class="field-status-indicator">
-                <a
-                    href="javascript:void(0)"
-                    @click=${(e) => {
-                        e.preventDefault();
-                        this.resetFieldToParent(fieldName);
-                    }}
-                >
-                    <sp-icon-unlink></sp-icon-unlink>
-                    Overridden. Click to restore.
-                </a>
-            </div>
-        `;
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getFieldState(fieldName) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
     }
 
     isSectionOverridden(fieldNames) {
@@ -187,27 +172,9 @@ class MerchCardEditor extends LitElement {
     }
 
     renderSectionStatusIndicator(fieldNames) {
-        if (!this.effectiveIsVariation) {
-            return nothing;
-        }
-        const isOverridden = this.isSectionOverridden(fieldNames);
-        if (!isOverridden) {
-            return nothing;
-        }
-        return html`
-            <div class="field-status-indicator">
-                <a
-                    href="javascript:void(0)"
-                    @click=${(e) => {
-                        e.preventDefault();
-                        this.resetSectionToParent(fieldNames);
-                    }}
-                >
-                    <sp-icon-unlink></sp-icon-unlink>
-                    Overridden. Click to restore.
-                </a>
-            </div>
-        `;
+        if (!this.effectiveIsVariation) return nothing;
+        if (!this.isSectionOverridden(fieldNames)) return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetSectionToParent(fieldNames));
     }
 
     getFormWithInheritance() {
@@ -1493,27 +1460,9 @@ class MerchCardEditor extends LitElement {
     }
 
     renderQuantityComponentOverrideIndicator(component) {
-        if (!this.effectiveIsVariation) {
-            return nothing;
-        }
-        const state = this.getQuantityComponentState(component);
-        if (state !== 'overridden') {
-            return nothing;
-        }
-        return html`
-            <div class="field-status-indicator">
-                <a
-                    href="javascript:void(0)"
-                    @click=${(e) => {
-                        e.preventDefault();
-                        this.resetQuantityComponentToParent(component);
-                    }}
-                >
-                    <sp-icon-unlink></sp-icon-unlink>
-                    Overridden. Click to restore.
-                </a>
-            </div>
-        `;
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getQuantityComponentState(component) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetQuantityComponentToParent(component));
     }
 
     async resetQuantityComponentToParent(component) {
@@ -1556,27 +1505,9 @@ class MerchCardEditor extends LitElement {
     }
 
     renderBadgeComponentOverrideIndicator(fieldName, component) {
-        if (!this.effectiveIsVariation) {
-            return nothing;
-        }
-        const state = this.getBadgeComponentState(fieldName, component);
-        if (state !== 'overridden') {
-            return nothing;
-        }
-        return html`
-            <div class="field-status-indicator">
-                <a
-                    href="javascript:void(0)"
-                    @click=${(e) => {
-                        e.preventDefault();
-                        this.resetBadgeComponentToParent(fieldName, component);
-                    }}
-                >
-                    <sp-icon-unlink></sp-icon-unlink>
-                    Overridden. Click to restore.
-                </a>
-            </div>
-        `;
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getBadgeComponentState(fieldName, component) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetBadgeComponentToParent(fieldName, component));
     }
 
     async resetBadgeComponentToParent(fieldName, component) {

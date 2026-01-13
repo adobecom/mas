@@ -69,8 +69,13 @@ export class Router extends EventTarget {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
                 const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
                 if (confirmed) {
-                    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
+                    if (
+                        (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION) &&
+                        value !== PAGE_NAMES.FRAGMENT_EDITOR &&
+                        value !== PAGE_NAMES.VERSION
+                    ) {
                         Store.fragmentEditor.fragmentId.set(null);
+                        Store.version.fragmentId.set(null);
                     }
                     if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && value !== PAGE_NAMES.TRANSLATION_EDITOR) {
                         Store.translationProjects.translationProjectId.set(null);
@@ -277,6 +282,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
+        this.linkStoreToHash(Store.version.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');

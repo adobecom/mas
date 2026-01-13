@@ -99,14 +99,11 @@ class VariantPicker extends LitElement {
     `;
 
     static properties = {
+        value: { type: String },
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },
         disabled: { type: Boolean, attribute: 'disabled' },
     };
-
-    get value() {
-        return this.shadowRoot.querySelector('sp-picker')?.value;
-    }
 
     get variants() {
         return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
@@ -118,7 +115,7 @@ class VariantPicker extends LitElement {
         return html`<sp-picker
             label="Card Variant"
             size="m"
-            value=${this.value || this.defaultValue}
+            value=${this.value ?? this.defaultValue}
             ?disabled=${this.disabled}
         >
             ${this.variants}

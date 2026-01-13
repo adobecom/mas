@@ -657,7 +657,7 @@ class MerchCardEditor extends LitElement {
                             ?show-all="false"
                             data-field="variant"
                             data-field-state="${this.getFieldState('variant')}"
-                            default-value="${form.variant.values[0]}"
+                            value="${form.variant.values[0]}"
                             @change="${this.#handleVariantChange}"
                         ></variant-picker>
                         ${this.renderFieldStatusIndicator('variant')}

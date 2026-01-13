@@ -1,4 +1,4 @@
-import { STATE_FAILED, FF_DEFAULTS } from './constants.js';
+import { STATE_FAILED, FF_DEFAULTS, FF_ANNUAL_PRICE } from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
 import { selectOffers, getService } from './utilities.js';
 import { Defaults } from './defaults.js';
@@ -364,6 +364,9 @@ export class InlinePrice extends HTMLSpanElement {
                 if (priceOptions.displayOldPrice === undefined) {
                     options.displayOldPrice = true;
                 }
+            }
+            if (service.featureFlags[FF_ANNUAL_PRICE]) {
+                options.displayAnnual = true;
             }
             return this.renderOffers(offers, options, version);
         } catch (error) {

@@ -15,6 +15,7 @@ import Store from '../store.js';
 import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import { getItemFieldStateByIndex } from '../utils/field-state.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -292,8 +293,6 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = this.getEffectiveFieldValues('mnemonicLink');
         const mnemonicTooltipText = this.getEffectiveFieldValues('mnemonicTooltipText');
         const mnemonicTooltipPlacement = this.getEffectiveFieldValues('mnemonicTooltipPlacement');
-
-        const ownIcons = this.fragment.getField('mnemonicIcon')?.values || [];
         const parentIcons = this.localeDefaultFragment?.getField('mnemonicIcon')?.values || [];
 
         return (
@@ -306,12 +305,9 @@ class MerchCardEditor extends LitElement {
                     mnemonicPlacement: mnemonicTooltipPlacement[index] ?? 'top',
                 };
 
-                if (this.effectiveIsVariation && this.localeDefaultFragment) {
-                    const ownIcon = ownIcons[index];
-                    const parentIcon = parentIcons[index];
-                    if (ownIcon !== undefined && ownIcon !== '' && (index >= parentIcons.length || ownIcon !== parentIcon)) {
-                        mnemonic.fieldState = 'overridden';
-                    }
+                if (this.effectiveIsVariation) {
+                    const fieldState = getItemFieldStateByIndex(icon, parentIcons, index);
+                    if (fieldState) mnemonic.fieldState = fieldState;
                 }
 
                 return mnemonic;
@@ -771,7 +767,6 @@ class MerchCardEditor extends LitElement {
                     ${this.renderTagsStatusIndicator()}
                 </sp-field-group>
                 <div class="section-title">Visuals</div>
-                ${this.renderSectionStatusIndicator(['mnemonicIcon'])}
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield
                         id="mnemonics"

@@ -1444,19 +1444,20 @@ class MerchCardEditor extends LitElement {
         };
     }
 
-    getQuantityComponentState(component) {
-        if (!this.effectiveIsVariation) {
-            return 'no-parent';
-        }
-        const ownHtml = this.fragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
-        const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
-        const ownParsed = this.#parseQuantityHtml(ownHtml);
-        const parentParsed = this.#parseQuantityHtml(parentHtml);
+    #getCompositeComponentState(fieldName, parser, component, getOwnHtml) {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        const ownHtml = getOwnHtml ? getOwnHtml() : this.fragment?.getFieldValue(fieldName, 0) || '';
+        const parentHtml = this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '';
+        const ownParsed = parser(ownHtml);
+        const parentParsed = parser(parentHtml);
         const ownValue = ownParsed[component];
         const parentValue = parentParsed[component];
         if (!ownValue) return 'inherited';
-        if (ownValue === parentValue) return 'inherited';
-        return 'overridden';
+        return ownValue === parentValue ? 'inherited' : 'overridden';
+    }
+
+    getQuantityComponentState(component) {
+        return this.#getCompositeComponentState(QUANTITY_MODEL, this.#parseQuantityHtml.bind(this), component);
     }
 
     renderQuantityComponentOverrideIndicator(component) {
@@ -1478,18 +1479,12 @@ class MerchCardEditor extends LitElement {
     }
 
     getBadgeComponentState(fieldName, component) {
-        if (!this.effectiveIsVariation) {
-            return 'no-parent';
-        }
-        const ownHtml = this.getEffectiveFieldValue(fieldName, 0) || '';
-        const parentHtml = this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '';
-        const ownParsed = this.#parseBadgeHtml(ownHtml);
-        const parentParsed = this.#parseBadgeHtml(parentHtml);
-        const ownValue = ownParsed[component];
-        const parentValue = parentParsed[component];
-        if (!ownValue) return 'inherited';
-        if (ownValue === parentValue) return 'inherited';
-        return 'overridden';
+        return this.#getCompositeComponentState(
+            fieldName,
+            this.#parseBadgeHtml.bind(this),
+            component,
+            () => this.getEffectiveFieldValue(fieldName, 0) || '',
+        );
     }
 
     #getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor) {

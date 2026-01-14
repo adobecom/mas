@@ -27,7 +27,7 @@ jobs:
         timeout-minutes: 20 # Prevent hanging jobs
         if: |
             github.event.action == 'opened' ||
-            github.event.label.name == 'run nala' ||
+            (github.event.action == 'labeled' && github.event.label.name == 'run nala') ||
             (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'run nala'))
         strategy:
             matrix:

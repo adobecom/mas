@@ -131,8 +131,10 @@ export default {
             data: {
                 cardid: 'c72789db-f4c0-4b72-a6ba-3b73b05ae91a',
                 osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
-                legalDisclaimer: 'par licenceTVA comprise. Annual, billed monthly',
-                cardLegalDisclaimer: 'par licenceTVA comprise',
+                legalDisclaimer: 'par licenceAnnual, billed monthly',
+                cardLegalDisclaimer: 'par licence',
+                legalDisclaimerTax: 'par licenceTVA comprise. Annual, billed monthly',
+                cardLegalDisclaimerTax: 'par licenceTVA comprise',
             },
             browserParams: '#locale=fr_FR&query=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',

@@ -3944,11 +3944,6 @@ merch-card[variant="full-pricing-express"] [slot="icons"] {
     flex-shrink: 0;
 }
 
-merch-card[variant="full-pricing-express"] merch-icon[slot="icons"] {
-    --mod-img-width: auto;
-    --mod-img-height: 21px;
-}
-
 /* Premium/crown icon sizing on mobile and tablet (14x14px) */
 @media (max-width: 1199px) {
     merch-card[variant="full-pricing-express"] [slot="heading-xs"] merch-icon,
@@ -4121,11 +4116,7 @@ merch-card[variant="full-pricing-express"] [slot="price"] p {
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] > p span[is="inline-price"]:only-child {
-    color: var(--spectrum-gray-900);
-}
-
-merch-card[variant="full-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template="strikethrough"] + span[is="inline-price"] {
-    color: var(--spectrum-gray-800);
+    color: rgb(34,34,34);
 }
 
 /* Target inline prices in paragraphs that are not the first paragraph */
@@ -4209,12 +4200,12 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.button {
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 48px;
-    min-height: 48px;
+    height: 40px;
+    max-height: 40px;
     box-sizing: border-box;
     font-weight: 700;
-    font-size: 18px;
-    line-height: 23.4px;
+    font-size: 16px;
+    line-height: 20.8px;
     margin: 0;
     padding: 0 24px;
     border-radius: 26px;
@@ -4355,7 +4346,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
         margin-bottom: 0;
     }
 }
-`;var Jr={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"l"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:[]},Ke=class extends N{getGlobalCSS(){return ga}get aemFragmentMapping(){return Jr}get headingSelector(){return'[slot="heading-xs"]'}get badgeElement(){return this.card.querySelector('[slot="badge"]')}get badge(){return xa`
+`;var Jr={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"xs"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:[]},Ke=class extends N{getGlobalCSS(){return ga}get aemFragmentMapping(){return Jr}get headingSelector(){return'[slot="heading-xs"]'}get badgeElement(){return this.card.querySelector('[slot="badge"]')}get badge(){return xa`
             <div
                 class="badge-wrapper"
                 style="${this.badgeElement?"":"visibility: hidden"}"
@@ -4367,7 +4358,9 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             <div class="card-content">
                 <div class="header">
                     <slot name="heading-xs"></slot>
-                    <slot name="icons"></slot>
+                    <div class="icons">
+                        <slot name="icons"></slot>
+                    </div>
                 </div>
                 <div class="short-description">
                     <slot name="short-description"></slot>
@@ -4447,6 +4440,12 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        :host([variant='full-pricing-express']) .icons {
+            display: flex;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--spectrum-black);
         }
 
         /* Card content styling */
@@ -4593,9 +4592,17 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             flex-shrink: 0;
         }
 
-        :host([variant='full-pricing-express']) [slot='icons'] merch-icon {
-            --img-width: 20px;
-            --img-height: 20px;
+        :host([variant='full-pricing-express']) .icons ::slotted(merch-icon) {
+            --mod-img-width: auto;
+            --mod-img-height: 18px;
+            align-self: flex-end;
+        }
+
+        :host([variant='full-pricing-express'])
+            .icons
+            ::slotted(merch-icon:nth-of-type(2)) {
+            --mod-img-height: 14px;
+            height: 14px;
         }
 
         /* Description sections */

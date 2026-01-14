@@ -86,11 +86,6 @@ merch-card[variant="full-pricing-express"] [slot="icons"] {
     flex-shrink: 0;
 }
 
-merch-card[variant="full-pricing-express"] merch-icon[slot="icons"] {
-    --mod-img-width: auto;
-    --mod-img-height: 21px;
-}
-
 /* Premium/crown icon sizing on mobile and tablet (14x14px) */
 @media (max-width: 1199px) {
     merch-card[variant="full-pricing-express"] [slot="heading-xs"] merch-icon,
@@ -263,11 +258,7 @@ merch-card[variant="full-pricing-express"] [slot="price"] p {
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] > p span[is="inline-price"]:only-child {
-    color: var(--spectrum-gray-900);
-}
-
-merch-card[variant="full-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template="strikethrough"] + span[is="inline-price"] {
-    color: var(--spectrum-gray-800);
+    color: rgb(34,34,34);
 }
 
 /* Target inline prices in paragraphs that are not the first paragraph */
@@ -351,12 +342,12 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.button {
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 48px;
-    min-height: 48px;
+    height: 40px;
+    max-height: 40px;
     box-sizing: border-box;
     font-weight: 700;
-    font-size: 18px;
-    line-height: 23.4px;
+    font-size: 16px;
+    line-height: 20.8px;
     margin: 0;
     padding: 0 24px;
     border-radius: 26px;

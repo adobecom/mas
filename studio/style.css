@@ -1155,7 +1155,7 @@ merch-card:has(.placeholder-failed) a[is='checkout-link'] {
 
 /* Red border on merch-card containing a failed price */
 merch-card:has(.placeholder-failed) {
-    border: 1px solid var(--merch-color-error) !important;
+    border: 1px solid var(--merch-color-error);
 }
 
 .price-error-icon {

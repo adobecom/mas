@@ -54,6 +54,7 @@ function applyCollectionSettings(context) {
         noResultsText: '{{coll-no-results-text}}',
         plansSidenavTitle: '{{coll-plans-sidenav-title}}',
         catalogSidenavTitle: '{{coll-catalog-sidenav-title}}',
+        catalogSpecialOffersAlt: '{{catalog-special-offers-alt}}',
         resultText: '{{coll-result-text}}',
         resultsText: '{{coll-results-text}}',
         resultMobileText: '{{coll-result-mobile-text}}',

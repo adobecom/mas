@@ -535,6 +535,26 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.description).toContainText(data.legalDisclaimer);
             await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimer);
         });
+
+        await test.step('step-5: Edit legal disclaimer tax field', async () => {
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.description.locator(editor.legalDisclaimer)).toBeVisible();
+            await editor.description.locator(editor.legalDisclaimer).dblclick();
+            await ost.legalDisclaimer.scrollIntoViewIfNeeded();
+            await expect(await ost.legalDisclaimer).not.toContainText(data.legalDisclaimerTax);
+            await expect(await ost.unitCheckbox).toBeVisible();
+            await expect(await ost.taxlabelCheckbox).toBeVisible();
+            await ost.taxlabelCheckbox.click();
+            await expect(await ost.legalDisclaimer).toContainText(data.legalDisclaimerTax);
+            await expect(await ost.legalDisclaimerUse).toBeVisible();
+            await ost.legalDisclaimerUse.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-6: Validate legal disclaimer tax field updated', async () => {
+            await expect(await editor.description).toContainText(data.legalDisclaimerTax);
+            await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimerTax);
+        });
     });
 
     // @studio-plans-individuals-save-product-icon-picker - Validate save product icon using icon picker for plans individuals card in mas studio

@@ -114,7 +114,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         #preview-column:has(.placeholder-failed) {
-            background-color: #ffebe8;
+            background-color: var(--merch-color-error-background);
         }
 
         #preview-column:has(a[is='checkout-link'].placeholder-failed)::after {

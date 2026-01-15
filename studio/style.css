@@ -441,7 +441,7 @@ sp-table-row {
 }
 
 sp-table-row.price-failed {
-    background-color: #ffebe8 !important;
+    background-color: var(--merch-color-error-background);
 }
 
 sp-table-cell {

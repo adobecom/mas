@@ -1,4 +1,4 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, css } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { generateCodeToUse, getService, showToast } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
@@ -19,6 +19,13 @@ class MasFragmentTable extends LitElement {
         showVariationDialog: { state: true },
         failedPrice: { type: Boolean, state: true },
     };
+
+    static styles = css`
+        .price-error-title {
+            color: var(--merch-color-error, #d73220);
+            font-weight: 600;
+        }
+    `;
 
     constructor() {
         super();
@@ -99,7 +106,7 @@ class MasFragmentTable extends LitElement {
         const osi = this.data.getFieldValue('osi');
         if (!osi) return '';
         if (this.failedPrice) {
-            return html`<span style="color: #D73220; font-weight: 600;">Price Unavailable</span>`;
+            return html`<span class="price-error-title">Price Unavailable</span>`;
         }
         return html`<span is="inline-price" data-template="price" data-wcs-osi=${osi}></span>`;
     }

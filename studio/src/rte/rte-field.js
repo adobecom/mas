@@ -689,7 +689,7 @@ class RteField extends LitElement {
                 'data-display-tax': { default: null },
                 'data-perpetual': { default: null },
                 'data-promotion-code': { default: null },
-                'data-tax-exclusive': { default: null },
+                'data-force-tax-exclusive': { default: null },
                 'data-template': { default: null },
                 'data-wcs-osi': { default: null },
             },

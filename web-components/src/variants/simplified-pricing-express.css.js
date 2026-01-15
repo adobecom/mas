@@ -112,6 +112,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.button {
     margin: 0;
     padding: 12px 24px 13px 24px;
     border-radius: 26px;
+    height: 48px;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] {

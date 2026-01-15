@@ -3142,6 +3142,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.button {
     margin: 0;
     padding: 12px 24px 13px 24px;
     border-radius: 26px;
+    height: 48px;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] {
@@ -3928,6 +3929,8 @@ merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic {
     --mod-img-height: 20px;
     margin-right: 8px;
     align-items: center;
+    vertical-align: middle;
+    padding-bottom: 3px;
 }
 
 merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic img {
@@ -4196,12 +4199,13 @@ merch-card[variant="full-pricing-express"] [slot="cta"] {
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="full-pricing-express"] [slot="cta"] button,
 merch-card[variant="full-pricing-express"] [slot="cta"] a.button {
+    --mod-button-height: 40px;
+    --mod-button-top-to-text: 9px;
+    --mod-button-bottom-to-text: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 40px;
-    max-height: 40px;
     box-sizing: border-box;
     font-weight: 700;
     font-size: 16px;

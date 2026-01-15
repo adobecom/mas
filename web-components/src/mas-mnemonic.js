@@ -30,6 +30,8 @@ export default class MasMnemonic extends LitElement {
         mnemonicPlacement: { type: String, attribute: 'mnemonic-placement' },
         // Tooltip visibility state
         tooltipVisible: { type: Boolean, state: true },
+        // Device capability detection
+        supportsHover: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -88,14 +90,6 @@ export default class MasMnemonic extends LitElement {
         .css-tooltip:focus[data-tooltip]::after {
             opacity: 1;
             visibility: visible;
-        }
-
-        @media (hover: hover) {
-            .css-tooltip:hover[data-tooltip]::before,
-            .css-tooltip:hover[data-tooltip]::after {
-                opacity: 1;
-                visibility: visible;
-            }
         }
 
         /* Position variants */
@@ -168,6 +162,7 @@ export default class MasMnemonic extends LitElement {
         this.variant = 'info';
         this.size = 'xs';
         this.tooltipVisible = false;
+        this.supportsHover = window.matchMedia('(hover: hover)').matches;
         this.handleClickOutside = this.handleClickOutside.bind(this);
     }
 
@@ -190,8 +185,9 @@ export default class MasMnemonic extends LitElement {
 
     showTooltip() {
         if (MasMnemonic.activeTooltip && MasMnemonic.activeTooltip !== this) {
+            MasMnemonic.activeTooltip.closeOverlay();
             MasMnemonic.activeTooltip.tooltipVisible = false;
-            MasMnemonic.activeTooltip = null;
+            MasMnemonic.activeTooltip.requestUpdate();
         }
         MasMnemonic.activeTooltip = this;
         this.tooltipVisible = true;
@@ -202,6 +198,22 @@ export default class MasMnemonic extends LitElement {
             MasMnemonic.activeTooltip = null;
         }
         this.tooltipVisible = false;
+    }
+
+    handleTap(e) {
+        e.preventDefault();
+        if (this.tooltipVisible) {
+            this.hideTooltip();
+        } else {
+            this.showTooltip();
+        }
+    }
+
+    closeOverlay() {
+        const trigger = this.shadowRoot?.querySelector('overlay-trigger');
+        if (trigger?.open !== undefined) {
+            trigger.open = false;
+        }
     }
 
     get effectiveContent() {
@@ -237,9 +249,12 @@ export default class MasMnemonic extends LitElement {
         const useSpectrum = hasSpectrumTooltip();
 
         if (useSpectrum) {
-            // Use Spectrum tooltip if available
+            // Use Spectrum tooltip with singleton dismiss logic
             return html`
-                <overlay-trigger placement="${placement}">
+                <overlay-trigger
+                    placement="${placement}"
+                    @sp-opened=${() => this.showTooltip()}
+                >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
                         placement="${placement}"
@@ -250,7 +265,9 @@ export default class MasMnemonic extends LitElement {
                 </overlay-trigger>
             `;
         } else {
-            // Use CSS tooltip with dismiss logic
+            // Use CSS tooltip with device-aware handlers
+            // Desktop: hover to show/hide
+            // Mobile: tap to toggle
             return html`
                 <span
                     class="css-tooltip ${placement} ${this.tooltipVisible
@@ -260,8 +277,15 @@ export default class MasMnemonic extends LitElement {
                     tabindex="0"
                     role="img"
                     aria-label="${content}"
-                    @pointerenter=${() => this.showTooltip()}
-                    @pointerleave=${() => this.hideTooltip()}
+                    @pointerenter=${this.supportsHover
+                        ? () => this.showTooltip()
+                        : null}
+                    @pointerleave=${this.supportsHover
+                        ? () => this.hideTooltip()
+                        : null}
+                    @click=${!this.supportsHover
+                        ? (e) => this.handleTap(e)
+                        : null}
                     @focus=${() => this.showTooltip()}
                     @blur=${() => this.hideTooltip()}
                 >

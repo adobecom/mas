@@ -8,7 +8,6 @@ import { CARD_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
 import router from './router.js';
 import './mas-variation-dialog.js';
-import { warningIcon } from './img/warning-icon.js';
 
 class MasFragmentTable extends LitElement {
     static properties = {
@@ -221,7 +220,7 @@ class MasFragmentTable extends LitElement {
                 >
                 <sp-table-cell class="actions">
                     ${this.failedPrice
-                        ? warningIcon
+                        ? html`<sp-icon-alert class="price-error-icon"></sp-icon-alert>`
                         : html`<sp-action-menu placement="bottom-end" quiet>
                               <sp-icon-more slot="icon"></sp-icon-more>
                               ${!this.nested

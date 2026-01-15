@@ -234,15 +234,6 @@ merch-card a[is="checkout-link"].upgrade:not(:first-of-type) {
   display: none;
 }
 
-merch-card:has(.placeholder-failed) a[is="checkout-link"] {
-    pointer-events: none;
-    opacity: 0.5;
-    cursor: not-allowed;
-    background-color: #E8E8E8;
-    color: #B6B6B6;
-    border: none;
-}
-
 merch-card[variant="ccd-suggested"] *,
 merch-card[variant="ccd-slice"] * {
   box-sizing: border-box;
@@ -584,39 +575,6 @@ merch-card span.price.price-strikethrough {
   font-weight: normal;
   text-decoration: line-through;
   color: var(--merch-color-inline-price-strikethrough);
-}
-
-span[is="inline-price"].placeholder-failed {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
-}
-
-span[is="inline-price"].placeholder-failed svg {
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-span[is="inline-price"].placeholder-failed .price-error-content {
-    display: flex;
-    flex-direction: column;
-}
-
-span[is="inline-price"].placeholder-failed .price-error-title {
-    color: var(--merch-color-error);
-    font-weight: 800;
-}
-
-span[is="inline-price"].placeholder-failed .price-error-message {
-    color: var(--merch-color-error);
-    font-size: var(--consonant-merch-card-body-xs-font-size);
-    line-height: var(--consonant-merch-card-body-xs-line-height);
-    font-weight: 400;
-}
-
-/* Red border on merch-card containing a failed price */
-merch-card:has(.placeholder-failed) {
-    border: 1px solid var(--merch-color-error) !important;
 }
 
 merch-card [slot^="body-"] ul {

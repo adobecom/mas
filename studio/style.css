@@ -1114,3 +1114,50 @@ merch-card-editor .color-swatch {
 mas-mnemonic-field sp-action-menu sp-overlay sp-popover sp-menu {
     min-width: auto;
 }
+
+/* Price error styling (authoring only) */
+span[is='inline-price'].placeholder-failed {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+span[is='inline-price'].placeholder-failed sp-icon-alert {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+span[is='inline-price'].placeholder-failed .price-error-content {
+    display: flex;
+    flex-direction: column;
+}
+
+span[is='inline-price'].placeholder-failed .price-error-title {
+    color: var(--merch-color-error, #d73220);
+    font-weight: 800;
+}
+
+span[is='inline-price'].placeholder-failed .price-error-message {
+    color: var(--merch-color-error, #d73220);
+    font-size: var(--consonant-merch-card-body-xs-font-size, 14px);
+    line-height: var(--consonant-merch-card-body-xs-line-height, 21px);
+    font-weight: 400;
+}
+
+merch-card:has(.placeholder-failed) a[is='checkout-link'] {
+    pointer-events: none;
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #e8e8e8;
+    color: #b6b6b6;
+    border: none;
+}
+
+/* Red border on merch-card containing a failed price */
+merch-card:has(.placeholder-failed) {
+    border: 1px solid var(--merch-color-error) !important;
+}
+
+.price-error-icon {
+    color: var(--merch-color-error, #d73220);
+}

@@ -2,7 +2,6 @@ import { STATE_FAILED, FF_DEFAULTS } from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
 import { selectOffers, getService } from './utilities.js';
 import { Defaults } from './defaults.js';
-import { PRICE_ERROR_SVG } from './icons.js';
 
 const INDIVIDUAL = 'INDIVIDUAL_COM';
 const BUSINESS = 'TEAM_COM';
@@ -368,12 +367,7 @@ export class InlinePrice extends HTMLSpanElement {
             }
             return this.renderOffers(offers, options, version);
         } catch (error) {
-            this.innerHTML = `
-            ${PRICE_ERROR_SVG}
-        <div class="price-error-content">
-            <span class="price-error-title heading-xs">Price unavailable</span>
-        </div>
-    `;
+            this.innerHTML = '';
             throw error;
         }
     }

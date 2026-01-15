@@ -430,6 +430,10 @@ class RteField extends LitElement {
                     font-weight: 400;
                 }
 
+                .ProseMirror .price-error-icon {
+                    color: var(--merch-color-error, #d73220);
+                }
+
                 div.ProseMirror-focused .ProseMirror-selectednode.mnemonic merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode merch-icon,
                 div.ProseMirror-focused sp-tooltip.ProseMirror-selectednode {

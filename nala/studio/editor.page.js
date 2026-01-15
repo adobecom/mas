@@ -64,6 +64,7 @@ export default class EditorPage {
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');
         this.promoStrikethroughPrice = page.locator('span[is="inline-price"][data-template="price"] > .price-strikethrough');
+        this.legalDisclaimer = page.locator('span[is="inline-price"][data-template="legal"]');
 
         // RTE content
         this.phoneLink = page.locator('a[href^="tel:"]');

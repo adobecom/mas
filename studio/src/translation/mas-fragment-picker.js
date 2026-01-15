@@ -1,10 +1,10 @@
 import { LitElement, html, nothing, repeat } from 'lit';
 import { styles } from './mas-fragment-picker.css.js';
 import './mas-selected-items.js';
+import './mas-fragment-picker-toolbar.js';
 import Store from '../store.js';
 import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS } from '../constants.js';
 import { getService, showToast, copyToClipboard } from '../utils.js';
-import hardcoded from './hardcoded-remove-me.js';
 
 class MasFragmentPicker extends LitElement {
     static styles = styles;
@@ -13,12 +13,21 @@ class MasFragmentPicker extends LitElement {
         translationProject: { type: Object },
         selectedItems: { type: Array, state: true },
         fragments: { type: Array, state: true },
+        filteredFragments: { type: Array, state: true },
         loading: { type: Boolean, state: true },
         error: { type: String, state: true },
         fragmentsById: { type: Map, state: true },
         columnsToShow: { type: Set, state: true },
         showSelected: { type: Boolean },
         selectedInTable: { type: Array, state: true },
+        // Toolbar state
+        searchQuery: { type: String, state: true },
+        activeFilters: { type: Object, state: true },
+        // Filter options extracted from fragments
+        templateOptions: { type: Array, state: true },
+        marketSegmentOptions: { type: Array, state: true },
+        customerSegmentOptions: { type: Array, state: true },
+        productOptions: { type: Array, state: true },
     };
 
     constructor() {
@@ -26,6 +35,7 @@ class MasFragmentPicker extends LitElement {
         this.translationProject = null;
         this.selectedInTable = [];
         this.fragments = [];
+        this.filteredFragments = [];
         this.fragmentsById = new Map();
         this.loading = false;
         this.error = null;
@@ -38,6 +48,19 @@ class MasFragmentPicker extends LitElement {
             { label: 'Path', key: 'path' },
             { label: 'Status', key: 'status' },
         ]);
+        // Toolbar state
+        this.searchQuery = '';
+        this.activeFilters = {
+            template: [],
+            marketSegment: [],
+            customerSegment: [],
+            product: [],
+        };
+        // Filter options
+        this.templateOptions = [];
+        this.marketSegmentOptions = [];
+        this.customerSegmentOptions = [];
+        this.productOptions = [];
     }
 
     connectedCallback() {
@@ -109,6 +132,8 @@ class MasFragmentPicker extends LitElement {
                 })),
             );
             this.fragmentsById = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
+            this.#extractFilterOptions();
+            this.#applyFilters();
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('Failed to fetch fragments:', err);
@@ -171,6 +196,109 @@ class MasFragmentPicker extends LitElement {
         }
     }
 
+    /**
+     * Extract unique filter options from loaded fragments
+     */
+    #extractFilterOptions() {
+        const templates = new Map();
+        const marketSegments = new Map();
+        const customerSegments = new Map();
+        const products = new Map();
+
+        for (const fragment of this.fragments) {
+            if (!fragment.tags) continue;
+
+            for (const tag of fragment.tags) {
+                const tagId = tag.id || '';
+                const tagTitle = tag.title || tagId.split('/').pop() || '';
+
+                // Template/Variant tags
+                if (tagId.startsWith('mas:variant/')) {
+                    templates.set(tagId, { id: tagId, title: tagTitle });
+                }
+                // Market Segment tags
+                else if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
+                    marketSegments.set(tagId, { id: tagId, title: tagTitle });
+                }
+                // Customer Segment tags
+                else if (tagId.startsWith('mas:customer_segment/')) {
+                    customerSegments.set(tagId, { id: tagId, title: tagTitle });
+                }
+                // Product tags
+                else if (tagId.startsWith('mas:product_code/') || tagId.startsWith('mas:product/')) {
+                    products.set(tagId, { id: tagId, title: tagTitle });
+                }
+            }
+        }
+
+        this.templateOptions = Array.from(templates.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.marketSegmentOptions = Array.from(marketSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.customerSegmentOptions = Array.from(customerSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
+    }
+
+    /**
+     * Apply search query and filters to fragments
+     */
+    #applyFilters() {
+        let result = [...this.fragments];
+
+        // Apply search query
+        if (this.searchQuery) {
+            const query = this.searchQuery.toLowerCase();
+            result = result.filter((fragment) => {
+                const title = (fragment.title || '').toLowerCase();
+                const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
+                const offerId = fragment.offerData?.offerId || '';
+
+                return (
+                    title.includes(query) || productTag.toLowerCase().includes(query) || offerId.toLowerCase().includes(query)
+                );
+            });
+        }
+
+        // Apply template filter
+        if (this.activeFilters.template.length > 0) {
+            result = result.filter((fragment) => fragment.tags?.some((tag) => this.activeFilters.template.includes(tag.id)));
+        }
+
+        // Apply market segment filter
+        if (this.activeFilters.marketSegment.length > 0) {
+            result = result.filter((fragment) =>
+                fragment.tags?.some((tag) => this.activeFilters.marketSegment.includes(tag.id)),
+            );
+        }
+
+        // Apply customer segment filter
+        if (this.activeFilters.customerSegment.length > 0) {
+            result = result.filter((fragment) =>
+                fragment.tags?.some((tag) => this.activeFilters.customerSegment.includes(tag.id)),
+            );
+        }
+
+        // Apply product filter
+        if (this.activeFilters.product.length > 0) {
+            result = result.filter((fragment) => fragment.tags?.some((tag) => this.activeFilters.product.includes(tag.id)));
+        }
+
+        this.filteredFragments = result;
+    }
+
+    #handleSearchChange(e) {
+        this.searchQuery = e.detail.query;
+        this.#applyFilters();
+    }
+
+    #handleFilterChange(e) {
+        this.activeFilters = {
+            template: e.detail.template || [],
+            marketSegment: e.detail.marketSegment || [],
+            customerSegment: e.detail.customerSegment || [],
+            product: e.detail.product || [],
+        };
+        this.#applyFilters();
+    }
+
     renderStatus(status) {
         if (!status) return nothing;
         let statusClass = '';
@@ -186,37 +314,26 @@ class MasFragmentPicker extends LitElement {
     }
 
     render() {
+        const hasFiltersOrSearch = this.filteredFragments.length > 0 || this.searchQuery || this.#hasActiveFilters();
+        const displayFragments = hasFiltersOrSearch ? this.filteredFragments : this.fragments;
+
         return html`
-            <div class="search">
-                <sp-search size="m" placeholder="Search" disabled></sp-search>
-                <div>1507 result(s)</div>
-            </div>
+            <mas-fragment-picker-toolbar
+                .searchQuery=${this.searchQuery}
+                .resultCount=${displayFragments.length}
+                .loading=${this.loading}
+                .templateOptions=${this.templateOptions}
+                .marketSegmentOptions=${this.marketSegmentOptions}
+                .customerSegmentOptions=${this.customerSegmentOptions}
+                .productOptions=${this.productOptions}
+                @search-change=${this.#handleSearchChange}
+                @filter-change=${this.#handleFilterChange}
+            ></mas-fragment-picker-toolbar>
 
-            <div class="filters">
-                <sp-picker disabled>
-                    <span slot="label">Template</span>
-                    <sp-menu-item>TODO</sp-menu-item>
-                </sp-picker>
-
-                <sp-picker disabled>
-                    <span slot="label">Market Segment</span>
-                    <sp-menu-item>TODO</sp-menu-item>
-                </sp-picker>
-
-                <sp-picker disabled>
-                    <span slot="label">Customer Segment</span>
-                    <sp-menu-item>TODO</sp-menu-item>
-                </sp-picker>
-
-                <sp-picker disabled>
-                    <span slot="label">Product</span>
-                    <sp-menu-item>TODO</sp-menu-item>
-                </sp-picker>
-            </div>
             <div class="container">
                 ${this.loading
                     ? html`<div class="loading-container">${this.loadingIndicator}</div>`
-                    : this.fragments.length
+                    : displayFragments.length
                       ? html` <sp-table
                             class="fragments-table"
                             emphasized
@@ -227,7 +344,7 @@ class MasFragmentPicker extends LitElement {
                             ${this.renderTableHeader()}
                             <sp-table-body>
                                 ${repeat(
-                                    this.fragments,
+                                    displayFragments,
                                     (fragment) => fragment.id,
                                     (fragment) =>
                                         html`<sp-table-row value=${fragment.id}>
@@ -264,6 +381,15 @@ class MasFragmentPicker extends LitElement {
                     : nothing}
             </div>
         `;
+    }
+
+    #hasActiveFilters() {
+        return (
+            this.activeFilters.template.length > 0 ||
+            this.activeFilters.marketSegment.length > 0 ||
+            this.activeFilters.customerSegment.length > 0 ||
+            this.activeFilters.product.length > 0
+        );
     }
 }
 

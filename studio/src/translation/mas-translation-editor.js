@@ -2,13 +2,14 @@ import { LitElement, html, nothing } from 'lit';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
-import { MasRepository } from '../mas-repository.js';
+import { MasRepository, getFromFragmentCache } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
 import router from '../router.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../constants.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { TranslationProject } from './translation-project.js';
 import './mas-translation-files.js';
+import './mas-translation-files-table.js';
 import '../mas-quick-actions.js';
 
 class MasTranslationEditor extends LitElement {
@@ -20,21 +21,16 @@ class MasTranslationEditor extends LitElement {
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         disabledActions: { type: Object, state: true },
-        selectedItemsSnapshot: { type: Object, state: true },
+        isSelectedFilesOpen: { type: Boolean, state: true },
     };
-
-    inEdit = Store.translationProjects.inEdit;
-    translationProjectId = Store.translationProjects.translationProjectId;
-    storeController = null;
-    selectedItemsSnapshot = null;
 
     constructor() {
         super();
         this.isLoading = false;
         this.isNewTranslationProject = false;
-        this.confirmDialogConfig = null;
         this.isDialogOpen = false;
-        this.selectedItemsSnapshot = null;
+        this.confirmDialogConfig = null;
+        this.selectedStoreController = new StoreController(this, Store.translationProjects.selected);
         this.disabledActions = new Set([
             QUICK_ACTION.SAVE,
             QUICK_ACTION.DISCARD,
@@ -45,27 +41,11 @@ class MasTranslationEditor extends LitElement {
             QUICK_ACTION.COPY,
             QUICK_ACTION.LOCK,
         ]);
+        this.isSelectedFilesOpen = false;
     }
 
-    async connectedCallback() {
+    connectedCallback() {
         super.connectedCallback();
-
-        const translationProjectId = this.translationProjectId.get();
-        if (translationProjectId) {
-            if (!this.fragmentStore) {
-                this.isLoading = true;
-                await this.#loadTranslationProjectById(translationProjectId);
-                this.isLoading = false;
-            }
-            this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
-        } else {
-            this.isNewTranslationProject = true;
-            const newTranslationProject = this.#initializeNewTranslationProject();
-            this.fragmentStore = new FragmentStore(newTranslationProject);
-            this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE] });
-        }
-
-        this.storeController = new StoreController(this, this.fragmentStore);
     }
 
     /** @type {MasRepository} */
@@ -73,16 +53,24 @@ class MasTranslationEditor extends LitElement {
         return document.querySelector('mas-repository');
     }
 
-    get fragment() {
-        return this.fragmentStore?.get();
+    get translationProject() {
+        return this.translationProjectStore?.get();
     }
 
-    get fragmentStore() {
-        return this.inEdit.get();
+    set translationProjectStore(translationProjectStore) {
+        Store.translationProjects.inEdit.set(translationProjectStore);
     }
 
-    set fragmentStore(fragmentStore) {
-        this.inEdit.set(fragmentStore);
+    get translationProjectStore() {
+        return Store.translationProjects.inEdit.get();
+    }
+
+    get selectedFilesCount() {
+        return Store.translationProjects.selectedFilesCount;
+    }
+
+    get languages() {
+        return 'All required languages have been preselected for this project. They are mandatory and cannot be changed.';
     }
 
     #updateDisabledActions({ add = [], remove = [] }) {
@@ -93,11 +81,19 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #loadTranslationProjectById(id) {
+        if (!id) return;
         try {
-            const fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+            let fragment = await getFromFragmentCache(id);
+
+            if (!fragment) {
+                fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+            }
+
             if (fragment) {
                 const translationProject = new TranslationProject(fragment);
-                this.fragmentStore = new FragmentStore(translationProject);
+                this.translationProjectStore = new FragmentStore(translationProject);
+                const selectedItems = new Set(fragment.fields.find((field) => field.name === 'items')?.values || []);
+                Store.translationProjects.selected.set(selectedItems);
             }
         } catch (error) {
             console.error('Failed to load translation project:', error);
@@ -109,12 +105,13 @@ class MasTranslationEditor extends LitElement {
         return new TranslationProject({
             id: null,
             title: '',
-            fields: [{ name: 'title', type: 'text', values: [''] }],
+            fields: [
+                { name: 'title', type: 'text', values: [] },
+                { name: 'items', type: 'array', values: [] },
+                { name: 'targetLocales', type: 'array', values: [] },
+                { name: 'submissionDate', type: 'date', values: [] },
+            ],
         });
-    }
-
-    get translationStatus() {
-        return 'All required languages have been preselected for this project. They are mandatory and cannot be changed.';
     }
 
     #handleFragmentUpdate({ target, detail, values }) {
@@ -124,31 +121,34 @@ class MasTranslationEditor extends LitElement {
             value = target.value || detail?.value || target.checked;
             value = target.multiline ? value?.split(',') : [value ?? ''];
         }
-        this.fragmentStore.updateField(fieldName, value);
+        this.translationProjectStore.updateField(fieldName, value);
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
     }
 
-    #validateRequiredFields(fragment = {}) {
+    #validateRequiredFields(translationProject = {}) {
         const requiredFields = ['title'];
-        return requiredFields.every((field) => fragment.getFieldValue(field));
+        return requiredFields.every((field) => translationProject.getFieldValue(field));
     }
 
     async #handleCreateTranslationProject() {
-        if (!this.#validateRequiredFields(this.fragment)) {
+        if (!this.#validateRequiredFields(this.translationProject)) {
             showToast('Please fill in all required fields.', 'negative');
             return;
         }
 
         const typeMap = {
             title: { type: 'text' },
+            items: { type: 'array' },
+            targetLocales: { type: 'array' },
+            submissionDate: { type: 'date' },
         };
 
         const fragmentPayload = {
-            name: normalizeKey(this.fragment.getFieldValue('title')),
+            name: normalizeKey(this.translationProject.getFieldValue('title')),
             parentPath: this.repository.getTranslationsPath(),
             modelId: TRANSLATION_PROJECT_MODEL_ID,
-            title: this.fragment.getFieldValue('title'),
-            fields: this.fragment.fields.map((field) => ({
+            title: this.translationProject.getFieldValue('title'),
+            fields: this.translationProject.fields.map((field) => ({
                 name: field.name,
                 ...(typeMap[field.name] && { type: typeMap[field.name].type }),
                 ...(typeMap[field.name] && { multiple: typeMap[field.name].multiple }),
@@ -163,9 +163,8 @@ class MasTranslationEditor extends LitElement {
             Store.translationProjects.translationProjectId.set(newTranslationProject.id);
             this.isNewTranslationProject = false;
 
-            // Reconnect the StoreController to the new FragmentStore instance
             this.storeController.hostDisconnected();
-            this.storeController = new StoreController(this, this.fragmentStore);
+            this.storeController = new StoreController(this, this.translationProjectStore);
             this.storeController.hostConnected();
 
             this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD], remove: [QUICK_ACTION.DELETE] });
@@ -176,14 +175,14 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #handleUpdateTranslationProject() {
-        if (!this.#validateRequiredFields(this.fragment)) {
+        if (!this.#validateRequiredFields(this.translationProject)) {
             showToast('Please fill in all required fields.', 'negative');
             return;
         }
-        this.fragment.updateFieldInternal('title', this.fragment.getFieldValue('title'));
+        this.translationProject.updateFieldInternal('title', this.translationProject.getFieldValue('title'));
         showToast('Updating the project...');
         try {
-            await this.repository.saveFragment(this.fragmentStore, false);
+            await this.repository.saveFragment(this.translationProjectStore, false);
             this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         } catch (error) {
             console.error('Error updating translation project', error);
@@ -197,7 +196,7 @@ class MasTranslationEditor extends LitElement {
         if (this.isDialogOpen) return;
         const confirmed = await this.#showDialog(
             'Delete Translation Project',
-            `Are you sure you want to delete the translation project "${this.inEdit?.value?.value?.fields[0]?.values?.[0]}"? This action cannot be undone`,
+            `Are you sure you want to delete the translation project "${Store.translationProjects.inEdit?.value?.value?.fields[0]?.values?.[0]}"? This action cannot be undone`,
             {
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
@@ -208,7 +207,10 @@ class MasTranslationEditor extends LitElement {
         try {
             this.isLoading = true;
             showToast('Deleting translation project...');
-            await this.repository.deleteFragment(this.inEdit.value.value, { startToast: false, endToast: false });
+            await this.repository.deleteFragment(Store.translationProjects.inEdit.value.value, {
+                startToast: false,
+                endToast: false,
+            });
             Store.translationProjects.inEdit.set(null);
             Store.translationProjects.translationProjectId.set('');
             showToast('Translation project successfully deleted.', 'positive');
@@ -222,7 +224,7 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #handleDiscard() {
-        if (this.fragment?.hasChanges) {
+        if (this.translationProject?.hasChanges || this.selectedFilesCount > 0) {
             const confirmed = await this.#showDialog(
                 'Confirm Discard',
                 'Are you sure you want to discard changes? This action cannot be undone',
@@ -234,9 +236,13 @@ class MasTranslationEditor extends LitElement {
             );
             if (!confirmed) return;
         }
-        this.fragmentStore.discardChanges();
-        Store.translationProjects.inEdit.set(new FragmentStore(this.fragment));
-        Store.translationProjects.translationProjectId.set(this.fragment.id);
+        this.translationProjectStore.discardChanges();
+        Store.translationProjects.inEdit.set(new FragmentStore(this.translationProject));
+        Store.translationProjects.translationProjectId.set(this.translationProject.id);
+        Store.translationProjects.selected.set(
+            new Set(this.translationProject.fields.find((field) => field.name === 'items')?.values || []),
+        );
+        Store.translationProjects.showSelected.set(false);
         this.#updateDisabledActions({ add: [QUICK_ACTION.DISCARD, QUICK_ACTION.SAVE] });
     }
 
@@ -267,7 +273,7 @@ class MasTranslationEditor extends LitElement {
      * @returns {Promise<boolean>} - True if confirmed or no changes, false if canceled
      */
     async promptDiscardChanges() {
-        if (!this.fragment?.hasChanges) return true;
+        if (!this.translationProject?.hasChanges && this.selectedFilesCount === 0) return true;
         return this.#showDialog('Discard Changes', 'You have unsaved changes. Are you sure you want to leave this page?', {
             confirmText: 'Discard',
             cancelText: 'Cancel',
@@ -275,43 +281,20 @@ class MasTranslationEditor extends LitElement {
         });
     }
 
-    #handleOpenAddFilesDialog = () => {
-        const fragmentsField = this.fragment?.getFieldValue('fragments');
-        const collectionsField = this.fragment?.getFieldValue('collections');
-        const placeholdersField = this.fragment?.getFieldValue('placeholders');
-
-        this.selectedItemsSnapshot = {
-            fragments: fragmentsField || null,
-            collections: collectionsField || null,
-            placeholders: placeholdersField || null,
-        };
-    };
-
     #handleConfirmAddFilesDialog = ({ target }) => {
-        this.selectedItemsSnapshot = null;
+        this.selectedStoreController.hostConnected();
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
 
     #handleCancelAddFilesDialog = (event) => {
-        if (this.selectedItemsSnapshot) {
-            const fieldNames = ['fragments', 'collections', 'placeholders'];
-
-            fieldNames.forEach((fieldName) => {
-                if (this.selectedItemsSnapshot[fieldName] !== null) {
-                    this.fragmentStore.updateField(fieldName, [this.selectedItemsSnapshot[fieldName]]);
-                } else {
-                    const fieldIndex = this.fragment.fields.findIndex((field) => field.name === fieldName);
-                    if (fieldIndex !== -1) {
-                        this.fragment.fields.splice(fieldIndex, 1);
-                    }
-                }
-            });
-        }
-
-        this.selectedItemsSnapshot = null;
+        this.selectedStoreController.hostConnected();
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         event.target.dispatchEvent(closeEvent);
+    };
+
+    #handleAddFilesDialogClosed = (event) => {
+        this.selectedStoreController.hostConnected();
     };
 
     #handleBackToBreadcrumb = () => {
@@ -319,6 +302,7 @@ class MasTranslationEditor extends LitElement {
     };
 
     renderAddFilesDialog() {
+        this.selectedStoreController.hostDisconnected();
         return html`
             <sp-dialog-wrapper
                 class="add-files-dialog"
@@ -330,8 +314,9 @@ class MasTranslationEditor extends LitElement {
                 no-divider
                 @confirm=${this.#handleConfirmAddFilesDialog}
                 @cancel=${this.#handleCancelAddFilesDialog}
+                @close=${this.#handleAddFilesDialogClosed}
             >
-                <mas-translation-files .translationProject=${this.fragment}></mas-translation-files>
+                <mas-translation-files></mas-translation-files>
             </sp-dialog-wrapper>
         `;
     }
@@ -370,8 +355,8 @@ class MasTranslationEditor extends LitElement {
 
     render() {
         let form = nothing;
-        if (this.fragment) {
-            form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
+        if (this.translationProject) {
+            form = Object.fromEntries([...this.translationProject.fields.map((f) => [f.name, f])]);
         }
         return html`
             <div class="translation-editor-breadcrumb">
@@ -411,31 +396,74 @@ class MasTranslationEditor extends LitElement {
                 </div>
                 <div class="form-field">
                     <h2>Translation languages</h2>
-                    <p>${this.translationStatus}</p>
+                    <p>${this.languages}</p>
                 </div>
-                <div class="form-field select-files">
-                    <h2>Select files</h2>
-                    <div class="files-empty-state">
-                        <div class="icon">
-                            <overlay-trigger type="modal" id="add-files-overlay">
-                                ${this.renderAddFilesDialog()}
-                                <sp-button 
-                                    slot="trigger" 
-                                    variant="secondary" 
-                                    size="xl" 
-                                    icon-only
-                                    @click=${this.#handleOpenAddFilesDialog}
-                                >
-                                    <sp-icon-add size="xxl" slot="icon" label="Add Files"></sp-icon-add>
-                                </sp-button>
-                            </overlay-trigger>
-                        </div>
-                        <div class="label">
-                            <strong>Add files</strong><br />
-                            <span>Choose files that need to be translated.</span>
-                        </div>
-                    </div>
-                </div>
+                    ${
+                        this.selectedFilesCount === 0
+                            ? html` <div class="form-field select-files">
+                                  <h2>Select files</h2>
+                                  <div class="files-empty-state">
+                                      <div class="icon">
+                                          <overlay-trigger type="modal" id="add-files-overlay">
+                                              ${this.renderAddFilesDialog()}
+                                              <sp-button
+                                                  slot="trigger"
+                                                  variant="secondary"
+                                                  size="xl"
+                                                  icon-only
+                                              >
+                                                  <sp-icon-add size="xxl" slot="icon" label="Add Files"></sp-icon-add>
+                                              </sp-button>
+                                          </overlay-trigger>
+                                      </div>
+                                      <div class="label">
+                                          <strong>Add files</strong><br />
+                                          <span>Choose files that need to be translated.</span>
+                                      </div>
+                                  </div>
+                              </div>
+                            </div>
+                              `
+                            : html`<div class="form-field selected-files">
+                                  <div class="selected-files-header">
+                                      <h2>
+                                          Selected files
+                                          <span>(${this.selectedFilesCount})</span>
+                                      </h2>
+                                      ${this.isSelectedFilesOpen
+                                          ? html`
+                                                <sp-button
+                                                    icon-only
+                                                    class="toggle-btn"
+                                                    @click=${() => (this.isSelectedFilesOpen = false)}
+                                                >
+                                                    <sp-icon-chevron-up slot="icon" label="Close"></sp-icon-chevron-up>
+                                                </sp-button>
+                                            `
+                                          : html`
+                                                <div>
+                                                    <overlay-trigger type="modal" id="add-files-overlay">
+                                                        ${this.renderAddFilesDialog()}
+                                                        <sp-button slot="trigger" class="trigger-btn">
+                                                            <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>
+                                                            Edit
+                                                        </sp-button>
+                                                    </overlay-trigger>
+                                                    <sp-button
+                                                        icon-only
+                                                        class="toggle-btn"
+                                                        @click=${() => (this.isSelectedFilesOpen = true)}
+                                                    >
+                                                        <sp-icon-chevron-down slot="icon" label="Open"></sp-icon-chevron-down>
+                                                    </sp-button>
+                                                </div>
+                                            `}
+                                  </div>
+                                  ${this.isSelectedFilesOpen
+                                      ? html` <mas-translation-files-table .type=${'all'}></mas-translation-files-table> `
+                                      : nothing}
+                              </div>`
+                    }
 
                 <mas-quick-actions
                     .actions=${[

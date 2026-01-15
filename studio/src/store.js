@@ -106,6 +106,12 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
+        fragmentsByIds: new ReactiveStore(new Map()),
+        selected: new ReactiveStore(new Set()),
+        showSelected: new ReactiveStore(false),
+        get selectedFilesCount() {
+            return Store.translationProjects.selected.value.size;
+        },
     },
 };
 

@@ -56,13 +56,17 @@ merch-card[variant^="plans"] .price-unit-type:not(.disabled)::before {
 merch-card[variant^="plans"] [slot="callout-content"] span.price-unit-type,
 merch-card[variant^="plans"] [slot="addon"] span.price-unit-type,
 merch-card[variant^="plans"] .price.price-strikethrough span.price-unit-type,
+merch-card[variant^="plans"] .price.price-promo-strikethrough span.price-unit-type,
 merch-card[variant^="plans"] span.price-unit-type.disabled {
   display: inline; 
 }
   
 merch-card[variant^="plans"] [slot="heading-xs"] span.price.price-strikethrough,
+merch-card[variant^="plans"] [slot="heading-xs"] span.price.price-promo-strikethrough,
 merch-card[variant^="plans"] [slot="heading-m"] span.price.price-strikethrough,
-merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-strikethrough {
+merch-card[variant^="plans"] [slot="heading-m"] span.price.price-promo-strikethrough,
+merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-strikethrough,
+merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-promo-strikethrough {
     font-size: var(--consonant-merch-card-heading-xxxs-font-size);
     line-height: var(--consonant-merch-card-body-xs-line-height);
     font-weight: 700;
@@ -70,7 +74,7 @@ merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-striketh
 
 merch-card[variant^="plans"] [slot='heading-xs'],
 merch-card[variant="plans-education"] span.heading-xs,
-merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-strikethrough) {
+merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough) {
     min-height: var(--merch-card-plans-heading-xs-min-height);
 }
 

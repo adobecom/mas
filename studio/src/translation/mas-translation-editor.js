@@ -129,9 +129,9 @@ class MasTranslationEditor extends LitElement {
             fields: [
                 { name: 'title', type: 'text', values: [] },
                 { name: 'status', type: 'text', values: [] },
-                { name: 'items', type: 'content-fragment', values: [] },
-                { name: 'targetLocales', type: 'array', values: [] },
-                { name: 'submissionDate', type: 'date', values: [] },
+                { name: 'items', type: 'content-reference', values: [] },
+                { name: 'targetLocales', type: 'text', values: [] },
+                { name: 'submissionDate', type: 'date-time', values: [] },
             ],
         });
     }
@@ -161,9 +161,9 @@ class MasTranslationEditor extends LitElement {
         const typeMap = {
             title: { type: 'text', multiple: false },
             status: { type: 'text', multiple: false },
-            items: { type: 'content-fragment', multiple: true },
-            targetLocales: { type: 'array', multiple: true },
-            submissionDate: { type: 'date', multiple: false },
+            items: { type: 'content-reference', multiple: true },
+            targetLocales: { type: 'text', multiple: true },
+            submissionDate: { type: 'date-time', multiple: false },
         };
 
         const selectedItemPaths = [...Store.translationProjects.selected.value]

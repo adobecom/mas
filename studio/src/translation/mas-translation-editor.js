@@ -127,11 +127,11 @@ class MasTranslationEditor extends LitElement {
             id: null,
             title: '',
             fields: [
-                { name: 'title', type: 'text', values: [] },
-                { name: 'status', type: 'text', values: [] },
-                { name: 'items', type: 'content-reference', values: [] },
-                { name: 'targetLocales', type: 'text', values: [] },
-                { name: 'submissionDate', type: 'date-time', values: [] },
+                { name: 'title', type: 'text', multiple: false, values: [] },
+                { name: 'status', type: 'text', multiple: false, values: [] },
+                { name: 'items', type: 'content-reference', multiple: true, values: [] },
+                { name: 'targetLocales', type: 'text', multiple: true, values: [] },
+                { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
             ],
         });
     }
@@ -167,9 +167,8 @@ class MasTranslationEditor extends LitElement {
         };
 
         const selectedItemPaths = [...Store.translationProjects.selected.value]
-            .map((id) => Store.translationProjects.fragmentsByIds.value.get(id)?.internalPath)
+            .map((id) => Store.translationProjects.fragmentsByIds.value.get(id)?.path)
             .filter(Boolean);
-        console.log('selectedItemPaths', selectedItemPaths);
 
         const fragmentPayload = {
             name: normalizeKey(this.translationProject.getFieldValue('title')),
@@ -188,7 +187,6 @@ class MasTranslationEditor extends LitElement {
             })),
         };
 
-        console.log('fragmentPayload', fragmentPayload);
         showToast('Creating project...');
         try {
             const newTranslationProject = await this.repository.createFragment(fragmentPayload, false);

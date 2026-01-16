@@ -145,12 +145,13 @@ class MasTranslationFilesTable extends LitElement {
                     fetchedFragments.map(async (fragment) => ({
                         ...fragment,
                         offerData: await this.loadOfferData(fragment),
-                        internalPath: this.getFragmentName(fragment),
+                        humanFriendlyPath: this.getFragmentName(fragment),
                     })),
                 );
                 const fragmentsByIds = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
                 Store.translationProjects.fragmentsByIds.set(fragmentsByIds);
                 Store.translationProjects.allFragments.set(fetchedFragments);
+                console.log('fetchedFragments', this.fragments);
             }
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -290,7 +291,7 @@ class MasTranslationFilesTable extends LitElement {
                                             </sp-button>`
                                           : 'no offer data'}
                                   </sp-table-cell>
-                                  <sp-table-cell>${fragment.internalPath}</sp-table-cell>
+                                  <sp-table-cell>${fragment.humanFriendlyPath}</sp-table-cell>
                                   ${this.renderStatus(fragment.status)}
                               </sp-table-row>`,
                       )}

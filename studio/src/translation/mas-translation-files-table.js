@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-translation-files-table.css.js';
 import Store from '../store.js';
+import StoreController from '../reactivity/store-controller.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
 import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS } from '../constants.js';
 import { initFragmentCache, prepopulateFragmentCache } from '../mas-repository.js';
@@ -36,6 +37,7 @@ class MasTranslationFilesTable extends LitElement {
         ]);
         this.selectedInTable = [];
         this.abortController = null;
+        this.selectedStoreController = new StoreController(this, Store.translationProjects.selected);
     }
 
     connectedCallback() {
@@ -43,17 +45,41 @@ class MasTranslationFilesTable extends LitElement {
         this.fetchFragments();
     }
 
-    update(changedProperties) {
+    willUpdate(changedProperties) {
+        this.syncSelectedInTableFromStore();
+
         if (changedProperties.has('itemToRemove')) {
             this.removeItem(this.itemToRemove);
         }
-        super.update(changedProperties);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         if (this.abortController) {
             this.abortController.abort();
+        }
+    }
+
+    syncSelectedInTableFromStore() {
+        const storeSelected = Array.from(this.selectedStoreController?.value || []);
+
+        // Avoid feedback loops: only update when the sets differ.
+        const current = this.selectedInTable || [];
+        if (current.length === storeSelected.length) {
+            const currentSet = new Set(current);
+            let same = true;
+            for (const id of storeSelected) {
+                if (!currentSet.has(id)) {
+                    same = false;
+                    break;
+                }
+            }
+            if (same) return;
+        }
+
+        this.selectedInTable = storeSelected;
+        if (this.selectedInTable.length === 0) {
+            
         }
     }
 
@@ -99,6 +125,10 @@ class MasTranslationFilesTable extends LitElement {
 
         try {
             if (this.type === 'fragments') {
+                if (Store.translationProjects.allFragments.value.length) {
+                    this.fragments = Store.translationProjects.allFragments.value;
+                    return;
+                }
                 const cursor = await aem.sites.cf.fragments.search(
                     {
                         path: `${ROOT_PATH}/${surface}/${Store.filters.value?.locale || 'en_US'}`,
@@ -114,16 +144,6 @@ class MasTranslationFilesTable extends LitElement {
                         fetchedFragments.push(new Fragment(item));
                     }
                 }
-                try {
-                    await initFragmentCache();
-                    await Promise.all(
-                        (fetchedFragments || [])
-                            .filter((fragment) => fragment?.id)
-                            .map((fragment) => prepopulateFragmentCache(fragment.id, fragment)),
-                    );
-                } catch (cacheErr) {
-                    console.warn('Failed to prepopulate fragment cache for translation files table:', cacheErr);
-                }
                 this.fragments = await Promise.all(
                     fetchedFragments.map(async (fragment) => ({
                         ...fragment,
@@ -133,8 +153,7 @@ class MasTranslationFilesTable extends LitElement {
                 );
                 const fragmentsByIds = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
                 Store.translationProjects.fragmentsByIds.set(fragmentsByIds);
-                console.log('fragments', this.fragments);
-                console.log('fragmentsByIds', fragmentsByIds);
+                Store.translationProjects.allFragments.set(fetchedFragments);
             }
         } catch (err) {
             if (err.name !== 'AbortError') {

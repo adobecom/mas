@@ -106,6 +106,7 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
+        allFragments: new ReactiveStore([]),
         fragmentsByIds: new ReactiveStore(new Map()),
         selected: new ReactiveStore(new Set()),
         showSelected: new ReactiveStore(false),

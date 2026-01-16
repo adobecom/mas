@@ -22,6 +22,8 @@ class MasTranslationEditor extends LitElement {
         confirmDialogConfig: { type: Object, state: true },
         disabledActions: { type: Object, state: true },
         isSelectedFilesOpen: { type: Boolean, state: true },
+        selectedFilesSnapshot: { type: Array, state: true },
+        showSelectedEmptyState: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -42,10 +44,8 @@ class MasTranslationEditor extends LitElement {
             QUICK_ACTION.LOCK,
         ]);
         this.isSelectedFilesOpen = false;
-    }
-
-    connectedCallback() {
-        super.connectedCallback();
+        this.selectedFilesSnapshot = [];
+        this.showSelectedEmptyState = true;
     }
 
     /** @type {MasRepository} */
@@ -94,6 +94,7 @@ class MasTranslationEditor extends LitElement {
                 this.translationProjectStore = new FragmentStore(translationProject);
                 const selectedItems = new Set(fragment.fields.find((field) => field.name === 'items')?.values || []);
                 Store.translationProjects.selected.set(selectedItems);
+                this.showSelectedEmptyState = selectedItems.size === 0;
             }
         } catch (error) {
             console.error('Failed to load translation project:', error);
@@ -242,6 +243,7 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.selected.set(
             new Set(this.translationProject.fields.find((field) => field.name === 'items')?.values || []),
         );
+        this.showSelectedEmptyState = this.selectedFilesCount === 0;
         Store.translationProjects.showSelected.set(false);
         this.#updateDisabledActions({ add: [QUICK_ACTION.DISCARD, QUICK_ACTION.SAVE] });
     }
@@ -281,28 +283,28 @@ class MasTranslationEditor extends LitElement {
         });
     }
 
-    #handleConfirmAddFilesDialog = ({ target }) => {
-        this.selectedStoreController.hostConnected();
+    #confirmFileSelection = ({ target }) => {
+        this.showSelectedEmptyState = this.selectedFilesCount === 0;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
 
-    #handleCancelAddFilesDialog = (event) => {
-        this.selectedStoreController.hostConnected();
+    #cancelFileSelection = ({ target }) => {
+        this.showSelectedEmptyState = this.selectedFilesCount === 0;
+        Store.translationProjects.selected.set(this.selectedFilesSnapshot);
         const closeEvent = new Event('close', { bubbles: true, composed: true });
-        event.target.dispatchEvent(closeEvent);
-    };
-
-    #handleAddFilesDialogClosed = (event) => {
-        this.selectedStoreController.hostConnected();
+        target.dispatchEvent(closeEvent);
     };
 
     #handleBackToBreadcrumb = () => {
         router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
     };
 
+    createSnapshot() {
+        this.selectedFilesSnapshot = new Set(Store.translationProjects.selected.value);
+    }
+
     renderAddFilesDialog() {
-        this.selectedStoreController.hostDisconnected();
         return html`
             <sp-dialog-wrapper
                 class="add-files-dialog"
@@ -312,9 +314,8 @@ class MasTranslationEditor extends LitElement {
                 cancel-label="Cancel"
                 underlay
                 no-divider
-                @confirm=${this.#handleConfirmAddFilesDialog}
-                @cancel=${this.#handleCancelAddFilesDialog}
-                @close=${this.#handleAddFilesDialogClosed}
+                @confirm=${this.#confirmFileSelection}
+                @cancel=${this.#cancelFileSelection}
             >
                 <mas-translation-files></mas-translation-files>
             </sp-dialog-wrapper>
@@ -399,12 +400,12 @@ class MasTranslationEditor extends LitElement {
                     <p>${this.languages}</p>
                 </div>
                     ${
-                        this.selectedFilesCount === 0
+                        this.showSelectedEmptyState
                             ? html` <div class="form-field select-files">
                                   <h2>Select files</h2>
                                   <div class="files-empty-state">
                                       <div class="icon">
-                                          <overlay-trigger type="modal" id="add-files-overlay">
+                                          <overlay-trigger type="modal" id="add-files-overlay" triggered-by="click">
                                               ${this.renderAddFilesDialog()}
                                               <sp-button
                                                   slot="trigger"
@@ -442,9 +443,13 @@ class MasTranslationEditor extends LitElement {
                                             `
                                           : html`
                                                 <div>
-                                                    <overlay-trigger type="modal" id="add-files-overlay">
+                                                    <overlay-trigger type="modal" id="add-files-overlay" triggered-by="click">
                                                         ${this.renderAddFilesDialog()}
-                                                        <sp-button slot="trigger" class="trigger-btn">
+                                                        <sp-button
+                                                            slot="trigger"
+                                                            class="trigger-btn"
+                                                            @click=${this.createSnapshot}
+                                                        >
                                                             <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>
                                                             Edit
                                                         </sp-button>

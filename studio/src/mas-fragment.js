@@ -63,6 +63,11 @@ class MasFragment extends LitElement {
                 this.loadingReferences = false;
             }
         }
+
+        // Scroll into view after expansion
+        requestAnimationFrame(() => {
+            this.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
     }
 
     /** @type {MasRepository} */

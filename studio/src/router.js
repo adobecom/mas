@@ -121,8 +121,9 @@ export class Router extends EventTarget {
             Store.fragmentEditor.fragmentId.set(null);
             Store.fragments.inEdit.set();
 
-            // Navigate to content page
+            // Navigate to content page in table view
             Store.viewMode.set('default');
+            Store.renderMode.set('table');
             Store.page.set(PAGE_NAMES.CONTENT);
         } finally {
             this.isNavigating = false;

@@ -1132,7 +1132,7 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     flex-direction: column;
 }
 
-span[is='inline-price'].placeholder-failed .price-error-title {
+.price-error-title {
     color: var(--merch-color-error, #d73220);
     font-weight: 800;
 }

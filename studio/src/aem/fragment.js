@@ -1,4 +1,4 @@
-import { PATH_TOKENS } from '../constants.js';
+import { PATH_TOKENS, TAG_PROMOTION_PREFIX } from '../constants.js';
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -256,5 +256,35 @@ export class Fragment {
             const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
             return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
         });
+    }
+
+    /**
+     * Gets the count of locale variations.
+     * Locale variations are fragments with the same name but different locale paths.
+     * @returns {number}
+     */
+    getLocaleVariationCount() {
+        return this.listLocaleVariations()?.length || 0;
+    }
+
+    /**
+     * Gets the count of promo variations.
+     * Promo variations are identified by promotion tags on references.
+     * @returns {number}
+     */
+    getPromoVariationCount() {
+        if (!this.references?.length) return 0;
+
+        return this.references.filter((reference) => {
+            return reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
+        }).length;
+    }
+
+    /**
+     * Gets the total count of all variations (locale + promo).
+     * @returns {number}
+     */
+    getTotalVariationCount() {
+        return this.getLocaleVariationCount() + this.getPromoVariationCount();
     }
 }

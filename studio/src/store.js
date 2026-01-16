@@ -18,6 +18,7 @@ const Store = {
             limit: new ReactiveStore(6),
         },
         inEdit: new ReactiveStore(null),
+        expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),

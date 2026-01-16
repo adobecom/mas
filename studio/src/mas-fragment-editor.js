@@ -5,7 +5,7 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, getFragmentMapping, getService, showToast } from './utils.js';
@@ -73,6 +73,13 @@ export default class MasFragmentEditor extends LitElement {
             top: 16px;
             height: fit-content;
             max-height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        #preview-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1106,6 +1113,76 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
+    /**
+     * Navigates to the variations table view with the parent fragment expanded.
+     */
+    navigateToVariationsTable() {
+        const isVariation = this.editorContextStore.isVariation(this.fragment?.id);
+        // If viewing a variation, navigate to the parent fragment's variations
+        // Otherwise, navigate to this fragment's variations
+        const targetFragmentId = isVariation ? this.localeDefaultFragment?.id : this.fragment?.id;
+
+        if (targetFragmentId) {
+            router.navigateToVariationsTable(targetFragmentId);
+        }
+    }
+
+    get relatedVariationsSection() {
+        if (!this.fragment) return nothing;
+
+        const isVariation = this.editorContextStore.isVariation(this.fragment?.id);
+        // Use parent fragment for counts if this is a variation, otherwise use current fragment
+        const sourceFragment = isVariation ? this.localeDefaultFragment : this.fragment;
+
+        if (!sourceFragment) return nothing;
+
+        let localeCount = sourceFragment.getLocaleVariationCount?.() || 0;
+        let promoCount = sourceFragment.getPromoVariationCount?.() || 0;
+
+        // Subtract 1 from the appropriate count if current fragment is not the source (i.e., it's a variation)
+        if (isVariation) {
+            const isPromoVariation = this.fragment.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
+            if (isPromoVariation) {
+                promoCount = Math.max(0, promoCount - 1);
+            } else {
+                localeCount = Math.max(0, localeCount - 1);
+            }
+        }
+
+        // If no variations exist, don't render the container
+        if (localeCount === 0 && promoCount === 0) return nothing;
+
+        // Determine the label suffix based on whether we're in a variation
+        const siblingLabel = isVariation ? ' sibling' : '';
+
+        // Build the variation count lines
+        const localeText =
+            localeCount > 0
+                ? html`<p class="related-variations-count">
+                      ${localeCount} Regional${siblingLabel} variation${localeCount !== 1 ? 's' : ''}
+                  </p>`
+                : nothing;
+        const promoText =
+            promoCount > 0
+                ? html`<p class="related-variations-count">
+                      ${promoCount} promo${siblingLabel} variation${promoCount !== 1 ? 's' : ''}
+                  </p>`
+                : nothing;
+
+        return html`
+            <div class="related-variations-container">
+                <div class="related-variations-header">
+                    <p class="related-variations-label">Related variations:</p>
+                    <a @click="${this.navigateToVariationsTable}" class="related-variations-link clickable">
+                        <sp-icon-open-in size="s"></sp-icon-open-in>
+                        <span>View variations</span>
+                    </a>
+                </div>
+                <div class="related-variations-counts">${localeText} ${promoText}</div>
+            </div>
+        `;
+    }
+
     get authorPath() {
         if (!this.fragment) return nothing;
         const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
@@ -1119,7 +1196,7 @@ export default class MasFragmentEditor extends LitElement {
         const customerSegment = this.fragment.getTagTitle('customer_segment') || '';
         const marketSegment = this.fragment.getTagTitle('market_segment') || '';
         const product = this.fragment.getTagTitle('mas:product/') || '';
-        const promotion = this.fragment.getTagTitle('mas:promotion/') || '';
+        const promotion = this.fragment.getTagTitle(TAG_PROMOTION_PREFIX) || '';
 
         const buildPart = (part) => (part ? ` / ${part}` : '');
         const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(product)}${buildPart(promotion)}`;
@@ -1177,26 +1254,29 @@ export default class MasFragmentEditor extends LitElement {
 
         return html`
             <div id="preview-column">
-                ${this.editorContextStore.isVariation(this.fragment.id)
-                    ? this.displayRegionalVarationInfo('preview-header')
-                    : nothing}
-                <div class="preview-content columns mas-fragment">
-                    <merch-card
-                        variant=${attrs.variant || nothing}
-                        size=${attrs.size || nothing}
-                        name=${attrs.name || nothing}
-                        border-color=${borderAttrs.borderColor || nothing}
-                        background-image=${attrs.backgroundImage || nothing}
-                        stock-offer-osis=${attrs.stockOfferOsis || nothing}
-                        checkbox-label=${attrs.checkboxLabel || nothing}
-                        storage=${attrs.storage || nothing}
-                        daa-lh=${attrs.analyticsId || nothing}
-                        ?gradient-border=${borderAttrs.gradientBorder}
-                        style=${cssProps || nothing}
-                    >
-                        <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
-                    </merch-card>
+                <div id="preview-wrapper">
+                    ${this.editorContextStore.isVariation(this.fragment.id)
+                        ? this.displayRegionalVarationInfo('preview-header')
+                        : nothing}
+                    <div class="preview-content columns mas-fragment">
+                        <merch-card
+                            variant=${attrs.variant || nothing}
+                            size=${attrs.size || nothing}
+                            name=${attrs.name || nothing}
+                            border-color=${borderAttrs.borderColor || nothing}
+                            background-image=${attrs.backgroundImage || nothing}
+                            stock-offer-osis=${attrs.stockOfferOsis || nothing}
+                            checkbox-label=${attrs.checkboxLabel || nothing}
+                            storage=${attrs.storage || nothing}
+                            daa-lh=${attrs.analyticsId || nothing}
+                            ?gradient-border=${borderAttrs.gradientBorder}
+                            style=${cssProps || nothing}
+                        >
+                            <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
+                        </merch-card>
+                    </div>
                 </div>
+                ${this.relatedVariationsSection}
             </div>
         `;
     }

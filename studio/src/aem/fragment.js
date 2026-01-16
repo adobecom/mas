@@ -241,6 +241,9 @@ export class Fragment {
      * @returns {Fragment[]}
      */
     listLocaleVariations() {
+        const variationPaths = this.getVariations();
+        if (!this.references?.length || !variationPaths.length) return [];
+
         const currentMatch = this.path.match(PATH_TOKENS);
         if (!currentMatch?.groups) {
             return [];
@@ -248,7 +251,13 @@ export class Fragment {
 
         const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
 
-        return this.references?.filter((reference) => {
+        return this.references.filter((reference) => {
+            if (!variationPaths.includes(reference.path)) return false;
+
+            // Exclude promo variations from locale variations list
+            const isPromo = reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
+            if (isPromo) return false;
+
             const refMatch = reference.path.match(PATH_TOKENS);
             if (!refMatch?.groups) {
                 return false;
@@ -269,14 +278,18 @@ export class Fragment {
 
     /**
      * Gets the count of promo variations.
-     * Promo variations are identified by promotion tags on references.
+     * Promo variations are identified by promotion tags on references that are also in the variations field.
      * @returns {number}
      */
     getPromoVariationCount() {
-        if (!this.references?.length) return 0;
+        const variationPaths = this.getVariations();
+        if (!this.references?.length || !variationPaths.length) return 0;
 
         return this.references.filter((reference) => {
-            return reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
+            return (
+                variationPaths.includes(reference.path) &&
+                reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX))
+            );
         }).length;
     }
 

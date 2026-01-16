@@ -924,6 +924,7 @@ sp-progress-circle.next-page {
     align-items: center;
     padding: 4px;
     flex: 1;
+    margin: 0;
     color: var(--spectrum-gray-900, #292929);
     font-size: 16px;
     font-weight: 700;

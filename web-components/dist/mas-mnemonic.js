@@ -57,8 +57,8 @@ var n=Object.defineProperty;var p=(i,t,o)=>t in i?n(i,t,{enumerable:!0,configura
             visibility: hidden;
             pointer-events: none;
             transition:
-                opacity 1s ease,
-                visibility 1s ease;
+                opacity 0.2s ease,
+                visibility 0.2s ease;
             font-size: 12px;
             line-height: 1.4;
             text-align: center;
@@ -75,14 +75,14 @@ var n=Object.defineProperty;var p=(i,t,o)=>t in i?n(i,t,{enumerable:!0,configura
             visibility: hidden;
             pointer-events: none;
             transition:
-                opacity 0.2s ease,
-                visibility 0.2s ease;
+                opacity 0.1s ease,
+                visibility 0.1s ease;
         }
 
         .css-tooltip.tooltip-visible[data-tooltip]::before,
         .css-tooltip.tooltip-visible[data-tooltip]::after,
-        .css-tooltip:focus[data-tooltip]::before,
-        .css-tooltip:focus[data-tooltip]::after {
+        .css-tooltip:focus-visible[data-tooltip]::before,
+        .css-tooltip:focus-visible[data-tooltip]::after {
             opacity: 1;
             visibility: visible;
         }

@@ -160,6 +160,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
                         @blur="${this.hideActionMenuOnBlur}"
                         tabindex="0"
                         aria-expanded="false"
+                        aria-hidden="false"
                         role="button"
                     >
                         ${this.card.actionMenuLabel} - ${this.card.title}

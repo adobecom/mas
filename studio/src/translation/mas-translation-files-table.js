@@ -79,7 +79,7 @@ class MasTranslationFilesTable extends LitElement {
 
         this.selectedInTable = storeSelected;
         if (this.selectedInTable.length === 0) {
-            
+
         }
     }
 
@@ -280,7 +280,7 @@ class MasTranslationFilesTable extends LitElement {
                                   <sp-table-cell>
                                       ${fragment.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || '-'}
                                   </sp-table-cell>
-                                  <sp-table-cell>${fragment.internalPath}</sp-table-cell>
+                                  <sp-table-cell>${fragment.title}</sp-table-cell>
                                   <sp-table-cell class="offer-id" title=${fragment.offerData?.offerId}>
                                       <div>${fragment.offerData?.offerId}</div>
                                       ${fragment.offerData?.offerId
@@ -293,7 +293,7 @@ class MasTranslationFilesTable extends LitElement {
                                             </sp-button>`
                                           : 'no offer data'}
                                   </sp-table-cell>
-                                  <sp-table-cell>${fragment.path}</sp-table-cell>
+                                  <sp-table-cell>${fragment.internalPath}</sp-table-cell>
                                   ${this.renderStatus(fragment.status)}
                               </sp-table-row>`,
                       )}

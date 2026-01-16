@@ -36,7 +36,7 @@ class MasSelectedItems extends LitElement {
 
     getDetails(item) {
         if (this.type === 'fragments') {
-            return item?.internalPath || '-';
+            return item?.title || '-';
         }
         return '-';
     }

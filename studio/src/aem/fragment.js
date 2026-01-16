@@ -238,20 +238,20 @@ export class Fragment {
 
     /**
      * Lists all locale variations of the fragment. Other name: regional variations.
-     * @returns {Fragment[] | undefined}
+     * @returns {Fragment[]}
      */
     listLocaleVariations() {
         const variationPaths = this.getVariations();
-        if (!this.references?.length || !variationPaths.length) return undefined;
+        if (!this.references?.length || !variationPaths.length) return [];
 
         const currentMatch = this.path.match(PATH_TOKENS);
         if (!currentMatch?.groups) {
-            return undefined;
+            return [];
         }
 
         const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
 
-        const result = this.references.filter((reference) => {
+        return this.references.filter((reference) => {
             if (!variationPaths.includes(reference.path)) return false;
 
             // Exclude promo variations from locale variations list
@@ -265,8 +265,6 @@ export class Fragment {
             const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
             return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
         });
-
-        return result.length > 0 ? result : undefined;
     }
 
     /**

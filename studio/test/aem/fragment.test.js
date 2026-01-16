@@ -89,7 +89,7 @@ describe('Fragment', () => {
             expect(variations[1].id).to.equal('ref-5');
         });
 
-        it('returns undefined when references is undefined', () => {
+        it('returns empty array when references is undefined', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
@@ -97,10 +97,10 @@ describe('Fragment', () => {
                 }),
             );
             const variations = fragment.listLocaleVariations();
-            expect(variations).to.be.undefined;
+            expect(variations).to.deep.equal([]);
         });
 
-        it('returns undefined when references is empty', () => {
+        it('returns empty array when references is empty', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
@@ -108,10 +108,10 @@ describe('Fragment', () => {
                 }),
             );
             const variations = fragment.listLocaleVariations();
-            expect(variations).to.be.undefined;
+            expect(variations).to.deep.equal([]);
         });
 
-        it('returns undefined when path does not match pattern', () => {
+        it('returns empty array when path does not match pattern', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/invalid/path',
@@ -119,7 +119,7 @@ describe('Fragment', () => {
                 }),
             );
             const variations = fragment.listLocaleVariations();
-            expect(variations).to.be.undefined;
+            expect(variations).to.deep.equal([]);
         });
 
         it('filters out references with invalid paths', () => {

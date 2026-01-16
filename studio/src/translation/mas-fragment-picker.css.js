@@ -37,6 +37,7 @@ export const styles = css`
         }
 
         .fragments-table {
+            width: 90vw;
             --mod-table-header-background-color: var(--spectrum-gray-50);
             --mod-table-border-radius: 0;
 

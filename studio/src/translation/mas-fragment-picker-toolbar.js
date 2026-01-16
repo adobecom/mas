@@ -54,24 +54,29 @@ class MasFragmentPickerToolbar extends LitElement {
             flex-wrap: wrap;
         }
 
-        .filters sp-picker {
-            --mod-picker-background-color-default: transparent;
+        .filter-trigger {
             border: 1px solid var(--spectrum-gray-300);
             border-radius: 12px;
             min-width: 140px;
         }
 
-        .filters sp-picker sp-menu-item {
-            --mod-menu-item-background-color-default: transparent;
-            --mod-menu-item-background-color-hover: var(--spectrum-gray-100);
+        .filter-popover {
+            padding: 12px;
         }
 
-        .filters sp-picker sp-menu-item::before {
-            display: none;
+        .checkbox-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            min-width: 150px;
         }
 
-        .filters sp-picker sp-checkbox {
-            width: 100%;
+        .checkbox-list sp-checkbox {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
         }
     `;
 
@@ -180,39 +185,29 @@ class MasFragmentPickerToolbar extends LitElement {
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
         return html`
-            <sp-picker label=${displayLabel}>
-                <span slot="label">${displayLabel}</span>
-                ${options.map((option) => {
-                    const optionId = option.id || option.value;
-                    const isChecked = selectedValues.includes(optionId);
-                    return html`
-                        <sp-menu-item
-                            @click=${(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                e.target.closest('sp-menu-item')?.removeAttribute('selected');
-                                const checkbox = e.target.closest('sp-menu-item')?.querySelector('sp-checkbox');
-                                if (checkbox) {
-                                    checkbox.checked = !checkbox.checked;
-                                    this.#handleCheckboxChange(filterType, optionId, { target: { checked: checkbox.checked } });
-                                }
-                            }}
-                        >
-                            <sp-checkbox
-                                ?checked=${isChecked}
-                                @click=${(e) => e.stopPropagation()}
-                                @change=${(e) => {
-                                    e.stopPropagation();
-                                    e.target.closest('sp-menu-item')?.removeAttribute('selected');
-                                    this.#handleCheckboxChange(filterType, optionId, e);
-                                }}
-                            >
-                                ${option.title || option.label}
-                            </sp-checkbox>
-                        </sp-menu-item>
-                    `;
-                })}
-            </sp-picker>
+            <overlay-trigger placement="bottom-start">
+                <sp-action-button slot="trigger" class="filter-trigger" quiet>
+                    ${displayLabel}
+                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                </sp-action-button>
+                <sp-popover slot="click-content" class="filter-popover">
+                    <div class="checkbox-list">
+                        ${options.map((option) => {
+                            const optionId = option.id || option.value;
+                            const isChecked = selectedValues.includes(optionId);
+                            return html`
+                                <sp-checkbox
+                                    value=${optionId}
+                                    ?checked=${isChecked}
+                                    @change=${(e) => this.#handleCheckboxChange(filterType, optionId, e)}
+                                >
+                                    ${option.title || option.label}
+                                </sp-checkbox>
+                            `;
+                        })}
+                    </div>
+                </sp-popover>
+            </overlay-trigger>
         `;
     }
 

@@ -159,7 +159,7 @@ class MasTranslation extends LitElement {
         });
     }
 
-    #handleAddTranslationProject() {
+    #goToTranslationProjectEditor() {
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.translationProjectId.set('');
         router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
@@ -291,7 +291,7 @@ class MasTranslation extends LitElement {
             <div class="translation-container">
                 <div class="translation-header">
                     <h2>Translations</h2>
-                    <sp-button variant="accent" class="create-button" @click=${() => this.#handleAddTranslationProject()}>
+                    <sp-button variant="accent" class="create-button" @click=${() => this.#goToTranslationProjectEditor()}>
                         <sp-icon-add slot="icon"></sp-icon-add>
                         Create project
                     </sp-button>

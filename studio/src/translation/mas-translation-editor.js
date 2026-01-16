@@ -22,7 +22,7 @@ class MasTranslationEditor extends LitElement {
         confirmDialogConfig: { type: Object, state: true },
         disabledActions: { type: Object, state: true },
         isSelectedFilesOpen: { type: Boolean, state: true },
-        selectedFilesSnapshot: { type: Array, state: true },
+        selectedFilesSnapshot: { type: Set, state: true },
         showSelectedEmptyState: { type: Boolean, state: true },
     };
 
@@ -33,6 +33,7 @@ class MasTranslationEditor extends LitElement {
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.selectedStoreController = new StoreController(this, Store.translationProjects.selected);
+        /** @type {Set<any>} */
         this.disabledActions = new Set([
             QUICK_ACTION.SAVE,
             QUICK_ACTION.DISCARD,
@@ -44,8 +45,27 @@ class MasTranslationEditor extends LitElement {
             QUICK_ACTION.LOCK,
         ]);
         this.isSelectedFilesOpen = false;
-        this.selectedFilesSnapshot = [];
+        this.selectedFilesSnapshot = new Set();
         this.showSelectedEmptyState = true;
+    }
+
+    async connectedCallback() {
+        super.connectedCallback();
+
+        const translationProjectId = Store.translationProjects.translationProjectId.get();
+        if (translationProjectId) {
+            if (!this.translationProjectStore) {
+                this.isLoading = true;
+                await this.#loadTranslationProjectById(translationProjectId);
+                this.isLoading = false;
+            }
+        } else {
+            this.isNewTranslationProject = true;
+            const newTranslationProject = this.#initializeNewTranslationProject();
+            this.translationProjectStore = new FragmentStore(newTranslationProject);
+        }
+
+        this.storeController = new StoreController(this, this.translationProjectStore);
     }
 
     /** @type {MasRepository} */
@@ -108,7 +128,8 @@ class MasTranslationEditor extends LitElement {
             title: '',
             fields: [
                 { name: 'title', type: 'text', values: [] },
-                { name: 'items', type: 'array', values: [] },
+                { name: 'status', type: 'text', values: [] },
+                { name: 'items', type: 'content-fragment', values: [] },
                 { name: 'targetLocales', type: 'array', values: [] },
                 { name: 'submissionDate', type: 'date', values: [] },
             ],
@@ -131,18 +152,24 @@ class MasTranslationEditor extends LitElement {
         return requiredFields.every((field) => translationProject.getFieldValue(field));
     }
 
-    async #handleCreateTranslationProject() {
+    async #createTranslationProject() {
         if (!this.#validateRequiredFields(this.translationProject)) {
             showToast('Please fill in all required fields.', 'negative');
             return;
         }
 
         const typeMap = {
-            title: { type: 'text' },
-            items: { type: 'array' },
-            targetLocales: { type: 'array' },
-            submissionDate: { type: 'date' },
+            title: { type: 'text', multiple: false },
+            status: { type: 'text', multiple: false },
+            items: { type: 'content-fragment', multiple: true },
+            targetLocales: { type: 'array', multiple: true },
+            submissionDate: { type: 'date', multiple: false },
         };
+
+        const selectedItemPaths = [...Store.translationProjects.selected.value]
+            .map((id) => Store.translationProjects.fragmentsByIds.value.get(id)?.internalPath)
+            .filter(Boolean);
+        console.log('selectedItemPaths', selectedItemPaths);
 
         const fragmentPayload = {
             name: normalizeKey(this.translationProject.getFieldValue('title')),
@@ -151,36 +178,45 @@ class MasTranslationEditor extends LitElement {
             title: this.translationProject.getFieldValue('title'),
             fields: this.translationProject.fields.map((field) => ({
                 name: field.name,
-                ...(typeMap[field.name] && { type: typeMap[field.name].type }),
-                ...(typeMap[field.name] && { multiple: typeMap[field.name].multiple }),
-                values: field.values,
+                type: typeMap[field.name]?.type ?? field.type,
+                multiple: typeMap[field.name]?.multiple ?? field.multiple ?? false,
+                ...(field.name === 'items'
+                    ? {
+                          values: selectedItemPaths,
+                      }
+                    : { values: field.values }),
             })),
         };
+
+        console.log('fragmentPayload', fragmentPayload);
         showToast('Creating project...');
         try {
             const newTranslationProject = await this.repository.createFragment(fragmentPayload, false);
-            showToast('Translation project created successfully.', 'positive');
-            Store.translationProjects.inEdit.set(new FragmentStore(newTranslationProject));
-            Store.translationProjects.translationProjectId.set(newTranslationProject.id);
-            this.isNewTranslationProject = false;
+            if (newTranslationProject) {
+                showToast('Translation project created successfully.', 'positive');
+                Store.translationProjects.inEdit.set(new FragmentStore(newTranslationProject));
+                Store.translationProjects.translationProjectId.set(newTranslationProject.id);
+                this.isNewTranslationProject = false;
 
-            this.storeController.hostDisconnected();
-            this.storeController = new StoreController(this, this.translationProjectStore);
-            this.storeController.hostConnected();
-
-            this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD], remove: [QUICK_ACTION.DELETE] });
+                this.storeController.hostDisconnected();
+                this.storeController = new StoreController(this, this.translationProjectStore);
+                this.storeController.hostConnected();
+                this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD], remove: [QUICK_ACTION.DELETE] });
+            }
         } catch (error) {
             console.error('Error creating translation project', error);
             showToast('Failed to create translation project.', 'negative');
         }
     }
 
-    async #handleUpdateTranslationProject() {
+    async #updateTranslationProject() {
         if (!this.#validateRequiredFields(this.translationProject)) {
             showToast('Please fill in all required fields.', 'negative');
             return;
         }
         this.translationProject.updateFieldInternal('title', this.translationProject.getFieldValue('title'));
+        // this.translationProject.updateFieldInternal('items', Store.translationProjects.selected.value);
+        console.log('this.translationProject', this.translationProject);
         showToast('Updating the project...');
         try {
             await this.repository.saveFragment(this.translationProjectStore, false);
@@ -193,7 +229,7 @@ class MasTranslationEditor extends LitElement {
         showToast('Translation project updated successfully.', 'positive');
     }
 
-    async #handleDeleteTranslationProject() {
+    async #deleteTranslationProject() {
         if (this.isDialogOpen) return;
         const confirmed = await this.#showDialog(
             'Delete Translation Project',
@@ -481,13 +517,9 @@ class MasTranslationEditor extends LitElement {
                         QUICK_ACTION.DISCARD,
                         QUICK_ACTION.DELETE,
                     ]}
-                    .disabled=${this.disabledActions}
-                    @save=${
-                        this.isNewTranslationProject
-                            ? this.#handleCreateTranslationProject
-                            : this.#handleUpdateTranslationProject
-                    }
-                    @delete=${this.#handleDeleteTranslationProject}
+                    .disabled=${/** @type {any} */ (this.disabledActions)}
+                    @save=${this.isNewTranslationProject ? this.#createTranslationProject : this.#updateTranslationProject}
+                    @delete=${this.#deleteTranslationProject}
                     @discard=${this.#handleDiscard}
                 ></mas-quick-actions>
             </div>`}

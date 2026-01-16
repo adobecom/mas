@@ -78,9 +78,6 @@ class MasTranslationFilesTable extends LitElement {
         }
 
         this.selectedInTable = storeSelected;
-        if (this.selectedInTable.length === 0) {
-
-        }
     }
 
     /** @type {import('../mas-repository.js').MasRepository} */
@@ -95,7 +92,7 @@ class MasTranslationFilesTable extends LitElement {
 
     getFragmentName(data) {
         const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
-        const fragmentParts = getFragmentPartsToUse(Store, data).fragmentParts;
+        const { fragmentParts } = getFragmentPartsToUse(Store, data);
         return `${webComponentName}: ${fragmentParts}`;
     }
 

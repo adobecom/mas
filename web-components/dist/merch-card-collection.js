@@ -4213,6 +4213,7 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.button {
     margin: 0;
     padding: 0 24px;
     border-radius: 26px;
+    height: 40px;
 }
 
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button[variant="accent"],

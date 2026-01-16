@@ -57,8 +57,8 @@ var d=Object.defineProperty;var v=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configura
             visibility: hidden;
             pointer-events: none;
             transition:
-                opacity 0.3s ease,
-                visibility 0.3s ease;
+                opacity 1s ease,
+                visibility 1s ease;
             font-size: 12px;
             line-height: 1.4;
             text-align: center;
@@ -75,8 +75,8 @@ var d=Object.defineProperty;var v=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configura
             visibility: hidden;
             pointer-events: none;
             transition:
-                opacity 0.3s ease,
-                visibility 0.3s ease;
+                opacity 0.2s ease,
+                visibility 0.2s ease;
         }
 
         .css-tooltip.tooltip-visible[data-tooltip]::before,

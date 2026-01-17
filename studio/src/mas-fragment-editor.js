@@ -569,7 +569,7 @@ export default class MasFragmentEditor extends LitElement {
                 existingStore.previewStore.resolved = false;
                 existingStore.previewStore.holdResolution = true;
             }
-            existingStore.get().hasChanges = false;
+            Store.editor.resetChanges();
             this.repository.refreshFragment(existingStore).then(() => {
                 this.dispatchFragmentLoaded();
             });
@@ -633,9 +633,7 @@ export default class MasFragmentEditor extends LitElement {
                 }
             }
 
-            if (this.fragmentStore?.get()) {
-                this.fragmentStore.get().hasChanges = false;
-            }
+            Store.editor.resetChanges();
 
             await placeholdersPromise;
 
@@ -720,7 +718,7 @@ export default class MasFragmentEditor extends LitElement {
         });
 
         fragmentStore.value.initialValue = structuredClone(fragmentStore.value);
-        fragmentStore.value.hasChanges = false;
+        Store.editor.resetChanges();
 
         this.previewLazyLoaded = true;
         fragmentStore.previewStore.releaseHold?.();

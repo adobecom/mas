@@ -768,6 +768,7 @@ export default class MasFragmentEditor extends LitElement {
 
     cancelDiscard() {
         this.showDiscardDialog = false;
+        Store.viewMode.set('editing');
         if (this.discardPromiseResolver) {
             this.discardPromiseResolver(false);
             this.discardPromiseResolver = null;

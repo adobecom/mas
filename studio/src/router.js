@@ -46,12 +46,9 @@ export class Router extends EventTarget {
                 return {
                     editor,
                     hasChanges:
-                        (editor && Store.translationProjects.inEdit.get()?.get()?.hasChanges) ||
-                        Store.translationProjects.selectedFilesCount > 0 ||
-                        null,
+                        (editor && Store.translationProjects.inEdit.get()?.get()?.hasChanges) || null,
                     shouldCheckUnsavedChanges:
-                        (editor && !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges) ||
-                        Store.translationProjects.selectedFilesCount > 0,
+                        (editor && !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges) || null,
                 };
             }
             default:
@@ -84,7 +81,6 @@ export class Router extends EventTarget {
                     if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && value !== PAGE_NAMES.TRANSLATION_EDITOR) {
                         Store.translationProjects.translationProjectId.set(null);
                         Store.translationProjects.inEdit.set(null);
-                        Store.translationProjects.selected.set(new Set());
                         Store.translationProjects.showSelected.set(false);
                     }
                     Store.fragments.inEdit.set();

@@ -4,7 +4,7 @@ import { styles } from './mas-translation-files-table.css.js';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
-import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS } from '../constants.js';
+import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import { initFragmentCache, prepopulateFragmentCache } from '../mas-repository.js';
 import { copyToClipboard, getService, showToast } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
@@ -23,7 +23,7 @@ class MasTranslationFilesTable extends LitElement {
 
     constructor() {
         super();
-
+        this.translationProjectStoreController = new StoreController(this, Store.translationProjects.inEdit);
         this.fragments = [];
         this.loading = false;
         this.error = null;
@@ -37,7 +37,6 @@ class MasTranslationFilesTable extends LitElement {
         ]);
         this.selectedInTable = [];
         this.abortController = null;
-        this.selectedStoreController = new StoreController(this, Store.translationProjects.selected);
     }
 
     connectedCallback() {
@@ -46,8 +45,6 @@ class MasTranslationFilesTable extends LitElement {
     }
 
     willUpdate(changedProperties) {
-        this.syncSelectedInTableFromStore();
-
         if (changedProperties.has('itemToRemove')) {
             this.removeItem(this.itemToRemove);
         }
@@ -60,24 +57,16 @@ class MasTranslationFilesTable extends LitElement {
         }
     }
 
-    syncSelectedInTableFromStore() {
-        const storeSelected = Array.from(this.selectedStoreController?.value || []);
+    get translationProject() {
+        return this.translationProjectStore?.get();
+    }
 
-        // Avoid feedback loops: only update when the sets differ.
-        const current = this.selectedInTable || [];
-        if (current.length === storeSelected.length) {
-            const currentSet = new Set(current);
-            let same = true;
-            for (const path of storeSelected) {
-                if (!currentSet.has(path)) {
-                    same = false;
-                    break;
-                }
-            }
-            if (same) return;
-        }
+    set translationProjectStore(translationProjectStore) {
+        Store.translationProjects.inEdit.set(translationProjectStore);
+    }
 
-        this.selectedInTable = storeSelected;
+    get translationProjectStore() {
+        return Store.translationProjects.inEdit.get();
     }
 
     /** @type {import('../mas-repository.js').MasRepository} */
@@ -97,10 +86,12 @@ class MasTranslationFilesTable extends LitElement {
     }
 
     async fetchFragments() {
-        if (this.type === 'all') {
-            this.fragments = Array.from(Store.translationProjects.selected.value).map((path) =>
-                Store.translationProjects.fragmentsByIds.value.get(path),
-            );
+        this.loading = true;
+        this.error = null;
+        if (this.type === 'all' && Store.translationProjects.fragmentsByPaths.value.size) {
+            this.fragments = this.translationProject?.fields
+                ?.find((field) => field.name === 'items')
+                ?.values.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
             return;
         }
         const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
@@ -117,42 +108,39 @@ class MasTranslationFilesTable extends LitElement {
         }
         this.abortController = new AbortController();
 
-        this.loading = true;
-        this.error = null;
-
         try {
-            if (this.type === 'fragments') {
-                if (Store.translationProjects.allFragments.value.length) {
-                    this.fragments = Store.translationProjects.allFragments.value;
-                    return;
+            if (Store.translationProjects.allFragments.value.length) {
+                this.fragments = Store.translationProjects.allFragments.value;
+                return;
+            }
+            const cursor = await aem.sites.cf.fragments.search(
+                {
+                    path: `${ROOT_PATH}/${surface}/${Store.filters.value?.locale || 'en_US'}`,
+                    modelIds: [TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']],
+                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                },
+                null,
+                this.abortController,
+            );
+            const fetchedFragments = [];
+            for await (const result of cursor) {
+                for (const item of result) {
+                    fetchedFragments.push(new Fragment(item));
                 }
-                const cursor = await aem.sites.cf.fragments.search(
-                    {
-                        path: `${ROOT_PATH}/${surface}/${Store.filters.value?.locale || 'en_US'}`,
-                        modelIds: EDITABLE_FRAGMENT_MODEL_IDS,
-                        sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                    },
-                    null,
-                    this.abortController,
-                );
-                const fetchedFragments = [];
-                for await (const result of cursor) {
-                    for (const item of result) {
-                        fetchedFragments.push(new Fragment(item));
-                    }
-                }
-                this.fragments = await Promise.all(
-                    fetchedFragments.map(async (fragment) => ({
-                        ...fragment,
-                        offerData: await this.loadOfferData(fragment),
-                        humanFriendlyPath: this.getFragmentName(fragment),
-                    })),
-                );
-                const fragmentsByPaths = new Map(this.fragments.map((fragment) => [fragment.path, fragment]));
-                Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
-                Store.translationProjects.allFragments.set(fetchedFragments);
-                console.log('fragments', this.fragments);
-                console.log('fragmentsByPaths', fragmentsByPaths);
+            }
+            this.fragments = await Promise.all(
+                fetchedFragments.map(async (fragment) => ({
+                    ...fragment,
+                    offerData: await this.loadOfferData(fragment),
+                    humanFriendlyPath: this.getFragmentName(fragment),
+                })),
+            );
+            const fragmentsByPaths = new Map(this.fragments.map((fragment) => [fragment.path, fragment]));
+            Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
+            Store.translationProjects.allFragments.set(fetchedFragments);
+            this.selectedInTable = this.translationProject?.fields?.find((field) => field.name === 'items')?.values ?? [];
+            if (this.type === 'all') {
+                this.fragments = this.selectedInTable.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
             }
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -209,10 +197,10 @@ class MasTranslationFilesTable extends LitElement {
 
     updateSelected({ target: { selected } }) {
         this.selectedInTable = selected;
-        const currentSelected = Store.translationProjects.selected.value;
-        const withoutUnselected = [...currentSelected].filter((path) => selected.includes(path));
+        const currentSelected = this.translationProject?.fields?.find((field) => field.name === 'items')?.values ?? [];
+        const withoutUnselected = currentSelected.filter((path) => selected.includes(path));
         const newSelected = new Set([...withoutUnselected, ...selected]);
-        Store.translationProjects.selected.set(newSelected);
+        this.translationProjectStore?.updateField('items', Array.from(newSelected));
     }
 
     removeItem(path) {
@@ -222,7 +210,7 @@ class MasTranslationFilesTable extends LitElement {
             this.shadowRoot.querySelector(`sp-table-row[value="${path}"]`)?.click();
         }
         this.selectedInTable = newSelected;
-        Store.translationProjects.selected.set(new Set(newSelected));
+        this.translationProjectStore?.updateField('items', newSelected);
     }
 
     render() {

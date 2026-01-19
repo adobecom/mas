@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-selected-items.css.js';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
+import NestedStoreController from '../reactivity/nested-store-controller.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
@@ -13,14 +14,20 @@ class MasSelectedItems extends LitElement {
 
     constructor() {
         super();
-        this.selectedStoreController = new StoreController(this, Store.translationProjects.selected);
+        this.translationProjectStoreController = new NestedStoreController(this, Store.translationProjects.inEdit);
         this.showSelectedStoreController = new StoreController(this, Store.translationProjects.showSelected);
     }
 
     get selectedItems() {
-        return Array.from(Store.translationProjects.selected.value).map((path) =>
-            Store.translationProjects.fragmentsByPaths.value.get(path),
-        );
+        const translationProject = this.translationProjectStoreController.value;
+        if (this.type === 'fragments') {
+            return (
+                translationProject?.fields
+                    ?.find((field) => field.name === 'items')
+                    ?.values?.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path)) || []
+            );
+        }
+        return [];
     }
 
     get showSelected() {
@@ -28,23 +35,25 @@ class MasSelectedItems extends LitElement {
     }
 
     getTitle(item) {
+        if (!item) return '-';
         if (this.type === 'fragments') {
-            return item.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || '-';
+            return item.title || '-';
         }
         return '-';
     }
 
     getDetails(item) {
+        if (!item) return '-';
         if (this.type === 'fragments') {
-            return item?.getFieldValues('title') || '-';
+            return item.humanFriendlyPath || '-';
         }
         return '-';
     }
 
-    removeItem(id) {
+    removeItem(path) {
         this.dispatchEvent(
             new CustomEvent('remove', {
-                detail: { id },
+                detail: { path },
                 bubbles: true,
                 composed: true,
             }),

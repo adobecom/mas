@@ -4,7 +4,7 @@ on:
     pull_request:
         branches:
             - main
-        types: [opened, synchronize, labeled]
+        types: [opened, synchronize, labeled, unlabeled]
 
 # Prevent multiple runs from happening at the same time
 concurrency:
@@ -12,6 +12,15 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    nala-gate:
+        name: Nala Gate
+        runs-on: ubuntu-latest
+        steps:
+            - name: Require 'run nala' label
+              if: ${{ !contains(github.event.pull_request.labels.*.name, 'run nala') }}
+              run: |
+                  echo "::error::Add the 'run nala' label to merge this PR"
+                  exit 1
     run-nala-tests:
         name: Running Nala E2E UI Tests
         runs-on: ubuntu-latest

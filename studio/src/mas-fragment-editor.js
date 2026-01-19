@@ -578,12 +578,12 @@ export default class MasFragmentEditor extends LitElement {
                 existingStore.previewStore.resolved = false;
                 existingStore.previewStore.holdResolution = true;
             }
-            Store.editor.resetChanges();
             this.repository.refreshFragment(existingStore).then(() => {
                 this.dispatchFragmentLoaded();
             });
             fragmentStore = existingStore;
             this.inEdit.set(existingStore);
+            Store.editor.resetChanges();
             this.reactiveController.updateStores([this.inEdit, existingStore, existingStore.previewStore, this.operation]);
         } else {
             try {

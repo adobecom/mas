@@ -16,7 +16,7 @@ export const features = [
             description: 'Create, edit, sign, and manage your PDFs — quickly, easily, anywhere.',
             price: PRICE_PATTERN.US.mo,
             cta: 'Buy now',
-            ctaOsi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+            ctaOsi: 'fake-abm0-7f3a-4a4a-beef-1234abcd5678',
             iconUrl: '',
             seeAllPlansText: 'See all plans & pricing details',
             stockCheckboxLabel: 'Add a 30-day free trial of Adobe Stock.*',

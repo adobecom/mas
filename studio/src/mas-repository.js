@@ -1104,13 +1104,8 @@ export class MasRepository extends LitElement {
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
      */
     async deleteFragmentWithVariations(fragment) {
-        let variations = fragment.getVariations();
+        const variations = fragment.getVariations();
         const failedVariations = [];
-
-        if (variations.length === 0) {
-            const foundVariations = await this.aem.sites.cf.fragments.findVariationsByName(fragment);
-            variations = foundVariations.map((v) => v.path);
-        }
 
         if (variations.length > 0) {
             showToast(`Deleting fragment and ${variations.length} variation(s)...`);

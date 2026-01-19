@@ -11,8 +11,8 @@ class MasFragmentPicker extends LitElement {
         itemToRemove: { type: String, state: true },
     };
 
-    setItemToRemove({ detail: { id } }) {
-        this.itemToRemove = id;
+    setItemToRemove({ detail: { path } }) {
+        this.itemToRemove = path;
     }
 
     render() {

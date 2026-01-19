@@ -54,10 +54,14 @@ class MasTranslationEditor extends LitElement {
 
         const translationProjectId = Store.translationProjects.translationProjectId.get();
         if (translationProjectId) {
+            console.log('translationProjectStore connectedCallback', this.translationProjectStore);
             if (!this.translationProjectStore) {
-                this.isLoading = true;
                 await this.#loadTranslationProjectById(translationProjectId);
-                this.isLoading = false;
+            } else {
+                const preselected = this.translationProjectStore.get()?.fields.find((field) => field.name === 'items')?.values;
+                const selectedPaths = new Set(preselected || []);
+                Store.translationProjects.selected.set(selectedPaths);
+                this.showSelectedEmptyState = selectedPaths.size === 0;
             }
         } else {
             this.isNewTranslationProject = true;
@@ -66,6 +70,7 @@ class MasTranslationEditor extends LitElement {
         }
 
         this.storeController = new StoreController(this, this.translationProjectStore);
+        this.selectedFilesStoreController = new StoreController(this, Store.translationProjects.selected);
     }
 
     /** @type {MasRepository} */
@@ -93,6 +98,10 @@ class MasTranslationEditor extends LitElement {
         return 'All required languages have been preselected for this project. They are mandatory and cannot be changed.';
     }
 
+    get translationProjectTitle() {
+        return this.translationProject?.getFieldValue('title');
+    }
+
     #updateDisabledActions({ add = [], remove = [] }) {
         const newSet = new Set(this.disabledActions);
         remove.forEach((action) => newSet.delete(action));
@@ -102,23 +111,26 @@ class MasTranslationEditor extends LitElement {
 
     async #loadTranslationProjectById(id) {
         if (!id) return;
+        this.isLoading = true;
         try {
             let fragment = await getFromFragmentCache(id);
-
             if (!fragment) {
                 fragment = await this.repository.aem.sites.cf.fragments.getById(id);
             }
-
             if (fragment) {
+                console.log('translationProject', fragment);
                 const translationProject = new TranslationProject(fragment);
                 this.translationProjectStore = new FragmentStore(translationProject);
-                const selectedItems = new Set(fragment.fields.find((field) => field.name === 'items')?.values || []);
-                Store.translationProjects.selected.set(selectedItems);
-                this.showSelectedEmptyState = selectedItems.size === 0;
+                const preselected = this.translationProjectStore.get()?.fields.find((field) => field.name === 'items')?.values;
+                const selectedPaths = new Set(preselected || []);
+                Store.translationProjects.selected.set(selectedPaths);
+                this.showSelectedEmptyState = selectedPaths.size === 0;
             }
         } catch (error) {
             console.error('Failed to load translation project:', error);
             showToast('Failed to load translation project.', 'negative');
+        } finally {
+            this.isLoading = false;
         }
     }
 
@@ -129,7 +141,7 @@ class MasTranslationEditor extends LitElement {
             fields: [
                 { name: 'title', type: 'text', multiple: false, values: [] },
                 { name: 'status', type: 'text', multiple: false, values: [] },
-                { name: 'items', type: 'content-reference', multiple: true, values: [] },
+                { name: 'items', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'targetLocales', type: 'text', multiple: true, values: [] },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
             ],
@@ -161,14 +173,10 @@ class MasTranslationEditor extends LitElement {
         const typeMap = {
             title: { type: 'text', multiple: false },
             status: { type: 'text', multiple: false },
-            items: { type: 'content-reference', multiple: true },
+            items: { type: 'content-fragment', multiple: true },
             targetLocales: { type: 'text', multiple: true },
             submissionDate: { type: 'date-time', multiple: false },
         };
-
-        const selectedItemPaths = [...Store.translationProjects.selected.value]
-            .map((id) => Store.translationProjects.fragmentsByIds.value.get(id)?.path)
-            .filter(Boolean);
 
         const fragmentPayload = {
             name: normalizeKey(this.translationProject.getFieldValue('title')),
@@ -181,7 +189,7 @@ class MasTranslationEditor extends LitElement {
                 multiple: typeMap[field.name]?.multiple ?? field.multiple ?? false,
                 ...(field.name === 'items'
                     ? {
-                          values: selectedItemPaths,
+                          values: Store.translationProjects.selected.value,
                       }
                     : { values: field.values }),
             })),
@@ -213,8 +221,6 @@ class MasTranslationEditor extends LitElement {
             return;
         }
         this.translationProject.updateFieldInternal('title', this.translationProject.getFieldValue('title'));
-        // this.translationProject.updateFieldInternal('items', Store.translationProjects.selected.value);
-        console.log('this.translationProject', this.translationProject);
         showToast('Updating the project...');
         try {
             await this.repository.saveFragment(this.translationProjectStore, false);
@@ -248,6 +254,8 @@ class MasTranslationEditor extends LitElement {
             });
             Store.translationProjects.inEdit.set(null);
             Store.translationProjects.translationProjectId.set('');
+            Store.translationProjects.selected.set(new Set());
+            Store.translationProjects.showSelected.set(false);
             showToast('Translation project successfully deleted.', 'positive');
             router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
         } catch (error) {
@@ -389,10 +397,6 @@ class MasTranslationEditor extends LitElement {
     }
 
     render() {
-        let form = nothing;
-        if (this.translationProject) {
-            form = Object.fromEntries([...this.translationProject.fields.map((f) => [f.name, f])]);
-        }
         return html`
             <div class="translation-editor-breadcrumb">
                 <sp-breadcrumbs>
@@ -425,7 +429,7 @@ class MasTranslationEditor extends LitElement {
                     <sp-textfield
                         id="title"
                         data-field="title"
-                        value="${form.title?.values[0]}"
+                        value="${this.translationProjectTitle}"
                         @input=${this.#handleFragmentUpdate}
                     ></sp-textfield>
                 </div>

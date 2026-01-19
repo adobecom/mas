@@ -18,8 +18,8 @@ class MasSelectedItems extends LitElement {
     }
 
     get selectedItems() {
-        return Array.from(Store.translationProjects.selected.value).map((id) =>
-            Store.translationProjects.fragmentsByIds.value.get(id),
+        return Array.from(Store.translationProjects.selected.value).map((path) =>
+            Store.translationProjects.fragmentsByPaths.value.get(path),
         );
     }
 
@@ -36,7 +36,7 @@ class MasSelectedItems extends LitElement {
 
     getDetails(item) {
         if (this.type === 'fragments') {
-            return item?.title || '-';
+            return item?.getFieldValues('title') || '-';
         }
         return '-';
     }
@@ -56,12 +56,12 @@ class MasSelectedItems extends LitElement {
             ? html`<ul class="selected-items">
                   ${repeat(
                       this.selectedItems,
-                      (item) => item.id,
+                      (item) => item.path,
                       (item) =>
                           html`<li class="file">
                               <h3 class="title">${this.getTitle(item)}</h3>
                               <div class="details">${this.getDetails(item)}</div>
-                              <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item.id)}>
+                              <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item.path)}>
                                   <sp-icon-close slot="icon"></sp-icon-close>
                               </sp-button>
                           </li>`,

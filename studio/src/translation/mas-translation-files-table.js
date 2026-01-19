@@ -68,8 +68,8 @@ class MasTranslationFilesTable extends LitElement {
         if (current.length === storeSelected.length) {
             const currentSet = new Set(current);
             let same = true;
-            for (const id of storeSelected) {
-                if (!currentSet.has(id)) {
+            for (const path of storeSelected) {
+                if (!currentSet.has(path)) {
                     same = false;
                     break;
                 }
@@ -98,8 +98,8 @@ class MasTranslationFilesTable extends LitElement {
 
     async fetchFragments() {
         if (this.type === 'all') {
-            this.fragments = Array.from(Store.translationProjects.selected.value).map((id) =>
-                Store.translationProjects.fragmentsByIds.value.get(id),
+            this.fragments = Array.from(Store.translationProjects.selected.value).map((path) =>
+                Store.translationProjects.fragmentsByIds.value.get(path),
             );
             return;
         }
@@ -148,10 +148,11 @@ class MasTranslationFilesTable extends LitElement {
                         humanFriendlyPath: this.getFragmentName(fragment),
                     })),
                 );
-                const fragmentsByIds = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
-                Store.translationProjects.fragmentsByIds.set(fragmentsByIds);
+                const fragmentsByPaths = new Map(this.fragments.map((fragment) => [fragment.path, fragment]));
+                Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
                 Store.translationProjects.allFragments.set(fetchedFragments);
-                console.log('fetchedFragments', this.fragments);
+                console.log('fragments', this.fragments);
+                console.log('fragmentsByPaths', fragmentsByPaths);
             }
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -206,53 +207,19 @@ class MasTranslationFilesTable extends LitElement {
         </sp-table-cell>`;
     }
 
-    getFragmentPath(fragment) {
-        const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
-        let fragmentParts = '';
-        const surface = store.search.value.path?.toUpperCase();
-        switch (fragment?.model?.path) {
-            case CARD_MODEL_PATH:
-                const props = {
-                    cardName: fragment?.getField('name')?.values[0],
-                    cardTitle: fragment?.getField('cardTitle')?.values[0],
-                    variantCode: fragment?.getField('variant')?.values[0],
-                    marketSegment: fragment?.getTagTitle('market_segment'),
-                    customerSegment: fragment?.getTagTitle('customer_segment'),
-                    product: fragment?.getTagTitle('mas:product/'),
-                    promotion: fragment?.getTagTitle('mas:promotion/'),
-                };
-
-                VARIANTS.forEach((variant) => {
-                    if (variant.value === props.variantCode) {
-                        props.variantLabel = variant.label;
-                    }
-                });
-                const buildPart = (part) => {
-                    if (part) return ` / ${part}`;
-                    return '';
-                };
-                fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
-                break;
-            case COLLECTION_MODEL_PATH:
-                fragmentParts = `${surface} / ${title}`;
-                break;
-        }
-        return `${webComponentName}: ${fragmentParts}`;
-    }
-
     updateSelected({ target: { selected } }) {
         this.selectedInTable = selected;
         const currentSelected = Store.translationProjects.selected.value;
-        const withoutUnselected = [...currentSelected].filter((id) => selected.includes(id));
+        const withoutUnselected = [...currentSelected].filter((path) => selected.includes(path));
         const newSelected = new Set([...withoutUnselected, ...selected]);
         Store.translationProjects.selected.set(newSelected);
     }
 
-    removeItem(id) {
-        if (!id) return;
-        const newSelected = this.selectedInTable.filter((selectedId) => selectedId !== id);
+    removeItem(path) {
+        if (!path) return;
+        const newSelected = this.selectedInTable.filter((selectedPath) => selectedPath !== path);
         if (newSelected.length === 0) {
-            this.shadowRoot.querySelector(`sp-table-row[value="${id}"]`)?.click();
+            this.shadowRoot.querySelector(`sp-table-row[value="${path}"]`)?.click();
         }
         this.selectedInTable = newSelected;
         Store.translationProjects.selected.set(new Set(newSelected));
@@ -272,9 +239,9 @@ class MasTranslationFilesTable extends LitElement {
                   <sp-table-body>
                       ${repeat(
                           this.fragments,
-                          (fragment) => fragment.id,
+                          (fragment) => fragment.path,
                           (fragment) =>
-                              html`<sp-table-row value=${fragment.id}>
+                              html`<sp-table-row value=${fragment.path}>
                                   <sp-table-cell>
                                       ${fragment.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || '-'}
                                   </sp-table-cell>

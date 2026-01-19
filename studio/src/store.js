@@ -107,14 +107,29 @@ const Store = {
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
         allFragments: new ReactiveStore([]),
-        fragmentsByIds: new ReactiveStore(new Map()),
-        selected: new ReactiveStore(new Set()),
+        fragmentsByPaths: new ReactiveStore(new Map()),
+        selected: new ReactiveStore(new Set(), selectedSetValidator),
         showSelected: new ReactiveStore(false),
         get selectedFilesCount() {
             return Store.translationProjects.selected.value.size;
         },
     },
 };
+
+/**
+ * Ensures the translation-project selection is always a Set.
+ * We rely on `.size` in multiple places (e.g. `selectedFilesCount`).
+ * @param {any} value
+ * @returns {Set<any>}
+ */
+function selectedSetValidator(value) {
+    if (!value) return new Set();
+    if (value instanceof Set) return value;
+    if (Array.isArray(value)) return new Set(value);
+    if (typeof value === 'string') return new Set([value]);
+    if (value && typeof value[Symbol.iterator] === 'function') return new Set(value);
+    return new Set([value]);
+}
 
 // #region Validators
 

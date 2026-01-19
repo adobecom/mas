@@ -113,8 +113,17 @@ export default class MasFragmentEditor extends LitElement {
             position: relative;
         }
 
-        .preview-content merch-card {
-            flex-shrink: 0;
+        #preview-column:has(.placeholder-failed) {
+            background-color: var(--merch-color-error-background);
+        }
+
+        #preview-column:has(a[is='checkout-link'].placeholder-failed)::after {
+            content: 'CTA has an invalid offer';
+            display: block;
+            color: var(--merch-color-error);
+            font-size: 14px;
+            padding: 8px 16px;
+            text-align: center;
         }
 
         .section {

@@ -551,6 +551,9 @@ class MerchCardEditor extends LitElement {
                 .editor-form-container {
                     display: var(--form-display, block);
                 }
+                #badge mas-mnemonic-field {
+                    margin-right: 16px;
+                }
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
@@ -690,6 +693,11 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#updateBadgeText}"
                         ></sp-textfield>
                         ${this.renderBadgeComponentOverrideIndicator('badge', 'text')}
+                        <mas-mnemonic-field 
+                            .iconLibrary="${true}" 
+                            @change=${this.#updateBadgeIcon}
+                            style="display: ${this.isPlans ? 'block' : 'none'};"
+                        ></mas-mnemonic-field>
                     </sp-field-group>
                     <sp-field-group class="toggle" id="trialBadge">
                         <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
@@ -1275,11 +1283,13 @@ class MerchCardEditor extends LitElement {
         const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
         const borderColorSelected = document.querySelector('sp-picker[data-field="badgeBorderColor"]')?.value;
         const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
+        const icon = this.badgeElement?.getAttribute?.('icon');
 
         return {
             text,
             bgColor,
             borderColor,
+            icon,
         };
     }
 
@@ -1390,11 +1400,11 @@ class MerchCardEditor extends LitElement {
 
         if (fieldName === 'badge') {
             if (component === 'text') {
-                this.#updateBadge(parentParsed.text, this.badge.bgColor, this.badge.borderColor);
+                this.#updateBadge(parentParsed.text, this.badge.bgColor, this.badge.borderColor, this.badge.icon);
             } else if (component === 'bgColor') {
-                this.#updateBadge(this.badge.text, parentParsed.bgColor, this.badge.borderColor);
+                this.#updateBadge(this.badge.text, parentParsed.bgColor, this.badge.borderColor, this.badge.icon);
             } else if (component === 'borderColor') {
-                this.#updateBadge(this.badge.text, this.badge.bgColor, parentParsed.borderColor);
+                this.#updateBadge(this.badge.text, this.badge.bgColor, parentParsed.borderColor, this.badge.icon);
             }
         } else if (fieldName === 'trialBadge') {
             if (component === 'text') {
@@ -1408,7 +1418,7 @@ class MerchCardEditor extends LitElement {
         showToast('Field restored to parent value', 'positive');
     }
 
-    #createBadgeElement(text, bgColor, borderColor) {
+    #createBadgeElement(text, bgColor, borderColor, icon) {
         if (!text) return;
 
         const element = document.createElement('merch-badge');
@@ -1420,6 +1430,9 @@ class MerchCardEditor extends LitElement {
         if (borderColor) {
             element.setAttribute('border-color', borderColor);
         }
+        if (icon) {
+            element.setAttribute('icon', icon);
+        }
         element.setAttribute('variant', this.fragment.variant);
         element.textContent = text;
         return element;
@@ -1427,9 +1440,20 @@ class MerchCardEditor extends LitElement {
 
     #updateBadgeText(event) {
         const text = event.target.value?.trim() || '';
+        const icon = this.badge.icon;
+        this.#updateBadgeTextAndIcon(text, icon);
+    }
+
+    #updateBadgeIcon(event) {
+        const text = this.badge.text;
+        const icon = event.detail.icon;
+        this.#updateBadgeTextAndIcon(text, icon);
+    }
+
+    #updateBadgeTextAndIcon(text, icon) {
         if (this.supportsBadgeColors) {
             this.#displayBadgeColorFields(text);
-            this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor);
+            this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor, icon);
         } else {
             this.fragmentStore.updateField('badge', [text]);
         }
@@ -1445,8 +1469,8 @@ class MerchCardEditor extends LitElement {
         }
     }
 
-    #updateBadge = (text, bgColor, borderColor) => {
-        const element = this.#createBadgeElement(text, bgColor, borderColor);
+    #updateBadge = (text, bgColor, borderColor, icon) => {
+        const element = this.#createBadgeElement(text, bgColor, borderColor, icon);
         this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
     };
 
@@ -1620,13 +1644,13 @@ class MerchCardEditor extends LitElement {
             if (value === 'Default') {
                 if (isBadgeColor) {
                     if (dataField === 'badgeColor') {
-                        this.#updateBadge(this.badge.text, '', this.badge.borderColor);
+                        this.#updateBadge(this.badge.text, '', this.badge.borderColor, this.badge.icon);
                     } else if (dataField === 'trialBadgeColor') {
                         this.#updateTrialBadge(this.trialBadge.text, '', this.trialBadge.borderColor);
                     }
                 } else if (isBadgeBorderColor) {
                     if (dataField === 'badgeBorderColor') {
-                        this.#updateBadge(this.badge.text, this.badge.bgColor, '');
+                        this.#updateBadge(this.badge.text, this.badge.bgColor, '', this.badge.icon);
                     } else if (dataField === 'trialBadgeBorderColor') {
                         this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, '');
                     }
@@ -1642,13 +1666,13 @@ class MerchCardEditor extends LitElement {
             } else if (value === 'Transparent') {
                 if (isBadgeColor) {
                     if (dataField === 'badgeColor') {
-                        this.#updateBadge(this.badge.text, 'transparent', this.badge.borderColor);
+                        this.#updateBadge(this.badge.text, 'transparent', this.badge.borderColor, this.badge.icon);
                     } else if (dataField === 'trialBadgeColor') {
                         this.#updateTrialBadge(this.trialBadge.text, 'transparent', this.trialBadge.borderColor);
                     }
                 } else if (isBadgeBorderColor) {
                     if (dataField === 'badgeBorderColor') {
-                        this.#updateBadge(this.badge.text, this.badge.bgColor, 'transparent');
+                        this.#updateBadge(this.badge.text, this.badge.bgColor, 'transparent', this.badge.icon);
                     } else if (dataField === 'trialBadgeBorderColor') {
                         this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, 'transparent');
                     }
@@ -1664,13 +1688,13 @@ class MerchCardEditor extends LitElement {
                 this.fragmentStore.set(fragment);
             } else if (isBadgeColor) {
                 if (dataField === 'badgeColor') {
-                    this.#updateBadge(this.badge.text, value, this.badge.borderColor);
+                    this.#updateBadge(this.badge.text, value, this.badge.borderColor, this.badge.icon);
                 } else if (dataField === 'trialBadgeColor') {
                     this.#updateTrialBadge(this.trialBadge.text, value, this.trialBadge.borderColor);
                 }
             } else if (isBadgeBorderColor) {
                 if (dataField === 'badgeBorderColor') {
-                    this.#updateBadge(this.badge.text, this.badge.bgColor, value);
+                    this.#updateBadge(this.badge.text, this.badge.bgColor, value, this.badge.icon);
                 } else if (dataField === 'trialBadgeBorderColor') {
                     this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, value);
                 }

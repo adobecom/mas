@@ -79,6 +79,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-publish-remove.js'
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-refresh.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-review-link.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-remove.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-ribbon.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-save-floppy.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-select-multi.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-select-rectangle.js';
@@ -86,6 +87,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-select-no.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-settings.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-shopping-cart.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-star.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-star-outline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-stroke-solid.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-table.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-tag-bold.js';

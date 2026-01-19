@@ -244,7 +244,9 @@ class MasMnemonicModal extends LitElement {
 
     #handleProductSelect(productId) {
         this.selectedProductId = productId;
-        this.icon = this.iconLibrary ? productId : `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;
+        this.icon = this.iconLibrary
+            ? productId
+            : `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;
     }
 
     #handleClose() {
@@ -307,14 +309,15 @@ class MasMnemonicModal extends LitElement {
                                 class="icon-item ${this.selectedProductId === product.id ? 'selected' : ''}"
                                 @click=${() => this.#handleProductSelect(product.id)}
                             >
-                            ${this.iconLibrary ? html`${renderSpIcon(product.id)}` : html`
-                                <img
-                                    src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
-                                    alt="${product.name}"
-                                    @error=${(e) => {
-                                        e.target.style.display = 'none';
-                                    }}
-                                />`}
+                                ${this.iconLibrary
+                                    ? html`${renderSpIcon(product.id)}`
+                                    : html` <img
+                                          src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
+                                          alt="${product.name}"
+                                          @error=${(e) => {
+                                              e.target.style.display = 'none';
+                                          }}
+                                      />`}
                                 <span>${product.name}</span>
                             </div>
                         `,

@@ -128,7 +128,10 @@ class MnemonicField extends LitElement {
     #handleMenuChange(event) {
         event.stopPropagation();
         const value = event.target.value;
-        if ((this.iconLibrary && event.target.tagName !== 'SP-ACTION-MENU' && event.target.tagName !== 'SP-MENU-ITEM') || value === 'edit') {
+        if (
+            (this.iconLibrary && event.target.tagName !== 'SP-ACTION-MENU' && event.target.tagName !== 'SP-MENU-ITEM') ||
+            value === 'edit'
+        ) {
             this.#handleEditClick();
         } else if (value === 'delete') {
             this.#handleDeleteClick();
@@ -167,7 +170,10 @@ class MnemonicField extends LitElement {
         if (!this.icon) return 'No icon selected';
 
         if (this.iconLibrary && this.icon.startsWith('sp-icon-')) {
-            return this.icon.replace('sp-icon-', '').replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());;
+            return this.icon
+                .replace('sp-icon-', '')
+                .replace(/-/g, ' ')
+                .replace(/\b\w/g, (l) => l.toUpperCase());
         }
 
         if (this.icon.includes('/product-icons/svg/')) {
@@ -189,7 +195,7 @@ class MnemonicField extends LitElement {
                 src="${this.icon}"
                 alt="${this.alt || 'Icon preview'}"
                 @error=${(e) => (e.target.style.display = 'none')}
-            />`
+            />`;
         }
     }
 
@@ -211,12 +217,12 @@ class MnemonicField extends LitElement {
                 <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>
                     <sp-icon-more slot="icon"></sp-icon-more>
                     <sp-menu>
-                    ${this.iconLibrary 
-                    ? nothing
-                    : html`<sp-menu-item value="edit">
-                            <sp-icon-edit slot="icon"></sp-icon-edit>
-                            Edit
-                        </sp-menu-item>`}
+                        ${this.iconLibrary
+                            ? nothing
+                            : html`<sp-menu-item value="edit">
+                                  <sp-icon-edit slot="icon"></sp-icon-edit>
+                                  Edit
+                              </sp-menu-item>`}
                         <sp-menu-item value="delete">
                             <sp-icon-delete slot="icon"></sp-icon-delete>
                             Delete

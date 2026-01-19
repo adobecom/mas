@@ -1,10 +1,13 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
-const renderIcon = iconName => {
+const renderIcon = (iconName) => {
     if (!iconName) return nothing;
-    if (iconName.startsWith('sp-icon-')) return html`${unsafeHTML(`<${iconName} class="badge-icon"></${iconName}>`)}`;
-    return html`<img src="${iconName}" class="badge-icon">`;
+    if (iconName.startsWith('sp-icon-'))
+        return html`${unsafeHTML(
+            `<${iconName} class="badge-icon"></${iconName}>`,
+        )}`;
+    return html`<img src="${iconName}" class="badge-icon" />`;
 };
 export default class MerchBadge extends LitElement {
     static properties = {
@@ -62,7 +65,9 @@ export default class MerchBadge extends LitElement {
     }
 
     render() {
-        return html`<div class="badge">${renderIcon(this.icon)}${this.text}</div>`;
+        return html`<div class="badge">
+            ${renderIcon(this.icon)}${this.text}
+        </div>`;
     }
 
     static styles = css`

@@ -7,6 +7,6 @@ export const ICON_LIBRARY = [
     { id: 'sp-icon-ribbon', name: 'Ribbon' },
 ];
 
-export const renderSpIcon = iconName => {
-  return html`${unsafeHTML(`<${iconName}></${iconName}>`)}`;
+export const renderSpIcon = (iconName) => {
+    return html`${unsafeHTML(`<${iconName}></${iconName}>`)}`;
 };

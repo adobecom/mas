@@ -693,8 +693,8 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#updateBadgeText}"
                         ></sp-textfield>
                         ${this.renderBadgeComponentOverrideIndicator('badge', 'text')}
-                        <mas-mnemonic-field 
-                            .iconLibrary="${true}" 
+                        <mas-mnemonic-field
+                            .iconLibrary="${true}"
                             @change=${this.#updateBadgeIcon}
                             style="display: ${this.isPlans ? 'block' : 'none'};"
                         ></mas-mnemonic-field>

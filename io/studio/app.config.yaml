@@ -40,7 +40,7 @@ application:
                         runtime: nodejs:22
                     translation-project-start:
                         function: src/translation/project-start.js
-                        web: "yes"
+                        web: 'yes'
                         runtime: nodejs:22
                         annotations:
                             require-adobe-auth: false

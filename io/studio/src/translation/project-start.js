@@ -23,9 +23,6 @@ async function main(params) {
         }
 
         const projectCF = await getTranslationProject(params.projectId, authToken);
-        if (!projectCF) {
-            return errorResponse(404, `Translation project not found: ${params.projectId}`, logger);
-        }
 
         const translationData = getTranslationData(projectCF);
         if (!translationData) {
@@ -38,7 +35,7 @@ async function main(params) {
         }
     } catch (error) {
         logger.error('Error calling the main action', error);
-        return errorResponse(500, 'Internal server error', logger);
+        return errorResponse(500, `Internal server error - ${error.message}`, logger);
     }
 
     return {
@@ -74,12 +71,12 @@ async function main(params) {
             logger.info(`response.statusText: ${response.statusText}`);
             if (!response.ok) {
                 logger.error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
-                return null;
+                throw new Error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
             }
             return await response.json();
         } catch (error) {
             logger.error(`Error fetching translation project: ${error}`);
-            return null;
+            throw new Error(`Failed to fetch translation project: ${error.message || error.toString()}`);
         }
     }
 

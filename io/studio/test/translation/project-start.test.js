@@ -95,11 +95,11 @@ describe('Translation project-start', () => {
             expect(result.error.body.error).to.equal('Forbidden: Invalid client ID');
         });
 
-        it('should return 404 if translation project is not found', async () => {
+        it('should return 500 if translation project is not found', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
             fetchStub.onFirstCall().resolves({
                 ok: false,
-                status: 404,
+                status: 500,
                 statusText: 'Not Found',
             });
 
@@ -112,7 +112,7 @@ describe('Translation project-start', () => {
 
             const result = await projectStart.main(params);
 
-            expect(result.error.statusCode).to.equal(404);
+            expect(result.error.statusCode).to.equal(500);
             expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Failed to fetch translation project/));
         });
 
@@ -255,7 +255,7 @@ describe('Translation project-start', () => {
             const result = await projectStart.main(params);
 
             expect(result.error.statusCode).to.equal(500);
-            expect(result.error.body.error).to.equal('Internal server error');
+            expect(result.error.body.error).to.equal('Internal server error - Unexpected IMS error');
             expect(mockLogger.error).to.have.been.called;
         });
     });
@@ -358,7 +358,10 @@ describe('Translation project-start', () => {
 
             const result = await projectStart.main(params);
 
-            expect(result.error.statusCode).to.equal(404);
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.equal(
+                'Internal server error - Failed to fetch translation project: Network error',
+            );
             expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Error fetching translation project/));
         });
     });

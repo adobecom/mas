@@ -751,7 +751,7 @@ describe('class "InlinePrice"', () => {
                 expected: [
                     [true, false],
                     [false, false],
-                    [false, false],
+                    [true, false],
                     [false, false],
                 ],
             },
@@ -812,10 +812,10 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'MU_en',
                 expected: [
-                    [true, false],
-                    [true, false],
-                    [false, false],
-                    [false, false],
+                    [true, true],
+                    [true, true],
+                    [true, true],
+                    [true, true],
                 ],
             },
             {

@@ -2,6 +2,10 @@ import { css } from 'lit';
 
 export const styles = css`
     :host {
+        --link-color: #3b63fb;
+        --link-hover-color: #1d3ecf;
+        width: 90vw;
+
         .search {
             display: flex;
             align-items: center;
@@ -17,6 +21,9 @@ export const styles = css`
                 --mod-picker-background-color-default: transparent;
                 border: 1px solid var(--spectrum-gray-300);
                 border-radius: 12px;
+            }
+            sp-action-button {
+                justify-content: left;
             }
         }
 

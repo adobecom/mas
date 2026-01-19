@@ -57,7 +57,10 @@ class MasFragmentPickerToolbar extends LitElement {
         .filter-trigger {
             border: 1px solid var(--spectrum-gray-300);
             border-radius: 12px;
-            min-width: 140px;
+            justify-content: start;
+            sp-icon-chevron-down {
+                order: 2;
+            }
         }
 
         .filter-popover {

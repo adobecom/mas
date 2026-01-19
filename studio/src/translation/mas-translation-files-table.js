@@ -45,6 +45,7 @@ class MasTranslationFilesTable extends LitElement {
     }
 
     willUpdate(changedProperties) {
+        this.preselectItems();
         if (changedProperties.has('itemToRemove')) {
             this.removeItem(this.itemToRemove);
         }
@@ -79,6 +80,19 @@ class MasTranslationFilesTable extends LitElement {
         return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
     }
 
+    preselectItems() {
+        const storeSelectedSet = new Set(
+            this.translationProject?.fields?.find((field) => field.name === 'items')?.values ?? [],
+        );
+        const tableSelectedSet = new Set(this.selectedInTable);
+        const isEqual =
+            storeSelectedSet.size === tableSelectedSet.size &&
+            [...storeSelectedSet].every((value) => tableSelectedSet.has(value));
+        if (!isEqual) {
+            this.selectedInTable = Array.from(storeSelectedSet);
+        }
+    }
+
     getFragmentName(data) {
         const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
         const { fragmentParts } = getFragmentPartsToUse(Store, data);
@@ -92,6 +106,7 @@ class MasTranslationFilesTable extends LitElement {
             this.fragments = this.translationProject?.fields
                 ?.find((field) => field.name === 'items')
                 ?.values.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
+            this.loading = false;
             return;
         }
         const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();

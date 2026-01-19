@@ -310,12 +310,15 @@ class MasTranslationEditor extends LitElement {
 
     #confirmFileSelection = ({ target }) => {
         this.showSelectedEmptyState = this.selectedFilesCount === 0;
+        this.isOverlayOpen = false;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
 
     #cancelFileSelection = ({ target }) => {
+        this.translationProjectStore?.updateField('items', this.selectedFilesSnapshot);
         this.showSelectedEmptyState = this.selectedFilesCount === 0;
+        this.isOverlayOpen = false;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
@@ -325,6 +328,7 @@ class MasTranslationEditor extends LitElement {
     };
 
     createSnapshot() {
+        this.isOverlayOpen = true;
         this.selectedFilesSnapshot = new Set(
             this.translationProject?.fields.find((field) => field.name === 'items')?.values || [],
         );
@@ -423,29 +427,23 @@ class MasTranslationEditor extends LitElement {
                 </div>
                     ${
                         this.showSelectedEmptyState
-                            ? html` <div class="form-field select-files">
-                                  <h2>Select files</h2>
-                                  <div class="files-empty-state">
-                                      <div class="icon">
-                                          <overlay-trigger type="modal" id="add-files-overlay" triggered-by="click" @sp-opened=${() => (this.isOverlayOpen = true)} @sp-closed=${() => (this.isOverlayOpen = false)}>
-                                              ${this.renderAddFilesDialog()}
-                                              <sp-button
-                                                  slot="trigger"
-                                                  variant="secondary"
-                                                  size="xl"
-                                                  icon-only
+                            ? html`
+                                  <div class="form-field select-files">
+                                      <h2>Select files</h2>
+                                      <div class="files-empty-state">
+                                          <div class="icon">
+                                              <overlay-trigger
+                                                  type="modal"
+                                                  id="add-files-overlay"
+                                                  triggered-by="click"
+                                                  @sp-opened=${this.createSnapshot}
+                                                  @sp-closed=${() => (this.isOverlayOpen = false)}
                                               >
-                                                  <sp-icon-add size="xxl" slot="icon" label="Add Files"></sp-icon-add>
-                                              </sp-button>
-                                          </overlay-trigger>
-                                      </div>
-                                      <div class="label">
-                                          <strong>Add files</strong><br />
-                                          <span>Choose files that need to be translated.</span>
+                                                  ${this.renderAddFilesDialog()}
+                                              </overlay-trigger>
+                                          </div>
                                       </div>
                                   </div>
-                              </div>
-                            </div>
                               `
                             : html`<div class="form-field selected-files">
                                   <div class="selected-files-header">
@@ -469,7 +467,6 @@ class MasTranslationEditor extends LitElement {
                                                         type="modal"
                                                         id="add-files-overlay"
                                                         triggered-by="click"
-                                                        @sp-opened=${() => (this.isOverlayOpen = true)}
                                                         @sp-closed=${() => (this.isOverlayOpen = false)}
                                                     >
                                                         ${this.renderAddFilesDialog()}

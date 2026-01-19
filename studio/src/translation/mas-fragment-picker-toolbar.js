@@ -74,11 +74,11 @@ class MasFragmentPickerToolbar extends LitElement {
             max-height: 300px;
             overflow-y: auto;
             min-width: 150px;
+            padding-inline-start: 4px;
         }
 
         .checkbox-list sp-checkbox {
             display: flex;
-            align-items: center;
             white-space: nowrap;
         }
     `;

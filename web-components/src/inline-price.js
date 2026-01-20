@@ -45,6 +45,7 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'LU_fr',
     'MY_en',
     'MY_ms',
+    'MU_en',
     'NL_nl',
     'NO_nb',
     'NZ_en',
@@ -97,6 +98,33 @@ const defaultTaxExcluded = (segment) =>
     [BUSINESS, UNIVERSITY].includes(segment);
 
 /**
+ * It returns the right tax config per locale. If both country and language are provided it will return
+ * the tax config for that locale. If only country code is provided it will return the first tax config it finds
+ * for that country.
+ * @param {Object} map Map with tax configs per locale
+ * @param {string} country country code
+ * @param {string} language language code
+ * @param {boolean} isArray true if map is an array, otherwise it is an object
+ * @returns
+ */
+function getTaxConfigFromMap(map, country, language, isArray) {
+    if (map[country]) return map[country];
+    const locale = `${country}_${language}`;
+    if (map[locale]) return map[locale];
+
+    let result;
+    if (isArray) {
+        result = map.find((item) => item.startsWith(`${country}_`));
+    } else {
+        const resultKey = Object.keys(map).find((key) =>
+            key.startsWith(`${country}_`),
+        );
+        result = resultKey ? map[resultKey] : null;
+    }
+    return result;
+}
+
+/**
  * Resolves the default value for forceTaxExclusive for the provided geo info and segments.
  * @param {string} country - uppercase country code e.g. US, AT, MX
  * @param {string} language - lowercase language code e.g. en, de, es
@@ -110,9 +138,8 @@ const resolveTaxExclusive = (
     customerSegment,
     marketSegment,
 ) => {
-    const locale = `${country}_${language}`;
     const segment = `${customerSegment}_${marketSegment}`;
-    const val = TAX_EXCLUDED_MAP[locale];
+    const val = getTaxConfigFromMap(TAX_EXCLUDED_MAP, country, language, false);
     if (val) {
         const index = TAX_EXCLUDED_MAP_INDEX.indexOf(segment);
         return val[index];
@@ -135,13 +162,8 @@ const resolveDisplayTaxForGeoAndSegment = (
     customerSegment,
     marketSegment,
 ) => {
-    const locale = `${country}_${language}`;
-    if (
-        DISPLAY_ALL_TAX_COUNTRIES.includes(country) ||
-        DISPLAY_ALL_TAX_COUNTRIES.includes(locale)
-    ) {
+    if (getTaxConfigFromMap(DISPLAY_ALL_TAX_COUNTRIES, country, language, true))
         return true;
-    }
 
     const segmentConfig =
         DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
@@ -149,7 +171,7 @@ const resolveDisplayTaxForGeoAndSegment = (
         return Defaults.displayTax;
     }
 
-    if (segmentConfig.includes(country) || segmentConfig.includes(locale)) {
+    if (getTaxConfigFromMap(segmentConfig, country, language, true)) {
         return true;
     }
 
@@ -212,7 +234,6 @@ export class InlinePrice extends HTMLSpanElement {
     }
 
     static createInlinePrice(options) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return null;
         const {
@@ -313,7 +334,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     async render(overrides = {}) {
         if (!this.isConnected) return false;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         const priceOptions = service.collectPriceOptions(overrides, this);
@@ -328,7 +348,7 @@ export class InlinePrice extends HTMLSpanElement {
             const [offerSelectors] =
                 await service.resolveOfferSelectors(options);
             let offers = selectOffers(await offerSelectors, options);
-            let [offer] = offers;
+            const [offer] = offers;
 
             if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
                 if (priceOptions.displayPerUnit === undefined) {
@@ -384,7 +404,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     renderOffers(offers, options, version = undefined) {
         if (!this.isConnected) return;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         version ??= this.masElement.togglePending();

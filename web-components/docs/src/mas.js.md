@@ -27,7 +27,7 @@ To add `mas.js` to your page or application, include it as shown below:
 
 ```html
 <script
-    src="https://www.adobe.com/libs/features/mas/dist/mas.js"
+    src="https://www.adobe.com/mas/libs/mas.js"
     type="module"
 ></script>
 ```

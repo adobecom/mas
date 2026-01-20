@@ -26,11 +26,11 @@ export default class NestedStoreController {
     }
 
     hostConnected() {
-        this.outerStore.subscribe(this.#onOuterChange.bind(this));
+        this.outerStore.subscribe(this.#onOuterChange);
     }
 
     hostDisconnected() {
-        this.outerStore.unsubscribe(this.#onOuterChange.bind(this));
+        this.outerStore.unsubscribe(this.#onOuterChange);
         this.#unsubscribeInner();
     }
 

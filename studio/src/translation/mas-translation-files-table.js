@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-translation-files-table.css.js';
 import Store from '../store.js';
-import StoreController from '../reactivity/store-controller.js';
+import NestedStoreController from '../reactivity/nested-store-controller.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
 import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import { initFragmentCache, prepopulateFragmentCache } from '../mas-repository.js';
@@ -23,11 +23,10 @@ class MasTranslationFilesTable extends LitElement {
 
     constructor() {
         super();
-        this.translationProjectStoreController = new StoreController(this, Store.translationProjects.inEdit);
+        this.translationProjectStoreController = new NestedStoreController(this, Store.translationProjects.inEdit);
         this.fragments = [];
         this.loading = false;
         this.error = null;
-        this.unsubscribe = null;
         this.columnsToShow = new Set([
             { label: 'Offer', key: 'offer', sortable: true },
             { label: 'Fragment title', key: 'fragmentTitle' },
@@ -59,11 +58,7 @@ class MasTranslationFilesTable extends LitElement {
     }
 
     get translationProject() {
-        return this.translationProjectStore?.get();
-    }
-
-    set translationProjectStore(translationProjectStore) {
-        Store.translationProjects.inEdit.set(translationProjectStore);
+        return this.translationProjectStoreController.value;
     }
 
     get translationProjectStore() {

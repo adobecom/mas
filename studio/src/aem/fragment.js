@@ -1,4 +1,5 @@
 import { PATH_TOKENS } from '../constants.js';
+
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -13,48 +14,28 @@ export class Fragment {
     /**
      * @param {*} AEM Fragment JSON object
      */
-    constructor({
-        id,
-        dictionary,
-        etag,
-        fields,
-        model,
-        path,
-        title,
-        description,
-        status,
-        created,
-        modified,
-        placeholders,
-        priceLiterals,
-        published,
-        references,
-        settings,
-        tags,
-    }) {
-        this.model = model;
-        this.description = description;
-        this.dictionary = dictionary;
-        this.etag = etag;
-        this.fields = fields;
-        this.id = id;
-        this.initialValue = structuredClone(this);
-        this.status = status;
-        this.created = created;
-        this.modified = modified;
-        this.name = path?.split('/')?.pop();
-        this.path = path;
-        this.placeholders = placeholders || {};
-        this.priceLiterals = priceLiterals || {};
-        this.published = published;
-        this.references = references;
-        this.settings = settings || {};
-        this.tags = tags || [];
-        this.title = title;
+    constructor(fragment) {
+        this.refreshFrom(fragment);
+    }
+
+    getField(fieldName) {
+        return this.fields.find((field) => field.name === fieldName);
+    }
+
+    getFieldValues(fieldName) {
+        return this.getField(fieldName)?.values || [];
+    }
+
+    getFieldValue(fieldName, index = 0) {
+        return this.getFieldValues(fieldName)?.[index];
+    }
+
+    isValueEmpty(values) {
+        return values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
     }
 
     get variant() {
-        return this.fields.find((field) => field.name === 'variant')?.values?.[0];
+        return this.getFieldValue('variant');
     }
 
     get fragmentName() {
@@ -104,17 +85,8 @@ export class Fragment {
         this.hasChanges = true;
     }
 
-    getField(fieldName) {
-        return this.fields.find((field) => field.name === fieldName);
-    }
-
-    getFieldValue(fieldName, index = 0) {
-        return this.fields.find((field) => field.name === fieldName)?.values?.[index];
-    }
-
     getVariations() {
-        const variationsField = this.fields.find((field) => field.name === 'variations');
-        return variationsField?.values || [];
+        return this.getFieldValue('variations') || [];
     }
 
     hasVariations() {
@@ -131,9 +103,12 @@ export class Fragment {
             return v;
         });
 
-        const existingField = this.fields.find((field) => field.name === fieldName);
+        const existingField = this.getField(fieldName);
 
         if (existingField) {
+            if (this.isValueEmpty(existingField.values) && this.isValueEmpty(value)) {
+                return change;
+            }
             if (
                 existingField.values.length === encodedValues.length &&
                 existingField.values.every((v, index) => v === encodedValues[index])
@@ -185,19 +160,12 @@ export class Fragment {
         if (!isVariation || !parentFragment) {
             return 'no-parent';
         }
-        const ownField = this.getField(fieldName);
-        const parentField = parentFragment.getField(fieldName);
+        const ownValues = this.getFieldValues(fieldName) || [];
+        const parentValues = parentFragment.getFieldValues(fieldName) || [];
 
-        const ownValues = ownField?.values || [];
-        const parentValues = parentField?.values || [];
+        const ownIsEmpty = this.isValueEmpty(ownValues);
 
-        const isEffectivelyEmpty = (values) =>
-            values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
-
-        const ownIsEmpty = isEffectivelyEmpty(ownValues);
-        const parentIsEmpty = isEffectivelyEmpty(parentValues);
-
-        if (ownIsEmpty && parentIsEmpty) {
+        if (ownIsEmpty && this.isValueEmpty(parentValues)) {
             return 'inherited';
         }
         if (ownIsEmpty) {

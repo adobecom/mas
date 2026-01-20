@@ -404,6 +404,45 @@ describe('Translation project-start', () => {
             expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Processing batch 2 of 2/));
         });
 
+        it('should process items with custom batch size when batchSize param is provided', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            // Create 30 items to test batching with custom batch size of 25
+            const items = Array.from({ length: 30 }, (_, i) => `/content/fragment${i + 1}`);
+
+            const mockProjectCF = {
+                fields: [
+                    { name: 'items', values: items },
+                    { name: 'targetLocales', values: ['de_DE'] },
+                ],
+            };
+
+            fetchStub.onFirstCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(mockProjectCF),
+            });
+
+            // Make all subsequent calls succeed
+            fetchStub.resolves({ ok: true });
+
+            const params = {
+                __ow_headers: { authorization: 'Bearer token' },
+                projectId: 'test-project-id',
+                allowedClientId: 'test-client-id',
+                odinEndpoint: 'https://test-odin.com',
+                batchSize: 25,
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.statusCode).to.equal(200);
+            // Should have called fetch 31 times: 1 for project fetch + 30 for loc requests
+            expect(fetchStub.callCount).to.equal(31);
+            // With batchSize of 25, 30 items should be processed in 2 batches (25 + 5)
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Processing batch 1 of 2/));
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Processing batch 2 of 2/));
+        });
+
         it('should retry failed requests up to 3 times', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 

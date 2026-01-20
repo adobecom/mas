@@ -3,9 +3,11 @@ const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('..
 const { Ims } = require('@adobe/aio-lib-ims');
 
 const logger = Core.Logger('main', { level: 'info' });
-const BATCH_SIZE = 10;
+const DEFAULT_BATCH_SIZE = 10;
 
 async function main(params) {
+    const batchSize = params.batchSize ?? DEFAULT_BATCH_SIZE;
+
     try {
         logger.info('Calling the main action');
 
@@ -178,7 +180,7 @@ async function main(params) {
         };
 
         // Process items in batches to respect RPS limit
-        const results = await processBatchWithConcurrency(itemsToTranslate, BATCH_SIZE, (item) =>
+        const results = await processBatchWithConcurrency(itemsToTranslate, batchSize, (item) =>
             sendLocRequestWithRetry(item, config),
         );
 

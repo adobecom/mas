@@ -231,7 +231,6 @@ export class InlinePrice extends HTMLSpanElement {
     }
 
     static createInlinePrice(options) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return null;
         const {
@@ -332,7 +331,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     async render(overrides = {}) {
         if (!this.isConnected) return false;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         const priceOptions = service.collectPriceOptions(overrides, this);
@@ -347,7 +345,7 @@ export class InlinePrice extends HTMLSpanElement {
             const [offerSelectors] =
                 await service.resolveOfferSelectors(options);
             let offers = selectOffers(await offerSelectors, options);
-            let [offer] = offers;
+            const [offer] = offers;
 
             if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
                 if (priceOptions.displayPerUnit === undefined) {
@@ -403,7 +401,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     renderOffers(offers, options, version = undefined) {
         if (!this.isConnected) return;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         version ??= this.masElement.togglePending();

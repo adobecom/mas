@@ -20,7 +20,7 @@ class MasTranslationEditor extends LitElement {
         isNewTranslationProject: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
-        disabledActions: { type: Object, state: true },
+        disabledActions: { type: Set, state: true },
         isSelectedFilesOpen: { type: Boolean, state: true },
         selectedFilesSnapshot: { type: Set, state: true },
         showSelectedEmptyState: { type: Boolean, state: true },
@@ -33,7 +33,6 @@ class MasTranslationEditor extends LitElement {
         this.isNewTranslationProject = false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
-        /** @type {Set<any>} */
         this.disabledActions = new Set([
             QUICK_ACTION.SAVE,
             QUICK_ACTION.DISCARD,
@@ -114,6 +113,7 @@ class MasTranslationEditor extends LitElement {
                 const selectedPaths = new Set(preselected || []);
                 this.showSelectedEmptyState = selectedPaths.size === 0;
             }
+            this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
         } catch (error) {
             console.error('Failed to load translation project:', error);
             showToast('Failed to load translation project.', 'negative');
@@ -311,6 +311,7 @@ class MasTranslationEditor extends LitElement {
     #confirmFileSelection = ({ target }) => {
         this.showSelectedEmptyState = this.selectedFilesCount === 0;
         this.isOverlayOpen = false;
+        this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
@@ -513,7 +514,7 @@ class MasTranslationEditor extends LitElement {
                         QUICK_ACTION.DISCARD,
                         QUICK_ACTION.DELETE,
                     ]}
-                    .disabled=${/** @type {any} */ (this.disabledActions)}
+                    .disabled=${this.disabledActions}
                     @save=${this.isNewTranslationProject ? this.#createTranslationProject : this.#updateTranslationProject}
                     @delete=${this.#deleteTranslationProject}
                     @discard=${this.#discardUnsavedChanges}

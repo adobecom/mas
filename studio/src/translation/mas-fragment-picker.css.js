@@ -22,9 +22,6 @@ export const styles = css`
                 border: 1px solid var(--spectrum-gray-300);
                 border-radius: 12px;
             }
-            sp-action-button {
-                justify-content: left;
-            }
         }
 
         .container {

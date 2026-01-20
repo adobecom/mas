@@ -52,6 +52,11 @@ export const styles = css`
                 overflow: hidden;
             }
 
+            div:hover {
+                text-decoration: underline;
+                color: var(--spectrum-blue-1000);
+            }
+
             sp-button {
                 --mod-button-background-color-default: transparent;
                 --mod-button-background-color-hover: transparent;

@@ -50,7 +50,8 @@ export const styles = css`
 
         .select-files {
             sp-button {
-                background-color: transparent;
+                --mod-button-background-color-default: transparent;
+                --mod-button-background-color-hover: var(--spectrum-gray-200);
             }
 
             sp-icon-add {
@@ -104,8 +105,8 @@ export const styles = css`
 
                 .trigger-btn {
                     --mod-button-background-color-default: transparent;
-                    --mod-button-background-color-hover: var(--spectrum-gray-200);
-                    --mod-button-background-color-down: var(--spectrum-gray-300);
+                    --mod-button-background-color-hover: var(--spectrum-blue-200);
+                    --mod-button-background-color-down: var(--spectrum-blue-300);
                     --mod-button-content-color-default: var(--spectrum-blue-900);
                     --mod-button-content-color-hover: var(--spectrum-blue-1000);
                 }

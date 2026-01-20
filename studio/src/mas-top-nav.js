@@ -162,12 +162,10 @@ class MasTopNav extends LitElement {
                                   size="m"
                                   ?checked=${this.isDraftLandscape}
                                   @change=${(e) => {
-                                      Store.landscape.set(
-                                          e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED
-                                      );
+                                      Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
                                   }}
-                                >
-                                Draft landscape offer
+                              >
+                                  Draft landscape offer
                               </sp-switch>
                               <div class="divider"></div>
                               <div class="universal-elements">

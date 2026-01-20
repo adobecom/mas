@@ -114,8 +114,8 @@ class MasTranslationEditor extends LitElement {
                 this.showSelectedEmptyState = selectedPaths.size === 0;
             }
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
-        } catch (error) {
-            console.error('Failed to load translation project:', error);
+        } catch (err) {
+            console.error('Failed to load translation project:', err);
             showToast('Failed to load translation project.', 'negative');
         } finally {
             this.isLoading = false;

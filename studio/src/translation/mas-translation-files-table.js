@@ -4,8 +4,7 @@ import { styles } from './mas-translation-files-table.css.js';
 import Store from '../store.js';
 import NestedStoreController from '../reactivity/nested-store-controller.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
-import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS, TAG_MODEL_ID_MAPPING } from '../constants.js';
-import { initFragmentCache, prepopulateFragmentCache } from '../mas-repository.js';
+import { ROOT_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import { copyToClipboard, getService, showToast } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 
@@ -105,11 +104,15 @@ class MasTranslationFilesTable extends LitElement {
             return;
         }
         const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
-        if (!surface) return;
+        if (!surface) {
+            this.loading = false;
+            return;
+        }
 
         const aem = this.repository?.aem;
         if (!aem) {
             this.error = 'Repository not available';
+            this.loading = false;
             return;
         }
 

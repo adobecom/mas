@@ -9,7 +9,7 @@ class MasSelectedItems extends LitElement {
     static styles = styles;
 
     static properties = {
-        type: { type: String },
+        type: { type: String, state: true },
     };
 
     constructor() {

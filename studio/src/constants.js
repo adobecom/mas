@@ -15,6 +15,7 @@ export const CHECKOUT_CTA_TEXTS = {
     'get-offer': 'Get offer',
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
+    'get-for-free': 'Get for free',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
 export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
@@ -37,6 +38,7 @@ export const ANALYTICS_LINK_IDS = [
     'take-the-quiz',
     'upgrade-now',
     'what-is-included',
+    'get-for-free',
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {

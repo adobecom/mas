@@ -1,0 +1,13 @@
+# sample .env file for I/O runtime actions
+
+AIO_runtime_auth=xxxxx
+AIO_runtime_namespace=14257-masstudio-xxxx
+AIO_runtime_apihost=https://adobeioruntime.net
+
+# project specific variables
+
+ # odin QA author
+ODIN_ENDPOINT=https://author-p22655-xxxx.adobeaemcloud.com
+
+# batch size of concurrent requests to send to odin loc v2 API ODIN_ENDPOINT (default: 10)
+BATCH_SIZE=15

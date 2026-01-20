@@ -138,10 +138,9 @@ class MasTranslationFilesTable extends LitElement {
                 this.abortController,
             );
             const fetchedFragments = [];
-            for await (const result of cursor) {
-                for (const item of result) {
-                    fetchedFragments.push(new Fragment(item));
-                }
+            const result = await cursor.next();
+            for (const item of result.value) {
+                fetchedFragments.push(new Fragment(item));
             }
             this.fragments = await Promise.all(
                 fetchedFragments.map(async (fragment) => ({

@@ -316,7 +316,7 @@ class MasTranslationEditor extends LitElement {
     };
 
     #cancelFileSelection = ({ target }) => {
-        this.translationProjectStore?.updateField('items', this.selectedFilesSnapshot);
+        this.translationProjectStore?.updateField('items', Array.from(this.selectedFilesSnapshot));
         this.showSelectedEmptyState = this.selectedFilesCount === 0;
         this.isOverlayOpen = false;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
@@ -440,7 +440,14 @@ class MasTranslationEditor extends LitElement {
                                                   @sp-closed=${() => (this.isOverlayOpen = false)}
                                               >
                                                   ${this.renderAddFilesDialog()}
+                                                  <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
+                                                      <sp-icon-add size="xxl" slot="icon" label="Add Files"></sp-icon-add>
+                                                  </sp-button>
                                               </overlay-trigger>
+                                          </div>
+                                          <div class="label">
+                                              <strong>Add files</strong><br />
+                                              <span>Choose files that need to be translated.</span>
                                           </div>
                                       </div>
                                   </div>

@@ -620,7 +620,7 @@ class MerchCardEditor extends LitElement {
                             ?show-all="false"
                             data-field="variant"
                             data-field-state="${this.getFieldState('variant')}"
-                            value="${form.variant.values[0]}"
+                            .value="${form.variant.values[0]}"
                             @change="${this.#handleVariantChange}"
                         ></variant-picker>
                         ${this.renderFieldStatusIndicator('variant')}
@@ -631,7 +631,7 @@ class MerchCardEditor extends LitElement {
                             id="card-style"
                             data-field="style"
                             data-field-state="${this.getFieldState('style')}"
-                            value="${form.style?.values[0] || 'default'}"
+                            .value="${form.style?.values[0] || 'default'}"
                             data-default-value="default"
                             @change="${this.#handleFragmentUpdate}"
                         >

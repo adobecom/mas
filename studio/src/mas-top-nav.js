@@ -1,13 +1,30 @@
 import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
+import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
-import StoreController from './reactivity/store-controller.js';
+import ReactiveController from './reactivity/reactive-controller.js';
+import router from './router.js';
+import { extractLocaleFromPath } from './utils.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
 class MasTopNav extends LitElement {
-    page = new StoreController(this, Store.page);
+    page = Store.page;
+    inEdit = Store.fragments.inEdit;
+    editorContext = Store.fragmentEditor.editorContext;
+    search = Store.search;
+    filters = Store.filters;
+    landscape = Store.landscape;
+
+    reactiveController = new ReactiveController(this, [
+        this.page,
+        this.inEdit,
+        this.editorContext,
+        this.search,
+        this.filters,
+        this.landscape,
+    ]);
 
     createRenderRoot() {
         return this;
@@ -61,9 +78,11 @@ class MasTopNav extends LitElement {
                 e.preventDefault();
                 window.adobeIMS.signOut();
             });
-            studioContentEl.addEventListener('click', () => {
-                profileBody.classList.remove('show');
-            });
+            if (studioContentEl) {
+                studioContentEl.addEventListener('click', () => {
+                    profileBody.classList.remove('show');
+                });
+            }
 
             return profileEl;
         } catch (error) {
@@ -84,7 +103,7 @@ class MasTopNav extends LitElement {
         super();
         this.aemEnv = 'prod';
         this.showPickers = true;
-        Store.search.subscribe(() => {
+        this.search.subscribe(() => {
             this.requestUpdate();
         });
     }
@@ -98,19 +117,70 @@ class MasTopNav extends LitElement {
     }
 
     get isFragmentEditorPage() {
-        return Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
+        return this.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
 
     get isTranslationEditorPage() {
-        return Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
+        return this.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
     }
 
     get isTranslationsPage() {
-        return Store.page.value === PAGE_NAMES.TRANSLATIONS;
+        return this.page.value === PAGE_NAMES.TRANSLATIONS;
     }
 
     get isDraftLandscape() {
-        return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
+        return this.landscape.value === WCS_LANDSCAPE_DRAFT;
+    }
+
+    get availableLocales() {
+        if (this.isFragmentEditorPage && this.inEdit.value) {
+            const currentFragment = this.inEdit.value.get();
+            if (!currentFragment) return null;
+
+            let sourceFragment = currentFragment;
+            if (this.editorContext.isVariation(currentFragment.id)) {
+                const parent = this.editorContext.getLocaleDefaultFragment();
+                if (parent) {
+                    sourceFragment = new Fragment(parent);
+                }
+            }
+
+            const variations = sourceFragment.listLocaleVariations() || [];
+            const sourceLocale = extractLocaleFromPath(sourceFragment.path);
+            const locales = variations.map((v) => {
+                const localeCode = extractLocaleFromPath(v.path);
+                const [lang, country] = localeCode.split('_');
+                return { lang, country, id: v.id };
+            });
+            // Add source locale to the list
+            if (sourceLocale) {
+                const [lang, country] = sourceLocale.split('_');
+                locales.push({ lang, country, id: sourceFragment.id });
+            }
+            return locales.sort((a, b) => a.lang.localeCompare(b.lang) || a.country.localeCompare(b.country));
+        }
+        return null;
+    }
+
+    async onLocaleChanged(e) {
+        const { locale, id } = e.detail;
+        if (this.isFragmentEditorPage) {
+            const currentFragment = this.inEdit.get()?.get();
+            if (id && id !== currentFragment?.id) {
+                if (currentFragment?.hasChanges) {
+                    const editor = document.querySelector('mas-fragment-editor');
+                    const confirmed = await editor?.promptDiscardChanges();
+                    if (!confirmed) {
+                        // Reset the picker to the current locale
+                        this.requestUpdate();
+                        return;
+                    }
+                }
+                router.navigateToFragmentEditor(id);
+            }
+            return;
+        }
+        this.filters.set((prev) => ({ ...prev, locale }));
     }
 
     render() {
@@ -148,13 +218,11 @@ class MasTopNav extends LitElement {
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"
-                                  @locale-changed=${(e) => {
-                                      Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
-                                  }}
-                                  ?disabled=${this.isFragmentEditorPage ||
-                                  this.isTranslationEditorPage ||
-                                  this.isTranslationsPage}
-                                  surface=${Store.surface()}
+                                  .locale=${this.search.value.region || this.filters.value.locale || 'en_US'}
+                                  .locales=${this.availableLocales}
+                                  @locale-changed=${this.onLocaleChanged}
+                                  ?disabled=${this.isTranslationEditorPage || this.isTranslationsPage}
+                                  surface=${this.search.value.path}
                               >
                               </mas-locale-picker>
                               <div class="divider"></div>

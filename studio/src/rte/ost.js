@@ -66,6 +66,7 @@ const OST_IS_MAPPING = {
     optical: 'inline-price',
     checkoutUrl: 'checkout-link',
     legal: 'inline-price',
+    'promo-strikethrough': 'inline-price',
 };
 
 const OST_OPTION_ATTRIBUTE_MAPPING = {

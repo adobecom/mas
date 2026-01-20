@@ -81,6 +81,7 @@ export class EditorContextStore extends ReactiveStore {
                             });
                     }
                 }
+                this.notify();
                 notified = true;
             } else {
                 console.debug(`Fragment context fetch returned status ${result.status}`, {

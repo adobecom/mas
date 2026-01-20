@@ -59,10 +59,10 @@ class MasTranslationEditor extends LitElement {
             } else {
                 await this.#loadTranslationProjectById(translationProjectId);
             }
+            this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
         } else {
             this.#initializeNewTranslationProject();
         }
-
         this.storeController = new StoreController(this, this.translationProjectStore);
     }
 
@@ -253,7 +253,7 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #discardUnsavedChanges() {
-        if (this.translationProject?.hasChanges || this.selectedFilesCount > 0) {
+        if (this.translationProject?.hasChanges) {
             const confirmed = await this.#showDialog(
                 'Confirm Discard',
                 'Are you sure you want to discard changes? This action cannot be undone',
@@ -418,7 +418,7 @@ class MasTranslationEditor extends LitElement {
                     <sp-textfield
                         id="title"
                         data-field="title"
-                        value="${this.translationProject?.title ?? '-'}"
+                        value="${this.translationProject?.fields.find((field) => field.name === 'title')?.values[0] ?? ''}"
                         @input=${this.#handleFragmentUpdate}
                     ></sp-textfield>
                 </div>

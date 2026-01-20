@@ -10,15 +10,12 @@ class MasFragmentPicker extends LitElement {
     static styles = styles;
 
     static properties = {
-        translationProject: { type: Object },
-        selectedItems: { type: Array, state: true },
         fragments: { type: Array, state: true },
         filteredFragments: { type: Array, state: true },
         loading: { type: Boolean, state: true },
         error: { type: String, state: true },
         fragmentsById: { type: Map, state: true },
         columnsToShow: { type: Set, state: true },
-        showSelected: { type: Boolean },
         selectedInTable: { type: Array, state: true },
         // Toolbar state
         searchQuery: { type: String, state: true },
@@ -32,7 +29,6 @@ class MasFragmentPicker extends LitElement {
 
     constructor() {
         super();
-        this.translationProject = null;
         this.selectedInTable = [];
         this.fragments = [];
         this.filteredFragments = [];
@@ -132,6 +128,8 @@ class MasFragmentPicker extends LitElement {
                 })),
             );
             this.fragmentsById = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
+            // Update Store so mas-selected-items can access fragment data
+            Store.translationProjects.fragmentsByIds.set(this.fragmentsById);
             this.#extractFilterOptions();
             this.#applyFilters();
         } catch (err) {
@@ -147,6 +145,8 @@ class MasFragmentPicker extends LitElement {
 
     updateSelected({ target: { selected } }) {
         this.selectedInTable = selected;
+        // Update Store so mas-selected-items can show selected items
+        Store.translationProjects.selected.set(new Set(selected));
         this.dispatchEvent(
             new CustomEvent('selected', {
                 detail: {
@@ -159,13 +159,11 @@ class MasFragmentPicker extends LitElement {
         );
     }
 
-    removeItem({ detail: { itemId } }) {
-        const newSelected = this.selectedInTable.filter((id) => id !== itemId);
-        if (newSelected.length === 0) {
-            this.shadowRoot.querySelector(`sp-table-row[value="${itemId}"]`)?.click();
-        } else {
-            this.selectedInTable = newSelected;
-        }
+    setItemToRemove({ detail: { id } }) {
+        // Remove item from selection
+        const newSelected = this.selectedInTable.filter((selectedId) => selectedId !== id);
+        this.selectedInTable = newSelected;
+        Store.translationProjects.selected.set(new Set(newSelected));
     }
 
     renderTableHeader() {
@@ -372,13 +370,7 @@ class MasFragmentPicker extends LitElement {
                             </sp-table-body>
                         </sp-table>`
                       : html`<p>No fragments found.</p>`}
-                ${this.showSelected && this.selectedInTable.length
-                    ? html`<mas-selected-items
-                          .selectedItems=${this.selectedItems}
-                          @remove-item=${this.removeItem}
-                          type="fragments"
-                      ></mas-selected-items>`
-                    : nothing}
+                <mas-selected-items .type=${'fragments'} @remove=${this.setItemToRemove}></mas-selected-items>
             </div>
         `;
     }

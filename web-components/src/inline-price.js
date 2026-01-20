@@ -57,12 +57,12 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'NZ_en',
     'TH_en',
     'TH_th',
+    'MU_en',
 ];
 
 // countries where tax is displayed for some segments only by default
 const DISPLAY_TAX_MAP = {
     [INDIVIDUAL]: [
-        'MU_en',
         'LT_lt',
         'LV_lv',
         'NG_en',
@@ -71,7 +71,7 @@ const DISPLAY_TAX_MAP = {
         'SG_en',
         'KR_ko',
     ],
-    [BUSINESS]: ['MU_en', 'LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko'],
+    [BUSINESS]: ['LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko'],
     [STUDENT]: ['LT_lt', 'LV_lv', 'SA_en', 'SA_ar', 'SG_en'],
     [UNIVERSITY]: ['SG_en', 'KR_ko'],
 };
@@ -79,7 +79,7 @@ const DISPLAY_TAX_MAP = {
 // For most countries where tax label is displayed the tax is included for Individuals and Students
 // and excluded for Business and Universities. This is the map of TaxExclusive values for other countries
 const TAX_EXCLUDED_MAP = {
-    ['MU_en']: [false, false, false, false],
+    ['MU_en']: [true, true, true, true],
     ['NG_en']: [false, false, false, false],
     ['AU_en']: [false, false, false, false],
     ['JP_ja']: [false, false, false, false],
@@ -231,7 +231,6 @@ export class InlinePrice extends HTMLSpanElement {
     }
 
     static createInlinePrice(options) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return null;
         const {
@@ -332,7 +331,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     async render(overrides = {}) {
         if (!this.isConnected) return false;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         const priceOptions = service.collectPriceOptions(overrides, this);
@@ -347,7 +345,7 @@ export class InlinePrice extends HTMLSpanElement {
             const [offerSelectors] =
                 await service.resolveOfferSelectors(options);
             let offers = selectOffers(await offerSelectors, options);
-            let [offer] = offers;
+            const [offer] = offers;
 
             if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
                 if (priceOptions.displayPerUnit === undefined) {
@@ -403,7 +401,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     renderOffers(offers, options, version = undefined) {
         if (!this.isConnected) return;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         version ??= this.masElement.togglePending();

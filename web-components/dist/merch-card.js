@@ -4737,7 +4737,8 @@ merch-card[variant="full-pricing-express"] [slot="cta"] {
 
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="full-pricing-express"] [slot="cta"] button,
-merch-card[variant="full-pricing-express"] [slot="cta"] a.button {
+merch-card[variant="full-pricing-express"] [slot="cta"] a.button,
+merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button {
     --mod-button-height: 40px;
     --mod-button-top-to-text: 9px;
     --mod-button-bottom-to-text: 9px;

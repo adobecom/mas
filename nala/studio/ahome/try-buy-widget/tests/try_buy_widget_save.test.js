@@ -84,15 +84,15 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
+            await editor.variant.click();;
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
             await expect(await studio.getCard(data.clonedCardID)).not.toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('variant', 'ccd-slice');
             await expect(await (await studio.getCard(data.clonedCardID)).locator(slice.cardCTA).first()).toHaveAttribute(
@@ -130,15 +130,15 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
+            await editor.variant.click();;
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(await studio.getCard(data.clonedCardID)).not.toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(await (await studio.getCard(data.clonedCardID)).locator(suggested.cardCTA).first()).toHaveAttribute(

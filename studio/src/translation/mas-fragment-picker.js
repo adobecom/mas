@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit';
 import { styles } from './mas-fragment-picker.css.js';
 import './mas-selected-items.js';
-import './mas-translation-files-table.js';
+import './mas-select-fragments-table.js';
 import Store from '../store.js';
 
 class MasFragmentPicker extends LitElement {
@@ -44,10 +44,10 @@ class MasFragmentPicker extends LitElement {
                 </sp-picker>
             </div>
             <div class="container">
-                <mas-translation-files-table
+                <mas-select-fragments-table
                     .type=${'fragments'}
                     .itemToRemove=${this.itemToRemove}
-                ></mas-translation-files-table>
+                ></mas-select-fragments-table>
                 <mas-selected-items .type=${'fragments'} @remove=${this.setItemToRemove}></mas-selected-items>
             </div>
         `;

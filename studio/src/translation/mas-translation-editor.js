@@ -9,7 +9,7 @@ import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../const
 import { normalizeKey, showToast } from '../utils.js';
 import { TranslationProject } from './translation-project.js';
 import './mas-translation-files.js';
-import './mas-translation-files-table.js';
+import './mas-select-fragments-table.js';
 import '../mas-quick-actions.js';
 
 class MasTranslationEditor extends LitElement {
@@ -498,7 +498,7 @@ class MasTranslationEditor extends LitElement {
                                             `}
                                   </div>
                                   ${this.isSelectedFilesOpen
-                                      ? html` <mas-translation-files-table .type=${'all'}></mas-translation-files-table> `
+                                      ? html` <mas-select-fragments-table .type=${'all'}></mas-select-fragments-table> `
                                       : nothing}
                               </div>`
                     }

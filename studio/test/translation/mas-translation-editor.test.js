@@ -400,7 +400,7 @@ describe('MasTranslationEditor', () => {
             expect(el.isSelectedFilesOpen).to.be.true;
         });
 
-        it('should render mas-translation-files-table when expanded', async () => {
+        it('should render mas-select-fragments-table when expanded', async () => {
             const mockStore = createMockFragmentStore('123', 'Test', ['item1']);
             Store.translationProjects.inEdit.value = mockStore;
             Store.translationProjects.translationProjectId.value = '123';
@@ -408,7 +408,7 @@ describe('MasTranslationEditor', () => {
             el.showSelectedEmptyState = false;
             el.isSelectedFilesOpen = true;
             await el.updateComplete;
-            const table = el.shadowRoot.querySelector('mas-translation-files-table');
+            const table = el.shadowRoot.querySelector('mas-select-fragments-table');
             expect(table).to.exist;
         });
     });

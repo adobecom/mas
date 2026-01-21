@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { styles } from './mas-translation-files-table.css.js';
+import { styles } from './mas-select-fragments-table.css.js';
 import Store from '../store.js';
 import NestedStoreController from '../reactivity/nested-store-controller.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
@@ -8,7 +8,7 @@ import { ROOT_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import { getService, showToast } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 
-class MasTranslationFilesTable extends LitElement {
+class MasSelectFragmentsTable extends LitElement {
     static styles = styles;
 
     static properties = {
@@ -282,4 +282,4 @@ class MasTranslationFilesTable extends LitElement {
     }
 }
 
-customElements.define('mas-translation-files-table', MasTranslationFilesTable);
+customElements.define('mas-select-fragments-table', MasSelectFragmentsTable);

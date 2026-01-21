@@ -4,7 +4,7 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import '../../src/swc.js';
-import '../../src/translation/mas-translation-files-table.js';
+import '../../src/translation/mas-select-fragments-table.js';
 
 describe('MasTranslationFilesTable', () => {
     let sandbox;
@@ -28,7 +28,7 @@ describe('MasTranslationFilesTable', () => {
 
     describe('copyToClipboard', () => {
         it('should copy text to clipboard and add copied class', async () => {
-            const el = await fixture(html`<mas-translation-files-table></mas-translation-files-table>`);
+            const el = await fixture(html`<mas-select-fragments-table></mas-select-fragments-table>`);
             const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
             const mockButton = document.createElement('button');
             const event = {
@@ -45,7 +45,7 @@ describe('MasTranslationFilesTable', () => {
 
         it('should remove copied class after timeout', async () => {
             const clock = sandbox.useFakeTimers();
-            const el = await fixture(html`<mas-translation-files-table></mas-translation-files-table>`);
+            const el = await fixture(html`<mas-select-fragments-table></mas-select-fragments-table>`);
             sandbox.stub(navigator.clipboard, 'writeText').resolves();
             const mockButton = document.createElement('button');
             const event = {
@@ -63,7 +63,7 @@ describe('MasTranslationFilesTable', () => {
         });
 
         it('should handle clipboard write failure gracefully', async () => {
-            const el = await fixture(html`<mas-translation-files-table></mas-translation-files-table>`);
+            const el = await fixture(html`<mas-select-fragments-table></mas-select-fragments-table>`);
             const consoleErrorStub = sandbox.stub(console, 'error');
             const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('Clipboard error'));
             const mockButton = document.createElement('button');
@@ -81,7 +81,7 @@ describe('MasTranslationFilesTable', () => {
         });
 
         it('should stop event propagation even on failure', async () => {
-            const el = await fixture(html`<mas-translation-files-table></mas-translation-files-table>`);
+            const el = await fixture(html`<mas-select-fragments-table></mas-select-fragments-table>`);
             sandbox.stub(console, 'error');
             sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('Clipboard error'));
             const mockButton = document.createElement('button');

@@ -31,7 +31,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
+            const clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
@@ -73,7 +73,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
+            const clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
@@ -85,7 +85,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
-            await editor.variant.click();;
+            await editor.variant.click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
@@ -119,7 +119,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
+            const clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
@@ -131,7 +131,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
-            await editor.variant.click();;
+            await editor.variant.click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
@@ -165,7 +165,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
+            const clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
@@ -294,7 +294,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await clonedCard.locator(trybuywidget.cardCTA).first()).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await clonedCard.locator(trybuywidget.cardCTA).first()).toHaveAttribute('is', 'checkout-button');
             const CTAhref = await clonedCard.locator(trybuywidget.cardCTA).first().getAttribute('data-href');
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
             expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);

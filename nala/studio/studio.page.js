@@ -533,7 +533,7 @@ export default class StudioPage {
         await this.page.waitForTimeout(1000);
 
         await expect(editor.variant).toBeVisible({ timeout: 10000 });
-        await editor.variant.click();;
+        await editor.variant.click();
         await this.page.locator(`sp-menu-item[value="${variant}"]`).first().click();
         await this.page.waitForTimeout(1000);
 

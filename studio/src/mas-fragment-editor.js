@@ -107,23 +107,24 @@ export default class MasFragmentEditor extends LitElement {
         .preview-content {
             padding: 32px;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-start;
             min-height: auto;
             position: relative;
+            gap: 8px;
         }
 
-        #preview-column:has(.placeholder-failed) {
-            background-color: var(--merch-color-error-background);
-        }
-
-        #preview-column:has(a[is='checkout-link'].placeholder-failed)::after {
-            content: 'CTA has an invalid offer';
-            display: block;
-            color: var(--merch-color-error);
+        .cta-error-message {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
             font-size: 14px;
-            padding: 8px 16px;
-            text-align: center;
+            color: var(--merch-color-error);
+        }
+
+        .preview-content:has(a[is='checkout-link'].placeholder-failed) .cta-error-message {
+            display: flex;
         }
 
         .section {
@@ -1204,6 +1205,10 @@ export default class MasFragmentEditor extends LitElement {
                     >
                         <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                     </merch-card>
+                    <div class="cta-error-message">
+                        <sp-icon-alert class="price-error-icon"></sp-icon-alert>
+                        <span>CTA has an invalid offer</span>
+                    </div>
                 </div>
             </div>
         `;

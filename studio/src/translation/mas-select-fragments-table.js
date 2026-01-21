@@ -213,7 +213,6 @@ class MasSelectFragmentsTable extends LitElement {
         const withoutUnselected = currentSelected.filter((path) => selected.includes(path));
         const newSelected = new Set([...withoutUnselected, ...selected]);
         this.translationProjectStore?.updateField('items', Array.from(newSelected));
-        console.log('this.translationProjectStore', this.translationProjectStore);
     }
 
     removeItem(path) {

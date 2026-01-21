@@ -1,5 +1,4 @@
 import { LitElement, html, nothing } from 'lit';
-import StoreController from './reactivity/store-controller.js';
 import './mas-fragment-render.js';
 import './mas-fragment-table.js';
 import './mas-fragment-variations.js';
@@ -9,6 +8,7 @@ import router from './router.js';
 import { styles } from './mas-fragment.css.js';
 import { MasRepository } from './mas-repository.js';
 import { showToast } from './utils.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 
 const tooltipTimeout = new ReactiveStore(null);
 
@@ -32,8 +32,48 @@ class MasFragment extends LitElement {
         return this;
     }
 
-    selecting = new StoreController(this, Store.selecting);
-    selection = new StoreController(this, Store.selection);
+    reactiveController = new ReactiveController(this, [Store.selecting, Store.selection, Store.fragments.expandedId]);
+
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        this.autoExpand();
+    }
+
+    /**
+     * Auto-expand this fragment if it matches the expandedId store.
+     */
+    async autoExpand() {
+        const expandedId = Store.fragments.expandedId.get();
+        if (!expandedId || this.fragmentStore?.value?.id !== expandedId) return;
+        if (this.expanded) return;
+
+        this.expanded = true;
+
+        const fragment = this.fragmentStore.value;
+        // Fetch references if not yet loaded
+        if (this.repository && !fragment.references?.length) {
+            this.loadingReferences = true;
+
+            try {
+                await this.repository.refreshFragment(this.fragmentStore);
+            } catch (error) {
+                console.error('Failed to load references:', error);
+                showToast('Failed to load references', 'negative');
+            } finally {
+                this.loadingReferences = false;
+            }
+        }
+
+        // Wait for Lit to finish rendering
+        await this.updateComplete;
+
+        requestAnimationFrame(() => {
+            this.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        requestAnimationFrame(() => {
+            this.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
 
     /** @type {MasRepository} */
     get repository() {
@@ -41,7 +81,7 @@ class MasFragment extends LitElement {
     }
 
     handleClick(event) {
-        if (this.selecting.value) return;
+        if (Store.selecting.value) return;
         clearTimeout(tooltipTimeout.get());
         const currentTarget = event.currentTarget;
         tooltipTimeout.set(
@@ -55,6 +95,11 @@ class MasFragment extends LitElement {
         e?.stopPropagation();
         const newExpandedState = !this.expanded;
         this.expanded = newExpandedState;
+
+        // Clear expandedId if collapsing the auto-expanded fragment
+        if (!newExpandedState && Store.fragments.expandedId.get() === this.fragmentStore?.value?.id) {
+            Store.fragments.expandedId.set(null);
+        }
 
         const fragment = this.fragmentStore.value;
         // Fetch references only when expanding and references are not yet loaded
@@ -74,13 +119,13 @@ class MasFragment extends LitElement {
     }
 
     handleMouseLeave(event) {
-        if (this.selecting.value) return;
+        if (Store.selecting.value) return;
         clearTimeout(tooltipTimeout.get());
         event.currentTarget.classList.remove('has-tooltip');
     }
 
     async edit(event) {
-        if (this.selecting.value) return;
+        if (Store.selecting.value) return;
         // Remove tooltip
         clearTimeout(tooltipTimeout.get());
         event.currentTarget.classList.remove('has-tooltip');
@@ -93,7 +138,7 @@ class MasFragment extends LitElement {
 
     get renderView() {
         if (this.view !== 'render') return nothing;
-        const selected = this.selection.value.includes(this.fragmentStore.id);
+        const selected = Store.selection.value.includes(this.fragmentStore.id);
         return html`<mas-fragment-render
             class="mas-fragment"
             data-id=${this.fragmentStore.id}

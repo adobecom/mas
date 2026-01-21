@@ -86,7 +86,7 @@ export class Fragment {
     }
 
     getVariations() {
-        return this.getFieldValue('variations') || [];
+        return this.getFieldValues('variations') || [];
     }
 
     hasVariations() {

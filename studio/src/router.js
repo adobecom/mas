@@ -98,6 +98,40 @@ export class Router extends EventTarget {
     }
 
     /**
+     * Navigate to the content table with a specific fragment expanded to show variations.
+     * @param {string} fragmentId - The fragment ID to expand in the variations table
+     */
+    async navigateToVariationsTable(fragmentId) {
+        if (!fragmentId) {
+            console.error('Fragment ID is required for navigation');
+            return;
+        }
+
+        this.isNavigating = true;
+        try {
+            // Check for unsaved changes
+            const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+            const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
+
+            if (!confirmed) return;
+
+            // Set the fragment ID to be expanded
+            Store.fragments.expandedId.set(fragmentId);
+
+            // Clear fragment editor state
+            Store.fragmentEditor.fragmentId.set(null);
+            Store.fragments.inEdit.set();
+
+            // Navigate to content page in table view
+            Store.viewMode.set('default');
+            Store.renderMode.set('table');
+            Store.page.set(PAGE_NAMES.CONTENT);
+        } finally {
+            this.isNavigating = false;
+        }
+    }
+
+    /**
      * Navigate to the fragment editor
      * @param {string} fragmentId - The fragment ID to edit
      * @param {Object} options - Navigation options

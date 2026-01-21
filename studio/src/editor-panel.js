@@ -11,6 +11,7 @@ import {
     EVENT_OST_OFFER_SELECT,
     OPERATIONS,
     PAGE_NAMES,
+    TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
@@ -37,7 +38,7 @@ export function getFragmentPartsToUse(store, fragment) {
                 marketSegment: fragment?.getTagTitle('market_segment'),
                 customerSegment: fragment?.getTagTitle('customer_segment'),
                 product: fragment?.getTagTitle('mas:product/'),
-                promotion: fragment?.getTagTitle('mas:promotion/'),
+                promotion: fragment?.getTagTitle(TAG_PROMOTION_PREFIX),
             };
 
             VARIANTS.forEach((variant) => {

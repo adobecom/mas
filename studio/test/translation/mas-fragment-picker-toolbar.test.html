@@ -68,9 +68,7 @@
 
             async function simulateTagDelete(toolbar, filterType, filterId) {
                 const tags = toolbar.shadowRoot.querySelectorAll('sp-tag');
-                const tag = Array.from(tags).find(
-                    (t) => t.value?.type === filterType && t.value?.id === filterId,
-                );
+                const tag = Array.from(tags).find((t) => t.value?.type === filterType && t.value?.id === filterId);
                 if (tag) {
                     tag.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
                     await delay(50);

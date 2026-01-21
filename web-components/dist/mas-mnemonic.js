@@ -1,35 +1,33 @@
-var n=Object.defineProperty;var p=(i,t,o)=>t in i?n(i,t,{enumerable:!0,configurable:!0,writable:!0,value:o}):i[t]=o;var s=(i,t,o)=>p(i,typeof t!="symbol"?t+"":t,o);import{LitElement as c,html as l,css as h}from"./lit-all.min.js";function d(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var e=class e extends c{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.supportsHover=window.matchMedia("(hover: hover)").matches,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let o=t.composedPath();e.activeTooltip===this&&!o.includes(this)&&this.hideTooltip()}showTooltip(){e.activeTooltip&&e.activeTooltip!==this&&(e.activeTooltip.closeOverlay(),e.activeTooltip.tooltipVisible=!1,e.activeTooltip.requestUpdate()),e.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){e.activeTooltip===this&&(e.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?l`<merch-icon
+var n=Object.defineProperty;var p=(s,t,i)=>t in s?n(s,t,{enumerable:!0,configurable:!0,writable:!0,value:i}):s[t]=i;var l=(s,t,i)=>p(s,typeof t!="symbol"?t+"":t,i);import{LitElement as c,html as r,css as d}from"./lit-all.min.js";function h(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var e=class e extends c{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let i=t.composedPath();e.activeTooltip===this&&!i.includes(this)&&this.hideTooltip()}showTooltip(){e.activeTooltip&&e.activeTooltip!==this&&(e.activeTooltip.closeOverlay(),e.activeTooltip.tooltipVisible=!1,e.activeTooltip.requestUpdate()),e.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){e.activeTooltip===this&&(e.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?r`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:l`<slot></slot>`}render(){let t=this.effectiveContent,o=this.effectivePlacement;return t?d()?l`
+        ></merch-icon>`:r`<slot></slot>`}render(){let t=this.effectiveContent,i=this.effectivePlacement;return t?h()?r`
                 <overlay-trigger
-                    placement="${o}"
+                    placement="${i}"
                     @sp-opened=${()=>this.showTooltip()}
                 >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
-                        placement="${o}"
+                        placement="${i}"
                         variant="${this.variant}"
                     >
                         ${t}
                     </sp-tooltip>
                 </overlay-trigger>
-            `:l`
+            `:r`
                 <span
-                    class="css-tooltip ${o} ${this.tooltipVisible?"tooltip-visible":""}"
+                    class="css-tooltip ${i} ${this.tooltipVisible?"tooltip-visible":""}"
                     data-tooltip="${t}"
                     tabindex="0"
                     role="img"
                     aria-label="${t}"
-                    @pointerenter=${this.supportsHover?()=>this.showTooltip():null}
-                    @pointerleave=${this.supportsHover?()=>this.hideTooltip():null}
-                    @click=${this.supportsHover?null:a=>this.handleTap(a)}
-                    @focus=${()=>this.showTooltip()}
-                    @blur=${()=>this.hideTooltip()}
+                    @pointerenter=${o=>o.pointerType!=="touch"&&this.showTooltip()}
+                    @pointerleave=${o=>o.pointerType!=="touch"&&this.hideTooltip()}
+                    @click=${o=>o.pointerType==="touch"&&this.handleTap(o)}
                 >
                     ${this.renderIcon()}
                 </span>
-            `:this.renderIcon()}};s(e,"activeTooltip",null),s(e,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0},supportsHover:{type:Boolean,state:!0}}),s(e,"styles",h`
+            `:this.renderIcon()}};l(e,"activeTooltip",null),l(e,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),l(e,"styles",d`
         :host {
             display: contents;
             overflow: visible;
@@ -148,4 +146,4 @@ var n=Object.defineProperty;var p=(i,t,o)=>t in i?n(i,t,{enumerable:!0,configura
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);var r=e;customElements.define("mas-mnemonic",r);export{r as default};
+    `);var a=e;customElements.define("mas-mnemonic",a);export{a as default};

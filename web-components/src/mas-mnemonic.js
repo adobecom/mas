@@ -30,8 +30,6 @@ export default class MasMnemonic extends LitElement {
         mnemonicPlacement: { type: String, attribute: 'mnemonic-placement' },
         // Tooltip visibility state
         tooltipVisible: { type: Boolean, state: true },
-        // Device capability detection
-        supportsHover: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -162,7 +160,6 @@ export default class MasMnemonic extends LitElement {
         this.variant = 'info';
         this.size = 'xs';
         this.tooltipVisible = false;
-        this.supportsHover = window.matchMedia('(hover: hover)').matches;
         this.handleClickOutside = this.handleClickOutside.bind(this);
     }
 
@@ -265,9 +262,9 @@ export default class MasMnemonic extends LitElement {
                 </overlay-trigger>
             `;
         } else {
-            // Use CSS tooltip with device-aware handlers
-            // Desktop: hover to show/hide
-            // Mobile: tap to toggle
+            // Use CSS tooltip with pointerType-aware handlers
+            // Mouse/pen: hover to show/hide via pointerenter/leave
+            // Touch: tap to toggle via click (pointerType === 'touch')
             return html`
                 <span
                     class="css-tooltip ${placement} ${this.tooltipVisible
@@ -277,17 +274,12 @@ export default class MasMnemonic extends LitElement {
                     tabindex="0"
                     role="img"
                     aria-label="${content}"
-                    @pointerenter=${this.supportsHover
-                        ? () => this.showTooltip()
-                        : null}
-                    @pointerleave=${this.supportsHover
-                        ? () => this.hideTooltip()
-                        : null}
-                    @click=${!this.supportsHover
-                        ? (e) => this.handleTap(e)
-                        : null}
-                    @focus=${() => this.showTooltip()}
-                    @blur=${() => this.hideTooltip()}
+                    @pointerenter=${(e) =>
+                        e.pointerType !== 'touch' && this.showTooltip()}
+                    @pointerleave=${(e) =>
+                        e.pointerType !== 'touch' && this.hideTooltip()}
+                    @click=${(e) =>
+                        e.pointerType === 'touch' && this.handleTap(e)}
                 >
                     ${this.renderIcon()}
                 </span>

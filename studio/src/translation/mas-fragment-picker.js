@@ -1,10 +1,12 @@
 import { LitElement, html, nothing, repeat } from 'lit';
+import { keyed } from 'lit/directives/keyed.js';
 import { styles } from './mas-fragment-picker.css.js';
 import './mas-selected-items.js';
 import './mas-fragment-picker-toolbar.js';
 import Store from '../store.js';
 import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS } from '../constants.js';
 import { getService, showToast, copyToClipboard } from '../utils.js';
+import { VARIANTS } from '../editors/variant-picker.js';
 
 class MasFragmentPicker extends LitElement {
     static styles = styles;
@@ -25,11 +27,13 @@ class MasFragmentPicker extends LitElement {
         marketSegmentOptions: { type: Array, state: true },
         customerSegmentOptions: { type: Array, state: true },
         productOptions: { type: Array, state: true },
+        tableKey: { type: Number, state: true },
     };
 
     constructor() {
         super();
         this.selectedInTable = [];
+        this.tableKey = 0;
         this.fragments = [];
         this.filteredFragments = [];
         this.fragmentsById = new Map();
@@ -202,7 +206,6 @@ class MasFragmentPicker extends LitElement {
         const marketSegments = new Map();
         const customerSegments = new Map();
         const products = new Map();
-
         for (const fragment of this.fragments) {
             if (!fragment.tags) continue;
 
@@ -210,12 +213,8 @@ class MasFragmentPicker extends LitElement {
                 const tagId = tag.id || '';
                 const tagTitle = tag.title || tagId.split('/').pop() || '';
 
-                // Template/Variant tags
-                if (tagId.startsWith('mas:variant/')) {
-                    templates.set(tagId, { id: tagId, title: tagTitle });
-                }
                 // Market Segment tags
-                else if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
+                if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
                     marketSegments.set(tagId, { id: tagId, title: tagTitle });
                 }
                 // Customer Segment tags
@@ -223,13 +222,16 @@ class MasFragmentPicker extends LitElement {
                     customerSegments.set(tagId, { id: tagId, title: tagTitle });
                 }
                 // Product tags
-                else if (tagId.startsWith('mas:product_code/') || tagId.startsWith('mas:product/')) {
+                else if (tagId.startsWith('mas:product_code/')) {
                     products.set(tagId, { id: tagId, title: tagTitle });
                 }
             }
         }
 
-        this.templateOptions = Array.from(templates.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
+            id: variant.value,
+            title: variant.label,
+        }));
         this.marketSegmentOptions = Array.from(marketSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.customerSegmentOptions = Array.from(customerSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
@@ -255,9 +257,13 @@ class MasFragmentPicker extends LitElement {
             });
         }
 
-        // Apply template filter
+        // Apply template filter by checking the variant field in fields array
         if (this.activeFilters.template.length > 0) {
-            result = result.filter((fragment) => fragment.tags?.some((tag) => this.activeFilters.template.includes(tag.id)));
+            result = result.filter((fragment) => {
+                const variantField = fragment.fields?.find((field) => field.name === 'variant');
+                if (!variantField?.values?.length) return false;
+                return variantField.values.some((value) => this.activeFilters.template.includes(value));
+            });
         }
 
         // Apply market segment filter
@@ -280,6 +286,7 @@ class MasFragmentPicker extends LitElement {
         }
 
         this.filteredFragments = result;
+        this.tableKey++;
     }
 
     #handleSearchChange(e) {
@@ -332,43 +339,46 @@ class MasFragmentPicker extends LitElement {
                 ${this.loading
                     ? html`<div class="loading-container">${this.loadingIndicator}</div>`
                     : displayFragments.length
-                      ? html` <sp-table
-                            class="fragments-table"
-                            emphasized
-                            selects="multiple"
-                            .selected=${this.selectedInTable}
-                            @change=${this.updateSelected}
-                        >
-                            ${this.renderTableHeader()}
-                            <sp-table-body>
-                                ${repeat(
-                                    displayFragments,
-                                    (fragment) => fragment.id,
-                                    (fragment) =>
-                                        html`<sp-table-row value=${fragment.id}>
-                                            <sp-table-cell>
-                                                ${fragment.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title ||
-                                                '-'}
-                                            </sp-table-cell>
-                                            <sp-table-cell>${fragment.title}</sp-table-cell>
-                                            <sp-table-cell class="offer-id" title=${fragment.offerData?.offerId}>
-                                                <div>${fragment.offerData?.offerId}</div>
-                                                ${fragment.offerData?.offerId
-                                                    ? html`<sp-button
-                                                          icon-only
-                                                          aria-label="Copy Offer ID to clipboard"
-                                                          @click=${(e) => copyToClipboard(e, fragment.offerData?.offerId)}
-                                                      >
-                                                          <sp-icon-copy slot="icon"></sp-icon-copy>
-                                                      </sp-button>`
-                                                    : 'no offer data'}
-                                            </sp-table-cell>
-                                            <sp-table-cell></sp-table-cell>
-                                            ${this.renderStatus(fragment.status)}
-                                        </sp-table-row>`,
-                                )}
-                            </sp-table-body>
-                        </sp-table>`
+                      ? keyed(
+                            this.tableKey,
+                            html` <sp-table
+                                class="fragments-table"
+                                emphasized
+                                selects="multiple"
+                                .selected=${this.selectedInTable}
+                                @change=${this.updateSelected}
+                            >
+                                ${this.renderTableHeader()}
+                                <sp-table-body>
+                                    ${repeat(
+                                        displayFragments,
+                                        (fragment) => fragment.id,
+                                        (fragment) =>
+                                            html`<sp-table-row value=${fragment.id}>
+                                                <sp-table-cell>
+                                                    ${fragment.tags?.find(({ id }) => id.startsWith('mas:product_code/'))
+                                                        ?.title || '-'}
+                                                </sp-table-cell>
+                                                <sp-table-cell>${fragment.title}</sp-table-cell>
+                                                <sp-table-cell class="offer-id" title=${fragment.offerData?.offerId}>
+                                                    <div>${fragment.offerData?.offerId}</div>
+                                                    ${fragment.offerData?.offerId
+                                                        ? html`<sp-button
+                                                              icon-only
+                                                              aria-label="Copy Offer ID to clipboard"
+                                                              @click=${(e) => copyToClipboard(e, fragment.offerData?.offerId)}
+                                                          >
+                                                              <sp-icon-copy slot="icon"></sp-icon-copy>
+                                                          </sp-button>`
+                                                        : 'no offer data'}
+                                                </sp-table-cell>
+                                                <sp-table-cell></sp-table-cell>
+                                                ${this.renderStatus(fragment.status)}
+                                            </sp-table-row>`,
+                                    )}
+                                </sp-table-body>
+                            </sp-table>`,
+                        )
                       : html`<p>No fragments found.</p>`}
                 <mas-selected-items .type=${'fragments'} @remove=${this.setItemToRemove}></mas-selected-items>
             </div>

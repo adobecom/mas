@@ -124,7 +124,6 @@ class MasFragmentPickerToolbar extends LitElement {
     #handleCheckboxChange(filterType, optionId, e) {
         const isChecked = e.target.checked;
         let currentValues;
-
         switch (filterType) {
             case 'template':
                 currentValues = [...this.templateFilter];

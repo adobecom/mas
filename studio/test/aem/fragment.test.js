@@ -2,12 +2,21 @@ import { expect } from '@open-wc/testing';
 import { Fragment } from '../../src/aem/fragment.js';
 
 describe('Fragment', () => {
-    const createFragmentConfig = (overrides = {}) => ({
-        id: 'test-id',
-        model: { path: '/models/card' },
-        fields: [],
-        ...overrides,
-    });
+    const createFragmentConfig = (overrides = {}) => {
+        const { references = [], fields = [], ...rest } = overrides;
+        const variationPaths = references.map((ref) => ref.path);
+        const hasVariationsField = fields.some((f) => f.name === 'variations');
+
+        const finalFields = hasVariationsField ? fields : [...fields, { name: 'variations', values: variationPaths }];
+
+        return {
+            id: 'test-id',
+            model: { path: '/models/card' },
+            fields: finalFields,
+            references,
+            ...rest,
+        };
+    };
     describe('locale getter', () => {
         it('extracts locale from valid path', () => {
             const fragment = new Fragment(
@@ -80,7 +89,7 @@ describe('Fragment', () => {
             expect(variations[1].id).to.equal('ref-5');
         });
 
-        it('returns undefined when references is undefined', () => {
+        it('returns empty array when references is undefined', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
@@ -88,7 +97,7 @@ describe('Fragment', () => {
                 }),
             );
             const variations = fragment.listLocaleVariations();
-            expect(variations).to.be.undefined;
+            expect(variations).to.deep.equal([]);
         });
 
         it('returns empty array when references is empty', () => {

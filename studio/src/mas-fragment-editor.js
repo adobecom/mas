@@ -1284,10 +1284,10 @@ export default class MasFragmentEditor extends LitElement {
                             <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                         </merch-card>
                         <div class="cta-error-message">
-                        <sp-icon-alert class="price-error-icon"></sp-icon-alert>
-                        <span>CTA has an invalid offer</span>
+                            <sp-icon-alert class="price-error-icon"></sp-icon-alert>
+                            <span>CTA has an invalid offer</span>
+                        </div>
                     </div>
-                </div>
                 </div>
                 ${this.relatedVariationsSection}
             </div>

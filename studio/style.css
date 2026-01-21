@@ -1195,12 +1195,12 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     font-weight: 800;
 }
 
-[slot="heading"] .price-error-title,
+[slot='heading'] .price-error-title,
 .heading-xs .price-error-title {
     font-size: var(--consonant-merch-card-heading-xs-font-size);
 }
 
-[slot="body-xs"] .price-error-title,
+[slot='body-xs'] .price-error-title,
 .body-xs .price-error-title {
     font-size: var(--consonant-merch-card-body-xs-font-size);
 }

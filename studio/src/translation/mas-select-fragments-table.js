@@ -97,8 +97,7 @@ class MasSelectFragmentsTable extends LitElement {
         this.loading = true;
         this.error = null;
         if (this.type === 'all' && Store.translationProjects.fragmentsByPaths.value.size) {
-            this.fragments = this.translationProject?.fields;
-            this.translationProject
+            this.fragments = this.translationProject
                 ?.getFieldValues('items')
                 .map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
             this.loading = false;
@@ -214,6 +213,7 @@ class MasSelectFragmentsTable extends LitElement {
         const withoutUnselected = currentSelected.filter((path) => selected.includes(path));
         const newSelected = new Set([...withoutUnselected, ...selected]);
         this.translationProjectStore?.updateField('items', Array.from(newSelected));
+        console.log('this.translationProjectStore', this.translationProjectStore);
     }
 
     removeItem(path) {

@@ -498,7 +498,7 @@ class MasTranslationEditor extends LitElement {
                                             `}
                                   </div>
                                   ${this.isSelectedFilesOpen
-                                      ? html` <mas-select-fragments-table .type=${'all'}></mas-select-fragments-table> `
+                                      ? html` <mas-select-fragments-table .type=${'view-only'}></mas-select-fragments-table> `
                                       : nothing}
                               </div>`
                     }

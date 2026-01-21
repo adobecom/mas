@@ -5,6 +5,10 @@ export const styles = css`
         width: 100%;
     }
 
+    :host([data-type='view-only']) {
+        --mod-table-selected-row-background-color: transparent;
+    }
+
     .fragments-table {
         --mod-table-header-background-color: var(--spectrum-gray-50);
         --mod-table-border-radius: 0;
@@ -134,12 +138,9 @@ export const styles = css`
     }
 
     .loading-container {
-        width: 100%;
-        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
-        margin: 30px 0;
     }
 
     @keyframes checkmark-pop {

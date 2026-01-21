@@ -12,7 +12,7 @@ class MasSelectFragmentsTable extends LitElement {
     static styles = styles;
 
     static properties = {
-        type: { type: String, state: true }, // 'fragments' | 'collections' | 'placeholders' | 'all'
+        type: { type: String, reflect: true, attribute: 'data-type' }, // 'fragments' | 'collections' | 'placeholders' | 'view-only'
         loading: { type: Boolean, state: true },
         error: { type: String, state: true },
         columnsToShow: { type: Set, state: true },
@@ -96,7 +96,7 @@ class MasSelectFragmentsTable extends LitElement {
     async fetchFragments() {
         this.loading = true;
         this.error = null;
-        if (this.type === 'all' && Store.translationProjects.fragmentsByPaths.value.size) {
+        if (this.type === 'view-only' && Store.translationProjects.fragmentsByPaths.value.size) {
             this.fragments = this.translationProject
                 ?.getFieldValues('items')
                 .map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
@@ -151,7 +151,7 @@ class MasSelectFragmentsTable extends LitElement {
             Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
             Store.translationProjects.allFragments.set(this.fragments);
             this.selectedInTable = this.translationProject?.getFieldValues('items');
-            if (this.type === 'all') {
+            if (this.type === 'view-only') {
                 this.fragments = this.selectedInTable.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
             }
         } catch (err) {
@@ -244,7 +244,7 @@ class MasSelectFragmentsTable extends LitElement {
             : html`<sp-table
                   class="fragments-table"
                   emphasized
-                  .selects=${this.type !== 'all' ? 'multiple' : undefined}
+                  .selects=${this.type !== 'view-only' ? 'multiple' : undefined}
                   .selected=${this.selectedInTable}
                   @change=${this.updateSelected}
               >

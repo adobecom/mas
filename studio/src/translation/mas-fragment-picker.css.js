@@ -41,6 +41,7 @@ export const styles = css`
             width: 100%;
             --mod-table-header-background-color: var(--spectrum-gray-50);
             --mod-table-border-radius: 0;
+            margin-top: 12px;
 
             sp-table-head {
                 border-top: 1px solid var(--spectrum-gray-300);

@@ -1,4 +1,5 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 
 /**
  * Toolbar component for MasFragmentPicker with search and filter capabilities.
@@ -50,7 +51,7 @@ class MasFragmentPickerToolbar extends LitElement {
         .filters {
             display: flex;
             gap: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
             flex-wrap: wrap;
         }
 
@@ -80,6 +81,35 @@ class MasFragmentPickerToolbar extends LitElement {
         .checkbox-list sp-checkbox {
             display: flex;
             white-space: nowrap;
+        }
+
+        .applied-filters {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .applied-filters sp-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .clear-all {
+            color: var(--spectrum-accent-color-900);
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            background: none;
+            border: none;
+            padding: 0;
+            text-decoration: none;
+        }
+
+        .clear-all:hover {
+            text-decoration: underline;
         }
     `;
 
@@ -182,6 +212,110 @@ class MasFragmentPickerToolbar extends LitElement {
         );
     }
 
+    #handleTagDelete(e) {
+        const { type, id } = e.target.value;
+        switch (type) {
+            case 'template':
+                this.templateFilter = this.templateFilter.filter((filterId) => filterId !== id);
+                break;
+            case 'marketSegment':
+                this.marketSegmentFilter = this.marketSegmentFilter.filter((filterId) => filterId !== id);
+                break;
+            case 'customerSegment':
+                this.customerSegmentFilter = this.customerSegmentFilter.filter((filterId) => filterId !== id);
+                break;
+            case 'product':
+                this.productFilter = this.productFilter.filter((filterId) => filterId !== id);
+                break;
+        }
+        this.#emitFilterChange();
+    }
+
+    #handleClearAll() {
+        this.templateFilter = [];
+        this.marketSegmentFilter = [];
+        this.customerSegmentFilter = [];
+        this.productFilter = [];
+        this.#emitFilterChange();
+    }
+
+    #getAppliedFilters() {
+        const filters = [];
+
+        this.templateFilter.forEach((id) => {
+            const option = this.templateOptions.find((opt) => (opt.id || opt.value) === id);
+            if (option) {
+                filters.push({
+                    type: 'template',
+                    id,
+                    label: option.title || option.label,
+                });
+            }
+        });
+
+        this.marketSegmentFilter.forEach((id) => {
+            const option = this.marketSegmentOptions.find((opt) => (opt.id || opt.value) === id);
+            if (option) {
+                filters.push({
+                    type: 'marketSegment',
+                    id,
+                    label: option.title || option.label,
+                });
+            }
+        });
+
+        this.customerSegmentFilter.forEach((id) => {
+            const option = this.customerSegmentOptions.find((opt) => (opt.id || opt.value) === id);
+            if (option) {
+                filters.push({
+                    type: 'customerSegment',
+                    id,
+                    label: option.title || option.label,
+                });
+            }
+        });
+
+        this.productFilter.forEach((id) => {
+            const option = this.productOptions.find((opt) => (opt.id || opt.value) === id);
+            if (option) {
+                filters.push({
+                    type: 'product',
+                    id,
+                    label: option.title || option.label,
+                });
+            }
+        });
+
+        return filters;
+    }
+
+    #renderAppliedFilters() {
+        const appliedFilters = this.#getAppliedFilters();
+        if (appliedFilters.length === 0) return nothing;
+
+        return html`
+            <div class="applied-filters">
+                <sp-tags>
+                    ${repeat(
+                        appliedFilters,
+                        (filter) => `${filter.type}-${filter.id}`,
+                        (filter) => html`
+                            <sp-tag
+                                size="s"
+                                deletable
+                                .value=${{ type: filter.type, id: filter.id }}
+                                @delete=${this.#handleTagDelete}
+                            >
+                                ${filter.label}
+                            </sp-tag>
+                        `,
+                    )}
+                </sp-tags>
+                <a class="clear-all" @click=${this.#handleClearAll}>Clear all</a>
+            </div>
+        `;
+    }
+
     #renderFilterPicker(label, options, selectedValues, filterType) {
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
@@ -249,6 +383,8 @@ class MasFragmentPickerToolbar extends LitElement {
                 )}
                 ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, 'product')}
             </div>
+
+            ${this.#renderAppliedFilters()}
         `;
     }
 

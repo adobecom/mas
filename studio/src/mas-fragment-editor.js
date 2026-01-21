@@ -120,8 +120,17 @@ export default class MasFragmentEditor extends LitElement {
             position: relative;
         }
 
-        .preview-content merch-card {
-            flex-shrink: 0;
+        #preview-column:has(.placeholder-failed) {
+            background-color: var(--merch-color-error-background);
+        }
+
+        #preview-column:has(a[is='checkout-link'].placeholder-failed)::after {
+            content: 'CTA has an invalid offer';
+            display: block;
+            color: var(--merch-color-error);
+            font-size: 14px;
+            padding: 8px 16px;
+            text-align: center;
         }
 
         .section {
@@ -576,12 +585,12 @@ export default class MasFragmentEditor extends LitElement {
                 existingStore.previewStore.resolved = false;
                 existingStore.previewStore.holdResolution = true;
             }
-            existingStore.get().hasChanges = false;
             this.repository.refreshFragment(existingStore).then(() => {
                 this.dispatchFragmentLoaded();
             });
             fragmentStore = existingStore;
             this.inEdit.set(existingStore);
+            Store.editor.resetChanges();
             this.reactiveController.updateStores([this.inEdit, existingStore, existingStore.previewStore, this.operation]);
         } else {
             try {
@@ -640,9 +649,7 @@ export default class MasFragmentEditor extends LitElement {
                 }
             }
 
-            if (this.fragmentStore?.get()) {
-                this.fragmentStore.get().hasChanges = false;
-            }
+            Store.editor.resetChanges();
 
             await placeholdersPromise;
 
@@ -727,7 +734,7 @@ export default class MasFragmentEditor extends LitElement {
         });
 
         fragmentStore.value.initialValue = structuredClone(fragmentStore.value);
-        fragmentStore.value.hasChanges = false;
+        Store.editor.resetChanges();
 
         this.previewLazyLoaded = true;
         fragmentStore.previewStore.releaseHold?.();
@@ -777,6 +784,7 @@ export default class MasFragmentEditor extends LitElement {
 
     cancelDiscard() {
         this.showDiscardDialog = false;
+        Store.viewMode.set('editing');
         if (this.discardPromiseResolver) {
             this.discardPromiseResolver(false);
             this.discardPromiseResolver = null;

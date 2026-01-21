@@ -31,6 +31,12 @@ const Store = {
     },
     operation: new ReactiveStore(),
     editor: {
+        resetChanges() {
+            const fragmentData = Store.fragments.inEdit.get()?.get();
+            if (fragmentData) {
+                fragmentData.hasChanges = false;
+            }
+        },
         get hasChanges() {
             return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
         },

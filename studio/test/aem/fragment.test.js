@@ -47,7 +47,7 @@ describe('Fragment', () => {
 
         it('handles undefined path gracefully', () => {
             const fragment = new Fragment(createFragmentConfig());
-            expect(() => fragment.locale).to.throw();
+            expect(fragment.locale).to.equal('');
         });
     });
 

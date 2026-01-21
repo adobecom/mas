@@ -945,7 +945,7 @@ sp-progress-circle.next-page {
     line-height: 18px;
     cursor: pointer;
     text-decoration: none;
-    padding: 7px;
+    padding: 15px;
 }
 
 .related-variations-link:hover {

@@ -18,6 +18,7 @@ const Store = {
             limit: new ReactiveStore(6),
         },
         inEdit: new ReactiveStore(null),
+        expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
@@ -52,7 +53,6 @@ const Store = {
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
-    viewMode: new ReactiveStore('default'),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
     placeholders: {
         search: new ReactiveStore(''),

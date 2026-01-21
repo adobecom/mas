@@ -64,6 +64,7 @@ export const styles = css`
             }
         }
 
+        .languages-empty-state,
         .files-empty-state {
             display: flex;
             flex-direction: row;

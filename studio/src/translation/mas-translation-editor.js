@@ -496,7 +496,7 @@ class MasTranslationEditor extends LitElement {
                             ? html`
                                   <div class="form-field select-files">
                                       <h2>Select languages</h2>
-                                      <div class="files-empty-state">
+                                      <div class="languages-empty-state">
                                           <div class="icon">
                                               <overlay-trigger
                                                   type="modal"

@@ -64,7 +64,12 @@ class MasFragment extends LitElement {
             }
         }
 
-        // Scroll into view after expansion
+// Wait for Lit to finish rendering
+      await this.updateComplete;
+
+      requestAnimationFrame(() => {
+          this.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
         requestAnimationFrame(() => {
             this.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });

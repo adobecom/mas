@@ -45,7 +45,7 @@ class MasSelectedItems extends LitElement {
     getDetails(item) {
         if (!item) return '-';
         if (this.type === 'fragments') {
-            return item.humanFriendlyPath || '-';
+            return item.studioPath || '-';
         }
         return '-';
     }

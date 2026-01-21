@@ -5,7 +5,7 @@ import Store from '../store.js';
 import NestedStoreController from '../reactivity/nested-store-controller.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
 import { ROOT_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
-import { copyToClipboard, getService, showToast } from '../utils.js';
+import { getService, showToast } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 
 class MasTranslationFilesTable extends LitElement {
@@ -97,9 +97,10 @@ class MasTranslationFilesTable extends LitElement {
         this.loading = true;
         this.error = null;
         if (this.type === 'all' && Store.translationProjects.fragmentsByPaths.value.size) {
-            this.fragments = this.translationProject?.fields
-                ?.find((field) => field.name === 'items')
-                ?.values.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
+            this.fragments = this.translationProject?.fields;
+            this.translationProject
+                ?.getFieldValues('items')
+                .map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
             this.loading = false;
             return;
         }
@@ -144,13 +145,13 @@ class MasTranslationFilesTable extends LitElement {
                 fetchedFragments.map(async (fragment) => ({
                     ...fragment,
                     offerData: await this.loadOfferData(fragment),
-                    humanFriendlyPath: this.getFragmentName(fragment),
+                    studioPath: this.getFragmentName(fragment),
                 })),
             );
             const fragmentsByPaths = new Map(this.fragments.map((fragment) => [fragment.path, fragment]));
             Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
-            Store.translationProjects.allFragments.set(fetchedFragments);
-            this.selectedInTable = this.translationProject?.fields?.find((field) => field.name === 'items')?.values ?? [];
+            Store.translationProjects.allFragments.set(this.fragments);
+            this.selectedInTable = this.translationProject?.getFieldValues('items');
             if (this.type === 'all') {
                 this.fragments = this.selectedInTable.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
             }
@@ -209,7 +210,7 @@ class MasTranslationFilesTable extends LitElement {
 
     updateSelected({ target: { selected } }) {
         this.selectedInTable = selected;
-        const currentSelected = this.translationProject?.fields?.find((field) => field.name === 'items')?.values ?? [];
+        const currentSelected = this.translationProject?.getFieldValues('items');
         const withoutUnselected = currentSelected.filter((path) => selected.includes(path));
         const newSelected = new Set([...withoutUnselected, ...selected]);
         this.translationProjectStore?.updateField('items', Array.from(newSelected));
@@ -223,6 +224,18 @@ class MasTranslationFilesTable extends LitElement {
         }
         this.selectedInTable = newSelected;
         this.translationProjectStore?.updateField('items', newSelected);
+    }
+
+    async copyToClipboard(e, text) {
+        e.stopPropagation();
+        const button = e.currentTarget;
+        try {
+            await navigator.clipboard.writeText(text);
+            button.classList.add('copied');
+            setTimeout(() => button.classList.remove('copied'), 1500);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
     }
 
     render() {
@@ -252,13 +265,15 @@ class MasTranslationFilesTable extends LitElement {
                                           ? html`<sp-button
                                                 icon-only
                                                 aria-label="Copy Offer ID to clipboard"
-                                                @click=${(e) => copyToClipboard(e, fragment.offerData?.offerId)}
+                                                .disabled=${!fragment.offerData?.offerId}
+                                                @click=${(e) => this.copyToClipboard(e, fragment.offerData?.offerId)}
                                             >
                                                 <sp-icon-copy slot="icon"></sp-icon-copy>
+                                                <sp-icon-checkmark slot="icon"></sp-icon-checkmark>
                                             </sp-button>`
                                           : 'no offer data'}
                                   </sp-table-cell>
-                                  <sp-table-cell>${fragment.humanFriendlyPath}</sp-table-cell>
+                                  <sp-table-cell>${fragment.studioPath}</sp-table-cell>
                                   ${this.renderStatus(fragment.status)}
                               </sp-table-row>`,
                       )}

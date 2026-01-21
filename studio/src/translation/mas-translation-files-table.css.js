@@ -60,10 +60,33 @@ export const styles = css`
             sp-button {
                 --mod-button-background-color-default: transparent;
                 --mod-button-background-color-hover: transparent;
-                color: var(--spectrum-blue-900);
+                --mod-button-content-color-default: var(--spectrum-blue-900);
 
                 &:hover {
                     color: var(--spectrum-blue-1000);
+                }
+
+                sp-icon-copy {
+                    display: block;
+                    transition:
+                        opacity 0.2s ease,
+                        transform 0.2s ease;
+                }
+
+                sp-icon-checkmark {
+                    display: none;
+                    color: var(--spectrum-green-700);
+                }
+
+                &.copied {
+                    sp-icon-copy {
+                        display: none;
+                    }
+
+                    sp-icon-checkmark {
+                        display: block;
+                        animation: checkmark-pop 0.3s ease-out;
+                    }
                 }
             }
         }
@@ -117,5 +140,19 @@ export const styles = css`
         justify-content: center;
         align-items: center;
         margin: 30px 0;
+    }
+
+    @keyframes checkmark-pop {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
     }
 `;

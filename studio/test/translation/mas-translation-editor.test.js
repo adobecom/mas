@@ -373,7 +373,6 @@ describe('MasTranslationEditor', () => {
         });
 
         it('should create snapshot of selected files', async () => {
-            console.log('majku ti jebem');
             const mockStore = createMockFragmentStore('123', 'Test', ['item1', 'item2'], ['lang1', 'lang2', 'lang3']);
             Store.translationProjects.inEdit.value = mockStore;
             Store.translationProjects.translationProjectId.value = '123';

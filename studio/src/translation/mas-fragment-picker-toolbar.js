@@ -321,7 +321,7 @@ class MasFragmentPickerToolbar extends LitElement {
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
         return html`
-            <overlay-trigger placement="bottom-start">
+            <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
                 <sp-action-button slot="trigger" class="filter-trigger" quiet>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>

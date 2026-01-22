@@ -65,9 +65,25 @@ class MasFragmentPicker extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.unsubscribe = Store.search.subscribe(() => {
-            this.fetchFragments();
-        });
+        // Restore selection from translation project's items field
+        const savedItems = this.translationProjectStore?.get()?.fields?.find((f) => f.name === 'items')?.values || [];
+        this.selectedInTable = savedItems;
+        Store.translationProjects.selected.set(new Set(savedItems));
+
+        // Check if fragments are already cached
+        const cachedFragmentsById = Store.translationProjects.fragmentsByIds.value;
+        if (cachedFragmentsById && cachedFragmentsById.size > 0) {
+            // Use cached fragments
+            this.fragmentsById = cachedFragmentsById;
+            this.fragments = Array.from(cachedFragmentsById.values());
+            this.#extractFilterOptions();
+            this.#applyFilters();
+        } else {
+            // Fetch fragments if not cached
+            this.unsubscribe = Store.search.subscribe(() => {
+                this.fetchFragments();
+            });
+        }
     }
 
     disconnectedCallback() {
@@ -83,6 +99,10 @@ class MasFragmentPicker extends LitElement {
     /** @type {import('../mas-repository.js').MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
+    }
+
+    get translationProjectStore() {
+        return Store.translationProjects.inEdit.get();
     }
 
     get loadingIndicator() {
@@ -151,6 +171,8 @@ class MasFragmentPicker extends LitElement {
         this.selectedInTable = selected;
         // Update Store so mas-selected-items can show selected items
         Store.translationProjects.selected.set(new Set(selected));
+        // Update translation project's items field for the count display
+        this.translationProjectStore?.updateField('items', selected);
         this.dispatchEvent(
             new CustomEvent('selected', {
                 detail: {
@@ -168,6 +190,8 @@ class MasFragmentPicker extends LitElement {
         const newSelected = this.selectedInTable.filter((selectedId) => selectedId !== id);
         this.selectedInTable = newSelected;
         Store.translationProjects.selected.set(new Set(newSelected));
+        // Update translation project's items field for the count display
+        this.translationProjectStore?.updateField('items', newSelected);
     }
 
     renderTableHeader() {

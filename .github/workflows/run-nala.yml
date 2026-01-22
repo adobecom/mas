@@ -58,8 +58,7 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
-            - name: Install Playwright dependencies
-              if: steps.playwright-cache.outputs.cache-hit != 'true'
+            - name: Install Playwright browsers and dependencies
               run: npx playwright install --with-deps
 
             - name: Set execute permission for gh.run.sh

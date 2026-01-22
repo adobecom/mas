@@ -60,7 +60,7 @@ jobs:
 
             - name: Install Playwright dependencies
               if: steps.playwright-cache.outputs.cache-hit != 'true'
-              run: npx playwright install-deps
+              run: npx playwright install --with-deps
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh

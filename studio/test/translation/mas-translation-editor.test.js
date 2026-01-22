@@ -113,7 +113,7 @@ describe('MasTranslationEditor', () => {
         });
 
         it('selectedFilesCount getter should return items count', async () => {
-            const mockStore = createMockFragmentStore('123', 'Test Project', ['item1', 'item2', 'item3'],  ['lang1', 'lang2']);
+            const mockStore = createMockFragmentStore('123', 'Test Project', ['item1', 'item2', 'item3'], ['lang1', 'lang2']);
             Store.translationProjects.inEdit.value = mockStore;
             Store.translationProjects.translationProjectId.value = '123';
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -126,7 +126,10 @@ describe('MasTranslationEditor', () => {
             const project = new TranslationProject({
                 id: '123',
                 title: 'Test',
-                fields: [{ name: 'items', type: 'content-fragment', multiple: true, values: [] }, { name: 'targetLocales', type: 'text', multiple: true, values: [] }],
+                fields: [
+                    { name: 'items', type: 'content-fragment', multiple: true, values: [] },
+                    { name: 'targetLocales', type: 'text', multiple: true, values: [] },
+                ],
             });
             const mockStore = new FragmentStore(project);
             Store.translationProjects.inEdit.value = mockStore;
@@ -473,7 +476,7 @@ describe('MasTranslationEditor', () => {
             const translationFiles = el.shadowRoot.querySelector('mas-translation-langs');
             expect(translationFiles).to.exist;
         });
-    });    
+    });
 
     describe('quick actions', () => {
         it('should pass disabled actions to mas-quick-actions', async () => {

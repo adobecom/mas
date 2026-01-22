@@ -160,6 +160,7 @@ export default class MasMnemonic extends LitElement {
         this.variant = 'info';
         this.size = 'xs';
         this.tooltipVisible = false;
+        this.lastPointerType = null;
         this.handleClickOutside = this.handleClickOutside.bind(this);
     }
 
@@ -274,12 +275,17 @@ export default class MasMnemonic extends LitElement {
                     tabindex="0"
                     role="img"
                     aria-label="${content}"
+                    @pointerdown=${(e) => {
+                        this.lastPointerType = e.pointerType;
+                    }}
                     @pointerenter=${(e) =>
                         e.pointerType !== 'touch' && this.showTooltip()}
                     @pointerleave=${(e) =>
                         e.pointerType !== 'touch' && this.hideTooltip()}
-                    @click=${(e) =>
-                        e.pointerType === 'touch' && this.handleTap(e)}
+                    @click=${(e) => {
+                        if (this.lastPointerType === 'touch') this.handleTap(e);
+                        this.lastPointerType = null;
+                    }}
                 >
                     ${this.renderIcon()}
                 </span>

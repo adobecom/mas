@@ -74,6 +74,11 @@ class IncludedField extends LitElement {
         .action-menu {
             margin-left: auto;
         }
+
+        :host([data-field-state='overridden']) .included-preview {
+            border: 2px solid var(--spectrum-blue-400);
+            background-color: var(--spectrum-blue-100);
+        }
     `;
 
     constructor() {

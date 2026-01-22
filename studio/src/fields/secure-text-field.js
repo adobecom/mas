@@ -22,6 +22,16 @@ export class SecureTextField extends LitElement {
                 justify-content: space-between;
                 gap: 8px;
             }
+
+            :host([data-field-state='overridden']) sp-switch[checked] {
+                --mod-switch-background-color-selected-default: var(--spectrum-blue-500);
+                --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
+            }
+
+            :host([data-field-state='overridden']) sp-checkbox[checked] {
+                --mod-checkbox-checkmark-color: var(--spectrum-white);
+                --mod-checkbox-background-color-selected-default: var(--spectrum-blue-500);
+            }
         `;
     }
 

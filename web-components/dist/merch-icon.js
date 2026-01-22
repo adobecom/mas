@@ -1,4 +1,4 @@
-var d=Object.defineProperty;var v=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):o[t]=e;var b=(o,t)=>()=>(o&&(t=o(o=0)),t);var y=(o,t)=>{for(var e in t)d(o,e,{get:t[e],enumerable:!0})};var r=(o,t,e)=>v(o,typeof t!="symbol"?t+"":t,e);var g={};y(g,{default:()=>p});import{LitElement as x,html as c,css as T}from"./lit-all.min.js";function w(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var i,p,u=b(()=>{i=class i extends x{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.supportsHover=window.matchMedia("(hover: hover)").matches,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let e=t.composedPath();i.activeTooltip===this&&!e.includes(this)&&this.hideTooltip()}showTooltip(){i.activeTooltip&&i.activeTooltip!==this&&(i.activeTooltip.closeOverlay(),i.activeTooltip.tooltipVisible=!1,i.activeTooltip.requestUpdate()),i.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){i.activeTooltip===this&&(i.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?c`<merch-icon
+var d=Object.defineProperty;var b=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):o[t]=e;var v=(o,t)=>()=>(o&&(t=o(o=0)),t);var y=(o,t)=>{for(var e in t)d(o,e,{get:t[e],enumerable:!0})};var l=(o,t,e)=>b(o,typeof t!="symbol"?t+"":t,e);var g={};y(g,{default:()=>p});import{LitElement as x,html as c,css as T}from"./lit-all.min.js";function w(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var i,p,u=v(()=>{i=class i extends x{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let e=t.composedPath();i.activeTooltip===this&&!e.includes(this)&&this.hideTooltip()}showTooltip(){i.activeTooltip&&i.activeTooltip!==this&&(i.activeTooltip.closeOverlay(),i.activeTooltip.tooltipVisible=!1,i.activeTooltip.requestUpdate()),i.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){i.activeTooltip===this&&(i.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?c`<merch-icon
             src="${this.src}"
             size="${this.size}"
         ></merch-icon>`:c`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;return t?w()?c`
@@ -21,15 +21,13 @@ var d=Object.defineProperty;var v=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configura
                     tabindex="0"
                     role="img"
                     aria-label="${t}"
-                    @pointerenter=${this.supportsHover?()=>this.showTooltip():null}
-                    @pointerleave=${this.supportsHover?()=>this.hideTooltip():null}
-                    @click=${this.supportsHover?null:n=>this.handleTap(n)}
-                    @focus=${()=>this.showTooltip()}
-                    @blur=${()=>this.hideTooltip()}
+                    @pointerenter=${s=>s.pointerType!=="touch"&&this.showTooltip()}
+                    @pointerleave=${s=>s.pointerType!=="touch"&&this.hideTooltip()}
+                    @click=${s=>s.pointerType==="touch"&&this.handleTap(s)}
                 >
                     ${this.renderIcon()}
                 </span>
-            `:this.renderIcon()}};r(i,"activeTooltip",null),r(i,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0},supportsHover:{type:Boolean,state:!0}}),r(i,"styles",T`
+            `:this.renderIcon()}};l(i,"activeTooltip",null),l(i,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),l(i,"styles",T`
         :host {
             display: contents;
             overflow: visible;
@@ -148,7 +146,7 @@ var d=Object.defineProperty;var v=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configura
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);p=i;customElements.define("mas-mnemonic",p)});import{LitElement as S,html as f,css as $}from"./lit-all.min.js";function C(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var l=class extends S{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(C())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let a="",n="top";if(e.tagName==="SP-TOOLTIP")a=e.textContent,n=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let s=e.querySelector("sp-tooltip");s&&(a=s.textContent,n=s.getAttribute("placement")||e.getAttribute("placement")||"top")}if(a){let s=document.createElement("mas-mnemonic");s.setAttribute("content",a),s.setAttribute("placement",n);let h=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(h)?s.appendChild(m):h&&s.appendChild(h),this.innerHTML="",this.appendChild(s),Promise.resolve().then(()=>u())}e.remove()})}render(){let{href:t}=this;return t?f`<a href="${t}">
+    `);p=i;customElements.define("mas-mnemonic",p)});import{LitElement as S,html as f,css as $}from"./lit-all.min.js";function C(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var a=class extends S{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(C())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let n="",s="top";if(e.tagName==="SP-TOOLTIP")n=e.textContent,s=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let r=e.querySelector("sp-tooltip");r&&(n=r.textContent,s=r.getAttribute("placement")||e.getAttribute("placement")||"top")}if(n){let r=document.createElement("mas-mnemonic");r.setAttribute("content",n),r.setAttribute("placement",s);let h=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(h)?r.appendChild(m):h&&r.appendChild(h),this.innerHTML="",this.appendChild(r),Promise.resolve().then(()=>u())}e.remove()})}render(){let{href:t}=this;return t?f`<a href="${t}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
@@ -158,7 +156,7 @@ var d=Object.defineProperty;var v=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configura
                   src="${this.src}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`}};r(l,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),r(l,"styles",$`
+              />`}};l(a,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),l(a,"styles",$`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -196,4 +194,4 @@ var d=Object.defineProperty;var v=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configura
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `);customElements.define("merch-icon",l);export{l as default};
+    `);customElements.define("merch-icon",a);export{a as default};

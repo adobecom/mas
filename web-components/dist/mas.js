@@ -2050,9 +2050,9 @@ merch-card[variant^="plans"] [slot="addon"] span.price-unit-type,
 merch-card[variant^="plans"] .price.price-strikethrough span.price-unit-type,
 merch-card[variant^="plans"] .price.price-promo-strikethrough span.price-unit-type,
 merch-card[variant^="plans"] span.price-unit-type.disabled {
-  display: inline; 
+  display: inline;
 }
-  
+
 merch-card[variant^="plans"] [slot="heading-xs"] span.price.price-strikethrough,
 merch-card[variant^="plans"] [slot="heading-xs"] span.price.price-promo-strikethrough,
 merch-card[variant^="plans"] [slot="heading-m"] span.price.price-strikethrough,
@@ -2284,7 +2284,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     justify-content: center;
 }
 
-.plans-team .row-1 {
+.plans-team .columns .row-1 {
     grid-template-columns: repeat(2, calc(var(--consonant-merch-card-plans-width) * 2 + 32px));
     justify-content: center;
 }
@@ -2296,6 +2296,13 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 .plans-team .col-2 h3 {
     font-size: 20px;
     margin: 0 0 16px;
+}
+
+.plans-highlight .columns :is(.col-1, .col-2) :is(h1, h2, h3, h4, h5):first-child {
+	background: rgb(238, 238, 238);
+	padding: var(--spacing-m);
+	font-size: var(--type-heading-s-size);
+    line-height: var(--type-heading-s-lh);
 }
 
 .plans-team .col-2 p {
@@ -2366,7 +2373,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 @media screen and ${ne} {
-    .plans-team .row-1 {
+    .plans-team .columns .row-1 {
         grid-template-columns: min-content;
     }
 

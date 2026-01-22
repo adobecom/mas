@@ -5007,6 +5007,7 @@ merch-card[variant="full-pricing-express"] [slot="icons"] {
     merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic {
         --mod-img-width: 14px;
         --mod-img-height: 14px;
+        vertical-align: baseline;
     }
 
     merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic img {

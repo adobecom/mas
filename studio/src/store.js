@@ -18,6 +18,7 @@ const Store = {
             limit: new ReactiveStore(6),
         },
         inEdit: new ReactiveStore(null),
+        expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
@@ -30,6 +31,12 @@ const Store = {
     },
     operation: new ReactiveStore(),
     editor: {
+        resetChanges() {
+            const fragmentData = Store.fragments.inEdit.get()?.get();
+            if (fragmentData) {
+                fragmentData.hasChanges = false;
+            }
+        },
         get hasChanges() {
             return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
         },
@@ -46,7 +53,6 @@ const Store = {
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
-    viewMode: new ReactiveStore('default'),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
     placeholders: {
         search: new ReactiveStore(''),
@@ -106,6 +112,9 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
+        allFragments: new ReactiveStore([]),
+        fragmentsByPaths: new ReactiveStore(new Map()),
+        showSelected: new ReactiveStore(false),
     },
 };
 

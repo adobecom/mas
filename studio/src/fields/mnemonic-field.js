@@ -23,7 +23,7 @@ class MnemonicField extends LitElement {
             gap: 12px;
             padding: 12px;
             border: 1px solid var(--spectrum-gray-300);
-            border-radius: 8px;
+            border-radius: 10px;
             min-height: 48px;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
         }
@@ -73,6 +73,11 @@ class MnemonicField extends LitElement {
 
         .action-menu {
             margin-left: auto;
+        }
+
+        :host([data-field-state='overridden']) .mnemonic-preview {
+            border: 2px solid var(--spectrum-blue-400);
+            background-color: var(--spectrum-blue-100);
         }
     `;
 

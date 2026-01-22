@@ -159,19 +159,19 @@ class MasTranslation extends LitElement {
         });
     }
 
-    #goToTranslationProjectEditor() {
+    #goToEditorNewProject() {
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.translationProjectId.set('');
         router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
     }
 
-    #handleEditTranslationProject(translationProject) {
+    #goToEditorExistingProject(translationProject) {
         Store.translationProjects.inEdit.set(translationProject);
         Store.translationProjects.translationProjectId.set(translationProject.get().id);
         router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
     }
 
-    async #handleDeleteTranslationProject(translationProject) {
+    async #deleteTranslationProject(translationProject) {
         if (this.isDialogOpen) return;
         const confirmed = await this.#showDialog(
             'Delete Translation Project',
@@ -188,7 +188,7 @@ class MasTranslation extends LitElement {
             showToast('Deleting translation project...');
             await this.repository.deleteFragment(translationProject, { startToast: false, endToast: false });
             const updatedTranslationProjects = this.translationProjectsData.filter(
-                (p) => p.get().id !== translationProject.get().id,
+                (project) => project.get().id !== translationProject.get().id,
             );
             Store.translationProjects.list.data.set(updatedTranslationProjects);
             showToast('Translation project successfully deleted.', 'positive');
@@ -205,7 +205,7 @@ class MasTranslation extends LitElement {
             <sp-table-cell class="action-cell">
                 <sp-action-menu size="m">
                     ${html`
-                        <sp-menu-item @click=${() => this.#handleEditTranslationProject(translationProject)}>
+                        <sp-menu-item @click=${() => this.#goToEditorExistingProject(translationProject)}>
                             <sp-icon-edit slot="icon"></sp-icon-edit>
                             Edit
                         </sp-menu-item>
@@ -217,7 +217,7 @@ class MasTranslation extends LitElement {
                             <sp-icon-archive slot="icon"></sp-icon-archive>
                             Archive
                         </sp-menu-item>
-                        <sp-menu-item @click=${() => this.#handleDeleteTranslationProject(translationProject)}>
+                        <sp-menu-item @click=${() => this.#deleteTranslationProject(translationProject)}>
                             <sp-icon-delete slot="icon"></sp-icon-delete>
                             Delete
                         </sp-menu-item>
@@ -291,7 +291,7 @@ class MasTranslation extends LitElement {
             <div class="translation-container">
                 <div class="translation-header">
                     <h2>Translations</h2>
-                    <sp-button variant="accent" class="create-button" @click=${() => this.#goToTranslationProjectEditor()}>
+                    <sp-button variant="accent" class="create-button" @click=${() => this.#goToEditorNewProject()}>
                         <sp-icon-add slot="icon"></sp-icon-add>
                         Create project
                     </sp-button>

@@ -11,7 +11,8 @@ export const styles = css`
         gap: 6px;
 
         sp-button {
-            background-color: transparent;
+            --mod-button-background-color-default: transparent;
+            --mod-button-background-color-hover: var(--spectrum-gray-200);
             font-weight: 500;
         }
 

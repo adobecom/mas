@@ -48,9 +48,11 @@ export const styles = css`
             }
         }
 
+        .select-langs,
         .select-files {
             sp-button {
-                background-color: transparent;
+                --mod-button-background-color-default: transparent;
+                --mod-button-background-color-hover: var(--spectrum-gray-200);
             }
 
             sp-icon-add {
@@ -63,6 +65,7 @@ export const styles = css`
             }
         }
 
+        .languages-empty-state,
         .files-empty-state {
             display: flex;
             flex-direction: row;
@@ -72,15 +75,18 @@ export const styles = css`
             border-radius: 10px;
         }
 
+        .add-langs-dialog,
         .add-files-dialog {
             --mod-dialog-confirm-buttongroup-padding-top: 82px;
         }
 
+        .selected-langs,
         .selected-files {
             display: flex;
             flex-direction: column;
             gap: 20px;
 
+            .selected-langs-header,
             .selected-files-header {
                 display: flex;
                 justify-content: space-between;
@@ -104,8 +110,8 @@ export const styles = css`
 
                 .trigger-btn {
                     --mod-button-background-color-default: transparent;
-                    --mod-button-background-color-hover: var(--spectrum-gray-200);
-                    --mod-button-background-color-down: var(--spectrum-gray-300);
+                    --mod-button-background-color-hover: var(--spectrum-blue-200);
+                    --mod-button-background-color-down: var(--spectrum-blue-300);
                     --mod-button-content-color-default: var(--spectrum-blue-900);
                     --mod-button-content-color-hover: var(--spectrum-blue-1000);
                 }

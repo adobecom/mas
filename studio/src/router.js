@@ -45,10 +45,7 @@ export class Router extends EventTarget {
                 const editor = document.querySelector('mas-translation-editor');
                 return {
                     editor,
-                    hasChanges:
-                        (editor && Store.translationProjects.inEdit.get()?.get()?.hasChanges) ||
-                        Store.translationProjects.selectedFilesCount > 0 ||
-                        null,
+                    hasChanges: editor && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
                     shouldCheckUnsavedChanges:
                         (editor && !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges) ||
                         Store.translationProjects.selectedFilesCount > 0,
@@ -84,7 +81,6 @@ export class Router extends EventTarget {
                     if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && value !== PAGE_NAMES.TRANSLATION_EDITOR) {
                         Store.translationProjects.translationProjectId.set(null);
                         Store.translationProjects.inEdit.set(null);
-                        Store.translationProjects.selected.set(new Set());
                         Store.translationProjects.showSelected.set(false);
                     }
                     Store.fragments.inEdit.set();

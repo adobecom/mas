@@ -38,10 +38,11 @@ export const styles = css`
             }
 
             sp-button {
+                --mod-button-background-color-default: transparent;
+                --mod-button-background-color-hover: var(--spectrum-gray-200);
                 grid-column: 2;
                 grid-row: 1 / 3;
                 align-self: center;
-                --system-button-secondary-background-color-default: transparent;
             }
         }
     }

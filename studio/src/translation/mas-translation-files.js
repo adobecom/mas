@@ -2,16 +2,19 @@ import { LitElement, html } from 'lit';
 import { styles } from './mas-translation-files.css.js';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
+import NestedStoreController from '../reactivity/nested-store-controller.js';
 
 import './mas-fragment-picker.js';
 
 class MasTranslationFiles extends LitElement {
     static styles = styles;
 
+    static properties = {};
+
     constructor() {
         super();
-        this.selectedStoreController = new StoreController(this, Store.translationProjects.selected);
         this.showSelectedStoreController = new StoreController(this, Store.translationProjects.showSelected);
+        this.inEditController = new NestedStoreController(this, Store.translationProjects.inEdit);
     }
 
     get showSelected() {
@@ -19,8 +22,12 @@ class MasTranslationFiles extends LitElement {
     }
 
     get selectedFilesCount() {
-        return Store.translationProjects.selectedFilesCount;
+        return this.inEditController.value?.fields?.find((field) => field.name === 'items')?.values?.length;
     }
+
+    #toggleShowSelected = () => {
+        Store.translationProjects.showSelected.set(!this.showSelected);
+    };
 
     render() {
         return html`
@@ -40,11 +47,7 @@ class MasTranslationFiles extends LitElement {
                 </sp-tab-panel>
             </sp-tabs>
             <div class="selected-files-count">
-                <sp-button
-                    variant="secondary"
-                    @click=${() => Store.translationProjects.showSelected.set(!Store.translationProjects.showSelected.value)}
-                    ?disabled=${!this.selectedFilesCount}
-                >
+                <sp-button variant="secondary" @click=${this.#toggleShowSelected} ?disabled=${!this.selectedFilesCount}>
                     <sp-icon-export
                         slot="icon"
                         label=${this.showSelected && this.selectedFilesCount ? 'Hide selection' : 'Selected files'}

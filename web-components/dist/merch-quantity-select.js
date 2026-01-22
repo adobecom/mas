@@ -187,7 +187,7 @@ import{html as c,LitElement as x,nothing as m}from"./lit-all.min.js";import{css 
                     aria-activedescendant="${this.closed?m:`qs-item-${this.highlightedIndex}`}"
                     .value="${this.selectedValue}"
                     type="text"
-                    autocomplete="off"
+                    autocomplete="on"
                     @keydown="${this.handleKeydown}"
                     @keyup="${this.handleKeyupDebounced}"
                 />

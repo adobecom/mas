@@ -112,6 +112,9 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
+        allFragments: new ReactiveStore([]),
+        fragmentsByPaths: new ReactiveStore(new Map()),
+        showSelected: new ReactiveStore(false),
     },
 };
 

@@ -248,6 +248,11 @@ class RteField extends LitElement {
                     border-radius: 8px;
                 }
 
+                :host([data-field-state='overridden']) #editor {
+                    border: 2px solid var(--spectrum-blue-400);
+                    background-color: var(--spectrum-blue-100);
+                }
+
                 .exceeded {
                     color: var(--spectrum-red-700);
                 }

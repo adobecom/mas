@@ -29,7 +29,7 @@ nala/.auth/
 **/CLAUDE.md
 .claude/
 .specify/
-specs/
+/specs/
 
 # IO Runtime Config
 config.json

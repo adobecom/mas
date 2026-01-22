@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
 import { EVENT_OST_OFFER_SELECT } from '../constants.js';
 import { VARIANTS } from '../editors/variant-picker.js';
+import { getItemFieldState } from '../utils/field-state.js';
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
@@ -67,6 +68,7 @@ class AemTagPickerField extends LitElement {
         tempValue: { type: Array, state: true },
 
         searchQuery: { type: String, state: true },
+        parentTags: { type: Array, attribute: false },
     };
 
     static styles = css`
@@ -139,6 +141,17 @@ class AemTagPickerField extends LitElement {
         sp-checkbox {
             height: 40px;
         }
+
+        sp-tag:not([data-field-state='overridden']) {
+            --mod-tag-border-color: transparent;
+            --mod-tag-background-color: var(--spectrum-gray-100);
+        }
+
+        sp-tag[data-field-state='overridden'] {
+            --mod-tag-border-color: var(--spectrum-blue-400);
+            --mod-tag-background-color: var(--spectrum-blue-100);
+            border-width: 2px;
+        }
     `;
 
     #aem;
@@ -157,6 +170,7 @@ class AemTagPickerField extends LitElement {
         this.ready = false;
         this.selection = ''; // e.g., 'checkbox' | ''
         this.searchQuery = '';
+        this.parentTags = [];
     }
 
     #onOstSelect = ({ detail: { offer } }) => {
@@ -380,15 +394,22 @@ class AemTagPickerField extends LitElement {
 
         // hierarchical: display sp-tags with sp-tag for each selection
         if (this.tagsInHierarchy.length === 0) return nothing;
+
+        // Convert parentTags from attribute format to path format for comparison
+        const parentTagPaths = fromAttribute(this.parentTags?.join(',') || '');
+
         return repeat(
             this.tagsInHierarchy,
             (path) => path,
-            (path) => html`
-                <sp-tag deletable @delete=${this.#deleteTag} data-path=${path}>
-                    ${this.#resolveTagTitle(path)}
-                    <sp-icon-label slot="icon"></sp-icon-label>
-                </sp-tag>
-            `,
+            (path) => {
+                const fieldState = getItemFieldState(path, parentTagPaths);
+                return html`
+                    <sp-tag deletable @delete=${this.#deleteTag} data-path=${path} data-field-state="${fieldState}">
+                        ${this.#resolveTagTitle(path)}
+                        <sp-icon-label slot="icon"></sp-icon-label>
+                    </sp-tag>
+                `;
+            },
         );
     }
 

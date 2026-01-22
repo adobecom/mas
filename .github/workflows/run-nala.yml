@@ -24,7 +24,7 @@ jobs:
     run-nala-tests:
         name: Running Nala E2E UI Tests
         runs-on: self-hosted
-        timeout-minutes: 20 # Prevent hanging jobs
+        timeout-minutes: 30 # Prevent hanging jobs
         if: |
             github.event.action == 'opened' ||
             (github.event.action == 'labeled' && github.event.label.name == 'run nala') ||

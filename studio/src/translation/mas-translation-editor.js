@@ -29,7 +29,6 @@ class MasTranslationEditor extends LitElement {
         isSelectedLangsOpen: { type: Boolean, state: true },
         selectedLangsSnapshot: { type: Set, state: true },
         showLangSelectedEmptyState: { type: Boolean, state: true },
-        isLangOverlayOpen: { type: Boolean, state: true },
         selectedLangs: { type: Array, state: true },
     };
 
@@ -53,7 +52,6 @@ class MasTranslationEditor extends LitElement {
         this.selectedFilesSnapshot = new Set();
         this.showSelectedEmptyState = true;
         this.isOverlayOpen = false;
-        this.isLangOverlayOpen = false;
         this.showLangSelectedEmptyState = true;
         this.selectedLangsSnapshot = new Set();
         this.isSelectedLangsOpen = false;
@@ -65,10 +63,8 @@ class MasTranslationEditor extends LitElement {
         const translationProjectId = Store.translationProjects.translationProjectId.get();
         if (translationProjectId) {
             if (this.translationProjectStore) {
-                this.showSelectedEmptyState =
-                    this.translationProject?.fields.find((field) => field.name === 'items')?.values?.length === 0;
-                this.showLangSelectedEmptyState =
-                    this.translationProject?.fields.find((field) => field.name === 'targetLocales')?.values?.length === 0;
+                this.showSelectedEmptyState = this.translationProject?.getFieldValues('items').length === 0;
+                this.showLangSelectedEmptyState = this.translationProject?.getFieldValues('targetLocales').length === 0;
             } else {
                 await this.#loadTranslationProjectById(translationProjectId);
             }
@@ -97,11 +93,11 @@ class MasTranslationEditor extends LitElement {
     }
 
     get selectedFilesCount() {
-        return this.translationProjectStore?.get()?.fields?.find((field) => field.name === 'items')?.values?.length;
+        return this.translationProject?.getFieldValues('items').length;
     }
 
     get selectedLangsCount() {
-        return this.translationProjectStore?.get()?.fields?.find((field) => field.name === 'targetLocales')?.values?.length;
+        return this.translationProject?.getFieldValues('targetLocales').length;
     }
 
     #updateDisabledActions({ add = [], remove = [] }) {
@@ -122,13 +118,9 @@ class MasTranslationEditor extends LitElement {
             if (fragment) {
                 const translationProject = new TranslationProject(fragment);
                 this.translationProjectStore = new FragmentStore(translationProject);
-                const preselected = this.translationProjectStore.get()?.fields.find((field) => field.name === 'items')?.values;
-                const selectedPaths = new Set(preselected || []);
+                const selectedPaths = new Set(this.translationProject?.getFieldValues('items') || []);
                 this.showSelectedEmptyState = selectedPaths.size === 0;
-                const preselectedLangs = this.translationProjectStore
-                    .get()
-                    ?.fields.find((field) => field.name === 'targetLocales')?.values;
-                this.showLangSelectedEmptyState = preselectedLangs.length === 0;
+                this.showLangSelectedEmptyState = this.translationProject?.getFieldValues('targetLocales').length === 0;
             }
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
         } catch (err) {
@@ -349,21 +341,17 @@ class MasTranslationEditor extends LitElement {
 
     createSnapshot() {
         this.isOverlayOpen = true;
-        this.selectedFilesSnapshot = new Set(
-            this.translationProject?.fields.find((field) => field.name === 'items')?.values || [],
-        );
+        this.selectedFilesSnapshot = new Set(this.translationProject?.getFieldValues('items') || []);
     }
 
     createLangSnapshot() {
-        this.isLangOverlayOpen = true;
-        this.selectedLangs = this.translationProject?.fields.find((field) => field.name === 'targetLocales')?.values || [];
+        this.selectedLangs = this.translationProject?.getFieldValues('targetLocales') || [];
         this.selectedlangsSnapshot = new Set(this.selectedLangs);
     }
 
     #confirmLangSelection = ({ target }) => {
         this.translationProjectStore?.updateField('targetLocales', this.selectedLangs);
         this.showLangSelectedEmptyState = this.selectedLangsCount === 0;
-        this.isLangOverlayOpen = false;
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -372,7 +360,6 @@ class MasTranslationEditor extends LitElement {
     #cancelLangSelection = ({ target }) => {
         this.translationProjectStore?.updateField('targetLocales', Array.from(this.selectedlangsSnapshot));
         this.showLangSelectedEmptyState = this.selectedLangsCount === 0;
-        this.isLangOverlayOpen = false;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
@@ -412,12 +399,10 @@ class MasTranslationEditor extends LitElement {
                 @confirm=${this.#confirmLangSelection}
                 @cancel=${this.#cancelLangSelection}
             >
-                ${this.isLangOverlayOpen
-                    ? html`<mas-translation-langs
-                          .selectedLanguages=${this.selectedLangs}
-                          .onChange=${this.#onLanguageChange}
-                      ></mas-translation-langs>`
-                    : nothing}
+                <mas-translation-langs
+                    .selectedLanguages=${this.selectedLangs}
+                    .onChange=${this.#onLanguageChange}
+                ></mas-translation-langs>
             </sp-dialog-wrapper>
         `;
     }
@@ -487,7 +472,7 @@ class MasTranslationEditor extends LitElement {
                     <sp-textfield
                         id="title"
                         data-field="title"
-                        value="${this.translationProject?.fields.find((field) => field.name === 'title')?.values[0] ?? ''}"
+                        value="${this.translationProject?.getFieldValue('title') ?? ''}"
                         @input=${this.#handleFragmentUpdate}
                     ></sp-textfield>
                 </div>
@@ -503,7 +488,6 @@ class MasTranslationEditor extends LitElement {
                                                   id="add-languages-overlay"
                                                   triggered-by="click"
                                                   @sp-opened=${this.createLangSnapshot}
-                                                  @sp-closed=${() => (this.isLangOverlayOpen = false)}
                                               >
                                                   ${this.renderAddLanguagesDialog()}
                                                   <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
@@ -540,7 +524,6 @@ class MasTranslationEditor extends LitElement {
                                                         type="modal"
                                                         id="add-languages-overlay"
                                                         triggered-by="click"
-                                                        @sp-closed=${() => (this.isLangOverlayOpen = false)}
                                                     >
                                                         ${this.renderAddLanguagesDialog()}
                                                         <sp-button

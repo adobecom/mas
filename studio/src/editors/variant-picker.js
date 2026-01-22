@@ -86,18 +86,24 @@ class VariantPicker extends LitElement {
 
         sp-picker {
             width: 100%;
+            --mod-picker-background-color-default: var(--spectrum-white);
+            --mod-picker-border-color-default: var(--spectrum-gray-300);
+            --mod-picker-border-width: 2px;
+            --mod-picker-border-radius: 8px;
+        }
+
+        :host([data-field-state='overridden']) sp-picker {
+            --mod-picker-border-color-default: var(--spectrum-blue-400);
+            --mod-picker-background-color-default: var(--spectrum-blue-100);
         }
     `;
 
     static properties = {
+        value: { type: String, reflect: true },
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },
         disabled: { type: Boolean, attribute: 'disabled' },
     };
-
-    get value() {
-        return this.shadowRoot.querySelector('sp-picker')?.value;
-    }
 
     get variants() {
         return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
@@ -105,12 +111,18 @@ class VariantPicker extends LitElement {
         );
     }
 
+    #handleChange(e) {
+        this.value = e.target.value;
+    }
+
     render() {
         return html`<sp-picker
             label="Card Variant"
             size="m"
-            value=${this.value || this.defaultValue}
+            value=${this.value ?? this.defaultValue}
+            .value=${this.value ?? this.defaultValue}
             ?disabled=${this.disabled}
+            @change=${this.#handleChange}
         >
             ${this.variants}
         </sp-picker>`;

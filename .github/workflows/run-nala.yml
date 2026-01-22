@@ -62,10 +62,24 @@ jobs:
               if: steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install
 
-            - name: Install Playwright system dependencies
+            - name: Install Playwright system dependencies for Rocky Linux
               if: steps.playwright-cache.outputs.cache-hit != 'true'
-              continue-on-error: true
-              run: npx playwright install-deps
+              run: |
+                  # Install the exact dependencies Playwright needs (converted from Ubuntu to Rocky Linux 9)
+                  # Playwright reports: libatk1.0-0, libatk-bridge2.0-0, libcups2, libxkbcommon0,
+                  # libatspi2.0-0, libxcomposite1, libxdamage1, libxfixes3, libxrandr2, libgbm1, libasound2
+                  sudo dnf install -y \
+                      alsa-lib \
+                      at-spi2-atk \
+                      at-spi2-core \
+                      atk \
+                      cups-libs \
+                      libXcomposite \
+                      libXdamage \
+                      libXfixes \
+                      libXrandr \
+                      libxkbcommon \
+                      mesa-libgbm
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh

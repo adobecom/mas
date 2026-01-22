@@ -64,6 +64,7 @@ jobs:
 
             - name: Install Playwright system dependencies
               if: steps.playwright-cache.outputs.cache-hit != 'true'
+              continue-on-error: true
               run: npx playwright install-deps
 
             - name: Set execute permission for gh.run.sh

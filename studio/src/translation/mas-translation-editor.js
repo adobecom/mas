@@ -389,7 +389,7 @@ class MasTranslationEditor extends LitElement {
     renderAddLanguagesDialog() {
         return html`
             <sp-dialog-wrapper
-                class="add-files-dialog"
+                class="add-langs-dialog"
                 slot="click-content"
                 headline="Select languages"
                 confirm-label="Confirm"
@@ -479,7 +479,7 @@ class MasTranslationEditor extends LitElement {
                 ${
                     this.showLangSelectedEmptyState
                         ? html`
-                              <div class="form-field select-files">
+                              <div class="form-field select-langs">
                                   <h2>Select languages</h2>
                                   <div class="languages-empty-state">
                                       <div class="icon">
@@ -502,8 +502,8 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                           `
-                        : html`<div class="form-field selected-files">
-                              <div class="selected-files-header">
+                        : html`<div class="form-field selected-langs">
+                              <div class="selected-langs-header">
                                   <h2>
                                       Selected languages
                                       <span>(${this.selectedLangsCount})</span>

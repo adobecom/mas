@@ -48,6 +48,7 @@ export const styles = css`
             }
         }
 
+        .select-langs,
         .select-files {
             sp-button {
                 --mod-button-background-color-default: transparent;
@@ -74,15 +75,18 @@ export const styles = css`
             border-radius: 10px;
         }
 
+        .add-langs-dialog,
         .add-files-dialog {
             --mod-dialog-confirm-buttongroup-padding-top: 82px;
         }
 
+        .selected-langs,
         .selected-files {
             display: flex;
             flex-direction: column;
             gap: 20px;
 
+            .selected-langs-header,
             .selected-files-header {
                 display: flex;
                 justify-content: space-between;

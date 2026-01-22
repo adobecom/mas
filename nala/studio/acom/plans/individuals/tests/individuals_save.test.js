@@ -41,7 +41,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await editor.variant.locator('sp-picker').first().click();
+            await editor.variant.click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
@@ -472,7 +472,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     );
                     await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('is', 'checkout-link');
                     const CTAhref = await clonedCard.locator(individuals.cardCTA).getAttribute('href');
-                    let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+                    const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
                     expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
                     expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
                     expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);

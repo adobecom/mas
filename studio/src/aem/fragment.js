@@ -57,6 +57,7 @@ export class Fragment {
     }
 
     refreshFrom(fragmentData) {
+        this.newTags = undefined;
         Object.assign(this, fragmentData);
         this.initialValue = structuredClone(this);
         this.hasChanges = false;
@@ -75,6 +76,7 @@ export class Fragment {
 
     discardChanges() {
         if (!this.hasChanges) return;
+        this.newTags = undefined;
         Object.assign(this, this.initialValue);
         this.initialValue = structuredClone(this);
         this.hasChanges = false;

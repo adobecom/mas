@@ -15,6 +15,7 @@ import Store from '../store.js';
 import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import { getItemFieldStateByIndex } from '../utils/field-state.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -90,6 +91,50 @@ class MerchCardEditor extends LitElement {
         return this.fragment.getFieldState(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
     }
 
+    getTagsFieldState() {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        const ownTags = (this.fragment.newTags || this.fragment.tags.map((t) => t.id)).slice().sort().join(',');
+        const parentTags =
+            this.localeDefaultFragment?.tags
+                .map((t) => t.id)
+                .sort()
+                .join(',') || '';
+        if (!ownTags && !parentTags) return 'inherited';
+        if (!ownTags) return 'inherited';
+        return ownTags === parentTags ? 'same-as-parent' : 'overridden';
+    }
+
+    #renderOverrideIndicatorLink(resetCallback) {
+        return html`
+            <div class="field-status-indicator">
+                <a
+                    href="javascript:void(0)"
+                    @click=${(e) => {
+                        e.preventDefault();
+                        resetCallback();
+                    }}
+                >
+                    <sp-icon-unlink></sp-icon-unlink>
+                    Overridden. Click to restore.
+                </a>
+            </div>
+        `;
+    }
+
+    renderTagsStatusIndicator() {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getTagsFieldState() !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetTagsToParent());
+    }
+
+    async resetTagsToParent() {
+        const parentTags = this.localeDefaultFragment?.tags || [];
+        this.fragment.tags = [...parentTags];
+        this.fragment.newTags = null;
+        this.fragmentStore.set(this.fragment);
+        showToast('Tags restored to parent value', 'positive');
+    }
+
     async resetFieldToParent(fieldName) {
         await this.updateComplete;
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
@@ -105,27 +150,10 @@ class MerchCardEditor extends LitElement {
         return success;
     }
 
-    renderOverrideIndicator(fieldName) {
-        if (this.isVariation && !this.localeDefaultFragment) {
-            return nothing;
-        }
-        const state = this.getFieldState(fieldName);
-        const isOverridden = state === 'overridden';
-        return html`
-            <div class="field-reset-link">
-                ${isOverridden
-                    ? html`<a
-                          href="javascript:void(0)"
-                          @click=${(e) => {
-                              e.preventDefault();
-                              this.resetFieldToParent(fieldName);
-                          }}
-                      >
-                          ↩ Overridden. Click to restore.
-                      </a>`
-                    : nothing}
-            </div>
-        `;
+    renderFieldStatusIndicator(fieldName) {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getFieldState(fieldName) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
     }
 
     isSectionOverridden(fieldNames) {
@@ -143,26 +171,10 @@ class MerchCardEditor extends LitElement {
         }
     }
 
-    renderSectionOverrideIndicator(fieldNames) {
-        if (!this.isVariation || !this.localeDefaultFragment) {
-            return nothing;
-        }
-        const isOverridden = this.isSectionOverridden(fieldNames);
-        return html`
-            <div class="field-reset-link">
-                ${isOverridden
-                    ? html`<a
-                          href="javascript:void(0)"
-                          @click=${(e) => {
-                              e.preventDefault();
-                              this.resetSectionToParent(fieldNames);
-                          }}
-                      >
-                          ↩ Overridden. Click to restore.
-                      </a>`
-                    : nothing}
-            </div>
-        `;
+    renderSectionStatusIndicator(fieldNames) {
+        if (!this.effectiveIsVariation) return nothing;
+        if (!this.isSectionOverridden(fieldNames)) return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetSectionToParent(fieldNames));
     }
 
     getFormWithInheritance() {
@@ -248,14 +260,25 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = this.getEffectiveFieldValues('mnemonicLink');
         const mnemonicTooltipText = this.getEffectiveFieldValues('mnemonicTooltipText');
         const mnemonicTooltipPlacement = this.getEffectiveFieldValues('mnemonicTooltipPlacement');
+        const parentIcons = this.localeDefaultFragment?.getField('mnemonicIcon')?.values || [];
+
         return (
-            mnemonicIcon?.map((icon, index) => ({
-                icon,
-                alt: mnemonicAlt[index] ?? '',
-                link: mnemonicLink[index] ?? '',
-                mnemonicText: mnemonicTooltipText[index] ?? '',
-                mnemonicPlacement: mnemonicTooltipPlacement[index] ?? 'top',
-            })) ?? []
+            mnemonicIcon?.map((icon, index) => {
+                const mnemonic = {
+                    icon,
+                    alt: mnemonicAlt[index] ?? '',
+                    link: mnemonicLink[index] ?? '',
+                    mnemonicText: mnemonicTooltipText[index] ?? '',
+                    mnemonicPlacement: mnemonicTooltipPlacement[index] ?? 'top',
+                };
+
+                if (this.effectiveIsVariation) {
+                    const fieldState = getItemFieldStateByIndex(icon, parentIcons, index);
+                    if (fieldState) mnemonic.fieldState = fieldState;
+                }
+
+                return mnemonic;
+            }) ?? []
         );
     }
 
@@ -473,15 +496,42 @@ class MerchCardEditor extends LitElement {
         const formDisplay = this.fieldsReady ? 'block' : 'none';
         return html`
             <style>
-                .field-reset-link {
-                    margin-top: 4px;
+                /* Override styling using Spectrum's --mod-* tokens */
+                sp-textfield[data-field-state='overridden'] {
+                    --mod-textfield-border-color: var(--spectrum-blue-400);
+                    --mod-textfield-background-color: var(--spectrum-blue-100);
                 }
 
-                .field-reset-link a {
-                    color: var(--spectrum-blue-600);
+                sp-field-group sp-picker[data-field-state='overridden'] {
+                    --mod-picker-border-color-default: var(--spectrum-blue-400);
+                    --mod-picker-background-color-default: var(--spectrum-blue-100);
+                }
+
+                sp-switch[data-field-state='overridden'][checked] {
+                    --mod-switch-background-color-selected-default: var(--spectrum-blue-500);
+                    --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
+                }
+
+                .field-status-indicator {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    margin-top: 6px;
                     font-size: 12px;
+                    color: var(--spectrum-blue-700);
+                }
+
+                .field-status-indicator a {
+                    color: var(--spectrum-blue-700);
                     text-decoration: none;
                     cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+
+                .field-status-indicator a:hover {
+                    text-decoration: underline;
                 }
 
                 .section-title {
@@ -513,12 +563,19 @@ class MerchCardEditor extends LitElement {
                     width: 100%;
                 }
 
-                sp-field-group sp-textfield,
-                sp-field-group sp-picker {
+                sp-field-group sp-textfield {
                     width: 100%;
                 }
 
-                #whatsIncluded sp-textfield {
+                sp-field-group sp-picker {
+                    width: 100%;
+                    --mod-picker-background-color-default: var(--spectrum-white);
+                    --mod-picker-border-color-default: var(--spectrum-gray-300);
+                    --mod-picker-border-width: 2px;
+                    --mod-picker-border-radius: 8px;
+                }
+
+                #whatsIncluded mas-multifield {
                     margin-bottom: 16px;
                 }
 
@@ -560,24 +617,12 @@ class MerchCardEditor extends LitElement {
                         <sp-field-label for="card-variant">Template</sp-field-label>
                         <variant-picker
                             id="card-variant"
-                            ?show-all="false"
                             data-field="variant"
-                            default-value="${form.variant.values[0]}"
+                            data-field-state="${this.getFieldState('variant')}"
+                            .value="${form.variant.values[0]}"
                             @change="${this.#handleVariantChange}"
                         ></variant-picker>
-                    </sp-field-group>
-                    <sp-field-group id="style">
-                        <sp-field-label for="card-style">Style</sp-field-label>
-                        <sp-picker
-                            id="card-style"
-                            data-field="style"
-                            value="${form.style?.values[0] || 'default'}"
-                            data-default-value="default"
-                            @change="${this.#handleFragmentUpdate}"
-                        >
-                            <sp-menu-item value="default">Default</sp-menu-item>
-                            <sp-menu-item value="dark">Dark</sp-menu-item>
-                        </sp-picker>
+                        ${this.renderFieldStatusIndicator('variant')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="cardName">
                         <sp-field-label for="card-name">Card name</sp-field-label>
@@ -585,10 +630,11 @@ class MerchCardEditor extends LitElement {
                             placeholder="Enter card name"
                             id="card-name"
                             data-field="cardName"
+                            data-field-state="${this.getFieldState('cardName')}"
                             value="${form.cardName.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                         ></sp-textfield>
-                        ${this.renderOverrideIndicator('cardName')}
+                        ${this.renderFieldStatusIndicator('cardName')}
                     </sp-field-group>
                     <sp-field-group id="fragment-title-group">
                         <sp-field-label for="fragment-title">Fragment title</sp-field-label>
@@ -617,11 +663,12 @@ class MerchCardEditor extends LitElement {
                         link
                         mnemonic
                         data-field="cardTitle"
+                        data-field-state="${this.getFieldState('cardTitle')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.cardTitle.values[0] || ''}
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
-                    ${this.renderOverrideIndicator('cardTitle')}
+                    ${this.renderFieldStatusIndicator('cardTitle')}
                 </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="subtitle">
@@ -630,16 +677,18 @@ class MerchCardEditor extends LitElement {
                             placeholder="Enter card subtitle"
                             id="card-subtitle"
                             data-field="subtitle"
+                            data-field-state="${this.getFieldState('subtitle')}"
                             value="${form.subtitle.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                         ></sp-textfield>
-                        ${this.renderOverrideIndicator('subtitle')}
+                        ${this.renderFieldStatusIndicator('subtitle')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="size">
                         <sp-field-label for="card-size">Size</sp-field-label>
                         <sp-picker
                             id="card-size"
                             data-field="size"
+                            data-field-state="${this.getFieldState('size')}"
                             value="${form.size.values[0] || 'Default'}"
                             data-default-value="Default"
                             @change="${this.#handleFragmentUpdate}"
@@ -648,7 +697,7 @@ class MerchCardEditor extends LitElement {
                                 (size) => html` <sp-menu-item value="${size}">${this.#formatName(size)}</sp-menu-item> `,
                             )}
                         </sp-picker>
-                        ${this.renderOverrideIndicator('size')}
+                        ${this.renderFieldStatusIndicator('size')}
                     </sp-field-group>
                 </div>
                 <sp-field-group id="tags">
@@ -659,12 +708,16 @@ class MerchCardEditor extends LitElement {
                         namespace="/content/cq:tags/mas"
                         multiple
                         class="tags-spacing"
-                        value="${this.fragment.tags.map((tag) => tag.id).join(',')}"
+                        data-field-state="${this.getTagsFieldState()}"
+                        value="${(this.fragment.newTags || this.fragment.tags.map((tag) => tag.id)).join(',')}"
+                        .parentTags="${this.effectiveIsVariation
+                            ? this.localeDefaultFragment?.tags.map((t) => t.id) || []
+                            : []}"
                         @change=${this.#handeTagsChange}
                     ></aem-tag-picker-field>
+                    ${this.renderTagsStatusIndicator()}
                 </sp-field-group>
                 <div class="section-title">Visuals</div>
-                ${this.renderSectionOverrideIndicator(['mnemonics'])}
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield
                         id="mnemonics"
@@ -677,7 +730,7 @@ class MerchCardEditor extends LitElement {
                             <mas-mnemonic-field></mas-mnemonic-field>
                         </template>
                     </mas-multifield>
-                    ${this.renderOverrideIndicator('mnemonics')}
+                    ${this.renderFieldStatusIndicator('mnemonicIcon')}
                 </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="badge">
@@ -686,6 +739,7 @@ class MerchCardEditor extends LitElement {
                             placeholder="Enter badge text"
                             id="card-badge"
                             data-field="badge"
+                            data-field-state="${this.getBadgeComponentState('badge', 'text')}"
                             value="${this.badge.text}"
                             @input="${this.#updateBadgeText}"
                         ></sp-textfield>
@@ -697,6 +751,7 @@ class MerchCardEditor extends LitElement {
                             placeholder="Enter badge text"
                             id="card-trial-badge"
                             data-field="trialBadge"
+                            data-field-state="${this.getBadgeComponentState('trialBadge', 'text')}"
                             value="${this.trialBadge.text}"
                             @input="${this.#updateTrialBadgeText}"
                         ></sp-textfield>
@@ -720,15 +775,17 @@ class MerchCardEditor extends LitElement {
                 </div>
                 <sp-field-group class="toggle" id="whatsIncluded">
                     <div class="section-title">What's included</div>
-                    ${this.renderSectionOverrideIndicator(['whatsIncluded'])}
                     <sp-textfield
                         id="whatsIncludedLabel"
                         placeholder="Enter the label text"
+                        data-field-state="${this.getFieldState('whatsIncluded')}"
                         value="${this.whatsIncluded.label}"
                         @input="${this.#updateWhatsIncluded}"
                     ></sp-textfield>
+                    ${this.renderSectionStatusIndicator(['whatsIncluded'])}
                     <mas-multifield
                         button-label="Add application"
+                        data-field-state="${this.getFieldState('whatsIncluded')}"
                         .value="${this.whatsIncluded.values}"
                         @change="${this.#updateWhatsIncluded}"
                         @input="${this.#updateWhatsIncluded}"
@@ -737,19 +794,20 @@ class MerchCardEditor extends LitElement {
                             <mas-included-field></mas-included-field>
                         </template>
                     </mas-multifield>
-                    ${this.renderOverrideIndicator('whatsIncluded')}
+                    ${this.renderFieldStatusIndicator('whatsIncluded')}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="quantitySelect">
                     <div class="section-title">Quantity selection</div>
-                    ${this.renderSectionOverrideIndicator(['titleQuantity', 'startQuantity', 'stepQuantity'])}
                     <sp-checkbox
                         size="m"
+                        data-field-state="${this.getFieldState('quantitySelect')}"
                         value="${this.quantitySelectorDisplayed}"
                         .checked="${this.quantitySelectorDisplayed}"
                         @change="${this.#showQuantityFields}"
                         ?disabled=${this.disabled}
                         >Show quantity selector</sp-checkbox
                     >
+                    ${this.renderFieldStatusIndicator('quantitySelect')}
                     <div id="quantitySelector" style="display: ${this.quantitySelectorDisplayed ? 'block' : 'none'};">
                         <div class="two-column-grid">
                             <sp-field-group id="quantitySelectorTitle">
@@ -757,24 +815,25 @@ class MerchCardEditor extends LitElement {
                                 <sp-textfield
                                     id="title-quantity"
                                     data-field="titleQuantity"
+                                    data-field-state="${this.getQuantityComponentState('title')}"
                                     value="${this.quantityTitle}"
                                     @input="${this.#updateQuantityValues}"
                                     ?disabled=${this.disabled}
                                 ></sp-textfield>
-                                ${this.renderOverrideIndicator('titleQuantity')}
+                                ${this.renderQuantityComponentOverrideIndicator('title')}
                             </sp-field-group>
                             <sp-field-group id="quantitySelectorStart">
                                 <sp-field-label for="start-quantity">Start quantity</sp-field-label>
                                 <sp-textfield
                                     id="start-quantity"
                                     data-field="startQuantity"
+                                    data-field-state="${this.getQuantityComponentState('min')}"
                                     pattern="[0-9]*"
                                     value="${this.quantityStart}"
                                     @input="${this.#updateQuantityValues}"
                                     ?disabled=${this.disabled}
-                                    ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
-                                >
-                                ${this.renderOverrideIndicator('startQuantity')}
+                                ></sp-textfield>
+                                ${this.renderQuantityComponentOverrideIndicator('min')}
                             </sp-field-group>
                         </div>
                         <sp-field-group id="quantitySelectorStep">
@@ -782,13 +841,13 @@ class MerchCardEditor extends LitElement {
                             <sp-textfield
                                 id="step-quantity"
                                 data-field="stepQuantity"
+                                data-field-state="${this.getQuantityComponentState('step')}"
                                 pattern="[0-9]*"
                                 value="${this.quantityStep}"
                                 @input="${this.#updateQuantityValues}"
                                 ?disabled=${this.disabled}
-                                ><sp-help-text slot="negative-help-text">Numeric values only</sp-help-text></sp-textfield
-                            >
-                            ${this.renderOverrideIndicator('stepQuantity')}
+                            ></sp-textfield>
+                            ${this.renderQuantityComponentOverrideIndicator('step')}
                         </sp-field-group>
                     </div>
                 </sp-field-group>
@@ -799,10 +858,11 @@ class MerchCardEditor extends LitElement {
                             placeholder="Enter background image URL"
                             id="background-image"
                             data-field="backgroundImage"
+                            data-field-state="${this.getFieldState('backgroundImage')}"
                             value="${form.backgroundImage.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                         ></sp-textfield>
-                        ${this.renderOverrideIndicator('backgroundImage')}
+                        ${this.renderFieldStatusIndicator('backgroundImage')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="backgroundImageAltText">
                         <sp-field-label for="background-image-alt-text">Background Image Alt Text</sp-field-label>
@@ -810,10 +870,11 @@ class MerchCardEditor extends LitElement {
                             placeholder="Enter background image Alt Text"
                             id="background-image-alt-text"
                             data-field="backgroundImageAltText"
+                            data-field-state="${this.getFieldState('backgroundImageAltText')}"
                             value="${form.backgroundImageAltText.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                         ></sp-textfield>
-                        ${this.renderOverrideIndicator('backgroundImageAltText')}
+                        ${this.renderFieldStatusIndicator('backgroundImageAltText')}
                     </sp-field-group>
                 </div>
                 <div class="section-title">Price and Promo</div>
@@ -826,12 +887,13 @@ class MerchCardEditor extends LitElement {
                         mnemonic
                         multiline
                         data-field="prices"
+                        data-field-state="${this.getFieldState('prices')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.prices.values[0] || ''}
                         default-link-style="primary-outline"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
-                    ${this.renderOverrideIndicator('prices')}
+                    ${this.renderFieldStatusIndicator('prices')}
                 </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group id="promoCode">
@@ -840,11 +902,12 @@ class MerchCardEditor extends LitElement {
                             placeholder="Enter promo code"
                             id="promo-code"
                             data-field="promoCode"
+                            data-field-state="${this.getFieldState('promoCode')}"
                             value="${form.promoCode?.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                             ?disabled=${this.disabled}
                         ></sp-textfield>
-                        ${this.renderOverrideIndicator('promoCode')}
+                        ${this.renderFieldStatusIndicator('promoCode')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="addonConfirmation">
                         <sp-field-label for="addon-confirmation">Addon Confirmation</sp-field-label>
@@ -852,11 +915,12 @@ class MerchCardEditor extends LitElement {
                             placeholder="Enter addon confirmation text"
                             id="addon-confirmation"
                             data-field="addonConfirmation"
+                            data-field-state="${this.getFieldState('addonConfirmation')}"
                             value="${form.addonConfirmation?.values[0]}"
                             @input="${this.#handleFragmentUpdate}"
                             ?disabled=${this.disabled}
                         ></sp-textfield>
-                        ${this.renderOverrideIndicator('addonConfirmation')}
+                        ${this.renderFieldStatusIndicator('addonConfirmation')}
                     </sp-field-group>
                 </div>
                 <sp-field-group class="toggle" id="promoText">
@@ -865,22 +929,24 @@ class MerchCardEditor extends LitElement {
                         placeholder="Enter promo text"
                         id="promo-text"
                         data-field="promoText"
+                        data-field-state="${this.getFieldState('promoText')}"
                         value="${form.promoText?.values[0]}"
                         @input="${this.#handleFragmentUpdate}"
                         ?disabled=${this.disabled}
                     ></sp-textfield>
-                    ${this.renderOverrideIndicator('promoText')}
+                    ${this.renderFieldStatusIndicator('promoText')}
                 </sp-field-group>
                 <sp-field-group>
                     <sp-field-label for="osi">OSI Search</sp-field-label>
                     <osi-field
                         id="osi"
                         data-field="osi"
+                        data-field-state="${this.getFieldState('osi')}"
                         .value=${form.osi.values[0]}
                         @input="${this.#handleFragmentUpdate}"
                         @change="${this.#handleFragmentUpdate}"
                     ></osi-field>
-                    ${this.renderOverrideIndicator('osi')}
+                    ${this.renderFieldStatusIndicator('osi')}
                 </sp-field-group>
                 <sp-field-group id="perUnitLabel" class="toggle">
                     <sp-divider></sp-divider>
@@ -889,11 +955,12 @@ class MerchCardEditor extends LitElement {
                         id="per-unit-label"
                         placeholder="Enter per unit label"
                         data-field="perUnitLabel"
+                        data-field-state="${this.getFieldState('perUnitLabel')}"
                         class="full-width"
                         value="${this.#getPerUnitDisplayValue(form.perUnitLabel?.values[0])}"
                         @input="${this.#handlePerUnitLabelUpdate}"
                     ></sp-textfield>
-                    ${this.renderOverrideIndicator('perUnitLabel')}
+                    ${this.renderFieldStatusIndicator('perUnitLabel')}
                 </sp-field-group>
                 <div class="section-title">Product details</div>
                 <sp-field-group class="toggle" id="description">
@@ -908,12 +975,13 @@ class MerchCardEditor extends LitElement {
                         divider
                         .marks=${VARIANT_RTE_MARKS[this.fragment.variant]?.description?.marks}
                         data-field="description"
+                        data-field-state="${this.getFieldState('description')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.description.values[0] || ''}
                         default-link-style="secondary-link"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
-                    ${this.renderOverrideIndicator('description')}
+                    ${this.renderFieldStatusIndicator('description')}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="shortDescription">
                     <sp-field-label for="shortDescription">Short Description</sp-field-label>
@@ -925,12 +993,13 @@ class MerchCardEditor extends LitElement {
                         list
                         mnemonic
                         data-field="shortDescription"
+                        data-field-state="${this.getFieldState('shortDescription')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.shortDescription?.values[0] || ''}
                         default-link-style="secondary-link"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
-                    ${this.renderOverrideIndicator('shortDescription')}
+                    ${this.renderFieldStatusIndicator('shortDescription')}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="callout">
                     <sp-field-label for="callout"> Callout text </sp-field-label>
@@ -939,13 +1008,14 @@ class MerchCardEditor extends LitElement {
                         link
                         icon
                         data-field="callout"
+                        data-field-state="${this.getFieldState('callout')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.callout?.values[0] || ''}
                         default-link-style="secondary-link"
                         @change="${this.#handleFragmentUpdate}"
                         ?readonly=${this.disabled}
                     ></rte-field>
-                    ${this.renderOverrideIndicator('callout')}
+                    ${this.renderFieldStatusIndicator('callout')}
                 </sp-field-group>
                 <div class="section-title">Footer</div>
                 <sp-field-group class="toggle" id="ctas">
@@ -954,12 +1024,13 @@ class MerchCardEditor extends LitElement {
                         link
                         inline
                         data-field="ctas"
+                        data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.ctas.values[0] || ''}
                         default-link-style="primary-outline"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
-                    ${this.renderOverrideIndicator('ctas')}
+                    ${this.renderFieldStatusIndicator('ctas')}
                 </sp-field-group>
                 <div class="section-title">Options and settings</div>
                 <div class="two-column-grid">
@@ -968,22 +1039,24 @@ class MerchCardEditor extends LitElement {
                             id="secure-text-field"
                             label="Secure Transaction Label"
                             data-field="showSecureLabel"
+                            data-field-state="${this.getFieldState('showSecureLabel')}"
                             value="${form.showSecureLabel?.values[0]}"
                             @change="${this.#handleFragmentUpdate}"
                         >
                         </secure-text-field>
-                        ${this.renderOverrideIndicator('showSecureLabel')}
+                        ${this.renderFieldStatusIndicator('showSecureLabel')}
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
                         <mas-plan-type-field
                             id="plan-type-field"
                             label="Plan Type text"
                             data-field="showPlanType"
+                            data-field-state="${this.getFieldState('showPlanType')}"
                             value="${form.showPlanType?.values[0]}"
                             @change="${this.#handleFragmentUpdate}"
                         >
                         </mas-plan-type-field>
-                        ${this.renderOverrideIndicator('showPlanType')}
+                        ${this.renderFieldStatusIndicator('showPlanType')}
                     </sp-field-group>
                 </div>
                 <sp-field-group id="addon" class="toggle">
@@ -991,22 +1064,24 @@ class MerchCardEditor extends LitElement {
                         id="addon-field"
                         label="Addon"
                         data-field="addon"
+                        data-field-state="${this.getFieldState('addon')}"
                         .value="${form.addon?.values[0]}"
                         @change="${this.updateFragment}"
                     >
                     </mas-addon-field>
-                    ${this.renderOverrideIndicator('addon')}
+                    ${this.renderFieldStatusIndicator('addon')}
                 </sp-field-group>
                 <sp-field-group id="locReady">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                         <sp-field-label for="loc-ready">Send to translation?</sp-field-label>
                         <sp-switch
                             id="loc-ready"
+                            data-field-state="${this.getFieldState('locReady')}"
                             ?checked="${form.locReady?.values[0]}"
                             @click="${this.#handleLocReady}"
                         ></sp-switch>
                     </div>
-                    ${this.renderOverrideIndicator('locReady')}
+                    ${this.renderFieldStatusIndicator('locReady')}
                 </sp-field-group>
             </div>
         `;
@@ -1341,47 +1416,77 @@ class MerchCardEditor extends LitElement {
         return { text: html.trim(), bgColor: '', borderColor: '' };
     }
 
-    getBadgeComponentState(fieldName, component) {
-        if (!this.isVariation || !this.localeDefaultFragment) {
-            return 'no-parent';
-        }
+    #parseQuantityHtml(html) {
+        if (!html) return { title: '', min: '', step: '' };
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const el = doc.querySelector('merch-quantity-select');
+        return {
+            title: el?.getAttribute('title') || '',
+            min: el?.getAttribute('min') || '',
+            step: el?.getAttribute('step') || '',
+        };
+    }
 
-        const ownHtml = this.getEffectiveFieldValue(fieldName, 0) || '';
+    #getCompositeComponentState(fieldName, parser, component, getOwnHtml) {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        const ownHtml = getOwnHtml ? getOwnHtml() : this.fragment?.getFieldValue(fieldName, 0) || '';
         const parentHtml = this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '';
-
-        const ownParsed = this.#parseBadgeHtml(ownHtml);
-        const parentParsed = this.#parseBadgeHtml(parentHtml);
-
+        const ownParsed = parser(ownHtml);
+        const parentParsed = parser(parentHtml);
         const ownValue = ownParsed[component];
         const parentValue = parentParsed[component];
-
-        if (!ownValue && !parentValue) return 'inherited';
         if (!ownValue) return 'inherited';
-        if (ownValue === parentValue) return 'inherited';
-        return 'overridden';
+        return ownValue === parentValue ? 'inherited' : 'overridden';
+    }
+
+    getQuantityComponentState(component) {
+        return this.#getCompositeComponentState(QUANTITY_MODEL, this.#parseQuantityHtml.bind(this), component);
+    }
+
+    renderQuantityComponentOverrideIndicator(component) {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getQuantityComponentState(component) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetQuantityComponentToParent(component));
+    }
+
+    async resetQuantityComponentToParent(component) {
+        const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
+        const parentParsed = this.#parseQuantityHtml(parentHtml);
+        const currentTitle = component === 'title' ? parentParsed.title : this.quantityTitle;
+        const currentMin = component === 'min' ? parentParsed.min : this.quantityStart;
+        const currentStep = component === 'step' ? parentParsed.step : this.quantityStep;
+        const html = this.createQsElement(currentMin, currentStep, currentTitle).outerHTML;
+        this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
+        this.quantitySelectorValues = html;
+        showToast('Field restored to parent value', 'positive');
+    }
+
+    getBadgeComponentState(fieldName, component) {
+        return this.#getCompositeComponentState(
+            fieldName,
+            this.#parseBadgeHtml.bind(this),
+            component,
+            () => this.getEffectiveFieldValue(fieldName, 0) || '',
+        );
+    }
+
+    #getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor) {
+        if (isBadgeColor) {
+            const fieldName = dataField === 'badgeColor' ? 'badge' : 'trialBadge';
+            return this.getBadgeComponentState(fieldName, 'bgColor');
+        }
+        if (isBadgeBorderColor) {
+            const fieldName = dataField === 'badgeBorderColor' ? 'badge' : 'trialBadge';
+            return this.getBadgeComponentState(fieldName, 'borderColor');
+        }
+        return this.getFieldState(dataField);
     }
 
     renderBadgeComponentOverrideIndicator(fieldName, component) {
-        if (this.isVariation && !this.localeDefaultFragment) {
-            return nothing;
-        }
-        const state = this.getBadgeComponentState(fieldName, component);
-        const isOverridden = state === 'overridden';
-        return html`
-            <div class="field-reset-link">
-                ${isOverridden
-                    ? html`<a
-                          href="javascript:void(0)"
-                          @click=${(e) => {
-                              e.preventDefault();
-                              this.resetBadgeComponentToParent(fieldName, component);
-                          }}
-                      >
-                          ↩ Overridden. Click to restore.
-                      </a>`
-                    : nothing}
-            </div>
-        `;
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getBadgeComponentState(fieldName, component) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetBadgeComponentToParent(fieldName, component));
     }
 
     async resetBadgeComponentToParent(fieldName, component) {
@@ -1689,6 +1794,7 @@ class MerchCardEditor extends LitElement {
                 <sp-picker
                     id="${id}"
                     data-field="${dataField}"
+                    data-field-state="${this.#getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor)}"
                     value="${displaySelectedValue ||
                     (isBackground || isBadgeColor || isBadgeBorderColor || isBorder ? 'Default' : '')}"
                     data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder ? 'Default' : ''}"
@@ -1744,7 +1850,7 @@ class MerchCardEditor extends LitElement {
                           dataField === 'badgeColor' || dataField === 'badgeBorderColor' ? 'badge' : 'trialBadge',
                           isBadgeBorderColor ? 'borderColor' : 'bgColor',
                       )
-                    : this.renderOverrideIndicator(dataField)}
+                    : this.renderFieldStatusIndicator(dataField)}
             </sp-field-group>
         `;
     }
@@ -1777,6 +1883,7 @@ class MerchCardEditor extends LitElement {
                 <sp-picker
                     id="backgroundColor"
                     data-field="${dataField}"
+                    data-field-state="${this.getFieldState(dataField)}"
                     value="${selectedValue === 'transparent' ? 'Transparent' : selectedValue || 'Default'}"
                     data-default-value="${selectedValue === 'transparent' ? 'Transparent' : selectedValue || 'Default'}"
                     @change="${handleBackgroundChange}"
@@ -1802,7 +1909,7 @@ class MerchCardEditor extends LitElement {
                             `,
                         )}
                 </sp-picker>
-                ${this.renderOverrideIndicator(dataField)}
+                ${this.renderFieldStatusIndicator(dataField)}
             </sp-field-group>
         `;
     }

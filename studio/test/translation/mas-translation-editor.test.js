@@ -431,7 +431,7 @@ describe('MasTranslationEditor', () => {
             toggleBtn.click();
             await el.updateComplete;
             expect(el.isSelectedLangsOpen).to.be.true;
-        });        
+        });
 
         it('should render mas-select-fragments-table when expanded', async () => {
             const mockStore = createMockFragmentStore('123', 'Test', ['item1']);

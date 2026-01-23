@@ -1,4 +1,5 @@
-import { LitElement, html, nothing, repeat } from 'lit';
+import { LitElement, html, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import { keyed } from 'lit/directives/keyed.js';
 import { styles } from './mas-fragment-picker.css.js';
 import './mas-selected-items.js';

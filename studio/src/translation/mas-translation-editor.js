@@ -592,11 +592,7 @@ class MasTranslationEditor extends LitElement {
                                         `
                                       : html`
                                             <div>
-                                                <overlay-trigger
-                                                    type="modal"
-                                                    id="add-files-overlay"
-                                                    triggered-by="click"
-                                                >
+                                                <overlay-trigger type="modal" id="add-files-overlay" triggered-by="click">
                                                     ${this.renderAddFilesDialog()}
                                                     <sp-button slot="trigger" class="trigger-btn" @click=${this.createSnapshot}>
                                                         <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>

@@ -8,6 +8,7 @@ import Store from '../store.js';
 import { ROOT_PATH, EDITABLE_FRAGMENT_MODEL_IDS } from '../constants.js';
 import { getService, showToast, copyToClipboard } from '../utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
+import { Fragment } from '../aem/fragment.js';
 
 class MasFragmentPicker extends LitElement {
     static styles = styles;
@@ -142,15 +143,14 @@ class MasFragmentPicker extends LitElement {
             const fetchedFragments = [];
             for await (const result of cursor) {
                 for (const item of result) {
-                    fetchedFragments.push(item);
+                    fetchedFragments.push(new Fragment(item));
                 }
             }
-            // const fetchedFragments = hardcoded;
             this.fragments = await Promise.all(
-                fetchedFragments.map(async (fragment) => ({
-                    ...fragment,
-                    offerData: await this.loadOfferData(fragment),
-                })),
+                fetchedFragments.map(async (fragment) => {
+                    fragment.offerData = await this.loadOfferData(fragment);
+                    return fragment;
+                }),
             );
             this.fragmentsById = new Map(this.fragments.map((fragment) => [fragment.id, fragment]));
             // Update Store so mas-selected-items can access fragment data

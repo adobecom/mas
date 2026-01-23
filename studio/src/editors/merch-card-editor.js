@@ -766,7 +766,7 @@ class MerchCardEditor extends LitElement {
                             .iconLibrary="${true}"
                             style="display: ${this.badge.text ? 'block' : 'none'};"
                             @change=${this.#updateBadgeIcon}
-                        ></mas-mnemonic-field>                    
+                        ></mas-mnemonic-field>
                     </sp-field-group>
                 </div>
                 ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}

@@ -747,11 +747,6 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#updateBadgeText}"
                         ></sp-textfield>
                         ${this.renderBadgeComponentOverrideIndicator('badge', 'text')}
-                        <mas-mnemonic-field
-                            .iconLibrary="${true}"
-                            @change=${this.#updateBadgeIcon}
-                            style="display: ${this.isPlans ? 'block' : 'none'};"
-                        ></mas-mnemonic-field>
                     </sp-field-group>
                     <sp-field-group class="toggle" id="trialBadge">
                         <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
@@ -764,6 +759,14 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#updateTrialBadgeText}"
                         ></sp-textfield>
                         ${this.renderBadgeComponentOverrideIndicator('trialBadge', 'text')}
+                    </sp-field-group>
+                    <sp-field-group class="toggle" id="badgeIcon">
+                        <mas-mnemonic-field
+                            .icon="${this.badge.icon}"
+                            .iconLibrary="${true}"
+                            style="display: ${this.badge.text ? 'block' : 'none'};"
+                            @change=${this.#updateBadgeIcon}
+                        ></mas-mnemonic-field>                    
                     </sp-field-group>
                 </div>
                 ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}

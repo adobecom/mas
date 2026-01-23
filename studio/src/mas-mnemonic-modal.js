@@ -356,7 +356,7 @@ class MasMnemonicModal extends LitElement {
                         id="url-icon"
                         required
                         placeholder="https://example.com/icon.svg"
-                        value="${!this.icon.startsWith('sp-icon-') ? this.icon : ''}"
+                        value="${!this.icon?.startsWith('sp-icon-') ? this.icon : ''}"
                         @input=${(e) => (this.icon = e.target.value)}
                     ></sp-textfield>
                 </div>

@@ -1328,7 +1328,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit CTA in OST', async () => {
             await expect(await editor.footer).toBeVisible();
-            await expect(await editor.footer).toContainText(data.cta.original.text);
+            await expect(await editor.footer).toContainText(data.cta.original.label);
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
             await expect(await individuals.cardCTA).toHaveAttribute(
@@ -1352,7 +1352,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 await ost.ctaTextMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.cta.updated.option}`,
+                        hasText: `${data.cta.updated.label}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -1360,7 +1360,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.cta.updated.option}`,
+                    hasText: `${data.cta.updated.label}`,
                 })
                 .click();
             await expect(async () => {
@@ -1384,11 +1384,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate edited CTA in Editor panel', async () => {
-            await expect(await editor.footer).toContainText(data.cta.updated.text);
+            await expect(await editor.footer).toContainText(data.cta.updated.placeholder);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
-            await expect(await individuals.cardCTA).toContainText(data.cta.updated.text);
+            await expect(await individuals.cardCTA).toContainText(data.cta.updated.label);
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
             await expect(await individuals.cardCTA).toHaveAttribute(
@@ -1413,7 +1413,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
-            await expect(await individuals.cardCTA).toContainText(data.cta.original.text);
+            await expect(await individuals.cardCTA).toContainText(data.cta.original.label);
         });
     });
 

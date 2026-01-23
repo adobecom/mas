@@ -531,12 +531,19 @@ class MasTranslationEditor extends LitElement {
                                                         Edit
                                                     </sp-button>
                                                 </overlay-trigger>
-                                                <sp-button icon-only class="toggle-btn">
+                                                <sp-button
+                                                    icon-only
+                                                    class="toggle-btn"
+                                                    @click=${() => (this.isSelectedLangsOpen = true)}
+                                                >
                                                     <sp-icon-chevron-down slot="icon" label="Open"></sp-icon-chevron-down>
                                                 </sp-button>
                                             </div>
                                         `}
                               </div>
+                              ${this.isSelectedLangsOpen
+                                  ? html` <div class="selected-langs-list">${this.selectedLangs.sort().join(', ')}</div> `
+                                  : nothing}
                           </div>`
                 }
                 ${

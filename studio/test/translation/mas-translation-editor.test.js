@@ -419,6 +419,20 @@ describe('MasTranslationEditor', () => {
             expect(el.isSelectedFilesOpen).to.be.true;
         });
 
+        it('should toggle selected languages visibility', async () => {
+            const mockStore = createMockFragmentStore('123', 'Test', [], ['lang1', 'lang2']);
+            Store.translationProjects.inEdit.value = mockStore;
+            Store.translationProjects.translationProjectId.value = '123';
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.showLangSelectedEmptyState = false;
+            await el.updateComplete;
+            expect(el.isSelectedLangsOpen).to.be.false;
+            const toggleBtn = el.shadowRoot.querySelector('.selected-langs .toggle-btn');
+            toggleBtn.click();
+            await el.updateComplete;
+            expect(el.isSelectedLangsOpen).to.be.true;
+        });        
+
         it('should render mas-select-fragments-table when expanded', async () => {
             const mockStore = createMockFragmentStore('123', 'Test', ['item1']);
             Store.translationProjects.inEdit.value = mockStore;

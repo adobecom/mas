@@ -431,6 +431,8 @@ describe('MasTranslationEditor', () => {
             toggleBtn.click();
             await el.updateComplete;
             expect(el.isSelectedLangsOpen).to.be.true;
+            const langList = el.shadowRoot.querySelector('.selected-langs-list');
+            expect(langList.textContent.trim()).to.equal('lang1, lang2');
         });
 
         it('should render mas-select-fragments-table when expanded', async () => {

@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "module": "esnext",
+        "moduleResolution": "node",
+        "target": "esnext",
+        "lib": ["esnext", "dom"],
+        "checkJs": false,
+        "jsx": "preserve"
+    },
+    "exclude": [
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/coverage/**",
+        "**/.nyc_output/**",
+        "**/test-results/**",
+        "**/test-html-results/**",
+        "nala/**",
+        "ost-audit/**",
+        "studio/ost/**",
+        "web-components/internal/**",
+        "web-components/screenshots/**",
+        "**/*.map",
+        "**/*.min.js"
+    ]
+}

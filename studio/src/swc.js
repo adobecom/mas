@@ -87,7 +87,6 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-select-no.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-settings.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-shopping-cart.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-star.js';
-import '@spectrum-web-components/icons-workflow/icons/sp-icon-star-outline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-stroke-solid.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-table.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-tag-bold.js';

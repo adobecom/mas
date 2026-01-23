@@ -3,7 +3,6 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 export const ICON_LIBRARY = [
     { id: 'sp-icon-star', name: 'Star' },
-    { id: 'sp-icon-star-outline', name: 'Star Outline' },
     { id: 'sp-icon-ribbon', name: 'Ribbon' },
 ];
 

@@ -396,8 +396,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('is', 'checkout-button');
 
             const CTAhref = await trybuywidget.cardCTA.first().getAttribute('data-href');
-            let workflowStep = decodeURI(CTAhref).split('?')[0];
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const workflowStep = decodeURI(CTAhref).split('?')[0];
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
 
             expect(workflowStep).toContain(data.ucv3);
             expect(searchParams.get('co')).toBe(data.country);
@@ -437,14 +437,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Edit card variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).not.toBeVisible();
             await expect(await editor.subtitle).not.toBeVisible();
@@ -500,14 +500,14 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Edit card variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await expect(await editor.size).not.toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).toBeVisible();
@@ -727,7 +727,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('is', 'checkout-button');
             const CTAhref = await trybuywidget.cardCTA.first().getAttribute('data-href');
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
             expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
@@ -739,7 +739,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-6: Verify there is no changes of the card', async () => {
             const changedCTAhref = await trybuywidget.cardCTA.first().getAttribute('data-href');
-            let noSearchParams = new URLSearchParams(decodeURI(changedCTAhref).split('?')[1]);
+            const noSearchParams = new URLSearchParams(decodeURI(changedCTAhref).split('?')[1]);
             expect(noSearchParams).toBeNull;
         });
     });

@@ -1,4 +1,4 @@
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 
@@ -192,7 +192,7 @@ export function getFragmentPartsToUse(fragment, path) {
                 marketSegment: fragment?.getTagTitle('market_segment'),
                 customerSegment: fragment?.getTagTitle('customer_segment'),
                 product: fragment?.getTagTitle('mas:product/'),
-                promotion: fragment?.getTagTitle('mas:promotion/'),
+                promotion: fragment?.getTagTitle(TAG_PROMOTION_PREFIX),
             };
 
             VARIANTS.forEach((variant) => {

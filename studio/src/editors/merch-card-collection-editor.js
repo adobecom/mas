@@ -926,8 +926,8 @@ class MerchCardCollectionEditor extends LitElement {
         const positionValue = position.left !== undefined ? position.left : position.right;
         container.innerHTML = `
             <div class="preview-backdrop"></div>
-            <div class="preview-popover ${positionClass}" style="--popover-position: ${positionValue}px">
-                <div class="preview-content">
+            <div class="preview-popover">
+                <div class="preview-content columns mas-fragment">
                     <merch-card>
                         <aem-fragment author ims fragment="${previewItem.id}"></aem-fragment>
                     </merch-card>
@@ -942,6 +942,12 @@ class MerchCardCollectionEditor extends LitElement {
             await container.querySelector('aem-fragment').updateComplete;
             await container.querySelector('merch-card').checkReady();
             container.querySelector('sp-progress-circle')?.remove();
+            // Apply size after hydration (cleanup() removes it)
+            const merchCard = container.querySelector('merch-card');
+            const size = fragmentStore.get()?.fields?.find((f) => f.name === 'size')?.values?.[0];
+            if (size && size.trim()) {
+                merchCard.setAttribute('size', size);
+            }
         } catch (error) {
             console.error('Failed to load preview card:', error);
             container.querySelector('sp-progress-circle')?.remove();

@@ -617,28 +617,12 @@ class MerchCardEditor extends LitElement {
                         <sp-field-label for="card-variant">Template</sp-field-label>
                         <variant-picker
                             id="card-variant"
-                            ?show-all="false"
                             data-field="variant"
                             data-field-state="${this.getFieldState('variant')}"
                             .value="${form.variant.values[0]}"
                             @change="${this.#handleVariantChange}"
                         ></variant-picker>
                         ${this.renderFieldStatusIndicator('variant')}
-                    </sp-field-group>
-                    <sp-field-group id="style">
-                        <sp-field-label for="card-style">Style</sp-field-label>
-                        <sp-picker
-                            id="card-style"
-                            data-field="style"
-                            data-field-state="${this.getFieldState('style')}"
-                            .value="${form.style?.values[0] || 'default'}"
-                            data-default-value="default"
-                            @change="${this.#handleFragmentUpdate}"
-                        >
-                            <sp-menu-item value="default">Default</sp-menu-item>
-                            <sp-menu-item value="dark">Dark</sp-menu-item>
-                        </sp-picker>
-                        ${this.renderFieldStatusIndicator('style')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="cardName">
                         <sp-field-label for="card-name">Card name</sp-field-label>

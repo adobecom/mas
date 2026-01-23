@@ -7044,7 +7044,7 @@ merch-card [slot='callout-content'] .icon-button::before {
                     aria-activedescendant="${this.closed?R:`qs-item-${this.highlightedIndex}`}"
                     .value="${this.selectedValue}"
                     type="text"
-                    autocomplete="off"
+                    autocomplete="on"
                     @keydown="${this.handleKeydown}"
                     @keyup="${this.handleKeyupDebounced}"
                 />

@@ -13,7 +13,7 @@ import router from '../../src/router.js';
 describe('MasTranslationEditor', () => {
     let sandbox;
 
-    const createMockTranslationProject = (id, title, items = []) => {
+    const createMockTranslationProject = (id, title, items = [], targetLocales = []) => {
         return new TranslationProject({
             id,
             title,
@@ -21,14 +21,14 @@ describe('MasTranslationEditor', () => {
                 { name: 'title', type: 'text', multiple: false, values: [title] },
                 { name: 'status', type: 'text', multiple: false, values: [] },
                 { name: 'items', type: 'content-fragment', multiple: true, values: items },
-                { name: 'targetLocales', type: 'text', multiple: true, values: [] },
+                { name: 'targetLocales', type: 'text', multiple: true, values: targetLocales },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
             ],
         });
     };
 
-    const createMockFragmentStore = (id, title, items = []) => {
-        const project = createMockTranslationProject(id, title, items);
+    const createMockFragmentStore = (id, title, items = [], targetLocales = []) => {
+        const project = createMockTranslationProject(id, title, items, targetLocales);
         return new FragmentStore(project);
     };
 
@@ -54,6 +54,7 @@ describe('MasTranslationEditor', () => {
             expect(el.isDialogOpen).to.be.false;
             expect(el.confirmDialogConfig).to.be.null;
             expect(el.isSelectedFilesOpen).to.be.false;
+            expect(el.isSelectedLangsOpen).to.be.false;
             expect(el.isOverlayOpen).to.be.false;
         });
 
@@ -63,6 +64,7 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             expect(el.isNewTranslationProject).to.be.true;
             expect(el.showSelectedEmptyState).to.be.true;
+            expect(el.showLangSelectedEmptyState).to.be.true;
         });
 
         it('should have default disabled actions', async () => {
@@ -111,19 +113,23 @@ describe('MasTranslationEditor', () => {
         });
 
         it('selectedFilesCount getter should return items count', async () => {
-            const mockStore = createMockFragmentStore('123', 'Test Project', ['item1', 'item2', 'item3']);
+            const mockStore = createMockFragmentStore('123', 'Test Project', ['item1', 'item2', 'item3'], ['lang1', 'lang2']);
             Store.translationProjects.inEdit.value = mockStore;
             Store.translationProjects.translationProjectId.value = '123';
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
             expect(el.selectedFilesCount).to.equal(3);
+            expect(el.selectedLangsCount).to.equal(2);
         });
 
         it('selectedFilesCount getter should return 0 when no items', async () => {
             const project = new TranslationProject({
                 id: '123',
                 title: 'Test',
-                fields: [{ name: 'items', type: 'content-fragment', multiple: true, values: [] }],
+                fields: [
+                    { name: 'items', type: 'content-fragment', multiple: true, values: [] },
+                    { name: 'targetLocales', type: 'text', multiple: true, values: [] },
+                ],
             });
             const mockStore = new FragmentStore(project);
             Store.translationProjects.inEdit.value = mockStore;
@@ -131,6 +137,7 @@ describe('MasTranslationEditor', () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
             expect(el.selectedFilesCount).to.equal(0);
+            expect(el.selectedLangsCount).to.equal(0);
         });
     });
 
@@ -187,14 +194,18 @@ describe('MasTranslationEditor', () => {
             const emptyState = el.shadowRoot.querySelector('.files-empty-state');
             expect(emptyState).to.exist;
             expect(emptyState.textContent).to.include('Add files');
+            const langEmptyState = el.shadowRoot.querySelector('.languages-empty-state');
+            expect(langEmptyState).to.exist;
+            expect(langEmptyState.textContent).to.include('Add languages');
         });
 
         it('should render selected files section when files are selected', async () => {
-            const mockStore = createMockFragmentStore('123', 'Test Project', ['item1']);
+            const mockStore = createMockFragmentStore('123', 'Test Project', ['item1'], ['lang1']);
             Store.translationProjects.inEdit.value = mockStore;
             Store.translationProjects.translationProjectId.value = '123';
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             el.showSelectedEmptyState = false;
+            el.showLangSelectedEmptyState = false;
             await el.updateComplete;
             const selectedFiles = el.shadowRoot.querySelector('.selected-files');
             expect(selectedFiles).to.exist;
@@ -362,7 +373,7 @@ describe('MasTranslationEditor', () => {
         });
 
         it('should create snapshot of selected files', async () => {
-            const mockStore = createMockFragmentStore('123', 'Test', ['item1', 'item2']);
+            const mockStore = createMockFragmentStore('123', 'Test', ['item1', 'item2'], ['lang1', 'lang2', 'lang3']);
             Store.translationProjects.inEdit.value = mockStore;
             Store.translationProjects.translationProjectId.value = '123';
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -371,19 +382,27 @@ describe('MasTranslationEditor', () => {
             expect(el.selectedFilesSnapshot.size).to.equal(2);
             expect(el.selectedFilesSnapshot.has('item1')).to.be.true;
             expect(el.selectedFilesSnapshot.has('item2')).to.be.true;
+            el.createLangSnapshot();
+            expect(el.selectedLangs.length).to.equal(3);
+            expect(el.selectedLangs.includes('lang1')).to.be.true;
+            expect(el.selectedLangs.includes('lang2')).to.be.true;
+            expect(el.selectedLangs.includes('lang3')).to.be.true;
         });
     });
 
     describe('selected files section', () => {
         it('should show file count in header', async () => {
-            const mockStore = createMockFragmentStore('123', 'Test', ['item1', 'item2', 'item3']);
+            const mockStore = createMockFragmentStore('123', 'Test', ['item1', 'item2', 'item3'], ['lang1', 'lang2']);
             Store.translationProjects.inEdit.value = mockStore;
             Store.translationProjects.translationProjectId.value = '123';
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             el.showSelectedEmptyState = false;
+            el.showLangSelectedEmptyState = false;
             await el.updateComplete;
             const header = el.shadowRoot.querySelector('.selected-files-header h2');
             expect(header.textContent).to.include('3');
+            const langHeader = el.shadowRoot.querySelector('.selected-langs-header h2');
+            expect(langHeader.textContent).to.include('2');
         });
 
         it('should toggle selected files visibility', async () => {
@@ -394,10 +413,26 @@ describe('MasTranslationEditor', () => {
             el.showSelectedEmptyState = false;
             await el.updateComplete;
             expect(el.isSelectedFilesOpen).to.be.false;
-            const toggleBtn = el.shadowRoot.querySelector('.toggle-btn');
+            const toggleBtn = el.shadowRoot.querySelector('.selected-files .toggle-btn');
             toggleBtn.click();
             await el.updateComplete;
             expect(el.isSelectedFilesOpen).to.be.true;
+        });
+
+        it('should toggle selected languages visibility', async () => {
+            const mockStore = createMockFragmentStore('123', 'Test', [], ['lang1', 'lang2']);
+            Store.translationProjects.inEdit.value = mockStore;
+            Store.translationProjects.translationProjectId.value = '123';
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.showLangSelectedEmptyState = false;
+            await el.updateComplete;
+            expect(el.isSelectedLangsOpen).to.be.false;
+            const toggleBtn = el.shadowRoot.querySelector('.selected-langs .toggle-btn');
+            toggleBtn.click();
+            await el.updateComplete;
+            expect(el.isSelectedLangsOpen).to.be.true;
+            const langList = el.shadowRoot.querySelector('.selected-langs-list');
+            expect(langList.textContent.trim()).to.equal('lang1, lang2');
         });
 
         it('should render mas-select-fragments-table when expanded', async () => {
@@ -437,6 +472,24 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             const translationFiles = el.shadowRoot.querySelector('mas-translation-files');
             expect(translationFiles).to.be.null;
+        });
+    });
+
+    describe('add languages dialog', () => {
+        it('should render add languages dialog in overlay trigger', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const overlayTrigger = el.shadowRoot.querySelector('overlay-trigger');
+            expect(overlayTrigger).to.exist;
+            const dialogWrapper = el.shadowRoot.querySelector('.add-langs-dialog');
+            expect(dialogWrapper).to.exist;
+        });
+
+        it('should render mas-translation-langs when overlay is open', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const translationFiles = el.shadowRoot.querySelector('mas-translation-langs');
+            expect(translationFiles).to.exist;
         });
     });
 

@@ -100,6 +100,10 @@ class MasTranslationEditor extends LitElement {
         return this.translationProject?.getFieldValues('targetLocales').length;
     }
 
+    get selectedLangsList() {
+        return this.translationProject?.getFieldValues('targetLocales').sort().join(', ');
+    }
+
     #updateDisabledActions({ add = [], remove = [] }) {
         const newSet = new Set(this.disabledActions);
         remove.forEach((action) => newSet.delete(action));
@@ -321,7 +325,6 @@ class MasTranslationEditor extends LitElement {
 
     #confirmFileSelection = ({ target }) => {
         this.showSelectedEmptyState = this.selectedFilesCount === 0;
-        this.isOverlayOpen = false;
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -330,7 +333,6 @@ class MasTranslationEditor extends LitElement {
     #cancelFileSelection = ({ target }) => {
         this.translationProjectStore?.updateField('items', Array.from(this.selectedFilesSnapshot));
         this.showSelectedEmptyState = this.selectedFilesCount === 0;
-        this.isOverlayOpen = false;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
@@ -531,12 +533,19 @@ class MasTranslationEditor extends LitElement {
                                                         Edit
                                                     </sp-button>
                                                 </overlay-trigger>
-                                                <sp-button icon-only class="toggle-btn">
+                                                <sp-button
+                                                    icon-only
+                                                    class="toggle-btn"
+                                                    @click=${() => (this.isSelectedLangsOpen = true)}
+                                                >
                                                     <sp-icon-chevron-down slot="icon" label="Open"></sp-icon-chevron-down>
                                                 </sp-button>
                                             </div>
                                         `}
                               </div>
+                              ${this.isSelectedLangsOpen
+                                  ? html` <div class="selected-langs-list">${this.selectedLangsList}</div> `
+                                  : nothing}
                           </div>`
                 }
                 ${
@@ -551,7 +560,6 @@ class MasTranslationEditor extends LitElement {
                                               id="add-files-overlay"
                                               triggered-by="click"
                                               @sp-opened=${this.createSnapshot}
-                                              @sp-closed=${() => (this.isOverlayOpen = false)}
                                           >
                                               ${this.renderAddFilesDialog()}
                                               <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
@@ -584,12 +592,7 @@ class MasTranslationEditor extends LitElement {
                                         `
                                       : html`
                                             <div>
-                                                <overlay-trigger
-                                                    type="modal"
-                                                    id="add-files-overlay"
-                                                    triggered-by="click"
-                                                    @sp-closed=${() => (this.isOverlayOpen = false)}
-                                                >
+                                                <overlay-trigger type="modal" id="add-files-overlay" triggered-by="click">
                                                     ${this.renderAddFilesDialog()}
                                                     <sp-button slot="trigger" class="trigger-btn" @click=${this.createSnapshot}>
                                                         <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>

@@ -2,11 +2,11 @@ import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
-import { PAGE_NAMES } from '../src/constants.js';
-import Store from '../src/store.js';
-import router from '../src/router.js';
-import '../src/swc.js';
-import '../src/mas-translation.js';
+import { PAGE_NAMES } from '../../src/constants.js';
+import Store from '../../src/store.js';
+import router from '../../src/router.js';
+import '../../src/swc.js';
+import '../../src/translation/mas-translation.js';
 
 describe('MasTranslation', () => {
     let sandbox;

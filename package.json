@@ -1,5 +1,5 @@
 {
-    "name": "@adobe/mas-platform",
+    "name": "@adobecom/mas-platform",
     "version": "0.0.1",
     "type": "module",
     "main": "mas.js",
@@ -23,7 +23,6 @@
         "url": "git@github.com:adobecom/mas.git"
     },
     "dependencies": {
-        "@adobecom/milo": "github:adobecom/milo#stage",
         "@playwright/test": "^1.56.1",
         "@spectrum-css/button": "^13.5.0",
         "@spectrum-css/link": "^5.2.0",
@@ -86,7 +85,7 @@
         "@types/chai-as-promised": "7.1.5",
         "@types/sinon": "10.0.15",
         "@web/dev-server-import-maps": "^0.2.1",
-        "@web/test-runner": "^0.20.0",
+        "@web/test-runner": "^0.20.2",
         "@web/test-runner-commands": "^0.9.0",
         "esbuild": "^0.25.1",
         "esbuild-node-externals": "^1.13.1",

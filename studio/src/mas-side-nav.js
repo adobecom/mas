@@ -8,7 +8,6 @@ import './mas-side-nav-item.js';
 
 class MasSideNav extends LitElement {
     static properties = {
-        editorHasChanges: { type: Boolean, state: true },
         variationDataLoading: { type: Boolean, state: true },
     };
 
@@ -51,17 +50,14 @@ class MasSideNav extends LitElement {
     currentPage = new StoreController(this, Store.page);
     viewMode = new StoreController(this, Store.viewMode);
     search = new StoreController(this, Store.search);
-    editorHasChanges = false;
     variationDataLoading = false;
     fragmentStoreSubscription = null;
     variationLoadingTimeout = null;
 
     connectedCallback() {
         super.connectedCallback();
-        this.updateEditorChangesState();
 
         const fragmentStoreHandler = () => {
-            this.updateEditorChangesState();
             this.requestUpdate();
         };
 
@@ -86,7 +82,6 @@ class MasSideNav extends LitElement {
                 }
             }
 
-            this.updateEditorChangesState();
             this.requestUpdate();
         };
 
@@ -133,10 +128,6 @@ class MasSideNav extends LitElement {
             clearTimeout(this.variationLoadingTimeout);
             this.variationLoadingTimeout = null;
         }
-    }
-
-    updateEditorChangesState() {
-        this.editorHasChanges = Store.editor.hasChanges;
     }
 
     async updateVariationLoadingState() {
@@ -207,12 +198,14 @@ class MasSideNav extends LitElement {
     }
 
     async showHistory() {
-        const editorPanel = document.querySelector('editor-panel');
-        const versionHistory =
-            editorPanel?.querySelector('version-history') || this.fragmentEditor?.querySelector('version-history');
-        if (versionHistory) {
-            versionHistory.togglePanel();
-        }
+        const fragmentId = this.fragmentEditor?.fragment?.id;
+        if (!fragmentId) return;
+
+        // Store the fragment ID in the version store
+        Store.version.fragmentId.set(fragmentId);
+
+        // Navigate to the version history page
+        router.navigateToPage(PAGE_NAMES.VERSION)();
     }
 
     async unlockFragment() {
@@ -284,7 +277,7 @@ class MasSideNav extends LitElement {
         const loading = this.variationDataLoading;
 
         return html`
-            <mas-side-nav-item label="Save" ?disabled=${!this.editorHasChanges || loading} @nav-click="${this.saveFragment}">
+            <mas-side-nav-item label="Save" ?disabled=${!Store.editor.hasChanges || loading} @nav-click="${this.saveFragment}">
                 <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
             </mas-side-nav-item>
             ${!isVariation

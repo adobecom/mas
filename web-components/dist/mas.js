@@ -794,7 +794,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         height: 32px;
         position: absolute;
         top: 16px;
-        right: 16px;
+        inset-inline-end: 16px;
         background-color: #f6f6f6;
         background-repeat: no-repeat;
         background-position: center;
@@ -2203,7 +2203,7 @@ merch-card[variant^="plans"] [slot="callout-content"] > p {
 }
 
 merch-card[variant^="plans"] [slot="callout-content"] > p:has(> .icon-button) {
-    padding-right: 36px;
+    padding-inline-end: 36px;
 }
 
 merch-card[variant^="plans"] [slot='callout-content'] > p,
@@ -2293,12 +2293,12 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 
 .columns.checkmark-list ul {
     margin: 0;
-    padding-left: 20px;
+    padding-inline-start: 20px;
     list-style-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -3 18 18" height="18px"><path fill="currentcolor" d="M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z"></path></svg>');
 }
 
 .columns.checkmark-list ul li {
-    padding-left: 8px;
+    padding-inline-start: 8px;
 }
 
 /* Tabs containers */
@@ -2448,12 +2448,17 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     }
 
     .collection-container.plans:has(merch-sidenav) {
+        --translate-direction: -1;
         width: fit-content;
         position: relative;
-        left: 50%;
-        transform: translateX(-50vw);
+        inset-inline-start: 50%;
+        translate: calc(var(--translate-direction) * 50vw) 0;
         justify-content: start;
         padding-inline: 30px;
+    }
+
+    [dir="rtl"] .collection-container.plans:has(merch-sidenav) {
+        --translate-direction: 1;
     }
 
     .plans-individual .content {
@@ -6210,7 +6215,7 @@ merch-card [slot='callout-content'] {
 merch-card[variant^='plans'] [slot='badge'] {
     position: absolute;
     top: 16px;
-    right: 0;
+    inset-inline-end: 0;
     line-height: 16px;
 }
 
@@ -6547,6 +6552,16 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
 merch-badge[background-color="spectrum-red-700-plans"] {
   color: #FFFFFF;
 }
+
+/* Badge border-radius with RTL support */
+merch-badge {
+  --merch-badge-border-radius: 4px 0 0 4px; /* LTR default */
+}
+
+[dir="rtl"] merch-badge {
+  --merch-badge-border-radius: 0 4px 4px 0; /* RTL override */
+}
+
 /* Red border color for merch-cards */
 merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
@@ -6605,7 +6620,7 @@ merch-card [slot='callout-content'] .icon-button::before {
     }
 }
 
-`;document.head.appendChild(Ac);var Tc="fragment",Cc="author",_c="preview",kc="loading",Pc="timeout",Sa="aem-fragment",Lc="eager",Rc="cache",Ah=[Lc,Rc],Me,bt,Ce,Aa=class{constructor(){E(this,Me,new Map);E(this,bt,new Map);E(this,Ce,new Map)}clear(){h(this,Me).clear(),h(this,bt).clear(),h(this,Ce).clear()}add(t,r=!0){if(!this.has(t.id)&&!this.has(t.fields?.originalId)){if(h(this,Me).set(t.id,t),t.fields?.originalId&&h(this,Me).set(t.fields.originalId,t),h(this,Ce).has(t.id)){let[,i]=h(this,Ce).get(t.id);i()}if(h(this,Ce).has(t.fields?.originalId)){let[,i]=h(this,Ce).get(t.fields?.originalId);i()}if(!(!r||typeof t.references!="object"||Array.isArray(t.references)))for(let i in t.references){let{type:n,value:a}=t.references[i];n==="content-fragment"&&(a.settings={...t?.settings,...a.settings},a.placeholders={...t?.placeholders,...a.placeholders},a.dictionary={...t?.dictionary,...a.dictionary},a.priceLiterals={...t?.priceLiterals,...a.priceLiterals},this.add(a,t))}}}has(t){return h(this,Me).has(t)}entries(){return h(this,Me).entries()}get(t){return h(this,Me).get(t)}getAsPromise(t){let[r]=h(this,Ce).get(t)??[];if(r)return r;let i;return r=new Promise(n=>{i=n,this.has(t)&&n()}),h(this,Ce).set(t,[r,i]),r}getFetchInfo(t){let r=h(this,bt).get(t);return r||(r={url:null,retryCount:0,stale:!1,measure:null,status:null},h(this,bt).set(t,r)),r}remove(t){h(this,Me).delete(t),h(this,bt).delete(t),h(this,Ce).delete(t)}};Me=new WeakMap,bt=new WeakMap,Ce=new WeakMap;var Xe=new Aa,Xt,_e,Be,ye,me,Z,Ur,Fr,ke,Gr,qr,Kt,Pe,Mc,Oc,Ta,Nc,Ui=class extends HTMLElement{constructor(){super(...arguments);E(this,Pe);m(this,"cache",Xe);E(this,Xt);E(this,_e,null);E(this,Be,null);E(this,ye,null);E(this,me);E(this,Z);E(this,Ur,Lc);E(this,Fr,5e3);E(this,ke);E(this,Gr,!1);E(this,qr,0);E(this,Kt)}static get observedAttributes(){return[Tc,kc,Pc,Cc,_c]}attributeChangedCallback(r,i,n){r===Tc&&(y(this,me,n),y(this,Z,Xe.getFetchInfo(n))),r===kc&&Ah.includes(n)&&y(this,Ur,n),r===Pc&&y(this,Fr,parseInt(n,10)),r===Cc&&y(this,Gr,["","true"].includes(n)),r===_c&&y(this,Kt,n)}connectedCallback(){if(!h(this,ke)){if(h(this,ye)??y(this,ye,ht(this)),y(this,Kt,h(this,ye).settings?.preview),h(this,Xt)??y(this,Xt,h(this,ye).log.module(`${Sa}[${h(this,me)}]`)),!h(this,me)||h(this,me)==="#"){h(this,Z)??y(this,Z,Xe.getFetchInfo("missing-fragment-id")),ee(this,Pe,Ta).call(this,"Missing fragment id");return}this.refresh(!1)}}get fetchInfo(){return Object.fromEntries(Object.entries(h(this,Z)).filter(([r,i])=>i!=null).map(([r,i])=>[`aem-fragment:${r}`,i]))}async refresh(r=!0){if(h(this,ke)&&!await Promise.race([h(this,ke),Promise.resolve(!1)]))return;r&&Xe.remove(h(this,me)),h(this,Ur)===Rc&&await Promise.race([Xe.getAsPromise(h(this,me)),new Promise(s=>setTimeout(s,h(this,Fr)))]);try{y(this,ke,ee(this,Pe,Nc).call(this)),await h(this,ke)}catch(s){return ee(this,Pe,Ta).call(this,s.message),!1}let{references:i,referencesTree:n,placeholders:a,wcs:o}=h(this,_e)||{};return o&&!U("mas.disableWcsCache")&&h(this,ye).prefillWcsCache(o),this.dispatchEvent(new CustomEvent(rt,{detail:{...this.data,references:i,referencesTree:n,placeholders:a,...h(this,Z)},bubbles:!0,composed:!0})),h(this,ke)}get updateComplete(){return h(this,ke)??Promise.reject(new Error("AEM fragment cannot be loaded"))}get data(){return h(this,Be)?h(this,Be):(h(this,Gr)?this.transformAuthorData():this.transformPublishData(),h(this,Be))}get rawData(){return h(this,_e)}transformAuthorData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,Be,r.reduce((l,{name:d,multiple:p,values:u})=>(l.fields[d]=p?u:u[0],l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}transformPublishData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,Be,Object.entries(r).reduce((l,[d,p])=>(l.fields[d]=p?.mimeType?p.value:p??"",l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}getFragmentClientUrl(){let i=new URLSearchParams(window.location.search).get("maslibs");if(!i||i.trim()==="")return"https://mas.adobe.com/studio/libs/fragment-client.js";let n=i.trim().toLowerCase();if(n==="local")return"http://localhost:3030/studio/libs/fragment-client.js";let{hostname:a}=window.location,o=a.endsWith(".page")?"page":"live";return n.includes("--")?`https://${n}.aem.${o}/studio/libs/fragment-client.js`:`https://${n}--mas--adobecom.aem.${o}/studio/libs/fragment-client.js`}async generatePreview(){let r=this.getFragmentClientUrl(),{previewFragment:i}=await import(r);return await i(h(this,me),{locale:h(this,ye).settings.locale,apiKey:h(this,ye).settings.wcsApiKey})}};Xt=new WeakMap,_e=new WeakMap,Be=new WeakMap,ye=new WeakMap,me=new WeakMap,Z=new WeakMap,Ur=new WeakMap,Fr=new WeakMap,ke=new WeakMap,Gr=new WeakMap,qr=new WeakMap,Kt=new WeakMap,Pe=new WeakSet,Mc=async function(r){qa(this,qr)._++;let i=`${Sa}:${h(this,me)}:${h(this,qr)}`,n=`${i}${at}`,a=`${i}${ot}`;if(h(this,Kt))return await this.generatePreview();performance.mark(n);let o;try{if(h(this,Z).stale=!1,h(this,Z).url=r,o=await Ti(r,{cache:"default",credentials:"omit"}),ee(this,Pe,Oc).call(this,o),h(this,Z).status=o?.status,h(this,Z).measure=Re(performance.measure(a,n)),h(this,Z).retryCount=o.retryCount,!o?.ok)throw new Ie("Unexpected fragment response",{response:o,...h(this,ye).duration});return await o.json()}catch(s){if(h(this,Z).measure=Re(performance.measure(a,n)),h(this,Z).retryCount=s.retryCount,h(this,_e))return h(this,Z).stale=!0,h(this,Xt).error("Serving stale data",h(this,Z)),h(this,_e);let c=s.message??"unknown";throw new Ie(`Failed to fetch fragment: ${c}`,{})}},Oc=function(r){Object.assign(h(this,Z),ci(r))},Ta=function(r){y(this,ke,null),h(this,Z).message=r,this.classList.add("error");let i={...h(this,Z),...h(this,ye).duration};h(this,Xt).error(r,i),this.dispatchEvent(new CustomEvent(it,{detail:i,bubbles:!0,composed:!0}))},Nc=async function(){var c;this.classList.remove("error"),y(this,Be,null);let r=Xe.get(h(this,me));if(r)return y(this,_e,r),!0;let{masIOUrl:i,wcsApiKey:n,country:a,locale:o}=h(this,ye).settings,s=`${i}/fragment?id=${h(this,me)}&api_key=${n}&locale=${o}`;return a&&!o.endsWith(`_${a}`)&&(s+=`&country=${a}`),r=await ee(this,Pe,Mc).call(this,s),(c=r.fields).originalId??(c.originalId=h(this,me)),Xe.add(r),y(this,_e,r),!0},m(Ui,"cache",Xe);customElements.define(Sa,Ui);M();var Qt=class extends z{constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent}connectedCallback(){this.borderColor&&this.borderColor!=="Transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-border-radius","4px 0 0 4px"),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.textContent="";let t=this.closest("merch-card"),r=t?.getAttribute("size"),i=t?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",i),this.style.setProperty("--merch-badge-with-offset",i?1:0),this.style.setProperty("--merch-badge-card-size",r?2:1),super.connectedCallback()}render(){return f`<div class="badge">${this.text}</div>`}};m(Qt,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"}}),m(Qt,"styles",b`
+`;document.head.appendChild(Ac);var Tc="fragment",Cc="author",_c="preview",kc="loading",Pc="timeout",Sa="aem-fragment",Lc="eager",Rc="cache",Ah=[Lc,Rc],Me,bt,Ce,Aa=class{constructor(){E(this,Me,new Map);E(this,bt,new Map);E(this,Ce,new Map)}clear(){h(this,Me).clear(),h(this,bt).clear(),h(this,Ce).clear()}add(t,r=!0){if(!this.has(t.id)&&!this.has(t.fields?.originalId)){if(h(this,Me).set(t.id,t),t.fields?.originalId&&h(this,Me).set(t.fields.originalId,t),h(this,Ce).has(t.id)){let[,i]=h(this,Ce).get(t.id);i()}if(h(this,Ce).has(t.fields?.originalId)){let[,i]=h(this,Ce).get(t.fields?.originalId);i()}if(!(!r||typeof t.references!="object"||Array.isArray(t.references)))for(let i in t.references){let{type:n,value:a}=t.references[i];n==="content-fragment"&&(a.settings={...t?.settings,...a.settings},a.placeholders={...t?.placeholders,...a.placeholders},a.dictionary={...t?.dictionary,...a.dictionary},a.priceLiterals={...t?.priceLiterals,...a.priceLiterals},this.add(a,t))}}}has(t){return h(this,Me).has(t)}entries(){return h(this,Me).entries()}get(t){return h(this,Me).get(t)}getAsPromise(t){let[r]=h(this,Ce).get(t)??[];if(r)return r;let i;return r=new Promise(n=>{i=n,this.has(t)&&n()}),h(this,Ce).set(t,[r,i]),r}getFetchInfo(t){let r=h(this,bt).get(t);return r||(r={url:null,retryCount:0,stale:!1,measure:null,status:null},h(this,bt).set(t,r)),r}remove(t){h(this,Me).delete(t),h(this,bt).delete(t),h(this,Ce).delete(t)}};Me=new WeakMap,bt=new WeakMap,Ce=new WeakMap;var Xe=new Aa,Xt,_e,Be,ye,me,Z,Ur,Fr,ke,Gr,qr,Kt,Pe,Mc,Oc,Ta,Nc,Ui=class extends HTMLElement{constructor(){super(...arguments);E(this,Pe);m(this,"cache",Xe);E(this,Xt);E(this,_e,null);E(this,Be,null);E(this,ye,null);E(this,me);E(this,Z);E(this,Ur,Lc);E(this,Fr,5e3);E(this,ke);E(this,Gr,!1);E(this,qr,0);E(this,Kt)}static get observedAttributes(){return[Tc,kc,Pc,Cc,_c]}attributeChangedCallback(r,i,n){r===Tc&&(y(this,me,n),y(this,Z,Xe.getFetchInfo(n))),r===kc&&Ah.includes(n)&&y(this,Ur,n),r===Pc&&y(this,Fr,parseInt(n,10)),r===Cc&&y(this,Gr,["","true"].includes(n)),r===_c&&y(this,Kt,n)}connectedCallback(){if(!h(this,ke)){if(h(this,ye)??y(this,ye,ht(this)),y(this,Kt,h(this,ye).settings?.preview),h(this,Xt)??y(this,Xt,h(this,ye).log.module(`${Sa}[${h(this,me)}]`)),!h(this,me)||h(this,me)==="#"){h(this,Z)??y(this,Z,Xe.getFetchInfo("missing-fragment-id")),ee(this,Pe,Ta).call(this,"Missing fragment id");return}this.refresh(!1)}}get fetchInfo(){return Object.fromEntries(Object.entries(h(this,Z)).filter(([r,i])=>i!=null).map(([r,i])=>[`aem-fragment:${r}`,i]))}async refresh(r=!0){if(h(this,ke)&&!await Promise.race([h(this,ke),Promise.resolve(!1)]))return;r&&Xe.remove(h(this,me)),h(this,Ur)===Rc&&await Promise.race([Xe.getAsPromise(h(this,me)),new Promise(s=>setTimeout(s,h(this,Fr)))]);try{y(this,ke,ee(this,Pe,Nc).call(this)),await h(this,ke)}catch(s){return ee(this,Pe,Ta).call(this,s.message),!1}let{references:i,referencesTree:n,placeholders:a,wcs:o}=h(this,_e)||{};return o&&!U("mas.disableWcsCache")&&h(this,ye).prefillWcsCache(o),this.dispatchEvent(new CustomEvent(rt,{detail:{...this.data,references:i,referencesTree:n,placeholders:a,...h(this,Z)},bubbles:!0,composed:!0})),h(this,ke)}get updateComplete(){return h(this,ke)??Promise.reject(new Error("AEM fragment cannot be loaded"))}get data(){return h(this,Be)?h(this,Be):(h(this,Gr)?this.transformAuthorData():this.transformPublishData(),h(this,Be))}get rawData(){return h(this,_e)}transformAuthorData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,Be,r.reduce((l,{name:d,multiple:p,values:u})=>(l.fields[d]=p?u:u[0],l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}transformPublishData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,Be,Object.entries(r).reduce((l,[d,p])=>(l.fields[d]=p?.mimeType?p.value:p??"",l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}getFragmentClientUrl(){let i=new URLSearchParams(window.location.search).get("maslibs");if(!i||i.trim()==="")return"https://mas.adobe.com/studio/libs/fragment-client.js";let n=i.trim().toLowerCase();if(n==="local")return"http://localhost:3030/studio/libs/fragment-client.js";let{hostname:a}=window.location,o=a.endsWith(".page")?"page":"live";return n.includes("--")?`https://${n}.aem.${o}/studio/libs/fragment-client.js`:`https://${n}--mas--adobecom.aem.${o}/studio/libs/fragment-client.js`}async generatePreview(){let r=this.getFragmentClientUrl(),{previewFragment:i}=await import(r);return await i(h(this,me),{locale:h(this,ye).settings.locale,apiKey:h(this,ye).settings.wcsApiKey})}};Xt=new WeakMap,_e=new WeakMap,Be=new WeakMap,ye=new WeakMap,me=new WeakMap,Z=new WeakMap,Ur=new WeakMap,Fr=new WeakMap,ke=new WeakMap,Gr=new WeakMap,qr=new WeakMap,Kt=new WeakMap,Pe=new WeakSet,Mc=async function(r){qa(this,qr)._++;let i=`${Sa}:${h(this,me)}:${h(this,qr)}`,n=`${i}${at}`,a=`${i}${ot}`;if(h(this,Kt))return await this.generatePreview();performance.mark(n);let o;try{if(h(this,Z).stale=!1,h(this,Z).url=r,o=await Ti(r,{cache:"default",credentials:"omit"}),ee(this,Pe,Oc).call(this,o),h(this,Z).status=o?.status,h(this,Z).measure=Re(performance.measure(a,n)),h(this,Z).retryCount=o.retryCount,!o?.ok)throw new Ie("Unexpected fragment response",{response:o,...h(this,ye).duration});return await o.json()}catch(s){if(h(this,Z).measure=Re(performance.measure(a,n)),h(this,Z).retryCount=s.retryCount,h(this,_e))return h(this,Z).stale=!0,h(this,Xt).error("Serving stale data",h(this,Z)),h(this,_e);let c=s.message??"unknown";throw new Ie(`Failed to fetch fragment: ${c}`,{})}},Oc=function(r){Object.assign(h(this,Z),ci(r))},Ta=function(r){y(this,ke,null),h(this,Z).message=r,this.classList.add("error");let i={...h(this,Z),...h(this,ye).duration};h(this,Xt).error(r,i),this.dispatchEvent(new CustomEvent(it,{detail:i,bubbles:!0,composed:!0}))},Nc=async function(){var c;this.classList.remove("error"),y(this,Be,null);let r=Xe.get(h(this,me));if(r)return y(this,_e,r),!0;let{masIOUrl:i,wcsApiKey:n,country:a,locale:o}=h(this,ye).settings,s=`${i}/fragment?id=${h(this,me)}&api_key=${n}&locale=${o}`;return a&&!o.endsWith(`_${a}`)&&(s+=`&country=${a}`),r=await ee(this,Pe,Mc).call(this,s),(c=r.fields).originalId??(c.originalId=h(this,me)),Xe.add(r),y(this,_e,r),!0},m(Ui,"cache",Xe);customElements.define(Sa,Ui);M();var Qt=class extends z{constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent}connectedCallback(){this.borderColor&&this.borderColor!=="Transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.textContent="";let t=this.closest("merch-card"),r=t?.getAttribute("size"),i=t?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",i),this.style.setProperty("--merch-badge-with-offset",i?1:0),this.style.setProperty("--merch-badge-card-size",r?2:1),super.connectedCallback()}render(){return f`<div class="badge">${this.text}</div>`}};m(Qt,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"}}),m(Qt,"styles",b`
         :host {
             display: block;
             background-color: var(--merch-badge-background-color);
@@ -6616,7 +6631,7 @@ merch-card [slot='callout-content'] .icon-button::before {
             line-height: 21px;
             border: var(--merch-badge-border);
             position: relative;
-            left: 1px;
+            inset-inline-start: 1px;
         }
     `);customElements.define("merch-badge",Qt);M();var Vr=class extends z{constructor(){super()}render(){return f`
             <slot name="icon"></slot>

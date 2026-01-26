@@ -29,6 +29,11 @@ var w=Object.defineProperty;var D=(o,e,t)=>e in o?w(o,e,{enumerable:!0,configura
             position: absolute;
             inset-inline-end: 0;
         }
+
+        :host(:dir(rtl)) .right {
+            right: initial;
+            left: 0;
+        }
     `);customElements.define("merch-sidenav-list",p);import{html as F,LitElement as B,css as $}from"./lit-all.min.js";var m=class extends B{constructor(){super(),this.selectedValues=[]}selectionChanged({target:e}){let t=e.getAttribute("name");if(t){let i=this.selectedValues.indexOf(t);e.checked&&i===-1?this.selectedValues.push(t):!e.checked&&i>=0&&this.selectedValues.splice(i,1)}c(this,this.selectedValues.join(","))}addGroupTitle(){let e="sidenav-checkbox-group-title",t=_("h3",{id:e});t.textContent=this.sidenavCheckboxTitle,this.prepend(t),this.setAttribute("role","group"),this.setAttribute("aria-labelledby",e)}startDeeplink(){this.stopDeeplink=l(({types:e})=>{if(e){let t=e.split(",");[...new Set([...t,...this.selectedValues])].forEach(i=>{let s=this.querySelector(`sp-checkbox[name=${i}]`);s&&(s.checked=t.includes(i))}),this.selectedValues=t}else this.selectedValues.forEach(t=>{let i=this.querySelector(`sp-checkbox[name=${t}]`);i&&(i.checked=!1)}),this.selectedValues=[]})}connectedCallback(){super.connectedCallback(),this.updateComplete.then(async()=>{this.addGroupTitle(),this.startDeeplink()})}disconnectedCallback(){this.stopDeeplink?.()}render(){return F`<div aria-label="${this.label}">
             <div
                 @change="${e=>this.selectionChanged(e)}"
@@ -200,7 +205,7 @@ var w=Object.defineProperty;var D=(o,e,t)=>e in o?w(o,e,{enumerable:!0,configura
             text-align: start;
         }
 
-        :host-context([dir="rtl"]) h2 {
+        :host-context([dir='rtl']) h2 {
             text-align: right;
         }
 

@@ -291,7 +291,7 @@ export class MerchSideNav extends LitElement {
             text-align: start;
         }
 
-        :host-context([dir="rtl"]) h2 {
+        :host-context([dir='rtl']) h2 {
             text-align: right;
         }
 

@@ -68,7 +68,10 @@ runTests(async () => {
 
             if (merchCard) {
                 await merchCard.updateComplete;
-                expect(merchCard.variant, 'Merch card should have plans variant').to.equal('plans');
+                expect(
+                    merchCard.variant,
+                    'Merch card should have plans variant',
+                ).to.equal('plans');
             }
         });
 
@@ -99,7 +102,9 @@ runTests(async () => {
         });
 
         it('should verify checkmark list exists for plans variant testing', () => {
-            const checkmarkList = document.querySelector('.columns.checkmark-list ul');
+            const checkmarkList = document.querySelector(
+                '.columns.checkmark-list ul',
+            );
             // This element is optional in the test page, but if present,
             // it will use the updated CSS logical properties from plans.css.js
             if (checkmarkList) {
@@ -132,11 +137,16 @@ runTests(async () => {
             // or not rendered yet. Check component structure.
             if (!spTheme) {
                 // Skip test if sp-theme not found (component may be in different mode)
-                console.warn('sp-theme not found - component may be in modal mode');
+                console.warn(
+                    'sp-theme not found - component may be in modal mode',
+                );
                 return;
             }
 
-            expect(spTheme.getAttribute('dir'), 'sp-theme should have dir="ltr"').to.equal('ltr');
+            expect(
+                spTheme.getAttribute('dir'),
+                'sp-theme should have dir="ltr"',
+            ).to.equal('ltr');
         });
 
         it('should propagate dir attribute to sp-theme in RTL mode', async () => {
@@ -156,12 +166,17 @@ runTests(async () => {
 
             // If sp-theme doesn't exist, skip (component may be in different mode)
             if (!spTheme) {
-                console.warn('sp-theme not found - component may be in modal mode');
+                console.warn(
+                    'sp-theme not found - component may be in modal mode',
+                );
                 document.documentElement.dir = 'ltr';
                 return;
             }
 
-            expect(spTheme.getAttribute('dir'), 'sp-theme should have dir="rtl"').to.equal('rtl');
+            expect(
+                spTheme.getAttribute('dir'),
+                'sp-theme should have dir="rtl"',
+            ).to.equal('rtl');
 
             // Reset to LTR
             document.documentElement.dir = 'ltr';
@@ -184,11 +199,16 @@ runTests(async () => {
             await delay(150);
             await sidenav.updateComplete;
 
-            expect(sidenav.dir, 'Component dir should update to rtl').to.equal('rtl');
+            expect(sidenav.dir, 'Component dir should update to rtl').to.equal(
+                'rtl',
+            );
 
             const spTheme = sidenav.shadowRoot.querySelector('sp-theme');
             if (spTheme) {
-                expect(spTheme.getAttribute('dir'), 'sp-theme should update to rtl').to.equal('rtl');
+                expect(
+                    spTheme.getAttribute('dir'),
+                    'sp-theme should update to rtl',
+                ).to.equal('rtl');
             }
 
             // Change back to LTR
@@ -196,7 +216,10 @@ runTests(async () => {
             await delay(150);
             await sidenav.updateComplete;
 
-            expect(sidenav.dir, 'Component dir should update back to ltr').to.equal('ltr');
+            expect(
+                sidenav.dir,
+                'Component dir should update back to ltr',
+            ).to.equal('ltr');
         });
 
         it('should apply correct badge border-radius in LTR mode', async () => {
@@ -212,10 +235,14 @@ runTests(async () => {
             await badge.updateComplete;
 
             const computedStyle = getComputedStyle(badge);
-            const borderRadius = computedStyle.getPropertyValue('--merch-badge-border-radius').trim();
+            const borderRadius = computedStyle
+                .getPropertyValue('--merch-badge-border-radius')
+                .trim();
 
-            expect(borderRadius, 'Badge should have LTR border-radius (left corners rounded)')
-                .to.equal('4px 0 0 4px');
+            expect(
+                borderRadius,
+                'Badge should have LTR border-radius (left corners rounded)',
+            ).to.equal('4px 0 0 4px');
 
             badge.remove();
         });
@@ -232,10 +259,14 @@ runTests(async () => {
             await badge.updateComplete;
 
             const computedStyle = getComputedStyle(badge);
-            const borderRadius = computedStyle.getPropertyValue('--merch-badge-border-radius').trim();
+            const borderRadius = computedStyle
+                .getPropertyValue('--merch-badge-border-radius')
+                .trim();
 
-            expect(borderRadius, 'Badge should have RTL border-radius (right corners rounded)')
-                .to.equal('0 4px 4px 0');
+            expect(
+                borderRadius,
+                'Badge should have RTL border-radius (right corners rounded)',
+            ).to.equal('0 4px 4px 0');
 
             badge.remove();
 
@@ -244,11 +275,15 @@ runTests(async () => {
         });
 
         it('should flip collection container translate direction in RTL', async () => {
-            const container = document.querySelector('.collection-container.plans');
+            const container = document.querySelector(
+                '.collection-container.plans',
+            );
 
             if (!container) {
                 // Skip if container doesn't exist in test HTML
-                console.warn('collection-container.plans not found - skipping test');
+                console.warn(
+                    'collection-container.plans not found - skipping test',
+                );
                 return;
             }
 
@@ -257,27 +292,37 @@ runTests(async () => {
             await delay(100);
 
             let translateDir = getComputedStyle(container)
-                .getPropertyValue('--translate-direction').trim();
+                .getPropertyValue('--translate-direction')
+                .trim();
 
             // If CSS variable is not set, the container might not have the :has(merch-sidenav) selector applied
             // This is expected in test environment where sidenav might not be inside container
             if (!translateDir) {
-                console.warn('--translate-direction not computed - container may not match selector');
+                console.warn(
+                    '--translate-direction not computed - container may not match selector',
+                );
                 return;
             }
 
             // Default LTR should have -1 (translate left)
-            expect(translateDir, 'LTR should have --translate-direction: -1').to.equal('-1');
+            expect(
+                translateDir,
+                'LTR should have --translate-direction: -1',
+            ).to.equal('-1');
 
             // Test RTL mode
             document.documentElement.dir = 'rtl';
             await delay(100);
 
             translateDir = getComputedStyle(container)
-                .getPropertyValue('--translate-direction').trim();
+                .getPropertyValue('--translate-direction')
+                .trim();
 
             // RTL should have 1 (translate right)
-            expect(translateDir, 'RTL should have --translate-direction: 1').to.equal('1');
+            expect(
+                translateDir,
+                'RTL should have --translate-direction: 1',
+            ).to.equal('1');
 
             // Reset
             document.documentElement.dir = 'ltr';
@@ -294,19 +339,23 @@ runTests(async () => {
 
             document.documentElement.dir = 'ltr';
             await sidenav.updateComplete;
-            expect(sidenav.isConnected, 'Sidenav should be connected in LTR').to.be.true;
+            expect(sidenav.isConnected, 'Sidenav should be connected in LTR').to
+                .be.true;
 
             document.documentElement.dir = 'rtl';
             await delay(100);
             await sidenav.updateComplete;
-            expect(sidenav.isConnected, 'Sidenav should be connected in RTL').to.be.true;
+            expect(sidenav.isConnected, 'Sidenav should be connected in RTL').to
+                .be.true;
 
             // Reset
             document.documentElement.dir = 'ltr';
         });
 
         it('should handle badge positioning with logical properties', async () => {
-            const badge = document.querySelector('merch-card[variant="plans"] merch-badge');
+            const badge = document.querySelector(
+                'merch-card[variant="plans"] merch-badge',
+            );
 
             if (badge) {
                 await badge.updateComplete;
@@ -315,11 +364,13 @@ runTests(async () => {
                 // which automatically mirrors in RTL
                 document.documentElement.dir = 'ltr';
                 await badge.updateComplete;
-                expect(badge.isConnected, 'Badge should render in LTR').to.be.true;
+                expect(badge.isConnected, 'Badge should render in LTR').to.be
+                    .true;
 
                 document.documentElement.dir = 'rtl';
                 await badge.updateComplete;
-                expect(badge.isConnected, 'Badge should render in RTL').to.be.true;
+                expect(badge.isConnected, 'Badge should render in RTL').to.be
+                    .true;
 
                 // Reset
                 document.documentElement.dir = 'ltr';
@@ -340,8 +391,10 @@ runTests(async () => {
                 const ltrAlign = ltrStyle.textAlign;
 
                 // Should be 'start' which maps to 'left' in LTR
-                expect(['start', 'left'], 'LTR text-align should be start or left')
-                    .to.include(ltrAlign);
+                expect(
+                    ['start', 'left'],
+                    'LTR text-align should be start or left',
+                ).to.include(ltrAlign);
 
                 // Test RTL
                 document.documentElement.dir = 'rtl';
@@ -352,7 +405,9 @@ runTests(async () => {
                 const rtlAlign = rtlStyle.textAlign;
 
                 // Should be 'right' in RTL (due to :host-context([dir="rtl"]) rule)
-                expect(rtlAlign, 'RTL text-align should be right').to.equal('right');
+                expect(rtlAlign, 'RTL text-align should be right').to.equal(
+                    'right',
+                );
 
                 // Reset
                 document.documentElement.dir = 'ltr';

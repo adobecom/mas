@@ -1,6 +1,6 @@
 import { ReactiveStore } from './reactive-store.js';
 import { previewFragmentForEditor } from 'fragment-client';
-import { getDefaultLocale, getLocaleByCode, isDefaultLocale } from '../locales.js';
+import { getDefaultLocale, getLocaleByCode, isDefaultLocale } from '../../io/www/src/fragment/io-locales.js';
 import Store from '../store.js';
 
 export class EditorContextStore extends ReactiveStore {

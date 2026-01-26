@@ -21,7 +21,6 @@ export class MasLocalePicker extends LitElement {
         searchPlaceholder: { type: String },
         searchQuery: { type: String },
         surface: { type: String },
-        locales: { type: Array },
     };
 
     static styles = css`
@@ -129,29 +128,25 @@ export class MasLocalePicker extends LitElement {
         if (this.displayMode === 'strong') {
             this.classList.add('strong');
         }
-        const updateLocale = () => {
+        this.searchSubscriptions = Store.filters.subscribe(() => {
             this.locale = Store.localeOrRegion();
-        };
-        this.filtersSubscription = Store.filters.subscribe(updateLocale);
-        this.searchSubscription = Store.search.subscribe(updateLocale);
+            this.render();
+        });
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
 
-        if (this.filtersSubscription) {
-            this.filtersSubscription.unsubscribe();
-        }
-        if (this.searchSubscription) {
-            this.searchSubscription.unsubscribe();
+        if (this.searchSubscriptions) {
+            this.searchSubscriptions.unsubscribe();
         }
     }
 
-    handleLocaleChange(locale, id) {
+    handleLocaleChange(locale) {
         this.locale = locale;
         this.dispatchEvent(
             new CustomEvent('locale-changed', {
-                detail: { locale, id },
+                detail: { locale },
                 bubbles: true,
                 composed: true,
             }),
@@ -168,9 +163,6 @@ export class MasLocalePicker extends LitElement {
     }
 
     getLocales() {
-        if (this.locales) {
-            return this.locales;
-        }
         if (this.mode === 'region') {
             return getRegionLocales(this.surface, this.lang);
         } else {
@@ -222,10 +214,10 @@ export class MasLocalePicker extends LitElement {
     }
 
     renderMenuItem(locale) {
-        const { lang, country, id } = locale;
+        const { lang, country } = locale;
         const code = getLocaleCode(locale);
         return html`
-            <sp-menu-item .value=${code} ?selected=${this.locale === code} @click=${() => this.handleLocaleChange(code, id)}>
+            <sp-menu-item .value=${code} ?selected=${this.locale === code} @click=${() => this.handleLocaleChange(code)}>
                 <div class="locale-label">
                     <span class="flag">${getCountryFlag(country)}</span>
                     ${this.mode === 'region'

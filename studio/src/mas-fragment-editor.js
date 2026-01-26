@@ -25,7 +25,7 @@ export default class MasFragmentEditor extends LitElement {
             display: flex;
             flex-direction: column;
             height: 100%;
-            padding: 20px;
+            padding: 32px;
             max-width: 100%;
             margin: 0 auto;
             background: var(--spectrum-global-color-gray-75);
@@ -192,6 +192,48 @@ export default class MasFragmentEditor extends LitElement {
             margin-bottom: 16px;
         }
 
+        #missing-variation-panel {
+            background: var(--spectrum-gray-50, #f8f8f8);
+            border: 1px solid var(--spectrum-gray-300, #dadada);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow:
+                0px 0px 1px 0px rgba(0, 0, 0, 0.08),
+                0px 1px 4px 0px rgba(0, 0, 0, 0.04),
+                0px 2px 8px 0px rgba(0, 0, 0, 0.08);
+            color: var(--spectrum-gray-500, #c6c6c6);
+            box-sizing: border-box;
+        }
+
+        #missing-variation-panel .translation-icon {
+            width: 52px;
+            height: 52px;
+            margin-bottom: 12px;
+            color: var(--spectrum-gray-400, #b8b8b8);
+        }
+
+        #missing-variation-panel h2 {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 24px;
+            margin: 0 0 2px 0;
+            color: var(--spectrum-gray-500, #c6c6c6);
+        }
+
+        #missing-variation-panel .empty-state-subtitle {
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 18px;
+            margin: 0 0 20px 0;
+            color: var(--spectrum-gray-500, #c6c6c6);
+        }
+
+        #missing-variation-panel .empty-state-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
         .card-variant-change-warning {
             background: var(--spectrum-global-color-yellow-100);
             border-left: 4px solid var(--spectrum-global-color-yellow-400);
@@ -308,7 +350,7 @@ export default class MasFragmentEditor extends LitElement {
     page = new StoreController(this, Store.page);
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
-    reactiveController = new ReactiveController(this);
+    reactiveController = new ReactiveController(this, [Store.search]);
     editorContextStore = Store.fragmentEditor.editorContext;
 
     discardPromiseResolver;
@@ -591,7 +633,13 @@ export default class MasFragmentEditor extends LitElement {
             fragmentStore = existingStore;
             this.inEdit.set(existingStore);
             Store.editor.resetChanges();
-            this.reactiveController.updateStores([this.inEdit, existingStore, existingStore.previewStore, this.operation]);
+            this.reactiveController.updateStores([
+                this.inEdit,
+                existingStore,
+                existingStore.previewStore,
+                this.operation,
+                Store.search,
+            ]);
         } else {
             try {
                 const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
@@ -599,7 +647,13 @@ export default class MasFragmentEditor extends LitElement {
                 fragmentStore = generateFragmentStore(fragment, { skipAutoResolve: true });
                 Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
                 this.inEdit.set(fragmentStore);
-                this.reactiveController.updateStores([this.inEdit, fragmentStore, fragmentStore.previewStore, this.operation]);
+                this.reactiveController.updateStores([
+                    this.inEdit,
+                    fragmentStore,
+                    fragmentStore.previewStore,
+                    this.operation,
+                    Store.search,
+                ]);
                 this.dispatchFragmentLoaded();
             } catch (error) {
                 console.error('Failed to fetch fragment:', error);
@@ -1289,6 +1343,60 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
+    get missingVariationState() {
+        const currentLocale = Store.localeOrRegion();
+        const fragmentLocale = this.extractLocaleFromPath(this.fragment?.path);
+
+        if (fragmentLocale && currentLocale !== fragmentLocale) {
+            const isVariation = this.editorContextStore.isVariation(this.fragment.id);
+            const sourceFragment = isVariation ? this.localeDefaultFragment : this.fragment;
+
+            if (sourceFragment) {
+                const variations = sourceFragment.listLocaleVariations() || [];
+                const hasVariation = variations.some((v) => this.extractLocaleFromPath(v.path) === currentLocale);
+
+                if (!hasVariation) {
+                    const targetLocale = getLocaleByCode(currentLocale);
+                    const targetCountryName = getCountryName(targetLocale.country);
+
+                    // Get the default/source locale info for the "View default version" button
+                    const sourceLocaleCode = this.extractLocaleFromPath(sourceFragment.path);
+                    const sourceLocale = sourceLocaleCode ? getLocaleByCode(sourceLocaleCode) : null;
+                    const sourceCountryName = sourceLocale ? getCountryName(sourceLocale.country) : 'US';
+                    const sourceLang = sourceLocale ? sourceLocale.lang.toUpperCase() : 'EN';
+
+                    return html`
+                        <div id="missing-variation-panel" class="empty-state">
+                            <sp-icon-translate class="translation-icon"></sp-icon-translate>
+                            <h2>
+                                This card hasn't been translated into ${targetCountryName} (${targetLocale.lang.toUpperCase()})
+                                yet.
+                            </h2>
+                            <p class="empty-state-subtitle">
+                                Create a new translation project or view the default ${sourceCountryName} (${sourceLang})
+                                version.
+                            </p>
+                            <div class="empty-state-actions">
+                                <sp-button variant="secondary" @click=${this.viewSourceFragment}>
+                                    View ${sourceCountryName} (${sourceLang}) version
+                                </sp-button>
+                                <sp-button variant="accent" @click=${this.showCreateVariation}>
+                                    Create translation project
+                                </sp-button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+        return null;
+    }
+
+    viewSourceFragment() {
+        // Navigate back to the source fragment by removing the region override
+        Store.removeRegionOverride();
+    }
+
     render() {
         if (!this.fragment) {
             return html`
@@ -1309,6 +1417,14 @@ export default class MasFragmentEditor extends LitElement {
                         <sp-progress-circle indeterminate size="l"></sp-progress-circle>
                     </div>
                 </div>
+            `;
+        }
+
+        const missingVariation = this.missingVariationState;
+        if (missingVariation) {
+            return html`
+                ${this.styles}
+                <div id="fragment-editor">${missingVariation} ${this.copyVariationDialog}</div>
             `;
         }
 

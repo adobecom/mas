@@ -132,6 +132,16 @@ class MasTopNav extends LitElement {
         return this.landscape.value === WCS_LANDSCAPE_DRAFT;
     }
 
+    get currentFragmentLocale() {
+        if (this.isFragmentEditorPage && this.inEdit.value) {
+            const currentFragment = this.inEdit.value.get();
+            if (currentFragment?.path) {
+                return extractLocaleFromPath(currentFragment.path);
+            }
+        }
+        return null;
+    }
+
     get availableLocales() {
         if (this.isFragmentEditorPage && this.inEdit.value) {
             const currentFragment = this.inEdit.value.get();
@@ -163,8 +173,12 @@ class MasTopNav extends LitElement {
     }
 
     async onLocaleChanged(e) {
-        const { locale, id } = e.detail;
+        const { locale } = e.detail;
         if (this.isFragmentEditorPage) {
+            const availableLocales = this.availableLocales;
+            const targetLocale = availableLocales?.find((l) => `${l.lang}_${l.country}` === locale);
+            const id = targetLocale?.id;
+
             const currentFragment = this.inEdit.get()?.get();
             if (id && id !== currentFragment?.id) {
                 if (currentFragment?.hasChanges) {
@@ -177,6 +191,10 @@ class MasTopNav extends LitElement {
                     }
                 }
                 router.navigateToFragmentEditor(id);
+            } else if (!id) {
+                // If no variation exists for this locale, update the search region
+                // so the editor can show the "missing variation" state
+                Store.search.set((prev) => ({ ...prev, region: locale }));
             }
             return;
         }
@@ -218,13 +236,12 @@ class MasTopNav extends LitElement {
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"
-                                  .locale=${this.search.value.region || this.filters.value.locale || 'en_US'}
-                                  .locales=${this.availableLocales}
                                   @locale-changed=${this.onLocaleChanged}
-                                  ?disabled=${this.isTranslationEditorPage || this.isTranslationsPage}
-                                  surface=${this.search.value.path}
-                              >
-                              </mas-locale-picker>
+                                  ?disabled=${this.isTranslationEditorPage ||
+                                  this.isTranslationsPage}
+                                  surface=${Store.surface()}
+                                  locale=${this.currentFragmentLocale || Store.localeOrRegion()}
+                              ></mas-locale-picker>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

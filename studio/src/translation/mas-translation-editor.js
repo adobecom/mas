@@ -10,7 +10,9 @@ import { normalizeKey, showToast } from '../utils.js';
 import { TranslationProject } from './translation-project.js';
 import './mas-translation-files.js';
 import './mas-select-fragments-table.js';
+import './mas-placeholder-picker.js';
 import '../mas-quick-actions.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -22,7 +24,9 @@ class MasTranslationEditor extends LitElement {
         confirmDialogConfig: { type: Object, state: true },
         disabledActions: { type: Set, state: true },
         isSelectedFilesOpen: { type: Boolean, state: true },
-        selectedFilesSnapshot: { type: Set, state: true },
+        fragmentsSnapshot: { type: Array, state: true },
+        collectionsSnapshot: { type: Array, state: true },
+        placeholdersSnapshot: { type: Array, state: true },
         showSelectedEmptyState: { type: Boolean, state: true },
         isOverlayOpen: { type: Boolean, state: true },
     };
@@ -44,7 +48,9 @@ class MasTranslationEditor extends LitElement {
             QUICK_ACTION.LOCK,
         ]);
         this.isSelectedFilesOpen = false;
-        this.selectedFilesSnapshot = new Set();
+        this.fragmentsSnapshot = [];
+        this.collectionsSnapshot = [];
+        this.placeholdersSnapshot = [];
         this.showSelectedEmptyState = true;
         this.isOverlayOpen = false;
     }
@@ -53,17 +59,17 @@ class MasTranslationEditor extends LitElement {
         super.connectedCallback();
         const translationProjectId = Store.translationProjects.translationProjectId.get();
         if (translationProjectId) {
-            if (this.translationProjectStore) {
-                this.showSelectedEmptyState =
-                    this.translationProject?.fields.find((field) => field.name === 'items')?.values?.length === 0;
-            } else {
-                await this.#loadTranslationProjectById(translationProjectId);
-            }
+            await this.#loadTranslationProjectById(translationProjectId);
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
         } else {
             this.#initializeNewTranslationProject();
         }
-        this.storeController = new StoreController(this, this.translationProjectStore);
+        this.storeController = new StoreController(this, Store.translationProjects.inEdit);
+        this.selectedController = new ReactiveController(this, [
+            Store.translationProjects.fragments,
+            Store.translationProjects.collections,
+            Store.translationProjects.placeholders,
+        ]);
     }
 
     /** @type {MasRepository} */
@@ -83,8 +89,12 @@ class MasTranslationEditor extends LitElement {
         return Store.translationProjects.inEdit.get();
     }
 
-    get selectedFilesCount() {
-        return this.translationProjectStore?.get()?.fields?.find((field) => field.name === 'items')?.values?.length;
+    get selectedCount() {
+        return [
+            ...Store.translationProjects.fragments.value,
+            ...Store.translationProjects.placeholders.value,
+            ...Store.translationProjects.collections.value,
+        ].length;
     }
 
     get languages() {
@@ -109,9 +119,10 @@ class MasTranslationEditor extends LitElement {
             if (fragment) {
                 const translationProject = new TranslationProject(fragment);
                 this.translationProjectStore = new FragmentStore(translationProject);
-                const preselected = this.translationProjectStore.get()?.fields.find((field) => field.name === 'items')?.values;
-                const selectedPaths = new Set(preselected || []);
-                this.showSelectedEmptyState = selectedPaths.size === 0;
+                Store.translationProjects.fragments.set(translationProject.getFieldValues('fragments'));
+                Store.translationProjects.placeholders.set(translationProject.getFieldValues('placeholders'));
+                Store.translationProjects.collections.set(translationProject.getFieldValues('collections'));
+                this.showSelectedEmptyState = this.selectedCount === 0;
             }
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
         } catch (err) {
@@ -136,7 +147,6 @@ class MasTranslationEditor extends LitElement {
         });
         this.isNewTranslationProject = true;
         this.translationProjectStore = new FragmentStore(newProject);
-        this.showSelectedEmptyState = true;
     }
 
     #handleFragmentUpdate({ target, detail, values }) {
@@ -192,7 +202,7 @@ class MasTranslationEditor extends LitElement {
                 this.isNewTranslationProject = false;
 
                 this.storeController.hostDisconnected();
-                this.storeController = new StoreController(this, this.translationProjectStore);
+                this.storeController = new StoreController(this, Store.translationProjects.inEdit);
                 this.storeController.hostConnected();
                 this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD], remove: [QUICK_ACTION.DELETE] });
             }
@@ -208,6 +218,9 @@ class MasTranslationEditor extends LitElement {
             return;
         }
         this.translationProject.updateFieldInternal('title', this.translationProject.getFieldValue('title'));
+        this.translationProject.updateField('fragments', Store.translationProjects.fragments.value);
+        this.translationProject.updateField('placeholders', Store.translationProjects.placeholders.value);
+        this.translationProject.updateField('collections', Store.translationProjects.collections.value);
         showToast('Updating the project...');
         try {
             await this.repository.saveFragment(this.translationProjectStore, false);
@@ -268,7 +281,6 @@ class MasTranslationEditor extends LitElement {
         this.translationProjectStore.discardChanges();
         Store.translationProjects.inEdit.set(new FragmentStore(this.translationProject));
         Store.translationProjects.translationProjectId.set(this.translationProject.id);
-        this.showSelectedEmptyState = this.selectedFilesCount === 0;
         Store.translationProjects.showSelected.set(false);
         this.#updateDisabledActions({ add: [QUICK_ACTION.DISCARD, QUICK_ACTION.SAVE] });
     }
@@ -300,7 +312,7 @@ class MasTranslationEditor extends LitElement {
      * @returns {Promise<boolean>} - True if confirmed or no changes, false if canceled
      */
     async promptDiscardChanges() {
-        if (!this.translationProject?.hasChanges && this.selectedFilesCount === 0) return true;
+        if (!this.translationProject?.hasChanges && this.selectedCount === 0) return true;
         return this.#showDialog('Discard Changes', 'You have unsaved changes. Are you sure you want to leave this page?', {
             confirmText: 'Discard',
             cancelText: 'Cancel',
@@ -309,16 +321,23 @@ class MasTranslationEditor extends LitElement {
     }
 
     #confirmFileSelection = ({ target }) => {
-        this.showSelectedEmptyState = this.selectedFilesCount === 0;
         this.isOverlayOpen = false;
+        this.showSelectedEmptyState = this.selectedCount === 0;
+        this.fragmentsSnapshot = [];
+        this.collectionsSnapshot = [];
+        this.placeholdersSnapshot = [];
+        Store.translationProjects.selectionChanged.set(true);
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
 
     #cancelFileSelection = ({ target }) => {
-        this.translationProjectStore?.updateField('items', Array.from(this.selectedFilesSnapshot));
-        this.showSelectedEmptyState = this.selectedFilesCount === 0;
+        Store.translationProjects.fragments.set(this.fragmentsSnapshot);
+        Store.translationProjects.collections.set(this.collectionsSnapshot);
+        Store.translationProjects.placeholders.set(this.placeholdersSnapshot);
+        Store.translationProjects.selectionChanged.set(false);
+        this.showSelectedEmptyState = this.selectedCount === 0;
         this.isOverlayOpen = false;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -328,11 +347,11 @@ class MasTranslationEditor extends LitElement {
         router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
     };
 
-    createSnapshot() {
+    openAddFilesOverlay() {
         this.isOverlayOpen = true;
-        this.selectedFilesSnapshot = new Set(
-            this.translationProject?.fields.find((field) => field.name === 'items')?.values || [],
-        );
+        this.fragmentsSnapshot = Store.translationProjects.fragments.value;
+        this.placeholdersSnapshot = Store.translationProjects.placeholders.value;
+        this.collectionsSnapshot = Store.translationProjects.collections.value;
     }
 
     renderAddFilesDialog() {
@@ -418,7 +437,7 @@ class MasTranslationEditor extends LitElement {
                     <sp-textfield
                         id="title"
                         data-field="title"
-                        value="${this.translationProject?.fields.find((field) => field.name === 'title')?.values[0] ?? ''}"
+                        value="${this.translationProject?.getFieldValue('title') || ''}"
                         @input=${this.#handleFragmentUpdate}
                     ></sp-textfield>
                 </div>
@@ -437,7 +456,7 @@ class MasTranslationEditor extends LitElement {
                                                   type="modal"
                                                   id="add-files-overlay"
                                                   triggered-by="click"
-                                                  @sp-opened=${this.createSnapshot}
+                                                  @sp-opened=${this.openAddFilesOverlay}
                                                   @sp-closed=${() => (this.isOverlayOpen = false)}
                                               >
                                                   ${this.renderAddFilesDialog()}
@@ -457,7 +476,7 @@ class MasTranslationEditor extends LitElement {
                                   <div class="selected-files-header">
                                       <h2>
                                           Selected files
-                                          <span>(${this.selectedFilesCount})</span>
+                                          <span>(${this.selectedCount})</span>
                                       </h2>
                                       ${this.isSelectedFilesOpen
                                           ? html`
@@ -475,13 +494,14 @@ class MasTranslationEditor extends LitElement {
                                                         type="modal"
                                                         id="add-files-overlay"
                                                         triggered-by="click"
+                                                        @sp-opened=${this.openAddFilesOverlay}
                                                         @sp-closed=${() => (this.isOverlayOpen = false)}
                                                     >
                                                         ${this.renderAddFilesDialog()}
                                                         <sp-button
                                                             slot="trigger"
                                                             class="trigger-btn"
-                                                            @click=${this.createSnapshot}
+                                                            @click=${() => (this.isOverlayOpen = true)}
                                                         >
                                                             <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>
                                                             Edit

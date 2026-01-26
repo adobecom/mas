@@ -2,11 +2,11 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-select-fragments-table.css.js';
 import Store from '../store.js';
-import NestedStoreController from '../reactivity/nested-store-controller.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
 import { ROOT_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import { getService, showToast } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasSelectFragmentsTable extends LitElement {
     static styles = styles;
@@ -22,7 +22,7 @@ class MasSelectFragmentsTable extends LitElement {
 
     constructor() {
         super();
-        this.translationProjectStoreController = new NestedStoreController(this, Store.translationProjects.inEdit);
+        this.translationProjectStoreController = new ReactiveController(this, [Store.translationProjects.inEdit]);
         this.fragments = [];
         this.loading = false;
         this.error = null;
@@ -56,10 +56,6 @@ class MasSelectFragmentsTable extends LitElement {
         }
     }
 
-    get translationProject() {
-        return this.translationProjectStoreController.value;
-    }
-
     get translationProjectStore() {
         return Store.translationProjects.inEdit.get();
     }
@@ -75,15 +71,12 @@ class MasSelectFragmentsTable extends LitElement {
     }
 
     preselectItems() {
-        const storeSelectedSet = new Set(
-            this.translationProject?.fields?.find((field) => field.name === 'items')?.values ?? [],
-        );
-        const tableSelectedSet = new Set(this.selectedInTable);
+        const storeSelected = Store.translationProjects.fragments.value;
         const isEqual =
-            storeSelectedSet.size === tableSelectedSet.size &&
-            [...storeSelectedSet].every((value) => tableSelectedSet.has(value));
+            storeSelected.length === this.selectedInTable.length &&
+            [...storeSelected].every((value) => this.selectedInTable.includes(value));
         if (!isEqual) {
-            this.selectedInTable = Array.from(storeSelectedSet);
+            this.selectedInTable = storeSelected;
         }
     }
 
@@ -97,9 +90,9 @@ class MasSelectFragmentsTable extends LitElement {
         this.loading = true;
         this.error = null;
         if (this.type === 'view-only' && Store.translationProjects.fragmentsByPaths.value.size) {
-            this.fragments = this.translationProject
-                ?.getFieldValues('items')
-                .map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
+            this.fragments = Store.translationProjects.fragments.value.map((path) =>
+                Store.translationProjects.fragmentsByPaths.value.get(path),
+            );
             this.loading = false;
             return;
         }
@@ -150,7 +143,7 @@ class MasSelectFragmentsTable extends LitElement {
             const fragmentsByPaths = new Map(this.fragments.map((fragment) => [fragment.path, fragment]));
             Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
             Store.translationProjects.allFragments.set(this.fragments);
-            this.selectedInTable = this.translationProject?.getFieldValues('items');
+            this.selectedInTable = Store.translationProjects.fragments.value;
             if (this.type === 'view-only') {
                 this.fragments = this.selectedInTable.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path));
             }
@@ -209,10 +202,10 @@ class MasSelectFragmentsTable extends LitElement {
 
     updateSelected({ target: { selected } }) {
         this.selectedInTable = selected;
-        const currentSelected = this.translationProject?.getFieldValues('items');
+        const currentSelected = Store.translationProjects.fragments.value;
         const withoutUnselected = currentSelected.filter((path) => selected.includes(path));
         const newSelected = new Set([...withoutUnselected, ...selected]);
-        this.translationProjectStore?.updateField('items', Array.from(newSelected));
+        Store.translationProjects.fragments.set(Array.from(newSelected));
     }
 
     removeItem(path) {
@@ -222,7 +215,7 @@ class MasSelectFragmentsTable extends LitElement {
             this.shadowRoot.querySelector(`sp-table-row[value="${path}"]`)?.click();
         }
         this.selectedInTable = newSelected;
-        this.translationProjectStore?.updateField('items', newSelected);
+        Store.translationProjects.fragments.set(newSelected);
     }
 
     async copyToClipboard(e, text) {

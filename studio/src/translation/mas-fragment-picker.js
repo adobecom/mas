@@ -48,7 +48,7 @@ class MasFragmentPicker extends LitElement {
                     .type=${'fragments'}
                     .itemToRemove=${this.itemToRemove}
                 ></mas-select-fragments-table>
-                <mas-selected-items .type=${'fragments'} @remove=${this.setItemToRemove}></mas-selected-items>
+                <mas-selected-items @remove=${this.setItemToRemove}></mas-selected-items>
             </div>
         `;
     }

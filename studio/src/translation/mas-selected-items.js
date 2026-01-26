@@ -2,8 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-selected-items.css.js';
 import Store from '../store.js';
-import StoreController from '../reactivity/store-controller.js';
-import NestedStoreController from '../reactivity/nested-store-controller.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
@@ -14,20 +13,25 @@ class MasSelectedItems extends LitElement {
 
     constructor() {
         super();
-        this.translationProjectStoreController = new NestedStoreController(this, Store.translationProjects.inEdit);
-        this.showSelectedStoreController = new StoreController(this, Store.translationProjects.showSelected);
+        this.showSelectedStoreController = new ReactiveController(this, [Store.translationProjects.showSelected]);
+        this.showSelectedStoreController = new ReactiveController(this, [
+            Store.translationProjects.fragments,
+            Store.translationProjects.collections,
+            Store.translationProjects.placeholders,
+        ]);
     }
 
     get selectedItems() {
-        const translationProject = this.translationProjectStoreController.value;
-        if (this.type === 'fragments') {
-            return (
-                translationProject?.fields
-                    ?.find((field) => field.name === 'items')
-                    ?.values?.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path)) || []
-            );
-        }
-        return [];
+        const fragments = Store.translationProjects.fragments.value.map((path) => {
+            return { ...Store.translationProjects.fragmentsByPaths.value.get(path), type: 'fragment' };
+        });
+        // const collectionss = Store.translationProjects.collections.map((path) => {
+        //     return { ...Store.translationProjects.collectionsByPath.value.get(path), type: 'collection' };
+        // });
+        const placeholders = Store.translationProjects.placeholders.value.map((path) => {
+            return { ...Store.translationProjects.placeholdersByPaths.value.get(path), type: 'placeholder' };
+        });
+        return [...fragments, /*...collectionss,*/ ...placeholders];
     }
 
     get showSelected() {
@@ -36,16 +40,16 @@ class MasSelectedItems extends LitElement {
 
     getTitle(item) {
         if (!item) return '-';
-        if (this.type === 'fragments') {
-            return item.title || '-';
-        }
-        return '-';
+        return item.title || '-';
     }
 
     getDetails(item) {
         if (!item) return '-';
-        if (this.type === 'fragments') {
+        if (item.type === 'fragment') {
             return item.studioPath || '-';
+        }
+        if (item.type === 'placeholder') {
+            return item.description || '-';
         }
         return '-';
     }

@@ -114,7 +114,12 @@ const Store = {
         translationProjectId: new ReactiveStore(null),
         allFragments: new ReactiveStore([]),
         fragmentsByPaths: new ReactiveStore(new Map()),
+        placeholdersByPaths: new ReactiveStore(new Map()),
         showSelected: new ReactiveStore(false),
+        fragments: new ReactiveStore([]),
+        placeholders: new ReactiveStore([]),
+        collections: new ReactiveStore([]),
+        selectionChanged: new ReactiveStore(false),
     },
 };
 

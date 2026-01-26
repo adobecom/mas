@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-translation-languages.css.js';
 import Store from '../store.js';
-import { getDefaultLocales } from '../../io/www/src/fragment/locales.js';
+import { getDefaultLocales } from '../../../io/www/src/fragment/locales.js';
 
 const NMB_CLMN = 4;
 

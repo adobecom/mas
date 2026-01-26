@@ -80,6 +80,7 @@ export class Catalog extends VariantLayout {
                         @blur="${this.hideActionMenuOnBlur}"
                         tabindex="0"
                         aria-expanded="false"
+                        aria-hidden="false"
                         role="button"
                     >
                         ${this.card.actionMenuLabel} - ${this.card.title}

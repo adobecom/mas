@@ -12,7 +12,7 @@ import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
-import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/io-locales.js';
+import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',

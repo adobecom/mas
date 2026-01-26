@@ -285,11 +285,11 @@ class MasSideNav extends LitElement {
                       <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
                           <sp-icon-add slot="icon"></sp-icon-add>
                       </mas-side-nav-item>
+                      <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
+                          <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                      </mas-side-nav-item>
                   `
                 : ''}
-            <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
-                <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
-            </mas-side-nav-item>
             <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>

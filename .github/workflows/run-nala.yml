@@ -80,7 +80,7 @@ jobs:
             - name: Run Nala Studio Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh
               env:
-                  labels: '@mas-studio ${{ join(github.event.pull_request.labels.*.name, '' '') }}'
+                  labels: "@mas-studio ${{ join(github.event.pull_request.labels.*.name, ' ') }}"
                   branch: ${{ github.event.pull_request.head.ref }}
                   repoName: ${{ github.repository }}
                   prUrl: ${{ github.event.pull_request.head.repo.html_url }}
@@ -170,7 +170,7 @@ jobs:
             - name: Run Nala Docs Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh
               env:
-                  labels: '@mas-docs ${{ join(github.event.pull_request.labels.*.name, '' '') }}'
+                  labels: "@mas-docs ${{ join(github.event.pull_request.labels.*.name, ' ') }}"
                   branch: ${{ github.event.pull_request.head.ref }}
                   repoName: ${{ github.repository }}
                   prUrl: ${{ github.event.pull_request.head.repo.html_url }}

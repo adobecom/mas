@@ -372,6 +372,12 @@ merch-card span.heading-l {
     margin: 0;
 }
 
+/* RTL text alignment for all heading slots */
+[dir="rtl"] merch-card [slot^='heading-'],
+[dir="rtl"] merch-card [class^='heading-'] {
+    text-align: right;
+}
+
 merch-card [slot='offers'] {
     padding: var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-s);
 }
@@ -622,6 +628,25 @@ merch-sidenav-list sp-sidenav > sp-sidenav-item:last-of-type {
     line-height: var(--mod-sidenav-top-level-line-height)
 }
 
+/* RTL support for sp-sidenav-item */
+[dir="rtl"] sp-sidenav-item {
+    text-align: right;
+}
+
+/* Only apply flex layout when icon with .right class is present */
+[dir="rtl"] sp-sidenav-item:has([slot="icon"].right) {
+    display: flex;
+    flex-direction: row;
+}
+
+[dir="rtl"] sp-sidenav-item [slot="icon"].right {
+    position: relative;
+    right: auto;
+    left: auto;
+    order: 2;
+    margin-inline-start: var(--mod-sidenav-icon-spacing, var(--spectrum-sidenav-icon-spacing));
+}
+
 merch-sidenav-checkbox-group h3 {
     font-size: var(--merch-sidenav-checkbox-group-title-font-size);
     font-weight: var(--merch-sidenav-checkbox-group-title-font-weight);
@@ -629,6 +654,10 @@ merch-sidenav-checkbox-group h3 {
     color: var(--merch-sidenav-checkbox-group-title-color);
     padding: var(--merch-sidenav-checkbox-group-title-padding);
     margin: 0;
+}
+
+[dir="rtl"] merch-sidenav-checkbox-group h3 {
+    text-align: right;
 }
 
 sr-only {
@@ -710,9 +739,19 @@ merch-card[border-color="spectrum-red-700-plans"] {
 }
 
 @media (max-width: 600px) {
-merch-card [slot='callout-content'] .icon-button::before { 
+merch-card [slot='callout-content'] .icon-button::before {
     max-width: 180px;
   }
+}
+
+/* RTL support for collection header - Mobile */
+[dir="rtl"] merch-card-collection-header {
+    --merch-card-collection-header-areas: 'search search' 'sort filter'
+        'result result';
+}
+
+[dir="rtl"] merch-card-collection-header #result {
+    text-align: right;
 }
 
 @media screen and ${TABLET_UP} {
@@ -720,6 +759,12 @@ merch-card [slot='callout-content'] .icon-button::before {
     .three-merch-cards,
     .four-merch-cards {
         grid-template-columns: repeat(2, var(--merch-card-collection-card-width));
+    }
+
+    /* RTL support for collection header - Tablet */
+    [dir="rtl"] merch-card-collection-header {
+        --merch-card-collection-header-areas: 'sort filter search'
+            'result result result';
     }
 }
 
@@ -731,6 +776,11 @@ merch-card [slot='callout-content'] .icon-button::before {
     .three-merch-cards,
     merch-sidenav ~ .four-merch-cards {
         grid-template-columns: repeat(3, var(--merch-card-collection-card-width));
+    }
+
+    /* RTL support for collection header - Desktop */
+    [dir="rtl"] merch-card-collection-header {
+        --merch-card-collection-header-areas: 'sort result';
     }
 }
 

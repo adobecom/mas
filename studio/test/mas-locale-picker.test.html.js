@@ -3,7 +3,7 @@ import { expect } from '@esm-bundle/chai';
 import { initElementFromTemplate, oneEvent } from './utils.js';
 import Store from '../src/store.js';
 import '../src/mas-locale-picker.js';
-import { getDefaultLocales, getLocaleCode } from '../src/locales.js';
+import { getDefaultLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 runTests(async () => {
     describe('mas-locale-picker custom element', async () => {

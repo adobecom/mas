@@ -317,7 +317,7 @@ export class MerchQuantitySelect extends LitElement {
                         : nothing}"
                     .value="${this.selectedValue}"
                     type="text"
-                    autocomplete="off"
+                    autocomplete="on"
                     @keydown="${this.handleKeydown}"
                     @keyup="${this.handleKeyupDebounced}"
                 />

@@ -349,6 +349,7 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
             isCheckoutLink,
             isLinkStyle,
             isPrimary,
+            isSecondary,
         );
     } else if (isLinkStyle) {
         newButtonElement = linkElement;
@@ -637,6 +638,7 @@ function createConsonantButton(
     isCheckout,
     isLinkStyle,
     isPrimary,
+    isSecondary,
 ) {
     let button = cta;
     if (isCheckout) {
@@ -650,6 +652,9 @@ function createConsonantButton(
         }
         if (isPrimary) {
             button.classList.add('primary');
+        }
+        if (isSecondary) {
+            button.classList.add('secondary');
         }
     }
     return button;

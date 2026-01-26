@@ -120,6 +120,7 @@ const Store = {
         placeholders: new ReactiveStore([]),
         collections: new ReactiveStore([]),
         selectionChanged: new ReactiveStore(false),
+        targetLocales: new ReactiveStore([]),
     },
 };
 

@@ -9,7 +9,6 @@ class MasPlaceholderPicker extends LitElement {
     static styles = styles;
 
     static properties = {
-        itemToRemove: { type: String, state: true },
         loading: { type: Boolean, state: true },
         error: { type: String, state: true },
         columnsToShow: { type: Set, state: true },
@@ -82,10 +81,6 @@ class MasPlaceholderPicker extends LitElement {
     get loadingIndicator() {
         if (!this.loading) return nothing;
         return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
-    }
-
-    setItemToRemove({ detail: { path } }) {
-        this.itemToRemove = path;
     }
 
     updateSelected({ target: { selected } }) {

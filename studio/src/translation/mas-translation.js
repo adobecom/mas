@@ -263,7 +263,11 @@ class MasTranslation extends LitElement {
                         this.translationProjectsData,
                         (translationProject) => translationProject.get().id,
                         (translationProject) => html`
-                            <sp-table-row value=${translationProject.get().path} data-id=${translationProject.get().id}>
+                            <sp-table-row
+                                @dblclick=${() => this.#goToEditorExistingProject(translationProject)}
+                                value=${translationProject.get().path}
+                                data-id=${translationProject.get().id}
+                            >
                                 <sp-table-cell>${translationProject.get().title}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
                                 <sp-table-cell>N/A</sp-table-cell>

@@ -10,6 +10,7 @@ import { normalizeKey, showToast } from '../utils.js';
 import { TranslationProject } from './translation-project.js';
 import './mas-translation-files.js';
 import './mas-select-fragments-table.js';
+import './mas-translation-languages.js';
 import './mas-placeholder-picker.js';
 import '../mas-quick-actions.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -24,12 +25,16 @@ class MasTranslationEditor extends LitElement {
         confirmDialogConfig: { type: Object, state: true },
         disabledActions: { type: Set, state: true },
         isSelectedFilesOpen: { type: Boolean, state: true },
-        fragmentsSnapshot: { type: Array, state: true },
-        collectionsSnapshot: { type: Array, state: true },
-        placeholdersSnapshot: { type: Array, state: true },
         showSelectedEmptyState: { type: Boolean, state: true },
         isOverlayOpen: { type: Boolean, state: true },
+        isSelectedLangsOpen: { type: Boolean, state: true },
+        showLangSelectedEmptyState: { type: Boolean, state: true },
     };
+
+    #fragmentsSnapshot = [];
+    #collectionsSnapshot = [];
+    #placeholdersSnapshot = [];
+    #targetLocalesSnapshot = [];
 
     constructor() {
         super();
@@ -48,11 +53,10 @@ class MasTranslationEditor extends LitElement {
             QUICK_ACTION.LOCK,
         ]);
         this.isSelectedFilesOpen = false;
-        this.fragmentsSnapshot = [];
-        this.collectionsSnapshot = [];
-        this.placeholdersSnapshot = [];
         this.showSelectedEmptyState = true;
         this.isOverlayOpen = false;
+        this.showLangSelectedEmptyState = true;
+        this.isSelectedLangsOpen = false;
     }
 
     async connectedCallback() {
@@ -60,6 +64,7 @@ class MasTranslationEditor extends LitElement {
         const translationProjectId = Store.translationProjects.translationProjectId.get();
         if (translationProjectId) {
             await this.#loadTranslationProjectById(translationProjectId);
+            this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
         } else {
             this.#initializeNewTranslationProject();
@@ -69,6 +74,7 @@ class MasTranslationEditor extends LitElement {
             Store.translationProjects.fragments,
             Store.translationProjects.collections,
             Store.translationProjects.placeholders,
+            Store.translationProjects.targetLocales,
         ]);
     }
 
@@ -97,8 +103,12 @@ class MasTranslationEditor extends LitElement {
         ].length;
     }
 
-    get languages() {
-        return 'All required languages have been preselected for this project. They are mandatory and cannot be changed.';
+    get targetLocalesCount() {
+        return Store.translationProjects.targetLocales.value.length;
+    }
+
+    get selectedLangsList() {
+        return Store.translationProjects.targetLocales.value.sort().join(', ');
     }
 
     #updateDisabledActions({ add = [], remove = [] }) {
@@ -122,7 +132,9 @@ class MasTranslationEditor extends LitElement {
                 Store.translationProjects.fragments.set(translationProject.getFieldValues('fragments'));
                 Store.translationProjects.placeholders.set(translationProject.getFieldValues('placeholders'));
                 Store.translationProjects.collections.set(translationProject.getFieldValues('collections'));
+                Store.translationProjects.targetLocales.set(translationProject.getFieldValues('targetLocales'));
                 this.showSelectedEmptyState = this.selectedCount === 0;
+                this.showLangSelectedEmptyState = Store.translationProjects.targetLocales.value.length === 0;
             }
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
         } catch (err) {
@@ -147,6 +159,8 @@ class MasTranslationEditor extends LitElement {
         });
         this.isNewTranslationProject = true;
         this.translationProjectStore = new FragmentStore(newProject);
+        this.showSelectedEmptyState = true;
+        this.showLangSelectedEmptyState = true;
     }
 
     #handleFragmentUpdate({ target, detail, values }) {
@@ -221,6 +235,7 @@ class MasTranslationEditor extends LitElement {
         this.translationProject.updateField('fragments', Store.translationProjects.fragments.value);
         this.translationProject.updateField('placeholders', Store.translationProjects.placeholders.value);
         this.translationProject.updateField('collections', Store.translationProjects.collections.value);
+        this.translationProject.updateField('targetLocales', Store.translationProjects.targetLocales.value);
         showToast('Updating the project...');
         try {
             await this.repository.saveFragment(this.translationProjectStore, false);
@@ -281,6 +296,8 @@ class MasTranslationEditor extends LitElement {
         this.translationProjectStore.discardChanges();
         Store.translationProjects.inEdit.set(new FragmentStore(this.translationProject));
         Store.translationProjects.translationProjectId.set(this.translationProject.id);
+        this.showSelectedEmptyState = this.selectedCount === 0;
+        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
         Store.translationProjects.showSelected.set(false);
         this.#updateDisabledActions({ add: [QUICK_ACTION.DISCARD, QUICK_ACTION.SAVE] });
     }
@@ -323,9 +340,9 @@ class MasTranslationEditor extends LitElement {
     #confirmFileSelection = ({ target }) => {
         this.isOverlayOpen = false;
         this.showSelectedEmptyState = this.selectedCount === 0;
-        this.fragmentsSnapshot = [];
-        this.collectionsSnapshot = [];
-        this.placeholdersSnapshot = [];
+        this.#fragmentsSnapshot = [];
+        this.#collectionsSnapshot = [];
+        this.#placeholdersSnapshot = [];
         Store.translationProjects.selectionChanged.set(true);
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
@@ -333,9 +350,9 @@ class MasTranslationEditor extends LitElement {
     };
 
     #cancelFileSelection = ({ target }) => {
-        Store.translationProjects.fragments.set(this.fragmentsSnapshot);
-        Store.translationProjects.collections.set(this.collectionsSnapshot);
-        Store.translationProjects.placeholders.set(this.placeholdersSnapshot);
+        Store.translationProjects.fragments.set(this.#fragmentsSnapshot);
+        Store.translationProjects.collections.set(this.#collectionsSnapshot);
+        Store.translationProjects.placeholders.set(this.#placeholdersSnapshot);
         Store.translationProjects.selectionChanged.set(false);
         this.showSelectedEmptyState = this.selectedCount === 0;
         this.isOverlayOpen = false;
@@ -349,10 +366,30 @@ class MasTranslationEditor extends LitElement {
 
     openAddFilesOverlay() {
         this.isOverlayOpen = true;
-        this.fragmentsSnapshot = Store.translationProjects.fragments.value;
-        this.placeholdersSnapshot = Store.translationProjects.placeholders.value;
-        this.collectionsSnapshot = Store.translationProjects.collections.value;
+        this.#fragmentsSnapshot = Store.translationProjects.fragments.value;
+        this.#placeholdersSnapshot = Store.translationProjects.placeholders.value;
+        this.#collectionsSnapshot = Store.translationProjects.collections.value;
     }
+    createLangSnapshot() {
+        this.#targetLocalesSnapshot = Array.from(Store.translationProjects.targetLocales.value);
+    }
+
+    #confirmLangSelection = ({ target }) => {
+        const targetLocales = target.querySelector('mas-translation-langs').selectedLanguages;
+        Store.translationProjects.targetLocales.set(targetLocales);
+        Store.translationProjects.selectionChanged.set(true);
+        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
+        this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
+        const closeEvent = new Event('close', { bubbles: true, composed: true });
+        target.dispatchEvent(closeEvent);
+    };
+
+    #cancelLangSelection = ({ target }) => {
+        Store.translationProjects.targetLocales.set(this.#targetLocalesSnapshot);
+        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
+        const closeEvent = new Event('close', { bubbles: true, composed: true });
+        target.dispatchEvent(closeEvent);
+    };
 
     renderAddFilesDialog() {
         return html`
@@ -372,6 +409,26 @@ class MasTranslationEditor extends LitElement {
         `;
     }
 
+    renderAddLanguagesDialog() {
+        return html`
+            <sp-dialog-wrapper
+                class="add-langs-dialog"
+                slot="click-content"
+                headline="Select languages"
+                confirm-label="Confirm"
+                cancel-label="Cancel"
+                underlay
+                no-divider
+                @confirm=${this.#confirmLangSelection}
+                @cancel=${this.#cancelLangSelection}
+            >
+                <mas-translation-langs
+                    .selectedLanguages=${Store.translationProjects.targetLocales.value}
+                ></mas-translation-langs>
+            </sp-dialog-wrapper>
+        `;
+    }
+
     renderConfirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
 
@@ -382,7 +439,6 @@ class MasTranslationEditor extends LitElement {
                 <sp-dialog-wrapper
                     open
                     underlay
-                    id="promotion-unsaved-changes-dialog"
                     .headline=${title}
                     .variant=${variant || 'negative'}
                     .confirmLabel=${confirmText}
@@ -441,88 +497,146 @@ class MasTranslationEditor extends LitElement {
                         @input=${this.#handleFragmentUpdate}
                     ></sp-textfield>
                 </div>
-                <div class="form-field">
-                    <h2>Translation languages</h2>
-                    <p>${this.languages}</p>
-                </div>
-                    ${
-                        this.showSelectedEmptyState
-                            ? html`
-                                  <div class="form-field select-files">
-                                      <h2>Select files</h2>
-                                      <div class="files-empty-state">
-                                          <div class="icon">
-                                              <overlay-trigger
-                                                  type="modal"
-                                                  id="add-files-overlay"
-                                                  triggered-by="click"
-                                                  @sp-opened=${this.openAddFilesOverlay}
-                                                  @sp-closed=${() => (this.isOverlayOpen = false)}
-                                              >
-                                                  ${this.renderAddFilesDialog()}
-                                                  <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
-                                                      <sp-icon-add size="xxl" slot="icon" label="Add Files"></sp-icon-add>
-                                                  </sp-button>
-                                              </overlay-trigger>
-                                          </div>
-                                          <div class="label">
-                                              <strong>Add files</strong><br />
-                                              <span>Choose files that need to be translated.</span>
-                                          </div>
+                ${
+                    this.showLangSelectedEmptyState
+                        ? html`
+                              <div class="form-field select-langs">
+                                  <h2>Select languages</h2>
+                                  <div class="languages-empty-state">
+                                      <div class="icon">
+                                          <overlay-trigger
+                                              type="modal"
+                                              id="add-languages-overlay"
+                                              triggered-by="click"
+                                              @sp-opened=${this.createLangSnapshot}
+                                          >
+                                              ${this.renderAddLanguagesDialog()}
+                                              <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
+                                                  <sp-icon-add size="xxl" slot="icon" label="Add Languages"></sp-icon-add>
+                                              </sp-button>
+                                          </overlay-trigger>
+                                      </div>
+                                      <div class="label">
+                                          <strong>Add languages</strong><br />
+                                          <span>Choose one or more languages for your translation project.</span>
                                       </div>
                                   </div>
-                              `
-                            : html`<div class="form-field selected-files">
-                                  <div class="selected-files-header">
-                                      <h2>
-                                          Selected files
-                                          <span>(${this.selectedCount})</span>
-                                      </h2>
-                                      ${this.isSelectedFilesOpen
-                                          ? html`
+                              </div>
+                          `
+                        : html`<div class="form-field selected-langs">
+                              <div class="selected-langs-header">
+                                  <h2>
+                                      Selected languages
+                                      <span>(${this.targetLocalesCount})</span>
+                                  </h2>
+                                  ${this.isSelectedLangsOpen
+                                      ? html`
+                                            <sp-button
+                                                icon-only
+                                                class="toggle-btn"
+                                                @click=${() => (this.isSelectedLangsOpen = false)}
+                                            >
+                                                <sp-icon-chevron-up slot="icon" label="Close"></sp-icon-chevron-up>
+                                            </sp-button>
+                                        `
+                                      : html`
+                                            <div>
+                                                <overlay-trigger type="modal" id="add-languages-overlay" triggered-by="click">
+                                                    ${this.renderAddLanguagesDialog()}
+                                                    <sp-button
+                                                        slot="trigger"
+                                                        class="trigger-btn"
+                                                        @click=${this.createLangSnapshot}
+                                                    >
+                                                        <sp-icon-edit slot="icon" label="Edit Languages"></sp-icon-edit>
+                                                        Edit
+                                                    </sp-button>
+                                                </overlay-trigger>
                                                 <sp-button
                                                     icon-only
                                                     class="toggle-btn"
-                                                    @click=${() => (this.isSelectedFilesOpen = false)}
+                                                    @click=${() => (this.isSelectedLangsOpen = true)}
                                                 >
-                                                    <sp-icon-chevron-up slot="icon" label="Close"></sp-icon-chevron-up>
+                                                    <sp-icon-chevron-down slot="icon" label="Open"></sp-icon-chevron-down>
                                                 </sp-button>
-                                            `
-                                          : html`
-                                                <div>
-                                                    <overlay-trigger
-                                                        type="modal"
-                                                        id="add-files-overlay"
-                                                        triggered-by="click"
-                                                        @sp-opened=${this.openAddFilesOverlay}
-                                                        @sp-closed=${() => (this.isOverlayOpen = false)}
-                                                    >
-                                                        ${this.renderAddFilesDialog()}
-                                                        <sp-button
-                                                            slot="trigger"
-                                                            class="trigger-btn"
-                                                            @click=${() => (this.isOverlayOpen = true)}
-                                                        >
-                                                            <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>
-                                                            Edit
-                                                        </sp-button>
-                                                    </overlay-trigger>
-                                                    <sp-button
-                                                        icon-only
-                                                        class="toggle-btn"
-                                                        @click=${() => (this.isSelectedFilesOpen = true)}
-                                                    >
-                                                        <sp-icon-chevron-down slot="icon" label="Open"></sp-icon-chevron-down>
-                                                    </sp-button>
-                                                </div>
-                                            `}
+                                            </div>
+                                        `}
+                              </div>
+                              ${this.isSelectedLangsOpen
+                                  ? html` <div class="selected-langs-list">${this.selectedLangsList}</div> `
+                                  : nothing}
+                          </div>`
+                }
+                ${
+                    this.showSelectedEmptyState
+                        ? html`
+                              <div class="form-field select-files">
+                                  <h2>Select files</h2>
+                                  <div class="files-empty-state">
+                                      <div class="icon">
+                                          <overlay-trigger
+                                              type="modal"
+                                              id="add-files-overlay"
+                                              triggered-by="click"
+                                              @sp-opened=${this.openAddFilesOverlay}
+                                          >
+                                              ${this.renderAddFilesDialog()}
+                                              <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
+                                                  <sp-icon-add size="xxl" slot="icon" label="Add Files"></sp-icon-add>
+                                              </sp-button>
+                                          </overlay-trigger>
+                                      </div>
+                                      <div class="label">
+                                          <strong>Add files</strong><br />
+                                          <span>Choose files that need to be translated.</span>
+                                      </div>
                                   </div>
+                              </div>
+                          `
+                        : html`<div class="form-field selected-files">
+                              <div class="selected-files-header">
+                                  <h2>
+                                      Selected files
+                                      <span>(${this.selectedCount})</span>
+                                  </h2>
                                   ${this.isSelectedFilesOpen
-                                      ? html` <mas-select-fragments-table .type=${'view-only'}></mas-select-fragments-table> `
-                                      : nothing}
-                              </div>`
-                    }
-
+                                      ? html`
+                                            <sp-button
+                                                icon-only
+                                                class="toggle-btn"
+                                                @click=${() => (this.isSelectedFilesOpen = false)}
+                                            >
+                                                <sp-icon-chevron-up slot="icon" label="Close"></sp-icon-chevron-up>
+                                            </sp-button>
+                                        `
+                                      : html`
+                                            <div>
+                                                <overlay-trigger type="modal" id="add-files-overlay" triggered-by="click">
+                                                    ${this.renderAddFilesDialog()}
+                                                    <sp-button
+                                                        slot="trigger"
+                                                        class="trigger-btn"
+                                                        @click=${this.openAddFilesOverlay}
+                                                    >
+                                                        <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>
+                                                        Edit
+                                                    </sp-button>
+                                                </overlay-trigger>
+                                                <sp-button
+                                                    icon-only
+                                                    class="toggle-btn"
+                                                    @click=${() => (this.isSelectedFilesOpen = true)}
+                                                >
+                                                    <sp-icon-chevron-down slot="icon" label="Open"></sp-icon-chevron-down>
+                                                </sp-button>
+                                            </div>
+                                        `}
+                              </div>
+                              ${this.isSelectedFilesOpen
+                                  ? html` <mas-select-fragments-table .type=${'view-only'}></mas-select-fragments-table> `
+                                  : nothing}
+                          </div>`
+                }
                 <mas-quick-actions
                     .actions=${[
                         QUICK_ACTION.SAVE,

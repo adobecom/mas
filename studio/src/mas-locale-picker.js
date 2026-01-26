@@ -162,6 +162,15 @@ export class MasLocalePicker extends LitElement {
         e.stopPropagation();
     }
 
+    handleMenuOpen() {
+        this.updateComplete.then(() => {
+            const search = this.shadowRoot.querySelector('sp-search');
+            if (search) {
+                search.focus();
+            }
+        });
+    }
+
     getLocales() {
         if (this.mode === 'region') {
             return getRegionLocales(this.surface, this.lang);
@@ -233,7 +242,7 @@ export class MasLocalePicker extends LitElement {
         const code = getLocaleCode(currentLocale);
         return html`
             ${this.label ? html`<sp-label>${this.label}</sp-label>` : ''}
-            <sp-action-menu value=${code} ?disabled=${this.disabled}>
+            <sp-action-menu value=${code} ?disabled=${this.disabled} @sp-opened=${this.handleMenuOpen}>
                 ${this.displayMode === 'strong'
                     ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
                     : html`<span slot="icon"></span>`}

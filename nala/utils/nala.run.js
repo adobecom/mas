@@ -113,7 +113,7 @@ function detectProjectFromTests(parsedParams) {
     if (parsedParams.project) {
         return parsedParams.project;
     }
-    
+
     // Check test file path first (if provided)
     if (parsedParams.test) {
         if (parsedParams.test.includes('studio/')) {
@@ -122,7 +122,7 @@ function detectProjectFromTests(parsedParams) {
             return 'mas-docs-chromium';
         }
     }
-    
+
     // Check tags for explicit project indicators
     if (parsedParams.tag) {
         if (parsedParams.tag.includes('mas-studio')) {
@@ -131,7 +131,7 @@ function detectProjectFromTests(parsedParams) {
             return 'mas-docs-chromium';
         }
     }
-    
+
     // Use Playwright list to detect from actual test files that would run
     const tagArg = parsedParams.tag ? parsedParams.tag.replace(/,/g, ' ') : '';
     const testFile = parsedParams.test || '';
@@ -142,18 +142,18 @@ function detectProjectFromTests(parsedParams) {
     if (testFile) {
         listCmd += ` ${testFile}`;
     }
-    
+
     try {
-        const result = spawnSync(listCmd, { 
+        const result = spawnSync(listCmd, {
             shell: true,
-            encoding: 'utf-8', 
+            encoding: 'utf-8',
             stdio: 'pipe',
             cwd: process.cwd(),
-            timeout: 10000
+            timeout: 10000,
         });
-        
+
         const listOutput = (result.stdout || '') + (result.stderr || '');
-        
+
         // Check for project names in brackets or relative paths in output
         if (listOutput.includes('[mas-studio-chromium]') || listOutput.includes('studio/')) {
             return 'mas-studio-chromium';
@@ -163,7 +163,7 @@ function detectProjectFromTests(parsedParams) {
     } catch (error) {
         // If list fails, fall back to default
     }
-    
+
     // Default fallback - uses auth to safely handle any tests
     return 'mas-live-chromium';
 }
@@ -173,7 +173,7 @@ function buildPlaywrightCommand(parsedParams, localTestLiveUrl) {
     if (!parsedParams.project) {
         parsedParams.project = detectProjectFromTests(parsedParams);
     }
-    
+
     const { browser, device, test, tag, mode, config, project } = parsedParams;
 
     const envVariables = {

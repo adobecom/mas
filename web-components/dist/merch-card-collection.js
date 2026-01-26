@@ -106,6 +106,11 @@ merch-card[variant="catalog"] [slot="action-menu-content"] {
   line-height: var(--consonant-merch-card-body-line-height);
 }
 
+[dir="rtl"] merch-card[variant="catalog"] [slot="action-menu-content"] {
+  right: initial;
+  left: 15px;
+}
+
 merch-card[variant="catalog"] [slot="action-menu-content"] ul {
   padding-left: 0;
   padding-bottom: var(--consonant-merch-spacing-xss);
@@ -113,6 +118,11 @@ merch-card[variant="catalog"] [slot="action-menu-content"] ul {
   margin-bottom: 0;
   list-style-position: inside;
   list-style-type: '\u2022 ';
+}
+
+[dir="rtl"] merch-card[variant="catalog"] [slot="action-menu-content"] ul {
+  padding-right: 0;
+  padding-left: unset;
 }
 
 merch-card[variant="catalog"] [slot="action-menu-content"] ul li {
@@ -199,6 +209,11 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
             top: 0;
             margin-left: var(--consonant-merch-spacing-xxs);
             box-sizing: border-box;
+        }
+
+        :host([variant='catalog']) .action-menu:dir(rtl) {
+            right: initial;
+            left: 16px;
         }
     `);import{html as gt}from"./lit-all.min.js";var ta=`
 :root {

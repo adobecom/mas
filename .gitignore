@@ -1,4 +1,4 @@
-logs/*
+**/logs/
 helix-importer-ui
 .DS_Store
 *.bak

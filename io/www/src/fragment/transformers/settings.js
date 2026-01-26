@@ -57,6 +57,7 @@ function applyCollectionSettings(context) {
         catalogSpecialOffersAlt: '{{catalog-special-offers-alt}}',
         sidenavFilterCategories: '{{sidenav-filter-categories}}',
         sidenavResources: '{{sidenav-resources}}',
+        blockNotifications: '{{block-notifications}}',
         resultText: '{{coll-result-text}}',
         resultsText: '{{coll-results-text}}',
         resultMobileText: '{{coll-result-mobile-text}}',

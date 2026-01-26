@@ -108,13 +108,13 @@ export class Fragment {
         const existingField = this.getField(fieldName);
 
         if (existingField) {
-            if (this.isValueEmpty(existingField.values) && this.isValueEmpty(value)) {
+            // Check if the array lengths differ - this handles adding/removing items
+            // even when values are "empty" strings
+            const lengthChanged = existingField.values.length !== encodedValues.length;
+            if (!lengthChanged && this.isValueEmpty(existingField.values) && this.isValueEmpty(value)) {
                 return change;
             }
-            if (
-                existingField.values.length === encodedValues.length &&
-                existingField.values.every((v, index) => v === encodedValues[index])
-            ) {
+            if (!lengthChanged && existingField.values.every((v, index) => v === encodedValues[index])) {
                 if (fieldName === 'tags') this.newTags = value;
                 return change;
             }
@@ -149,6 +149,11 @@ export class Fragment {
     getEffectiveFieldValues(fieldName, parentFragment, isVariation) {
         const ownField = this.getField(fieldName);
         if (ownField && ownField.values && ownField.values.length > 0) {
+            return ownField.values;
+        }
+        // If the field exists in this fragment (even with empty values), respect it
+        // This handles the case where user explicitly cleared a field
+        if (ownField && Array.isArray(ownField.values)) {
             return ownField.values;
         }
         if (!parentFragment || !isVariation) {

@@ -152,4 +152,110 @@ describe('Fragment', () => {
             expect(variations[0].id).to.equal('ref-1');
         });
     });
+
+    describe('getEffectiveFieldValues', () => {
+        it('returns own values when field has non-empty values', () => {
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getEffectiveFieldValues('mnemonicIcon', parent, true);
+            expect(result).to.deep.equal(['icon.svg']);
+        });
+
+        it('returns empty array when field explicitly set to empty (not inheriting from parent)', () => {
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getEffectiveFieldValues('mnemonicIcon', parent, true);
+            expect(result).to.deep.equal([]);
+        });
+
+        it('returns parent values when field does not exist in variation', () => {
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [], // no mnemonicIcon field
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getEffectiveFieldValues('mnemonicIcon', parent, true);
+            expect(result).to.deep.equal(['parent-icon.svg']);
+        });
+
+        it('returns empty array when not a variation', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = fragment.getEffectiveFieldValues('mnemonicIcon', parent, false);
+            expect(result).to.deep.equal([]);
+        });
+    });
+
+    describe('updateField', () => {
+        it('updates field when adding item to empty array', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [] }],
+                }),
+            );
+
+            const changed = fragment.updateField('mnemonicIcon', ['']);
+            expect(changed).to.be.true;
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
+            expect(fragment.hasChanges).to.be.true;
+        });
+
+        it('updates field when removing last item', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }],
+                }),
+            );
+
+            const changed = fragment.updateField('mnemonicIcon', []);
+            expect(changed).to.be.true;
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal([]);
+            expect(fragment.hasChanges).to.be.true;
+        });
+
+        it('does not update when both empty and same length', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [] }],
+                }),
+            );
+
+            const changed = fragment.updateField('mnemonicIcon', []);
+            expect(changed).to.be.false;
+            expect(fragment.hasChanges).to.be.false;
+        });
+    });
 });

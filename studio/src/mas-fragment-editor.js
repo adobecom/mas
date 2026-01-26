@@ -707,14 +707,16 @@ export default class MasFragmentEditor extends LitElement {
         if (!fragmentStore || !fragmentStore.value || !fragmentStore.previewStore) return;
         if (!this.localeDefaultFragment.fields || !this.fragment.fields) return;
 
-        // Merge ALL parent fields that the variation doesn't have or has empty values
+        // Merge parent fields that the variation doesn't have
+        // Important: If a field EXISTS in the variation (even with empty values), it means
+        // the user explicitly set/cleared it, so we should NOT override it with parent values
         this.localeDefaultFragment.fields.forEach((parentField) => {
-            const hasOwnField = this.fragment.fields.some(
-                (f) => f.name === parentField.name && f.values?.length > 0 && f.values.some((v) => v !== null && v !== ''),
-            );
+            // Check if the field exists in the variation's fields array
+            const ownField = this.fragment.fields.find((f) => f.name === parentField.name);
 
-            // Only merge if variation doesn't have this field or it's empty
-            if (!hasOwnField && parentField?.values?.length > 0) {
+            // Only merge if the variation doesn't have this field at all
+            // If the field exists (even with empty values), respect the variation's value
+            if (!ownField && parentField?.values?.length > 0) {
                 // Update source store's fragment
                 const sourceFieldIndex = fragmentStore.value.fields.findIndex((f) => f.name === parentField.name);
                 if (sourceFieldIndex >= 0) {

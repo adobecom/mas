@@ -1,7 +1,5 @@
 const ALL_SURFACES = 'all';
-
 const ACOM_SURFACES = ['acom', 'nala', 'sandbox'];
-
 const ALL_NO_EXPRESS_SURFACES = ['acom', 'ccd', 'commerce', 'adobe-home', 'nala', 'sandbox'];
 
 const COUNTRY_DATA = {
@@ -72,7 +70,7 @@ const COUNTRY_DATA = {
 };
 
 const LOCALES = [
-    { lang: 'ar', country: 'AE', region: 'ALL_SURFACES' },
+    { lang: 'ar', country: 'AE', region: ALL_SURFACES },
     { lang: 'ar', country: 'EG', region: ALL_SURFACES },
     { lang: 'ar', country: 'KW', region: ALL_SURFACES },
     { lang: 'ar', country: 'QA', region: ALL_SURFACES },
@@ -111,8 +109,8 @@ const LOCALES = [
     { lang: 'en', country: 'US', default: ALL_SURFACES },
     { lang: 'en', country: 'VN', region: ALL_SURFACES },
     { lang: 'en', country: 'ZA', region: ALL_SURFACES },
-    { lang: 'en', country: 'GB', region: ACOM_SURFACES },
-    { lang: 'et', country: 'EE', region: ALL_SURFACES },
+    { lang: 'en', country: 'GB', default: [...ACOM_SURFACES, 'express'] },
+    { lang: 'et', country: 'EE', default: ACOM_SURFACES },
     { lang: 'fi', country: 'FI', default: ALL_SURFACES },
     { lang: 'fil', country: 'PH', region: ACOM_SURFACES },
     { lang: 'fr', country: 'FR', default: ALL_SURFACES },
@@ -124,7 +122,7 @@ const LOCALES = [
     { lang: 'el', country: 'GR', default: ACOM_SURFACES },
     { lang: 'fr', country: 'LU', region: ALL_SURFACES },
     { lang: 'he', country: 'IL', default: ACOM_SURFACES },
-    { lang: 'hi', country: 'IN', default: ['acom', 'ccd', 'nala', 'sandbox'] },
+    { lang: 'hi', country: 'IN', default: [...ACOM_SURFACES, 'ccd'] },
     { lang: 'hu', country: 'HU', default: ALL_NO_EXPRESS_SURFACES },
     { lang: 'id', country: 'ID', default: ALL_SURFACES },
     { lang: 'it', country: 'CH', region: ALL_SURFACES },
@@ -137,7 +135,7 @@ const LOCALES = [
     { lang: 'nb', country: 'NO', default: ALL_SURFACES },
     { lang: 'nl', country: 'BE', region: ALL_SURFACES },
     { lang: 'pl', country: 'PL', default: ALL_NO_EXPRESS_SURFACES },
-    { lang: 'pt', country: 'BR', default: ['express', 'ccd', 'adobe-home'], region: ACOM_SURFACES },
+    { lang: 'pt', country: 'BR', default: [...ACOM_SURFACES, 'express', 'ccd', 'adobe-home'] },
     { lang: 'pt', country: 'PT', default: ACOM_SURFACES },
     { lang: 'ro', country: 'RO', default: ACOM_SURFACES },
     { lang: 'ru', country: 'RU', default: ALL_NO_EXPRESS_SURFACES },
@@ -236,8 +234,19 @@ export function getDefaultLocales(surface) {
     return defaultLocalesCache[surface];
 }
 
+/**
+ * get default locale for a given locale code and surface
+ * some surfaces (acom) could have 2 default locales with same language but different country (en_US and en_GB)
+ * this function will find the best match
+ * @param {*} localeCode e.g. 'en_US'
+ * @param {*} surface e.g. 'acom'
+ * @returns
+ */
 export function getDefaultLocale(localeCode, surface) {
-    return getDefaultLocales(surface).find((loc) => loc.lang === localeCode.split('_')[0]);
+    const [lang, country] = localeCode.split('_');
+    const defaultLocales = getDefaultLocales(surface);
+    const defaultLocale = defaultLocales.find((loc) => loc.lang === lang && loc.country === country);
+    if (!defaultLocale) return defaultLocales.find((loc) => loc.lang === lang);
 }
 
 export function isRegionLocale(locale, surface, language, includeDefault = true) {

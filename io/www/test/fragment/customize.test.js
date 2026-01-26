@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
-import { deepMerge, getCorrespondingLocale, transformer as customize } from '../../src/fragment/transformers/customize.js';
+import { deepMerge, getDefaultLocaleCode, transformer as customize } from '../../src/fragment/transformers/customize.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
@@ -49,20 +49,20 @@ describe('customize subfunctions', function () {
         fetchStub.restore();
     });
 
-    it('getCorrespondingLocale should return correct default locale', function () {
-        expect(getCorrespondingLocale('fr_CA')).to.equal('fr_FR');
-        expect(getCorrespondingLocale('fr_FR')).to.equal('fr_FR');
-        expect(getCorrespondingLocale('fr_CH')).to.equal('fr_FR');
-        expect(getCorrespondingLocale('en_AU')).to.equal('en_US');
-        expect(getCorrespondingLocale('en_US')).to.equal('en_US');
-        expect(getCorrespondingLocale('en_CA')).to.equal('en_US');
-        expect(getCorrespondingLocale('es_MX')).to.equal('es_ES');
-        expect(getCorrespondingLocale('es_ES')).to.equal('es_ES');
-        expect(getCorrespondingLocale('de_DE')).to.equal('de_DE');
-        expect(getCorrespondingLocale('it_IT')).to.equal('it_IT');
-        expect(getCorrespondingLocale('ja_JP')).to.equal('ja_JP');
-        expect(getCorrespondingLocale('zh_CN')).to.equal('zh_CN');
-        expect(getCorrespondingLocale('zh_TW')).to.equal('zh_TW');
+    it('getDefaultLocaleCode should return correct default locale', function () {
+        expect(getDefaultLocaleCode('fr_CA', 'sandbox')).to.equal('fr_FR');
+        expect(getDefaultLocaleCode('fr_FR', 'sandbox')).to.equal('fr_FR');
+        expect(getDefaultLocaleCode('fr_CH', 'sandbox')).to.equal('fr_FR');
+        expect(getDefaultLocaleCode('en_AU', 'sandbox')).to.equal('en_US');
+        expect(getDefaultLocaleCode('en_US', 'sandbox')).to.equal('en_US');
+        expect(getDefaultLocaleCode('en_CA', 'sandbox')).to.equal('en_US');
+        expect(getDefaultLocaleCode('es_MX', 'sandbox')).to.equal('es_ES');
+        expect(getDefaultLocaleCode('es_ES', 'sandbox')).to.equal('es_ES');
+        expect(getDefaultLocaleCode('de_DE', 'sandbox')).to.equal('de_DE');
+        expect(getDefaultLocaleCode('it_IT', 'sandbox')).to.equal('it_IT');
+        expect(getDefaultLocaleCode('ja_JP', 'sandbox')).to.equal('ja_JP');
+        expect(getDefaultLocaleCode('zh_CN', 'sandbox')).to.equal('zh_CN');
+        expect(getDefaultLocaleCode('zh_TW', 'sandbox')).to.equal('zh_TW');
     });
 });
 

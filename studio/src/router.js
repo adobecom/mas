@@ -48,11 +48,8 @@ export class Router extends EventTarget {
                 }
                 return {
                     editor,
-                    hasChanges:
-                        !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
-                    shouldCheckUnsavedChanges:
-                        !editor.isLoading &&
-                        !!Store.translationProjects.inEdit.get()?.get()?.hasChanges ||
+                    hasChanges: !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    shouldCheckUnsavedChanges: !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
                 };
             }
             default:

@@ -7,6 +7,9 @@
 
             // Set up fetch mock before any components are loaded
             const originalFetch = window.fetch;
+            // Load offers for WCS mock
+            const offersPromise = originalFetch('/test/mocks/offers.json').then((r) => r.json());
+
             window.fetch = async function (args) {
                 try {
                     const url = new URL(args);
@@ -18,6 +21,26 @@
                     }
                     if (/querybuilder\.json\?path=\/content\/dam\/mas/.test(fullPath)) {
                         return originalFetch('/test/mocks/folders.json');
+                    }
+                    // Mock WCS offer fetch
+                    if (pathname.includes('web_commerce_artifact')) {
+                        const offers = await offersPromise;
+                        const osi = url.searchParams.get('offer_selector_ids');
+                        const language = url.searchParams.get('language')?.toLowerCase() || 'mult';
+                        const offerKey = `${osi}-${language}`;
+                        const offerData = offers[offerKey] || offers[osi];
+                        if (offerData) {
+                            return new Response(
+                                JSON.stringify({
+                                    resolvedOffers: offerData.map((offer) => ({
+                                        ...offer,
+                                        offerSelectorIds: [osi],
+                                    })),
+                                }),
+                                { status: 200, headers: { 'Content-Type': 'application/json' } },
+                            );
+                        }
+                        return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
                     }
                     return originalFetch(...arguments);
                 } catch (e) {
@@ -121,24 +144,30 @@
 
                 describe('merch-card-editor', () => {
                     it('removes inherited mnemonic and restores it via override indicator', async () => {
+                        console.log('[TEST] Starting test...');
+
                         // Create fragment and fragment store
                         const variationFragment = new Fragment(structuredClone(variationFragmentData));
                         const parentFragment = new Fragment(structuredClone(parentFragmentData));
                         const fragmentStore = generateFragmentStore(variationFragment, { skipAutoResolve: true });
+                        console.log('[TEST] Created fragments and store');
 
                         // Set up Store - this is how mas-fragment-editor gets the fragment
                         Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
                         Store.fragmentEditor.fragmentId.set('variation-fragment-id');
                         Store.fragments.inEdit.set(fragmentStore);
                         Store.fragments.list.data.set([fragmentStore]);
+                        console.log('[TEST] Store configured');
 
                         // Create mas-fragment-editor
                         const fragmentEditor = document.createElement('mas-fragment-editor');
+                        console.log('[TEST] Created mas-fragment-editor element');
 
                         // Mock repository methods before appending
                         const repository = document.querySelector('mas-repository');
                         repository.refreshFragment = async () => {};
                         repository.loadPreviewPlaceholders = async () => {};
+                        console.log('[TEST] Mocked repository methods');
 
                         // Mock editorContextStore before appending
                         fragmentEditor.editorContextStore = {
@@ -148,43 +177,90 @@
                             getDefaultLocaleId: () => 'parent-fragment-id',
                             getLocaleDefaultFragment: () => structuredClone(parentFragmentData),
                         };
+                        console.log('[TEST] Mocked editorContextStore');
 
                         // Set locale default fragment directly
                         fragmentEditor.localeDefaultFragment = parentFragment;
                         fragmentEditor.contextLoaded = true;
                         fragmentEditor.initializationComplete = true;
+                        console.log('[TEST] Set locale default fragment and flags');
 
                         // Set up placeholders and surface for preview resolution
                         Store.placeholders.preview.set({});
                         Store.search.set((prev) => ({ ...prev, surface: 'web' }));
+                        console.log('[TEST] Set placeholders and surface');
 
                         // Mark preview as resolved so it doesn't show skeleton
                         fragmentStore.previewStore.resolved = true;
+                        console.log('[TEST] Marked preview as resolved');
 
                         // Populate aem-fragment cache with the fragment data for preview rendering
                         const AemFragment = customElements.get('aem-fragment');
                         if (AemFragment?.cache) {
                             AemFragment.cache.add(fragmentStore.previewStore.value);
                         }
+                        console.log('[TEST] Populated aem-fragment cache');
 
                         // Append to DOM
                         spTheme.appendChild(fragmentEditor);
+                        console.log('[TEST] Appended fragmentEditor to DOM');
 
                         // Merge parent fields into preview store (simulates what initFragment does)
                         fragmentEditor.mergeEssentialParentFields();
+                        console.log('[TEST] Merged parent fields');
 
                         await fragmentEditor.updateComplete;
                         await delay(500);
+                        console.log('[TEST] Waited for fragmentEditor.updateComplete');
 
                         // Get the merch-card-editor inside mas-fragment-editor
                         const editor = fragmentEditor.querySelector('merch-card-editor');
+                        console.log('[TEST] Found merch-card-editor:', !!editor);
                         expect(editor).to.exist;
 
                         // Wait for editor to be fully ready (fieldsReady = true)
+                        let waitAttempts = 0;
+                        console.log('[TEST] Initial editor state:', {
+                            fieldsReady: editor.fieldsReady,
+                            fragmentStore: !!editor.fragmentStore,
+                            fragment: !!editor.fragment,
+                            'fragment.variant': editor.fragment?.variant,
+                            currentVariantMapping: !!editor.currentVariantMapping,
+                        });
                         while (!editor.fieldsReady) {
                             await editor.updateComplete;
                             await delay(50);
+                            waitAttempts++;
+                            if (waitAttempts % 20 === 0) {
+                                console.log(
+                                    '[TEST] Waiting for fieldsReady... attempts:',
+                                    waitAttempts,
+                                    'state:',
+                                    {
+                                        fieldsReady: editor.fieldsReady,
+                                        fragment: !!editor.fragment,
+                                        'fragment.variant': editor.fragment?.variant,
+                                        currentVariantMapping: !!editor.currentVariantMapping,
+                                    },
+                                );
+                            }
+                            if (waitAttempts > 80) {
+                                console.log('[TEST] TIMEOUT waiting for fieldsReady. Current state:', {
+                                    fieldsReady: editor.fieldsReady,
+                                    fragmentStore: !!editor.fragmentStore,
+                                    fragment: !!editor.fragment,
+                                    'fragment.variant': editor.fragment?.variant,
+                                    currentVariantMapping: !!editor.currentVariantMapping,
+                                });
+                                break;
+                            }
                         }
+                        console.log(
+                            '[TEST] fieldsReady loop complete. fieldsReady:',
+                            editor.fieldsReady,
+                            'attempts:',
+                            waitAttempts,
+                        );
 
                         // Verify editor renders without skeleton
                         expect(editor.fieldsReady, 'Editor fieldsReady should be true').to.be.true;

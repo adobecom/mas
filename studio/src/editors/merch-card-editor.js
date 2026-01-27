@@ -135,6 +135,29 @@ class MerchCardEditor extends LitElement {
         showToast('Tags restored to parent value', 'positive');
     }
 
+    static MNEMONIC_FIELDS = ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink', 'mnemonicTooltipText', 'mnemonicTooltipPlacement'];
+
+    async resetMnemonicsToParent() {
+        const fragment = this.fragmentStore.get();
+        for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+            // Set to empty array [] to inherit from parent
+            // (vs [""] which means explicit clear)
+            fragment.updateField(fieldName, []);
+
+            // Update preview store with parent values for immediate preview rendering
+            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+            this.fragmentStore.previewStore?.updateFieldWithParentValue(fieldName, parentValues);
+        }
+        this.fragmentStore.notify();
+        showToast('Visuals restored to parent value', 'positive');
+    }
+
+    renderMnemonicsStatusIndicator() {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getFieldState('mnemonicIcon') !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetMnemonicsToParent());
+    }
+
     async resetFieldToParent(fieldName) {
         await this.updateComplete;
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
@@ -722,6 +745,7 @@ class MerchCardEditor extends LitElement {
                     <mas-multifield
                         id="mnemonics"
                         button-label="Add visual"
+                        data-field-state="${this.getFieldState('mnemonicIcon')}"
                         .value="${this.mnemonics}"
                         @change="${this.#updateMnemonics}"
                         @input="${this.#updateMnemonics}"
@@ -730,7 +754,7 @@ class MerchCardEditor extends LitElement {
                             <mas-mnemonic-field></mas-mnemonic-field>
                         </template>
                     </mas-multifield>
-                    ${this.renderFieldStatusIndicator('mnemonicIcon')}
+                    ${this.renderMnemonicsStatusIndicator()}
                 </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="badge">
@@ -1195,11 +1219,21 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
 
-        fragment.updateField('mnemonicIcon', mnemonicIcon);
-        fragment.updateField('mnemonicAlt', mnemonicAlt);
-        fragment.updateField('mnemonicLink', mnemonicLink);
-        fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
-        fragment.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
+        // If all mnemonics removed in a variation, use empty string sentinel [""]
+        // to indicate explicit clear (vs [] which means inherit from parent)
+        if (mnemonicIcon.length === 0 && this.effectiveIsVariation) {
+            fragment.updateField('mnemonicIcon', ['']);
+            fragment.updateField('mnemonicAlt', ['']);
+            fragment.updateField('mnemonicLink', ['']);
+            fragment.updateField('mnemonicTooltipText', ['']);
+            fragment.updateField('mnemonicTooltipPlacement', ['']);
+        } else {
+            fragment.updateField('mnemonicIcon', mnemonicIcon);
+            fragment.updateField('mnemonicAlt', mnemonicAlt);
+            fragment.updateField('mnemonicLink', mnemonicLink);
+            fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
+            fragment.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
+        }
         this.fragmentStore.set(fragment);
 
         const previousCount = this.lastMnemonicState.mnemonicIcon.length;

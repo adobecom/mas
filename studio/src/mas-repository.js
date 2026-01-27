@@ -919,9 +919,11 @@ export class MasRepository extends LitElement {
             return false;
         }
         this.operation.set(OPERATIONS.SAVE);
+
         try {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
+
             fragmentStore.refreshFrom(savedFragment);
             fragmentCache.remove(savedFragment.id);
             fragmentCache.add(new Fragment(savedFragment));

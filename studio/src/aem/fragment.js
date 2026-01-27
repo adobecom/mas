@@ -69,7 +69,15 @@ export class Fragment {
      * @param {Boolean | undefined} hasChanges
      */
     replaceFrom(fragmentData, hasChanges) {
-        Object.assign(this, fragmentData);
+        // Deep clone fields array to avoid shared reference issues between source and preview stores
+        const clonedData = { ...fragmentData };
+        if (fragmentData.fields) {
+            clonedData.fields = fragmentData.fields.map((field) => ({
+                ...field,
+                values: [...(field.values || [])],
+            }));
+        }
+        Object.assign(this, clonedData);
         if (hasChanges === undefined) return;
         this.hasChanges = hasChanges;
     }
@@ -148,16 +156,21 @@ export class Fragment {
 
     getEffectiveFieldValues(fieldName, parentFragment, isVariation) {
         const ownField = this.getField(fieldName);
-        if (ownField && ownField.values && ownField.values.length > 0) {
-            return ownField.values;
+        const ownValues = ownField?.values || [];
+
+        // Empty string sentinel [""] means explicitly cleared - return empty array
+        if (ownValues.length === 1 && ownValues[0] === '') {
+            return [];
         }
-        // If the field exists in this fragment (even with empty values), respect it
-        // This handles the case where user explicitly cleared a field
-        if (ownField && Array.isArray(ownField.values)) {
-            return ownField.values;
+
+        // Has actual values - return them
+        if (ownValues.length > 0) {
+            return ownValues;
         }
+
+        // Empty array [] - inherit from parent if variation
         if (!parentFragment || !isVariation) {
-            return ownField?.values || [];
+            return [];
         }
         const parentField = parentFragment.getField(fieldName);
         return parentField?.values || [];
@@ -167,18 +180,17 @@ export class Fragment {
         if (!isVariation || !parentFragment) {
             return 'no-parent';
         }
-        const ownValues = this.getFieldValues(fieldName) || [];
+        const ownField = this.getField(fieldName);
+        const ownValues = ownField?.values || [];
         const parentValues = parentFragment.getFieldValues(fieldName) || [];
 
-        const ownIsEmpty = this.isValueEmpty(ownValues);
-
-        if (ownIsEmpty && this.isValueEmpty(parentValues)) {
-            return 'inherited';
-        }
-        if (ownIsEmpty) {
+        // Empty array = inherited (no override set)
+        // This is the key distinction: [] means inherit, [""] means explicit clear
+        if (ownValues.length === 0) {
             return 'inherited';
         }
 
+        // Has values (including [""]) - compare with parent
         const normalizeForComparison = (v) => {
             if (v === null || v === undefined) return '';
             if (typeof v === 'string') {

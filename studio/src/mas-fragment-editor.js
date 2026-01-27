@@ -707,26 +707,27 @@ export default class MasFragmentEditor extends LitElement {
         if (!fragmentStore || !fragmentStore.value || !fragmentStore.previewStore) return;
         if (!this.localeDefaultFragment.fields || !this.fragment.fields) return;
 
-        // Merge parent fields that the variation doesn't have
-        // Important: If a field EXISTS in the variation (even with empty values), it means
-        // the user explicitly set/cleared it, so we should NOT override it with parent values
+        // Merge parent fields into the preview store for proper rendering
+        // Logic:
+        // - [] (empty array) = inherit from parent, merge parent values
+        // - [""] (empty string sentinel) = explicit clear, don't merge
+        // - ["value"] = has own values, don't merge
         this.localeDefaultFragment.fields.forEach((parentField) => {
-            // Check if the field exists in the variation's fields array
             const ownField = this.fragment.fields.find((f) => f.name === parentField.name);
+            const ownValues = ownField?.values || [];
 
-            // Only merge if the variation doesn't have this field at all
-            // If the field exists (even with empty values), respect the variation's value
-            if (!ownField && parentField?.values?.length > 0) {
-                // Update source store's fragment
-                const sourceFieldIndex = fragmentStore.value.fields.findIndex((f) => f.name === parentField.name);
-                if (sourceFieldIndex >= 0) {
-                    fragmentStore.value.fields[sourceFieldIndex] = { ...parentField };
-                } else {
-                    fragmentStore.value.fields.push({ ...parentField });
-                }
+            // Check if variation should inherit from parent:
+            // - Field doesn't exist in variation, OR
+            // - Field has empty array [] (meaning inherit)
+            // But NOT if field has [""] (empty string sentinel = explicit clear)
+            const shouldInherit =
+                !ownField || (ownValues.length === 0 && parentField?.values?.length > 0);
 
-                // Update preview store's fragment
-                const previewFieldIndex = fragmentStore.previewStore.value.fields.findIndex((f) => f.name === parentField.name);
+            if (shouldInherit) {
+                // Update preview store's fragment with parent values
+                const previewFieldIndex = fragmentStore.previewStore.value.fields.findIndex(
+                    (f) => f.name === parentField.name,
+                );
                 if (previewFieldIndex >= 0) {
                     fragmentStore.previewStore.value.fields[previewFieldIndex] = { ...parentField };
                 } else {

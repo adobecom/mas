@@ -232,17 +232,12 @@
                             await delay(50);
                             waitAttempts++;
                             if (waitAttempts % 20 === 0) {
-                                console.log(
-                                    '[TEST] Waiting for fieldsReady... attempts:',
-                                    waitAttempts,
-                                    'state:',
-                                    {
-                                        fieldsReady: editor.fieldsReady,
-                                        fragment: !!editor.fragment,
-                                        'fragment.variant': editor.fragment?.variant,
-                                        currentVariantMapping: !!editor.currentVariantMapping,
-                                    },
-                                );
+                                console.log('[TEST] Waiting for fieldsReady... attempts:', waitAttempts, 'state:', {
+                                    fieldsReady: editor.fieldsReady,
+                                    fragment: !!editor.fragment,
+                                    'fragment.variant': editor.fragment?.variant,
+                                    currentVariantMapping: !!editor.currentVariantMapping,
+                                });
                             }
                             if (waitAttempts > 80) {
                                 console.log('[TEST] TIMEOUT waiting for fieldsReady. Current state:', {

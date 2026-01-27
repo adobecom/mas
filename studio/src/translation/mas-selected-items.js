@@ -54,10 +54,10 @@ class MasSelectedItems extends LitElement {
         return '-';
     }
 
-    removeItem(path) {
+    removeItem(id) {
         this.dispatchEvent(
             new CustomEvent('remove', {
-                detail: { path },
+                detail: { id },
                 bubbles: true,
                 composed: true,
             }),
@@ -69,12 +69,12 @@ class MasSelectedItems extends LitElement {
             ? html`<ul class="selected-items">
                   ${repeat(
                       this.selectedItems,
-                      (item) => item.path,
+                      (item) => item?.id,
                       (item) =>
                           html`<li class="file">
                               <h3 class="title">${this.getTitle(item)}</h3>
                               <div class="details">${this.getDetails(item)}</div>
-                              <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item.path)}>
+                              <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item?.id)}>
                                   <sp-icon-close slot="icon"></sp-icon-close>
                               </sp-button>
                           </li>`,

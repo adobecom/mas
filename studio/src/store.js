@@ -117,6 +117,7 @@ const Store = {
         placeholdersByPaths: new ReactiveStore(new Map()),
         showSelected: new ReactiveStore(false),
         fragments: new ReactiveStore([]),
+        displayFragments: new ReactiveStore([]),
         placeholders: new ReactiveStore([]),
         collections: new ReactiveStore([]),
         selectionChanged: new ReactiveStore(false),

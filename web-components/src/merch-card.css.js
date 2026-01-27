@@ -147,6 +147,12 @@ export const styles = css`
         background-size: 16px 16px;
         font-size: 0;
     }
+
+    .action-menu:dir(rtl) {
+        right: initial;
+        left: 16px;
+    }
+
     .hidden {
         visibility: hidden;
     }

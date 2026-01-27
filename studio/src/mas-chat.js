@@ -262,7 +262,7 @@ export class MasChat extends LitElement {
             });
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
-                if (response.type === 'mcp_operation' && response.mcpTool === 'studio_search_cards') {
+                if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
                     let surface = null;
                     let detectionMethod = null;
 
@@ -436,6 +436,7 @@ export class MasChat extends LitElement {
                         role: 'assistant',
                         content: response.message,
                         type: response.type,
+                        sources: response.sources || [],
                         fragmentIds: response.fragmentIds,
                         suggestedTitle: response.suggestedTitle,
                         timestamp: Date.now(),
@@ -836,14 +837,10 @@ export class MasChat extends LitElement {
         }
 
         const operationType = operation.type === 'mcp_operation' ? operation.mcpTool : operation.operation;
-        const isPreviewOperation = [
-            'studio_preview_bulk_update',
-            'studio_preview_bulk_publish',
-            'studio_preview_bulk_delete',
-        ].includes(operationType);
-        const isBulkOperation = ['studio_bulk_update_cards', 'studio_bulk_publish_cards', 'studio_bulk_delete_cards'].includes(
+        const isPreviewOperation = ['preview_bulk_update', 'preview_bulk_publish', 'preview_bulk_delete'].includes(
             operationType,
         );
+        const isBulkOperation = ['bulk_update_cards', 'bulk_publish_cards', 'bulk_delete_cards'].includes(operationType);
 
         if (isPreviewOperation) {
             await this.executePreviewOperation(operation, operationType);
@@ -897,9 +894,9 @@ export class MasChat extends LitElement {
         }
 
         const executionToolMap = {
-            studio_preview_bulk_update: 'studio_bulk_update_cards',
-            studio_preview_bulk_publish: 'studio_bulk_publish_cards',
-            studio_preview_bulk_delete: 'studio_bulk_delete_cards',
+            preview_bulk_update: 'bulk_update_cards',
+            preview_bulk_publish: 'bulk_publish_cards',
+            preview_bulk_delete: 'bulk_delete_cards',
         };
 
         const executionTool = executionToolMap[operation];
@@ -1055,19 +1052,19 @@ export class MasChat extends LitElement {
 
     getOperationLoadingMessage(operationType) {
         const messages = {
-            studio_search_cards: 'Searching for cards...',
+            search_cards: 'Searching for cards...',
             search: 'Searching for cards...',
-            studio_publish_card: 'Publishing card...',
+            publish_card: 'Publishing card...',
             publish: 'Publishing card...',
-            studio_unpublish_card: 'Unpublishing card...',
+            unpublish_card: 'Unpublishing card...',
             unpublish: 'Unpublishing card...',
-            studio_delete_card: 'Deleting card...',
+            delete_card: 'Deleting card...',
             delete: 'Deleting card...',
-            studio_copy_card: 'Copying card...',
+            copy_card: 'Copying card...',
             copy: 'Copying card...',
-            studio_update_card: 'Updating card...',
+            update_card: 'Updating card...',
             update: 'Updating card...',
-            studio_get_card: 'Fetching card details...',
+            get_card: 'Fetching card details...',
             get: 'Fetching card details...',
         };
 
@@ -1171,6 +1168,7 @@ export class MasChat extends LitElement {
                     id: f.id,
                     title: f.title || f.cardTitle,
                     variant: this.extractVariant(f),
+                    osi: this.extractOsi(f),
                 })),
             )
             .slice(0, limit);
@@ -1180,6 +1178,18 @@ export class MasChat extends LitElement {
         const path = fragment.path || fragment.id;
         const match = path.match(/\/([^/]+)$/);
         return match ? match[1] : 'unknown';
+    }
+
+    extractOsi(fragment) {
+        if (fragment.osi) return fragment.osi;
+        if (fragment.fields && !Array.isArray(fragment.fields)) {
+            return fragment.fields.osi || null;
+        }
+        if (Array.isArray(fragment.fields)) {
+            const osiField = fragment.fields.find((f) => f.name === 'osi');
+            return osiField?.values?.[0] || null;
+        }
+        return null;
     }
 
     render() {

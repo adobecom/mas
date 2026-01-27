@@ -2,6 +2,39 @@ import { AEMClient } from './aem-client.js';
 import { StudioURLBuilder } from './studio-url-builder.js';
 import { sharedJobManager } from './shared-job-manager.js';
 
+const LOCALE_DEFAULTS = [
+    'ar_MENA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_DE',
+    'en_US',
+    'es_ES',
+    'fi_FI',
+    'fr_FR',
+    'he_IL',
+    'hu_HU',
+    'id_ID',
+    'it_IT',
+    'ja_JP',
+    'ko_KR',
+    'nb_NO',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'ro_RO',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'vi_VN',
+    'zh_CN',
+    'zh_TW',
+];
+
 const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
     'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
@@ -386,10 +419,10 @@ export class StudioOperations {
 
     /**
      * Search for cards with filters
-     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string }
+     * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string, variationType?: string }
      */
     async searchCards(params) {
-        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0 } = params;
+        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0, variationType = 'all' } = params;
 
         console.log('[StudioOperations] searchCards received params:', {
             surface,
@@ -398,6 +431,7 @@ export class StudioOperations {
             limit,
             variant,
             offset,
+            variationType,
         });
 
         if (!surface) {
@@ -478,8 +512,16 @@ export class StudioOperations {
             );
         }
 
+        if (variationType !== 'all') {
+            const beforeVariationFilter = filteredFragments.length;
+            filteredFragments = this.filterByVariationType(filteredFragments, variationType);
+            console.log(
+                `[StudioOperations] Variation filter (${variationType}): ${beforeVariationFilter} fragments → ${filteredFragments.length} fragments`,
+            );
+        }
+
         console.log(
-            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid${variant ? ` (filtered by variant: ${variant})` : ''}, returning ${Math.min(filteredFragments.length, limit)}`,
+            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid${variant ? ` (filtered by variant: ${variant})` : ''}${variationType !== 'all' ? ` (filtered by variationType: ${variationType})` : ''}, returning ${Math.min(filteredFragments.length, limit)}`,
         );
 
         const results = filteredFragments.slice(0, limit).map((fragment) => {
@@ -658,7 +700,7 @@ export class StudioOperations {
                 try {
                     // Always fetch the fragment to get the complete fields array
                     const fragment = await this.aemClient.getFragment(id);
-                    let fieldsToUpdate = { ...updates };
+                    const fieldsToUpdate = { ...updates };
 
                     console.log('[BulkUpdate] Processing card:', {
                         id,
@@ -1016,7 +1058,7 @@ export class StudioOperations {
                     fieldNames: fragment.fields.map((f) => f.name),
                 });
 
-                let fieldsToUpdate = { ...updates };
+                const fieldsToUpdate = { ...updates };
                 const changes = [];
                 const currentValues = {};
                 const newValues = {};
@@ -1314,6 +1356,7 @@ export class StudioOperations {
             model,
             variant: transformedFields.variant || 'unknown',
             size: transformedFields.size || 'wide',
+            osi: transformedFields.osi || null,
             fields: transformedFields,
             tags: fragment.tags || [],
             modified: fragment.modified,
@@ -1386,6 +1429,152 @@ export class StudioOperations {
     }
 
     /**
+     * Extract locale code from a fragment path
+     * @private
+     * @param {string} path - Fragment path (e.g., /content/dam/mas/acom/en_US/cards/my-card)
+     * @returns {string|null} - Locale code or null if not found
+     */
+    extractLocaleFromPath(path) {
+        const match = path?.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
+        return match?.[1] || null;
+    }
+
+    /**
+     * Filter fragments by variation type (default-locale or variation)
+     * @private
+     * @param {Array} fragments - Array of fragment objects
+     * @param {string} variationType - 'all', 'default-locale-only', or 'variations-only'
+     * @returns {Array} - Filtered fragments
+     */
+    filterByVariationType(fragments, variationType) {
+        return fragments.filter((fragment) => {
+            const pathLocale = this.extractLocaleFromPath(fragment.path);
+            const isDefaultLocale = LOCALE_DEFAULTS.includes(pathLocale);
+
+            if (variationType === 'default-locale-only') return isDefaultLocale;
+            if (variationType === 'variations-only') return !isDefaultLocale;
+            return true;
+        });
+    }
+
+    /**
+     * Get all regional locale variations of a fragment
+     * @param {Object} params - { id: string }
+     * @returns {Promise<Object>} - Variations info including parent and variations list
+     */
+    async getFragmentVariations(params) {
+        const { id } = params;
+
+        if (!id) {
+            throw new Error('Fragment ID is required for get variations operation');
+        }
+
+        const fragment = await this.aemClient.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Fragment not found: ${id}`);
+        }
+
+        const pathLocale = this.extractLocaleFromPath(fragment.path);
+        const isParent = LOCALE_DEFAULTS.includes(pathLocale);
+
+        if (!isParent) {
+            return {
+                success: true,
+                operation: 'get_variations',
+                isVariation: true,
+                message:
+                    'This fragment is a regional variation. To see all variations, search using the locale default fragment.',
+                fragment: this.formatCard(fragment),
+            };
+        }
+
+        const variationsField = fragment.fields?.find((f) => f.name === 'variations');
+        const variationPaths = variationsField?.values || [];
+
+        if (variationPaths.length === 0) {
+            return {
+                success: true,
+                operation: 'get_variations',
+                parent: this.formatCard(fragment),
+                variations: [],
+                count: 0,
+                message: 'This fragment has no regional variations.',
+            };
+        }
+
+        const variationResults = await Promise.all(
+            variationPaths.map(async (path) => {
+                try {
+                    const result = await this.aemClient.getFragmentByPath(path);
+                    return result?.items?.[0] || null;
+                } catch {
+                    return null;
+                }
+            }),
+        );
+
+        const validVariations = variationResults.filter(Boolean);
+
+        return {
+            success: true,
+            operation: 'get_variations',
+            parent: this.formatCard(fragment),
+            variations: validVariations.map((v) => this.formatCard(v)),
+            count: validVariations.length,
+            message: `Found ${validVariations.length} regional variation(s)`,
+        };
+    }
+
+    /**
+     * Create a new merch card
+     * @param {Object} params - { title: string, parentPath: string, variant?: string, size?: string, fields?: Object, tags?: string[] }
+     */
+    async createCard(params) {
+        const { title, parentPath, variant = 'plans', size = 'wide', fields = {}, tags = [] } = params;
+
+        if (!title) {
+            throw new Error('Card title is required');
+        }
+
+        if (!parentPath) {
+            throw new Error('Parent path is required');
+        }
+
+        const fragmentData = {
+            title,
+            description: `Merch card: ${title}`,
+            modelId: CARD_MODEL_ID,
+            parentPath,
+            fields: [
+                { name: 'variant', values: [variant] },
+                { name: 'size', values: [size] },
+                ...Object.entries(fields).map(([name, value]) => ({
+                    name,
+                    values: Array.isArray(value) ? value : [value],
+                })),
+            ],
+            tags: [...tags, 'mas:studio/content-type/merch-card'],
+        };
+
+        const fragment = await this.aemClient.createFragment(fragmentData);
+
+        const card = this.formatCard(fragment);
+        const studioLinks = this.urlBuilder.createCardLinks(card);
+
+        return {
+            success: true,
+            operation: 'create',
+            card,
+            message: `✓ Created new card: "${fragment.title}"`,
+            studioLinks: {
+                viewInStudio: studioLinks.view,
+                viewFolder: studioLinks.folder,
+            },
+        };
+    }
+
+    /**
      * Get job status for bulk operations
      * @param {Object} params - { jobId: string }
      * @returns {Promise<Object>} - Job status information
@@ -1420,5 +1609,64 @@ export class StudioOperations {
             completedAt: job.completedAt,
             percentage: job.total > 0 ? Math.round((job.completed / job.total) * 100) : 0,
         };
+    }
+
+    /**
+     * List cards from context (previous operation)
+     * Fetches current data for cards from a previous operation
+     * @param {Object} params - { fragmentIds: string[], operationType?: string }
+     * @returns {Promise<Object>} - Card list with current data
+     */
+    async listContextCards(params) {
+        const { fragmentIds, operationType } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('No fragment IDs provided. There may be no previous operation to show.');
+        }
+
+        const results = [];
+        const errors = [];
+
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+                if (fragment) {
+                    const card = this.formatCard(fragment);
+                    card.fragmentData = this.formatFragmentForCache(fragment, card);
+                    results.push(card);
+                }
+            } catch (error) {
+                console.warn(`[ListContextCards] Failed to fetch fragment ${id}:`, error.message);
+                errors.push({ id, error: error.message });
+            }
+        }
+
+        const operationLabel = operationType ? this.getOperationLabel(operationType) : 'previous operation';
+
+        return {
+            success: true,
+            operation: 'search',
+            results,
+            count: results.length,
+            errors: errors.length > 0 ? errors : undefined,
+            message: `Showing ${results.length} card${results.length !== 1 ? 's' : ''} from ${operationLabel}`,
+        };
+    }
+
+    /**
+     * Get human-readable label for operation type
+     * @private
+     */
+    getOperationLabel(operationType) {
+        const labels = {
+            search: 'your search',
+            bulk_update: 'the bulk update',
+            bulk_publish: 'the bulk publish',
+            bulk_delete: 'the bulk delete',
+            update: 'the update',
+            publish: 'the publish',
+            delete: 'the delete',
+        };
+        return labels[operationType] || 'the previous operation';
     }
 }

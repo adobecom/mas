@@ -18,8 +18,7 @@ const WEB_COMPONENTS_PATH = 'web-components/src/variants';
  * @returns {Object|null} Parsed mapping or null
  */
 function parseFragmentMapping(content, variantName) {
-    const mappingRegex =
-        /export\s+const\s+(\w+_AEM_FRAGMENT_MAPPING)\s*=\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/gs;
+    const mappingRegex = /export\s+const\s+(\w+_AEM_FRAGMENT_MAPPING)\s*=\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/gs;
     const matches = [...content.matchAll(mappingRegex)];
 
     if (matches.length === 0) return null;
@@ -163,18 +162,15 @@ function getVariantDescription(variantName) {
     const descriptions = {
         catalog: 'product catalog cards with action menus and detailed product information',
         plans: 'subscription plan cards with pricing, features, and CTAs',
-        'plans-education':
-            'education-focused plan cards with simplified layout',
+        'plans-education': 'education-focused plan cards with simplified layout',
         'plans-students': 'student-specific plan cards with streamlined options',
         'plans-v2': 'modern plan cards with enhanced pricing display',
         'ccd-slice': 'compact Creative Cloud Desktop slice cards',
         'ccd-suggested': 'suggested product cards for Creative Cloud Desktop',
         'special-offers': 'promotional special offer cards with callouts',
         mini: 'minimal compact cards for tight spaces',
-        'simplified-pricing-express':
-            'Express pricing cards with simplified display',
-        'full-pricing-express':
-            'Full Express pricing cards with complete feature details',
+        'simplified-pricing-express': 'Express pricing cards with simplified display',
+        'full-pricing-express': 'Full Express pricing cards with complete feature details',
         'ah-try-buy-widget': 'Adobe Home try-before-buy widget cards',
         'ah-promoted-plans': 'Adobe Home promoted plan cards',
         fries: 'commerce checkout recommendation cards',
@@ -198,10 +194,7 @@ function extractVariantFromFile(filePath) {
     const variants = [];
 
     for (const mapping of mappings) {
-        const variantName = mapping.name
-            .replace('_AEM_FRAGMENT_MAPPING', '')
-            .toLowerCase()
-            .replace(/_/g, '-');
+        const variantName = mapping.name.replace('_AEM_FRAGMENT_MAPPING', '').toLowerCase().replace(/_/g, '-');
 
         const fields = parseFields(mapping.content);
         const sizes = extractSizes(mapping.content);
@@ -276,7 +269,7 @@ export async function generateVariantDocs(basePath, outputDir, options = {}) {
         if (options.dryRun) {
             console.log(`[DRY RUN] Would write: ${filePath}`);
             if (options.verbose) {
-                console.log(markdown.substring(0, 200) + '...\n');
+                console.log(`${markdown.substring(0, 200)}...\n`);
             }
         } else {
             writeFileSync(filePath, markdown);

@@ -28,9 +28,14 @@ async function startHttpServer() {
         },
         aos: {
             baseUrl: process.env.AOS_BASE_URL || 'https://aos.adobe.io',
-            apiKey: process.env.AOS_API_KEY || '',
+            apiKey: process.env.AOS_API_KEY || 'wcms-commerce-ims-user-prod',
             landscape: process.env.AOS_LANDSCAPE || 'PUBLISHED',
             environment: process.env.AOS_ENVIRONMENT || 'PRODUCTION',
+        },
+        wcs: {
+            baseUrl: process.env.WCS_BASE_URL || 'https://www.adobe.com/web_commerce_artifact',
+            apiKey: process.env.WCS_API_KEY || 'wcms-commerce-ims-ro-user-milo',
+            landscape: process.env.WCS_LANDSCAPE || 'PUBLISHED',
         },
         studio: {
             baseUrl: process.env.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html',
@@ -67,7 +72,7 @@ async function startHttpServer() {
 
             if (authHeader?.startsWith('Bearer ')) {
                 const token = authHeader.slice(7);
-                console.log('[HTTP] Received token:', token.slice(0, 20) + '...');
+                console.log('[HTTP] Received token:', `${token.slice(0, 20)}...`);
                 mcpServer.authManager.setAccessToken(token);
             } else {
                 console.log('[HTTP] WARNING: No auth header received');

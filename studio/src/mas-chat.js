@@ -316,7 +316,9 @@ export class MasChat extends LitElement {
                     console.log(`[AI Chat] Final surface: ${surface} (via ${detectionMethod})`);
 
                     response.mcpParams.surface = surface;
-                    response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
+                    const storeLocale = Store.filters?.value?.locale;
+                    console.log('[AI Chat] Store.filters.value.locale:', storeLocale);
+                    response.mcpParams.locale = storeLocale || 'en_US';
 
                     if (response.mcpParams.query) {
                         const query = response.mcpParams.query.toLowerCase();

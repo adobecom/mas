@@ -14,8 +14,7 @@ const PIPELINE_PATH = 'io/www/src/fragment';
 const TRANSFORMER_DESCRIPTIONS = {
     fetchFragment: {
         name: 'Fetch Fragment',
-        description:
-            'Fetches the fragment content from Odin (AEM). Handles locale-based lookups and caching.',
+        description: 'Fetches the fragment content from Odin (AEM). Handles locale-based lookups and caching.',
         contextChanges: [
             'Sets `body` with raw fragment data',
             'Sets `fragmentsIds` with locale-specific fragment IDs',
@@ -24,12 +23,8 @@ const TRANSFORMER_DESCRIPTIONS = {
     },
     promotions: {
         name: 'Promotions',
-        description:
-            'Applies promotional offers and pricing overrides based on active campaigns.',
-        contextChanges: [
-            'May modify `body.fields` with promotional content',
-            'Applies promo codes to pricing fields',
-        ],
+        description: 'Applies promotional offers and pricing overrides based on active campaigns.',
+        contextChanges: ['May modify `body.fields` with promotional content', 'Applies promo codes to pricing fields'],
     },
     customize: {
         name: 'Customize (Locale)',
@@ -43,26 +38,17 @@ const TRANSFORMER_DESCRIPTIONS = {
     },
     settings: {
         name: 'Settings',
-        description:
-            'Applies global and surface-specific settings to the fragment.',
-        contextChanges: [
-            'Merges settings into context',
-            'Applies display configurations',
-        ],
+        description: 'Applies global and surface-specific settings to the fragment.',
+        contextChanges: ['Merges settings into context', 'Applies display configurations'],
     },
     replace: {
         name: 'Replace',
-        description:
-            'Performs content replacements and placeholder substitutions in fragment fields.',
-        contextChanges: [
-            'Replaces placeholder tokens in field values',
-            'Applies text transformations',
-        ],
+        description: 'Performs content replacements and placeholder substitutions in fragment fields.',
+        contextChanges: ['Replaces placeholder tokens in field values', 'Applies text transformations'],
     },
     wcs: {
         name: 'WCS (Web Commerce Service)',
-        description:
-            'Integrates pricing data from Web Commerce Service. Resolves offer IDs to actual pricing.',
+        description: 'Integrates pricing data from Web Commerce Service. Resolves offer IDs to actual pricing.',
         contextChanges: [
             'Resolves `osi` (Offer Selector IDs) to pricing',
             'Adds `resolvedOffers` with price data',
@@ -71,8 +57,7 @@ const TRANSFORMER_DESCRIPTIONS = {
     },
     corrector: {
         name: 'Corrector',
-        description:
-            'Final corrections and validation. Ensures output format is correct.',
+        description: 'Final corrections and validation. Ensures output format is correct.',
         contextChanges: [
             'Validates final output structure',
             'Applies any last-minute corrections',
@@ -81,15 +66,7 @@ const TRANSFORMER_DESCRIPTIONS = {
     },
 };
 
-const PIPELINE_ORDER = [
-    'fetchFragment',
-    'promotions',
-    'customize',
-    'settings',
-    'replace',
-    'wcs',
-    'corrector',
-];
+const PIPELINE_ORDER = ['fetchFragment', 'promotions', 'customize', 'settings', 'replace', 'wcs', 'corrector'];
 
 /**
  * Extract JSDoc from transformer file
@@ -228,9 +205,7 @@ function generatePipelineOverview(pipeline) {
     sections.push(`${pipeline.description}\n`);
 
     sections.push(`## Pipeline Flow\n`);
-    sections.push(
-        `Fragments are processed through these transformers in order:\n`,
-    );
+    sections.push(`Fragments are processed through these transformers in order:\n`);
 
     pipeline.transformers.forEach((t, i) => {
         sections.push(`${i + 1}. **${t.name}** - ${t.description.split('.')[0]}`);
@@ -269,9 +244,7 @@ function generateTransformersDoc(pipeline) {
     const sections = [];
 
     sections.push(`# Pipeline Transformers\n`);
-    sections.push(
-        `Detailed documentation for each transformer in the fragment pipeline.\n`,
-    );
+    sections.push(`Detailed documentation for each transformer in the fragment pipeline.\n`);
 
     for (const transformer of pipeline.transformers) {
         sections.push(`## ${transformer.name}\n`);

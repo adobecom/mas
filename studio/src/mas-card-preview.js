@@ -27,8 +27,10 @@ class MasCardPreview extends LitElement {
 
     async updated() {
         if (!this.id) return;
-        await this.querySelector('aem-fragment').updateComplete;
-        await this.querySelector('merch-card').checkReady();
+        const aemFragment = this.querySelector('aem-fragment');
+        const merchCard = this.querySelector('merch-card');
+        if (aemFragment) await aemFragment.updateComplete;
+        if (merchCard?.checkReady) await merchCard.checkReady();
         this.querySelector('sp-progress-circle')?.remove();
     }
 

@@ -36,6 +36,15 @@ const SOURCE_DIRS = [
 const MIN_CHUNK_LENGTH = 50;
 const MAX_CHUNK_LENGTH = 4000;
 
+/**
+ * Extract source URL from markdown content
+ * Matches lines like: > Source: https://wiki.corp.adobe.com/...
+ */
+function extractSourceUrl(content) {
+    const match = content.match(/^>\s*Source:\s*(https?:\/\/[^\s]+)/m);
+    return match ? match[1] : null;
+}
+
 function getMarkdownFiles(dir) {
     const files = [];
 
@@ -65,6 +74,7 @@ function splitIntoChunks(content, filePath, baseDir, categoryPrefix = '') {
     const dirCategory = dirname(relativePath);
     const category = categoryPrefix ? (dirCategory === '.' ? categoryPrefix : `${categoryPrefix}-${dirCategory}`) : dirCategory;
     const baseId = basename(relativePath, '.md').replace(/[^a-zA-Z0-9-]/g, '-');
+    const sourceUrl = extractSourceUrl(content);
 
     const sections = content.split(/(?=^##\s+)/m).filter(Boolean);
 
@@ -97,6 +107,7 @@ function splitIntoChunks(content, filePath, baseDir, categoryPrefix = '') {
                         section: i === 0 ? sectionTitle : `${sectionTitle} (cont.)`,
                         parentSection: headerLevel === 3 ? parentSection : '',
                         category: category || 'general',
+                        sourceUrl,
                     },
                 });
                 chunkIndex++;
@@ -110,6 +121,7 @@ function splitIntoChunks(content, filePath, baseDir, categoryPrefix = '') {
                     section: sectionTitle,
                     parentSection: headerLevel === 3 ? parentSection : '',
                     category: category || 'general',
+                    sourceUrl,
                 },
             });
             chunkIndex++;
@@ -145,6 +157,7 @@ function splitLongSection(text, maxLength) {
 function generateOutputFile(chunks) {
     const chunksArray = chunks.map((chunk) => {
         const escapedText = chunk.text.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        const sourceUrlLine = chunk.metadata.sourceUrl ? `\n            sourceUrl: '${chunk.metadata.sourceUrl}',` : '';
         return `    {
         id: '${chunk.id}',
         text: \`${escapedText}\`,
@@ -152,7 +165,7 @@ function generateOutputFile(chunks) {
             file: '${chunk.metadata.file}',
             section: '${chunk.metadata.section.replace(/'/g, "\\'")}',
             parentSection: '${chunk.metadata.parentSection.replace(/'/g, "\\'")}',
-            category: '${chunk.metadata.category}',
+            category: '${chunk.metadata.category}',${sourceUrlLine}
         },
     }`;
     });

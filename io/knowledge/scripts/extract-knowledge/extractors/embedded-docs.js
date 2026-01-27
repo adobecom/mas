@@ -48,10 +48,7 @@ const DOC_MAPPINGS = [
  * @returns {string|null} Extracted content
  */
 function extractTemplateContent(content, exportName) {
-    const regex = new RegExp(
-        `export\\s+const\\s+${exportName}\\s*=\\s*\`([\\s\\S]*?)\`\\s*;?`,
-        'm',
-    );
+    const regex = new RegExp(`export\\s+const\\s+${exportName}\\s*=\\s*\`([\\s\\S]*?)\`\\s*;?`, 'm');
     const match = content.match(regex);
 
     if (!match) return null;

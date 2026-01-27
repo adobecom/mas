@@ -18,9 +18,64 @@ import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
 import { parseAIResponse, validateCardConfig, validateCollectionConfig } from './response-parser.js';
 import { handleOperation } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
-import { getVariantConfig } from './variant-configs.js';
-import { getVariantsForSurface } from './variant-knowledge-builder.js';
+import { getVariantConfig, VARIANT_METADATA } from './variant-configs.js';
+import { getVariantsForSurface, buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
+
+/**
+ * All known variant names for detection
+ */
+const ALL_VARIANT_NAMES = Object.keys(VARIANT_METADATA);
+
+/**
+ * Detect variant mentioned in user message
+ * @param {string} message - User message
+ * @param {Object} context - Enriched context
+ * @returns {string|null} - Detected variant name or null
+ */
+function detectVariantFromMessage(message, context) {
+    const lowerMessage = message.toLowerCase();
+
+    for (const variant of ALL_VARIANT_NAMES) {
+        if (lowerMessage.includes(variant.toLowerCase())) {
+            return variant;
+        }
+    }
+
+    const variantAliases = {
+        'special offer': 'special-offers',
+        'special-offer': 'special-offers',
+        student: 'plans-students',
+        students: 'plans-students',
+        education: 'plans-education',
+        edu: 'plans-education',
+        desktop: 'ccd-suggested',
+        'creative cloud desktop': 'ccd-suggested',
+        slice: 'ccd-slice',
+        suggested: 'ccd-suggested',
+        'try buy': 'ah-try-buy-widget',
+        'try-buy': 'ah-try-buy-widget',
+        promoted: 'ah-promoted-plans',
+        express: 'simplified-pricing-express',
+        pricing: 'plans',
+        subscription: 'plans',
+        compact: 'mini',
+        small: 'mini',
+        commerce: 'fries',
+    };
+
+    for (const [alias, variant] of Object.entries(variantAliases)) {
+        if (lowerMessage.includes(alias)) {
+            return variant;
+        }
+    }
+
+    if (context?.suggestedVariants?.length === 1) {
+        return context.suggestedVariants[0];
+    }
+
+    return null;
+}
 
 /**
  * Get response headers for web action
@@ -126,29 +181,60 @@ function createKnowledgeClient(params) {
  * @param {string} systemPrompt - Base system prompt
  * @param {string} message - User message
  * @param {KnowledgeClient|null} knowledgeClient - Knowledge service client
- * @param {boolean} isDocumentation - Whether this is a documentation query
- * @returns {Promise<string>} - Enhanced system prompt
+ * @param {Object} options - Enhancement options
+ * @param {boolean} options.isDocumentation - Whether this is a documentation query
+ * @param {boolean} options.ragVariantDetails - Whether to query RAG for variant details
+ * @param {string|null} options.detectedVariant - Detected variant from message
+ * @returns {Promise<{prompt: string, sources: Array}>} - Enhanced system prompt and sources
  */
-async function enhanceWithRAG(systemPrompt, message, knowledgeClient, isDocumentation) {
-    if (!knowledgeClient || !isDocumentation) {
-        return systemPrompt;
+async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = {}) {
+    const { isDocumentation = false, ragVariantDetails = false, detectedVariant = null } = options;
+
+    if (!knowledgeClient) {
+        return { prompt: systemPrompt, sources: [] };
     }
 
-    try {
-        const knowledgeContext = await knowledgeClient.queryAsContext(message, {
-            topK: 3,
-            minScore: 0.7,
-        });
+    const allSources = [];
+    let enhancedPrompt = systemPrompt;
 
-        if (knowledgeContext) {
-            console.log('[RAG] Retrieved relevant knowledge for query');
-            return `${systemPrompt}\n\n${knowledgeContext}`;
+    if (isDocumentation) {
+        try {
+            const { context, sources } = await knowledgeClient.queryWithSources(message, {
+                topK: 3,
+                minScore: 0.7,
+            });
+
+            if (context) {
+                console.log('[RAG] Retrieved documentation knowledge, sources:', sources.length);
+                enhancedPrompt = `${enhancedPrompt}\n\n${context}`;
+                allSources.push(...sources);
+            }
+        } catch (error) {
+            console.warn('[RAG] Failed to retrieve documentation knowledge:', error.message);
         }
-    } catch (error) {
-        console.warn('[RAG] Failed to retrieve knowledge:', error.message);
     }
 
-    return systemPrompt;
+    if (ragVariantDetails && detectedVariant) {
+        try {
+            const variantQuery = buildVariantRAGQuery(detectedVariant);
+            console.log('[RAG] Querying for variant field details:', variantQuery);
+
+            const { context, sources } = await knowledgeClient.queryWithSources(variantQuery, {
+                topK: 2,
+                minScore: 0.6,
+            });
+
+            if (context) {
+                console.log('[RAG] Retrieved variant field details, sources:', sources.length);
+                enhancedPrompt = `${enhancedPrompt}\n\n=== VARIANT FIELD DETAILS FOR ${detectedVariant.toUpperCase()} ===\n${context}`;
+                allSources.push(...sources);
+            }
+        } catch (error) {
+            console.warn('[RAG] Failed to retrieve variant field details:', error.message);
+        }
+    }
+
+    return { prompt: enhancedPrompt, sources: allSources };
 }
 
 /**
@@ -206,10 +292,26 @@ async function main(params) {
         });
 
         const knowledgeClient = createKnowledgeClient(params);
-        const { prompt: basePrompt, isDocumentation } = determineSystemPromptWithMeta(intentHint, conversationHistory, message);
-        const systemPrompt = await enhanceWithRAG(basePrompt, message, knowledgeClient, isDocumentation);
+        const {
+            prompt: basePrompt,
+            isDocumentation,
+            isCardCreation,
+        } = determineSystemPromptWithMeta(intentHint, conversationHistory, message);
 
         const enrichedContext = enrichContextWithSurface(context);
+
+        const detectedVariant = isCardCreation ? detectVariantFromMessage(message, enrichedContext) : null;
+        const ragVariantDetails = params.RAG_VARIANT_DETAILS === 'true';
+
+        if (detectedVariant) {
+            console.log('[RAG] Detected variant from message:', detectedVariant);
+        }
+
+        const { prompt: systemPrompt, sources: ragSources } = await enhanceWithRAG(basePrompt, message, knowledgeClient, {
+            isDocumentation,
+            ragVariantDetails,
+            detectedVariant,
+        });
 
         console.log('[Backend] ===== ENRICHED CONTEXT SENT TO AI =====');
         console.log('[Backend] Has lastOperation:', !!enrichedContext?.lastOperation);
@@ -243,7 +345,7 @@ async function main(params) {
 
         if (operationResult) {
             if (operationResult.type === 'mcp_operation') {
-                if (operationResult.mcpTool === 'studio_search_cards' && enrichedContext) {
+                if (operationResult.mcpTool === 'search_cards' && enrichedContext) {
                     if (enrichedContext.surface && !operationResult.mcpParams.surface) {
                         operationResult.mcpParams.surface = enrichedContext.surface;
                     }
@@ -414,6 +516,7 @@ async function main(params) {
             body: {
                 type: 'message',
                 message: parsedResponse.message,
+                sources: ragSources,
                 usage: response.usage,
                 conversationHistory: [
                     ...conversationHistory,
@@ -443,19 +546,19 @@ async function main(params) {
  * @param {string} intentHint - Optional hint ('card', 'collection', or 'documentation')
  * @param {Array} conversationHistory - Previous messages
  * @param {string} message - Current user message
- * @returns {Object} - { prompt: string, isDocumentation: boolean }
+ * @returns {Object} - { prompt: string, isDocumentation: boolean, isCardCreation: boolean }
  */
 function determineSystemPromptWithMeta(intentHint, conversationHistory, message) {
     if (intentHint === 'documentation') {
-        return { prompt: buildDocumentationPrompt(message), isDocumentation: true };
+        return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
     }
 
     if (intentHint === 'collection') {
-        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false };
+        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
     }
 
     if (intentHint === 'card') {
-        return { prompt: CARD_CREATION_SYSTEM_PROMPT, isDocumentation: false };
+        return { prompt: CARD_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
     }
 
     const lowerMessage = message.toLowerCase();
@@ -495,9 +598,6 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message)
         'version',
         'history',
         'restore',
-        'variation',
-        'locale',
-        'regional',
         'inherit',
         'override',
     ];
@@ -508,10 +608,6 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message)
 
     const cardCreationKeywords = ['create', 'make', 'generate'];
     const hasCardCreationKeyword = cardCreationKeywords.some((keyword) => lowerMessage.includes(keyword));
-
-    if ((hasDocumentationKeyword || isQuestion) && !hasCardCreationKeyword) {
-        return { prompt: buildDocumentationPrompt(message), isDocumentation: true };
-    }
 
     const operationKeywords = [
         'publish',
@@ -525,15 +621,34 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message)
         'update',
         'show me',
         'fetch',
+        'variation',
+        'variations',
+        'regional',
+        'locale',
+        'offer',
+        'pricing',
+        'price',
+        'cost',
+        'terms',
+        'commitment',
+        'osi',
     ];
     const hasOperationKeyword = operationKeywords.some((keyword) => lowerMessage.includes(keyword));
 
     if (hasOperationKeyword) {
-        return { prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${OPERATIONS_SYSTEM_PROMPT}`, isDocumentation: false };
+        return {
+            prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${OPERATIONS_SYSTEM_PROMPT}`,
+            isDocumentation: false,
+            isCardCreation: true,
+        };
+    }
+
+    if ((hasDocumentationKeyword || isQuestion) && !hasCardCreationKeyword) {
+        return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
     }
 
     if (lowerMessage.includes('collection') || lowerMessage.includes('multiple cards')) {
-        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false };
+        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
     }
 
     const recentAssistantMessages = conversationHistory
@@ -543,10 +658,14 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message)
         .join(' ');
 
     if (recentAssistantMessages.includes('collection')) {
-        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false };
+        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
     }
 
-    return { prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${OPERATIONS_SYSTEM_PROMPT}`, isDocumentation: false };
+    return {
+        prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${OPERATIONS_SYSTEM_PROMPT}`,
+        isDocumentation: false,
+        isCardCreation: true,
+    };
 }
 
 export { main };

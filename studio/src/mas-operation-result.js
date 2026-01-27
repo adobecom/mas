@@ -1,5 +1,6 @@
 import { LitElement, html } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { openPreview, closePreview } from './mas-card-preview.js';
 
 /**
  * Operation Result Display Component
@@ -26,10 +27,26 @@ export class MasOperationResult extends LitElement {
         if (!AemFragmentElement || !fragments) return;
 
         fragments.forEach((card) => {
-            if (card.fragmentData) {
-                AemFragmentElement.cache.add(card.fragmentData);
-            }
+            const fragmentData = card.fragmentData || card;
+            const normalizedData = this.normalizeFragmentData(fragmentData);
+            AemFragmentElement.cache.add(normalizedData);
         });
+    }
+
+    normalizeFragmentData(fragmentData) {
+        const { fields, ...rest } = fragmentData;
+
+        if (Array.isArray(fields)) {
+            return fragmentData;
+        }
+
+        const normalizedFields = Object.entries(fields || {}).map(([name, value]) => ({
+            name,
+            multiple: Array.isArray(value),
+            values: Array.isArray(value) ? value : [value],
+        }));
+
+        return { ...rest, fields: normalizedFields };
     }
 
     renderSearchResults() {
@@ -44,13 +61,6 @@ export class MasOperationResult extends LitElement {
             `;
         }
 
-        // Clear cache for these results and re-cache with fresh data
-        const AemFragmentElement = customElements.get('aem-fragment');
-        if (AemFragmentElement?.cache) {
-            results.forEach((fragment) => {
-                AemFragmentElement.cache.remove(fragment.id);
-            });
-        }
         this.cacheFragments(results);
 
         const displayResults = results.slice(0, this.displayCount);
@@ -64,31 +74,41 @@ export class MasOperationResult extends LitElement {
                     <span>${results.length} card${results.length !== 1 ? 's' : ''} found</span>
                 </div>
 
-                <div class="search-results-cards-grid">
-                    ${repeat(
-                        displayResults,
-                        (fragment) => fragment.id,
-                        (fragment) => {
-                            const isCollection = fragment.tags?.some((t) => t.id.includes('card-type/collection'));
-
-                            return html`
-                                <div class="card-wrapper ${isCollection ? 'collection-item' : ''}">
-                                    ${isCollection
-                                        ? html`
-                                              <merch-card-collection>
-                                                  <aem-fragment fragment="${fragment.id}"></aem-fragment>
-                                              </merch-card-collection>
-                                          `
-                                        : html`
-                                              <merch-card>
-                                                  <aem-fragment fragment="${fragment.id}"></aem-fragment>
-                                              </merch-card>
-                                          `}
-                                </div>
-                            `;
-                        },
-                    )}
-                </div>
+                <sp-table size="m" class="chat-search-table">
+                    <sp-table-head>
+                        <sp-table-head-cell>Title</sp-table-head-cell>
+                        <sp-table-head-cell>Variant</sp-table-head-cell>
+                        <sp-table-head-cell>Status</sp-table-head-cell>
+                        <sp-table-head-cell></sp-table-head-cell>
+                    </sp-table-head>
+                    <sp-table-body>
+                        ${repeat(
+                            displayResults,
+                            (fragment) => fragment.id,
+                            (fragment) => html`
+                                <sp-table-row value="${fragment.id}" @click=${() => this.handleOpenCard(fragment)}>
+                                    <sp-table-cell class="title-cell">${fragment.title}</sp-table-cell>
+                                    <sp-table-cell>
+                                        <sp-badge size="s">${this.extractVariant(fragment)}</sp-badge>
+                                    </sp-table-cell>
+                                    <sp-table-cell class="status-cell">${fragment.status}</sp-table-cell>
+                                    <sp-table-cell class="action-cell">
+                                        <sp-action-button
+                                            quiet
+                                            size="s"
+                                            class="preview-action"
+                                            @mouseenter=${() => this.handlePreview(fragment.id)}
+                                            @mouseleave=${closePreview}
+                                        >
+                                            <sp-icon-magnify slot="icon"></sp-icon-magnify>
+                                        </sp-action-button>
+                                        <sp-icon-open-in size="s" class="open-action"></sp-icon-open-in>
+                                    </sp-table-cell>
+                                </sp-table-row>
+                            `,
+                        )}
+                    </sp-table-body>
+                </sp-table>
 
                 ${hasMore
                     ? html`
@@ -225,8 +245,15 @@ export class MasOperationResult extends LitElement {
         if (variantTag) {
             return variantTag.id.split('/').pop();
         }
-        const variantField = fragment.fields?.find((f) => f.name === 'variant');
-        return variantField?.values?.[0] || 'unknown';
+        const fields = fragment.fields;
+        if (Array.isArray(fields)) {
+            const variantField = fields.find((f) => f.name === 'variant');
+            return variantField?.values?.[0] || 'unknown';
+        }
+        if (fields && typeof fields === 'object') {
+            return fields.variant || 'unknown';
+        }
+        return 'unknown';
     }
 
     handleOpenCard(fragment) {
@@ -237,6 +264,10 @@ export class MasOperationResult extends LitElement {
                 composed: true,
             }),
         );
+    }
+
+    handlePreview(fragmentId) {
+        openPreview(fragmentId, { left: 'min(700px, 60%)' });
     }
 
     renderBulkUpdateResult() {
@@ -526,6 +557,180 @@ export class MasOperationResult extends LitElement {
         );
     }
 
+    extractLocale(variation) {
+        const pathMatch = variation.path?.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
+        return pathMatch?.[1] || 'unknown';
+    }
+
+    renderOfferSelectorResult() {
+        const { offerSelectorId, offers = [], checkoutUrl } = this.result;
+
+        if (!offers.length) {
+            return html`
+                <div class="operation-result offer-selector-result empty">
+                    <sp-icon-info size="l"></sp-icon-info>
+                    <p>No offers found for this offer selector.</p>
+                </div>
+            `;
+        }
+
+        const primaryOffer = offers[0];
+        const { offerId, productArrangementCode, commitment, term, planType, priceDetails = {} } = primaryOffer;
+
+        const price = priceDetails.price;
+        const annualizedPrice = priceDetails.annualized?.annualizedPrice;
+        const currency = priceDetails.currency || 'USD';
+
+        return html`
+            <div class="operation-result offer-selector-result">
+                <div class="result-header">
+                    <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
+                    <span>Offer Details</span>
+                </div>
+
+                <div class="offer-details">
+                    <div class="offer-info-grid">
+                        <div class="offer-field">
+                            <span class="field-label">Product</span>
+                            <span class="field-value">${productArrangementCode || 'N/A'}</span>
+                        </div>
+                        ${price !== undefined
+                            ? html`
+                                  <div class="offer-field">
+                                      <span class="field-label">Price</span>
+                                      <span class="field-value price"
+                                          >${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
+                                              price,
+                                          )}/${term === 'MONTHLY' ? 'mo' : 'yr'}</span
+                                      >
+                                  </div>
+                              `
+                            : ''}
+                        ${annualizedPrice !== undefined
+                            ? html`
+                                  <div class="offer-field">
+                                      <span class="field-label">Annual Total</span>
+                                      <span class="field-value"
+                                          >${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
+                                              annualizedPrice,
+                                          )}/yr</span
+                                      >
+                                  </div>
+                              `
+                            : ''}
+                        <div class="offer-field">
+                            <span class="field-label">Commitment</span>
+                            <span class="field-value">${commitment || 'N/A'}</span>
+                        </div>
+                        <div class="offer-field">
+                            <span class="field-label">Term</span>
+                            <span class="field-value">${term || 'N/A'}</span>
+                        </div>
+                        <div class="offer-field">
+                            <span class="field-label">Plan Type</span>
+                            <sp-badge size="s">${planType || 'N/A'}</sp-badge>
+                        </div>
+                    </div>
+
+                    <details class="offer-ids">
+                        <summary>Technical Details</summary>
+                        <div class="offer-field">
+                            <span class="field-label">Offer Selector ID</span>
+                            <code class="field-value">${offerSelectorId}</code>
+                        </div>
+                        <div class="offer-field">
+                            <span class="field-label">Offer ID</span>
+                            <code class="field-value">${offerId}</code>
+                        </div>
+                    </details>
+
+                    ${checkoutUrl
+                        ? html`
+                              <div class="offer-actions">
+                                  <sp-button size="s" variant="secondary" @click=${() => window.open(checkoutUrl, '_blank')}>
+                                      <sp-icon-link-out slot="icon"></sp-icon-link-out>
+                                      Open Checkout
+                                  </sp-button>
+                              </div>
+                          `
+                        : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    renderVariationsResult() {
+        const { parent, variations = [], count = 0, isVariation, message, fragment } = this.result;
+
+        if (isVariation) {
+            return html`
+                <div class="operation-result variations-result">
+                    <div class="result-header">
+                        <sp-icon-translate size="m"></sp-icon-translate>
+                        <span>${message || 'This is a variation'}</span>
+                    </div>
+                    ${fragment ? html` <p>Current card: <strong>${fragment.title}</strong></p> ` : ''}
+                </div>
+            `;
+        }
+
+        if (count === 0) {
+            return html`
+                <div class="operation-result variations-result empty">
+                    <sp-icon-translate size="l"></sp-icon-translate>
+                    <p>${message || 'No variations found for this card.'}</p>
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="operation-result variations-result">
+                <div class="result-header">
+                    <sp-icon-translate size="m"></sp-icon-translate>
+                    <span>${count} variation${count !== 1 ? 's' : ''} found</span>
+                </div>
+
+                ${parent ? html` <p class="parent-info">Parent: <strong>${parent.title}</strong></p> ` : ''}
+
+                <sp-table size="m" class="chat-search-table">
+                    <sp-table-head>
+                        <sp-table-head-cell>Title</sp-table-head-cell>
+                        <sp-table-head-cell>Locale</sp-table-head-cell>
+                        <sp-table-head-cell>Status</sp-table-head-cell>
+                        <sp-table-head-cell></sp-table-head-cell>
+                    </sp-table-head>
+                    <sp-table-body>
+                        ${repeat(
+                            variations,
+                            (v) => v.id,
+                            (v) => html`
+                                <sp-table-row value="${v.id}" @click=${() => this.handleOpenCard(v)}>
+                                    <sp-table-cell class="title-cell">${v.title}</sp-table-cell>
+                                    <sp-table-cell>
+                                        <sp-badge size="s">${this.extractLocale(v)}</sp-badge>
+                                    </sp-table-cell>
+                                    <sp-table-cell class="status-cell">${v.status}</sp-table-cell>
+                                    <sp-table-cell class="action-cell">
+                                        <sp-action-button
+                                            quiet
+                                            size="s"
+                                            class="preview-action"
+                                            @mouseenter=${() => this.handlePreview(v.id)}
+                                            @mouseleave=${closePreview}
+                                        >
+                                            <sp-icon-magnify slot="icon"></sp-icon-magnify>
+                                        </sp-action-button>
+                                        <sp-icon-open-in size="s" class="open-action"></sp-icon-open-in>
+                                    </sp-table-cell>
+                                </sp-table-row>
+                            `,
+                        )}
+                    </sp-table-body>
+                </sp-table>
+            </div>
+        `;
+    }
+
     render() {
         if (!this.result) {
             return html`<p>No result data.</p>`;
@@ -533,35 +738,39 @@ export class MasOperationResult extends LitElement {
 
         switch (this.operationType) {
             case 'search':
-            case 'studio_search_cards':
+            case 'search_cards':
                 return this.renderSearchResults();
             case 'publish':
-            case 'studio_publish_card':
+            case 'publish_card':
                 return this.renderPublishResult();
             case 'unpublish':
-            case 'studio_unpublish_card':
+            case 'unpublish_card':
                 return this.renderUnpublishResult();
             case 'copy':
-            case 'studio_copy_card':
+            case 'copy_card':
                 return this.renderCopyResult();
             case 'delete':
-            case 'studio_delete_card':
+            case 'delete_card':
                 return this.renderDeleteResult();
             case 'update':
-            case 'studio_update_card':
+            case 'update_card':
                 return this.renderUpdateResult();
             case 'get':
-            case 'studio_get_card':
+            case 'get_card':
                 return this.renderGetResult();
             case 'bulk_update':
-            case 'studio_bulk_update_cards':
+            case 'bulk_update_cards':
                 return this.renderBulkUpdateResult();
             case 'bulk_publish':
-            case 'studio_bulk_publish_cards':
+            case 'bulk_publish_cards':
                 return this.renderBulkPublishResult();
             case 'bulk_delete':
-            case 'studio_bulk_delete_cards':
+            case 'bulk_delete_cards':
                 return this.renderBulkDeleteResult();
+            case 'get_variations':
+                return this.renderVariationsResult();
+            case 'resolve_offer_selector':
+                return this.renderOfferSelectorResult();
             default:
                 return html`
                     <div class="operation-result">

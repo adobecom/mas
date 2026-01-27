@@ -144,7 +144,7 @@ export class MasChatInput extends LitElement {
     }
 
     handleRemoveCard(cardId) {
-        this.selectedCards = this.selectedCards.filter((id) => id !== cardId);
+        this.selectedCards = this.selectedCards.filter((card) => card.id !== cardId);
         this.requestUpdate();
     }
 
@@ -166,9 +166,9 @@ export class MasChatInput extends LitElement {
                     ? html`
                           <div class="selected-cards-badges">
                               ${this.selectedCards.map(
-                                  (cardId) => html`
-                                      <sp-tag size="m" deletable @delete=${() => this.handleRemoveCard(cardId)}>
-                                          ${cardId.split('/').pop()}
+                                  (card) => html`
+                                      <sp-tag size="m" deletable @delete=${() => this.handleRemoveCard(card.id)}>
+                                          ${card.id.split('/').pop()}${card.osi ? ` (${card.osi})` : ''}
                                       </sp-tag>
                                   `,
                               )}

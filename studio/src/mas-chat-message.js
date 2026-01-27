@@ -15,7 +15,13 @@ export class MasChatMessage extends LitElement {
     static properties = {
         message: { type: Object },
         showSuggestions: { type: Boolean },
+        sourcesExpanded: { type: Boolean },
     };
+
+    constructor() {
+        super();
+        this.sourcesExpanded = false;
+    }
 
     createRenderRoot() {
         return this;
@@ -378,6 +384,50 @@ export class MasChatMessage extends LitElement {
         `;
     }
 
+    renderSources() {
+        const { sources } = this.message;
+
+        if (!sources || sources.length === 0) {
+            return '';
+        }
+
+        return html`
+            <div class="message-sources">
+                <button
+                    class="sources-toggle ${this.sourcesExpanded ? 'expanded' : ''}"
+                    @click=${() => {
+                        this.sourcesExpanded = !this.sourcesExpanded;
+                    }}
+                >
+                    <sp-icon-info size="s"></sp-icon-info>
+                    <span>Sources (${sources.length})</span>
+                    <sp-icon-chevron-down size="s"></sp-icon-chevron-down>
+                </button>
+                ${this.sourcesExpanded
+                    ? html`
+                          <div class="sources-list">
+                              ${sources.map(
+                                  (source) => html`
+                                      <div class="source-item">
+                                          ${source.url
+                                              ? html`<a href="${source.url}" target="_blank" class="source-link">
+                                                    ${source.url}
+                                                    <sp-icon-link-out size="xs"></sp-icon-link-out>
+                                                </a>`
+                                              : html`<span class="source-section">${source.section}</span>`}
+                                          ${source.score
+                                              ? html`<span class="source-score">${Math.round(source.score * 100)}%</span>`
+                                              : ''}
+                                      </div>
+                                  `,
+                              )}
+                          </div>
+                      `
+                    : ''}
+            </div>
+        `;
+    }
+
     render() {
         if (!this.message) return html``;
 
@@ -469,7 +519,10 @@ export class MasChatMessage extends LitElement {
                                       <span>Selected ${cards.length} card${cards.length !== 1 ? 's' : ''} for context</span>
                                   </div>
                                   <div class="message-cards-list">
-                                      ${cards.map((cardId) => html` <sp-tag size="s"> ${cardId.split('/').pop()} </sp-tag> `)}
+                                      ${cards.map((card) => {
+                                          const cardId = typeof card === 'string' ? card : card.id;
+                                          return html` <sp-tag size="s"> ${cardId.split('/').pop()} </sp-tag> `;
+                                      })}
                                   </div>
                               </div>
                           `
@@ -485,6 +538,7 @@ export class MasChatMessage extends LitElement {
                               `
                             : html` <div class="message-text">${unsafeHTML(isUser ? content : parseMarkdown(content))}</div> `}
                         ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : ''}
+                        ${this.message.sources?.length > 0 ? this.renderSources() : ''}
                     </div>
 
                     ${cardConfig || fragmentId ? this.renderCardPreview() : ''}

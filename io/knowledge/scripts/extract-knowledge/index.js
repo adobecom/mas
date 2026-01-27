@@ -80,14 +80,7 @@ function parseArgs(args) {
         }
     }
 
-    if (
-        !options.all &&
-        !options.variants &&
-        !options.pipeline &&
-        !options.components &&
-        !options.editor &&
-        !options.docs
-    ) {
+    if (!options.all && !options.variants && !options.pipeline && !options.components && !options.editor && !options.docs) {
         options.all = true;
     }
 
@@ -151,56 +144,34 @@ async function main() {
     if (options.all || options.variants) {
         console.log('📦 Extracting variant documentation...');
         const outputDir = join(OUTPUT_BASE, 'developer/variants');
-        results.variants = await generateVariantDocs(
-            MAS_ROOT,
-            outputDir,
-            extractorOptions,
-        );
+        results.variants = await generateVariantDocs(MAS_ROOT, outputDir, extractorOptions);
         console.log(`   Generated ${results.variants.length} variant docs\n`);
     }
 
     if (options.all || options.pipeline) {
         console.log('🔧 Extracting pipeline documentation...');
         const outputDir = join(OUTPUT_BASE, 'developer/pipeline');
-        results.pipeline = await generatePipelineDocs(
-            MAS_ROOT,
-            outputDir,
-            extractorOptions,
-        );
+        results.pipeline = await generatePipelineDocs(MAS_ROOT, outputDir, extractorOptions);
         console.log(`   Generated ${results.pipeline.length} pipeline docs\n`);
     }
 
     if (options.all || options.components) {
         console.log('🧩 Extracting web component documentation...');
         const outputDir = join(OUTPUT_BASE, 'developer/components');
-        results.components = await generateComponentDocs(
-            MAS_ROOT,
-            outputDir,
-            extractorOptions,
-        );
-        console.log(
-            `   Generated ${results.components.length} component docs\n`,
-        );
+        results.components = await generateComponentDocs(MAS_ROOT, outputDir, extractorOptions);
+        console.log(`   Generated ${results.components.length} component docs\n`);
     }
 
     if (options.all || options.editor) {
         console.log('📝 Extracting editor field documentation...');
         const outputDir = join(OUTPUT_BASE, 'developer');
-        results.editor = await generateEditorFieldsDocs(
-            MAS_ROOT,
-            outputDir,
-            extractorOptions,
-        );
+        results.editor = await generateEditorFieldsDocs(MAS_ROOT, outputDir, extractorOptions);
         console.log(`   Generated ${results.editor.length} editor docs\n`);
     }
 
     if (options.all || options.docs) {
         console.log('📚 Converting embedded documentation...');
-        results.docs = await generateEmbeddedDocs(
-            MAS_ROOT,
-            OUTPUT_BASE,
-            extractorOptions,
-        );
+        results.docs = await generateEmbeddedDocs(MAS_ROOT, OUTPUT_BASE, extractorOptions);
         console.log(`   Generated ${results.docs.length} docs\n`);
     }
 

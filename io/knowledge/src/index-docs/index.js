@@ -58,6 +58,17 @@ async function main(params) {
             };
         }
 
+        if (action === 'reset') {
+            console.log('Resetting index (delete and recreate)...');
+            await retriever.opensearch.deleteIndex();
+            await retriever.opensearch.createIndex();
+            return {
+                statusCode: 200,
+                headers: getResponseHeaders(),
+                body: { message: 'Index reset successfully' },
+            };
+        }
+
         if (action === 'index') {
             const chunks = getEmbeddedChunks();
 

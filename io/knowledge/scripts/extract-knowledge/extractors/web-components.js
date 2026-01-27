@@ -37,8 +37,7 @@ const COMPONENTS_TO_DOCUMENT = [
         file: 'merch-mnemonic.js',
         name: 'Merch Mnemonic',
         tagName: 'merch-mnemonic',
-        description:
-            'Displays product icons/mnemonics. Automatically resolves product icons from Adobe icon service.',
+        description: 'Displays product icons/mnemonics. Automatically resolves product icons from Adobe icon service.',
     },
     {
         file: 'checkout-link.js',
@@ -89,8 +88,7 @@ function extractJSDocBlocks(content) {
 function extractProperties(content) {
     const properties = [];
 
-    const propsRegex =
-        /static\s+(?:get\s+)?properties\s*(?:\(\))?\s*(?:=\s*\{|{\s*return\s*\{)([\s\S]*?)\}/;
+    const propsRegex = /static\s+(?:get\s+)?properties\s*(?:\(\))?\s*(?:=\s*\{|{\s*return\s*\{)([\s\S]*?)\}/;
     const match = content.match(propsRegex);
 
     if (!match) return properties;
@@ -125,8 +123,7 @@ function extractProperties(content) {
 function extractEvents(content) {
     const events = [];
 
-    const dispatchRegex =
-        /this\.dispatchEvent\s*\(\s*new\s+CustomEvent\s*\(\s*['"]([^'"]+)['"]/g;
+    const dispatchRegex = /this\.dispatchEvent\s*\(\s*new\s+CustomEvent\s*\(\s*['"]([^'"]+)['"]/g;
     let match;
     while ((match = dispatchRegex.exec(content)) !== null) {
         events.push({
@@ -181,8 +178,7 @@ function extractSlots(content) {
 function extractAttributes(content) {
     const attributes = [];
 
-    const observedRegex =
-        /static\s+get\s+observedAttributes\s*\(\)\s*\{\s*return\s*\[([^\]]+)\]/;
+    const observedRegex = /static\s+get\s+observedAttributes\s*\(\)\s*\{\s*return\s*\[([^\]]+)\]/;
     const observedMatch = content.match(observedRegex);
 
     if (observedMatch) {
@@ -197,8 +193,7 @@ function extractAttributes(content) {
         }
     }
 
-    const attrGetterRegex =
-        /get\s+(\w+)\s*\(\)\s*\{\s*return\s+this\.getAttribute\s*\(\s*['"]([^'"]+)['"]/g;
+    const attrGetterRegex = /get\s+(\w+)\s*\(\)\s*\{\s*return\s+this\.getAttribute\s*\(\s*['"]([^'"]+)['"]/g;
     let getterMatch;
     while ((getterMatch = attrGetterRegex.exec(content)) !== null) {
         const [, propName, attrName] = getterMatch;

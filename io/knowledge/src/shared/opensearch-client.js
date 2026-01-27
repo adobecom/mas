@@ -80,6 +80,7 @@ export class OpenSearchClient {
                                 section: { type: 'text' },
                                 parentSection: { type: 'text' },
                                 category: { type: 'keyword' },
+                                sourceUrl: { type: 'keyword' },
                             },
                         },
                     },
@@ -88,6 +89,21 @@ export class OpenSearchClient {
         });
 
         console.log(`Created index ${this.indexName}`);
+        return true;
+    }
+
+    /**
+     * Delete the index if it exists
+     */
+    async deleteIndex() {
+        const exists = await this.client.indices.exists({ index: this.indexName });
+        if (!exists.body) {
+            console.log(`Index ${this.indexName} does not exist`);
+            return false;
+        }
+
+        await this.client.indices.delete({ index: this.indexName });
+        console.log(`Deleted index ${this.indexName}`);
         return true;
     }
 

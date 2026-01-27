@@ -19,6 +19,15 @@ const CHUNK_SIZE_CHARS = 2000;
 const MIN_CHUNK_SIZE = 100;
 
 /**
+ * Extract source URL from markdown content
+ * Matches lines like: > Source: https://wiki.corp.adobe.com/...
+ */
+function extractSourceUrl(content) {
+    const match = content.match(/^>\s*Source:\s*(https?:\/\/[^\s]+)/m);
+    return match ? match[1] : null;
+}
+
+/**
  * Recursively find all markdown files in a directory
  */
 function findMarkdownFiles(dir, files = []) {
@@ -141,6 +150,7 @@ function splitLargeChunk(chunk, maxSize = CHUNK_SIZE_CHARS) {
 function processFile(filePath, baseDir) {
     const content = readFileSync(filePath, 'utf-8');
     const relativePath = relative(baseDir, filePath);
+    const sourceUrl = extractSourceUrl(content);
 
     const chunks = splitByHeaders(content, relativePath);
 
@@ -157,6 +167,7 @@ function processFile(filePath, baseDir) {
             section: chunk.header,
             parentSection: chunk.parentHeader,
             category: getCategory(relativePath),
+            sourceUrl,
         },
     }));
 }

@@ -1,14 +1,16 @@
 import { StudioURLBuilder } from '../../../io/mcp-server/src/lib/studio-url-builder.js';
 import { AOSClient } from '../services/aos-client.js';
+import { WCSClient } from '../services/wcs-client.js';
 
 /**
  * Offer Selector Tools
  * MCP tools for creating and resolving offer selectors
  */
 export class OfferSelectorTools {
-    constructor(aosClient, urlBuilder) {
+    constructor(aosClient, urlBuilder, wcsClient) {
         this.aosClient = aosClient;
         this.urlBuilder = urlBuilder;
+        this.wcsClient = wcsClient || new WCSClient();
     }
 
     /**
@@ -73,25 +75,31 @@ export class OfferSelectorTools {
     }
 
     /**
-     * Resolve offers from an offer selector
+     * Resolve offers from an offer selector using WCS
      */
     async resolveOfferSelector(params) {
-        const { offerSelectorId, country = 'US' } = params;
+        const { offerSelectorId, country = 'US', language = 'en', promotionCode } = params;
 
-        const selector = await this.aosClient.getOfferSelector(offerSelectorId, country);
-        const offers = await this.aosClient.resolveOfferSelector(offerSelectorId, country);
-
-        const checkoutUrl = this.aosClient.getCheckoutUrl(offerSelectorId);
-
-        const studioLinks = this.urlBuilder.createOfferLinks({
-            product_arrangement_code: selector.product_arrangement_code,
-            customer_segment: selector.customer_segment,
-            offer_type: selector.offer_type,
+        const result = await this.wcsClient.resolveOfferSelector(offerSelectorId, {
+            country,
+            language,
+            promotionCode,
         });
 
+        const checkoutUrl = this.wcsClient.getCheckoutUrl(offerSelectorId);
+
+        const primaryOffer = result.offers[0];
+        const studioLinks = primaryOffer
+            ? this.urlBuilder.createOfferLinks({
+                  product_arrangement_code: primaryOffer.productArrangementCode,
+                  customer_segment: primaryOffer.customerSegment,
+                  offer_type: primaryOffer.offerType,
+              })
+            : null;
+
         return {
-            offers,
-            selector,
+            offerSelectorId,
+            offers: result.offers,
             checkoutUrl,
             studioLinks,
         };

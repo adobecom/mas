@@ -65,6 +65,40 @@ export class KnowledgeClient {
     }
 
     /**
+     * Query and return both context and source metadata for RAG
+     * @param {string} queryText - User query
+     * @param {Object} options - Query options
+     * @returns {Promise<{context: string, sources: Array}>} - Context and sources
+     */
+    async queryWithSources(queryText, options = {}) {
+        const data = await this.query(queryText, options);
+        const results = data.body?.results || data.results || [];
+
+        if (results.length === 0) {
+            return { context: '', sources: [] };
+        }
+
+        const sources = results.map((result) => ({
+            section: result.metadata?.parentSection
+                ? `${result.metadata.parentSection} > ${result.metadata.section}`
+                : result.metadata?.section || 'Knowledge',
+            score: result.score,
+            url: result.metadata?.sourceUrl || null,
+        }));
+
+        const contextParts = results.map((result) => {
+            const header = result.metadata?.parentSection
+                ? `${result.metadata.parentSection} > ${result.metadata.section}`
+                : result.metadata?.section || 'Knowledge';
+            return `### ${header}\n${result.text}`;
+        });
+
+        const context = `=== RELEVANT KNOWLEDGE ===\n\n${contextParts.join('\n\n---\n\n')}`;
+
+        return { context, sources };
+    }
+
+    /**
      * Check if knowledge service is healthy
      * @returns {Promise<boolean>} - True if service is healthy
      */

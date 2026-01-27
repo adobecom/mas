@@ -307,8 +307,17 @@ class MasCardSelectionDialog extends LitElement {
 
     handleConfirm() {
         const selectedIds = Store.selection.get();
+        const fragmentsMap = new Map(this.filteredFragments.map((f) => [f.id, f]));
+
+        const selectedCards = selectedIds.map((id) => {
+            const fragmentStore = fragmentsMap.get(id);
+            const fragment = fragmentStore?.get?.();
+            const osi = fragment?.getFieldValue?.('osi') || null;
+            return { id, osi };
+        });
+
         this.cleanup();
-        this.resolver(selectedIds);
+        this.resolver(selectedCards);
     }
 
     handleCancel() {

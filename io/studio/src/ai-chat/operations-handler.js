@@ -89,6 +89,18 @@ export function validateOperation(operation) {
 }
 
 /**
+ * Normalize MCP tool name by stripping the 'studio_' prefix if present
+ * @param {string} toolName - Original tool name
+ * @returns {string} - Normalized tool name
+ */
+function normalizeMCPToolName(toolName) {
+    if (toolName?.startsWith('studio_')) {
+        return toolName.slice(7);
+    }
+    return toolName;
+}
+
+/**
  * Validate MCP operation format
  * @private
  */
@@ -97,20 +109,26 @@ function validateMCPOperation(operation) {
         return { valid: false, error: 'mcpTool is required for MCP operations' };
     }
 
+    operation.mcpTool = normalizeMCPToolName(operation.mcpTool);
+
     const validMCPTools = [
-        'studio_publish_card',
-        'studio_unpublish_card',
-        'studio_get_card',
-        'studio_search_cards',
-        'studio_delete_card',
-        'studio_copy_card',
-        'studio_update_card',
-        'studio_bulk_update_cards',
-        'studio_bulk_publish_cards',
-        'studio_bulk_delete_cards',
-        'studio_preview_bulk_update',
-        'studio_preview_bulk_publish',
-        'studio_preview_bulk_delete',
+        'publish_card',
+        'unpublish_card',
+        'get_card',
+        'search_cards',
+        'delete_card',
+        'copy_card',
+        'update_card',
+        'bulk_update_cards',
+        'bulk_publish_cards',
+        'bulk_delete_cards',
+        'preview_bulk_update',
+        'preview_bulk_publish',
+        'preview_bulk_delete',
+        'get_variations',
+        'resolve_offer_selector',
+        'get_offer_by_id',
+        'search_offers',
     ];
 
     if (!validMCPTools.includes(operation.mcpTool)) {
@@ -122,26 +140,47 @@ function validateMCPOperation(operation) {
     }
 
     switch (operation.mcpTool) {
-        case 'studio_publish_card':
-        case 'studio_unpublish_card':
-        case 'studio_get_card':
-        case 'studio_delete_card':
-        case 'studio_copy_card':
-        case 'studio_update_card':
+        case 'publish_card':
+        case 'unpublish_card':
+        case 'get_card':
+        case 'delete_card':
+        case 'copy_card':
+        case 'update_card':
             if (!operation.mcpParams.id) {
                 return { valid: false, error: `${operation.mcpTool} requires mcpParams.id` };
             }
             break;
 
-        case 'studio_search_cards':
+        case 'search_cards':
             break;
 
-        case 'studio_bulk_update_cards':
-        case 'studio_bulk_publish_cards':
-        case 'studio_bulk_delete_cards':
-        case 'studio_preview_bulk_update':
-        case 'studio_preview_bulk_publish':
-        case 'studio_preview_bulk_delete':
+        case 'get_variations':
+            if (!operation.mcpParams.id) {
+                return { valid: false, error: 'get_variations requires mcpParams.id' };
+            }
+            break;
+
+        case 'resolve_offer_selector':
+            if (!operation.mcpParams.offerSelectorId) {
+                return { valid: false, error: 'resolve_offer_selector requires mcpParams.offerSelectorId' };
+            }
+            break;
+
+        case 'get_offer_by_id':
+            if (!operation.mcpParams.offerId) {
+                return { valid: false, error: 'get_offer_by_id requires mcpParams.offerId' };
+            }
+            break;
+
+        case 'search_offers':
+            break;
+
+        case 'bulk_update_cards':
+        case 'bulk_publish_cards':
+        case 'bulk_delete_cards':
+        case 'preview_bulk_update':
+        case 'preview_bulk_publish':
+        case 'preview_bulk_delete':
             if (!operation.mcpParams.fragmentIds || !Array.isArray(operation.mcpParams.fragmentIds)) {
                 return { valid: false, error: `${operation.mcpTool} requires mcpParams.fragmentIds array` };
             }
@@ -217,7 +256,7 @@ export function processOperation(operation, message) {
             mcpTool: operation.mcpTool,
             mcpParams: operation.mcpParams,
             message: message || operation.message || `Executing ${operation.mcpTool} operation...`,
-            confirmationRequired: operation.confirmationRequired || operation.mcpTool === 'studio_delete_card',
+            confirmationRequired: operation.confirmationRequired || operation.mcpTool === 'delete_card',
         };
     }
 

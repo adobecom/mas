@@ -12,47 +12,33 @@ import { generateTable } from '../generators/markdown.js';
 const EDITOR_PATH = 'studio/src/editors/merch-card-editor.js';
 
 const FIELD_DESCRIPTIONS = {
-    mnemonics:
-        'Product icon/mnemonic display. Shows the Adobe product icon.',
+    mnemonics: 'Product icon/mnemonic display. Shows the Adobe product icon.',
     badge: 'Badge text displayed on the card (e.g., "Best Value", "New").',
     trialBadge: 'Trial-specific badge for trial offers.',
     'border-color': 'Card border color selection from allowed palette.',
-    whatsIncluded:
-        "What's included list content. Rich text field for feature lists.",
-    quantitySelect:
-        'Quantity selector configuration for license quantity selection.',
-    description:
-        'Main product description. Rich text field with formatting support.',
-    shortDescription:
-        'Short description shown in action menu or compact views.',
-    callout:
-        'Callout text for highlighting special information.',
+    whatsIncluded: "What's included list content. Rich text field for feature lists.",
+    quantitySelect: 'Quantity selector configuration for license quantity selection.',
+    description: 'Main product description. Rich text field with formatting support.',
+    shortDescription: 'Short description shown in action menu or compact views.',
+    callout: 'Callout text for highlighting special information.',
     ctas: 'Call-to-action buttons. Supports multiple CTAs with checkout links.',
-    secureLabel:
-        'Secure transaction label toggle (shows lock icon and "Secure transaction" text).',
-    planType:
-        'Plan type indicator (monthly, annual, etc.).',
+    secureLabel: 'Secure transaction label toggle (shows lock icon and "Secure transaction" text).',
+    planType: 'Plan type indicator (monthly, annual, etc.).',
     addon: 'Add-on product configuration.',
     title: 'Card title. Main heading displayed prominently.',
     subtitle: 'Card subtitle. Secondary heading below the title.',
-    prices:
-        'Pricing display. Shows price from WCS using inline-price component.',
-    promoText:
-        'Promotional text displayed near price (e.g., "Save 40%").',
+    prices: 'Pricing display. Shows price from WCS using inline-price component.',
+    promoText: 'Promotional text displayed near price (e.g., "Save 40%").',
     backgroundImage: 'Background image for card variants that support it.',
     size: 'Card size selection (default, wide, super-wide).',
 };
 
 const SECTION_DESCRIPTIONS = {
-    Visuals:
-        'Visual elements that define the card appearance including icons, badges, and colors.',
-    "What's included":
-        'Feature list and quantity configuration for the product offering.',
-    'Product details':
-        'Content fields describing the product including descriptions and callouts.',
+    Visuals: 'Visual elements that define the card appearance including icons, badges, and colors.',
+    "What's included": 'Feature list and quantity configuration for the product offering.',
+    'Product details': 'Content fields describing the product including descriptions and callouts.',
     Footer: 'Call-to-action buttons and links at the bottom of the card.',
-    'Options and settings':
-        'Additional configuration options for the card display.',
+    'Options and settings': 'Additional configuration options for the card display.',
 };
 
 /**
@@ -61,20 +47,14 @@ const SECTION_DESCRIPTIONS = {
  * @returns {Object} Section fields mapping
  */
 function extractSectionFields(content) {
-    const match = content.match(
-        /static\s+SECTION_FIELDS\s*=\s*\{([\s\S]*?)\};/,
-    );
+    const match = content.match(/static\s+SECTION_FIELDS\s*=\s*\{([\s\S]*?)\};/);
     if (!match) return {};
 
     const sections = {};
-    const sectionMatches = match[1].matchAll(
-        /['"]?([^'":\n]+)['"]?\s*:\s*\[([^\]]+)\]/g,
-    );
+    const sectionMatches = match[1].matchAll(/['"]?([^'":\n]+)['"]?\s*:\s*\[([^\]]+)\]/g);
 
     for (const [, sectionName, fieldsStr] of sectionMatches) {
-        const fields = fieldsStr
-            .match(/['"]([^'"]+)['"]/g)
-            ?.map((f) => f.replace(/['"]/g, ''));
+        const fields = fieldsStr.match(/['"]([^'"]+)['"]/g)?.map((f) => f.replace(/['"]/g, ''));
         if (fields) {
             sections[sectionName.trim()] = fields;
         }
@@ -89,9 +69,7 @@ function extractSectionFields(content) {
  * @returns {Object} Variant RTE configuration
  */
 function extractVariantRTEMarks(content) {
-    const match = content.match(
-        /const\s+VARIANT_RTE_MARKS\s*=\s*\{([\s\S]*?)\};/,
-    );
+    const match = content.match(/const\s+VARIANT_RTE_MARKS\s*=\s*\{([\s\S]*?)\};/);
     if (!match) return {};
 
     return {};
@@ -143,9 +121,7 @@ export async function generateEditorFieldsDocs(basePath, outputDir, options = {}
     if (options.dryRun) {
         console.log(`[DRY RUN] Would write: ${filePath}`);
         if (options.verbose) {
-            console.log(
-                `  Sections: ${Object.keys(config.sectionFields).length}\n`,
-            );
+            console.log(`  Sections: ${Object.keys(config.sectionFields).length}\n`);
         }
     } else {
         writeFileSync(filePath, markdown);
@@ -168,9 +144,7 @@ function generateEditorFieldsMarkdown(config) {
 
     sections.push(`# MAS Studio Editor Fields\n`);
     sections.push(`## Overview\n`);
-    sections.push(
-        `The Merch Card Editor organizes fields into sections for easy navigation and editing.\n`,
-    );
+    sections.push(`The Merch Card Editor organizes fields into sections for easy navigation and editing.\n`);
 
     sections.push(`## Field Sections\n`);
 
@@ -199,12 +173,10 @@ function generateEditorFieldsMarkdown(config) {
     sections.push(`## All Available Fields\n`);
     sections.push(`Complete reference of all editor fields:\n`);
 
-    const allFields = Object.entries(config.fieldDescriptions).map(
-        ([name, description]) => ({
-            name,
-            description,
-        }),
-    );
+    const allFields = Object.entries(config.fieldDescriptions).map(([name, description]) => ({
+        name,
+        description,
+    }));
 
     const tableColumns = [
         { key: 'name', header: 'Field' },
@@ -220,9 +192,7 @@ function generateEditorFieldsMarkdown(config) {
     );
     sections.push(`- Check the variant documentation for field availability`);
     sections.push(`- Fields not in the mapping will be hidden in the editor`);
-    sections.push(
-        `- Some variants have custom RTE marks for specialized formatting\n`,
-    );
+    sections.push(`- Some variants have custom RTE marks for specialized formatting\n`);
 
     return sections.join('\n');
 }

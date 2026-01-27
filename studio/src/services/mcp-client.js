@@ -9,7 +9,7 @@ import { MCP_SERVER_URL } from '../constants.js';
 
 /**
  * Execute an MCP tool on the MCP server
- * @param {string} toolName - Name of the MCP tool (e.g., 'studio_publish_card')
+ * @param {string} toolName - Name of the MCP tool (e.g., 'publish_card')
  * @param {Object} params - Tool parameters
  * @returns {Promise<Object>} - Tool execution result
  */
@@ -89,7 +89,7 @@ export async function executeStudioOperationWithProgress(mcpTool, mcpParams, onP
     return new Promise((resolve, reject) => {
         const poll = setInterval(async () => {
             try {
-                const statusResult = await executeMCPTool('studio_get_job_status', { jobId });
+                const statusResult = await executeMCPTool('get_job_status', { jobId });
                 console.log('[MCP Client] Job status:', statusResult.status, statusResult.completed, '/', statusResult.total);
 
                 if (onProgress) {
@@ -139,7 +139,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
     const result = await executeMCPTool(mcpTool, mcpParams);
 
     switch (mcpTool) {
-        case 'studio_publish_card':
+        case 'publish_card':
             return {
                 success: true,
                 operation: 'publish',
@@ -150,7 +150,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 deepLink: result.deepLink,
             };
 
-        case 'studio_unpublish_card':
+        case 'unpublish_card':
             return {
                 success: true,
                 operation: 'unpublish',
@@ -161,25 +161,27 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 deepLink: result.deepLink,
             };
 
-        case 'studio_get_card':
+        case 'get_card':
             return {
                 success: true,
                 operation: 'get',
-                fragment: result.fragment,
-                message: `Found "${result.fragment.title}"`,
+                fragment: result.card,
+                message: `Found "${result.card.title}"`,
                 deepLink: result.deepLink,
             };
 
-        case 'studio_search_cards':
+        case 'search_cards': {
+            const cards = result.results || result.cards || [];
             return {
                 success: true,
                 operation: 'search',
-                results: result.results,
-                count: result.results.length,
-                message: `Found ${result.results.length} card${result.results.length !== 1 ? 's' : ''}`,
+                results: cards,
+                count: cards.length,
+                message: `Found ${cards.length} card${cards.length !== 1 ? 's' : ''}`,
             };
+        }
 
-        case 'studio_delete_card':
+        case 'delete_card':
             return {
                 success: true,
                 operation: 'delete',
@@ -188,7 +190,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: `✓ "${result.title}" has been deleted.`,
             };
 
-        case 'studio_copy_card':
+        case 'copy_card':
             return {
                 success: true,
                 operation: 'copy',
@@ -200,7 +202,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 deepLink: result.deepLink,
             };
 
-        case 'studio_update_card':
+        case 'update_card':
             return {
                 success: true,
                 operation: 'update',
@@ -211,7 +213,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 deepLink: result.deepLink,
             };
 
-        case 'studio_bulk_update_cards':
+        case 'bulk_update_cards':
             return {
                 success: true,
                 operation: 'bulk_update',
@@ -223,7 +225,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: result.message || `✓ Updated ${result.successCount} of ${result.total} cards`,
             };
 
-        case 'studio_bulk_publish_cards':
+        case 'bulk_publish_cards':
             return {
                 success: true,
                 operation: 'bulk_publish',
@@ -235,7 +237,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: result.message || `✓ Published ${result.successCount} of ${result.total} cards`,
             };
 
-        case 'studio_bulk_delete_cards':
+        case 'bulk_delete_cards':
             return {
                 success: true,
                 operation: 'bulk_delete',
@@ -247,7 +249,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: result.message || `✓ Deleted ${result.successCount} of ${result.total} cards`,
             };
 
-        case 'studio_preview_bulk_update':
+        case 'preview_bulk_update':
             return {
                 success: true,
                 operation: 'preview_bulk_update',
@@ -256,7 +258,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: result.message || `Preview: ${result.summary?.willUpdate || 0} cards will be updated`,
             };
 
-        case 'studio_preview_bulk_publish':
+        case 'preview_bulk_publish':
             return {
                 success: true,
                 operation: 'preview_bulk_publish',
@@ -266,7 +268,7 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: result.message || `Preview: ${result.summary?.willChange || 0} cards will be ${result.action}ed`,
             };
 
-        case 'studio_preview_bulk_delete':
+        case 'preview_bulk_delete':
             return {
                 success: true,
                 operation: 'preview_bulk_delete',
@@ -274,6 +276,39 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 summary: result.summary || { willDelete: 0, notFound: 0, errors: 0 },
                 message: result.message || `Preview: ${result.summary?.willDelete || 0} cards will be deleted`,
             };
+
+        case 'get_variations':
+            return {
+                success: true,
+                operation: 'get_variations',
+                parent: result.parent,
+                variations: result.variations || [],
+                count: result.count || 0,
+                isVariation: result.isVariation,
+                fragment: result.fragment,
+                message: result.message,
+            };
+
+        case 'resolve_offer_selector':
+            return {
+                success: true,
+                operation: 'resolve_offer_selector',
+                offerSelectorId: result.offerSelectorId,
+                offers: result.offers || [],
+                checkoutUrl: result.checkoutUrl,
+                studioLinks: result.studioLinks,
+            };
+
+        case 'list_context_cards': {
+            const cards = result.results || [];
+            return {
+                success: true,
+                operation: 'search',
+                results: cards,
+                count: cards.length,
+                message: result.message || `Showing ${cards.length} card${cards.length !== 1 ? 's' : ''}`,
+            };
+        }
 
         default:
             return {

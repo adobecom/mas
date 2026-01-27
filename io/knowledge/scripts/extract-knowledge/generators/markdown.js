@@ -88,9 +88,7 @@ export function generateVariantDoc(variant) {
     sections.push(`# ${variant.name} Variant\n`);
 
     sections.push(`## Overview\n`);
-    sections.push(
-        `The ${variant.name} variant is used for ${variant.description || 'displaying merch card content'}.\n`,
-    );
+    sections.push(`The ${variant.name} variant is used for ${variant.description || 'displaying merch card content'}.\n`);
 
     if (variant.fields && variant.fields.length > 0) {
         sections.push(`## Field Mappings\n`);
@@ -127,9 +125,7 @@ export function generateVariantDoc(variant) {
 
     if (variant.slots && variant.slots.length > 0) {
         sections.push(`## Slot Structure\n`);
-        const slotHtml = variant.slots
-            .map((slot) => `<slot name="${slot}"></slot>`)
-            .join('\n');
+        const slotHtml = variant.slots.map((slot) => `<slot name="${slot}"></slot>`).join('\n');
         sections.push(generateCodeBlock(slotHtml, 'html'));
         sections.push('');
     }
@@ -222,9 +218,7 @@ export function generatePipelineDoc(pipeline) {
 
     if (pipeline.transformers && pipeline.transformers.length > 0) {
         sections.push(`## Transformer Order\n`);
-        sections.push(
-            `Transformers run in sequence, each modifying the context object:\n`,
-        );
+        sections.push(`Transformers run in sequence, each modifying the context object:\n`);
 
         pipeline.transformers.forEach((transformer, index) => {
             sections.push(`### ${index + 1}. ${transformer.name}\n`);

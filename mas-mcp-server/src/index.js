@@ -10,13 +10,12 @@ import { StudioURLBuilder } from '../../io/mcp-server/src/lib/studio-url-builder
 import { StudioOperations } from '../../io/mcp-server/src/lib/studio-operations.js';
 
 import { AOSClient } from './services/aos-client.js';
+import { WCSClient } from './services/wcs-client.js';
 import { ProductCatalog } from './services/product-catalog.js';
 
-import { CardTools } from './tools/card-tools.js';
 import { CollectionTools } from './tools/collection-tools.js';
 import { OfferTools } from './tools/offer-tools.js';
 import { OfferSelectorTools } from './tools/offer-selector-tools.js';
-import { PricingTools } from './tools/pricing-tools.js';
 import { CardOfferTools } from './tools/card-offer-tools.js';
 import { SURFACES } from './config/constants.js';
 
@@ -55,13 +54,13 @@ export class MASMCPServer {
 
         this.productCatalog = new ProductCatalog(this.authManager, config.products?.endpoint);
 
+        this.wcsClient = new WCSClient(config.wcs);
+
         this.urlBuilder = new StudioURLBuilder(config.studio?.baseUrl);
 
-        this.cardTools = new CardTools(this.aemClient, this.urlBuilder);
         this.collectionTools = new CollectionTools(this.aemClient, this.urlBuilder);
         this.offerTools = new OfferTools(this.aosClient, this.productCatalog, this.urlBuilder);
-        this.offerSelectorTools = new OfferSelectorTools(this.aosClient, this.urlBuilder);
-        this.pricingTools = new PricingTools(this.aosClient);
+        this.offerSelectorTools = new OfferSelectorTools(this.aosClient, this.urlBuilder, this.wcsClient);
         this.cardOfferTools = new CardOfferTools(this.aemClient, this.aosClient, this.urlBuilder);
         this.studioOperations = new StudioOperations(this.aemClient, this.urlBuilder);
 
@@ -149,7 +148,6 @@ export class MASMCPServer {
                         fields: { type: 'object', description: 'Fields to update' },
                         title: { type: 'string', description: 'New title' },
                         tags: { type: 'array', items: { type: 'string' }, description: 'New tags' },
-                        etag: { type: 'string', description: 'ETag for optimistic locking' },
                     },
                     required: ['id'],
                 },
@@ -177,33 +175,210 @@ export class MASMCPServer {
                             enum: Object.values(SURFACES),
                         },
                         query: { type: 'string', description: 'Search query' },
-                        tags: { type: 'object', description: 'Tag filters' },
-                        limit: { type: 'number', description: 'Max results' },
-                        offset: { type: 'number', description: 'Result offset' },
+                        tags: { type: 'array', items: { type: 'string' }, description: 'Tag filters' },
+                        limit: { type: 'number', description: 'Max results (default: 10)' },
+                        locale: { type: 'string', description: 'Locale (default: en_US)' },
+                        variant: { type: 'string', description: 'Filter by card variant' },
+                        variationType: {
+                            type: 'string',
+                            description:
+                                'Filter by variation type: all (default), default-locale-only (parents), variations-only (regional variations)',
+                            enum: ['all', 'default-locale-only', 'variations-only'],
+                        },
                     },
                     required: ['surface'],
                 },
             },
             {
-                name: 'duplicate_card',
-                description: 'Duplicate a merch card',
+                name: 'copy_card',
+                description: 'Copy/duplicate a merch card',
                 inputSchema: {
                     type: 'object',
                     properties: {
-                        id: { type: 'string', description: 'Card ID to duplicate' },
-                        newTitle: { type: 'string', description: 'Title for the new card' },
-                        parentPath: { type: 'string', description: 'Parent path for the new card' },
+                        id: { type: 'string', description: 'Card ID to copy' },
+                        parentPath: { type: 'string', description: 'Parent path for the copy (optional)' },
+                        newTitle: { type: 'string', description: 'Title for the copied card (optional)' },
                     },
                     required: ['id'],
                 },
             },
             {
                 name: 'publish_card',
-                description: 'Publish a merch card',
+                description: 'Publish a merch card to production',
                 inputSchema: {
                     type: 'object',
                     properties: {
-                        id: { type: 'string', description: 'Card ID' },
+                        id: { type: 'string', description: 'Card ID to publish' },
+                        publishReferences: {
+                            type: 'boolean',
+                            description: 'Whether to publish referenced fragments (default: true)',
+                        },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'unpublish_card',
+                description: 'Unpublish a merch card from production',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID to unpublish' },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'bulk_update_cards',
+                description: 'Update multiple cards at once',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to update',
+                        },
+                        updates: {
+                            type: 'object',
+                            description: 'Common updates to apply to all cards',
+                        },
+                        textReplacements: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    field: {
+                                        type: 'string',
+                                        description: 'Field name (optional - if omitted, searches ALL fields)',
+                                    },
+                                    find: { type: 'string', description: 'Text to find' },
+                                    replace: { type: 'string', description: 'Text to replace with' },
+                                },
+                                required: ['find', 'replace'],
+                            },
+                            description: 'Text find/replace operations to apply',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'bulk_publish_cards',
+                description: 'Publish or unpublish multiple cards',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to publish/unpublish',
+                        },
+                        action: {
+                            type: 'string',
+                            enum: ['publish', 'unpublish'],
+                            description: 'Action to perform: publish or unpublish',
+                        },
+                    },
+                    required: ['fragmentIds', 'action'],
+                },
+            },
+            {
+                name: 'bulk_delete_cards',
+                description: 'Delete multiple cards',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to delete',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'preview_bulk_update',
+                description: 'Preview bulk update without executing',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to preview updates for',
+                        },
+                        updates: { type: 'object', description: 'Field updates to apply' },
+                        textReplacements: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    field: { type: 'string' },
+                                    find: { type: 'string' },
+                                    replace: { type: 'string' },
+                                },
+                            },
+                            description: 'Text replacements to apply',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'preview_bulk_publish',
+                description: 'Preview bulk publish/unpublish without executing',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to preview',
+                        },
+                        action: {
+                            type: 'string',
+                            enum: ['publish', 'unpublish'],
+                            description: 'Action to preview',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'preview_bulk_delete',
+                description: 'Preview bulk delete without executing',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of card IDs to preview delete for',
+                        },
+                    },
+                    required: ['fragmentIds'],
+                },
+            },
+            {
+                name: 'get_job_status',
+                description: 'Get status of a background job',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        jobId: { type: 'string', description: 'Job ID to get status for' },
+                    },
+                    required: ['jobId'],
+                },
+            },
+            {
+                name: 'get_variations',
+                description: 'Get all regional locale variations of a fragment',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Fragment ID to find variations for' },
                     },
                     required: ['id'],
                 },
@@ -376,251 +551,22 @@ export class MASMCPServer {
                 },
             },
             {
-                name: 'studio_publish_card',
-                description: 'Publish a card to production (Studio operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Card ID to publish' },
-                        publishReferences: {
-                            type: 'boolean',
-                            description: 'Whether to publish referenced fragments (default: true)',
-                        },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'studio_unpublish_card',
-                description: 'Unpublish a card from production (Studio operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Card ID to unpublish' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'studio_get_card',
-                description: 'Get card details by ID (Studio operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Card ID' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'studio_search_cards',
-                description: 'Search for cards with filters (Studio operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        surface: {
-                            type: 'string',
-                            description: 'Surface to search in (commerce, acom, ccd, adobe-home, sandbox, nala)',
-                            enum: Object.values(SURFACES),
-                        },
-                        query: { type: 'string', description: 'Search query' },
-                        tags: { type: 'array', items: { type: 'string' }, description: 'Tag filters' },
-                        limit: { type: 'number', description: 'Max results (default: 10)' },
-                        searchMode: {
-                            type: 'string',
-                            description: 'Search mode: FUZZY (default), EXACT_WORDS, or EXACT_PHRASE',
-                            enum: ['FUZZY', 'EXACT_WORDS', 'EXACT_PHRASE'],
-                        },
-                    },
-                    required: ['surface'],
-                },
-            },
-            {
-                name: 'studio_delete_card',
-                description: 'Delete a card (Studio operation, requires confirmation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Card ID to delete' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'studio_copy_card',
-                description: 'Copy/duplicate a card (Studio operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Card ID to copy' },
-                        parentPath: { type: 'string', description: 'Parent path for the copy (optional)' },
-                        newTitle: { type: 'string', description: 'Title for the copied card (optional)' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'studio_update_card',
-                description: 'Update card fields (Studio operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', description: 'Card ID to update' },
-                        fields: { type: 'object', description: 'Fields to update' },
-                        title: { type: 'string', description: 'New title (optional)' },
-                        tags: { type: 'array', items: { type: 'string' }, description: 'New tags (optional)' },
-                    },
-                    required: ['id'],
-                },
-            },
-            {
-                name: 'studio_bulk_update_cards',
-                description: 'Update multiple cards at once (Studio bulk operation)',
+                name: 'list_context_cards',
+                description: 'List cards from a previous operation (search, update, publish, etc.)',
                 inputSchema: {
                     type: 'object',
                     properties: {
                         fragmentIds: {
                             type: 'array',
                             items: { type: 'string' },
-                            description: 'Array of card IDs to update',
+                            description: 'Array of fragment IDs from previous operation',
                         },
-                        updates: {
-                            type: 'object',
-                            description: 'Common updates to apply to all cards (e.g., {cardTitle: "new title"})',
-                        },
-                        textReplacements: {
-                            type: 'array',
-                            items: {
-                                type: 'object',
-                                properties: {
-                                    field: {
-                                        type: 'string',
-                                        description: 'Field name to update (optional - if omitted, searches ALL fields)',
-                                    },
-                                    find: { type: 'string', description: 'Text to find' },
-                                    replace: { type: 'string', description: 'Text to replace with' },
-                                },
-                                required: ['find', 'replace'],
-                            },
-                            description: 'Text find/replace operations to apply',
+                        operationType: {
+                            type: 'string',
+                            description: 'Type of the previous operation (search, bulk_update, bulk_publish, etc.)',
                         },
                     },
                     required: ['fragmentIds'],
-                },
-            },
-            {
-                name: 'studio_bulk_publish_cards',
-                description: 'Publish or unpublish multiple cards (Studio bulk operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        fragmentIds: {
-                            type: 'array',
-                            items: { type: 'string' },
-                            description: 'Array of card IDs to publish/unpublish',
-                        },
-                        action: {
-                            type: 'string',
-                            enum: ['publish', 'unpublish'],
-                            description: 'Action to perform: publish or unpublish',
-                        },
-                    },
-                    required: ['fragmentIds', 'action'],
-                },
-            },
-            {
-                name: 'studio_bulk_delete_cards',
-                description: 'Delete multiple cards (Studio bulk operation, requires confirmation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        fragmentIds: {
-                            type: 'array',
-                            items: { type: 'string' },
-                            description: 'Array of card IDs to delete',
-                        },
-                    },
-                    required: ['fragmentIds'],
-                },
-            },
-            {
-                name: 'studio_preview_bulk_update',
-                description: 'Preview bulk update for multiple cards without executing (Studio preview operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        fragmentIds: {
-                            type: 'array',
-                            items: { type: 'string' },
-                            description: 'Array of card IDs to preview updates for',
-                        },
-                        updates: {
-                            type: 'object',
-                            description: 'Field updates to apply',
-                        },
-                        textReplacements: {
-                            type: 'array',
-                            items: {
-                                type: 'object',
-                                properties: {
-                                    field: { type: 'string' },
-                                    find: { type: 'string' },
-                                    replace: { type: 'string' },
-                                },
-                            },
-                            description: 'Text replacements to apply',
-                        },
-                    },
-                    required: ['fragmentIds'],
-                },
-            },
-            {
-                name: 'studio_preview_bulk_publish',
-                description: 'Preview bulk publish/unpublish for multiple cards without executing (Studio preview operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        fragmentIds: {
-                            type: 'array',
-                            items: { type: 'string' },
-                            description: 'Array of card IDs to preview publish for',
-                        },
-                        action: {
-                            type: 'string',
-                            enum: ['publish', 'unpublish'],
-                            description: 'Action to preview: publish or unpublish',
-                        },
-                    },
-                    required: ['fragmentIds'],
-                },
-            },
-            {
-                name: 'studio_preview_bulk_delete',
-                description: 'Preview bulk delete for multiple cards without executing (Studio preview operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        fragmentIds: {
-                            type: 'array',
-                            items: { type: 'string' },
-                            description: 'Array of card IDs to preview delete for',
-                        },
-                    },
-                    required: ['fragmentIds'],
-                },
-            },
-            {
-                name: 'studio_get_job_status',
-                description: 'Get status of a background job for progress tracking (Studio job operation)',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        jobId: {
-                            type: 'string',
-                            description: 'Job ID to get status for',
-                        },
-                    },
-                    required: ['jobId'],
                 },
             },
         ];
@@ -629,19 +575,37 @@ export class MASMCPServer {
     async handleToolCall(name, args) {
         switch (name) {
             case 'create_card':
-                return this.cardTools.createCard(args);
+                return this.studioOperations.createCard(args);
             case 'get_card':
-                return this.cardTools.getCard(args);
+                return this.studioOperations.getCard(args);
             case 'update_card':
-                return this.cardTools.updateCard(args);
+                return this.studioOperations.updateCard(args);
             case 'delete_card':
-                return this.cardTools.deleteCard(args);
+                return this.studioOperations.deleteCard(args);
             case 'search_cards':
-                return this.cardTools.searchCards(args);
-            case 'duplicate_card':
-                return this.cardTools.duplicateCard(args);
+                return this.studioOperations.searchCards(args);
+            case 'copy_card':
+                return this.studioOperations.copyCard(args);
             case 'publish_card':
-                return this.cardTools.publishCard(args);
+                return this.studioOperations.publishCard(args);
+            case 'unpublish_card':
+                return this.studioOperations.unpublishCard(args);
+            case 'bulk_update_cards':
+                return this.studioOperations.bulkUpdateCards(args);
+            case 'bulk_publish_cards':
+                return this.studioOperations.bulkPublishCards(args);
+            case 'bulk_delete_cards':
+                return this.studioOperations.bulkDeleteCards(args);
+            case 'preview_bulk_update':
+                return this.studioOperations.previewBulkUpdate(args);
+            case 'preview_bulk_publish':
+                return this.studioOperations.previewBulkPublish(args);
+            case 'preview_bulk_delete':
+                return this.studioOperations.previewBulkDelete(args);
+            case 'get_job_status':
+                return this.studioOperations.getJobStatus(args);
+            case 'get_variations':
+                return this.studioOperations.getFragmentVariations(args);
 
             case 'create_collection':
                 return this.collectionTools.createCollection(args);
@@ -671,34 +635,8 @@ export class MASMCPServer {
             case 'validate_card_offer':
                 return this.cardOfferTools.validateCardOfferConsistency(args);
 
-            case 'studio_publish_card':
-                return this.studioOperations.publishCard(args);
-            case 'studio_unpublish_card':
-                return this.studioOperations.unpublishCard(args);
-            case 'studio_get_card':
-                return this.studioOperations.getCard(args);
-            case 'studio_search_cards':
-                return this.studioOperations.searchCards(args);
-            case 'studio_delete_card':
-                return this.studioOperations.deleteCard(args);
-            case 'studio_copy_card':
-                return this.studioOperations.copyCard(args);
-            case 'studio_update_card':
-                return this.studioOperations.updateCard(args);
-            case 'studio_bulk_update_cards':
-                return this.studioOperations.bulkUpdateCards(args);
-            case 'studio_bulk_publish_cards':
-                return this.studioOperations.bulkPublishCards(args);
-            case 'studio_bulk_delete_cards':
-                return this.studioOperations.bulkDeleteCards(args);
-            case 'studio_preview_bulk_update':
-                return this.studioOperations.previewBulkUpdate(args);
-            case 'studio_preview_bulk_publish':
-                return this.studioOperations.previewBulkPublish(args);
-            case 'studio_preview_bulk_delete':
-                return this.studioOperations.previewBulkDelete(args);
-            case 'studio_get_job_status':
-                return this.studioOperations.getJobStatus(args);
+            case 'list_context_cards':
+                return this.studioOperations.listContextCards(args);
 
             default:
                 throw new Error(`Unknown tool: ${name}`);
@@ -724,9 +662,14 @@ async function main() {
         },
         aos: {
             baseUrl: process.env.AOS_BASE_URL || 'https://aos.adobe.io',
-            apiKey: process.env.AOS_API_KEY || '',
+            apiKey: process.env.AOS_API_KEY || 'wcms-commerce-ims-user-prod',
             landscape: process.env.AOS_LANDSCAPE || 'PUBLISHED',
             environment: process.env.AOS_ENVIRONMENT || 'PRODUCTION',
+        },
+        wcs: {
+            baseUrl: process.env.WCS_BASE_URL || 'https://www.adobe.com/web_commerce_artifact',
+            apiKey: process.env.WCS_API_KEY || 'wcms-commerce-ims-ro-user-milo',
+            landscape: process.env.WCS_LANDSCAPE || 'PUBLISHED',
         },
         studio: {
             baseUrl: process.env.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html',

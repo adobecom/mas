@@ -260,7 +260,7 @@ class MerchCardEditor extends LitElement {
                 const alt = listEl.querySelector('[slot="description"]')?.textContent || '';
                 bullets.push({ icon, alt, link: '' });
             }
-        });        
+        });
 
         return {
             label,
@@ -1197,7 +1197,7 @@ class MerchCardEditor extends LitElement {
         if (bullets.length) element.setAttribute('has-bullets', 'true');
         bullets.forEach((value) => {
             contentBullets.append(this.createMnemonicList(value, true));
-        });        
+        });
         const content = document.createElement('div');
         content.setAttribute('slot', 'content');
         element.append(content);

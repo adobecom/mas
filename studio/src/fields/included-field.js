@@ -129,7 +129,7 @@ class IncludedField extends LitElement {
     }
 
     #handleModalSave(event) {
-        const { icon, alt, link } = event.detail;       
+        const { icon, alt, link } = event.detail;
         this.icon = icon;
         this.alt = alt;
         this.link = link;

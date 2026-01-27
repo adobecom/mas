@@ -80,6 +80,7 @@ export class Catalog extends VariantLayout {
                         @blur="${this.hideActionMenuOnBlur}"
                         tabindex="0"
                         aria-expanded="false"
+                        aria-hidden="false"
                         role="button"
                     >
                         ${this.card.actionMenuLabel} - ${this.card.title}
@@ -250,6 +251,11 @@ export class Catalog extends VariantLayout {
             top: 0;
             margin-left: var(--consonant-merch-spacing-xxs);
             box-sizing: border-box;
+        }
+
+        :host([variant='catalog']) .action-menu:dir(rtl) {
+            right: initial;
+            left: 16px;
         }
     `;
 }

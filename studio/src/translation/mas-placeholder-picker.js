@@ -10,21 +10,16 @@ class MasPlaceholderPicker extends LitElement {
     static styles = styles;
 
     static properties = {
-        loading: { type: Boolean, state: true },
         error: { type: String, state: true },
-        columnsToShow: { type: Set, state: true },
         selectedInTable: { type: Array, state: true },
     };
 
     #placeholders = [];
 
-    masRepository;
-
     connectedCallback() {
         super.connectedCallback();
         this.selectedInTable = [];
-        this.masRepository = document.querySelector('mas-repository');
-        this.masRepository.loadPlaceholders();
+        this.repository.loadPlaceholders();
         this.placeholdersStoreController = new ReactiveController(this, [Store.translationProjects.placeholders]);
 
         Store.placeholders.list.data.subscribe(() => {
@@ -46,6 +41,11 @@ class MasPlaceholderPicker extends LitElement {
             this.selectedInTable = Store.translationProjects.placeholders.value;
             this.requestUpdate();
         });
+    }
+
+    /** @type {import('../mas-repository.js').MasRepository} */
+    get repository() {
+        return document.querySelector('mas-repository');
     }
 
     handleSearchInput(e) {
@@ -71,12 +71,8 @@ class MasPlaceholderPicker extends LitElement {
         return this.#placeholders;
     }
 
-    get loading() {
-        return Store.placeholders.list.loading.value;
-    }
-
     get loadingIndicator() {
-        if (!this.loading) return nothing;
+        if (!Store.placeholders.list.loading.value) return nothing;
         return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
     }
 
@@ -118,10 +114,9 @@ class MasPlaceholderPicker extends LitElement {
                 <div>${this.nbResults} result(s)</div>
             </div>
             <div class="container">
-                ${this.loading
+                ${Store.placeholders.list.loading.value
                     ? html`<div class="loading-container">${this.loadingIndicator}</div>`
                     : html`<sp-table
-                          class="fragments-table"
                           emphasized
                           .selects=${this.type !== 'all' ? 'multiple' : undefined}
                           .selected=${this.selectedInTable}
@@ -140,7 +135,7 @@ class MasPlaceholderPicker extends LitElement {
                                       html`<sp-table-row value=${placeholder.path}>
                                           <sp-table-cell>${placeholder.key}</sp-table-cell>
                                           <sp-table-cell>${placeholder.value}</sp-table-cell>
-                                          ${this.renderStatus(placeholder.status)}
+                                          ${this.renderStatus(placeholder.status, html)}
                                       </sp-table-row>`,
                               )}
                           </sp-table-body>

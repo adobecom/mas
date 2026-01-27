@@ -9,7 +9,6 @@ class MasSearchAndFilters extends LitElement {
 
     static properties = {
         params: { type: Object },
-        filters: { type: Object },
         resultCount: { type: Number },
         searchQuery: { type: String },
         templateFilter: { type: Array, state: true },
@@ -24,7 +23,6 @@ class MasSearchAndFilters extends LitElement {
 
     constructor() {
         super();
-        this.filters = {};
         this.resultCount = 0;
         this.searchQuery = '';
         this.templateFilter = [];
@@ -45,6 +43,13 @@ class MasSearchAndFilters extends LitElement {
             this.resultCount = Store[this.params.mainStore][this.params.storeTargetKey].value.length;
             this.requestUpdate();
         });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        Store[this.params.mainStore][this.params.storeTargetKey].set(
+            Store[this.params.mainStore][this.params.storeSourceKey].value,
+        );
     }
 
     #extractFilterOptions() {

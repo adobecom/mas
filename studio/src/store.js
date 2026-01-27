@@ -115,14 +115,13 @@ const Store = {
         allFragments: new ReactiveStore([]),
         fragmentsByPaths: new ReactiveStore(new Map()),
         placeholdersByPaths: new ReactiveStore(new Map()),
+        targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
-        fragments: new ReactiveStore([]),
         displayFragments: new ReactiveStore([]),
+        fragments: new ReactiveStore([]),
         placeholders: new ReactiveStore([]),
         collections: new ReactiveStore([]),
-        selectionChanged: new ReactiveStore(false),
-        targetLocales: new ReactiveStore([]),
-        isLoading: new ReactiveStore(false),
+        isLoading: new ReactiveStore(false), // for disabling filters while loading table items
     },
 };
 

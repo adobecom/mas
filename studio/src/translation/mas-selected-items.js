@@ -36,7 +36,8 @@ class MasSelectedItems extends LitElement {
 
     getTitle(item) {
         if (!item) return '-';
-        return item.title || '-';
+        if (!item.title) return '-';
+        return item.title.length > 54 ? item.title.slice(0, 54) + '...' : item.title;
     }
 
     getDetails(item) {

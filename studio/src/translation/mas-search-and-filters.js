@@ -239,7 +239,12 @@ class MasSearchAndFilters extends LitElement {
 
         return html`
             <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${Store.translationProjects.isLoading.get()}>
+                <sp-action-button
+                    slot="trigger"
+                    class="filter-trigger"
+                    quiet
+                    .disabled=${Store.translationProjects.isLoading.get()}
+                >
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -289,15 +294,11 @@ class MasSearchAndFilters extends LitElement {
         }
 
         if (this.marketSegmentFilter?.length > 0) {
-            result = result.filter((fragment) =>
-                fragment.tags?.some((tag) => this.marketSegmentFilter.includes(tag.id)),
-            );
+            result = result.filter((fragment) => fragment.tags?.some((tag) => this.marketSegmentFilter.includes(tag.id)));
         }
 
         if (this.customerSegmentFilter?.length > 0) {
-            result = result.filter((fragment) =>
-                fragment.tags?.some((tag) => this.customerSegmentFilter.includes(tag.id)),
-            );
+            result = result.filter((fragment) => fragment.tags?.some((tag) => this.customerSegmentFilter.includes(tag.id)));
         }
 
         if (this.productFilter?.length > 0) {

@@ -1,4 +1,5 @@
-import { LitElement, html, nothing, repeat } from 'lit';
+import { LitElement, html, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-placeholder-picker.css.js';
 import './mas-selected-items.js';
 import Store from '../store.js';
@@ -18,8 +19,6 @@ class MasPlaceholderPicker extends LitElement {
     #placeholders = [];
 
     masRepository;
-
-    //Lit hooks
 
     connectedCallback() {
         super.connectedCallback();
@@ -48,8 +47,6 @@ class MasPlaceholderPicker extends LitElement {
             this.requestUpdate();
         });
     }
-
-    //enf of lit hooks
 
     handleSearchInput(e) {
         this.searchQuery = e.target.value.toLowerCase().trim();

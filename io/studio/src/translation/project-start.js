@@ -6,7 +6,7 @@ const logger = Core.Logger('main', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 10;
 
 async function main(params) {
-    const batchSize = params.batchSize ?? DEFAULT_BATCH_SIZE;
+    const batchSize = Number(params.batchSize) ?? DEFAULT_BATCH_SIZE;
 
     try {
         logger.info('Calling the main action');
@@ -24,7 +24,7 @@ async function main(params) {
             return errorResponse(403, 'Forbidden: Invalid client ID', logger);
         }
 
-        const projectCF = await getTranslationProject(params.projectId, authToken);
+        const { projectCF, etag } = await getTranslationProject(params.projectId, authToken);
 
         const translationData = getTranslationData(projectCF, params.surface, params.translationMapping);
         if (!translationData) {
@@ -34,6 +34,11 @@ async function main(params) {
         const translationProject = await startTranslationProject(translationData, authToken);
         if (!translationProject) {
             return errorResponse(500, 'Failed to start translation project', logger);
+        }
+
+        const updatedProjectCF = await updateTranslationDate(projectCF, etag, authToken);
+        if (!updatedProjectCF) {
+            return errorResponse(500, 'Failed to update translation project submission date', logger);
         }
     } catch (error) {
         logger.error('Error calling the main action', error);
@@ -75,7 +80,9 @@ async function main(params) {
                 logger.error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
                 throw new Error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
             }
-            return await response.json();
+            const projectCF = await response.json();
+            const etag = response.headers.get('etag');
+            return { projectCF, etag };
         } catch (error) {
             logger.error(`Error fetching translation project: ${error}`);
             throw new Error(`Failed to fetch translation project: ${error.message || error.toString()}`);
@@ -203,6 +210,41 @@ async function main(params) {
 
         logger.info(`Successfully sent ${results.length} loc requests`);
         return true;
+    }
+
+    async function updateTranslationDate(projectCF, etag, authToken) {
+        try {
+            logger.info(`Updating translation project submission date for ${projectCF.id}`);
+
+            // find field index of submissionDate
+            const submissionDateFieldIndex = projectCF.fields.findIndex((field) => field.name === 'submissionDate');
+            if (submissionDateFieldIndex === -1) {
+                logger.error('Submission date field not found in translation project');
+                throw new Error('Submission date field not found in translation project');
+            }
+
+            // update submissionDate field
+            const path = `/fields/${submissionDateFieldIndex}/values`;
+
+            // save translation project
+            const response = await fetch(`${params.odinEndpoint}/adobe/sites/cf/fragments/${projectCF.id}`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                    'Content-Type': 'application/json-patch+json',
+                    'If-Match': etag,
+                },
+                method: 'PATCH',
+                body: JSON.stringify([{ op: 'replace', path, value: [new Date().toISOString()] }]),
+            });
+            if (!response.ok) {
+                logger.error(`Failed to update translation project submission date: ${response.status} ${response.statusText}`);
+                throw new Error(`Failed to update translation project submission date: ${response.status} ${response.statusText}`);
+            }
+            return response.ok;
+        } catch (error) {
+            logger.error(`Error updating translation project submission date: ${error}`);
+            throw new Error(`Failed to update translation project submission date: ${error.message || error.toString()}`);
+        }
     }
 }
 

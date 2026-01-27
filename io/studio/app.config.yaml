@@ -47,6 +47,7 @@ application:
                             translationMapping:
                                 acom: transcreation
                                 express: transcreation
+                                sandbox: machineTranslation
                             allowedSurfaces:
                                 - acom
                                 - express

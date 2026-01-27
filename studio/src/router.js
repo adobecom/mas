@@ -46,16 +46,11 @@ export class Router extends EventTarget {
                 if (!editor) {
                     return { editor: null, hasChanges: null, shouldCheckUnsavedChanges: null };
                 }
-                const selectedFilesCount =
-                    Store.translationProjects.inEdit
-                        .get()
-                        ?.get()
-                        ?.fields?.find((f) => f.name === 'items')?.values?.length || 0;
                 return {
                     editor,
                     hasChanges:
-                        (!!Store.translationProjects.inEdit.get()?.get()?.hasChanges ||
-                            !!Store.translationProjects.selectionChanged.value),
+                        !!Store.translationProjects.inEdit.get()?.get()?.hasChanges ||
+                        !!Store.translationProjects.selectionChanged.value,
                     shouldCheckUnsavedChanges:
                         !editor.isLoading &&
                         (!!Store.translationProjects.inEdit.get()?.get()?.hasChanges ||

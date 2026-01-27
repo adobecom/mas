@@ -720,14 +720,11 @@ export default class MasFragmentEditor extends LitElement {
             // - Field doesn't exist in variation, OR
             // - Field has empty array [] (meaning inherit)
             // But NOT if field has [""] (empty string sentinel = explicit clear)
-            const shouldInherit =
-                !ownField || (ownValues.length === 0 && parentField?.values?.length > 0);
+            const shouldInherit = !ownField || (ownValues.length === 0 && parentField?.values?.length > 0);
 
             if (shouldInherit) {
                 // Update preview store's fragment with parent values
-                const previewFieldIndex = fragmentStore.previewStore.value.fields.findIndex(
-                    (f) => f.name === parentField.name,
-                );
+                const previewFieldIndex = fragmentStore.previewStore.value.fields.findIndex((f) => f.name === parentField.name);
                 if (previewFieldIndex >= 0) {
                     fragmentStore.previewStore.value.fields[previewFieldIndex] = { ...parentField };
                 } else {

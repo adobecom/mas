@@ -189,7 +189,9 @@
                         // Verify editor renders without skeleton
                         expect(editor.fieldsReady, 'Editor fieldsReady should be true').to.be.true;
                         const editorSkeleton = editor.querySelector('.editor-skeleton-wrapper');
-                        const editorSkeletonDisplay = editorSkeleton ? getComputedStyle(editorSkeleton).getPropertyValue('--skeleton-display') : 'none';
+                        const editorSkeletonDisplay = editorSkeleton
+                            ? getComputedStyle(editorSkeleton).getPropertyValue('--skeleton-display')
+                            : 'none';
                         expect(editorSkeletonDisplay.trim(), 'Editor should not show skeleton').to.equal('none');
 
                         // Verify preview renders without skeleton

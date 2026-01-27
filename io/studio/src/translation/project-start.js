@@ -12,7 +12,7 @@ async function main(params) {
         logger.info('Calling the main action');
 
         const requiredHeaders = ['Authorization'];
-        const requiredParams = ['projectId'];
+        const requiredParams = ['projectId', 'surface'];
         const errorMessage = checkMissingRequestInputs(params, requiredParams, requiredHeaders);
         if (errorMessage) {
             return errorResponse(400, errorMessage, logger);
@@ -26,7 +26,7 @@ async function main(params) {
 
         const projectCF = await getTranslationProject(params.projectId, authToken);
 
-        const translationData = getTranslationData(projectCF);
+        const translationData = getTranslationData(projectCF, params.surface, params.translationMapping);
         if (!translationData) {
             return errorResponse(400, 'Translation project is incomplete (missing items or locales)', logger);
         }
@@ -82,7 +82,7 @@ async function main(params) {
         }
     }
 
-    function getTranslationData(projectCF) {
+    function getTranslationData(projectCF, surface, translationMapping = {}) {
         const itemsToTranslate = projectCF.fields.find((field) => field.name === 'items')?.values;
         const locales = projectCF.fields.find((field) => field.name === 'targetLocales')?.values;
         if (!itemsToTranslate || itemsToTranslate.length === 0) {
@@ -93,7 +93,14 @@ async function main(params) {
             logger.warn('No locales found in translation project');
             return null;
         }
-        return { itemsToTranslate, locales };
+
+        // set translation flow
+        const translationFlow = translationMapping[surface];
+        logger.info(`Translation flow: ${translationFlow}`);
+
+        return { itemsToTranslate, locales, surface, translationFlow: translationFlow ? {
+            [translationFlow]: true,
+        } : {} };
     }
 
     // Helper function to send a single request with retry logic
@@ -163,14 +170,15 @@ async function main(params) {
     }
 
     async function startTranslationProject(translationData = {}, authToken) {
-        const { itemsToTranslate, locales } = translationData;
-        logger.info(`Starting translation project ${itemsToTranslate} for locales ${locales}`);
+        const { itemsToTranslate, locales, surface, translationFlow } = translationData;
+        logger.info(`Starting translation project ${itemsToTranslate} for locales ${locales} and surface ${surface}`);
 
-        // TODO: remove machineTranslation once we have a way to configure the translation project
         const locPayload = {
             targetLocales: locales,
-            machineTranslation: true,
+            ...(translationFlow || {}),
         };
+
+        logger.info(`locPayload: ${JSON.stringify(locPayload)}`);
 
         const config = {
             authToken,

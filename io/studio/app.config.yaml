@@ -44,6 +44,13 @@ application:
                         runtime: nodejs:22
                         inputs:
                             batchSize: $BATCH_SIZE
+                            translationMapping:
+                                acom: transcreation
+                                express: transcreation
+                            allowedSurfaces:
+                                - acom
+                                - express
+                                - sandbox
                         annotations:
                             require-adobe-auth: false
                             final: true

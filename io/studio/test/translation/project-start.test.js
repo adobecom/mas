@@ -67,10 +67,10 @@ describe('Translation project-start', () => {
             expect(projectStart.main).to.be.a('function');
         });
 
-        it('should return 400 if required parameters are missing', async () => {
+        it('should return 400 if project ID is missing', async () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
-                // Missing projectId
+                surface: 'acom',
             };
 
             const result = await projectStart.main(params);
@@ -79,12 +79,25 @@ describe('Translation project-start', () => {
             expect(result.error.body.error).to.include('projectId');
         });
 
+        it('should return 400 if surface is missing', async () => {
+            const params = {
+                __ow_headers: { authorization: 'Bearer token' },
+                projectId: 'test-project-id',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.error.statusCode).to.equal(400);
+            expect(result.error.body.error).to.include('surface');
+        });
+
         it('should return 403 if client ID is not allowed', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: false });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -106,6 +119,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -134,6 +148,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -163,6 +178,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -198,6 +214,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -230,8 +247,10 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
+                translationMapping: { acom: 'transcreation' },
             };
 
             const result = await projectStart.main(params);
@@ -248,6 +267,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -281,6 +301,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'valid-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -300,6 +321,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -331,6 +353,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-123',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -352,6 +375,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -391,6 +415,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -428,6 +453,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
                 batchSize: 25,
@@ -466,6 +492,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -498,6 +525,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -531,6 +559,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };
@@ -563,8 +592,10 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
+                translationMapping: { acom: 'transcreation' },
             };
 
             await projectStart.main(params);
@@ -575,7 +606,7 @@ describe('Translation project-start', () => {
             const requestBody = JSON.parse(locRequestCall.args[1].body);
             expect(requestBody).to.deep.equal({
                 targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
-                machineTranslation: true,
+                transcreation: true,
             });
 
             expect(locRequestCall.args[1].headers).to.deep.include({
@@ -615,6 +646,7 @@ describe('Translation project-start', () => {
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
                 projectId: 'test-project-id',
+                surface: 'acom',
                 allowedClientId: 'test-client-id',
                 odinEndpoint: 'https://test-odin.com',
             };

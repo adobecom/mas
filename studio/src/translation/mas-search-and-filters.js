@@ -1,125 +1,32 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { VARIANTS } from '../editors/variant-picker.js';
+import { styles } from './mas-search-and-filters.css.js';
 import Store from '../store.js';
 
-/**
- * Toolbar component for MasFragmentPicker with search and filter capabilities.
- * Features:
- * - Search input with result count
- * - Four pinned filters: Template, Market Segment, Customer Segment, Product
- * - Filters work on top of search results
- */
-class MasFragmentPickerToolbar extends LitElement {
+class MasSearchAndFilters extends LitElement {
+    static styles = styles;
+
     static properties = {
-        searchQuery: { type: String },
+        params: { type: Object },
+        filters: { type: Object },
         resultCount: { type: Number },
-        loading: { type: Boolean },
-        // Filter values (arrays of selected tag IDs)
+        searchQuery: { type: String },
         templateFilter: { type: Array, state: true },
         marketSegmentFilter: { type: Array, state: true },
         customerSegmentFilter: { type: Array, state: true },
         productFilter: { type: Array, state: true },
-        // Available options for each filter (populated from fragments)
         templateOptions: { type: Array },
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
         productOptions: { type: Array },
     };
 
-    static styles = css`
-        :host {
-            display: block;
-        }
-
-        .search {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin: 32px 0 20px 0;
-        }
-
-        .search sp-search {
-            flex: 1;
-            max-width: 400px;
-        }
-
-        .result-count {
-            color: var(--spectrum-gray-700);
-            font-size: 14px;
-            white-space: nowrap;
-        }
-
-        .filters {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-        }
-
-        .filter-trigger {
-            border: 1px solid var(--spectrum-gray-300);
-            border-radius: 12px;
-            justify-content: start;
-            sp-icon-chevron-down {
-                order: 2;
-            }
-        }
-
-        .filter-popover {
-            padding: 12px;
-        }
-
-        .checkbox-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            max-height: 300px;
-            overflow-y: auto;
-            min-width: 150px;
-            padding-inline-start: 4px;
-        }
-
-        .checkbox-list sp-checkbox {
-            display: flex;
-            white-space: nowrap;
-        }
-
-        .applied-filters {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-        }
-
-        .applied-filters sp-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .clear-all {
-            color: var(--spectrum-accent-color-900);
-            font-size: 14px;
-            cursor: pointer;
-            white-space: nowrap;
-            background: none;
-            border: none;
-            padding: 0;
-            text-decoration: none;
-        }
-
-        .clear-all:hover {
-            text-decoration: underline;
-        }
-    `;
-
     constructor() {
         super();
-        this.searchQuery = '';
+        this.filters = {};
         this.resultCount = 0;
-        this.loading = false;
+        this.searchQuery = '';
         this.templateFilter = [];
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
@@ -132,37 +39,53 @@ class MasFragmentPickerToolbar extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        Store.translationProjects.allFragments.subscribe(() => {
+
+        Store[this.params.mainStore][this.params.storeSourceKey].subscribe(() => {
             this.#extractFilterOptions();
+            this.resultCount = Store[this.params.mainStore][this.params.storeTargetKey].value.length;
             this.requestUpdate();
         });
     }
 
-    #handleSearchInput(e) {
-        const query = e.target.value;
+    #extractFilterOptions() {
+        const marketSegments = new Map();
+        const customerSegments = new Map();
+        const products = new Map();
+        for (const fragment of Store[this.params.mainStore][this.params.storeSourceKey].value) {
+            if (!fragment.tags) continue;
+
+            for (const tag of fragment.tags) {
+                const tagId = tag.id || '';
+                const tagTitle = tag.title || tagId.split('/').pop() || '';
+                if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
+                    marketSegments.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:customer_segment/')) {
+                    customerSegments.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:product_code/')) {
+                    products.set(tagId, { id: tagId, title: tagTitle });
+                }
+            }
+        }
+        this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
+            id: variant.value,
+            title: variant.label,
+        }));
+        this.marketSegmentOptions = Array.from(marketSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.customerSegmentOptions = Array.from(customerSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
+    }
+
+    #handleSearchInput({ target: { value: query } }) {
         this.searchQuery = query;
-        this.dispatchEvent(
-            new CustomEvent('search-change', {
-                detail: { query },
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        this.#applyFilters();
     }
 
     #handleSearchSubmit(e) {
         e.preventDefault();
-        this.dispatchEvent(
-            new CustomEvent('search-submit', {
-                detail: { query: this.searchQuery },
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        this.#applyFilters();
     }
 
     #handleCheckboxChange(filterType, optionId, e) {
-        const isChecked = e.target.checked;
         let currentValues;
         switch (filterType) {
             case 'template':
@@ -181,7 +104,7 @@ class MasFragmentPickerToolbar extends LitElement {
                 currentValues = [];
         }
 
-        if (isChecked) {
+        if (e.target.checked) {
             if (!currentValues.includes(optionId)) {
                 currentValues.push(optionId);
             }
@@ -203,62 +126,7 @@ class MasFragmentPickerToolbar extends LitElement {
                 this.productFilter = currentValues;
                 break;
         }
-
-        this.#emitFilterChange();
-    }
-
-    /**
-     * Extract unique filter options from loaded fragments
-     */
-    #extractFilterOptions() {
-        const templates = new Map();
-        const marketSegments = new Map();
-        const customerSegments = new Map();
-        const products = new Map();
-        for (const fragment of Store.translationProjects.allFragments.value) {
-            if (!fragment.tags) continue;
-
-            for (const tag of fragment.tags) {
-                const tagId = tag.id || '';
-                const tagTitle = tag.title || tagId.split('/').pop() || '';
-
-                // Market Segment tags
-                if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
-                    marketSegments.set(tagId, { id: tagId, title: tagTitle });
-                }
-                // Customer Segment tags
-                else if (tagId.startsWith('mas:customer_segment/')) {
-                    customerSegments.set(tagId, { id: tagId, title: tagTitle });
-                }
-                // Product tags
-                else if (tagId.startsWith('mas:product_code/')) {
-                    products.set(tagId, { id: tagId, title: tagTitle });
-                }
-            }
-        }
-
-        this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
-            id: variant.value,
-            title: variant.label,
-        }));
-        this.marketSegmentOptions = Array.from(marketSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.customerSegmentOptions = Array.from(customerSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    #emitFilterChange() {
-        this.dispatchEvent(
-            new CustomEvent('filter-change', {
-                detail: {
-                    template: this.templateFilter,
-                    marketSegment: this.marketSegmentFilter,
-                    customerSegment: this.customerSegmentFilter,
-                    product: this.productFilter,
-                },
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        this.#applyFilters();
     }
 
     #handleTagDelete(e) {
@@ -277,7 +145,7 @@ class MasFragmentPickerToolbar extends LitElement {
                 this.productFilter = this.productFilter.filter((filterId) => filterId !== id);
                 break;
         }
-        this.#emitFilterChange();
+        this.#applyFilters();
     }
 
     #handleClearAll() {
@@ -285,7 +153,7 @@ class MasFragmentPickerToolbar extends LitElement {
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
-        this.#emitFilterChange();
+        this.#applyFilters();
     }
 
     #getAppliedFilters() {
@@ -371,7 +239,7 @@ class MasFragmentPickerToolbar extends LitElement {
 
         return html`
             <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button slot="trigger" class="filter-trigger" quiet>
+                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${Store.translationProjects.isLoading.get()}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -396,11 +264,48 @@ class MasFragmentPickerToolbar extends LitElement {
         `;
     }
 
-    #getResultCountText() {
-        if (this.loading) {
-            return 'Loading...';
+    #applyFilters() {
+        let result = Store[this.params.mainStore][this.params.storeSourceKey].value || [];
+
+        if (this.searchQuery) {
+            const query = this.searchQuery.toLowerCase();
+            result = result.filter((fragment) => {
+                const title = (fragment.title || '').toLowerCase();
+                const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
+                const offerId = fragment.offerData?.offerId || '';
+
+                return (
+                    title.includes(query) || productTag.toLowerCase().includes(query) || offerId.toLowerCase().includes(query)
+                );
+            });
         }
-        return `${this.resultCount} result${this.resultCount !== 1 ? 's' : ''}`;
+
+        if (this.templateFilter?.length > 0) {
+            result = result.filter((fragment) => {
+                const variantField = fragment.fields?.find((field) => field.name === 'variant');
+                if (!variantField?.values?.length) return false;
+                return variantField.values.some((value) => this.templateFilter.includes(value));
+            });
+        }
+
+        if (this.marketSegmentFilter?.length > 0) {
+            result = result.filter((fragment) =>
+                fragment.tags?.some((tag) => this.marketSegmentFilter.includes(tag.id)),
+            );
+        }
+
+        if (this.customerSegmentFilter?.length > 0) {
+            result = result.filter((fragment) =>
+                fragment.tags?.some((tag) => this.customerSegmentFilter.includes(tag.id)),
+            );
+        }
+
+        if (this.productFilter?.length > 0) {
+            result = result.filter((fragment) => fragment.tags?.some((tag) => this.productFilter.includes(tag.id)));
+        }
+
+        Store[this.params.mainStore][this.params.storeTargetKey].set(result);
+        this.resultCount = Store[this.params.mainStore][this.params.storeTargetKey].value.length;
     }
 
     render() {
@@ -410,10 +315,13 @@ class MasFragmentPickerToolbar extends LitElement {
                     size="m"
                     placeholder="Search fragments..."
                     value=${this.searchQuery}
+                    .disabled=${Store.translationProjects.isLoading.get()}
                     @input=${this.#handleSearchInput}
                     @submit=${this.#handleSearchSubmit}
                 ></sp-search>
-                <div class="result-count">${this.#getResultCountText()}</div>
+                ${this.searchQuery
+                    ? html`<div class="result-count">${`${this.resultCount} result${this.resultCount !== 1 ? 's' : ''}`}</div>`
+                    : nothing}
             </div>
 
             <div class="filters">
@@ -436,31 +344,6 @@ class MasFragmentPickerToolbar extends LitElement {
             ${this.#renderAppliedFilters()}
         `;
     }
-
-    /**
-     * Clear all filters and search
-     */
-    reset() {
-        this.searchQuery = '';
-        this.templateFilter = [];
-        this.marketSegmentFilter = [];
-        this.customerSegmentFilter = [];
-        this.productFilter = [];
-        this.#emitFilterChange();
-    }
-
-    /**
-     * Get current filter state
-     */
-    getFilters() {
-        return {
-            query: this.searchQuery,
-            template: this.templateFilter,
-            marketSegment: this.marketSegmentFilter,
-            customerSegment: this.customerSegmentFilter,
-            product: this.productFilter,
-        };
-    }
 }
 
-customElements.define('mas-fragment-picker-toolbar', MasFragmentPickerToolbar);
+customElements.define('mas-search-and-filters', MasSearchAndFilters);

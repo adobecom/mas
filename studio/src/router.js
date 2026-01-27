@@ -54,8 +54,8 @@ export class Router extends EventTarget {
                 return {
                     editor,
                     hasChanges:
-                        (!!Store.translationProjects.inEdit.get()?.get()?.hasChanges ||
-                            !!Store.translationProjects.selectionChanged.value),
+                        !!Store.translationProjects.inEdit.get()?.get()?.hasChanges ||
+                        !!Store.translationProjects.selectionChanged.value,
                     shouldCheckUnsavedChanges:
                         !editor.isLoading &&
                         (!!Store.translationProjects.inEdit.get()?.get()?.hasChanges ||

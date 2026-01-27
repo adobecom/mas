@@ -122,6 +122,7 @@ const Store = {
         collections: new ReactiveStore([]),
         selectionChanged: new ReactiveStore(false),
         targetLocales: new ReactiveStore([]),
+        isLoading: new ReactiveStore(false),
     },
 };
 

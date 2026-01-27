@@ -1,5 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { keyed } from 'lit/directives/keyed.js';
 import { styles } from './mas-select-fragments-table.css.js';
 import Store from '../store.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
@@ -13,21 +14,24 @@ class MasSelectFragmentsTable extends LitElement {
 
     static properties = {
         type: { type: String, reflect: true, attribute: 'data-type' }, // 'fragments' | 'collections' | 'placeholders' | 'view-only'
-        // Toolbar state
-        searchQuery: { type: String, state: true },
-        activeFilters: { type: Object, state: true },
-        loading: { type: Boolean, state: true },
         error: { type: String, state: true },
         columnsToShow: { type: Set, state: true },
         selectedInTable: { type: Array, state: true },
         itemToRemove: { type: String, state: true },
-        displayedFragmentCount: { type: Number, state: true },
+        tableKey: { type: Number, state: true },
     };
 
     constructor() {
         super();
-        this.translationProjectStoreController = new ReactiveController(this, [Store.translationProjects.inEdit]);
-        this.loading = false;
+        this.tableKey = 0;
+        this.displayFragmentsStoreController = new ReactiveController(
+            this,
+            [Store.translationProjects.displayFragments],
+            () => {
+                this.tableKey++
+                this.preselectItems();
+            },
+        );
         this.error = null;
         this.columnsToShow = new Set([
             { label: 'Offer', key: 'offer', sortable: true },
@@ -59,17 +63,13 @@ class MasSelectFragmentsTable extends LitElement {
         }
     }
 
-    get translationProjectStore() {
-        return Store.translationProjects.inEdit.get();
-    }
-
     /** @type {import('../mas-repository.js').MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
     }
 
     get loadingIndicator() {
-        if (!this.loading) return nothing;
+        if (!Store.translationProjects.isLoading.get()) return nothing;
         return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
     }
 
@@ -90,26 +90,26 @@ class MasSelectFragmentsTable extends LitElement {
     }
 
     async fetchFragments() {
-        this.loading = true;
+        Store.translationProjects.isLoading.set(true);
         this.error = null;
         let fragments = [];
         if (this.type === 'view-only' && Store.translationProjects.fragmentsByPaths.value.size) {
             fragments = Store.translationProjects.fragments.value.map((path) =>
                 Store.translationProjects.fragmentsByPaths.value.get(path),
             );
-            this.loading = false;
+             Store.translationProjects.isLoading.set(false);
             return;
         }
         const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
         if (!surface) {
-            this.loading = false;
+             Store.translationProjects.isLoading.set(false);
             return;
         }
 
         const aem = this.repository?.aem;
         if (!aem) {
             this.error = 'Repository not available';
-            this.loading = false;
+             Store.translationProjects.isLoading.set(false);
             return;
         }
 
@@ -161,7 +161,7 @@ class MasSelectFragmentsTable extends LitElement {
                 showToast('Failed to fetch.', 'negative');
             }
         } finally {
-            this.loading = false;
+             Store.translationProjects.isLoading.set(false);
         }
     }
 
@@ -239,47 +239,52 @@ class MasSelectFragmentsTable extends LitElement {
 
     render() {
         return html`
-            ${this.loading
+            ${Store.translationProjects.isLoading.get()
                 ? html`<div class="loading-container">${this.loadingIndicator}</div>`
-                : html`<sp-table
-                      class="fragments-table"
-                      emphasized
-                      .selects=${this.type !== 'view-only' ? 'multiple' : undefined}
-                      .selected=${this.selectedInTable}
-                      @change=${this.updateSelected}
-                  >
-                      ${this.renderTableHeader()}
-                      <sp-table-body>
-                          ${repeat(
-                              Store.translationProjects.displayFragments.value,
-                              (fragment) => fragment.path,
-                              (fragment) =>
-                                  html`<sp-table-row value=${fragment.path}>
-                                      <sp-table-cell>
-                                          ${fragment.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || '-'}
-                                      </sp-table-cell>
-                                      <sp-table-cell>${fragment.title}</sp-table-cell>
-                                      <sp-table-cell class="offer-id" title=${fragment.offerData?.offerId}>
-                                          <div>${fragment.offerData?.offerId}</div>
-                                          ${fragment.offerData?.offerId
-                                              ? html`<sp-button
-                                                    icon-only
-                                                    aria-label="Copy Offer ID to clipboard"
-                                                    .disabled=${!fragment.offerData?.offerId}
-                                                    @click=${(e) => this.copyToClipboard(e, fragment.offerData?.offerId)}
-                                                >
-                                                    <sp-icon-copy slot="icon"></sp-icon-copy>
-                                                    <sp-icon-checkmark slot="icon"></sp-icon-checkmark>
-                                                </sp-button>`
-                                              : 'no offer data'}
-                                      </sp-table-cell>
-                                      <sp-table-cell>${fragment.studioPath}</sp-table-cell>
-                                      ${this.renderStatus(fragment.status)}
-                                  </sp-table-row>`,
-                          )}
-                      </sp-table-body>
-                  </sp-table>`}
-        `;
+                : html`${Store.translationProjects.displayFragments.value?.length > 0
+                ? keyed(
+                      this.tableKey,
+                      html`<sp-table
+                          class="fragments-table"
+                          emphasized
+                          .selects=${this.type === 'view-only' ? undefined : 'multiple'}
+                          .selected=${this.selectedInTable}
+                          @change=${this.updateSelected}
+                      >
+                          ${this.renderTableHeader()}
+                          <sp-table-body>
+                              ${repeat(
+                                  Store.translationProjects.displayFragments.value,
+                                  (fragment) => fragment.path,
+                                  (fragment) =>
+                                      html`<sp-table-row value=${fragment.path}>
+                                          <sp-table-cell>
+                                              ${fragment.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || '-'}
+                                          </sp-table-cell>
+                                          <sp-table-cell>${fragment.title}</sp-table-cell>
+                                          <sp-table-cell class="offer-id" title=${fragment.offerData?.offerId}>
+                                              <div>${fragment.offerData?.offerId}</div>
+                                              ${fragment.offerData?.offerId
+                                                  ? html`<sp-button
+                                                        icon-only
+                                                        aria-label="Copy Offer ID to clipboard"
+                                                        .disabled=${!fragment.offerData?.offerId}
+                                                        @click=${(e) => this.copyToClipboard(e, fragment.offerData?.offerId)}
+                                                    >
+                                                        <sp-icon-copy slot="icon"></sp-icon-copy>
+                                                        <sp-icon-checkmark slot="icon"></sp-icon-checkmark>
+                                                    </sp-button>`
+                                                  : 'no offer data'}
+                                          </sp-table-cell>
+                                          <sp-table-cell>${fragment.studioPath}</sp-table-cell>
+                                          ${this.renderStatus(fragment.status)}
+                                      </sp-table-row>`,
+                              )}
+                          </sp-table-body>
+                      </sp-table>`,
+                  )
+              : html`<p>No items found.</p>`}`}
+    `;
     }
 }
 

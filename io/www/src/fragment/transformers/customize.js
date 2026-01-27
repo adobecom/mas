@@ -1,7 +1,7 @@
 import { odinReferences, odinUrl } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
-import { getDefaultLocale, getLocaleCode } from '../locales.js';
+import { getDefaultLocaleCode } from '../locales.js';
 
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
@@ -12,18 +12,6 @@ function skimFragmentFromReferences(fragment) {
 }
 
 /**
- * get default locale code for a given locale code and surface
- * @param {*} localeCode e.g. 'en_US'
- * @param {*} surface e.g. 'acom'
- * @returns
- */
-function getDefaultLocaleCode(localeCode, surface) {
-    const defaultLocale = getDefaultLocale(localeCode, surface);
-    if (defaultLocale) return getLocaleCode(defaultLocale);
-    return localeCode;
-}
-
-/**
  * get fragment associated to default language, just returning the body
  * @param {*} context
  * @returns null if something wrong, [] if not found, body if found
@@ -31,7 +19,8 @@ function getDefaultLocaleCode(localeCode, surface) {
 async function getDefaultLanguageVariation(context) {
     let { body } = context;
     const { surface, locale, fragmentPath, preview, parsedLocale } = context;
-    const defaultLocale = locale ? getDefaultLocaleCode(locale, surface) : parsedLocale;
+    const defaultLocale = getDefaultLocaleCode(locale, surface);
+    if (!defaultLocale) defaultLocale = parsedLocale;
     if (defaultLocale !== parsedLocale) {
         logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);
         const defaultLocaleIdUrl = odinUrl(surface, defaultLocale, fragmentPath, preview);
@@ -162,6 +151,7 @@ async function customize(context) {
         return { status, message };
     }
     const baseFragment = skimFragmentFromReferences(body);
+    //todo check
     const isRegionLocale = country ? defaultLocale.indexOf(`_${country}`) == -1 : defaultLocale !== locale;
     const regionLocale = country ? `${defaultLocale.split('_')[0]}_${country.toUpperCase()}` : locale;
     const { references, referencesTree } = body;

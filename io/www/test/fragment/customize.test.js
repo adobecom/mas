@@ -49,20 +49,36 @@ describe('customize subfunctions', function () {
         fetchStub.restore();
     });
 
-    it('getDefaultLocaleCode should return correct default locale', function () {
-        expect(getDefaultLocaleCode('fr_CA', 'sandbox')).to.equal('fr_FR');
-        expect(getDefaultLocaleCode('fr_FR', 'sandbox')).to.equal('fr_FR');
-        expect(getDefaultLocaleCode('fr_CH', 'sandbox')).to.equal('fr_FR');
-        expect(getDefaultLocaleCode('en_AU', 'sandbox')).to.equal('en_US');
-        expect(getDefaultLocaleCode('en_US', 'sandbox')).to.equal('en_US');
-        expect(getDefaultLocaleCode('en_CA', 'sandbox')).to.equal('en_US');
-        expect(getDefaultLocaleCode('es_MX', 'sandbox')).to.equal('es_ES');
-        expect(getDefaultLocaleCode('es_ES', 'sandbox')).to.equal('es_ES');
-        expect(getDefaultLocaleCode('de_DE', 'sandbox')).to.equal('de_DE');
-        expect(getDefaultLocaleCode('it_IT', 'sandbox')).to.equal('it_IT');
-        expect(getDefaultLocaleCode('ja_JP', 'sandbox')).to.equal('ja_JP');
-        expect(getDefaultLocaleCode('zh_CN', 'sandbox')).to.equal('zh_CN');
-        expect(getDefaultLocaleCode('zh_TW', 'sandbox')).to.equal('zh_TW');
+    it.only('getDefaultLocaleCode should return correct default locale', function () {
+        expect(getDefaultLocaleCode('fr_CA', 'sandbox'), 'should return fr_FR for fr_CA for sandbox').to.equal('fr_FR');
+        expect(getDefaultLocaleCode('fr_FR', 'sandbox'), 'should return fr_FR for fr_FR for sandbox').to.equal('fr_FR');
+        expect(getDefaultLocaleCode('fr_CH', 'sandbox'), 'should return fr_FR for fr_CH for sandbox').to.equal('fr_FR');
+        expect(getDefaultLocaleCode('en_EG', 'sandbox'), 'should return en_US for en_EG for sandbox').to.equal('en_US');
+        expect(getDefaultLocaleCode('en_US', 'sandbox'), 'should return en_US for en_US for sandbox').to.equal('en_US');
+        expect(getDefaultLocaleCode('en_CA', 'sandbox'), 'should return en_US for en_CA for sandbox').to.equal('en_US');
+        expect(getDefaultLocaleCode('es_MX', 'sandbox'), 'should return es_ES for es_MX for sandbox').to.equal('es_ES');
+        expect(getDefaultLocaleCode('es_ES', 'sandbox'), 'should return es_ES for es_ES for sandbox').to.equal('es_ES');
+        expect(getDefaultLocaleCode('de_DE', 'sandbox'), 'should return de_DE for de_DE for sandbox').to.equal('de_DE');
+        expect(getDefaultLocaleCode('it_IT', 'sandbox'), 'should return it_IT for it_IT for sandbox').to.equal('it_IT');
+        expect(getDefaultLocaleCode('ja_JP', 'sandbox'), 'should return ja_JP for ja_JP for sandbox').to.equal('ja_JP');
+        expect(getDefaultLocaleCode('zh_CN', 'sandbox'), 'should return zh_CN for zh_CN for sandbox').to.equal('zh_CN');
+        expect(getDefaultLocaleCode('zh_TW', 'sandbox'), 'should return zh_TW for zh_TW for sandbox').to.equal('zh_TW');
+
+        // for acom AU and IN fall back to GB, pt_BR exists as a default language
+        expect(getDefaultLocaleCode('en_GB', 'acom'), 'should return en_GB for en_GB for acom').to.equal('en_GB');
+        expect(getDefaultLocaleCode('en_AU', 'acom'), 'should return en_GB for en_AU for acom').to.equal('en_GB');
+        expect(getDefaultLocaleCode('en_IN', 'acom'), 'should return en_GB for en_IN for acom').to.equal('en_GB');
+        expect(getDefaultLocaleCode('pt_PT', 'acom'), 'should return pt_PT for pt_PT for acom').to.equal('pt_PT');
+        expect(getDefaultLocaleCode('pt_BR', 'acom'), 'should return pt_BR for pt_BR for acom').to.equal('pt_BR');
+
+        // for ccd AU and IN fall back to US, pt_PT is a variation of pt_BR
+        expect(getDefaultLocaleCode('pt_BR', 'ccd'), 'should return pt_BR for pt_BR for ccd').to.equal('pt_BR');
+        expect(getDefaultLocaleCode('en_AU', 'ccd'), 'should return en_US for en_AU for ccd').to.equal('en_US');
+        expect(getDefaultLocaleCode('en_IN', 'ccd'), 'should return en_US for en_IN for ccd').to.equal('en_US');
+
+
+        expect(getDefaultLocaleCode('pt_PT', null), 'should return null if no surface').to.equal(null);
+        expect(getDefaultLocaleCode(null, 'commerce'), 'should return null if no locale').to.equal(null);
     });
 });
 
@@ -467,7 +483,7 @@ describe('customize corner cases', function () {
 
 describe('corresponding local corner case', function () {
     it('locale with no default should be returned', async function () {
-        const locale = getCorrespondingLocale('zh_TW');
+        const locale = getDefaultLocaleCode('zh_TW', 'sandbox');
         expect(locale).to.equal('zh_TW');
     });
 });

@@ -1,7 +1,3 @@
-const ALL_SURFACES = 'all';
-const ACOM_SURFACES = ['acom', 'nala', 'sandbox'];
-const ALL_NO_EXPRESS_SURFACES = ['acom', 'ccd', 'commerce', 'adobe-home', 'nala', 'sandbox'];
-
 const COUNTRY_DATA = {
     AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
     AR: { name: 'Argentina', flag: '🇦🇷' },
@@ -358,6 +354,8 @@ const COMMERCE = [
 
 const DEFAULT_LOCALES = {
     acom: ACOM,
+    nala: ACOM,
+    sandbox: ACOM,
     ccd: CCD,
     express: EXPRESS,
     'adobe-home': ADOBE_HOME,
@@ -421,24 +419,11 @@ export function getCountryFlag(country) {
     return COUNTRY_DATA[country]?.flag || '🏴';
 }
 
-// todo fix
-export function isDefaultLocale(locale, surface) {
-    if (!locale) {
-        return false;
-    }
-    return locale.default === ALL_SURFACES || locale.default?.indexOf(surface) > -1;
-}
-
-export function getLocaleByCode(code) {
-    const [lang, country] = code.split('_');
-    return LOCALES.find((locale) => locale.lang === lang && locale.country === country);
-}
-
-export function getDefaultLocales(surface) {
-    if (!defaultLocalesCache[surface]) {
-        defaultLocalesCache[surface] = LOCALES.filter((locale) => isDefaultLocale(locale, surface));
-    }
-    return defaultLocalesCache[surface];
+export function getDefaultLocale(localeCode, surface) {
+    const [language, country] = localeCode.split('_');
+    return DEFAULT_LOCALES[surface].find(
+        (locale) => locale.lang === language && (locale.country === country || locale.regions?.includes(country)),
+    );
 }
 
 /**
@@ -449,27 +434,25 @@ export function getDefaultLocales(surface) {
  * @param {*} surface e.g. 'acom'
  * @returns
  */
-export function getDefaultLocale(localeCode, surface) {
-    return DEFAULT_LOCALES[surface].find((locale) => locale.lang === localeCode.split('_')[0]);
+export function getDefaultLocaleCode(localeCode, surface) {
+    if (!localeCode || !surface) {
+        return null;
+    }
+    const defaultLocale = getDefaultLocale(localeCode, surface);
+    return defaultLocale ? getLocaleCode(defaultLocale) : null; // todo check null case and process
 }
 
-export function isRegionLocale(locale, surface, defaultLocale, includeDefault = true) {
-    const [language, country] = defaultLocale.split('_');
-    if (!locale) {
-        return false;
+export function getDefaultLocales(surface) {
+    if (!defaultLocalesCache[surface]) {
+        defaultLocalesCache[surface] = DEFAULT_LOCALES[surface];
     }
-    return (
-        locale.lang === language &&
-        (locale.region === ALL_SURFACES ||
-            locale.region?.indexOf(surface) > -1 ||
-            (includeDefault && isDefaultLocale(locale, surface)))
-    );
+    return defaultLocalesCache[surface];
 }
 
 /**
  * get region locales for a given surface and a given default locale.
- * will return 'en_AU', 'en_IN' for 'acom' & 'en_GB', because for acom 'en_GB' is a default language.
- * will return 'en_GB', 'en_AU', 'en_IN' for 'ccd' & 'en_US', because for acom 'en_GB' is NOT a default language
+ * acom: will return 'en_AU', 'en_IN' for 'en_GB', because for acom 'en_GB' is a default language.
+ * ccd: will return 'en_GB', 'en_AU', 'en_IN' for 'en_US', because for ccd 'en_GB' is NOT a default language.
  * @param {*} surface e.g. 'acom'
  * @param {*} defaultLocale e.g. 'en_US'
  * @param {*} includeDefault e.g. true
@@ -478,10 +461,14 @@ export function isRegionLocale(locale, surface, defaultLocale, includeDefault = 
 export function getRegionLocales(surface, defaultLocale, includeDefault) {
     const cacheKey = `${surface}-${defaultLocale}-${includeDefault}`;
     if (!regionLocalesCache[cacheKey]) {
-        const regionalLocales = LOCALES.filter((locale) => isRegionLocale(locale, surface, defaultLocale, includeDefault));
-        regionLocalesCache[cacheKey] = regionalLocales.sort((a, b) =>
-            getCountryName(a.country).localeCompare(getCountryName(b.country)),
-        );
+        const [language, country] = defaultLocale.split('_');
+        const regionLocales = DEFAULT_LOCALES[surface]
+            .filter((locale) => locale.lang === language && locale.country === country)
+            .map((l) => l.regions)
+            .flat()
+            .map((region) => ({ language, country: region }))
+            .sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)));
+        regionLocalesCache[cacheKey] = regionLocales;
     }
     return regionLocalesCache[cacheKey];
 }

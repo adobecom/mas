@@ -1,6 +1,6 @@
 import { ReactiveStore } from './reactive-store.js';
 import { previewFragmentForEditor } from 'fragment-client';
-import { getDefaultLocale, getLocaleByCode, isDefaultLocale } from '../../../io/www/src/fragment/locales.js';
+import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 
 export class EditorContextStore extends ReactiveStore {
@@ -19,14 +19,10 @@ export class EditorContextStore extends ReactiveStore {
         if (!fragmentPath) return { isVariation: false, defaultLocale: null };
         const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
         if (!pathMatch) return { isVariation: false, defaultLocale: null };
-        const localCode = pathMatch[1];
-        const locale = getLocaleByCode(localCode);
-        if (isDefaultLocale(locale, Store.surface())) {
-            return { isVariation: false, defaultLocale: null };
-        }
-        const expectedDefault = getDefaultLocale(locale.code, Store.surface())?.code;
-        if (expectedDefault && expectedDefault !== localCode) {
-            return { isVariation: true, defaultLocale: expectedDefault, pathLocale: localCode };
+        const localeCode = pathMatch[1];
+        const expectedDefault = getDefaultLocaleCode(localeCode, Store.surface());
+        if (expectedDefault && expectedDefault !== localeCode) {
+            return { isVariation: true, defaultLocale: expectedDefault, pathLocale: localeCode };
         }
         return { isVariation: false, defaultLocale: null };
     }

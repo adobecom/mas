@@ -3,7 +3,7 @@ import Store from './store.js';
 import {
     getDefaultLocales,
     getRegionLocales,
-    getLocaleByCode,
+    getDefaultLocale,
     getLanguageName,
     getLocaleCode,
     getCountryName,
@@ -173,7 +173,7 @@ export class MasLocalePicker extends LitElement {
 
     getLocales() {
         if (this.mode === 'region') {
-            return getRegionLocales(this.surface, this.lang);
+            return getRegionLocales(this.surface, this.locale);
         } else {
             return getDefaultLocales(this.surface);
         }
@@ -197,18 +197,11 @@ export class MasLocalePicker extends LitElement {
         });
     }
 
+    /** can only be one of default languages, not regional ones */
     get currentLocale() {
-        const defaultLocale = 'en_US';
-        let code = this.locale || defaultLocale;
-        if (
-            !this.getLocales()
-                .map((l) => getLocaleCode(l))
-                .includes(code)
-        ) {
-            code = defaultLocale;
-            this.locale = code;
-        }
-        return getLocaleByCode(code);
+        const defaultLocale = getDefaultLocale(this.locale, this.surface);
+        this.locale = !defaultLocale ? 'en_US' : getLocaleCode(defaultLocale);
+        return defaultLocale;
     }
 
     get searchField() {

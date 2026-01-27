@@ -21,9 +21,18 @@ var D=Object.defineProperty;var w=(i,e,t)=>e in i?D(i,e,{enumerable:!0,configura
             text-transform: uppercase;
         }
 
+        :host(:dir(rtl)) h2 {
+            text-align: right;
+        }
+
         .right {
             position: absolute;
             right: 0;
+        }
+
+        :host(:dir(rtl)) .right {
+            right: initial;
+            left: 0;
         }
     `);customElements.define("merch-sidenav-list",p);import{html as F,LitElement as B,css as $}from"./lit-all.min.js";var m=class extends B{constructor(){super(),this.selectedValues=[]}selectionChanged({target:e}){let t=e.getAttribute("name");if(t){let o=this.selectedValues.indexOf(t);e.checked&&o===-1?this.selectedValues.push(t):!e.checked&&o>=0&&this.selectedValues.splice(o,1)}c(this,this.selectedValues.join(","))}addGroupTitle(){let e="sidenav-checkbox-group-title",t=_("h3",{id:e});t.textContent=this.sidenavCheckboxTitle,this.prepend(t),this.setAttribute("role","group"),this.setAttribute("aria-labelledby",e)}startDeeplink(){this.stopDeeplink=l(({types:e})=>{if(e){let t=e.split(",");[...new Set([...t,...this.selectedValues])].forEach(o=>{let s=this.querySelector(`sp-checkbox[name=${o}]`);s&&(s.checked=t.includes(o))}),this.selectedValues=t}else this.selectedValues.forEach(t=>{let o=this.querySelector(`sp-checkbox[name=${t}]`);o&&(o.checked=!1)}),this.selectedValues=[]})}connectedCallback(){super.connectedCallback(),this.updateComplete.then(async()=>{this.addGroupTitle(),this.startDeeplink()})}disconnectedCallback(){this.stopDeeplink?.()}render(){return F`<div aria-label="${this.label}">
             <div
@@ -193,6 +202,10 @@ var D=Object.defineProperty;var w=(i,e,t)=>e in i?D(i,e,{enumerable:!0,configura
             padding: var(--merch-sidenav-title-padding);
             line-height: var(--merch-sidenav-title-line-height);
             margin: 0;
+        }
+
+        :host(:dir(rtl)) h2 {
+            text-align: right;
         }
 
         #content {

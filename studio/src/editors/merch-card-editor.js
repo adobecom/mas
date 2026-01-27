@@ -234,21 +234,38 @@ class MerchCardEditor extends LitElement {
         return doc.querySelector('merch-whats-included');
     }
 
+    getWhatsIncludedProps(el) {
+        const iconEl = el.querySelector('merch-icon');
+        const icon = iconEl?.getAttribute('src') || '';
+        const alt = iconEl?.getAttribute('alt') || '';
+        const linkEl = el.querySelector('[slot="icon"] a');
+        const link = linkEl?.getAttribute('href') || '';
+        return { icon, alt, link };
+    }
+
     get whatsIncluded() {
         const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
         const values = [];
-        this.whatsIncludedElement?.querySelectorAll('merch-mnemonic-list').forEach((listEl) => {
-            const iconEl = listEl.querySelector('merch-icon');
-            const icon = iconEl?.getAttribute('src') || '';
-            const alt = iconEl?.getAttribute('alt') || '';
-            const linkEl = listEl.querySelector('[slot="icon"] a');
-            const link = linkEl?.getAttribute('href') || '';
-            values.push({ icon, alt, link });
+        this.whatsIncludedElement?.querySelectorAll('[slot="content"] merch-mnemonic-list').forEach((listEl) => {
+            values.push(this.getWhatsIncludedProps(listEl));
         });
+
+        const bullets = [];
+        this.whatsIncludedElement?.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').forEach((listEl) => {
+            const props = this.getWhatsIncludedProps(listEl);
+            if (props.icon) {
+                bullets.push(props);
+            } else {
+                const icon = listEl.querySelector('.sp-icon')?.tagName.toLowerCase() || '';
+                const alt = listEl.querySelector('[slot="description"]')?.textContent || '';
+                bullets.push({ icon, alt, link: '' });
+            }
+        });        
 
         return {
             label,
             values,
+            bullets,
         };
     }
 
@@ -576,7 +593,7 @@ class MerchCardEditor extends LitElement {
                 }
 
                 #whatsIncluded mas-multifield {
-                    margin-bottom: 16px;
+                    margin: 8px 16px 8px 0;
                 }
 
                 .menu-item-container {
@@ -795,11 +812,22 @@ class MerchCardEditor extends LitElement {
                     ></sp-textfield>
                     ${this.renderSectionStatusIndicator(['whatsIncluded'])}
                     <mas-multifield
+                        button-label="Add bullet"
+                        data-field-state="bullet"
+                        .value="${this.whatsIncluded.bullets}"
+                        @change="${(e) => this.#updateWhatsIncluded(e, true)}"
+                        @input="${(e) => this.#updateWhatsIncluded(e, true)}"
+                    >
+                        <template>
+                            <mas-included-field></mas-included-field>
+                        </template>
+                    </mas-multifield>
+                    <mas-multifield
                         button-label="Add application"
                         data-field-state="${this.getFieldState('whatsIncluded')}"
                         .value="${this.whatsIncluded.values}"
-                        @change="${this.#updateWhatsIncluded}"
-                        @input="${this.#updateWhatsIncluded}"
+                        @change="${(e) => this.#updateWhatsIncluded(e, false)}"
+                        @input="${(e) => this.#updateWhatsIncluded(e, false)}"
                     >
                         <template>
                             <mas-included-field></mas-included-field>
@@ -1123,7 +1151,39 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
     }
 
-    createIncludedElement(label, values) {
+    createMnemonicList(value, isBullet) {
+        const list = document.createElement('merch-mnemonic-list');
+        const iconSlot = document.createElement('div');
+        iconSlot.setAttribute('slot', 'icon');
+        if (value.icon?.startsWith('sp-icon-')) {
+            const icon = document.createElement(value.icon);
+            icon.setAttribute('class', 'sp-icon');
+            iconSlot.append(icon);
+        } else if (value.icon) {
+            const merchIcon = document.createElement('merch-icon');
+            merchIcon.setAttribute('size', isBullet ? 'xs' : 's');
+            merchIcon.setAttribute('src', value.icon);
+            merchIcon.setAttribute('alt', value.alt || '');
+            if (value.link) {
+                const anchor = document.createElement('a');
+                anchor.setAttribute('href', value.link);
+                anchor.append(merchIcon);
+                iconSlot.append(anchor);
+            } else {
+                iconSlot.append(merchIcon);
+            }
+        }
+        const description = document.createElement('p');
+        description.setAttribute('slot', 'description');
+        const strong = document.createElement(isBullet ? 'span' : 'strong');
+        strong.textContent = value.alt || '';
+        description.append(strong);
+        list.append(iconSlot);
+        list.append(description);
+        return list;
+    }
+
+    createIncludedElement(label, values, bullets) {
         if (!label && !values?.length) return undefined;
 
         const element = document.createElement('merch-whats-included');
@@ -1131,53 +1191,47 @@ class MerchCardEditor extends LitElement {
         heading.setAttribute('slot', 'heading');
         heading.textContent = label || '';
         element.append(heading);
+        const contentBullets = document.createElement('div');
+        contentBullets.setAttribute('slot', 'contentBullets');
+        element.append(contentBullets);
+        if (bullets.length) element.setAttribute('has-bullets', 'true');
+        bullets.forEach((value) => {
+            contentBullets.append(this.createMnemonicList(value, true));
+        });        
         const content = document.createElement('div');
         content.setAttribute('slot', 'content');
         element.append(content);
         values.forEach((value) => {
-            const list = document.createElement('merch-mnemonic-list');
-            const iconSlot = document.createElement('div');
-            iconSlot.setAttribute('slot', 'icon');
-            if (value.icon) {
-                const merchIcon = document.createElement('merch-icon');
-                merchIcon.setAttribute('size', 's');
-                merchIcon.setAttribute('src', value.icon);
-                merchIcon.setAttribute('alt', value.alt || '');
-                if (value.link) {
-                    const anchor = document.createElement('a');
-                    anchor.setAttribute('href', value.link);
-                    anchor.append(merchIcon);
-                    iconSlot.append(anchor);
-                } else {
-                    iconSlot.append(merchIcon);
-                }
-            }
-            const description = document.createElement('p');
-            description.setAttribute('slot', 'description');
-            const strong = document.createElement('strong');
-            strong.textContent = value.alt || '';
-            description.append(strong);
-            list.append(iconSlot);
-            list.append(description);
-            content.append(list);
+            content.append(this.createMnemonicList(value));
         });
 
         return element;
     }
 
-    #updateWhatsIncluded(event) {
+    #updateWhatsIncluded(event, isBullet) {
         let label = '';
         let values = [];
+        let bullets = [];
         if (Array.isArray(event.target.value)) {
             event.target.value.forEach(({ icon, alt, link }) => {
-                values.push({ icon, alt, link });
+                if (isBullet) {
+                    bullets.push({ icon, alt, link });
+                } else {
+                    values.push({ icon, alt, link });
+                }
             });
             label = this.whatsIncluded.label;
+            if (isBullet) {
+                values = this.whatsIncluded.values;
+            } else {
+                bullets = this.whatsIncluded.bullets;
+            }
         } else {
             label = event.target.value;
             values = this.whatsIncluded.values;
+            bullets = this.whatsIncluded.bullets;
         }
-        const element = this.createIncludedElement(label, values);
+        const element = this.createIncludedElement(label, values, bullets);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 

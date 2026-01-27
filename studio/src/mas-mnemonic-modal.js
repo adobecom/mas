@@ -324,7 +324,7 @@ class MasMnemonicModal extends LitElement {
                     )}
                 </div>
 
-                <div class="form-field icon-lib-optional">
+                <div class="form-field">
                     <sp-field-label for="product-alt">Alt Text</sp-field-label>
                     <sp-textfield
                         id="product-alt"
@@ -361,7 +361,7 @@ class MasMnemonicModal extends LitElement {
                     ></sp-textfield>
                 </div>
 
-                <div class="form-field icon-lib-optional">
+                <div class="form-field">
                     <sp-field-label for="url-alt">Alt Text</sp-field-label>
                     <sp-textfield
                         id="url-alt"
@@ -395,7 +395,7 @@ class MasMnemonicModal extends LitElement {
 
                     <form @submit=${this.#handleSubmit}>
                         <sp-tabs selected="${this.selectedTab}" @change=${this.#handleTabChange}>
-                            <sp-tab value="product-icon">Product Icon</sp-tab>
+                            <sp-tab value="product-icon">${this.iconLibrary ? '' : 'Product '}Icon</sp-tab>
                             <sp-tab value="url">URL</sp-tab>
                             <sp-tab-panel value="product-icon"> ${this.productIconTab} </sp-tab-panel>
                             <sp-tab-panel value="url"> ${this.urlTab} </sp-tab-panel>

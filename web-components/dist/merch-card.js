@@ -5985,6 +5985,16 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
   display: none;
 }
 
+merch-card merch-whats-included [slot="contentBullets"] [slot="icon"] {
+    margin-right: 10px;
+}
+
+merch-card merch-whats-included[has-bullets] [slot="content"] {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 10px;
+}
+
 merch-badge[background-color="spectrum-red-700-plans"] {
   color: #FFFFFF;
 }
@@ -6078,6 +6088,7 @@ Caused by: ${this.cause}`),e}};var Yi="mas-commerce-service",Ki={requestId:Je,et
             display: none;
         }
     `),l(Ye,"properties",{description:{type:String,attribute:!0}});customElements.define("merch-mnemonic-list",Ye);import{html as It,css as aa,LitElement as na}from"./lit-all.min.js";var Ke=class extends na{updated(){this.hideSeeMoreEls()}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((t,e)=>{e>=5&&(t.style.display=this.showAll?"flex":"none")})}constructor(){super(),this.showAll=!1,this.mobileRows=this.mobileRows===void 0?5:this.mobileRows}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}render(){return It`<slot name="heading"></slot>
+            <slot name="contentBullets"></slot>
             <slot name="content"></slot>
             ${this.isMobile&&this.rows.length>this.mobileRows?It`<div @click=${this.toggle} class="see-more">
                       ${this.showAll?"- See less":"+ See more"}
@@ -6091,6 +6102,11 @@ Caused by: ${this.cause}`),e}};var Yi="mas-commerce-service",Ki={requestId:Je,et
             row-gap: 10px;
         }
 
+        :host([has-bullets]) {
+            flex-direction: column;
+            align-items: start;
+        }
+
         ::slotted([slot='heading']) {
             font-size: 14px;
             font-weight: 700;
@@ -6099,6 +6115,13 @@ Caused by: ${this.cause}`),e}};var Yi="mas-commerce-service",Ki={requestId:Je,et
 
         ::slotted([slot='content']) {
             display: contents;
+        }
+
+        ::slotted([slot='contentBullets']) {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 5px 0;
         }
 
         .hidden {

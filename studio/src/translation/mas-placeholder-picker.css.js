@@ -1,32 +1,25 @@
 import { css } from 'lit';
 export const styles = css`
     :host {
-        .search {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin: 32px 0 20px 0;
-        }
-
-        .filters {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            sp-picker {
-                --mod-picker-background-color-default: transparent;
-                border: 1px solid var(--spectrum-gray-300);
-                border-radius: 12px;
-            }
-        }
-
-        .container {
-            display: flex;
-            gap: 12px;
-        }
+        width: 90vw;
     }
-    .fragments-table {
+
+    .search {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 32px 0 20px 0;
+    }
+
+    .container {
+        display: flex;
+        gap: 12px;
+    }
+
+    sp-table {
         --mod-table-header-background-color: var(--spectrum-gray-50);
         --mod-table-border-radius: 0;
+        width: 100%;
 
         sp-table-head {
             border-top: 1px solid var(--spectrum-gray-300);
@@ -60,60 +53,6 @@ export const styles = css`
             word-break: break-word;
         }
 
-        .offer-id {
-            color: var(--spectrum-blue-900);
-
-            div {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                max-width: 80px;
-                overflow: hidden;
-            }
-
-            div:hover {
-                text-decoration: underline;
-                color: var(--spectrum-blue-1000);
-            }
-
-            sp-button {
-                --mod-button-background-color-default: transparent;
-                --mod-button-background-color-hover: transparent;
-                --mod-button-content-color-default: var(--spectrum-blue-900);
-
-                &:hover {
-                    color: var(--spectrum-blue-1000);
-                }
-
-                sp-icon-copy {
-                    display: block;
-                    transition:
-                        opacity 0.2s ease,
-                        transform 0.2s ease;
-                }
-
-                sp-icon-checkmark {
-                    display: none;
-                    color: var(--spectrum-green-700);
-                }
-
-                &.copied {
-                    sp-icon-copy {
-                        display: none;
-                    }
-
-                    sp-icon-checkmark {
-                        display: block;
-                        animation: checkmark-pop 0.3s ease-out;
-                    }
-                }
-            }
-        }
-
-        .path {
-            word-break: break-word;
-        }
-
         .status-cell {
             display: flex;
             align-items: center;
@@ -136,7 +75,7 @@ export const styles = css`
         }
     }
 
-    .fragments-table[selects='multiple'] {
+    sp-table[selects='multiple'] {
         sp-table-head {
             sp-table-checkbox-cell:first-of-type {
                 border-top-left-radius: 12px;
@@ -144,7 +83,7 @@ export const styles = css`
         }
     }
 
-    .fragments-table:not([selects='multiple']) {
+    sp-table:not([selects='multiple']) {
         sp-table-head {
             sp-table-head-cell:first-of-type {
                 border-top-left-radius: 12px;
@@ -156,19 +95,6 @@ export const styles = css`
         display: flex;
         justify-content: center;
         align-items: center;
-    }
-
-    @keyframes checkmark-pop {
-        0% {
-            transform: scale(0);
-            opacity: 0;
-        }
-        50% {
-            transform: scale(1.2);
-        }
-        100% {
-            transform: scale(1);
-            opacity: 1;
-        }
+        width: 100%;
     }
 `;

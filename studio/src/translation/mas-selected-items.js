@@ -7,14 +7,10 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 class MasSelectedItems extends LitElement {
     static styles = styles;
 
-    static properties = {
-        type: { type: String, state: true },
-    };
-
     constructor() {
         super();
-        this.showSelectedStoreController = new ReactiveController(this, [Store.translationProjects.showSelected]);
         this.showSelectedStoreController = new ReactiveController(this, [
+            Store.translationProjects.showSelected,
             Store.translationProjects.fragments,
             Store.translationProjects.collections,
             Store.translationProjects.placeholders,
@@ -40,7 +36,8 @@ class MasSelectedItems extends LitElement {
 
     getTitle(item) {
         if (!item) return '-';
-        return item.title || '-';
+        if (!item.title) return '-';
+        return item.title.length > 54 ? item.title.slice(0, 54) + '...' : item.title;
     }
 
     getDetails(item) {
@@ -54,10 +51,10 @@ class MasSelectedItems extends LitElement {
         return '-';
     }
 
-    removeItem(id) {
+    removeItem(path) {
         this.dispatchEvent(
             new CustomEvent('remove', {
-                detail: { id },
+                detail: { path },
                 bubbles: true,
                 composed: true,
             }),
@@ -69,12 +66,12 @@ class MasSelectedItems extends LitElement {
             ? html`<ul class="selected-items">
                   ${repeat(
                       this.selectedItems,
-                      (item) => item?.id,
+                      (item) => item.path,
                       (item) =>
                           html`<li class="file">
                               <h3 class="title">${this.getTitle(item)}</h3>
                               <div class="details">${this.getDetails(item)}</div>
-                              <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item?.id)}>
+                              <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item.path)}>
                                   <sp-icon-close slot="icon"></sp-icon-close>
                               </sp-button>
                           </li>`,

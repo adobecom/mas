@@ -343,7 +343,6 @@ class MasTranslationEditor extends LitElement {
         this.#fragmentsSnapshot = [];
         this.#collectionsSnapshot = [];
         this.#placeholdersSnapshot = [];
-        Store.translationProjects.selectionChanged.set(true);
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -353,7 +352,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.fragments.set(this.#fragmentsSnapshot);
         Store.translationProjects.collections.set(this.#collectionsSnapshot);
         Store.translationProjects.placeholders.set(this.#placeholdersSnapshot);
-        Store.translationProjects.selectionChanged.set(false);
         this.showSelectedEmptyState = this.selectedCount === 0;
         this.isOverlayOpen = false;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
@@ -377,7 +375,6 @@ class MasTranslationEditor extends LitElement {
     #confirmLangSelection = ({ target }) => {
         const targetLocales = target.querySelector('mas-translation-langs').selectedLanguages;
         Store.translationProjects.targetLocales.set(targetLocales);
-        Store.translationProjects.selectionChanged.set(true);
         this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });

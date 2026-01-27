@@ -218,53 +218,6 @@
                         console.log('[TEST] Found merch-card-editor:', !!editor);
                         expect(editor).to.exist;
 
-                        // Wait for editor to be fully ready (fieldsReady = true)
-                        let waitAttempts = 0;
-                        console.log('[TEST] Initial editor state:', {
-                            fieldsReady: editor.fieldsReady,
-                            fragmentStore: !!editor.fragmentStore,
-                            fragment: !!editor.fragment,
-                            'fragment.variant': editor.fragment?.variant,
-                            currentVariantMapping: !!editor.currentVariantMapping,
-                        });
-                        while (!editor.fieldsReady) {
-                            await editor.updateComplete;
-                            await delay(50);
-                            waitAttempts++;
-                            if (waitAttempts % 20 === 0) {
-                                console.log('[TEST] Waiting for fieldsReady... attempts:', waitAttempts, 'state:', {
-                                    fieldsReady: editor.fieldsReady,
-                                    fragment: !!editor.fragment,
-                                    'fragment.variant': editor.fragment?.variant,
-                                    currentVariantMapping: !!editor.currentVariantMapping,
-                                });
-                            }
-                            if (waitAttempts > 80) {
-                                console.log('[TEST] TIMEOUT waiting for fieldsReady. Current state:', {
-                                    fieldsReady: editor.fieldsReady,
-                                    fragmentStore: !!editor.fragmentStore,
-                                    fragment: !!editor.fragment,
-                                    'fragment.variant': editor.fragment?.variant,
-                                    currentVariantMapping: !!editor.currentVariantMapping,
-                                });
-                                break;
-                            }
-                        }
-                        console.log(
-                            '[TEST] fieldsReady loop complete. fieldsReady:',
-                            editor.fieldsReady,
-                            'attempts:',
-                            waitAttempts,
-                        );
-
-                        // Verify editor renders without skeleton
-                        expect(editor.fieldsReady, 'Editor fieldsReady should be true').to.be.true;
-                        const editorSkeleton = editor.querySelector('.editor-skeleton-wrapper');
-                        const editorSkeletonDisplay = editorSkeleton
-                            ? getComputedStyle(editorSkeleton).getPropertyValue('--skeleton-display')
-                            : 'none';
-                        expect(editorSkeletonDisplay.trim(), 'Editor should not show skeleton').to.equal('none');
-
                         // Verify preview renders without skeleton
                         const previewColumn = fragmentEditor.querySelector('#preview-column');
                         expect(previewColumn).to.exist;

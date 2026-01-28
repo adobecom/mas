@@ -358,7 +358,7 @@ runTests(async () => {
             render();
             await delay(200);
 
-            // Should show 9 cards initially (plans defaultLimit)
+            // Should show 9 cards initially (limit attribute set on template)
             expect(visibleCards().length).to.equal(9);
         });
 
@@ -403,7 +403,7 @@ runTests(async () => {
 
             const config = collectionElement.paginationConfig;
             expect(config.enabled).to.be.true;
-            expect(config.defaultLimit).to.equal(9);
+            expect(config.defaultLimit).to.equal(27);
             expect(config.respectFiltered).to.be.true;
         });
     });

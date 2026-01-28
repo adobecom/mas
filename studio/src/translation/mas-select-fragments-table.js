@@ -4,7 +4,7 @@ import { keyed } from 'lit/directives/keyed.js';
 import { styles } from './mas-select-fragments-table.css.js';
 import Store from '../store.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
-import { ROOT_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
+import { FRAGMENT_STATUS, ROOT_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import { getService, showToast } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -199,9 +199,9 @@ class MasSelectFragmentsTable extends LitElement {
     renderStatus(status) {
         if (!status) return nothing;
         let statusClass = '';
-        if (status === 'PUBLISHED') {
+        if (status === FRAGMENT_STATUS.PUBLISHED) {
             statusClass = 'green';
-        } else if (status === 'MODIFIED') {
+        } else if (status === FRAGMENT_STATUS.MODIFIED) {
             statusClass = 'blue';
         }
         return html`<sp-table-cell class="status-cell">

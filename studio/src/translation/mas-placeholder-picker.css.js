@@ -26,12 +26,6 @@ export const styles = css`
             border-left: 1px solid var(--spectrum-gray-300);
             border-right: 1px solid var(--spectrum-gray-300);
             border-radius: 12px 12px 0 0;
-        }
-
-        sp-table-head {
-            border-top: 1px solid var(--spectrum-gray-300);
-            border-left: 1px solid var(--spectrum-gray-300);
-            border-right: 1px solid var(--spectrum-gray-300);
 
             sp-table-head-cell {
                 align-content: center;

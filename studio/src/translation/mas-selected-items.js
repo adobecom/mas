@@ -21,13 +21,10 @@ class MasSelectedItems extends LitElement {
         const fragments = Store.translationProjects.fragments.value.map((path) => {
             return { ...Store.translationProjects.fragmentsByPaths.value.get(path), type: 'fragment' };
         });
-        // const collectionss = Store.translationProjects.collections.map((path) => {
-        //     return { ...Store.translationProjects.collectionsByPath.value.get(path), type: 'collection' };
-        // });
         const placeholders = Store.translationProjects.placeholders.value.map((path) => {
             return { ...Store.translationProjects.placeholdersByPaths.value.get(path), type: 'placeholder' };
         });
-        return [...fragments, /*...collectionss,*/ ...placeholders];
+        return [...fragments, ...placeholders];
     }
 
     get showSelected() {
@@ -37,7 +34,7 @@ class MasSelectedItems extends LitElement {
     getTitle(item) {
         if (!item) return '-';
         if (!item.title) return '-';
-        return item.title.length > 54 ? item.title.slice(0, 54) + '...' : item.title;
+        return item.title.length > 54 ? `${item.title.slice(0, 54)}...` : item.title;
     }
 
     getDetails(item) {

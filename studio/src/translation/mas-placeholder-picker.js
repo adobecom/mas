@@ -5,6 +5,7 @@ import './mas-selected-items.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { Fragment } from '../aem/fragment.js';
+import { FRAGMENT_STATUS } from '../constants.js';
 
 class MasPlaceholderPicker extends LitElement {
     static styles = styles;
@@ -15,6 +16,7 @@ class MasPlaceholderPicker extends LitElement {
     };
 
     #placeholders = [];
+    #placeholdersSubscription;
 
     connectedCallback() {
         super.connectedCallback();
@@ -22,7 +24,7 @@ class MasPlaceholderPicker extends LitElement {
         this.repository.loadPlaceholders();
         this.placeholdersStoreController = new ReactiveController(this, [Store.translationProjects.placeholders]);
 
-        Store.placeholders.list.data.subscribe(() => {
+        this.#placeholdersSubscription = Store.placeholders.list.data.subscribe(() => {
             this.resetPlaceholders();
             const placeholdersByPath = new Map(
                 this.#placeholders.map((data) => {
@@ -41,6 +43,11 @@ class MasPlaceholderPicker extends LitElement {
             this.selectedInTable = Store.translationProjects.placeholders.value;
             this.requestUpdate();
         });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#placeholdersSubscription?.();
     }
 
     /** @type {import('../mas-repository.js').MasRepository} */
@@ -97,9 +104,9 @@ class MasPlaceholderPicker extends LitElement {
     renderStatus(status) {
         if (!status) return nothing;
         let statusClass = '';
-        if (status === 'PUBLISHED') {
+        if (status === FRAGMENT_STATUS.PUBLISHED) {
             statusClass = 'green';
-        } else if (status === 'MODIFIED') {
+        } else if (status === FRAGMENT_STATUS.MODIFIED) {
             statusClass = 'blue';
         }
         return html`<sp-table-cell class="status-cell">
@@ -118,7 +125,7 @@ class MasPlaceholderPicker extends LitElement {
                     ? html`<div class="loading-container">${this.loadingIndicator}</div>`
                     : html`<sp-table
                           emphasized
-                          .selects=${this.type !== 'all' ? 'multiple' : undefined}
+                          selects="multiple"
                           .selected=${this.selectedInTable}
                           @change=${this.updateSelected}
                       >

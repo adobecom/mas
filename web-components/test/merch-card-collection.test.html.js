@@ -326,6 +326,88 @@ runTests(async () => {
         });
     });
 
+    describe('merch-card-collection plans pagination', () => {
+        let collectionElement;
+
+        beforeEach(async () => {
+            document.location.hash = '';
+        });
+
+        it('should enable pagination for plans variant with filtered state', async () => {
+            [collectionElement, render] = prepareTemplate(
+                'plansPagination',
+                false,
+            );
+            render();
+            await delay(200);
+
+            // Plans variant should show pagination even with filtered='all'
+            const footer =
+                collectionElement.shadowRoot.querySelector('#footer');
+            expect(footer).to.exist;
+
+            const showMoreButton = footer.querySelector('sp-button');
+            expect(showMoreButton).to.exist;
+        });
+
+        it('should respect defaultLimit from collectionOptions', async () => {
+            [collectionElement, render] = prepareTemplate(
+                'plansPagination',
+                false,
+            );
+            render();
+            await delay(200);
+
+            // Should show 9 cards initially (plans defaultLimit)
+            expect(visibleCards().length).to.equal(9);
+        });
+
+        it('should load more cards on Show More click', async () => {
+            [collectionElement, render] = prepareTemplate(
+                'plansPagination',
+                false,
+            );
+            render();
+            await delay(200);
+
+            const initialCount = visibleCards().length;
+            const showMoreButton =
+                collectionElement.shadowRoot.querySelector('#footer sp-button');
+
+            showMoreButton.click();
+            await delay(100);
+
+            expect(visibleCards().length).to.be.greaterThan(initialCount);
+        });
+
+        it('should disable pagination when attribute is explicitly false', async () => {
+            [collectionElement, render] = prepareTemplate(
+                'plansNoPagination',
+                false,
+            );
+            render();
+            await delay(200);
+
+            const footer =
+                collectionElement.shadowRoot.querySelector('#footer');
+            expect(footer).to.not.exist;
+        });
+
+        it('should return correct paginationConfig values', async () => {
+            [collectionElement, render] = prepareTemplate(
+                'plansPagination',
+                false,
+            );
+            render();
+            await delay(200);
+
+            const config = collectionElement.paginationConfig;
+            expect(config.enabled).to.be.true;
+            expect(config.defaultLimit).to.equal(9);
+            expect(config.respectFiltered).to.be.true;
+        });
+    });
+
     describe('merch-card-collection override feature', () => {
         let collectionElement;
 

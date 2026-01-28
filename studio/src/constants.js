@@ -206,3 +206,6 @@ export const QUICK_ACTION = {
     DISCARD: 'discard',
     DELETE: 'delete',
 };
+
+// Collection field names
+export const PAGINATION_LIMIT_FIELD = 'paginationLimit';

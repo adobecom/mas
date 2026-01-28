@@ -237,6 +237,17 @@ merch-card[variant^="plans"]:not([size]) {
     --merch-card-collection-card-width: var(--consonant-merch-card-plans-width);
 }
 
+/* Plans Show More Button Styling */
+merch-card-collection.plans #footer {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0 32px;
+}
+
+merch-card-collection.plans #footer sp-button {
+    min-width: 200px;
+}
+
 merch-sidenav.plans {
     --merch-sidenav-padding: 16px 20px 16px 16px;
 }

@@ -80,6 +80,21 @@ function applyCollectionSettings(context) {
     context.body.settings = context.body.settings || {};
     context.body.settings.tagLabels =
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
+
+    // Add schema with pagination configuration for web-components consumption
+    // Studio saves pagination as a single 'paginationLimit' field (number when enabled, empty when disabled)
+    const paginationLimit = context.body?.fields?.paginationLimit;
+    const hasLimit = paginationLimit != null && paginationLimit !== '' && !isNaN(Number(paginationLimit));
+    const limitValue = hasLimit ? Number(paginationLimit) : null;
+
+    context.body.schema = {
+        pagination: {
+            enabled: hasLimit,
+            limit: limitValue,
+            showMore: hasLimit,
+        },
+        modelId: COLLECTION_MODEL_ID,
+    };
 }
 
 function applyPlansSettings(fragment, context) {
@@ -150,4 +165,4 @@ export const transformer = {
     name: 'settings',
     process: settings,
 };
-export { applyCollectionSettings, PLAN_TYPE_LOCALES };
+export { applyCollectionSettings, PLAN_TYPE_LOCALES, COLLECTION_MODEL_ID };

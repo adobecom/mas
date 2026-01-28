@@ -10,7 +10,8 @@
     "fields": {
         "label": "Plans Page Collection: Individuals",
         "cards": [],
-        "collections": []
+        "collections": [],
+        "paginationLimit": 12
     },
     "references": {},
     "referencesTree": [],

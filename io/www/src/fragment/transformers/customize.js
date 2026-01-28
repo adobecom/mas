@@ -1,46 +1,7 @@
 import { odinReferences, odinUrl } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
-
-/** we consider following locales as default for a given language
- * 'zh_HK',
- * 'zh_TW',
- * 'zh_CN', */
-const LOCALE_DEFAULTS = [
-    'ar_MENA',
-    'bg_BG',
-    'cs_CZ',
-    'da_DK',
-    'de_DE',
-    'el_GR',
-    'en_US',
-    'es_ES',
-    'et_EE',
-    'fi_FI',
-    'fil_PH',
-    'fr_FR',
-    'he_IL',
-    'hi_IN',
-    'hu_HU',
-    'id_ID',
-    'it_IT',
-    'ja_JP',
-    'ko_KR',
-    'lt_LT',
-    'lv_LV',
-    'ms_MY',
-    'nl_NL',
-    'nb_NO',
-    'pt_BR',
-    'ru_RU',
-    'sk_SK',
-    'sl_SI',
-    'sv_SE',
-    'th_TH',
-    'tr_TR',
-    'uk_UA',
-    'vi_VN',
-];
+import { getDefaultLocaleCode } from '../locales.js';
 
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
@@ -48,16 +9,6 @@ function skimFragmentFromReferences(fragment) {
     delete skimmedFragment.modelReferences;
     delete skimmedFragment.referencesTree;
     return skimmedFragment;
-}
-
-function getCorrespondingLocale(locale) {
-    const [language] = locale.split('_');
-    for (const defaultLocale of LOCALE_DEFAULTS) {
-        if (defaultLocale.startsWith(language)) {
-            return defaultLocale;
-        }
-    }
-    return locale;
 }
 
 /**
@@ -68,7 +19,8 @@ function getCorrespondingLocale(locale) {
 async function getDefaultLanguageVariation(context) {
     let { body } = context;
     const { surface, locale, fragmentPath, preview, parsedLocale } = context;
-    const defaultLocale = locale ? getCorrespondingLocale(locale) : parsedLocale;
+    const defaultLocale = getDefaultLocaleCode(locale, surface);
+    if (!defaultLocale) defaultLocale = parsedLocale;
     if (defaultLocale !== parsedLocale) {
         logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);
         const defaultLocaleIdUrl = odinUrl(surface, defaultLocale, fragmentPath, preview);
@@ -199,6 +151,7 @@ async function customize(context) {
         return { status, message };
     }
     const baseFragment = skimFragmentFromReferences(body);
+    //todo check
     const isRegionLocale = country ? defaultLocale.indexOf(`_${country}`) == -1 : defaultLocale !== locale;
     const regionLocale = country ? `${defaultLocale.split('_')[0]}_${country.toUpperCase()}` : locale;
     const { references, referencesTree } = body;
@@ -227,4 +180,4 @@ export const transformer = {
     process: customize,
     init,
 };
-export { getCorrespondingLocale, deepMerge, LOCALE_DEFAULTS };
+export { getDefaultLocaleCode, deepMerge };

@@ -199,9 +199,13 @@ export class MasLocalePicker extends LitElement {
 
     /** can only be one of default languages, not regional ones */
     get currentLocale() {
-        const defaultLocale = getDefaultLocale(this.locale, this.surface);
-        this.locale = !defaultLocale ? 'en_US' : getLocaleCode(defaultLocale);
-        return defaultLocale;
+        const locale = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
+        if (locale) {
+            return locale;
+        } else {
+            this.locale = 'en_US';
+            return getDefaultLocale(this.locale, this.surface);
+        }
     }
 
     get searchField() {

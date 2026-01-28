@@ -13,7 +13,6 @@ export const styles = css`
 
     .container {
         display: flex;
-        gap: 12px;
     }
 
     sp-table {

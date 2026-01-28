@@ -60,7 +60,10 @@ class MasSelectedItems extends LitElement {
 
     render() {
         return html`${this.showSelected && this.selectedItems.length > 0
-            ? html`<ul class="selected-items">
+            ? html`<ul
+                  class="selected-items"
+                  style="margin-left: ${this.showSelected && this.selectedItems.length > 0 ? '12px' : '0'}"
+              >
                   ${repeat(
                       this.selectedItems,
                       (item) => item.path,

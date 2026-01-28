@@ -3,13 +3,14 @@ import { repeat } from 'lit/directives/repeat.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
 import Store from '../store.js';
-import { FILTER_TYPE } from '../constants.js';
+import { FILTER_TYPE, TABLE_TYPE } from '../constants.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
 
     static properties = {
-        params: { type: Object },
+        type: { type: String }, // 'cards' | 'collections' | 'placeholders'
         resultCount: { type: Number },
         searchQuery: { type: String },
         templateFilter: { type: Array, state: true },
@@ -20,6 +21,7 @@ class MasSearchAndFilters extends LitElement {
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
         productOptions: { type: Array },
+        searchOnly: { type: Boolean },
     };
 
     constructor() {
@@ -34,23 +36,63 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentOptions = [];
         this.customerSegmentOptions = [];
         this.productOptions = [];
+        this.dataSubscription = null;
+        this.loadingController = new ReactiveController(this, [
+            Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
+        ]);
     }
 
     connectedCallback() {
         super.connectedCallback();
-
-        Store[this.params.mainStore][this.params.storeSourceKey].subscribe(() => {
-            this.#extractFilterOptions();
-            this.resultCount = Store[this.params.mainStore][this.params.storeTargetKey].value.length;
-            this.requestUpdate();
-        });
+        switch (this.type) {
+            case TABLE_TYPE.CARDS:
+                return Store.translationProjects.allCards.subscribe(() => {
+                    if (!this.searchOnly) {
+                        this.#extractFilterOptions();
+                    }
+                    this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
+                    this.requestUpdate();
+                });
+            case TABLE_TYPE.COLLECTIONS:
+                return Store.translationProjects.allCollections.subscribe(() => {
+                    if (!this.searchOnly) {
+                        this.#extractFilterOptions();
+                    }
+                    this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
+                    this.requestUpdate();
+                });
+            case TABLE_TYPE.PLACEHOLDERS:
+                return Store.placeholders.list.data.subscribe(() => {
+                    if (!this.searchOnly) {
+                        this.#extractFilterOptions();
+                    }
+                    this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
+                    this.requestUpdate();
+                });
+        }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        Store[this.params.mainStore][this.params.storeTargetKey].set(
-            Store[this.params.mainStore][this.params.storeSourceKey].value,
-        );
+        switch (this.type) {
+            case TABLE_TYPE.CARDS:
+                Store.translationProjects.displayCards.set(Store.translationProjects.allCards.value);
+                break;
+            case TABLE_TYPE.COLLECTIONS:
+                Store.translationProjects.displayCollections.set(Store.translationProjects.allCollections.value);
+                break;
+            case TABLE_TYPE.PLACEHOLDERS:
+                break;
+        }
+        this.dataSubscription?.unsubscribe();
+    }
+
+    get typeUppercased() {
+        return this.type.charAt(0).toUpperCase() + this.type.slice(1);
+    }
+
+    get isLoading() {
+        return Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading.get();
     }
 
     get appliedFilters() {
@@ -79,11 +121,20 @@ class MasSearchAndFilters extends LitElement {
         return filters;
     }
 
+    get allItems() {
+        switch (this.type) {
+            case TABLE_TYPE.CARDS:
+                return Store.translationProjects.allCards.value;
+            case TABLE_TYPE.COLLECTIONS:
+                return Store.translationProjects.allCollections.value;
+        }
+    }
+
     #extractFilterOptions() {
         const marketSegments = new Map();
         const customerSegments = new Map();
         const products = new Map();
-        for (const fragment of Store[this.params.mainStore][this.params.storeSourceKey].value) {
+        for (const fragment of this.allItems) {
             if (!fragment.tags) continue;
 
             for (const tag of fragment.tags) {
@@ -183,7 +234,7 @@ class MasSearchAndFilters extends LitElement {
         this.#applyFilters();
     }
 
-    #handleClearAll() {
+    #clearAllFilters() {
         this.templateFilter = [];
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
@@ -212,7 +263,7 @@ class MasSearchAndFilters extends LitElement {
                         `,
                     )}
                 </sp-tags>
-                <a class="clear-all" @click=${this.#handleClearAll}>Clear all</a>
+                <a class="clear-all" @click=${this.#clearAllFilters}>Clear all</a>
             </div>
         `;
     }
@@ -223,12 +274,7 @@ class MasSearchAndFilters extends LitElement {
 
         return html`
             <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button
-                    slot="trigger"
-                    class="filter-trigger"
-                    quiet
-                    .disabled=${Store.translationProjects.isLoading.get()}
-                >
+                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -254,7 +300,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #applyFilters() {
-        const source = Store[this.params.mainStore][this.params.storeSourceKey].value || [];
+        const source = Store.translationProjects[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
         const hasTemplate = this.templateFilter?.length > 0;
         const hasMarket = this.marketSegmentFilter?.length > 0;
@@ -291,8 +337,8 @@ class MasSearchAndFilters extends LitElement {
             return true;
         });
 
-        Store[this.params.mainStore][this.params.storeTargetKey].set(result);
-        this.resultCount = Store[this.params.mainStore][this.params.storeTargetKey].value.length;
+        Store.translationProjects[`display${this.typeUppercased}`].set(result);
+        this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
     }
 
     render() {
@@ -302,7 +348,7 @@ class MasSearchAndFilters extends LitElement {
                     size="m"
                     placeholder="Search fragments..."
                     value=${this.searchQuery}
-                    .disabled=${Store.translationProjects.isLoading.get()}
+                    .disabled=${this.isLoading}
                     @input=${this.#handleSearchInput}
                     @submit=${this.#handleSearchSubmit}
                 ></sp-search>
@@ -311,24 +357,33 @@ class MasSearchAndFilters extends LitElement {
                     : nothing}
             </div>
 
-            <div class="filters">
-                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.template)}
-                ${this.#renderFilterPicker(
-                    'Market Segment',
-                    this.marketSegmentOptions,
-                    this.marketSegmentFilter,
-                    FILTER_TYPE.marketSegment,
-                )}
-                ${this.#renderFilterPicker(
-                    'Customer Segment',
-                    this.customerSegmentOptions,
-                    this.customerSegmentFilter,
-                    FILTER_TYPE.customerSegment,
-                )}
-                ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.product)}
-            </div>
+            ${!this.searchOnly
+                ? html`
+                      <div class="filters">
+                          ${this.#renderFilterPicker(
+                              'Template',
+                              this.templateOptions,
+                              this.templateFilter,
+                              FILTER_TYPE.template,
+                          )}
+                          ${this.#renderFilterPicker(
+                              'Market Segment',
+                              this.marketSegmentOptions,
+                              this.marketSegmentFilter,
+                              FILTER_TYPE.marketSegment,
+                          )}
+                          ${this.#renderFilterPicker(
+                              'Customer Segment',
+                              this.customerSegmentOptions,
+                              this.customerSegmentFilter,
+                              FILTER_TYPE.customerSegment,
+                          )}
+                          ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.product)}
+                      </div>
 
-            ${this.#renderAppliedFilters()}
+                      ${this.#renderAppliedFilters()}
+                  `
+                : nothing}
         `;
     }
 }

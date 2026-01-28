@@ -112,16 +112,23 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
-        allFragments: new ReactiveStore([]),
-        fragmentsByPaths: new ReactiveStore(new Map()),
+
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+
         placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+
         targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
-        displayFragments: new ReactiveStore([]),
-        fragments: new ReactiveStore([]),
-        placeholders: new ReactiveStore([]),
-        collections: new ReactiveStore([]),
-        isLoading: new ReactiveStore(false), // for disabling filters while loading table items
     },
 };
 

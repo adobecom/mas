@@ -219,3 +219,9 @@ export const FRAGMENT_STATUS = {
     DRAFT: 'DRAFT',
     MODIFIED: 'MODIFIED',
 };
+
+export const TABLE_TYPE = {
+    CARDS: 'cards',
+    COLLECTIONS: 'collections',
+    PLACEHOLDERS: 'placeholders',
+};

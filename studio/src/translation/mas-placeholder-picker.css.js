@@ -89,5 +89,6 @@ export const styles = css`
         justify-content: center;
         align-items: center;
         width: 100%;
+        padding: 80px;
     }
 `;

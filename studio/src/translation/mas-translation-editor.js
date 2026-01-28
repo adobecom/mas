@@ -8,7 +8,7 @@ import router from '../router.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../constants.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { TranslationProject } from './translation-project.js';
-import './mas-translation-files.js';
+import './mas-files-selector.js';
 import './mas-select-fragments-table.js';
 import './mas-translation-languages.js';
 import './mas-placeholder-picker.js';
@@ -31,7 +31,7 @@ class MasTranslationEditor extends LitElement {
         showLangSelectedEmptyState: { type: Boolean, state: true },
     };
 
-    #fragmentsSnapshot = [];
+    #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
@@ -71,9 +71,9 @@ class MasTranslationEditor extends LitElement {
         }
         this.storeController = new StoreController(this, Store.translationProjects.inEdit);
         this.selectedController = new ReactiveController(this, [
-            Store.translationProjects.fragments,
-            Store.translationProjects.collections,
-            Store.translationProjects.placeholders,
+            Store.translationProjects.selectedCards,
+            Store.translationProjects.selectedCollections,
+            Store.translationProjects.selectedPlaceholders,
             Store.translationProjects.targetLocales,
         ]);
     }
@@ -97,9 +97,9 @@ class MasTranslationEditor extends LitElement {
 
     get selectedCount() {
         return [
-            ...Store.translationProjects.fragments.value,
-            ...Store.translationProjects.placeholders.value,
-            ...Store.translationProjects.collections.value,
+            ...Store.translationProjects.selectedCards.value,
+            ...Store.translationProjects.selectedPlaceholders.value,
+            ...Store.translationProjects.selectedCollections.value,
         ].length;
     }
 
@@ -129,9 +129,9 @@ class MasTranslationEditor extends LitElement {
             if (fragment) {
                 const translationProject = new TranslationProject(fragment);
                 this.translationProjectStore = new FragmentStore(translationProject);
-                Store.translationProjects.fragments.set(translationProject.getFieldValues('fragments'));
-                Store.translationProjects.placeholders.set(translationProject.getFieldValues('placeholders'));
-                Store.translationProjects.collections.set(translationProject.getFieldValues('collections'));
+                Store.translationProjects.selectedCards.set(translationProject.getFieldValues('fragments'));
+                Store.translationProjects.selectedPlaceholders.set(translationProject.getFieldValues('placeholders'));
+                Store.translationProjects.selectedCollections.set(translationProject.getFieldValues('collections'));
                 Store.translationProjects.targetLocales.set(translationProject.getFieldValues('targetLocales'));
                 this.showSelectedEmptyState = this.selectedCount === 0;
                 this.showLangSelectedEmptyState = Store.translationProjects.targetLocales.value.length === 0;
@@ -232,9 +232,9 @@ class MasTranslationEditor extends LitElement {
             return;
         }
         this.translationProject.updateFieldInternal('title', this.translationProject.getFieldValue('title'));
-        this.translationProject.updateField('fragments', Store.translationProjects.fragments.value);
-        this.translationProject.updateField('placeholders', Store.translationProjects.placeholders.value);
-        this.translationProject.updateField('collections', Store.translationProjects.collections.value);
+        this.translationProject.updateField('fragments', Store.translationProjects.selectedCards.value);
+        this.translationProject.updateField('placeholders', Store.translationProjects.selectedPlaceholders.value);
+        this.translationProject.updateField('collections', Store.translationProjects.selectedCollections.value);
         this.translationProject.updateField('targetLocales', Store.translationProjects.targetLocales.value);
         showToast('Updating the project...');
         try {
@@ -270,6 +270,9 @@ class MasTranslationEditor extends LitElement {
             Store.translationProjects.inEdit.set(null);
             Store.translationProjects.translationProjectId.set('');
             Store.translationProjects.showSelected.set(false);
+            Store.translationProjects.selectedCards.set([]);
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set([]);
             showToast('Translation project successfully deleted.', 'positive');
             router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
         } catch (error) {
@@ -340,7 +343,7 @@ class MasTranslationEditor extends LitElement {
     #confirmFileSelection = ({ target }) => {
         this.isOverlayOpen = false;
         this.showSelectedEmptyState = this.selectedCount === 0;
-        this.#fragmentsSnapshot = [];
+        this.#cardsSnapshot = [];
         this.#collectionsSnapshot = [];
         this.#placeholdersSnapshot = [];
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
@@ -349,9 +352,9 @@ class MasTranslationEditor extends LitElement {
     };
 
     #cancelFileSelection = ({ target }) => {
-        Store.translationProjects.fragments.set(this.#fragmentsSnapshot);
-        Store.translationProjects.collections.set(this.#collectionsSnapshot);
-        Store.translationProjects.placeholders.set(this.#placeholdersSnapshot);
+        Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
+        Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
+        Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
         this.showSelectedEmptyState = this.selectedCount === 0;
         this.isOverlayOpen = false;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
@@ -364,9 +367,9 @@ class MasTranslationEditor extends LitElement {
 
     openAddFilesOverlay() {
         this.isOverlayOpen = true;
-        this.#fragmentsSnapshot = Store.translationProjects.fragments.value;
-        this.#placeholdersSnapshot = Store.translationProjects.placeholders.value;
-        this.#collectionsSnapshot = Store.translationProjects.collections.value;
+        this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
+        this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
+        this.#collectionsSnapshot = Store.translationProjects.selectedCollections.value;
     }
     createLangSnapshot() {
         this.#targetLocalesSnapshot = Array.from(Store.translationProjects.targetLocales.value);
@@ -401,7 +404,7 @@ class MasTranslationEditor extends LitElement {
                 @confirm=${this.#confirmFileSelection}
                 @cancel=${this.#cancelFileSelection}
             >
-                ${this.isOverlayOpen ? html`<mas-translation-files></mas-translation-files>` : nothing}
+                ${this.isOverlayOpen ? html`<mas-files-selector></mas-files-selector>` : nothing}
             </sp-dialog-wrapper>
         `;
     }
@@ -629,9 +632,7 @@ class MasTranslationEditor extends LitElement {
                                             </div>
                                         `}
                               </div>
-                              ${this.isSelectedFilesOpen
-                                  ? html` <mas-select-fragments-table .type=${'view-only'}></mas-select-fragments-table> `
-                                  : nothing}
+                              ${this.isSelectedFilesOpen ? html` <p>TO BE IMPLEMENTED...</p> ` : nothing}
                           </div>`
                 }
                 <mas-quick-actions

@@ -22,7 +22,7 @@ class MasPlaceholderPicker extends LitElement {
         super.connectedCallback();
         this.selectedInTable = [];
         this.repository.loadPlaceholders();
-        this.placeholdersStoreController = new ReactiveController(this, [Store.translationProjects.placeholders]);
+        this.placeholdersStoreController = new ReactiveController(this, [Store.translationProjects.selectedPlaceholders]);
 
         this.#placeholdersSubscription = Store.placeholders.list.data.subscribe(() => {
             this.resetPlaceholders();
@@ -40,7 +40,7 @@ class MasPlaceholderPicker extends LitElement {
                 }),
             );
             Store.translationProjects.placeholdersByPaths.set(placeholdersByPath);
-            this.selectedInTable = Store.translationProjects.placeholders.value;
+            this.selectedInTable = Store.translationProjects.selectedPlaceholders.value;
             this.requestUpdate();
         });
     }
@@ -85,10 +85,10 @@ class MasPlaceholderPicker extends LitElement {
 
     updateSelected({ target: { selected } }) {
         this.selectedInTable = selected;
-        const currentSelected = Store.translationProjects.placeholders.value;
+        const currentSelected = Store.translationProjects.selectedPlaceholders.value;
         const withoutUnselected = currentSelected.filter((path) => selected.includes(path));
         const newSelected = new Set([...withoutUnselected, ...selected]);
-        Store.translationProjects.placeholders.set(Array.from(newSelected));
+        Store.translationProjects.selectedPlaceholders.set(Array.from(newSelected));
     }
 
     removeItem({ detail: { path } }) {
@@ -98,7 +98,7 @@ class MasPlaceholderPicker extends LitElement {
             this.shadowRoot.querySelector(`sp-table-row[value="${path}"]`)?.click();
         }
         this.selectedInTable = newSelected;
-        Store.translationProjects.placeholders.set(newSelected);
+        Store.translationProjects.selectedPlaceholders.set(newSelected);
     }
 
     renderStatus(status) {

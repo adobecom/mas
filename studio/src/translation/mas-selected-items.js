@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-selected-items.css.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
@@ -11,20 +12,23 @@ class MasSelectedItems extends LitElement {
         super();
         this.showSelectedStoreController = new ReactiveController(this, [
             Store.translationProjects.showSelected,
-            Store.translationProjects.fragments,
-            Store.translationProjects.collections,
-            Store.translationProjects.placeholders,
+            Store.translationProjects.selectedCards,
+            Store.translationProjects.selectedCollections,
+            Store.translationProjects.selectedPlaceholders,
         ]);
     }
 
     get selectedItems() {
-        const fragments = Store.translationProjects.fragments.value.map((path) => {
-            return { ...Store.translationProjects.fragmentsByPaths.value.get(path), type: 'fragment' };
+        const cards = Store.translationProjects.selectedCards.value.map((path) => {
+            return Store.translationProjects.cardsByPaths.value.get(path);
         });
-        const placeholders = Store.translationProjects.placeholders.value.map((path) => {
-            return { ...Store.translationProjects.placeholdersByPaths.value.get(path), type: 'placeholder' };
+        const collections = Store.translationProjects.selectedCollections.value.map((path) => {
+            return Store.translationProjects.collectionsByPaths.value.get(path);
         });
-        return [...fragments, ...placeholders];
+        const placeholders = Store.translationProjects.selectedPlaceholders.value.map((path) => {
+            return Store.translationProjects.placeholdersByPaths.value.get(path);
+        });
+        return [...cards, ...collections, ...placeholders];
     }
 
     get showSelected() {
@@ -33,19 +37,30 @@ class MasSelectedItems extends LitElement {
 
     getTitle(item) {
         if (!item) return '-';
-        if (!item.title) return '-';
-        return item.title.length > 54 ? `${item.title.slice(0, 54)}...` : item.title;
+        switch (item.model.path) {
+            case CARD_MODEL_PATH:
+                return (item.title?.length > 54 ? `${item.title.slice(0, 54)}...` : item.title) || '-';
+            case COLLECTION_MODEL_PATH:
+                return (item.title?.length > 54 ? `${item.title.slice(0, 54)}...` : item.title) || '-';
+            default:
+                return item.getFieldValue('key') || '-';
+        }
     }
 
     getDetails(item) {
         if (!item) return '-';
-        if (item.type === 'fragment') {
-            return item.studioPath || '-';
+        switch (item.model.path) {
+            case CARD_MODEL_PATH:
+                return item.studioPath || '-';
+            case COLLECTION_MODEL_PATH:
+                return item.studioPath || '-';
+            default:
+                return (
+                    (item.getFieldValue('value')?.length > 60
+                        ? `${item.getFieldValue('value').slice(0, 60)}...`
+                        : item.getFieldValue('value')) || '-'
+                );
         }
-        if (item.type === 'placeholder') {
-            return item.description || '-';
-        }
-        return '-';
     }
 
     removeItem(path) {

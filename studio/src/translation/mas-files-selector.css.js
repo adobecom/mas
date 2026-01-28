@@ -1,6 +1,16 @@
 import { css } from 'lit';
 
 export const styles = css`
+    sp-tab-panel[selected] {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .container {
+        display: flex;
+    }
+
     .selected-files-count {
         position: fixed;
         bottom: 98px;

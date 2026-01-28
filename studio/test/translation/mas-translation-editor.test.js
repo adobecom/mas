@@ -417,22 +417,6 @@ describe('MasTranslationEditor', () => {
             const dialogWrapper = el.shadowRoot.querySelector('.add-files-dialog');
             expect(dialogWrapper).to.exist;
         });
-
-        it.skip('should render mas-translation-files when overlay is open', async () => {
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.isOverlayOpen = true;
-            await el.updateComplete;
-            const translationFiles = el.shadowRoot.querySelector('mas-translation-files');
-            expect(translationFiles).to.exist;
-        });
-
-        it('should not render mas-translation-files when overlay is closed', async () => {
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            el.isOverlayOpen = false;
-            await el.updateComplete;
-            const translationFiles = el.shadowRoot.querySelector('mas-translation-files');
-            expect(translationFiles).to.be.null;
-        });
     });
 
     describe('add languages dialog', () => {

@@ -4,7 +4,14 @@ import { keyed } from 'lit/directives/keyed.js';
 import { styles } from './mas-select-fragments-table.css.js';
 import Store from '../store.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
-import { FRAGMENT_STATUS, ROOT_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    FRAGMENT_STATUS,
+    ROOT_PATH,
+    TABLE_TYPE,
+    TAG_MODEL_ID_MAPPING,
+} from '../constants.js';
 import { getService, showToast } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -13,9 +20,8 @@ class MasSelectFragmentsTable extends LitElement {
     static styles = styles;
 
     static properties = {
-        type: { type: String, reflect: true, attribute: 'data-type' }, // 'fragments' | 'collections' | 'placeholders' | 'view-only'
+        type: { type: String }, // 'cards' | 'collections' | 'placeholders'
         error: { type: String, state: true },
-        columnsToShow: { type: Set, state: true },
         selectedInTable: { type: Array, state: true },
         itemToRemove: { type: String, state: true },
         tableKey: { type: Number, state: true },
@@ -24,33 +30,99 @@ class MasSelectFragmentsTable extends LitElement {
     constructor() {
         super();
         this.tableKey = 0;
-        this.displayFragmentsStoreController = new ReactiveController(
+        this.displayCardsStoreController = new ReactiveController(this, [Store.translationProjects.displayCards], () => {
+            this.tableKey++;
+            this.preselectItems();
+        });
+        this.displayCollectionsStoreController = new ReactiveController(
             this,
-            [Store.translationProjects.displayFragments],
+            [Store.translationProjects.displayCollections],
+            () => {
+                this.tableKey++;
+                this.preselectItems();
+            },
+        );
+        this.displayPlaceholdersStoreController = new ReactiveController(
+            this,
+            [Store.translationProjects.displayPlaceholders],
             () => {
                 this.tableKey++;
                 this.preselectItems();
             },
         );
         this.error = null;
-        this.columnsToShow = new Set([
-            { label: 'Offer', key: 'offer', sortable: true },
-            { label: 'Fragment title', key: 'fragmentTitle' },
-            { label: 'Offer ID', key: 'offerId' },
-            { label: 'Path', key: 'path' },
-            { label: 'Status', key: 'status' },
-        ]);
         this.selectedInTable = [];
-        this.abortController = null;
+        this.dataSubscription = null;
     }
 
     connectedCallback() {
         super.connectedCallback();
-        this.fetchFragments();
+
+        if (this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.COLLECTIONS) {
+            this.dataSubscription = Store.fragments.list.data.subscribe(async () => {
+                const { allCards, allCollections, offerDataPromises } = Store.fragments.list.data.get().reduce(
+                    (acc, fragment) => {
+                        const withPath = {
+                            ...fragment.value,
+                            studioPath: this.getFragmentName(fragment.value),
+                        };
+
+                        if (fragment.value.model.path === CARD_MODEL_PATH) {
+                            acc.allCards.push(withPath);
+                            acc.offerDataPromises.push(this.loadOfferData(withPath));
+                        } else if (fragment.value.model.path === COLLECTION_MODEL_PATH) {
+                            acc.allCollections.push(withPath);
+                        }
+                        return acc;
+                    },
+                    {
+                        allCards: [],
+                        allCollections: [],
+                        offerDataPromises: [],
+                    },
+                );
+
+                if (this.type === TABLE_TYPE.CARDS) {
+                    const offerDataResults = await Promise.all(offerDataPromises);
+                    allCards.forEach((card, i) => {
+                        card.offerData = offerDataResults[i];
+                    });
+                }
+
+                Store.translationProjects.allCards.set(allCards);
+                Store.translationProjects.allCollections.set(allCollections);
+
+                const cardsByPaths = new Map(allCards.map((fragment) => [fragment.path, fragment]));
+                const collectionsByPaths = new Map(allCollections.map((fragment) => [fragment.path, fragment]));
+                Store.translationProjects.cardsByPaths.set(cardsByPaths);
+                Store.translationProjects.collectionsByPaths.set(collectionsByPaths);
+
+                Store.translationProjects.displayCards.set(allCards);
+                Store.translationProjects.displayCollections.set(allCollections);
+                // console.log('allMerchCards', Store.translationProjects.allCards.get());
+                // console.log('allCollections', Store.translationProjects.allCollections.get());
+                // console.log('merchCardsByPaths', Store.translationProjects.cardsByPaths.get());
+                // console.log('collectionsByPaths', Store.translationProjects.collectionsByPaths.get());
+                // console.log('displayMerchCards', Store.translationProjects.displayCards.get());
+                // console.log('displayCollections', Store.translationProjects.displayCollections.get());
+            });
+        }
+        if (this.type === TABLE_TYPE.PLACEHOLDERS) {
+            this.dataSubscription = Store.placeholders.list.data.subscribe(() => {
+                Store.translationProjects.displayPlaceholders.set(
+                    Store.placeholders.list.data.get().map((placeholder) => placeholder.value),
+                );
+                const placeholdersByPaths = new Map(
+                    Store.placeholders.list.data.get().map((placeholder) => [placeholder.value.path, placeholder.value]),
+                );
+                Store.translationProjects.placeholdersByPaths.set(placeholdersByPaths);
+                // console.log('placeholdersByPaths', Store.translationProjects.placeholdersByPaths.get());
+                // console.log('displayPlaceholders', Store.translationProjects.displayPlaceholders.get());
+            });
+        }
     }
 
     willUpdate(changedProperties) {
-        this.preselectItems();
         if (changedProperties.has('itemToRemove')) {
             this.removeItem(this.itemToRemove);
         }
@@ -58,24 +130,50 @@ class MasSelectFragmentsTable extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        if (this.abortController) {
-            this.abortController.abort();
+        this.dataSubscription?.unsubscribe();
+    }
+
+    get typeUppercased() {
+        return this.type.charAt(0).toUpperCase() + this.type.slice(1);
+    }
+
+    get isLoading() {
+        if (this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.COLLECTIONS) {
+            return Store.fragments.list.loading.get();
+        }
+        return false;
+    }
+
+    get columnsToShow() {
+        switch (this.type) {
+            case TABLE_TYPE.CARDS:
+                return new Set([
+                    { label: 'Offer', key: 'offer', sortable: true },
+                    { label: 'Fragment title', key: 'fragmentTitle' },
+                    { label: 'Offer ID', key: 'offerId' },
+                    { label: 'Path', key: 'path' },
+                    { label: 'Status', key: 'status' },
+                ]);
+            case TABLE_TYPE.COLLECTIONS:
+                return new Set([
+                    { label: 'Collection title', key: 'collectionTitle' },
+                    { label: 'Path', key: 'path' },
+                    { label: 'Status', key: 'status' },
+                ]);
+            case TABLE_TYPE.PLACEHOLDERS:
+                return new Set([
+                    { label: 'Key', key: 'key' },
+                    { label: 'Value', key: 'value' },
+                    { label: 'Status', key: 'status' },
+                ]);
+            default:
+                return new Set();
         }
     }
 
-    /** @type {import('../mas-repository.js').MasRepository} */
-    get repository() {
-        return document.querySelector('mas-repository');
-    }
-
-    get loadingIndicator() {
-        if (!Store.translationProjects.isLoading.get()) return nothing;
-        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
-    }
-
     preselectItems() {
-        const storeSelected = Store.translationProjects.fragments.value;
-        const displayedPaths = new Set(Store.translationProjects.displayFragments.value.map((f) => f.path));
+        const storeSelected = Store.translationProjects[`selected${this.typeUppercased}`].value;
+        const displayedPaths = new Set(Store.translationProjects[`display${this.typeUppercased}`].value.map((f) => f.path));
         // Only pass visible selections to the table (sp-table rejects selections for non-existent rows)
         const visibleSelections = storeSelected.filter((path) => displayedPaths.has(path));
         const isEqual =
@@ -90,82 +188,6 @@ class MasSelectFragmentsTable extends LitElement {
         const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
         const { fragmentParts } = getFragmentPartsToUse(Store, data);
         return `${webComponentName}: ${fragmentParts}`;
-    }
-
-    async fetchFragments() {
-        Store.translationProjects.isLoading.set(true);
-        this.error = null;
-        let fragments = [];
-        if (this.type === 'view-only' && Store.translationProjects.fragmentsByPaths.value.size) {
-            fragments = Store.translationProjects.fragments.value.map((path) =>
-                Store.translationProjects.fragmentsByPaths.value.get(path),
-            );
-            Store.translationProjects.isLoading.set(false);
-            return;
-        }
-        const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
-        if (!surface) {
-            Store.translationProjects.isLoading.set(false);
-            return;
-        }
-
-        const aem = this.repository?.aem;
-        if (!aem) {
-            this.error = 'Repository not available';
-            Store.translationProjects.isLoading.set(false);
-            return;
-        }
-
-        if (this.abortController) {
-            this.abortController.abort();
-        }
-        this.abortController = new AbortController();
-
-        try {
-            if (Store.translationProjects.allFragments.value.length) {
-                fragments = Store.translationProjects.allFragments.value;
-                return;
-            }
-            const cursor = await aem.sites.cf.fragments.search(
-                {
-                    path: `${ROOT_PATH}/${surface}/${Store.filters.value?.locale || 'en_US'}`,
-                    modelIds: [TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']],
-                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                },
-                null,
-                this.abortController,
-            );
-            const fetchedFragments = [];
-            const result = await cursor.next();
-            for (const item of result.value) {
-                fetchedFragments.push(new Fragment(item));
-            }
-            fragments = await Promise.all(
-                fetchedFragments.map(async (fragment) => ({
-                    ...fragment,
-                    offerData: await this.loadOfferData(fragment),
-                    studioPath: this.getFragmentName(fragment),
-                })),
-            );
-            const fragmentsByPaths = new Map(fragments.map((fragment) => [fragment.path, fragment]));
-            Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
-            Store.translationProjects.allFragments.set(fragments);
-            Store.translationProjects.displayFragments.set(fragments);
-            this.selectedInTable = Store.translationProjects.fragments.value;
-            if (this.type === 'view-only') {
-                Store.translationProjects.displayFragments.set(
-                    this.selectedInTable.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path)),
-                );
-            }
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.error('Failed to fetch:', err);
-                this.error = err.message;
-                showToast('Failed to fetch.', 'negative');
-            }
-        } finally {
-            Store.translationProjects.isLoading.set(false);
-        }
     }
 
     async loadOfferData(fragment) {
@@ -184,18 +206,6 @@ class MasSelectFragmentsTable extends LitElement {
         }
     }
 
-    renderTableHeader() {
-        return html`
-            <sp-table-head>
-                ${repeat(
-                    this.columnsToShow,
-                    (column) => column.key,
-                    (column) => html`<sp-table-head-cell> ${column.label} </sp-table-head-cell>`,
-                )}
-            </sp-table-head>
-        `;
-    }
-
     renderStatus(status) {
         if (!status) return nothing;
         let statusClass = '';
@@ -212,12 +222,12 @@ class MasSelectFragmentsTable extends LitElement {
 
     updateSelected({ target: { selected } }) {
         this.selectedInTable = selected;
-        const currentSelected = Store.translationProjects.fragments.value;
-        const displayedPaths = new Set(Store.translationProjects.displayFragments.value.map((f) => f.path));
+        const currentSelected = Store.translationProjects[`selected${this.typeUppercased}`].value;
+        const displayedPaths = new Set(Store.translationProjects[`display${this.typeUppercased}`].value.map((f) => f.path));
         // We need to preserve selections for items not currently displayed (hidden by filters) to show them when filters are removed
         const hiddenSelections = currentSelected.filter((path) => !displayedPaths.has(path));
         const newSelected = [...new Set([...hiddenSelections, ...selected])];
-        Store.translationProjects.fragments.set(newSelected);
+        Store.translationProjects[`selected${this.typeUppercased}`].set(newSelected);
     }
 
     removeItem(path) {
@@ -227,7 +237,7 @@ class MasSelectFragmentsTable extends LitElement {
             this.shadowRoot.querySelector(`sp-table-row[value="${path}"]`)?.click();
         }
         this.selectedInTable = newSelected;
-        Store.translationProjects.fragments.set(newSelected);
+        Store.translationProjects[`selected${this.typeUppercased}`].set(newSelected);
     }
 
     async copyToClipboard(e, text) {
@@ -242,11 +252,91 @@ class MasSelectFragmentsTable extends LitElement {
         }
     }
 
+    renderTableHeader() {
+        return html`
+            <sp-table-head>
+                ${repeat(
+                    this.columnsToShow,
+                    (column) => column.key,
+                    (column) => html`<sp-table-head-cell> ${column.label} </sp-table-head-cell>`,
+                )}
+            </sp-table-head>
+        `;
+    }
+
+    renderTableBody() {
+        switch (this.type) {
+            case TABLE_TYPE.CARDS:
+                return html` <sp-table-body>
+                    ${repeat(
+                        Store.translationProjects.displayCards.value,
+                        (fragment) => fragment.path,
+                        (fragment) =>
+                            html`<sp-table-row value=${fragment.path}>
+                                <sp-table-cell>
+                                    ${fragment.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || '-'}
+                                </sp-table-cell>
+                                <sp-table-cell>${fragment.title}</sp-table-cell>
+                                <sp-table-cell class="offer-id" title=${fragment.offerData?.offerId}>
+                                    <div>${fragment.offerData?.offerId}</div>
+                                    ${fragment.offerData?.offerId
+                                        ? html`<sp-button
+                                              icon-only
+                                              aria-label="Copy Offer ID to clipboard"
+                                              .disabled=${!fragment.offerData?.offerId}
+                                              @click=${(e) => this.copyToClipboard(e, fragment.offerData?.offerId)}
+                                          >
+                                              <sp-icon-copy slot="icon"></sp-icon-copy>
+                                              <sp-icon-checkmark slot="icon"></sp-icon-checkmark>
+                                          </sp-button>`
+                                        : 'no offer data'}
+                                </sp-table-cell>
+                                <sp-table-cell>${fragment.studioPath}</sp-table-cell>
+                                ${this.renderStatus(fragment.status)}
+                            </sp-table-row>`,
+                    )}
+                </sp-table-body>`;
+            case TABLE_TYPE.COLLECTIONS:
+                return html` <sp-table-body>
+                    ${repeat(
+                        Store.translationProjects.displayCollections.value,
+                        (fragment) => fragment.path,
+                        (fragment) =>
+                            html`<sp-table-row value=${fragment.path}>
+                                <sp-table-cell> ${fragment.title || '-'} </sp-table-cell>
+                                <sp-table-cell>${fragment.studioPath}</sp-table-cell>
+                                ${this.renderStatus(fragment.status)}
+                            </sp-table-row>`,
+                    )}
+                </sp-table-body>`;
+            case TABLE_TYPE.PLACEHOLDERS:
+                return html` <sp-table-body>
+                    ${repeat(
+                        Store.translationProjects.displayPlaceholders.value,
+                        (fragment) => fragment.path,
+                        (fragment) =>
+                            html`<sp-table-row value=${fragment.path}>
+                                <sp-table-cell> ${fragment.key || '-'} </sp-table-cell>
+                                <sp-table-cell>
+                                    ${fragment.value.value && fragment.value.length > 60
+                                        ? `${fragment.value.slice(0, 60)}...`
+                                        : fragment.value || '-'}
+                                </sp-table-cell>
+                                ${this.renderStatus(fragment.status)}
+                            </sp-table-row>`,
+                    )}
+                </sp-table-body>`;
+
+            default:
+                return nothing;
+        }
+    }
+
     render() {
         return html`
-            ${Store.translationProjects.isLoading.get()
-                ? html`<div class="loading-container">${this.loadingIndicator}</div>`
-                : html`${Store.translationProjects.displayFragments.value?.length > 0
+            ${this.isLoading
+                ? html`<div class="loading-container"><sp-progress-circle indeterminate size="l"></sp-progress-circle></div>`
+                : html`${Store.translationProjects[`display${this.typeUppercased}`].value?.length > 0
                       ? keyed(
                             this.tableKey,
                             html`<sp-table
@@ -256,38 +346,7 @@ class MasSelectFragmentsTable extends LitElement {
                                 .selected=${this.selectedInTable}
                                 @change=${this.updateSelected}
                             >
-                                ${this.renderTableHeader()}
-                                <sp-table-body>
-                                    ${repeat(
-                                        Store.translationProjects.displayFragments.value,
-                                        (fragment) => fragment.path,
-                                        (fragment) =>
-                                            html`<sp-table-row value=${fragment.path}>
-                                                <sp-table-cell>
-                                                    ${fragment.tags?.find(({ id }) => id.startsWith('mas:product_code/'))
-                                                        ?.title || '-'}
-                                                </sp-table-cell>
-                                                <sp-table-cell>${fragment.title}</sp-table-cell>
-                                                <sp-table-cell class="offer-id" title=${fragment.offerData?.offerId}>
-                                                    <div>${fragment.offerData?.offerId}</div>
-                                                    ${fragment.offerData?.offerId
-                                                        ? html`<sp-button
-                                                              icon-only
-                                                              aria-label="Copy Offer ID to clipboard"
-                                                              .disabled=${!fragment.offerData?.offerId}
-                                                              @click=${(e) =>
-                                                                  this.copyToClipboard(e, fragment.offerData?.offerId)}
-                                                          >
-                                                              <sp-icon-copy slot="icon"></sp-icon-copy>
-                                                              <sp-icon-checkmark slot="icon"></sp-icon-checkmark>
-                                                          </sp-button>`
-                                                        : 'no offer data'}
-                                                </sp-table-cell>
-                                                <sp-table-cell>${fragment.studioPath}</sp-table-cell>
-                                                ${this.renderStatus(fragment.status)}
-                                            </sp-table-row>`,
-                                    )}
-                                </sp-table-body>
+                                ${this.renderTableHeader()} ${this.renderTableBody()}
                             </sp-table>`,
                         )
                       : html`<p>No items found.</p>`}`}

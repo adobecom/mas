@@ -62,19 +62,19 @@ class MasSearchAndFilters extends LitElement {
 
         for (const id of this.templateFilter) {
             const option = templateMap.get(id);
-            if (option) filters.push({ type: FILTER_TYPE.template, id, label: option.title || option.label });
+            if (option) filters.push({ type: FILTER_TYPE.TEMPLATE, id, label: option.title || option.label });
         }
         for (const id of this.marketSegmentFilter) {
             const option = marketSegmentMap.get(id);
-            if (option) filters.push({ type: FILTER_TYPE.marketSegment, id, label: option.title || option.label });
+            if (option) filters.push({ type: FILTER_TYPE.MARKET_SEGMENT, id, label: option.title || option.label });
         }
         for (const id of this.customerSegmentFilter) {
             const option = customerSegmentMap.get(id);
-            if (option) filters.push({ type: FILTER_TYPE.customerSegment, id, label: option.title || option.label });
+            if (option) filters.push({ type: FILTER_TYPE.CUSTOMER_SEGMENT, id, label: option.title || option.label });
         }
         for (const id of this.productFilter) {
             const option = productMap.get(id);
-            if (option) filters.push({ type: FILTER_TYPE.product, id, label: option.title || option.label });
+            if (option) filters.push({ type: FILTER_TYPE.PRODUCT, id, label: option.title || option.label });
         }
         return filters;
     }
@@ -120,16 +120,16 @@ class MasSearchAndFilters extends LitElement {
     #handleCheckboxChange(filterType, optionId, e) {
         let currentValues;
         switch (filterType) {
-            case FILTER_TYPE.template:
+            case FILTER_TYPE.TEMPLATE:
                 currentValues = [...this.templateFilter];
                 break;
-            case FILTER_TYPE.marketSegment:
+            case FILTER_TYPE.MARKET_SEGMENT:
                 currentValues = [...this.marketSegmentFilter];
                 break;
-            case FILTER_TYPE.customerSegment:
+            case FILTER_TYPE.CUSTOMER_SEGMENT:
                 currentValues = [...this.customerSegmentFilter];
                 break;
-            case FILTER_TYPE.product:
+            case FILTER_TYPE.PRODUCT:
                 currentValues = [...this.productFilter];
                 break;
             default:
@@ -145,16 +145,16 @@ class MasSearchAndFilters extends LitElement {
         }
 
         switch (filterType) {
-            case FILTER_TYPE.template:
+            case FILTER_TYPE.TEMPLATE:
                 this.templateFilter = currentValues;
                 break;
-            case FILTER_TYPE.marketSegment:
+            case FILTER_TYPE.MARKET_SEGMENT:
                 this.marketSegmentFilter = currentValues;
                 break;
-            case FILTER_TYPE.customerSegment:
+            case FILTER_TYPE.CUSTOMER_SEGMENT:
                 this.customerSegmentFilter = currentValues;
                 break;
-            case FILTER_TYPE.product:
+            case FILTER_TYPE.PRODUCT:
                 this.productFilter = currentValues;
                 break;
         }
@@ -167,16 +167,16 @@ class MasSearchAndFilters extends LitElement {
         },
     }) {
         switch (type) {
-            case FILTER_TYPE.template:
+            case FILTER_TYPE.TEMPLATE:
                 this.templateFilter = this.templateFilter.filter((filterId) => filterId !== id);
                 break;
-            case FILTER_TYPE.marketSegment:
+            case FILTER_TYPE.MARKET_SEGMENT:
                 this.marketSegmentFilter = this.marketSegmentFilter.filter((filterId) => filterId !== id);
                 break;
-            case FILTER_TYPE.customerSegment:
+            case FILTER_TYPE.CUSTOMER_SEGMENT:
                 this.customerSegmentFilter = this.customerSegmentFilter.filter((filterId) => filterId !== id);
                 break;
-            case FILTER_TYPE.product:
+            case FILTER_TYPE.PRODUCT:
                 this.productFilter = this.productFilter.filter((filterId) => filterId !== id);
                 break;
         }
@@ -312,20 +312,20 @@ class MasSearchAndFilters extends LitElement {
             </div>
 
             <div class="filters">
-                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.template)}
+                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE)}
                 ${this.#renderFilterPicker(
                     'Market Segment',
                     this.marketSegmentOptions,
                     this.marketSegmentFilter,
-                    FILTER_TYPE.marketSegment,
+                    FILTER_TYPE.MARKET_SEGMENT,
                 )}
                 ${this.#renderFilterPicker(
                     'Customer Segment',
                     this.customerSegmentOptions,
                     this.customerSegmentFilter,
-                    FILTER_TYPE.customerSegment,
+                    FILTER_TYPE.CUSTOMER_SEGMENT,
                 )}
-                ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.product)}
+                ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
             </div>
 
             ${this.#renderAppliedFilters()}

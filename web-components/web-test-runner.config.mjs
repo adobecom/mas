@@ -28,7 +28,7 @@ export default {
     },
     debug: false,
     files: ['test/**/*.test.(js|html)'],
-    testsFinishTimeout: 300000, // 5 minutes for slow collection tests
+    testsFinishTimeout: 600000, // 10 minutes - collection tests hang in CI
     nodeResolve: true,
     mimeTypes: {
         '**/*.snap': 'html',

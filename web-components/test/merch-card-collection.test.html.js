@@ -333,6 +333,14 @@ runTests(async () => {
             document.location.hash = '';
         });
 
+        afterEach(() => {
+            // Clean up to prevent hanging tests
+            if (collectionElement) {
+                collectionElement.remove();
+                collectionElement = null;
+            }
+        });
+
         it('should enable pagination for plans variant with filtered state', async () => {
             [collectionElement, render] = prepareTemplate(
                 'plansPagination',

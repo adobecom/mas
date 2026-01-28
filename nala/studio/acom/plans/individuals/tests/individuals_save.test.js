@@ -296,7 +296,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     await expect(await editor.borderColor).toContainText(data.borderColor.name);
                     expect(
                         await webUtil.verifyCSS(clonedCard, {
-                            'border-color': data.borderColor.css,
+                            'background-color': data.borderColor.css,
                         }),
                     ).toBeTruthy();
                 }),

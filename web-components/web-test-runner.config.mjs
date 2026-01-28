@@ -28,7 +28,9 @@ export default {
     },
     debug: false,
     files: ['test/**/*.test.(js|html)'],
-    testsFinishTimeout: 600000, // 10 minutes - collection tests hang in CI
+    testsFinishTimeout: 300000, // 5 minutes for slow tests
+    browserStartTimeout: 60000, // 1 minute to start browser
+    concurrency: 1, // Run one test file at a time to prevent resource contention
     nodeResolve: true,
     mimeTypes: {
         '**/*.snap': 'html',

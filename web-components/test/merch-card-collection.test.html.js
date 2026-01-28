@@ -476,6 +476,20 @@ runTests(async () => {
             aemFragment.cache.clear();
         });
     });
+
+    // Clean up deeplink hashchange listeners from static sidenav components
+    // to prevent test runner from hanging after tests complete
+    after(async () => {
+        const components = [
+            document.querySelector('merch-search'),
+            ...document.querySelectorAll('merch-sidenav-list'),
+            document.querySelector('merch-sidenav-checkbox-group'),
+            ...document.querySelectorAll('merch-card-collection'),
+        ].filter(Boolean);
+        await Promise.all(components.map((el) => el.updateComplete));
+        components.forEach((el) => el.stopDeeplink?.());
+        document.location.hash = '';
+    });
 });
 
 document.getElementById('showMore').addEventListener('click', () => {

@@ -6,7 +6,7 @@ const logger = Core.Logger('main', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 10;
 
 async function main(params) {
-    const batchSize = Number(params.batchSize) ?? DEFAULT_BATCH_SIZE;
+    const batchSize = params.batchSize || DEFAULT_BATCH_SIZE;
 
     try {
         logger.info('Calling the main action');

@@ -8,8 +8,8 @@ import './mas-toolbar.js';
 import './mas-content.js';
 import './mas-promotions.js';
 import './mas-promotions-editor.js';
-import './mas-translation.js';
-import './mas-translation-editor.js';
+import './translation/mas-translation.js';
+import './translation/mas-translation-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
@@ -29,6 +29,7 @@ import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
+import './utils/price-error-handler.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',

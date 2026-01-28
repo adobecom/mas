@@ -25,7 +25,7 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDefaultLocale, getLocaleCode } from './locales.js';
+import { getDefaultLocale, getLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
@@ -1104,13 +1104,8 @@ export class MasRepository extends LitElement {
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
      */
     async deleteFragmentWithVariations(fragment) {
-        let variations = fragment.getVariations();
+        const variations = fragment.getVariations();
         const failedVariations = [];
-
-        if (variations.length === 0) {
-            const foundVariations = await this.aem.sites.cf.fragments.findVariationsByName(fragment);
-            variations = foundVariations.map((v) => v.path);
-        }
 
         if (variations.length > 0) {
             showToast(`Deleting fragment and ${variations.length} variation(s)...`);

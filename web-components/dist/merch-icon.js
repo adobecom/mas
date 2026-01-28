@@ -1,8 +1,11 @@
-var h=Object.defineProperty;var f=(i,t,e)=>t in i?h(i,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):i[t]=e;var x=(i,t)=>()=>(i&&(t=i(i=0)),t);var b=(i,t)=>{for(var e in t)h(i,e,{get:t[e],enumerable:!0})};var s=(i,t,e)=>f(i,typeof t!="symbol"?t+"":t,e);var g={};b(g,{default:()=>r});import{LitElement as y,html as l,css as v}from"./lit-all.min.js";function S(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var r,d=x(()=>{r=class extends y{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs"}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?l`<merch-icon
+var d=Object.defineProperty;var b=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):o[t]=e;var v=(o,t)=>()=>(o&&(t=o(o=0)),t);var y=(o,t)=>{for(var e in t)d(o,e,{get:t[e],enumerable:!0})};var l=(o,t,e)=>b(o,typeof t!="symbol"?t+"":t,e);var g={};y(g,{default:()=>p});import{LitElement as x,html as c,css as T}from"./lit-all.min.js";function w(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var i,p,u=v(()=>{i=class i extends x{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let e=t.composedPath();i.activeTooltip===this&&!e.includes(this)&&this.hideTooltip()}showTooltip(){i.activeTooltip&&i.activeTooltip!==this&&(i.activeTooltip.closeOverlay(),i.activeTooltip.tooltipVisible=!1,i.activeTooltip.requestUpdate()),i.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){i.activeTooltip===this&&(i.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?c`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:l`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;return t?S()?l`
-                <overlay-trigger placement="${e}">
+        ></merch-icon>`:c`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;return t?w()?c`
+                <overlay-trigger
+                    placement="${e}"
+                    @sp-opened=${()=>this.showTooltip()}
+                >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
                         placement="${e}"
@@ -11,17 +14,21 @@ var h=Object.defineProperty;var f=(i,t,e)=>t in i?h(i,t,{enumerable:!0,configura
                         ${t}
                     </sp-tooltip>
                 </overlay-trigger>
-            `:l`
+            `:c`
                 <span
-                    class="css-tooltip ${e}"
+                    class="css-tooltip ${e} ${this.tooltipVisible?"tooltip-visible":""}"
                     data-tooltip="${t}"
                     tabindex="0"
                     role="img"
                     aria-label="${t}"
+                    @pointerdown=${s=>{this.lastPointerType=s.pointerType}}
+                    @pointerenter=${s=>s.pointerType!=="touch"&&this.showTooltip()}
+                    @pointerleave=${s=>s.pointerType!=="touch"&&this.hideTooltip()}
+                    @click=${s=>{this.lastPointerType==="touch"&&this.handleTap(s),this.lastPointerType=null}}
                 >
                     ${this.renderIcon()}
                 </span>
-            `:this.renderIcon()}};s(r,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"}}),s(r,"styles",v`
+            `:this.renderIcon()}};l(i,"activeTooltip",null),l(i,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),l(i,"styles",T`
         :host {
             display: contents;
             overflow: visible;
@@ -44,9 +51,13 @@ var h=Object.defineProperty;var f=(i,t,e)=>t in i?h(i,t,{enumerable:!0,configura
             border-radius: 4px;
             white-space: normal;
             width: max-content;
+            max-width: 60px;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.2s ease,
+                visibility 0.2s ease;
             font-size: 12px;
             line-height: 1.4;
             text-align: center;
@@ -60,15 +71,19 @@ var h=Object.defineProperty;var f=(i,t,e)=>t in i?h(i,t,{enumerable:!0,configura
             height: 0;
             border: 6px solid transparent;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.1s ease,
+                visibility 0.1s ease;
         }
 
-        .css-tooltip:hover[data-tooltip]::before,
-        .css-tooltip:hover[data-tooltip]::after,
-        .css-tooltip:focus[data-tooltip]::before,
-        .css-tooltip:focus[data-tooltip]::after {
+        .css-tooltip.tooltip-visible[data-tooltip]::before,
+        .css-tooltip.tooltip-visible[data-tooltip]::after,
+        .css-tooltip:focus-visible[data-tooltip]::before,
+        .css-tooltip:focus-visible[data-tooltip]::after {
             opacity: 1;
+            visibility: visible;
         }
 
         /* Position variants */
@@ -107,6 +122,7 @@ var h=Object.defineProperty;var f=(i,t,e)=>t in i?h(i,t,{enumerable:!0,configura
             top: 50%;
             transform: translateY(-50%);
             margin-right: 10px;
+            left: var(--tooltip-left-offset, auto);
         }
 
         .css-tooltip.left[data-tooltip]::after {
@@ -131,17 +147,17 @@ var h=Object.defineProperty;var f=(i,t,e)=>t in i?h(i,t,{enumerable:!0,configura
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);customElements.define("mas-mnemonic",r)});import{LitElement as $,html as u,css as w}from"./lit-all.min.js";function z(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var n=class extends ${constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(z())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let a="",p="top";if(e.tagName==="SP-TOOLTIP")a=e.textContent,p=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let o=e.querySelector("sp-tooltip");o&&(a=o.textContent,p=o.getAttribute("placement")||e.getAttribute("placement")||"top")}if(a){let o=document.createElement("mas-mnemonic");o.setAttribute("content",a),o.setAttribute("placement",p);let c=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(c)?o.appendChild(m):c&&o.appendChild(c),this.innerHTML="",this.appendChild(o),Promise.resolve().then(()=>d())}e.remove()})}render(){let{href:t}=this;return t?u`<a href="${t}">
+    `);p=i;customElements.define("mas-mnemonic",p)});import{LitElement as S,html as f,css as $}from"./lit-all.min.js";function C(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var a=class extends S{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(C())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let n="",s="top";if(e.tagName==="SP-TOOLTIP")n=e.textContent,s=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let r=e.querySelector("sp-tooltip");r&&(n=r.textContent,s=r.getAttribute("placement")||e.getAttribute("placement")||"top")}if(n){let r=document.createElement("mas-mnemonic");r.setAttribute("content",n),r.setAttribute("placement",s);let h=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(h)?r.appendChild(m):h&&r.appendChild(h),this.innerHTML="",this.appendChild(r),Promise.resolve().then(()=>u())}e.remove()})}render(){let{href:t}=this;return t?f`<a href="${t}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>`:u` <img
+              </a>`:f` <img
                   src="${this.src}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`}};s(n,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),s(n,"styles",w`
+              />`}};l(a,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),l(a,"styles",$`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -179,4 +195,4 @@ var h=Object.defineProperty;var f=(i,t,e)=>t in i?h(i,t,{enumerable:!0,configura
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `);customElements.define("merch-icon",n);export{n as default};
+    `);customElements.define("merch-icon",a);export{a as default};

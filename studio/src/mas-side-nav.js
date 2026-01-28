@@ -8,7 +8,6 @@ import './mas-side-nav-item.js';
 
 class MasSideNav extends LitElement {
     static properties = {
-        editorHasChanges: { type: Boolean, state: true },
         variationDataLoading: { type: Boolean, state: true },
     };
 
@@ -51,17 +50,14 @@ class MasSideNav extends LitElement {
     currentPage = new StoreController(this, Store.page);
     viewMode = new StoreController(this, Store.viewMode);
     search = new StoreController(this, Store.search);
-    editorHasChanges = false;
     variationDataLoading = false;
     fragmentStoreSubscription = null;
     variationLoadingTimeout = null;
 
     connectedCallback() {
         super.connectedCallback();
-        this.updateEditorChangesState();
 
         const fragmentStoreHandler = () => {
-            this.updateEditorChangesState();
             this.requestUpdate();
         };
 
@@ -86,7 +82,6 @@ class MasSideNav extends LitElement {
                 }
             }
 
-            this.updateEditorChangesState();
             this.requestUpdate();
         };
 
@@ -133,10 +128,6 @@ class MasSideNav extends LitElement {
             clearTimeout(this.variationLoadingTimeout);
             this.variationLoadingTimeout = null;
         }
-    }
-
-    updateEditorChangesState() {
-        this.editorHasChanges = Store.editor.hasChanges;
     }
 
     async updateVariationLoadingState() {
@@ -286,7 +277,7 @@ class MasSideNav extends LitElement {
         const loading = this.variationDataLoading;
 
         return html`
-            <mas-side-nav-item label="Save" ?disabled=${!this.editorHasChanges || loading} @nav-click="${this.saveFragment}">
+            <mas-side-nav-item label="Save" ?disabled=${!Store.editor.hasChanges || loading} @nav-click="${this.saveFragment}">
                 <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
             </mas-side-nav-item>
             ${!isVariation
@@ -294,11 +285,11 @@ class MasSideNav extends LitElement {
                       <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
                           <sp-icon-add slot="icon"></sp-icon-add>
                       </mas-side-nav-item>
+                      <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
+                          <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                      </mas-side-nav-item>
                   `
                 : ''}
-            <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
-                <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
-            </mas-side-nav-item>
             <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>

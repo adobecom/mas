@@ -41,7 +41,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await editor.variant.locator('sp-picker').first().click();
+            await editor.variant.click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
@@ -472,7 +472,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     );
                     await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('is', 'checkout-link');
                     const CTAhref = await clonedCard.locator(individuals.cardCTA).getAttribute('href');
-                    let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+                    const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
                     expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
                     expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
                     expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
@@ -534,6 +534,26 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-4: Validate description field updated', async () => {
             await expect(await editor.description).toContainText(data.legalDisclaimer);
             await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimer);
+        });
+
+        await test.step('step-5: Edit legal disclaimer tax field', async () => {
+            await expect(await editor.description).toBeVisible();
+            await expect(await editor.description.locator(editor.legalDisclaimer)).toBeVisible();
+            await editor.description.locator(editor.legalDisclaimer).dblclick();
+            await ost.legalDisclaimer.scrollIntoViewIfNeeded();
+            await expect(await ost.legalDisclaimer).not.toContainText(data.legalDisclaimerTax);
+            await expect(await ost.unitCheckbox).toBeVisible();
+            await expect(await ost.taxlabelCheckbox).toBeVisible();
+            await ost.taxlabelCheckbox.click();
+            await expect(await ost.legalDisclaimer).toContainText(data.legalDisclaimerTax);
+            await expect(await ost.legalDisclaimerUse).toBeVisible();
+            await ost.legalDisclaimerUse.click();
+            await studio.saveCard();
+        });
+
+        await test.step('step-6: Validate legal disclaimer tax field updated', async () => {
+            await expect(await editor.description).toContainText(data.legalDisclaimerTax);
+            await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimerTax);
         });
     });
 

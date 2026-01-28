@@ -38,14 +38,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'plans');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'plans');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await expect(await editor.size).not.toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).toBeVisible();
@@ -110,14 +110,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'plans');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'plans');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).not.toBeVisible();
             await expect(await editor.subtitle).not.toBeVisible();
@@ -183,14 +183,14 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'plans');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'plans');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'try buy widget' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).not.toBeVisible();
@@ -488,7 +488,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.calloutRTE).toContainText(data.calloutText.original);
             await editor.calloutRTE.click();
             await page.waitForTimeout(500);
-            await editor.calloutRTE.clear();
+            await page.keyboard.press('ControlOrMeta+A');
+            await page.keyboard.press('Backspace');
             await page.waitForTimeout(1000);
             await expect(await editor.calloutRTE).toHaveText('');
         });
@@ -1290,7 +1291,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await individuals.cardCTA).toHaveAttribute('is', 'checkout-link');
             const CTAhref = await individuals.cardCTA.getAttribute('href');
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
             expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
@@ -1302,7 +1303,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Verify there is no changes of the card', async () => {
             const changedCTAhref = await individuals.cardCTA.getAttribute('href');
-            let noSearchParams = new URLSearchParams(decodeURI(changedCTAhref).split('?')[1]);
+            const noSearchParams = new URLSearchParams(decodeURI(changedCTAhref).split('?')[1]);
             expect(noSearchParams).toBeNull;
         });
     });
@@ -1397,8 +1398,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             );
 
             const CTAhref = await individuals.cardCTA.getAttribute('href');
-            let workflowStep = decodeURI(CTAhref).split('?')[0];
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const workflowStep = decodeURI(CTAhref).split('?')[0];
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
 
             expect(workflowStep).toContain(data.cta.updated.ucv3);
             expect(searchParams.get('co')).toBe(data.cta.country);
@@ -1493,8 +1494,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individuals.cardCTA).toHaveAttribute('data-promotion-code', data.promo.original);
 
             const CTAhref = await individuals.cardCTA.getAttribute('href');
-            let workflowStep = decodeURI(CTAhref).split('?')[0];
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const workflowStep = decodeURI(CTAhref).split('?')[0];
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
 
             expect(workflowStep).toContain(data.ucv3);
             expect(searchParams.get('co')).toBe(data.country);

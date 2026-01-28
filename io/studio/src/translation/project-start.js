@@ -105,9 +105,16 @@ async function main(params) {
         const translationFlow = translationMapping[surface];
         logger.info(`Translation flow: ${translationFlow}`);
 
-        return { itemsToTranslate, locales, surface, translationFlow: translationFlow ? {
-            [translationFlow]: true,
-        } : {} };
+        return {
+            itemsToTranslate,
+            locales,
+            surface,
+            translationFlow: translationFlow
+                ? {
+                      [translationFlow]: true,
+                  }
+                : {},
+        };
     }
 
     // Helper function to send a single request with retry logic
@@ -238,7 +245,9 @@ async function main(params) {
             });
             if (!response.ok) {
                 logger.error(`Failed to update translation project submission date: ${response.status} ${response.statusText}`);
-                throw new Error(`Failed to update translation project submission date: ${response.status} ${response.statusText}`);
+                throw new Error(
+                    `Failed to update translation project submission date: ${response.status} ${response.statusText}`,
+                );
             }
             return response.ok;
         } catch (error) {

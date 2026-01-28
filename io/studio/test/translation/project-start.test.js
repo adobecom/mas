@@ -13,7 +13,7 @@ describe('Translation project-start', () => {
     let fetchStub;
     let setTimeoutStub;
 
-    beforeEach(function() {
+    beforeEach(function () {
         // Increase timeout for this hook to 5 seconds to handle module loading
         this.timeout(5000);
 
@@ -877,8 +877,12 @@ describe('Translation project-start', () => {
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
-            expect(result.error.body.error).to.match(/Internal server error - Failed to update translation project submission date/);
-            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Failed to update translation project submission date/));
+            expect(result.error.body.error).to.match(
+                /Internal server error - Failed to update translation project submission date/,
+            );
+            expect(mockLogger.error).to.have.been.calledWith(
+                sinon.match(/Failed to update translation project submission date/),
+            );
         });
 
         it('should return 500 if submissionDate field is not found', async () => {

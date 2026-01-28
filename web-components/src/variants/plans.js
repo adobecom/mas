@@ -458,7 +458,7 @@ export class Plans extends VariantLayout {
     static collectionOptions = {
         pagination: {
             enabled: true,
-            defaultLimit: 27, // Show 27 cards initially (3x3 grid)
+            defaultPageSize: 27, // Show 27 cards initially (3x3 grid)
             respectFiltered: true, // Plans often uses filtered='all'
         },
         customHeaderArea: (collection) => {

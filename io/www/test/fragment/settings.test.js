@@ -332,36 +332,36 @@ describe('settings transformer', () => {
         expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
     });
 
-    it('should add schema with pagination enabled when paginationLimit is set', async () => {
+    it('should add schema with pagination enabled when pageSize is set', async () => {
         context.body = {
             model: { id: COLLECTION_MODEL_ID },
             fields: {
-                paginationLimit: 12,
+                pageSize: 12,
             },
         };
         const result = await settings.process(context);
         expect(result.body.schema).to.deep.equal({
             pagination: {
                 enabled: true,
-                limit: 12,
+                pageSize: 12,
                 showMore: true,
             },
             modelId: COLLECTION_MODEL_ID,
         });
     });
 
-    it('should add schema with pagination disabled when paginationLimit is empty', async () => {
+    it('should add schema with pagination disabled when pageSize is empty', async () => {
         context.body = {
             model: { id: COLLECTION_MODEL_ID },
             fields: {
-                paginationLimit: '',
+                pageSize: '',
             },
         };
         const result = await settings.process(context);
         expect(result.body.schema).to.deep.equal({
             pagination: {
                 enabled: false,
-                limit: null,
+                pageSize: null,
                 showMore: false,
             },
             modelId: COLLECTION_MODEL_ID,
@@ -377,25 +377,25 @@ describe('settings transformer', () => {
         expect(result.body.schema).to.deep.equal({
             pagination: {
                 enabled: false,
-                limit: null,
+                pageSize: null,
                 showMore: false,
             },
             modelId: COLLECTION_MODEL_ID,
         });
     });
 
-    it('should add schema with pagination enabled for string paginationLimit', async () => {
+    it('should add schema with pagination enabled for string pageSize', async () => {
         context.body = {
             model: { id: COLLECTION_MODEL_ID },
             fields: {
-                paginationLimit: '24',
+                pageSize: '24',
             },
         };
         const result = await settings.process(context);
         expect(result.body.schema).to.deep.equal({
             pagination: {
                 enabled: true,
-                limit: 24,
+                pageSize: 24,
                 showMore: true,
             },
             modelId: COLLECTION_MODEL_ID,

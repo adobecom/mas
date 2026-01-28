@@ -208,4 +208,4 @@ export const QUICK_ACTION = {
 };
 
 // Collection field names
-export const PAGINATION_LIMIT_FIELD = 'paginationLimit';
+export const PAGE_SIZE_FIELD = 'pageSize';

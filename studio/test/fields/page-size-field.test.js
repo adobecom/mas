@@ -3,16 +3,16 @@ import { html } from 'lit';
 import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
 
 import '../../src/swc.js';
-import '../../src/fields/pagination-limit-field.js';
+import '../../src/fields/page-size-field.js';
 
 import { spTheme } from '../utils.js';
 
-describe('PaginationLimitField', () => {
+describe('PageSizeField', () => {
     it('should render without throwing an exception', async () => {
         let error = null;
         let el;
         try {
-            el = await fixture(html`<mas-pagination-limit-field></mas-pagination-limit-field>`, {
+            el = await fixture(html`<mas-page-size-field></mas-page-size-field>`, {
                 parentNode: spTheme(),
             });
         } catch (e) {
@@ -22,15 +22,15 @@ describe('PaginationLimitField', () => {
         expect(el).to.exist;
     });
 
-    it('should initialize with toggle off and default limit', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field></mas-pagination-limit-field>`, {
+    it('should initialize with toggle off and default pageSize', async () => {
+        const el = await fixture(html`<mas-page-size-field></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
         const toggle = el.shadowRoot.querySelector('sp-switch');
         expect(toggle.checked).to.be.false;
         expect(el.enabled).to.be.false;
-        expect(el.limit).to.equal(27);
+        expect(el.pageSize).to.equal(27);
 
         // Number field should not be visible when disabled
         const numberField = el.shadowRoot.querySelector('sp-number-field');
@@ -38,12 +38,12 @@ describe('PaginationLimitField', () => {
     });
 
     it('should parse numeric value and enable toggle', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field value="12"></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field value="12"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
         expect(el.enabled).to.be.true;
-        expect(el.limit).to.equal(12);
+        expect(el.pageSize).to.equal(12);
 
         const toggle = el.shadowRoot.querySelector('sp-switch');
         expect(toggle.checked).to.be.true;
@@ -54,7 +54,7 @@ describe('PaginationLimitField', () => {
     });
 
     it('should show number field when toggle is enabled', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
@@ -73,8 +73,8 @@ describe('PaginationLimitField', () => {
         expect(numberField).to.exist;
     });
 
-    it('should dispatch input event with value when limit changes', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field value="9"></mas-pagination-limit-field>`, {
+    it('should dispatch input event with value when pageSize changes', async () => {
+        const el = await fixture(html`<mas-page-size-field value="9"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
@@ -89,7 +89,7 @@ describe('PaginationLimitField', () => {
     });
 
     it('should clear value when toggle is disabled', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field value="12"></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field value="12"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
@@ -105,25 +105,25 @@ describe('PaginationLimitField', () => {
     });
 
     it('should handle empty string value correctly', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field value=""></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field value=""></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
         expect(el.enabled).to.be.false;
-        expect(el.limit).to.equal(27); // Default
+        expect(el.pageSize).to.equal(27); // Default
     });
 
     it('should handle invalid value gracefully', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field value="invalid"></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field value="invalid"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
         expect(el.enabled).to.be.false;
-        expect(el.limit).to.equal(27); // Default
+        expect(el.pageSize).to.equal(27); // Default
     });
 
     it('should support custom label', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field label="Custom Label"></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field label="Custom Label"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
@@ -132,29 +132,29 @@ describe('PaginationLimitField', () => {
     });
 
     it('should handle value of zero as disabled', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field value="0"></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field value="0"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
         expect(el.enabled).to.be.false;
-        expect(el.limit).to.equal(27); // Default
+        expect(el.pageSize).to.equal(27); // Default
     });
 
     it('should handle negative values as disabled', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field value="-5"></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field value="-5"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
         expect(el.enabled).to.be.false;
-        expect(el.limit).to.equal(27); // Default
+        expect(el.pageSize).to.equal(27); // Default
     });
 
-    it('should preserve limit value when toggle is re-enabled', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field value="15"></mas-pagination-limit-field>`, {
+    it('should preserve pageSize value when toggle is re-enabled', async () => {
+        const el = await fixture(html`<mas-page-size-field value="15"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
-        expect(el.limit).to.equal(15);
+        expect(el.pageSize).to.equal(15);
 
         const toggle = el.shadowRoot.querySelector('sp-switch');
 
@@ -164,7 +164,7 @@ describe('PaginationLimitField', () => {
         await el.updateComplete;
 
         expect(el.value).to.equal('');
-        expect(el.limit).to.equal(15); // Limit should be preserved
+        expect(el.pageSize).to.equal(15); // pageSize should be preserved
 
         // Re-enable
         const listener = oneEvent(el, 'input');
@@ -176,16 +176,16 @@ describe('PaginationLimitField', () => {
     });
 
     it('should have default id and label', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 
-        expect(el.id).to.equal('pagination-limit');
+        expect(el.id).to.equal('page-size');
         expect(el.label).to.equal('Show More Pagination');
     });
 
     it('should allow custom id', async () => {
-        const el = await fixture(html`<mas-pagination-limit-field id="custom-id"></mas-pagination-limit-field>`, {
+        const el = await fixture(html`<mas-page-size-field id="custom-id"></mas-page-size-field>`, {
             parentNode: spTheme(),
         });
 

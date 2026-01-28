@@ -350,7 +350,7 @@ runTests(async () => {
             expect(showMoreButton).to.exist;
         });
 
-        it('should respect defaultLimit from collectionOptions', async () => {
+        it('should respect defaultPageSize from collectionOptions', async () => {
             [collectionElement, render] = prepareTemplate(
                 'plansPagination',
                 false,
@@ -358,7 +358,7 @@ runTests(async () => {
             render();
             await delay(200);
 
-            // Should show 9 cards initially (limit attribute set on template)
+            // Should show 9 cards initially (page-size attribute set on template)
             expect(visibleCards().length).to.equal(9);
         });
 
@@ -403,7 +403,7 @@ runTests(async () => {
 
             const config = collectionElement.paginationConfig;
             expect(config.enabled).to.be.true;
-            expect(config.defaultLimit).to.equal(27);
+            expect(config.defaultPageSize).to.equal(27);
             expect(config.respectFiltered).to.be.true;
         });
     });

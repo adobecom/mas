@@ -9,7 +9,7 @@ import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
-import '../fields/pagination-limit-field.js';
+import '../fields/page-size-field.js';
 
 const CARDS_SECTION = 'cards-section';
 
@@ -169,8 +169,8 @@ class MerchCardCollectionEditor extends LitElement {
         return this.#getFieldValue('linkText');
     }
 
-    get paginationLimit() {
-        return this.#getFieldValue('paginationLimit');
+    get pageSize() {
+        return this.#getFieldValue('pageSize');
     }
 
     #getField(fieldName) {
@@ -998,13 +998,13 @@ class MerchCardCollectionEditor extends LitElement {
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
-                    <mas-pagination-limit-field
-                        id="paginationLimit"
+                    <mas-page-size-field
+                        id="pageSize"
                         label="Show More Pagination"
-                        data-field="paginationLimit"
-                        .value=${this.paginationLimit}
+                        data-field="pageSize"
+                        .value=${this.pageSize}
                         @input=${this.updateFragment}
-                    ></mas-pagination-limit-field>
+                    ></mas-page-size-field>
                 </div>
             </div>
         `;

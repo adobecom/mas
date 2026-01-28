@@ -85,7 +85,7 @@ export class MerchCardCollection extends LitElement {
         filter: { type: String, attribute: 'filter', reflect: true },
         filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
         hasMore: { type: Boolean },
-        limit: { type: Number, attribute: 'limit' },
+        pageSize: { type: Number, attribute: 'page-size' },
         overrides: { type: String },
         page: { type: Number, attribute: 'page', reflect: true },
         paginationEnabled: { type: Boolean, attribute: 'pagination' },
@@ -174,10 +174,10 @@ export class MerchCardCollection extends LitElement {
             .map((element, index) => [element, index]);
 
         this.resultCount = result.length;
-        if (this.page && this.limit) {
-            const pageSize = this.page * this.limit;
-            this.hasMore = result.length > pageSize;
-            result = result.filter(([, index]) => index < pageSize);
+        if (this.page && this.pageSize) {
+            const visibleCount = this.page * this.pageSize;
+            this.hasMore = result.length > visibleCount;
+            result = result.filter(([, index]) => index < visibleCount);
         }
         const reduced = new Map(result.reverse());
         for (const card of reduced.keys()) {
@@ -252,9 +252,9 @@ export class MerchCardCollection extends LitElement {
         if (this.filtered) {
             this.filter = this.filtered;
             this.page = 1;
-            // If pagination is enabled for filtered state, set limit
+            // If pagination is enabled for filtered state, set pageSize
             if (config.enabled && config.respectFiltered) {
-                this.limit = this.limit ?? config.defaultLimit;
+                this.pageSize = this.pageSize ?? config.defaultPageSize;
             }
         } else {
             this.startDeeplink();
@@ -479,12 +479,12 @@ export class MerchCardCollection extends LitElement {
                 if (schemaPagination.enabled != null) {
                     this.paginationEnabled = schemaPagination.enabled;
                 }
-                if (schemaPagination.limit != null) {
-                    this.limit = schemaPagination.limit;
+                if (schemaPagination.pageSize != null) {
+                    this.pageSize = schemaPagination.pageSize;
                 }
             }
             const config = this.paginationConfig;
-            this.limit = this.limit ?? config.defaultLimit; // number of cards per "page"
+            this.pageSize = this.pageSize ?? config.defaultPageSize; // number of cards per "page"
             this.data = normalizePayload(event.detail, this.#overrideMap);
             const { cards, hierarchy } = this.data;
 
@@ -598,7 +598,7 @@ export class MerchCardCollection extends LitElement {
         return {
             enabled:
                 this.paginationEnabled ?? variantPagination.enabled ?? false,
-            defaultLimit: variantPagination.defaultLimit ?? 27,
+            defaultPageSize: variantPagination.defaultPageSize ?? 27,
             respectFiltered: variantPagination.respectFiltered ?? false,
         };
     }

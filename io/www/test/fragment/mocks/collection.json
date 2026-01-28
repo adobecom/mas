@@ -11,7 +11,7 @@
         "label": "Plans Page Collection: Individuals",
         "cards": [],
         "collections": [],
-        "paginationLimit": 12
+        "pageSize": 12
     },
     "references": {},
     "referencesTree": [],

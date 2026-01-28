@@ -1,13 +1,13 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { EVENT_INPUT } from '../constants.js';
 
-export class PaginationLimitField extends LitElement {
+export class PageSizeField extends LitElement {
     static properties = {
         id: { type: String },
         label: { type: String },
         value: { type: String },
         enabled: { type: Boolean, state: true },
-        limit: { type: Number, state: true },
+        pageSize: { type: Number, state: true },
     };
 
     static get styles() {
@@ -24,7 +24,7 @@ export class PaginationLimitField extends LitElement {
                 gap: 8px;
             }
 
-            .limit-input {
+            .page-size-input {
                 margin-top: 12px;
             }
 
@@ -46,11 +46,11 @@ export class PaginationLimitField extends LitElement {
 
     constructor() {
         super();
-        this.id = 'pagination-limit';
+        this.id = 'page-size';
         this.label = 'Show More Pagination';
         this.value = '';
         this.enabled = false;
-        this.limit = 27; // Default limit matching catalog
+        this.pageSize = 27; // Default page size matching catalog
     }
 
     updated(changedProperties) {
@@ -62,15 +62,15 @@ export class PaginationLimitField extends LitElement {
     #parseValue() {
         if (!this.value || this.value === '') {
             this.enabled = false;
-            // Don't reset limit when value is cleared - preserve it for re-enabling
+            // Don't reset pageSize when value is cleared - preserve it for re-enabling
         } else {
             const parsed = parseInt(this.value, 10);
             if (!isNaN(parsed) && parsed > 0) {
                 this.enabled = true;
-                this.limit = parsed;
+                this.pageSize = parsed;
             } else {
                 this.enabled = false;
-                // Don't reset limit for invalid values - preserve current limit
+                // Don't reset pageSize for invalid values - preserve current pageSize
             }
         }
     }
@@ -78,18 +78,18 @@ export class PaginationLimitField extends LitElement {
     #handleToggle(e) {
         this.enabled = e.target.checked;
         if (this.enabled) {
-            this.value = String(this.limit);
+            this.value = String(this.pageSize);
         } else {
             this.value = '';
         }
         this.#dispatchInputEvent();
     }
 
-    #handleLimitChange(e) {
-        const newLimit = parseInt(e.target.value, 10);
-        if (!isNaN(newLimit) && newLimit > 0) {
-            this.limit = newLimit;
-            this.value = String(this.limit);
+    #handlePageSizeChange(e) {
+        const newPageSize = parseInt(e.target.value, 10);
+        if (!isNaN(newPageSize) && newPageSize > 0) {
+            this.pageSize = newPageSize;
+            this.value = String(this.pageSize);
             this.#dispatchInputEvent();
         }
     }
@@ -117,15 +117,15 @@ export class PaginationLimitField extends LitElement {
                 </div>
                 ${this.enabled
                     ? html`
-                          <div class="limit-input">
-                              <sp-field-label for="${this.id}-limit">Initial cards to display</sp-field-label>
+                          <div class="page-size-input">
+                              <sp-field-label for="${this.id}-value">Initial cards to display</sp-field-label>
                               <sp-number-field
-                                  id="${this.id}-limit"
-                                  .value="${this.limit}"
+                                  id="${this.id}-value"
+                                  .value="${this.pageSize}"
                                   min="1"
                                   max="100"
                                   step="1"
-                                  @change="${this.#handleLimitChange}"
+                                  @change="${this.#handlePageSizeChange}"
                               ></sp-number-field>
                           </div>
                       `
@@ -135,4 +135,4 @@ export class PaginationLimitField extends LitElement {
     }
 }
 
-customElements.define('mas-pagination-limit-field', PaginationLimitField);
+customElements.define('mas-page-size-field', PageSizeField);

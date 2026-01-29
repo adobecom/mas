@@ -254,7 +254,6 @@ class MasSideNav extends LitElement {
             </mas-side-nav-item>
             <mas-side-nav-item
                 label="Translations"
-                disabled
                 ?selected=${Store.page.get() === PAGE_NAMES.TRANSLATIONS}
                 @nav-click=${this.isTranslationEnabled ? router.navigateToPage(PAGE_NAMES.TRANSLATIONS) : nothing}
             >

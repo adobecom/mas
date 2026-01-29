@@ -151,7 +151,9 @@ class MasTranslationEditor extends LitElement {
             fields: [
                 { name: 'title', type: 'text', multiple: false, values: [] },
                 { name: 'status', type: 'text', multiple: false, values: [] },
-                { name: 'items', type: 'content-fragment', multiple: true, values: [] },
+                { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
+                { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
+                { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'targetLocales', type: 'text', multiple: true, values: [] },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
             ],
@@ -178,6 +180,19 @@ class MasTranslationEditor extends LitElement {
         return requiredFields.every((field) => translationProject.getFieldValue(field));
     }
 
+    #getValues(field) {
+        switch (field.name) {
+            case 'fragments':
+                return Store.translationProjects.selectedCards.value;
+            case 'placeholders':
+                return Store.translationProjects.selectedPlaceholders.value;
+            case 'collections':
+                return Store.translationProjects.selectedCollections.value;
+            default:
+                return field.values;
+        }
+    }
+
     async #createTranslationProject() {
         if (!this.#validateRequiredFields(this.translationProject)) {
             showToast('Please fill in all required fields.', 'negative');
@@ -187,7 +202,9 @@ class MasTranslationEditor extends LitElement {
         const typeMap = {
             title: { type: 'text', multiple: false },
             status: { type: 'text', multiple: false },
-            items: { type: 'content-fragment', multiple: true },
+            fragments: { type: 'content-fragment', multiple: true },
+            placeholders: { type: 'content-fragment', multiple: true },
+            collections: { type: 'content-fragment', multiple: true },
             targetLocales: { type: 'text', multiple: true },
             submissionDate: { type: 'date-time', multiple: false },
         };
@@ -201,7 +218,7 @@ class MasTranslationEditor extends LitElement {
                 name: field.name,
                 type: typeMap[field.name]?.type ?? field.type,
                 multiple: typeMap[field.name]?.multiple ?? field.multiple ?? false,
-                values: field.values,
+                values: this.#getValues(field),
             })),
         };
 
@@ -283,7 +300,7 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #discardUnsavedChanges() {
-        if (this.translationProject?.hasChanges) {
+        if (this.translationProject?.hasChanges || this.selectedCount > 0 || this.targetLocalesCount > 0) {
             const confirmed = await this.#showDialog(
                 'Confirm Discard',
                 'Are you sure you want to discard changes? This action cannot be undone',
@@ -300,6 +317,10 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.translationProjectId.set(this.translationProject.id);
         this.showSelectedEmptyState = this.selectedCount === 0;
         this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
+        Store.translationProjects.selectedCards.set(this.translationProject.getFieldValues('fragments'));
+        Store.translationProjects.selectedCollections.set(this.translationProject.getFieldValues('collections'));
+        Store.translationProjects.selectedPlaceholders.set(this.translationProject.getFieldValues('placeholders'));
+        // @TODO: discarding changes for target locales
         Store.translationProjects.showSelected.set(false);
         this.#updateDisabledActions({ add: [QUICK_ACTION.DISCARD, QUICK_ACTION.SAVE] });
     }

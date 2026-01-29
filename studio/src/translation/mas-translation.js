@@ -162,6 +162,11 @@ class MasTranslation extends LitElement {
     #goToEditorNewProject() {
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.translationProjectId.set('');
+        Store.translationProjects.selectedCards.set([]);
+        Store.translationProjects.selectedCollections.set([]);
+        Store.translationProjects.selectedPlaceholders.set([]);
+        Store.translationProjects.targetLocales.set([]);
+        Store.translationProjects.showSelected.set(false);
         router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
     }
 

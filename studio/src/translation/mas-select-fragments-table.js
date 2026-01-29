@@ -170,7 +170,7 @@ class MasSelectFragmentsTable extends LitElement {
     }
 
     preselectItems() {
-        const storeSelected = Store.translationProjects[`selected${this.typeUppercased}`].value;
+        const storeSelected = Store.translationProjects[`selected${this.typeUppercased}`].value || [];
         const displayedPaths = new Set(Store.translationProjects[`display${this.typeUppercased}`].value.map((f) => f.path));
         // Only pass visible selections to the table (sp-table rejects selections for non-existent rows)
         const visibleSelections = storeSelected.filter((path) => displayedPaths.has(path));
@@ -220,7 +220,7 @@ class MasSelectFragmentsTable extends LitElement {
 
     updateSelected({ target: { selected } }) {
         this.selectedInTable = selected;
-        const currentSelected = Store.translationProjects[`selected${this.typeUppercased}`].value;
+        const currentSelected = Store.translationProjects[`selected${this.typeUppercased}`].value || [];
         const displayedPaths = new Set(Store.translationProjects[`display${this.typeUppercased}`].value.map((f) => f.path));
         // We need to preserve selections for items not currently displayed (hidden by filters) to show them when filters are removed
         const hiddenSelections = currentSelected.filter((path) => !displayedPaths.has(path));

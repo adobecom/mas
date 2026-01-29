@@ -80,7 +80,7 @@ class MasFilesSelector extends LitElement {
                         <sp-tab-panel value=${tab.value}>
                             <mas-search-and-filters
                                 .type=${tab.value}
-                                .searchOnly=${tab.value === TABLE_TYPE.PLACEHOLDERS}
+                                .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                             ></mas-search-and-filters>
                             <div class="container">
                                 <mas-select-fragments-table

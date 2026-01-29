@@ -286,7 +286,7 @@ export class MasRepository extends LitElement {
             modelIds,
             path: `${damPath}/${this.filters.value.locale}`,
             tags,
-            createdBy,
+            ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
 

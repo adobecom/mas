@@ -38,14 +38,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit card variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await expect(await editor.size).not.toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).toBeVisible();
@@ -416,7 +416,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
                 await ost.ctaTextMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.ctaText.option}`,
+                        hasText: `${data.ctaText.updated}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -424,14 +424,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.ctaText.option}`,
+                    hasText: `${data.ctaText.updated}`,
                 })
                 .click();
             await ost.checkoutLinkUse.click();
         });
 
         await test.step('step-4: Validate edited CTA in Editor panel', async () => {
-            await expect(await editor.footer).toContainText(data.ctaText.updated);
+            await expect(await editor.footer).toContainText(data.ctaText.placeholder);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {
@@ -440,8 +440,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardCTA).toHaveAttribute('is', 'checkout-button');
 
             const CTAhref = await slice.cardCTA.getAttribute('data-href');
-            let workflowStep = decodeURI(CTAhref).split('?')[0];
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const workflowStep = decodeURI(CTAhref).split('?')[0];
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
 
             expect(workflowStep).toContain(data.ucv3);
             expect(searchParams.get('co')).toBe(data.country);
@@ -615,8 +615,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardCTA).toHaveAttribute('data-promotion-code', data.promo.original);
 
             const CTAhref = await slice.cardCTA.getAttribute('data-href');
-            let workflowStep = decodeURI(CTAhref).split('?')[0];
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const workflowStep = decodeURI(CTAhref).split('?')[0];
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
 
             expect(workflowStep).toContain(data.ucv3);
             expect(searchParams.get('co')).toBe(data.country);
@@ -706,14 +706,14 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Edit card variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'try buy widget' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).not.toBeVisible();
@@ -967,7 +967,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await slice.cardCTA).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await slice.cardCTA).toHaveAttribute('is', 'checkout-button');
             const CTAhref = await slice.cardCTA.getAttribute('data-href');
-            let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+            const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
             expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
             expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
             expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
@@ -979,7 +979,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-6: Verify there is no changes of the card', async () => {
             const changedCTAhref = await slice.cardCTA.getAttribute('data-href');
-            let noSearchParams = new URLSearchParams(decodeURI(changedCTAhref).split('?')[1]);
+            const noSearchParams = new URLSearchParams(decodeURI(changedCTAhref).split('?')[1]);
             expect(noSearchParams).toBeNull;
         });
     });

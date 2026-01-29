@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { EVENT_KEYDOWN } from './constants.js';
 import { showToast, extractLocaleFromPath } from './utils.js';
 import Store from './store.js';
-import { getCountryName, getLocaleCode, getRegionLocales } from './locales.js';
+import { getCountryName, getLocaleCode, getRegionLocales } from '../../io/www/src/fragment/locales.js';
 
 export class MasVariationDialog extends LitElement {
     static properties = {

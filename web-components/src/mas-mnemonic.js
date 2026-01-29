@@ -14,6 +14,8 @@ function hasSpectrumTooltip() {
  * Automatically detects if Spectrum Web Components are available and renders appropriately
  */
 export default class MasMnemonic extends LitElement {
+    static activeTooltip = null;
+
     static properties = {
         content: { type: String },
         placement: { type: String },
@@ -26,6 +28,8 @@ export default class MasMnemonic extends LitElement {
         // Support studio's mnemonic attribute names
         mnemonicText: { type: String, attribute: 'mnemonic-text' },
         mnemonicPlacement: { type: String, attribute: 'mnemonic-placement' },
+        // Tooltip visibility state
+        tooltipVisible: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -51,9 +55,13 @@ export default class MasMnemonic extends LitElement {
             border-radius: 4px;
             white-space: normal;
             width: max-content;
+            max-width: 60px;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.2s ease,
+                visibility 0.2s ease;
             font-size: 12px;
             line-height: 1.4;
             text-align: center;
@@ -67,15 +75,19 @@ export default class MasMnemonic extends LitElement {
             height: 0;
             border: 6px solid transparent;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.1s ease,
+                visibility 0.1s ease;
         }
 
-        .css-tooltip:hover[data-tooltip]::before,
-        .css-tooltip:hover[data-tooltip]::after,
-        .css-tooltip:focus[data-tooltip]::before,
-        .css-tooltip:focus[data-tooltip]::after {
+        .css-tooltip.tooltip-visible[data-tooltip]::before,
+        .css-tooltip.tooltip-visible[data-tooltip]::after,
+        .css-tooltip:focus-visible[data-tooltip]::before,
+        .css-tooltip:focus-visible[data-tooltip]::after {
             opacity: 1;
+            visibility: visible;
         }
 
         /* Position variants */
@@ -114,6 +126,7 @@ export default class MasMnemonic extends LitElement {
             top: 50%;
             transform: translateY(-50%);
             margin-right: 10px;
+            left: var(--tooltip-left-offset, auto);
         }
 
         .css-tooltip.left[data-tooltip]::after {
@@ -146,6 +159,59 @@ export default class MasMnemonic extends LitElement {
         this.placement = 'top';
         this.variant = 'info';
         this.size = 'xs';
+        this.tooltipVisible = false;
+        this.lastPointerType = null;
+        this.handleClickOutside = this.handleClickOutside.bind(this);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        window.addEventListener('mousedown', this.handleClickOutside);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        window.removeEventListener('mousedown', this.handleClickOutside);
+    }
+
+    handleClickOutside(event) {
+        const path = event.composedPath();
+        if (MasMnemonic.activeTooltip === this && !path.includes(this)) {
+            this.hideTooltip();
+        }
+    }
+
+    showTooltip() {
+        if (MasMnemonic.activeTooltip && MasMnemonic.activeTooltip !== this) {
+            MasMnemonic.activeTooltip.closeOverlay();
+            MasMnemonic.activeTooltip.tooltipVisible = false;
+            MasMnemonic.activeTooltip.requestUpdate();
+        }
+        MasMnemonic.activeTooltip = this;
+        this.tooltipVisible = true;
+    }
+
+    hideTooltip() {
+        if (MasMnemonic.activeTooltip === this) {
+            MasMnemonic.activeTooltip = null;
+        }
+        this.tooltipVisible = false;
+    }
+
+    handleTap(e) {
+        e.preventDefault();
+        if (this.tooltipVisible) {
+            this.hideTooltip();
+        } else {
+            this.showTooltip();
+        }
+    }
+
+    closeOverlay() {
+        const trigger = this.shadowRoot?.querySelector('overlay-trigger');
+        if (trigger?.open !== undefined) {
+            trigger.open = false;
+        }
     }
 
     get effectiveContent() {
@@ -181,9 +247,12 @@ export default class MasMnemonic extends LitElement {
         const useSpectrum = hasSpectrumTooltip();
 
         if (useSpectrum) {
-            // Use Spectrum tooltip if available
+            // Use Spectrum tooltip with singleton dismiss logic
             return html`
-                <overlay-trigger placement="${placement}">
+                <overlay-trigger
+                    placement="${placement}"
+                    @sp-opened=${() => this.showTooltip()}
+                >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
                         placement="${placement}"
@@ -194,14 +263,29 @@ export default class MasMnemonic extends LitElement {
                 </overlay-trigger>
             `;
         } else {
-            // Use CSS tooltip
+            // Use CSS tooltip with pointerType-aware handlers
+            // Mouse/pen: hover to show/hide via pointerenter/leave
+            // Touch: tap to toggle via click (pointerType === 'touch')
             return html`
                 <span
-                    class="css-tooltip ${placement}"
+                    class="css-tooltip ${placement} ${this.tooltipVisible
+                        ? 'tooltip-visible'
+                        : ''}"
                     data-tooltip="${content}"
                     tabindex="0"
                     role="img"
                     aria-label="${content}"
+                    @pointerdown=${(e) => {
+                        this.lastPointerType = e.pointerType;
+                    }}
+                    @pointerenter=${(e) =>
+                        e.pointerType !== 'touch' && this.showTooltip()}
+                    @pointerleave=${(e) =>
+                        e.pointerType !== 'touch' && this.hideTooltip()}
+                    @click=${(e) => {
+                        if (this.lastPointerType === 'touch') this.handleTap(e);
+                        this.lastPointerType = null;
+                    }}
                 >
                     ${this.renderIcon()}
                 </span>

@@ -41,9 +41,18 @@ export class MerchSidenavList extends LitElement {
             text-transform: uppercase;
         }
 
+        :host(:dir(rtl)) h2 {
+            text-align: right;
+        }
+
         .right {
             position: absolute;
             right: 0;
+        }
+
+        :host(:dir(rtl)) .right {
+            right: initial;
+            left: 0;
         }
     `;
 

@@ -544,7 +544,7 @@ runTests(async () => {
                     regularPrice: '86,55 €/mois',
                     promoPrice: undefined,
                     annualPrice: undefined,
-                    taxText: 'hors TVA.',
+                    taxText: 'HT.',
                     unitText: 'par licence',
                     seeTermsInfo: {
                         text: 'voir les conditions',

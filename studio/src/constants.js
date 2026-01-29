@@ -15,6 +15,7 @@ export const CHECKOUT_CTA_TEXTS = {
     'get-offer': 'Get offer',
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
+    'get-for-free': 'Get for free',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
 export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
@@ -37,6 +38,7 @@ export const ANALYTICS_LINK_IDS = [
     'take-the-quiz',
     'upgrade-now',
     'what-is-included',
+    'get-for-free',
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {
@@ -134,6 +136,7 @@ export const FIELD_MODEL_MAPPING = {
 };
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
+export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
 
 export const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',

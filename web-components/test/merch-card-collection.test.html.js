@@ -79,19 +79,21 @@ const visibleCards = (index) => {
 let merchCards, header;
 const shouldSkipTests = sessionStorage.getItem('skipTests') ? 'true' : 'false';
 
-const sidenavContainer = document.getElementById('sidenav-container');
-
 // Render sidenav from template - this allows proper cleanup via disconnectedCallback
 const renderSidenav = () => {
-    sidenavContainer.innerHTML = '';
+    const container = document.getElementById('sidenav-container');
+    if (!container) return null;
+    container.innerHTML = '';
     const template = document.getElementById('sidenav-template');
-    sidenavContainer.appendChild(template.content.cloneNode(true));
+    if (!template) return null;
+    container.appendChild(template.content.cloneNode(true));
     return document.querySelector('merch-sidenav');
 };
 
 // Clear sidenav container - triggers disconnectedCallback and cleans up deeplink listeners
 const clearSidenav = () => {
-    sidenavContainer.innerHTML = '';
+    const container = document.getElementById('sidenav-container');
+    if (container) container.innerHTML = '';
 };
 
 runTests(async () => {
@@ -495,10 +497,13 @@ runTests(async () => {
 
     // Clean up all components with deeplink listeners by removing from DOM
     // This triggers disconnectedCallback which cleans up hashchange listeners
-    after(() => {
+    after(async () => {
         clearSidenav();
-        document.getElementById('content').innerHTML = '';
+        const content = document.getElementById('content');
+        if (content) content.innerHTML = '';
         document.location.hash = '';
+        // Give browser time to process DOM removal and trigger disconnectedCallbacks
+        await new Promise((resolve) => setTimeout(resolve, 100));
     });
 });
 

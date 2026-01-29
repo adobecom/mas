@@ -8,7 +8,7 @@ import { MasRepository } from '../mas-repository.js';
 import { PAGE_NAMES } from '../constants.js';
 import { showToast } from '../utils.js';
 
-const ALLOWED_PATHS = ['acom', 'express', 'sandbox'];
+const ALLOWED_PATHS = ['acom', 'express', 'sandbox', 'nala'];
 
 class MasTranslation extends LitElement {
     static styles = styles;
@@ -162,6 +162,11 @@ class MasTranslation extends LitElement {
     #goToEditorNewProject() {
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.translationProjectId.set('');
+        Store.translationProjects.selectedCards.set([]);
+        Store.translationProjects.selectedCollections.set([]);
+        Store.translationProjects.selectedPlaceholders.set([]);
+        Store.translationProjects.targetLocales.set([]);
+        Store.translationProjects.showSelected.set(false);
         router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
     }
 
@@ -263,7 +268,11 @@ class MasTranslation extends LitElement {
                         this.translationProjectsData,
                         (translationProject) => translationProject.get().id,
                         (translationProject) => html`
-                            <sp-table-row value=${translationProject.get().path} data-id=${translationProject.get().id}>
+                            <sp-table-row
+                                @dblclick=${() => this.#goToEditorExistingProject(translationProject)}
+                                value=${translationProject.get().path}
+                                data-id=${translationProject.get().id}
+                            >
                                 <sp-table-cell>${translationProject.get().title}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
                                 <sp-table-cell>N/A</sp-table-cell>

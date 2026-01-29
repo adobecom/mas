@@ -337,6 +337,14 @@
         }
     ],
     "priceLiterals": {},
+    "schema": {
+        "pagination": {
+            "enabled": true,
+            "pageSize": 12,
+            "showMore": true
+        },
+        "modelId": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+    },
     "placeholders": {
         "searchText": "coll-search-text",
         "filtersText": "coll-filters-text",

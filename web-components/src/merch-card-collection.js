@@ -85,9 +85,10 @@ export class MerchCardCollection extends LitElement {
         filter: { type: String, attribute: 'filter', reflect: true },
         filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
         hasMore: { type: Boolean },
-        limit: { type: Number, attribute: 'limit' },
+        pageSize: { type: Number, attribute: 'page-size' },
         overrides: { type: String },
         page: { type: Number, attribute: 'page', reflect: true },
+        paginationEnabled: { type: Boolean, attribute: 'pagination' },
         resultCount: {
             type: Number,
         },
@@ -101,6 +102,7 @@ export class MerchCardCollection extends LitElement {
             reflect: true,
         },
         types: { type: String, attribute: 'types', reflect: true },
+        variant: { type: String, attribute: 'variant', reflect: true },
     };
 
     #overrideMap = {};
@@ -123,6 +125,7 @@ export class MerchCardCollection extends LitElement {
         this.hydrationReady = null;
         this.literalsHandlerAttached = false;
         this.onUnmount = [];
+        this.paginationEnabled = undefined; // undefined = use variant default
     }
 
     render() {
@@ -171,10 +174,10 @@ export class MerchCardCollection extends LitElement {
             .map((element, index) => [element, index]);
 
         this.resultCount = result.length;
-        if (this.page && this.limit) {
-            const pageSize = this.page * this.limit;
-            this.hasMore = result.length > pageSize;
-            result = result.filter(([, index]) => index < pageSize);
+        if (this.page && this.pageSize) {
+            const visibleCount = this.page * this.pageSize;
+            this.hasMore = result.length > visibleCount;
+            result = result.filter(([, index]) => index < visibleCount);
         }
         const reduced = new Map(result.reverse());
         for (const card of reduced.keys()) {
@@ -243,13 +246,25 @@ export class MerchCardCollection extends LitElement {
     async init() {
         await this.hydrate();
         this.sidenav = this.parentElement.querySelector('merch-sidenav');
+
+        const config = this.paginationConfig;
+
         if (this.filtered) {
             this.filter = this.filtered;
             this.page = 1;
+            // If pagination is enabled for filtered state, set pageSize
+            if (config.enabled && config.respectFiltered) {
+                this.pageSize = this.pageSize ?? config.defaultPageSize;
+            }
         } else {
             this.startDeeplink();
         }
         this.initializePlaceholders();
+
+        // Apply variant class if not already applied during hydration
+        if (this.variant && !this.classList.contains(this.variant)) {
+            this.classList.add('merch-card-collection', this.variant);
+        }
     }
 
     disconnectedCallback() {
@@ -458,7 +473,18 @@ export class MerchCardCollection extends LitElement {
             aemFragment.remove();
         });
         aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
-            this.limit = 27; // number of cards per "page"
+            // Read pagination config from I/O Runtime schema if available
+            const schemaPagination = event.detail.schema?.pagination;
+            if (schemaPagination) {
+                if (schemaPagination.enabled != null) {
+                    this.paginationEnabled = schemaPagination.enabled;
+                }
+                if (schemaPagination.pageSize != null) {
+                    this.pageSize = schemaPagination.pageSize;
+                }
+            }
+            const config = this.paginationConfig;
+            this.pageSize = this.pageSize ?? config.defaultPageSize; // number of cards per "page"
             this.data = normalizePayload(event.detail, this.#overrideMap);
             const { cards, hierarchy } = this.data;
 
@@ -563,8 +589,29 @@ export class MerchCardCollection extends LitElement {
         await this.hydrationReady;
     }
 
+    get paginationConfig() {
+        const variantOptions = this.#merchCardElement?.getCollectionOptions(
+            this.variant,
+        );
+        const variantPagination = variantOptions?.pagination || {};
+
+        return {
+            enabled:
+                this.paginationEnabled ?? variantPagination.enabled ?? false,
+            defaultPageSize: variantPagination.defaultPageSize ?? 27,
+            respectFiltered: variantPagination.respectFiltered ?? false,
+        };
+    }
+
     get footer() {
-        if (this.filtered) return;
+        const config = this.paginationConfig;
+
+        // Hide footer if pagination is not enabled
+        if (!config.enabled) return;
+
+        // Hide footer when filtered (unless respectFiltered is true)
+        if (this.filtered && !config.respectFiltered) return;
+
         return html`<div id="footer">
             <sp-theme color="light" scale="medium">
                 ${this.showMoreButton}

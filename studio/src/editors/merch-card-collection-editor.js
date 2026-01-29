@@ -9,6 +9,7 @@ import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
+import '../fields/page-size-field.js';
 
 const CARDS_SECTION = 'cards-section';
 
@@ -166,6 +167,10 @@ class MerchCardCollectionEditor extends LitElement {
 
     get linkText() {
         return this.#getFieldValue('linkText');
+    }
+
+    get pageSize() {
+        return this.#getFieldValue('pageSize');
     }
 
     #getField(fieldName) {
@@ -991,6 +996,15 @@ class MerchCardCollectionEditor extends LitElement {
                         .value=${this.iconLight}
                         @input=${this.updateFragment}
                     ></sp-textfield>
+                </div>
+                <div class="form-row">
+                    <mas-page-size-field
+                        id="pageSize"
+                        label="Show More Pagination"
+                        data-field="pageSize"
+                        .value=${this.pageSize}
+                        @input=${this.updateFragment}
+                    ></mas-page-size-field>
                 </div>
             </div>
         `;

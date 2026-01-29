@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { transformer as settings, PLAN_TYPE_LOCALES } from '../../src/fragment/transformers/settings.js';
+import { transformer as settings, PLAN_TYPE_LOCALES, COLLECTION_MODEL_ID } from '../../src/fragment/transformers/settings.js';
 
 describe('settings transformer', () => {
     let context;
@@ -330,5 +330,75 @@ describe('settings transformer', () => {
 
         const result = await settings.process(context);
         expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
+    });
+
+    it('should add schema with pagination enabled when pageSize is set', async () => {
+        context.body = {
+            model: { id: COLLECTION_MODEL_ID },
+            fields: {
+                pageSize: 12,
+            },
+        };
+        const result = await settings.process(context);
+        expect(result.body.schema).to.deep.equal({
+            pagination: {
+                enabled: true,
+                pageSize: 12,
+                showMore: true,
+            },
+            modelId: COLLECTION_MODEL_ID,
+        });
+    });
+
+    it('should add schema with pagination disabled when pageSize is empty', async () => {
+        context.body = {
+            model: { id: COLLECTION_MODEL_ID },
+            fields: {
+                pageSize: '',
+            },
+        };
+        const result = await settings.process(context);
+        expect(result.body.schema).to.deep.equal({
+            pagination: {
+                enabled: false,
+                pageSize: null,
+                showMore: false,
+            },
+            modelId: COLLECTION_MODEL_ID,
+        });
+    });
+
+    it('should add schema with default pagination when fields are undefined', async () => {
+        context.body = {
+            model: { id: COLLECTION_MODEL_ID },
+            fields: {},
+        };
+        const result = await settings.process(context);
+        expect(result.body.schema).to.deep.equal({
+            pagination: {
+                enabled: false,
+                pageSize: null,
+                showMore: false,
+            },
+            modelId: COLLECTION_MODEL_ID,
+        });
+    });
+
+    it('should add schema with pagination enabled for string pageSize', async () => {
+        context.body = {
+            model: { id: COLLECTION_MODEL_ID },
+            fields: {
+                pageSize: '24',
+            },
+        };
+        const result = await settings.process(context);
+        expect(result.body.schema).to.deep.equal({
+            pagination: {
+                enabled: true,
+                pageSize: 24,
+                showMore: true,
+            },
+            modelId: COLLECTION_MODEL_ID,
+        });
     });
 });

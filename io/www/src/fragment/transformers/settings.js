@@ -80,6 +80,21 @@ function applyCollectionSettings(context) {
     context.body.settings = context.body.settings || {};
     context.body.settings.tagLabels =
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
+
+    // Add schema with pagination configuration for web-components consumption
+    // Studio saves pagination as a single 'pageSize' field (number when enabled, empty when disabled)
+    const pageSize = context.body?.fields?.pageSize;
+    const hasPageSize = pageSize != null && pageSize !== '' && !isNaN(Number(pageSize));
+    const pageSizeValue = hasPageSize ? Number(pageSize) : null;
+
+    context.body.schema = {
+        pagination: {
+            enabled: hasPageSize,
+            pageSize: pageSizeValue,
+            showMore: hasPageSize,
+        },
+        modelId: COLLECTION_MODEL_ID,
+    };
 }
 
 function applyPlansSettings(fragment, context) {
@@ -150,4 +165,4 @@ export const transformer = {
     name: 'settings',
     process: settings,
 };
-export { applyCollectionSettings, PLAN_TYPE_LOCALES };
+export { applyCollectionSettings, PLAN_TYPE_LOCALES, COLLECTION_MODEL_ID };

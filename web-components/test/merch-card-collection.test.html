@@ -75,6 +75,10 @@
             <button onclick="runTests()">Run tests</button>
         </div>
         <main>
+            <div id="sidenav-container"></div>
+            <div id="content"></div>
+        </main>
+        <template id="sidenav-template">
             <merch-sidenav title="REFINE YOUR RESULTS">
                 <merch-search deeplink="search">
                     <sp-search placeholder="Search all products"></sp-search>
@@ -154,8 +158,7 @@
                     </sp-sidenav>
                 </merch-sidenav-list>
             </merch-sidenav>
-            <div id="content"></div>
-        </main>
+        </template>
         <template id="catalogCards" title="Catalog cards">
             <div class="four-merch-cards catalog">
                 <merch-card-collection display-result="true">

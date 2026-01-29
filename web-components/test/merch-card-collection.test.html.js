@@ -78,6 +78,22 @@ const visibleCards = (index) => {
 
 let merchCards, header;
 const shouldSkipTests = sessionStorage.getItem('skipTests') ? 'true' : 'false';
+
+const sidenavContainer = document.getElementById('sidenav-container');
+
+// Render sidenav from template - this allows proper cleanup via disconnectedCallback
+const renderSidenav = () => {
+    sidenavContainer.innerHTML = '';
+    const template = document.getElementById('sidenav-template');
+    sidenavContainer.appendChild(template.content.cloneNode(true));
+    return document.querySelector('merch-sidenav');
+};
+
+// Clear sidenav container - triggers disconnectedCallback and cleans up deeplink listeners
+const clearSidenav = () => {
+    sidenavContainer.innerHTML = '';
+};
+
 runTests(async () => {
     let render;
     appendMiloStyles();
@@ -90,7 +106,7 @@ runTests(async () => {
         const renderWithSidenav = async () => {
             render();
             await delay(100);
-            const sidenav = document.querySelector('merch-sidenav');
+            const sidenav = renderSidenav();
             merchCards.sidenav = sidenav;
             header.collection = merchCards;
             header.requestUpdate();
@@ -477,17 +493,10 @@ runTests(async () => {
         });
     });
 
-    // Clean up deeplink hashchange listeners from static sidenav components
-    // to prevent test runner from hanging after tests complete
-    after(async () => {
-        const components = [
-            document.querySelector('merch-search'),
-            ...document.querySelectorAll('merch-sidenav-list'),
-            document.querySelector('merch-sidenav-checkbox-group'),
-            ...document.querySelectorAll('merch-card-collection'),
-        ].filter(Boolean);
-        await Promise.all(components.map((el) => el.updateComplete));
-        components.forEach((el) => el.stopDeeplink?.());
+    // Clean up sidenav - removing from DOM triggers disconnectedCallback
+    // which cleans up deeplink hashchange listeners
+    after(() => {
+        clearSidenav();
         document.location.hash = '';
     });
 });

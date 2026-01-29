@@ -1,6 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE } from '../constants.js';
 import { renderSpIcon } from '../constants/icon-library.js';
+import { VARIANT_NAMES } from '../editors/variant-picker.js';
 import '../mas-mnemonic-modal.js';
 
 class IncludedField extends LitElement {
@@ -95,6 +96,7 @@ class IncludedField extends LitElement {
         this.link = '';
         this.modalOpen = false;
         this.iconLibrary = this.dataset.fieldState === 'bullet';
+        this.variant = this.iconLibrary ? VARIANT_NAMES.PLANS : '';
     }
 
     #handleEditClick() {
@@ -182,7 +184,7 @@ class IncludedField extends LitElement {
 
     renderIcon() {
         if (this.iconLibrary && this.icon?.startsWith('sp-icon-')) {
-            return html`${renderSpIcon(this.icon)}`;
+            return html`${renderSpIcon(this.icon, this.variant)}`;
         } else {
             return html`<img
                 src="${this.icon}"
@@ -230,6 +232,7 @@ class IncludedField extends LitElement {
                 .link=${this.link}
                 .iconLibrary="${this.iconLibrary}"
                 .useRte=${this.iconLibrary}
+                .variant=${this.variant}
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>

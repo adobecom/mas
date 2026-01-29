@@ -16,6 +16,7 @@ class MasMnemonicModal extends LitElement {
         selectedProductId: { type: String, state: true },
         iconLibrary: { type: Boolean },
         useRte: { type: Boolean },
+        variant: { type: String },
     };
 
     static styles = css`
@@ -177,6 +178,7 @@ class MasMnemonicModal extends LitElement {
         this.icons = [];
         this.useRte = false;
         this.altHtml = '';
+        this.variant = '';
     }
 
     connectedCallback() {
@@ -313,7 +315,7 @@ class MasMnemonicModal extends LitElement {
                                 @click=${() => this.#handleProductSelect(product.id)}
                             >
                                 ${this.iconLibrary
-                                    ? html`${renderSpIcon(product.id)}`
+                                    ? html`${renderSpIcon(product.id, this.variant)}`
                                     : html` <img
                                           src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
                                           alt="${product.name}"

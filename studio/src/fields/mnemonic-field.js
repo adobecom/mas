@@ -11,6 +11,7 @@ class MnemonicField extends LitElement {
             link: { type: String, reflect: true },
             modalOpen: { type: Boolean, state: true },
             iconLibrary: { type: Boolean, state: true },
+            variant: { type: String },
         };
     }
 
@@ -95,6 +96,7 @@ class MnemonicField extends LitElement {
         this.link = '';
         this.modalOpen = false;
         this.iconLibrary = false;
+        this.variant = '';
     }
 
     #handleEditClick() {
@@ -194,7 +196,7 @@ class MnemonicField extends LitElement {
 
     renderIcon() {
         if (this.iconLibrary && this.icon.startsWith('sp-icon-')) {
-            return html`${renderSpIcon(this.icon)}`;
+            return html`${renderSpIcon(this.icon, this.variant)}`;
         } else {
             return html`<img
                 src="${this.icon}"
@@ -241,6 +243,7 @@ class MnemonicField extends LitElement {
                 .icon=${this.icon}
                 .alt=${this.alt}
                 .link=${this.link}
+                .variant=${this.variant}
                 .iconLibrary="${this.iconLibrary}"
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}

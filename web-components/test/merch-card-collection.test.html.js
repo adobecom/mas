@@ -495,15 +495,27 @@ runTests(async () => {
         });
     });
 
-    // Clean up all components with deeplink listeners by removing from DOM
-    // This triggers disconnectedCallback which cleans up hashchange listeners
+    // Clean up all deeplink hashchange listeners to prevent test runner from hanging
     after(async () => {
+        // Directly call stopDeeplink on all components that have it
+        const components = [
+            document.querySelector('merch-search'),
+            ...document.querySelectorAll('merch-sidenav-list'),
+            document.querySelector('merch-sidenav-checkbox-group'),
+            ...document.querySelectorAll('merch-card-collection'),
+        ].filter(Boolean);
+
+        for (const el of components) {
+            if (el.stopDeeplink) {
+                el.stopDeeplink();
+            }
+        }
+
+        // Then clear the DOM
         clearSidenav();
         const content = document.getElementById('content');
         if (content) content.innerHTML = '';
         document.location.hash = '';
-        // Give browser time to process DOM removal and trigger disconnectedCallbacks
-        await new Promise((resolve) => setTimeout(resolve, 100));
     });
 });
 

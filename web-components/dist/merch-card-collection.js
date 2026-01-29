@@ -4133,6 +4133,7 @@ merch-card[variant="full-pricing-express"] [slot="price"] {
     display: flex;
     flex-direction: column;
     width: 100%;
+    justify-content: center;
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] > p:first-child {

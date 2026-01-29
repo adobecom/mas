@@ -316,8 +316,8 @@ class MasSelectFragmentsTable extends LitElement {
                             html`<sp-table-row value=${fragment.path}>
                                 <sp-table-cell> ${fragment.key || '-'} </sp-table-cell>
                                 <sp-table-cell>
-                                    ${fragment.value.value && fragment.value.length > 60
-                                        ? `${fragment.value.slice(0, 60)}...`
+                                    ${fragment.value?.length > 100
+                                        ? `${fragment.value.slice(0, 100)}...`
                                         : fragment.value || '-'}
                                 </sp-table-cell>
                                 ${this.renderStatus(fragment.status)}

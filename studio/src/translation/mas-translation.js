@@ -8,7 +8,7 @@ import { MasRepository } from '../mas-repository.js';
 import { PAGE_NAMES } from '../constants.js';
 import { showToast } from '../utils.js';
 
-const ALLOWED_PATHS = ['acom', 'express', 'sandbox'];
+const ALLOWED_PATHS = ['acom', 'express', 'sandbox', 'nala'];
 
 class MasTranslation extends LitElement {
     static styles = styles;

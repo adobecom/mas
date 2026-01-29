@@ -1,4 +1,4 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES } from './constants.js';
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
 import { Fragment } from './aem/fragment.js';
@@ -269,6 +269,16 @@ class MasTopNav extends LitElement {
                                   surface=${Store.surface()}
                                   locale=${Store.localeOrRegion()}
                               ></mas-locale-picker>
+                              <sp-switch
+                                  class="landscape-switch"
+                                  size="m"
+                                  ?checked=${this.isDraftLandscape}
+                                  @change=${(e) => {
+                                      Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
+                                  }}
+                              >
+                                  Draft landscape offer
+                              </sp-switch>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

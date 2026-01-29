@@ -11,5 +11,7 @@ export const ICON_LIBRARY = [
 ];
 
 export const renderSpIcon = (iconName) => {
-    return html`<sp-theme color="light" scale="medium" system="spectrum">${unsafeHTML(`<${iconName}></${iconName}>`)}</sp-theme>`;
+    return html`<sp-theme color="light" scale="medium" system="spectrum"
+        >${unsafeHTML(`<${iconName}></${iconName}>`)}</sp-theme
+    >`;
 };

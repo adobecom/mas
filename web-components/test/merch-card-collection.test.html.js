@@ -78,24 +78,6 @@ const visibleCards = (index) => {
 
 let merchCards, header;
 const shouldSkipTests = sessionStorage.getItem('skipTests') ? 'true' : 'false';
-
-// Render sidenav from template - this allows proper cleanup via disconnectedCallback
-const renderSidenav = () => {
-    const container = document.getElementById('sidenav-container');
-    if (!container) return null;
-    container.innerHTML = '';
-    const template = document.getElementById('sidenav-template');
-    if (!template) return null;
-    container.appendChild(template.content.cloneNode(true));
-    return document.querySelector('merch-sidenav');
-};
-
-// Clear sidenav container - triggers disconnectedCallback and cleans up deeplink listeners
-const clearSidenav = () => {
-    const container = document.getElementById('sidenav-container');
-    if (container) container.innerHTML = '';
-};
-
 runTests(async () => {
     let render;
     appendMiloStyles();
@@ -108,7 +90,7 @@ runTests(async () => {
         const renderWithSidenav = async () => {
             render();
             await delay(100);
-            const sidenav = renderSidenav();
+            const sidenav = document.querySelector('merch-sidenav');
             merchCards.sidenav = sidenav;
             header.collection = merchCards;
             header.requestUpdate();
@@ -127,7 +109,7 @@ runTests(async () => {
         });
 
         afterEach(() => {
-            document.querySelector('merch-sidenav').removeAttribute('modal');
+            document.querySelector('merch-sidenav')?.removeAttribute('modal');
             document.body.classList.remove('merch-modal');
         });
 
@@ -264,7 +246,8 @@ runTests(async () => {
         });
 
         it('should display a Show More button', async () => {
-            merchCards.setAttribute('limit', 16);
+            merchCards.setAttribute('pagination', '');
+            merchCards.setAttribute('page-size', 16);
             merchCards.setAttribute('page', 1);
             render();
             await delay(100);
@@ -344,96 +327,6 @@ runTests(async () => {
         });
     });
 
-    describe('merch-card-collection plans pagination', () => {
-        let collectionElement;
-
-        beforeEach(async () => {
-            document.location.hash = '';
-        });
-
-        afterEach(() => {
-            // Clean up to prevent hanging tests
-            if (collectionElement) {
-                collectionElement.remove();
-                collectionElement = null;
-            }
-        });
-
-        it('should enable pagination for plans variant with filtered state', async () => {
-            [collectionElement, render] = prepareTemplate(
-                'plansPagination',
-                false,
-            );
-            render();
-            await delay(200);
-
-            // Plans variant should show pagination even with filtered='all'
-            const footer =
-                collectionElement.shadowRoot.querySelector('#footer');
-            expect(footer).to.exist;
-
-            const showMoreButton = footer.querySelector('sp-button');
-            expect(showMoreButton).to.exist;
-        });
-
-        it('should respect defaultPageSize from collectionOptions', async () => {
-            [collectionElement, render] = prepareTemplate(
-                'plansPagination',
-                false,
-            );
-            render();
-            await delay(200);
-
-            // Should show 9 cards initially (page-size attribute set on template)
-            expect(visibleCards().length).to.equal(9);
-        });
-
-        it('should load more cards on Show More click', async () => {
-            [collectionElement, render] = prepareTemplate(
-                'plansPagination',
-                false,
-            );
-            render();
-            await delay(200);
-
-            const initialCount = visibleCards().length;
-            const showMoreButton =
-                collectionElement.shadowRoot.querySelector('#footer sp-button');
-
-            showMoreButton.click();
-            await delay(100);
-
-            expect(visibleCards().length).to.be.greaterThan(initialCount);
-        });
-
-        it('should disable pagination when attribute is explicitly false', async () => {
-            [collectionElement, render] = prepareTemplate(
-                'plansNoPagination',
-                false,
-            );
-            render();
-            await delay(200);
-
-            const footer =
-                collectionElement.shadowRoot.querySelector('#footer');
-            expect(footer).to.not.exist;
-        });
-
-        it('should return correct paginationConfig values', async () => {
-            [collectionElement, render] = prepareTemplate(
-                'plansPagination',
-                false,
-            );
-            render();
-            await delay(200);
-
-            const config = collectionElement.paginationConfig;
-            expect(config.enabled).to.be.true;
-            expect(config.defaultPageSize).to.equal(27);
-            expect(config.respectFiltered).to.be.true;
-        });
-    });
-
     describe('merch-card-collection override feature', () => {
         let collectionElement;
 
@@ -494,35 +387,12 @@ runTests(async () => {
             aemFragment.cache.clear();
         });
     });
-
-    // Clean up all deeplink hashchange listeners to prevent test runner from hanging
-    after(async () => {
-        // Directly call stopDeeplink on all components that have it
-        const components = [
-            document.querySelector('merch-search'),
-            ...document.querySelectorAll('merch-sidenav-list'),
-            document.querySelector('merch-sidenav-checkbox-group'),
-            ...document.querySelectorAll('merch-card-collection'),
-        ].filter(Boolean);
-
-        for (const el of components) {
-            if (el.stopDeeplink) {
-                el.stopDeeplink();
-            }
-        }
-
-        // Then clear the DOM
-        clearSidenav();
-        const content = document.getElementById('content');
-        if (content) content.innerHTML = '';
-        document.location.hash = '';
-    });
 });
 
 document.getElementById('showMore').addEventListener('click', () => {
     document.location.hash = '';
     const [merchCards, render] = prepareTemplate('catalogCards');
-    merchCards.setAttribute('limit', 16);
+    merchCards.setAttribute('page-size', 16);
     merchCards.setAttribute('page', 1);
     render();
 });

@@ -90,7 +90,7 @@ async function main(params) {
     }
 
     function getTranslationData(projectCF, surface, translationMapping = {}) {
-        const itemsToTranslate = projectCF.fields.find((field) => field.name === 'items')?.values;
+        const itemsToTranslate = getItemsToTranslate(projectCF, surface);
         const locales = projectCF.fields.find((field) => field.name === 'targetLocales')?.values;
         if (!itemsToTranslate || itemsToTranslate.length === 0) {
             logger.warn('No items to translate found in translation project');
@@ -115,6 +115,27 @@ async function main(params) {
                   }
                 : {},
         };
+    }
+
+    function getItemsToTranslate(projectCF, surface) {
+        // Gather items from all three separate arrays
+        const fragments = projectCF.fields.find((field) => field.name === 'fragments')?.values || [];
+        const collections = projectCF.fields.find((field) => field.name === 'collections')?.values || [];
+        const placeholders = projectCF.fields.find((field) => field.name === 'placeholders')?.values || [];
+
+        // Combine all items into a single array
+        const itemsToTranslate = [...fragments, ...collections, ...placeholders];
+
+        if (!itemsToTranslate || itemsToTranslate.length === 0) {
+            logger.warn('No items to translate found in translation project');
+            return null;
+        }
+        // add dictionary index for surface
+        if (placeholders.length > 0) {
+            logger.info(`Placeholders found in translation project: ${placeholders}`);
+            itemsToTranslate.push(`/content/dam/mas/${surface}/dictionary/index`);
+        }
+        return itemsToTranslate;
     }
 
     // Helper function to send a single request with retry logic

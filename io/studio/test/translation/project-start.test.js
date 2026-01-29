@@ -138,7 +138,9 @@ describe('Translation project-start', () => {
 
             const mockProjectCF = {
                 fields: [
-                    { name: 'items', values: [] },
+                    { name: 'fragments', values: [] },
+                    { name: 'collections', values: [] },
+                    { name: 'placeholders', values: [] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
                 ],
             };
@@ -171,7 +173,7 @@ describe('Translation project-start', () => {
 
             const mockProjectCF = {
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2'] },
+                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2'] },
                     { name: 'targetLocales', values: [] },
                 ],
             };
@@ -204,7 +206,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -257,7 +259,9 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
+                    { name: 'placeholders', values: [] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -312,6 +316,213 @@ describe('Translation project-start', () => {
             expect(result.error.body.error).to.equal('Internal server error - Unexpected IMS error');
             expect(mockLogger.error).to.have.been.called;
         });
+
+        it('should add dictionary index when placeholders are present', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = {
+                id: 'test-project-id',
+                fields: [
+                    { name: 'fragments', values: ['/content/fragment1'] },
+                    { name: 'collections', values: [] },
+                    { name: 'placeholders', values: ['/content/placeholder1', '/content/placeholder2'] },
+                    { name: 'targetLocales', values: ['de_DE'] },
+                    { name: 'submissionDate', values: [] },
+                ],
+            };
+
+            fetchStub.onFirstCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(mockProjectCF),
+                headers: {
+                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
+                },
+            });
+
+            // Make all loc requests succeed (1 fragment + 2 placeholders + 1 dictionary index = 4 items)
+            fetchStub.onSecondCall().resolves({ ok: true });
+            fetchStub.onThirdCall().resolves({ ok: true });
+            fetchStub.onCall(3).resolves({ ok: true });
+            fetchStub.onCall(4).resolves({ ok: true });
+
+            // Make updateTranslationDate succeed
+            fetchStub.onCall(5).resolves({ ok: true });
+
+            const params = {
+                __ow_headers: { authorization: 'Bearer token' },
+                projectId: 'test-project-id',
+                surface: 'acom',
+                allowedClientId: 'test-client-id',
+                odinEndpoint: 'https://test-odin.com',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.message).to.equal('Translation project started');
+
+            // Verify dictionary index was added for the surface
+            const dictionaryIndexCall = fetchStub
+                .getCalls()
+                .find((call) => call.args[0]?.includes('/content/dam/mas/acom/dictionary/index'));
+            expect(dictionaryIndexCall).to.exist;
+
+            // Verify logger was called about placeholders
+            expect(mockLogger.info).to.have.been.calledWith(
+                sinon.match(/Placeholders found in translation project/)
+            );
+        });
+
+        it('should add dictionary index for different surfaces', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = {
+                id: 'test-project-id',
+                fields: [
+                    { name: 'fragments', values: [] },
+                    { name: 'collections', values: [] },
+                    { name: 'placeholders', values: ['placeholder1'] },
+                    { name: 'targetLocales', values: ['de_DE'] },
+                    { name: 'submissionDate', values: [] },
+                ],
+            };
+
+            fetchStub.onFirstCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(mockProjectCF),
+                headers: {
+                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
+                },
+            });
+
+            // Make all loc requests succeed (1 placeholder + 1 dictionary index = 2 items)
+            fetchStub.onSecondCall().resolves({ ok: true });
+            fetchStub.onThirdCall().resolves({ ok: true });
+
+            // Make updateTranslationDate succeed
+            fetchStub.onCall(3).resolves({ ok: true });
+
+            const params = {
+                __ow_headers: { authorization: 'Bearer token' },
+                projectId: 'test-project-id',
+                surface: 'express',
+                allowedClientId: 'test-client-id',
+                odinEndpoint: 'https://test-odin.com',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.statusCode).to.equal(200);
+
+            // Verify dictionary index was added for bacom surface
+            const dictionaryIndexCall = fetchStub
+                .getCalls()
+                .find((call) => call.args[0]?.includes('/content/dam/mas/express/dictionary/index'));
+            expect(dictionaryIndexCall).to.exist;
+        });
+
+        it('should not add dictionary index when placeholders array is empty', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = {
+                id: 'test-project-id',
+                fields: [
+                    { name: 'fragments', values: ['/content/fragment1'] },
+                    { name: 'collections', values: [] },
+                    { name: 'placeholders', values: [] },
+                    { name: 'targetLocales', values: ['de_DE'] },
+                    { name: 'submissionDate', values: [] },
+                ],
+            };
+
+            fetchStub.onFirstCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(mockProjectCF),
+                headers: {
+                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
+                },
+            });
+
+            // Make all loc requests succeed (only 1 fragment, no dictionary index)
+            fetchStub.onSecondCall().resolves({ ok: true });
+
+            // Make updateTranslationDate succeed
+            fetchStub.onThirdCall().resolves({ ok: true });
+
+            const params = {
+                __ow_headers: { authorization: 'Bearer token' },
+                projectId: 'test-project-id',
+                surface: 'acom',
+                allowedClientId: 'test-client-id',
+                odinEndpoint: 'https://test-odin.com',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.statusCode).to.equal(200);
+
+            // Verify dictionary index was NOT added
+            const dictionaryIndexCall = fetchStub
+                .getCalls()
+                .find((call) => call.args[0]?.includes('/dictionary/index'));
+            expect(dictionaryIndexCall).to.not.exist;
+
+            // Verify logger was not called about placeholders
+            expect(mockLogger.info).to.not.have.been.calledWith(
+                sinon.match(/Placeholders found in translation project/)
+            );
+        });
+
+        it('should handle all three types together with placeholders triggering dictionary index', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = {
+                id: 'test-project-id',
+                fields: [
+                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2'] },
+                    { name: 'collections', values: ['/content/collection1'] },
+                    { name: 'placeholders', values: ['placeholder1', 'placeholder2', 'placeholder3'] },
+                    { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
+                    { name: 'submissionDate', values: [] },
+                ],
+            };
+
+            fetchStub.onFirstCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(mockProjectCF),
+                headers: {
+                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
+                },
+            });
+
+            // Make all loc requests succeed (2 fragments + 1 collection + 3 placeholders + 1 dictionary index = 7 items)
+            for (let i = 1; i <= 7; i++) {
+                fetchStub.onCall(i).resolves({ ok: true });
+            }
+
+            // Make updateTranslationDate succeed
+            fetchStub.onCall(8).resolves({ ok: true });
+
+            const params = {
+                __ow_headers: { authorization: 'Bearer token' },
+                projectId: 'test-project-id',
+                surface: 'sandbox',
+                allowedClientId: 'test-client-id',
+                odinEndpoint: 'https://test-odin.com',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.message).to.equal('Translation project started');
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Successfully sent 7 loc requests/));
+
+            // Verify dictionary index was added
+            const dictionaryIndexCall = fetchStub
+                .getCalls()
+                .find((call) => call.args[0]?.includes('/content/dam/mas/sandbox/dictionary/index'));
+            expect(dictionaryIndexCall).to.exist;
+        });
     });
 
     describe('IMS token validation', () => {
@@ -321,7 +532,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['en-US'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -381,7 +592,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -450,7 +661,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: items },
+                    { name: 'fragments', values: items },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -499,7 +710,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: items },
+                    { name: 'fragments', values: items },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -547,7 +758,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -591,7 +802,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -632,7 +843,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -677,7 +888,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR', 'it_IT'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -732,7 +943,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2', '/content/fragment3'] },
+                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2', '/content/fragment3'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -787,7 +998,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -844,7 +1055,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -891,7 +1102,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     // Missing submissionDate field
                 ],

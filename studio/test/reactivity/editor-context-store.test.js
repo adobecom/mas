@@ -77,9 +77,9 @@ describe('EditorContextStore', () => {
             expect(store.get()).to.deep.equal(initialValue);
         });
 
-        it('should initialize loading as false', () => {
+        it('should initialize loading as true', () => {
             store = new EditorContextStore(null);
-            expect(store.loading).to.be.false;
+            expect(store.loading).to.be.true;
         });
 
         it('should initialize localeDefaultFragment as null', () => {

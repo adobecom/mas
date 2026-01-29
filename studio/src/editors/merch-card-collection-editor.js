@@ -10,7 +10,6 @@ import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
 
-
 const CARDS_SECTION = 'cards-section';
 
 class MerchCardCollectionEditor extends LitElement {
@@ -1140,8 +1139,7 @@ class MerchCardCollectionEditor extends LitElement {
         return html`<div class="editor-container">
             ${this.#form} ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}
             <div data-field-name="${CARDS_SECTION}">${this.#cards}</div>
-            ${this.#pagination}
-            ${this.#collections} ${this.#tip} ${this.#sidenav}
+            ${this.#pagination} ${this.#collections} ${this.#tip} ${this.#sidenav}
         </div>`;
     }
 }

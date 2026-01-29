@@ -493,10 +493,11 @@ runTests(async () => {
         });
     });
 
-    // Clean up sidenav - removing from DOM triggers disconnectedCallback
-    // which cleans up deeplink hashchange listeners
+    // Clean up all components with deeplink listeners by removing from DOM
+    // This triggers disconnectedCallback which cleans up hashchange listeners
     after(() => {
         clearSidenav();
+        document.getElementById('content').innerHTML = '';
         document.location.hash = '';
     });
 });

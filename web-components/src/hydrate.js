@@ -50,10 +50,13 @@ export function appendSlot(fieldName, fields, el, mapping) {
 }
 
 export function processMnemonics(fields, merchCard, mnemonicsConfig) {
-    const mnemonics = fields.mnemonicIcon?.map((icon, index) => ({
+    // Filter out empty string sentinel values (indicates explicitly cleared)
+    const icons = (fields.mnemonicIcon || []).filter((icon) => icon);
+
+    const mnemonics = icons.map((icon, index) => ({
         icon,
-        alt: fields.mnemonicAlt[index] ?? '',
-        link: fields.mnemonicLink[index] ?? '',
+        alt: fields.mnemonicAlt?.[index] ?? '',
+        link: fields.mnemonicLink?.[index] ?? '',
     }));
 
     mnemonics?.forEach(({ icon: src, alt, link: href }) => {

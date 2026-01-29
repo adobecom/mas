@@ -152,4 +152,178 @@ describe('Fragment', () => {
             expect(variations[0].id).to.equal('ref-1');
         });
     });
+
+    describe('getEffectiveFieldValues', () => {
+        it('returns own values when field has non-empty values', () => {
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getEffectiveFieldValues('mnemonicIcon', parent, true);
+            expect(result).to.deep.equal(['icon.svg']);
+        });
+
+        it('returns empty array for [""] sentinel (explicit clear)', () => {
+            // [""] means user explicitly cleared the field - don't inherit from parent
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [''] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getEffectiveFieldValues('mnemonicIcon', parent, true);
+            expect(result).to.deep.equal([]);
+        });
+
+        it('returns parent values for [] (empty array = inherit)', () => {
+            // [] means inherit from parent
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getEffectiveFieldValues('mnemonicIcon', parent, true);
+            expect(result).to.deep.equal(['parent-icon.svg']);
+        });
+    });
+
+    describe('updateField', () => {
+        it('updates field when adding item to empty array', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [] }],
+                }),
+            );
+
+            const changed = fragment.updateField('mnemonicIcon', ['']);
+            expect(changed).to.be.true;
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
+            expect(fragment.hasChanges).to.be.true;
+        });
+
+        it('updates field when removing last item', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }],
+                }),
+            );
+
+            const changed = fragment.updateField('mnemonicIcon', []);
+            expect(changed).to.be.true;
+            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal([]);
+            expect(fragment.hasChanges).to.be.true;
+        });
+    });
+
+    describe('getFieldState', () => {
+        it('returns inherited for [] (empty array)', () => {
+            // [] means inherit from parent - this is the key change
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getFieldState('mnemonicIcon', parent, true);
+            expect(result).to.equal('inherited');
+        });
+
+        it('returns overridden for [""] (empty string sentinel = explicit clear)', () => {
+            // [""] means user explicitly cleared the field
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [''] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getFieldState('mnemonicIcon', parent, true);
+            expect(result).to.equal('overridden');
+        });
+
+        it('returns same-as-parent when values match', () => {
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getFieldState('mnemonicIcon', parent, true);
+            expect(result).to.equal('same-as-parent');
+        });
+
+        it('returns overridden when values differ', () => {
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['variation-icon.svg'] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            const result = variation.getFieldState('mnemonicIcon', parent, true);
+            expect(result).to.equal('overridden');
+        });
+
+        it('works correctly with empty string sentinel workflow', () => {
+            // Full workflow test:
+            // 1. User has variation with [""] (explicit clear)
+            // 2. User clicks "restore to parent" which sets []
+            // 3. State changes from overridden to inherited
+            const variation = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: [''] }],
+                }),
+            );
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'mnemonicIcon', values: ['parent-icon.svg'] }],
+                }),
+            );
+
+            // Initially overridden ([""] = explicit clear)
+            expect(variation.getFieldState('mnemonicIcon', parent, true)).to.equal('overridden');
+
+            // User clicks "restore to parent" - sets to []
+            variation.updateField('mnemonicIcon', []);
+
+            // Now should be inherited ([] = inherit from parent)
+            expect(variation.getFieldState('mnemonicIcon', parent, true)).to.equal('inherited');
+        });
+    });
 });

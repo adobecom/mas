@@ -152,10 +152,17 @@ export const styles = css`
         margin-bottom: 8px;
     }
 
-    .hide-cards-control {
+    .hide-cards-control,
+    .pagination-control {
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+
+    .page-size-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
 
     .cards-container {

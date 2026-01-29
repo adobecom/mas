@@ -2154,6 +2154,16 @@ merch-card-collection.plans merch-card {
     height: 100%;
 }
 
+merch-card-collection.plans #footer {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0 32px;
+}
+
+merch-card-collection.plans #footer sp-button {
+    min-width: 200px;
+}
+
 merch-card-collection.plans merch-card[variant="plans"] aem-fragment + [slot^="heading-"] {
     margin-top: calc(40px + var(--consonant-merch-spacing-xxs));
 }
@@ -2612,7 +2622,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
             line-height: 21px;
             padding: 2px 10px 3px;
         }
-    `),m(pe,"collectionOptions",{customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:R,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let r=()=>{let i=t.querySelectorAll("merch-card");for(let a of i)a.hasAttribute("data-size")&&(a.setAttribute("size",a.getAttribute("data-size")),a.removeAttribute("data-size"));if(!N.isDesktop)return;let n=0;for(let a of i){if(a.style.display==="none")continue;let o=a.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&n%3===2&&(a.setAttribute("data-size",o),a.removeAttribute("size"),s=1),n+=s}};N.matchDesktop.addEventListener("change",r),t.addEventListener(tt,r),t.onUnmount.push(()=>{N.matchDesktop.removeEventListener("change",r),t.removeEventListener(tt,r)})}});M();var hc=`
+    `),m(pe,"collectionOptions",{pagination:{enabled:!0,defaultPageSize:27,respectFiltered:!0},customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:R,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let r=()=>{let i=t.querySelectorAll("merch-card");for(let a of i)a.hasAttribute("data-size")&&(a.setAttribute("size",a.getAttribute("data-size")),a.removeAttribute("data-size"));if(!N.isDesktop)return;let n=0;for(let a of i){if(a.style.display==="none")continue;let o=a.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&n%3===2&&(a.setAttribute("data-size",o),a.removeAttribute("size"),s=1),n+=s}};N.matchDesktop.addEventListener("change",r),t.addEventListener(tt,r),t.onUnmount.push(()=>{N.matchDesktop.removeEventListener("change",r),t.removeEventListener(tt,r)})}});M();var hc=`
 :root {
     --consonant-merch-card-plans-v2-font-family-regular: 'Adobe Clean', 'adobe-clean', sans-serif;
     --consonant-merch-card-plans-v2-font-family: 'Adobe Clean Display', 'adobe-clean-display', 'Adobe Clean', 'adobe-clean', sans-serif;

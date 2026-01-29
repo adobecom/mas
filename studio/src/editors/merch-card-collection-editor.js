@@ -10,6 +10,7 @@ import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
 
+
 const CARDS_SECTION = 'cards-section';
 
 class MerchCardCollectionEditor extends LitElement {
@@ -20,6 +21,7 @@ class MerchCardCollectionEditor extends LitElement {
             fragmentStore: { type: Object, attribute: false },
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
+            paginationOn: { type: Boolean, state: true },
         };
     }
 
@@ -33,6 +35,7 @@ class MerchCardCollectionEditor extends LitElement {
         super();
         this.draggingIndex = -1;
         this.hideCards = false;
+        this.paginationOn = false;
     }
 
     connectedCallback() {
@@ -65,6 +68,7 @@ class MerchCardCollectionEditor extends LitElement {
     update(changedProperties) {
         if (changedProperties.has('fragmentStore')) {
             this.initFragmentReferencesMap();
+            this.#syncPaginationState();
         }
         super.update(changedProperties);
     }
@@ -166,6 +170,10 @@ class MerchCardCollectionEditor extends LitElement {
 
     get linkText() {
         return this.#getFieldValue('linkText');
+    }
+
+    get pageSize() {
+        return this.#getFieldValue('pageSize');
     }
 
     #getField(fieldName) {
@@ -996,6 +1004,66 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    #lastPageSize = '27';
+
+    #syncPaginationState() {
+        const val = this.pageSize;
+        const enabled = val != null && val !== '' && !isNaN(Number(val)) && Number(val) > 0;
+        this.paginationOn = enabled;
+        if (enabled) this.#lastPageSize = String(Number(val));
+    }
+
+    handlePaginationToggle(e) {
+        this.paginationOn = e.target.checked;
+        const value = this.paginationOn ? this.#lastPageSize || '27' : '';
+        this.updateFragment({
+            target: { dataset: { field: 'pageSize' }, value },
+        });
+        this.requestUpdate();
+    }
+
+    handlePageSizeChange(e) {
+        const num = Number(e.target.value);
+        if (!isNaN(num) && num > 0) {
+            this.#lastPageSize = String(num);
+            this.updateFragment({
+                target: { dataset: { field: 'pageSize' }, value: String(num) },
+            });
+            this.requestUpdate();
+        }
+    }
+
+    get #pagination() {
+        return html`
+            <div class="section-header">
+                <h2>Pagination</h2>
+                <div class="pagination-control">
+                    <sp-field-label for="pagination-toggle">On</sp-field-label>
+                    <sp-switch
+                        id="pagination-toggle"
+                        size="m"
+                        .checked=${this.paginationOn}
+                        @change=${this.handlePaginationToggle}
+                    ></sp-switch>
+                </div>
+            </div>
+            ${this.paginationOn
+                ? html`
+                      <div class="page-size-field">
+                          <sp-field-label for="pageSize">Page size</sp-field-label>
+                          <sp-number-field
+                              id="pageSize"
+                              .value=${Number(this.#lastPageSize)}
+                              min="1"
+                              max="100"
+                              @change=${this.handlePageSizeChange}
+                          ></sp-number-field>
+                      </div>
+                  `
+                : nothing}
+        `;
+    }
+
     get #sidenav() {
         return html`
             <h2>Side Navigation</h2>
@@ -1072,6 +1140,7 @@ class MerchCardCollectionEditor extends LitElement {
         return html`<div class="editor-container">
             ${this.#form} ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}
             <div data-field-name="${CARDS_SECTION}">${this.#cards}</div>
+            ${this.#pagination}
             ${this.#collections} ${this.#tip} ${this.#sidenav}
         </div>`;
     }

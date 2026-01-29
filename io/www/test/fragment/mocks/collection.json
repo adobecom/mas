@@ -9,6 +9,7 @@
     },
     "fields": {
         "label": "Plans Page Collection: Individuals",
+        "pageSize": "27",
         "cards": [],
         "collections": []
     },

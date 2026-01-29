@@ -109,7 +109,7 @@ runTests(async () => {
         });
 
         afterEach(() => {
-            document.querySelector('merch-sidenav').removeAttribute('modal');
+            document.querySelector('merch-sidenav')?.removeAttribute('modal');
             document.body.classList.remove('merch-modal');
         });
 
@@ -246,7 +246,8 @@ runTests(async () => {
         });
 
         it('should display a Show More button', async () => {
-            merchCards.setAttribute('limit', 16);
+            merchCards.setAttribute('page-size', 16);
+            merchCards.setAttribute('pagination', '');
             merchCards.setAttribute('page', 1);
             render();
             await delay(100);
@@ -391,7 +392,8 @@ runTests(async () => {
 document.getElementById('showMore').addEventListener('click', () => {
     document.location.hash = '';
     const [merchCards, render] = prepareTemplate('catalogCards');
-    merchCards.setAttribute('limit', 16);
+    merchCards.setAttribute('page-size', 16);
+    merchCards.setAttribute('pagination', '');
     merchCards.setAttribute('page', 1);
     render();
 });

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { transformer as settings, PLAN_TYPE_LOCALES } from '../../src/fragment/transformers/settings.js';
+import { transformer as settings, PLAN_TYPE_LOCALES, COLLECTION_MODEL_ID } from '../../src/fragment/transformers/settings.js';
 
 describe('settings transformer', () => {
     let context;
@@ -330,5 +330,77 @@ describe('settings transformer', () => {
 
         const result = await settings.process(context);
         expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
+    });
+
+    describe('pagination schema', () => {
+        it('should add pagination schema when pageSize is a number', async () => {
+            context.body = {
+                model: {
+                    id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+                },
+                fields: {
+                    pageSize: 12,
+                },
+            };
+
+            const result = await settings.process(context);
+            expect(result.body.schema.pagination).to.deep.equal({
+                enabled: true,
+                pageSize: 12,
+                showMore: true,
+            });
+        });
+
+        it('should disable pagination when pageSize is empty string', async () => {
+            context.body = {
+                model: {
+                    id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+                },
+                fields: {
+                    pageSize: '',
+                },
+            };
+
+            const result = await settings.process(context);
+            expect(result.body.schema.pagination).to.deep.equal({
+                enabled: false,
+                pageSize: null,
+                showMore: false,
+            });
+        });
+
+        it('should disable pagination when pageSize is undefined', async () => {
+            context.body = {
+                model: {
+                    id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+                },
+                fields: {},
+            };
+
+            const result = await settings.process(context);
+            expect(result.body.schema.pagination).to.deep.equal({
+                enabled: false,
+                pageSize: null,
+                showMore: false,
+            });
+        });
+
+        it('should parse string pageSize as number', async () => {
+            context.body = {
+                model: {
+                    id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+                },
+                fields: {
+                    pageSize: '24',
+                },
+            };
+
+            const result = await settings.process(context);
+            expect(result.body.schema.pagination).to.deep.equal({
+                enabled: true,
+                pageSize: 24,
+                showMore: true,
+            });
+        });
     });
 });

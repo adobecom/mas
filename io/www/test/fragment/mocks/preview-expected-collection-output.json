@@ -355,5 +355,13 @@
         "searchResultsMobileText": "coll-search-results-mobile-text",
         "noSearchResultsText": "coll-no-search-results-text",
         "showMoreText": "coll-show-more-text"
+    },
+    "schema": {
+        "pagination": {
+            "enabled": true,
+            "pageSize": 27,
+            "showMore": true
+        },
+        "modelId": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
     }
 }

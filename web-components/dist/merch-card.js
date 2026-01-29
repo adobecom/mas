@@ -1646,6 +1646,16 @@ merch-card-collection.plans merch-card {
     height: 100%;
 }
 
+merch-card-collection.plans #footer {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0 32px;
+}
+
+merch-card-collection.plans #footer sp-button {
+    min-width: 200px;
+}
+
 merch-card-collection.plans merch-card[variant="plans"] aem-fragment + [slot^="heading-"] {
     margin-top: calc(40px + var(--consonant-merch-spacing-xxs));
 }
@@ -2104,7 +2114,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
             line-height: 21px;
             padding: 2px 10px 3px;
         }
-    `),l(z,"collectionOptions",{customHeaderArea:t=>t.sidenav?qe`<slot name="resultsText"></slot>`:ct,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let e=()=>{let r=t.querySelectorAll("merch-card");for(let n of r)n.hasAttribute("data-size")&&(n.setAttribute("size",n.getAttribute("data-size")),n.removeAttribute("data-size"));if(!f.isDesktop)return;let a=0;for(let n of r){if(n.style.display==="none")continue;let o=n.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&a%3===2&&(n.setAttribute("data-size",o),n.removeAttribute("size"),s=1),a+=s}};f.matchDesktop.addEventListener("change",e),t.addEventListener(pe,e),t.onUnmount.push(()=>{f.matchDesktop.removeEventListener("change",e),t.removeEventListener(pe,e)})}});import{html as q,css as Oi,unsafeCSS as Tr,nothing as dt}from"./lit-all.min.js";var Ar=`
+    `),l(z,"collectionOptions",{pagination:{enabled:!0,defaultPageSize:27,respectFiltered:!0},customHeaderArea:t=>t.sidenav?qe`<slot name="resultsText"></slot>`:ct,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let e=()=>{let r=t.querySelectorAll("merch-card");for(let n of r)n.hasAttribute("data-size")&&(n.setAttribute("size",n.getAttribute("data-size")),n.removeAttribute("data-size"));if(!f.isDesktop)return;let a=0;for(let n of r){if(n.style.display==="none")continue;let o=n.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&a%3===2&&(n.setAttribute("data-size",o),n.removeAttribute("size"),s=1),a+=s}};f.matchDesktop.addEventListener("change",e),t.addEventListener(pe,e),t.onUnmount.push(()=>{f.matchDesktop.removeEventListener("change",e),t.removeEventListener(pe,e)})}});import{html as q,css as Oi,unsafeCSS as Tr,nothing as dt}from"./lit-all.min.js";var Ar=`
 :root {
     --consonant-merch-card-plans-v2-font-family-regular: 'Adobe Clean', 'adobe-clean', sans-serif;
     --consonant-merch-card-plans-v2-font-family: 'Adobe Clean Display', 'adobe-clean-display', 'Adobe Clean', 'adobe-clean', sans-serif;

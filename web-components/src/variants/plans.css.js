@@ -124,6 +124,16 @@ merch-card-collection.plans merch-card {
     height: 100%;
 }
 
+merch-card-collection.plans #footer {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0 32px;
+}
+
+merch-card-collection.plans #footer sp-button {
+    min-width: 200px;
+}
+
 merch-card-collection.plans merch-card[variant="plans"] aem-fragment + [slot^="heading-"] {
     margin-top: calc(40px + var(--consonant-merch-spacing-xxs));
 }

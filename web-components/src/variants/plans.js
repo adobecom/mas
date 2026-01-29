@@ -461,6 +461,11 @@ export class Plans extends VariantLayout {
     `;
 
     static collectionOptions = {
+        pagination: {
+            enabled: true,
+            defaultPageSize: 27,
+            respectFiltered: true,
+        },
         customHeaderArea: (collection) => {
             if (!collection.sidenav) return nothing;
             return html`<slot name="resultsText"></slot>`;

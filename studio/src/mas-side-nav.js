@@ -169,7 +169,7 @@ class MasSideNav extends LitElement {
 
     get isTranslationEnabled() {
         const surface = this.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
-        return [SURFACES.ACOM.name, SURFACES.EXPRESS.name, SURFACES.SANDBOX.name].includes(surface);
+        return [SURFACES.ACOM.name, SURFACES.EXPRESS.name, SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface);
     }
 
     async saveFragment() {

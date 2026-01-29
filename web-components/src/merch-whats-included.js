@@ -11,6 +11,11 @@ export class MerchWhatsIncluded extends LitElement {
             row-gap: 10px;
         }
 
+        :host([has-bullets]) {
+            flex-direction: column;
+            align-items: start;
+        }
+
         ::slotted([slot='heading']) {
             font-size: 14px;
             font-weight: 700;
@@ -19,6 +24,13 @@ export class MerchWhatsIncluded extends LitElement {
 
         ::slotted([slot='content']) {
             display: contents;
+        }
+
+        ::slotted([slot='contentBullets']) {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 5px 0;
         }
 
         .hidden {
@@ -71,6 +83,7 @@ export class MerchWhatsIncluded extends LitElement {
 
     render() {
         return html`<slot name="heading"></slot>
+            <slot name="contentBullets"></slot>
             <slot name="content"></slot>
             ${this.isMobile && this.rows.length > this.mobileRows
                 ? html`<div @click=${this.toggle} class="see-more">

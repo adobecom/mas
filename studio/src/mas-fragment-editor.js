@@ -1267,21 +1267,23 @@ export default class MasFragmentEditor extends LitElement {
                         ? this.displayRegionalVarationInfo('preview-header')
                         : nothing}
                     <div class="preview-content columns mas-fragment">
-                        <merch-card
-                            variant=${attrs.variant || nothing}
-                            size=${attrs.size || nothing}
-                            name=${attrs.name || nothing}
-                            border-color=${borderAttrs.borderColor || nothing}
-                            background-image=${attrs.backgroundImage || nothing}
-                            stock-offer-osis=${attrs.stockOfferOsis || nothing}
-                            checkbox-label=${attrs.checkboxLabel || nothing}
-                            storage=${attrs.storage || nothing}
-                            daa-lh=${attrs.analyticsId || nothing}
-                            ?gradient-border=${borderAttrs.gradientBorder}
-                            style=${cssProps || nothing}
-                        >
-                            <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
-                        </merch-card>
+                        <sp-theme color="light" scale="medium" system="spectrum">
+                            <merch-card
+                                variant=${attrs.variant || nothing}
+                                size=${attrs.size || nothing}
+                                name=${attrs.name || nothing}
+                                border-color=${borderAttrs.borderColor || nothing}
+                                background-image=${attrs.backgroundImage || nothing}
+                                stock-offer-osis=${attrs.stockOfferOsis || nothing}
+                                checkbox-label=${attrs.checkboxLabel || nothing}
+                                storage=${attrs.storage || nothing}
+                                daa-lh=${attrs.analyticsId || nothing}
+                                ?gradient-border=${borderAttrs.gradientBorder}
+                                style=${cssProps || nothing}
+                            >
+                                <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
+                            </merch-card>
+                        </sp-theme>
                     </div>
                 </div>
                 ${this.relatedVariationsSection}

@@ -116,12 +116,14 @@ class MasFragmentRender extends LitElement {
                 aria-grabbed="${this.isDragging}"
                 aria-label="Draggable fragment ${this.fragment?.title || ''}"
             >
-                <overlay-trigger placement="top">
-                    ${this.fragment.model.path === CARD_MODEL_PATH ? this.merchCard : this.unknown}
+                <sp-theme color="light" scale="medium" system="spectrum">
+                    <overlay-trigger placement="top">
+                        ${this.fragment.model.path === CARD_MODEL_PATH ? this.merchCard : this.unknown}
 
-                    <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
-                </overlay-trigger>
-                ${this.selectionOverlay}
+                        <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
+                    </overlay-trigger>
+                    ${this.selectionOverlay}
+                </sp-theme>
             </div>
         </div>`;
     }

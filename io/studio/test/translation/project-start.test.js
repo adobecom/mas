@@ -364,13 +364,11 @@ describe('Translation project-start', () => {
             // Verify dictionary index was added for the surface
             const dictionaryIndexCall = fetchStub
                 .getCalls()
-                .find((call) => call.args[0]?.includes('/content/dam/mas/acom/dictionary/index'));
+                .find((call) => call.args[0]?.includes('/content/dam/mas/acom/en_US/dictionary/index'));
             expect(dictionaryIndexCall).to.exist;
 
             // Verify logger was called about placeholders
-            expect(mockLogger.info).to.have.been.calledWith(
-                sinon.match(/Placeholders found in translation project/)
-            );
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Placeholders found in translation project/));
         });
 
         it('should add dictionary index for different surfaces', async () => {
@@ -417,7 +415,7 @@ describe('Translation project-start', () => {
             // Verify dictionary index was added for bacom surface
             const dictionaryIndexCall = fetchStub
                 .getCalls()
-                .find((call) => call.args[0]?.includes('/content/dam/mas/express/dictionary/index'));
+                .find((call) => call.args[0]?.includes('/content/dam/mas/express/en_US/dictionary/index'));
             expect(dictionaryIndexCall).to.exist;
         });
 
@@ -462,15 +460,11 @@ describe('Translation project-start', () => {
             expect(result.statusCode).to.equal(200);
 
             // Verify dictionary index was NOT added
-            const dictionaryIndexCall = fetchStub
-                .getCalls()
-                .find((call) => call.args[0]?.includes('/dictionary/index'));
+            const dictionaryIndexCall = fetchStub.getCalls().find((call) => call.args[0]?.includes('/dictionary/index'));
             expect(dictionaryIndexCall).to.not.exist;
 
             // Verify logger was not called about placeholders
-            expect(mockLogger.info).to.not.have.been.calledWith(
-                sinon.match(/Placeholders found in translation project/)
-            );
+            expect(mockLogger.info).to.not.have.been.calledWith(sinon.match(/Placeholders found in translation project/));
         });
 
         it('should handle all three types together with placeholders triggering dictionary index', async () => {
@@ -520,7 +514,7 @@ describe('Translation project-start', () => {
             // Verify dictionary index was added
             const dictionaryIndexCall = fetchStub
                 .getCalls()
-                .find((call) => call.args[0]?.includes('/content/dam/mas/sandbox/dictionary/index'));
+                .find((call) => call.args[0]?.includes('/content/dam/mas/sandbox/en_US/dictionary/index'));
             expect(dictionaryIndexCall).to.exist;
         });
     });

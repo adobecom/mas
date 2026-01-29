@@ -133,7 +133,7 @@ async function main(params) {
         // add dictionary index for surface
         if (placeholders.length > 0) {
             logger.info(`Placeholders found in translation project: ${placeholders}`);
-            itemsToTranslate.push(`/content/dam/mas/${surface}/dictionary/index`);
+            itemsToTranslate.push(`/content/dam/mas/${surface}/en_US/dictionary/index`);
         }
         return itemsToTranslate;
     }

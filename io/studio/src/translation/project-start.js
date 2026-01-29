@@ -130,11 +130,6 @@ async function main(params) {
             logger.warn('No items to translate found in translation project');
             return null;
         }
-        // add dictionary index for surface
-        if (placeholders.length > 0) {
-            logger.info(`Placeholders found in translation project: ${placeholders}`);
-            itemsToTranslate.push(`/content/dam/mas/${surface}/en_US/dictionary/index`);
-        }
         return itemsToTranslate;
     }
 

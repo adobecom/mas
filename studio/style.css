@@ -39,7 +39,6 @@ mas-studio {
     grid-template-columns: 75px 1fr;
     grid-row: 2 / 3;
     width: 100%;
-    height: calc(100vh - var(--mas-nav-height));
 }
 
 .breadcrumbs-container {

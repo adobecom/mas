@@ -59,6 +59,11 @@ export default class EditorPage {
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
 
+        // Missing variation panel (locale switching)
+        this.missingVariationPanel = page.locator('#missing-variation-panel');
+        this.viewSourceFragmentButton = page.locator('#view-source-fragment');
+        this.createTranslationProjectButton = page.locator('#create-translation-project');
+
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');

@@ -667,15 +667,6 @@ export default class MasFragmentEditor extends LitElement {
                 return;
             }
         }
-        const locale = this.extractLocaleFromPath(fragmentStore.get().path);
-        // Only sync region with fragment locale if no explicit locale is set in URL filters
-        // This allows the missing variation panel to show when URL has a different locale
-        const urlLocale = Store.filters.value.locale;
-        const isDefaultLocale = !urlLocale || urlLocale === 'en_US';
-        if (isDefaultLocale && Store.localeOrRegion() !== locale) {
-            Store.search.set((prev) => ({ ...prev, region: locale }));
-        }
-
         this.initializingFragment = true;
         this.requestUpdate();
         this.startLazyPreviewLoading();
@@ -703,17 +694,12 @@ export default class MasFragmentEditor extends LitElement {
                 this.fragmentStore?.previewStore?.releaseHold?.();
             }
 
-            if (isVariation) {
-                const fragmentLocale = this.extractLocaleFromPath(fragmentStore?.get()?.path);
-                // Only sync region with fragment locale if no explicit locale is set in URL filters
-                const urlLocale = Store.filters.value.locale;
-                const isDefaultLocale = !urlLocale || urlLocale === 'en_US';
-                if (isDefaultLocale && fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
-                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-
-                    await this.repository.loadPreviewPlaceholders();
-                    fragmentStore.resolvePreviewFragment();
-                }
+            // Sync region picker to fragment's locale for correct preview placeholders
+            const fragmentLocale = this.extractLocaleFromPath(fragmentStore?.get()?.path);
+            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                await this.repository.loadPreviewPlaceholders();
+                fragmentStore.resolvePreviewFragment();
             }
 
             Store.editor.resetChanges();
@@ -810,8 +796,12 @@ export default class MasFragmentEditor extends LitElement {
     async navigateToLocaleDefaultFragment() {
         if (!this.localeDefaultFragment) return;
         const parentLocale = this.extractLocaleFromPath(this.localeDefaultFragment.path);
+        // Reset changes to avoid discard dialog since we're navigating to the parent
+        Store.editor.resetChanges();
         if (parentLocale) {
             Store.removeRegionOverride();
+            // Also update the locale filter to match the parent fragment's locale
+            Store.filters.set((prev) => ({ ...prev, locale: parentLocale }));
         }
         await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
@@ -1390,10 +1380,14 @@ export default class MasFragmentEditor extends LitElement {
                                 version.
                             </p>
                             <div class="empty-state-actions">
-                                <sp-button variant="secondary" @click=${this.viewSourceFragment}>
+                                <sp-button id="view-source-fragment" variant="secondary" @click="${this.viewSourceFragment}">
                                     View ${sourceCountryName} (${sourceLang}) version
                                 </sp-button>
-                                <sp-button variant="accent" @click=${this.goToTranslationEditor}>
+                                <sp-button
+                                    id="create-translation-project"
+                                    variant="accent"
+                                    @click="${this.goToTranslationEditor}"
+                                >
                                     Create translation project
                                 </sp-button>
                             </div>
@@ -1485,7 +1479,7 @@ export default class MasFragmentEditor extends LitElement {
             `;
         }
 
-        if (this.fragmentStore?.loading) {
+        if (this.fragmentStore?.loading || this.isLoading) {
             return html`
                 ${this.styles}
                 <div id="fragment-editor">

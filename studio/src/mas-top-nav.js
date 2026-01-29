@@ -133,13 +133,16 @@ class MasTopNav extends LitElement {
     }
 
     get isLocalePickerDisabled() {
-        let disabled = true;
         if (this.isContentPage) {
-            disabled = false;
-        } else if (this.isFragmentEditorPage && this.editorContext.isVariation(this.inEdit.get()?.get()?.id)) {
-            disabled = false;
+            return false;
         }
-        return disabled;
+        if (this.isFragmentEditorPage) {
+            // Enable picker when viewing default locale fragment (not a variation)
+            // so users can browse to locale variations
+            const fragmentId = this.inEdit.get()?.get()?.id;
+            return this.editorContext.isVariation(fragmentId);
+        }
+        return true;
     }
 
     get isDraftLandscape() {

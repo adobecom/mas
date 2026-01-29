@@ -360,38 +360,44 @@ class MasSearchAndFilters extends LitElement {
                     @input=${this.#handleSearchInput}
                     @submit=${this.#handleSearchSubmit}
                 ></sp-search>
-                ${this.searchQuery
-                    ? html`<div class="result-count">${`${this.resultCount} result${this.resultCount !== 1 ? 's' : ''}`}</div>`
-                    : nothing}
+                <div class="result-count">${`${this.resultCount} result${this.resultCount !== 1 ? 's' : ''}`}</div>
             </div>
 
-            ${!this.searchOnly
-                ? html`
-                      <div class="filters">
-                          ${this.#renderFilterPicker(
-                              'Template',
-                              this.templateOptions,
-                              this.templateFilter,
-                              FILTER_TYPE.TEMPLATE,
-                          )}
-                          ${this.#renderFilterPicker(
-                              'Market Segment',
-                              this.marketSegmentOptions,
-                              this.marketSegmentFilter,
-                              FILTER_TYPE.MARKET_SEGMENT,
-                          )}
-                          ${this.#renderFilterPicker(
-                              'Customer Segment',
-                              this.customerSegmentOptions,
-                              this.customerSegmentFilter,
-                              FILTER_TYPE.CUSTOMER_SEGMENT,
-                          )}
-                          ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
-                      </div>
+                ${
+                    !this.searchOnly
+                        ? html`
+                              <div class="filters">
+                                  ${this.#renderFilterPicker(
+                                      'Template',
+                                      this.templateOptions,
+                                      this.templateFilter,
+                                      FILTER_TYPE.TEMPLATE,
+                                  )}
+                                  ${this.#renderFilterPicker(
+                                      'Market Segment',
+                                      this.marketSegmentOptions,
+                                      this.marketSegmentFilter,
+                                      FILTER_TYPE.MARKET_SEGMENT,
+                                  )}
+                                  ${this.#renderFilterPicker(
+                                      'Customer Segment',
+                                      this.customerSegmentOptions,
+                                      this.customerSegmentFilter,
+                                      FILTER_TYPE.CUSTOMER_SEGMENT,
+                                  )}
+                                  ${this.#renderFilterPicker(
+                                      'Product',
+                                      this.productOptions,
+                                      this.productFilter,
+                                      FILTER_TYPE.PRODUCT,
+                                  )}
+                              </div>
 
-                      ${this.#renderAppliedFilters()}
-                  `
-                : nothing}
+                              ${this.#renderAppliedFilters()}
+                          `
+                        : nothing
+                }
+            </div>
         `;
     }
 }

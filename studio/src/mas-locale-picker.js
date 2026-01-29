@@ -120,7 +120,6 @@ export class MasLocalePicker extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.displayMode ??= 'default';
-        this.locale ??= 'en_US';
         this.mode ??= 'language';
         this.searchDisabled = this.searchDisabled ?? false;
         this.searchPlaceholder ??= 'Search language';
@@ -130,7 +129,6 @@ export class MasLocalePicker extends LitElement {
         }
         this.searchSubscriptions = Store.filters.subscribe(() => {
             this.locale = Store.localeOrRegion();
-            this.render();
         });
     }
 

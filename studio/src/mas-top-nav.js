@@ -116,6 +116,10 @@ class MasTopNav extends LitElement {
         return this.showPickers;
     }
 
+    get isContentPage() {
+        return this.page.value === PAGE_NAMES.CONTENT;
+    }
+
     get isFragmentEditorPage() {
         return this.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
@@ -126,6 +130,16 @@ class MasTopNav extends LitElement {
 
     get isTranslationsPage() {
         return this.page.value === PAGE_NAMES.TRANSLATIONS;
+    }
+
+    get isLocalePickerDisabled() {
+        let disabled = true;
+        if (this.isContentPage) {
+            disabled = false;
+        } else if (this.isFragmentEditorPage && this.editorContext.isVariation(this.inEdit.get()?.get()?.id)) {
+            disabled = false;
+        }
+        return disabled;
     }
 
     get isDraftLandscape() {
@@ -190,11 +204,25 @@ class MasTopNav extends LitElement {
                         return;
                     }
                 }
+                // Clear the region override and update locale filter before navigating
+                Store.search.set((prev) => ({ ...prev, region: null }));
+                this.filters.set((prev) => ({ ...prev, locale }));
                 router.navigateToFragmentEditor(id);
+            } else if (id && id === currentFragment?.id) {
+                // User selected the same fragment's locale (e.g., selecting en_US when already on en_US fragment)
+                // or returning from missing variation state to the default locale
+                // Reset hasChanges since we're not actually changing fragments
+                Store.editor.resetChanges();
+                Store.search.set((prev) => ({ ...prev, region: null }));
+                this.filters.set((prev) => ({ ...prev, locale }));
             } else if (!id) {
-                // If no variation exists for this locale, update the search region
-                // so the editor can show the "missing variation" state
+                // If no variation exists for this locale, update both the search region
+                // (so the editor can show the "missing variation" state) and the locale filter
+                // (so the URL is updated)
+                // Reset hasChanges since we're entering a "view only" missing variation state
+                Store.editor.resetChanges();
                 Store.search.set((prev) => ({ ...prev, region: locale }));
+                this.filters.set((prev) => ({ ...prev, locale }));
             }
             return;
         }
@@ -237,10 +265,9 @@ class MasTopNav extends LitElement {
                               <mas-locale-picker
                                   displayMode="strong"
                                   @locale-changed=${this.onLocaleChanged}
-                                  ?disabled=${this.isTranslationEditorPage ||
-                                  this.isTranslationsPage}
+                                  ?disabled=${this.isLocalePickerDisabled}
                                   surface=${Store.surface()}
-                                  locale=${this.currentFragmentLocale || Store.localeOrRegion()}
+                                  locale=${Store.localeOrRegion()}
                               ></mas-locale-picker>
                               <div class="divider"></div>
                               <div class="universal-elements">

@@ -4,7 +4,7 @@ import { getDefaultLocale, getLocaleByCode, isDefaultLocale } from '../../../io/
 import Store from '../store.js';
 
 export class EditorContextStore extends ReactiveStore {
-    loading = false;
+    loading = true;
     localeDefaultFragment = null;
     defaultLocaleId = null;
     parentFetchPromise = null;

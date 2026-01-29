@@ -69,6 +69,11 @@ class MasTranslationEditor extends LitElement {
                 await this.#loadTranslationProjectById(translationProjectId);
             }
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
+        } else if (this.translationProjectStore) {
+            // Store was pre-populated (e.g., from fragment editor)
+            this.isNewTranslationProject = true;
+            this.showSelectedEmptyState = this.translationProject?.getFieldValues('items').length === 0;
+            this.showLangSelectedEmptyState = this.translationProject?.getFieldValues('targetLocales').length === 0;
         } else {
             this.#initializeNewTranslationProject();
         }

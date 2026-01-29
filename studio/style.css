@@ -37,8 +37,10 @@ mas-studio {
 .studio-content {
     display: grid;
     grid-template-columns: 75px 1fr;
+    grid-template-rows: auto 1fr;
     grid-row: 2 / 3;
     width: 100%;
+    height: calc(100vh - var(--mas-nav-height));
 }
 
 .breadcrumbs-container {
@@ -70,11 +72,9 @@ mas-studio {
     pointer-events: none;
 }
 
-side-nav {
+mas-side-nav {
     grid-column: 1 / 2;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
+    grid-row: 2 / 3;
 }
 
 side-nav sp-sidenav {
@@ -115,6 +115,7 @@ sp-sidenav-item sp-icon {
 
 .main-container {
     grid-column: 2 / 3;
+    grid-row: 2 / 3;
     display: flex;
     flex-direction: column;
     height: auto;

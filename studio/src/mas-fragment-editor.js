@@ -5,14 +5,17 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
+import { FragmentStore } from './reactivity/fragment-store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
+import { generateCodeToUse, getFragmentMapping, showToast, getService } from './utils.js';
+import { getFragmentPartsToUse } from './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { TranslationProject } from './translation/translation-project.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -193,6 +196,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         #missing-variation-panel {
+            align-self: anchor-center;
             background: var(--spectrum-gray-50, #f8f8f8);
             border: 1px solid var(--spectrum-gray-300, #dadada);
             border-radius: 10px;
@@ -203,6 +207,8 @@ export default class MasFragmentEditor extends LitElement {
                 0px 2px 8px 0px rgba(0, 0, 0, 0.08);
             color: var(--spectrum-gray-500, #c6c6c6);
             box-sizing: border-box;
+            width: 1148px;
+            height: 600px;
         }
 
         #missing-variation-panel .translation-icon {
@@ -350,7 +356,7 @@ export default class MasFragmentEditor extends LitElement {
     page = new StoreController(this, Store.page);
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
-    reactiveController = new ReactiveController(this, [Store.search]);
+    reactiveController = new ReactiveController(this, [Store.search, Store.filters]);
     editorContextStore = Store.fragmentEditor.editorContext;
 
     discardPromiseResolver;
@@ -662,7 +668,11 @@ export default class MasFragmentEditor extends LitElement {
             }
         }
         const locale = this.extractLocaleFromPath(fragmentStore.get().path);
-        if (Store.localeOrRegion() !== locale) {
+        // Only sync region with fragment locale if no explicit locale is set in URL filters
+        // This allows the missing variation panel to show when URL has a different locale
+        const urlLocale = Store.filters.value.locale;
+        const isDefaultLocale = !urlLocale || urlLocale === 'en_US';
+        if (isDefaultLocale && Store.localeOrRegion() !== locale) {
             Store.search.set((prev) => ({ ...prev, region: locale }));
         }
 
@@ -695,7 +705,10 @@ export default class MasFragmentEditor extends LitElement {
 
             if (isVariation) {
                 const fragmentLocale = this.extractLocaleFromPath(fragmentStore?.get()?.path);
-                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                // Only sync region with fragment locale if no explicit locale is set in URL filters
+                const urlLocale = Store.filters.value.locale;
+                const isDefaultLocale = !urlLocale || urlLocale === 'en_US';
+                if (isDefaultLocale && fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
                     Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
 
                     await this.repository.loadPreviewPlaceholders();
@@ -1380,7 +1393,7 @@ export default class MasFragmentEditor extends LitElement {
                                 <sp-button variant="secondary" @click=${this.viewSourceFragment}>
                                     View ${sourceCountryName} (${sourceLang}) version
                                 </sp-button>
-                                <sp-button variant="accent" @click=${this.showCreateVariation}>
+                                <sp-button variant="accent" @click=${this.goToTranslationEditor}>
                                     Create translation project
                                 </sp-button>
                             </div>
@@ -1393,8 +1406,71 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     viewSourceFragment() {
-        // Navigate back to the source fragment by removing the region override
-        Store.removeRegionOverride();
+        // Reset hasChanges to avoid discard dialog
+        Store.editor.resetChanges();
+        // Clear the region override
+        Store.search.set((prev) => ({ ...prev, region: null }));
+        // Update locale filter to default (en_US) to update URL
+        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+    }
+
+    async goToTranslationEditor() {
+        const targetLocale = Store.localeOrRegion();
+        const fragment = this.fragment;
+        const fragmentPath = fragment?.path;
+
+        // Create a new translation project with pre-populated values
+        const newProject = new TranslationProject({
+            id: null,
+            title: '',
+            fields: [
+                { name: 'title', type: 'text', multiple: false, values: [] },
+                { name: 'status', type: 'text', multiple: false, values: [] },
+                { name: 'items', type: 'content-fragment', multiple: true, values: fragmentPath ? [fragmentPath] : [] },
+                { name: 'targetLocales', type: 'text', multiple: true, values: targetLocale ? [targetLocale] : [] },
+                { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
+            ],
+        });
+
+        // Set the store directly
+        Store.translationProjects.inEdit.set(new FragmentStore(newProject));
+        Store.translationProjects.translationProjectId.set('');
+
+        // Pre-populate fragmentsByPaths with enriched fragment for the table
+        if (fragment && fragmentPath) {
+            const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+            const { fragmentParts } = getFragmentPartsToUse(Store, fragment);
+            const studioPath = `${webComponentName}: ${fragmentParts}`;
+
+            let offerData;
+            try {
+                const wcsOsi = fragment?.getField?.('osi')?.values?.[0];
+                if (wcsOsi) {
+                    const service = getService();
+                    const priceOptions = service?.collectPriceOptions?.({ wcsOsi });
+                    if (priceOptions) {
+                        const [offersPromise] = service.resolveOfferSelectors(priceOptions);
+                        if (offersPromise) {
+                            const [offer] = await offersPromise;
+                            offerData = offer;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to load offer data:', err);
+            }
+
+            const enrichedFragment = { ...fragment, studioPath, offerData };
+            const fragmentsByPaths = new Map(Store.translationProjects.fragmentsByPaths.value);
+            fragmentsByPaths.set(fragmentPath, enrichedFragment);
+            Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
+        }
+
+        // Reset locale to default before navigating
+        Store.search.set((prev) => ({ ...prev, region: null }));
+        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
+        router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
     }
 
     render() {

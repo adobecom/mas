@@ -75,10 +75,6 @@
             <button onclick="runTests()">Run tests</button>
         </div>
         <main>
-            <div id="sidenav-container"></div>
-            <div id="content"></div>
-        </main>
-        <template id="sidenav-template">
             <merch-sidenav title="REFINE YOUR RESULTS">
                 <merch-search deeplink="search">
                     <sp-search placeholder="Search all products"></sp-search>
@@ -158,7 +154,8 @@
                     </sp-sidenav>
                 </merch-sidenav-list>
             </merch-sidenav>
-        </template>
+            <div id="content"></div>
+        </main>
         <template id="catalogCards" title="Catalog cards">
             <div class="four-merch-cards catalog">
                 <merch-card-collection display-result="true">
@@ -4934,165 +4931,6 @@
             >
                 <aem-fragment fragment="fragment-individual-plans-collection" />
             </merch-card-collection>
-        </template>
-        <template id="plansPagination" title="Plans Pagination">
-            <div class="collection-container plans">
-                <merch-card-collection
-                    class="merch-card-collection plans"
-                    variant="plans"
-                    filtered="all"
-                    page-size="9"
-                >
-                    <merch-card
-                        variant="plans"
-                        name="card1"
-                        filters="all:1"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card2"
-                        filters="all:2"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card3"
-                        filters="all:3"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card4"
-                        filters="all:4"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card5"
-                        filters="all:5"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card6"
-                        filters="all:6"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card7"
-                        filters="all:7"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card8"
-                        filters="all:8"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card9"
-                        filters="all:9"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card10"
-                        filters="all:10"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card11"
-                        filters="all:11"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card12"
-                        filters="all:12"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card13"
-                        filters="all:13"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card14"
-                        filters="all:14"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card15"
-                        filters="all:15"
-                    ></merch-card>
-                    <p slot="showMoreText">Show more plans</p>
-                </merch-card-collection>
-            </div>
-        </template>
-        <template id="plansNoPagination" title="Plans No Pagination">
-            <div class="collection-container plans">
-                <merch-card-collection
-                    class="merch-card-collection plans"
-                    variant="plans"
-                    filtered="all"
-                    pagination="false"
-                >
-                    <merch-card
-                        variant="plans"
-                        name="card1"
-                        filters="all:1"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card2"
-                        filters="all:2"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card3"
-                        filters="all:3"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card4"
-                        filters="all:4"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card5"
-                        filters="all:5"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card6"
-                        filters="all:6"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card7"
-                        filters="all:7"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card8"
-                        filters="all:8"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card9"
-                        filters="all:9"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card10"
-                        filters="all:10"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card11"
-                        filters="all:11"
-                    ></merch-card>
-                    <merch-card
-                        variant="plans"
-                        name="card12"
-                        filters="all:12"
-                    ></merch-card>
-                    <p slot="showMoreText">Show more plans</p>
-                </merch-card-collection>
-            </div>
         </template>
     </body>
 </html>

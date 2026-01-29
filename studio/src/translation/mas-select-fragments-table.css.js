@@ -141,6 +141,7 @@ export const styles = css`
         display: flex;
         justify-content: center;
         align-items: center;
+        padding: 80px;
     }
 
     @keyframes checkmark-pop {

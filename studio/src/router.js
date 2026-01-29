@@ -43,11 +43,13 @@ export class Router extends EventTarget {
             }
             case PAGE_NAMES.TRANSLATION_EDITOR: {
                 const editor = document.querySelector('mas-translation-editor');
+                if (!editor) {
+                    return { editor: null, hasChanges: null, shouldCheckUnsavedChanges: null };
+                }
                 return {
                     editor,
-                    hasChanges: editor && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
-                    shouldCheckUnsavedChanges:
-                        editor && !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    hasChanges: !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    shouldCheckUnsavedChanges: !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
                 };
             }
             default:

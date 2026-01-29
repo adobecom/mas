@@ -206,3 +206,22 @@ export const QUICK_ACTION = {
     DISCARD: 'discard',
     DELETE: 'delete',
 };
+
+export const FILTER_TYPE = {
+    TEMPLATE: 'template',
+    MARKET_SEGMENT: 'marketSegment',
+    CUSTOMER_SEGMENT: 'customerSegment',
+    PRODUCT: 'product',
+};
+
+export const FRAGMENT_STATUS = {
+    PUBLISHED: 'PUBLISHED',
+    DRAFT: 'DRAFT',
+    MODIFIED: 'MODIFIED',
+};
+
+export const TABLE_TYPE = {
+    CARDS: 'cards',
+    COLLECTIONS: 'collections',
+    PLACEHOLDERS: 'placeholders',
+};

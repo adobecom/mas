@@ -123,6 +123,7 @@ const Store = {
         displayCollections: new ReactiveStore([]),
         selectedCollections: new ReactiveStore([]),
 
+        allPlaceholders: new ReactiveStore([]),
         placeholdersByPaths: new ReactiveStore(new Map()),
         displayPlaceholders: new ReactiveStore([]),
         selectedPlaceholders: new ReactiveStore([]),

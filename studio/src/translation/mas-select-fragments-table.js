@@ -99,16 +99,13 @@ class MasSelectFragmentsTable extends LitElement {
 
                 Store.translationProjects.displayCards.set(allCards);
                 Store.translationProjects.displayCollections.set(allCollections);
-                // console.log('allMerchCards', Store.translationProjects.allCards.get());
-                // console.log('allCollections', Store.translationProjects.allCollections.get());
-                // console.log('merchCardsByPaths', Store.translationProjects.cardsByPaths.get());
-                // console.log('collectionsByPaths', Store.translationProjects.collectionsByPaths.get());
-                // console.log('displayMerchCards', Store.translationProjects.displayCards.get());
-                // console.log('displayCollections', Store.translationProjects.displayCollections.get());
             });
         }
         if (this.type === TABLE_TYPE.PLACEHOLDERS) {
             this.dataSubscription = Store.placeholders.list.data.subscribe(() => {
+                Store.translationProjects.allPlaceholders.set(
+                    Store.placeholders.list.data.get().map((placeholder) => placeholder.value),
+                );
                 Store.translationProjects.displayPlaceholders.set(
                     Store.placeholders.list.data.get().map((placeholder) => placeholder.value),
                 );
@@ -116,8 +113,6 @@ class MasSelectFragmentsTable extends LitElement {
                     Store.placeholders.list.data.get().map((placeholder) => [placeholder.value.path, placeholder.value]),
                 );
                 Store.translationProjects.placeholdersByPaths.set(placeholdersByPaths);
-                // console.log('placeholdersByPaths', Store.translationProjects.placeholdersByPaths.get());
-                // console.log('displayPlaceholders', Store.translationProjects.displayPlaceholders.get());
             });
         }
     }
@@ -140,6 +135,9 @@ class MasSelectFragmentsTable extends LitElement {
     get isLoading() {
         if (this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.COLLECTIONS) {
             return Store.fragments.list.loading.get();
+        }
+        if (this.type === TABLE_TYPE.PLACEHOLDERS) {
+            return Store.placeholders.list.loading.get();
         }
         return false;
     }

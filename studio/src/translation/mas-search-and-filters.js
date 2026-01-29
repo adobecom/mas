@@ -309,15 +309,23 @@ class MasSearchAndFilters extends LitElement {
 
         const result = source.filter((fragment) => {
             if (query) {
-                const title = (fragment.title || '').toLowerCase();
-                const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
-                const offerId = fragment.offerData?.offerId || '';
-                if (
-                    !title.includes(query) &&
-                    !productTag.toLowerCase().includes(query) &&
-                    !offerId.toLowerCase().includes(query)
-                ) {
-                    return false;
+                if (this.type === TABLE_TYPE.PLACEHOLDERS) {
+                    const key = fragment.key?.toLowerCase() || '';
+                    const value = fragment.value?.toLowerCase() || '';
+                    if (!key.includes(query) && !value.includes(query)) {
+                        return false;
+                    }
+                } else {
+                    const title = (fragment.title || '').toLowerCase();
+                    const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
+                    const offerId = fragment.offerData?.offerId || '';
+                    if (
+                        !title.includes(query) &&
+                        !productTag.toLowerCase().includes(query) &&
+                        !offerId.toLowerCase().includes(query)
+                    ) {
+                        return false;
+                    }
                 }
             }
             if (hasTemplate) {

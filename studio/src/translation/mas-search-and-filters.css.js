@@ -8,7 +8,7 @@ export const styles = css`
     .search {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         margin: 32px 0 20px 0;
     }
 

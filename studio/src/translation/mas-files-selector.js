@@ -4,7 +4,6 @@ import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { TABLE_TYPE } from '../constants.js';
-import './mas-placeholder-picker.js';
 import './mas-select-fragments-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';

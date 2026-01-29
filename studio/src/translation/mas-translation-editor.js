@@ -11,7 +11,6 @@ import { TranslationProject } from './translation-project.js';
 import './mas-files-selector.js';
 import './mas-select-fragments-table.js';
 import './mas-translation-languages.js';
-import './mas-placeholder-picker.js';
 import '../mas-quick-actions.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 

@@ -9,6 +9,7 @@ export const styles = css`
 
     .container {
         display: flex;
+        width: 80vw;
     }
 
     .selected-files-count {

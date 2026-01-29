@@ -1,0 +1,187 @@
+import { LitElement, html } from 'lit';
+import {
+    EVENT_AEM_LOAD,
+    EVENT_AEM_ERROR,
+} from './constants.js';
+import { getService } from './utils.js';
+import './aem-fragment.js';
+
+const TAG_NAME = 'mas-text';
+const DEFAULT_FIELD = 'description';
+
+/**
+ * MAS Text component - renders text content from a Card fragment.
+ *
+ * Designed for use cases where text content (with optional pricing/CTAs)
+ * needs to be displayed outside of a full merch-card context, such as
+ * FAQ answers, text blocks, promobars, etc.
+ *
+ * Uses existing Card fragment model - no new AEM model required.
+ * Delegates fragment loading to aem-fragment for consistent behavior.
+ * Supports regional variations via the MAS I/O customize.js pipeline.
+ *
+ * @element mas-text
+ *
+ * @attr {string} fragment - Required. The fragment ID to load.
+ * @attr {string} field - Optional. The field to render. Default: 'description'.
+ *                        Other options: 'shortDescription', 'promoText', 'callout'
+ *
+ * @fires aem:load - When fragment loads successfully
+ * @fires aem:error - When fragment fails to load
+ */
+export class MasText extends LitElement {
+    static properties = {
+        fragment: { type: String, reflect: true },
+        field: { type: String, reflect: true },
+    };
+
+    #log;
+    #service = null;
+    #content = '';
+
+    constructor() {
+        super();
+        this.field = DEFAULT_FIELD;
+    }
+
+    /**
+     * Returns the internal aem-fragment element
+     */
+    get aemFragment() {
+        return this.querySelector('aem-fragment');
+    }
+
+    /**
+     * Access the fragment data after loading
+     */
+    get data() {
+        return this.aemFragment?.data ?? null;
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.#service ??= getService(this);
+        this.#log ??= this.#service?.log?.module(`${TAG_NAME}[${this.fragment}]`);
+
+        if (!this.fragment) {
+            this.#fail('Missing fragment attribute');
+            return;
+        }
+
+        // Listen for aem-fragment events in capture phase to handle before bubbling
+        this.addEventListener(EVENT_AEM_LOAD, this.#handleLoad, true);
+        this.addEventListener(EVENT_AEM_ERROR, this.#handleError, true);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.removeEventListener(EVENT_AEM_LOAD, this.#handleLoad, true);
+        this.removeEventListener(EVENT_AEM_ERROR, this.#handleError, true);
+    }
+
+    /**
+     * Refresh the fragment content (e.g., after locale change)
+     */
+    async refresh() {
+        const aemFragment = this.aemFragment;
+        if (aemFragment) {
+            return aemFragment.refresh();
+        }
+    }
+
+    #handleLoad = (e) => {
+        // Only handle events from our direct aem-fragment child
+        if (e.target !== this.aemFragment) return;
+
+        this.classList.remove('error');
+        this.#extractContent();
+
+        // Re-dispatch with additional context
+        this.dispatchEvent(
+            new CustomEvent(EVENT_AEM_LOAD, {
+                detail: {
+                    ...e.detail,
+                    field: this.field,
+                },
+                bubbles: true,
+                composed: true,
+            })
+        );
+
+        // Stop the original event from bubbling further
+        e.stopPropagation();
+    };
+
+    #handleError = (e) => {
+        // Only handle events from our direct aem-fragment child
+        if (e.target !== this.aemFragment) return;
+
+        this.classList.add('error');
+        this.#log?.error('Failed to load fragment', e.detail);
+
+        // Re-dispatch with additional context
+        this.dispatchEvent(
+            new CustomEvent(EVENT_AEM_ERROR, {
+                detail: {
+                    ...e.detail,
+                    element: TAG_NAME,
+                },
+                bubbles: true,
+                composed: true,
+            })
+        );
+
+        // Stop the original event from bubbling further
+        e.stopPropagation();
+    };
+
+    #extractContent() {
+        const data = this.data;
+        if (!data?.fields) {
+            this.#log?.warn('No fields in fragment data');
+            return;
+        }
+
+        const fieldValue = data.fields[this.field];
+        if (fieldValue === undefined) {
+            this.#log?.warn(`Field "${this.field}" not found in fragment`);
+            return;
+        }
+
+        this.#content = fieldValue;
+        this.requestUpdate();
+    }
+
+    #fail(message) {
+        this.classList.add('error');
+        this.#log?.error(message);
+
+        this.dispatchEvent(
+            new CustomEvent(EVENT_AEM_ERROR, {
+                detail: {
+                    message,
+                    fragment: this.fragment,
+                },
+                bubbles: true,
+                composed: true,
+            })
+        );
+    }
+
+    // Disable Shadow DOM so content inherits page styles
+    createRenderRoot() {
+        return this;
+    }
+
+    render() {
+        return html`
+            <aem-fragment
+                fragment="${this.fragment}"
+                style="display: none"
+            ></aem-fragment>
+            <span .innerHTML="${this.#content}"></span>
+        `;
+    }
+}
+
+customElements.define(TAG_NAME, MasText);

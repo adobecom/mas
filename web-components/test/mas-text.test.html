@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="mas-io-url" content="http://localhost:2023/mas/io" />
+        <title>mas-text Web Component test page</title>
+        <script>
+            window.process = {
+                env: {},
+            };
+        </script>
+        <style>
+            main {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                flex-direction: column;
+                padding-top: 80px;
+            }
+
+            mas-text {
+                display: block;
+                margin: 16px;
+            }
+
+            mas-text.error {
+                color: red;
+                border: 1px solid red;
+                padding: 8px;
+            }
+        </style>
+        <script type="module" src="./mas-text.test.html.js"></script>
+    </head>
+
+    <body>
+        <mas-commerce-service
+            env="stage"
+            mas-io-url="https://www.stage.adobe.com/mas/io"
+        ></mas-commerce-service>
+        <main>
+            <sp-theme color="light" scale="medium"></sp-theme>
+        </main>
+
+        <template id="mas-text-basic">
+            <mas-text fragment="fragment-text-faq"></mas-text>
+        </template>
+
+        <template id="mas-text-with-field">
+            <mas-text fragment="fragment-text-faq" field="promoText"></mas-text>
+        </template>
+
+        <template id="mas-text-short-description">
+            <mas-text fragment="fragment-text-faq" field="shortDescription"></mas-text>
+        </template>
+
+        <template id="mas-text-missing-fragment">
+            <mas-text></mas-text>
+        </template>
+
+        <template id="mas-text-not-found">
+            <mas-text fragment="notfound"></mas-text>
+        </template>
+    </body>
+</html>

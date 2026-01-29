@@ -6,6 +6,7 @@ export const ICON_LIBRARY = [
     { id: 'sp-icon-ribbon', name: 'Ribbon' },
     { id: 'sp-icon-page-rule', name: 'Page rule' },
     { id: 'sp-icon-upload-to-cloud', name: 'Upload to cloud' },
+    { id: 'sp-icon-upload-to-cloud-outline', name: 'Upload to cloud outline' },
     { id: 'sp-icon-learn', name: 'Learn' },
     { id: 'sp-icon-data-correlated', name: 'Data correlated' },
 ];

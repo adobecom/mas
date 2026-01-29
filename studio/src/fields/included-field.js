@@ -129,6 +129,9 @@ class IncludedField extends LitElement {
     }
 
     #handleModalSave(event) {
+        // ignore save events fired from link editor
+        if (event.detail.href !== undefined) return;
+
         const { icon, alt, link } = event.detail;
         this.icon = icon;
         this.alt = alt;
@@ -226,6 +229,7 @@ class IncludedField extends LitElement {
                 .alt=${this.alt}
                 .link=${this.link}
                 .iconLibrary="${this.iconLibrary}"
+                .useRte=${this.iconLibrary}
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>

@@ -257,7 +257,14 @@ class MerchCardEditor extends LitElement {
                 bullets.push(props);
             } else {
                 const icon = listEl.querySelector('.sp-icon')?.tagName.toLowerCase() || '';
-                const alt = listEl.querySelector('[slot="description"]')?.textContent || '';
+                const desc = listEl.querySelector('[slot="description"] > span');
+                const text = listEl.querySelector('[slot="description"]')?.textContent || '';
+                let alt;
+                if (desc?.innerHTML == text) {
+                    alt = text;
+                } else {
+                    alt = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
+                }
                 bullets.push({ icon, alt, link: '' });
             }
         });
@@ -1175,9 +1182,21 @@ class MerchCardEditor extends LitElement {
         }
         const description = document.createElement('p');
         description.setAttribute('slot', 'description');
-        const strong = document.createElement(isBullet ? 'span' : 'strong');
-        strong.textContent = value.alt || '';
-        description.append(strong);
+        if (isBullet) {
+            const span = document.createElement('span');
+            if (value.alt?.startsWith('<p>')) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(value.alt, 'text/html');
+                span.innerHTML = doc.querySelector('p').innerHTML;
+            } else {
+                span.textContent = value.alt || '';
+            }
+            description.append(span);
+        } else {
+            const strong = document.createElement('strong');
+            strong.textContent = value.alt || '';
+            description.append(strong);
+        }
         list.append(iconSlot);
         list.append(description);
         return list;

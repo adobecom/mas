@@ -14,7 +14,8 @@ class MasMnemonicModal extends LitElement {
         link: { type: String },
         selectedTab: { type: String, state: true },
         selectedProductId: { type: String, state: true },
-        iconLibrary: { type: Boolean, state: true },
+        iconLibrary: { type: Boolean },
+        useRte: { type: Boolean },
     };
 
     static styles = css`
@@ -174,6 +175,8 @@ class MasMnemonicModal extends LitElement {
         this.selectedTab = 'product-icon';
         this.selectedProductId = null;
         this.icons = [];
+        this.useRte = false;
+        this.altHtml = '';
     }
 
     connectedCallback() {
@@ -290,7 +293,7 @@ class MasMnemonicModal extends LitElement {
                 composed: true,
                 detail: {
                     icon: iconValue,
-                    alt: this.alt || '',
+                    alt: this.altHtml || this.alt || '',
                     link: this.link || '',
                 },
             }),
@@ -312,27 +315,40 @@ class MasMnemonicModal extends LitElement {
                                 ${this.iconLibrary
                                     ? html`${renderSpIcon(product.id)}`
                                     : html` <img
-                                          src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
-                                          alt="${product.name}"
-                                          @error=${(e) => {
-                                              e.target.style.display = 'none';
-                                          }}
-                                      />`}
+                                        src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
+                                        alt="${product.name}"
+                                        @error=${(e) => {
+                                            e.target.style.display = 'none';
+                                        }}
+                                    />`}
                                 <span>${product.name}</span>
                             </div>
                         `,
                     )}
                 </div>
-
-                <div class="form-field">
-                    <sp-field-label for="product-alt">Alt Text</sp-field-label>
-                    <sp-textfield
-                        id="product-alt"
-                        placeholder="Descriptive text for accessibility"
-                        value="${this.alt}"
-                        @input=${(e) => (this.alt = e.target.value)}
-                    ></sp-textfield>
-                </div>
+                ${this.useRte
+                    ? html`
+                        <div class="form-field">
+                            <sp-field-label for="description">Description</sp-field-label>
+                                <rte-field
+                                    id="description"
+                                    link
+                                    .value=${this.alt || ''}
+                                    @change=${(e) => (this.altHtml = e.target.value)}
+                                ></rte-field>
+                        </div>
+                    ` 
+                    : html`
+                        <div class="form-field icon-lib-optional">
+                            <sp-field-label for="product-alt">Alt Text</sp-field-label>
+                            <sp-textfield
+                                id="product-alt"
+                                placeholder="Descriptive text for accessibility"
+                                value="${this.alt}"
+                                @input=${(e) => (this.alt = e.target.value)}
+                            ></sp-textfield>
+                        </div>
+                    `}
 
                 <div class="form-field icon-lib-optional">
                     <sp-field-label for="product-link">Link URL</sp-field-label>
@@ -361,15 +377,29 @@ class MasMnemonicModal extends LitElement {
                     ></sp-textfield>
                 </div>
 
-                <div class="form-field">
-                    <sp-field-label for="url-alt">Alt Text</sp-field-label>
-                    <sp-textfield
-                        id="url-alt"
-                        placeholder="Descriptive text for accessibility"
-                        value="${this.alt}"
-                        @input=${(e) => (this.alt = e.target.value)}
-                    ></sp-textfield>
-                </div>
+                ${this.useRte
+                    ? html`
+                        <div class="form-field">
+                            <sp-field-label for="url-description">Description</sp-field-label>
+                                <rte-field
+                                    id="url-description"
+                                    link
+                                    .value=${this.alt || ''}
+                                    @change=${(e) => (this.altHtml = e.target.value)}
+                                ></rte-field>
+                        </div>
+                    ` 
+                    : html`
+                        <div class="form-field icon-lib-optional">
+                            <sp-field-label for="url-alt">Alt Text</sp-field-label>
+                            <sp-textfield
+                                id="url-alt"
+                                placeholder="Descriptive text for accessibility"
+                                value="${this.alt}"
+                                @input=${(e) => (this.alt = e.target.value)}
+                            ></sp-textfield>
+                        </div>
+                    `}
 
                 <div class="form-field icon-lib-optional">
                     <sp-field-label for="url-link">Link URL</sp-field-label>

@@ -355,7 +355,7 @@ merch-card[variant="plans-v2"] [slot="quantity-select"] merch-quantity-select {
     --radius: 4px;
     --button-width: 29px;
     --qs-input-width: 59px;
-    --picker-button-border-left: none;
+    --picker-button-border-inline-start: none;
     --label-color: var(--spectrum-gray-700, #4B4B4B);
 }
 

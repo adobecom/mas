@@ -21,6 +21,7 @@ export class MerchSideNav extends LitElement {
         modal: { type: Boolean, reflect: true },
         open: { type: Boolean, state: true, reflect: true },
         autoclose: { type: Boolean, attribute: 'autoclose', reflect: true },
+        dir: { type: String, state: true },
     };
 
     constructor() {
@@ -28,6 +29,7 @@ export class MerchSideNav extends LitElement {
         this.open = false;
         this.autoclose = false;
         this.variant = null;
+        this.dir = document.documentElement.dir || 'ltr';
         this.closeModal = this.closeModal.bind(this);
         this.handleSelection = this.handleSelection.bind(this);
     }
@@ -35,9 +37,22 @@ export class MerchSideNav extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener(EVENT_MERCH_SIDENAV_SELECT, this.handleSelection);
+        // Observe document direction changes
+        this.dirObserver = new MutationObserver(() => {
+            const newDir = document.documentElement.dir || 'ltr';
+            if (this.dir !== newDir) {
+                this.dir = newDir;
+                this.requestUpdate();
+            }
+        });
+        this.dirObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['dir'],
+        });
     }
 
     disconnectedCallback() {
+        this.dirObserver?.disconnect();
         super.disconnectedCallback();
         this.removeEventListener(
             EVENT_MERCH_SIDENAV_SELECT,
@@ -103,7 +118,7 @@ export class MerchSideNav extends LitElement {
               >`
             : nothing;
         return html`
-            <sp-theme color="light" scale="medium">
+            <sp-theme color="light" scale="medium" dir="${this.dir}">
                 <sp-overlay type="modal" open @sp-closed=${this.closeModal}>
                     <sp-dialog-base
                         dismissable
@@ -127,7 +142,7 @@ export class MerchSideNav extends LitElement {
     }
 
     get asAside() {
-        return html`<sp-theme color="light" scale="medium"
+        return html`<sp-theme color="light" scale="medium" dir="${this.dir}"
             ><h2>${this.sidenavTitle}</h2>
             <slot></slot
         ></sp-theme>`;
@@ -214,7 +229,7 @@ export class MerchSideNav extends LitElement {
             display: block;
             z-index: 2;
             padding: var(--merch-sidenav-padding);
-            margin-right: var(--merch-sidenav-collection-gap);
+            margin-inline-end: var(--merch-sidenav-collection-gap);
         }
 
         ::slotted(merch-sidenav-list) {
@@ -273,6 +288,11 @@ export class MerchSideNav extends LitElement {
             padding: var(--merch-sidenav-title-padding);
             line-height: var(--merch-sidenav-title-line-height);
             margin: 0;
+            text-align: start;
+        }
+
+        :host-context([dir='rtl']) h2 {
+            text-align: right;
         }
 
         :host(:dir(rtl)) h2 {
@@ -333,7 +353,7 @@ export class MerchSideNav extends LitElement {
         sp-link {
             position: absolute;
             top: 16px;
-            right: 16px;
+            inset-inline-end: 16px;
             font-size: var(--merch-sidenav-modal-close-font-size);
             line-height: var(--merch-sidenav-modal-close-line-height);
         }

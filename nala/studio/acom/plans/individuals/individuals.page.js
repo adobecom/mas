@@ -28,8 +28,8 @@ export default class ACOMPlansIndividualsPage {
         // Plans individual card properties:
         this.cssProp = {
             card: {
-                'background-color': 'rgb(255, 255, 255)',
-                'border-color': 'rgb(245, 199, 0)',
+                'background-color': 'rgb(245, 199, 0)',
+                //'border-color': 'rgb(245, 199, 0)',
             },
             icon: {
                 width: '41.5px',

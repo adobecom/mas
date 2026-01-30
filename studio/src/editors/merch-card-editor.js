@@ -1195,8 +1195,6 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateMnemonics(event) {
-        const fragment = this.fragmentStore.get();
-
         this.lastMnemonicState = {
             timestamp: Date.now(),
             mnemonicIcon: [...this.getEffectiveFieldValues('mnemonicIcon')],
@@ -1211,7 +1209,14 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = [];
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
+        let hasEmptyPlaceholder = false;
+        
         event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
+            // Track if there's an empty placeholder (newly added but not yet filled in)
+            if (!icon) {
+                hasEmptyPlaceholder = true;
+            }
+            // Include all mnemonics, even empty ones, to preserve the multifield state
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
@@ -1219,22 +1224,27 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
 
+        // Don't update fragment store if there's just an empty placeholder
+        // This allows the user to fill in the mnemonic before it's saved
+        if (hasEmptyPlaceholder) {
+            return;
+        }
+
         // If all mnemonics removed in a variation, use empty string sentinel [""]
         // to indicate explicit clear (vs [] which means inherit from parent)
         if (mnemonicIcon.length === 0 && this.effectiveIsVariation) {
-            fragment.updateField('mnemonicIcon', ['']);
-            fragment.updateField('mnemonicAlt', ['']);
-            fragment.updateField('mnemonicLink', ['']);
-            fragment.updateField('mnemonicTooltipText', ['']);
-            fragment.updateField('mnemonicTooltipPlacement', ['']);
+            this.fragmentStore.updateField('mnemonicIcon', ['']);
+            this.fragmentStore.updateField('mnemonicAlt', ['']);
+            this.fragmentStore.updateField('mnemonicLink', ['']);
+            this.fragmentStore.updateField('mnemonicTooltipText', ['']);
+            this.fragmentStore.updateField('mnemonicTooltipPlacement', ['']);
         } else {
-            fragment.updateField('mnemonicIcon', mnemonicIcon);
-            fragment.updateField('mnemonicAlt', mnemonicAlt);
-            fragment.updateField('mnemonicLink', mnemonicLink);
-            fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
-            fragment.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
+            this.fragmentStore.updateField('mnemonicIcon', mnemonicIcon);
+            this.fragmentStore.updateField('mnemonicAlt', mnemonicAlt);
+            this.fragmentStore.updateField('mnemonicLink', mnemonicLink);
+            this.fragmentStore.updateField('mnemonicTooltipText', mnemonicTooltipText);
+            this.fragmentStore.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
         }
-        this.fragmentStore.set(fragment);
 
         const previousCount = this.lastMnemonicState.mnemonicIcon.length;
         const newCount = mnemonicIcon.length;

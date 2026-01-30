@@ -146,11 +146,12 @@
                     it('removes inherited mnemonic and restores it via override indicator', async () => {
                         console.log('[TEST] Starting test...');
 
-                        // Create fragment and fragment store
+                        // Create fragment and fragment store with parent (new API)
                         const variationFragment = new Fragment(structuredClone(variationFragmentData));
                         const parentFragment = new Fragment(structuredClone(parentFragmentData));
-                        const fragmentStore = generateFragmentStore(variationFragment, { skipAutoResolve: true });
-                        console.log('[TEST] Created fragments and store');
+                        // Pass parentFragment as second argument - this merges parent values into preview
+                        const fragmentStore = generateFragmentStore(variationFragment, parentFragment);
+                        console.log('[TEST] Created fragments and store with parent');
 
                         // Set up Store - this is how mas-fragment-editor gets the fragment
                         Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
@@ -181,9 +182,8 @@
 
                         // Set locale default fragment directly
                         fragmentEditor.localeDefaultFragment = parentFragment;
-                        fragmentEditor.contextLoaded = true;
-                        fragmentEditor.initializationComplete = true;
-                        console.log('[TEST] Set locale default fragment and flags');
+                        fragmentEditor.initState = 'ready';
+                        console.log('[TEST] Set locale default fragment and init state');
 
                         // Set up placeholders and surface for preview resolution
                         Store.placeholders.preview.set({});
@@ -204,10 +204,6 @@
                         // Append to DOM
                         spTheme.appendChild(fragmentEditor);
                         console.log('[TEST] Appended fragmentEditor to DOM');
-
-                        // Merge parent fields into preview store (simulates what initFragment does)
-                        fragmentEditor.mergeEssentialParentFields();
-                        console.log('[TEST] Merged parent fields');
 
                         await fragmentEditor.updateComplete;
                         await delay(500);
@@ -266,6 +262,207 @@
                         expect(editor.mnemonics[0].icon).to.equal('/test/mocks/img/creative-cloud.svg');
 
                         // DOM is preserved - do not remove editor
+                    });
+                });
+
+                describe('description field inheritance', () => {
+                    it('source store keeps raw variation data, preview store has parent-merged data', async () => {
+                        // Parent fragment with description content
+                        const parentWithDescription = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_US/parent-card',
+                            id: 'parent-with-description',
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') {
+                                    return { ...field, values: ['plans'] };
+                                }
+                                if (field.name === 'description') {
+                                    return { ...field, values: ['<p>Parent description content</p>'], multiple: false };
+                                }
+                                return field;
+                            }),
+                        };
+
+                        // Variation with empty description (should inherit from parent)
+                        const variationWithEmptyDescription = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_AU/parent-card',
+                            id: 'variation-with-empty-description',
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') {
+                                    return { ...field, values: ['plans'] };
+                                }
+                                if (field.name === 'description') {
+                                    return { ...field, values: [], multiple: false }; // Empty = inherit
+                                }
+                                return field;
+                            }),
+                        };
+
+                        const variationFragment = new Fragment(structuredClone(variationWithEmptyDescription));
+                        const parentFragment = new Fragment(structuredClone(parentWithDescription));
+
+                        // Create store with parent for variation
+                        const store = generateFragmentStore(variationFragment, parentFragment);
+
+                        // SOURCE store should have the RAW variation data (empty description)
+                        const sourceDescValues = store.value.getFieldValues('description');
+                        expect(sourceDescValues, 'Source should have empty description (raw variation data)').to.deep.equal([]);
+
+                        // PREVIEW store should have PARENT-MERGED data (parent's description)
+                        const previewDescValues = store.previewStore.value.getFieldValues('description');
+                        expect(previewDescValues, 'Preview should have parent description (merged for display)').to.deep.equal([
+                            '<p>Parent description content</p>',
+                        ]);
+
+                        // Verify field state is 'inherited'
+                        const fieldState = store.value.getFieldState('description', parentFragment, true);
+                        expect(fieldState, 'Description field state should be inherited').to.equal('inherited');
+
+                        // Verify source and preview don't share references
+                        const sourceField = store.value.getField('description');
+                        const previewField = store.previewStore.value.getField('description');
+                        expect(sourceField, 'Source and preview fields should be different objects').to.not.equal(previewField);
+                    });
+
+                    it('source store is not contaminated after preview resolution', async () => {
+                        // Parent fragment with description content
+                        const parentWithDescription = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_US/parent-card-2',
+                            id: 'parent-with-description-2',
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') {
+                                    return { ...field, values: ['plans'] };
+                                }
+                                if (field.name === 'description') {
+                                    return { ...field, values: ['<p>Parent description</p>'], multiple: false };
+                                }
+                                return field;
+                            }),
+                        };
+
+                        // Variation with empty description
+                        const variationWithEmptyDescription = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_AU/parent-card-2',
+                            id: 'variation-with-empty-description-2',
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') {
+                                    return { ...field, values: ['plans'] };
+                                }
+                                if (field.name === 'description') {
+                                    return { ...field, values: [], multiple: false };
+                                }
+                                return field;
+                            }),
+                        };
+
+                        const variationFragment = new Fragment(structuredClone(variationWithEmptyDescription));
+                        const parentFragment = new Fragment(structuredClone(parentWithDescription));
+
+                        const store = generateFragmentStore(variationFragment, parentFragment);
+
+                        // Simulate what preview resolution does - modify preview store
+                        store.previewStore.value.getField('description').values = ['<p>Resolved preview content</p>'];
+
+                        // SOURCE store should STILL have empty description (not contaminated)
+                        const sourceDescValues = store.value.getFieldValues('description');
+                        expect(sourceDescValues, 'Source should remain empty after preview modification').to.deep.equal([]);
+
+                        // Source initialValue should also be clean
+                        const initialDescField = store.value.initialValue.fields.find((f) => f.name === 'description');
+                        expect(initialDescField.values, 'Source initialValue should have empty description').to.deep.equal([]);
+                    });
+
+                    it('[""] on single-value field is treated as inherited', async () => {
+                        // Parent fragment with description content
+                        const parentWithDescription = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_US/parent-card-3',
+                            id: 'parent-with-description-3',
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') {
+                                    return { ...field, values: ['plans'] };
+                                }
+                                if (field.name === 'description') {
+                                    return { ...field, values: ['<p>Parent description</p>'], multiple: false };
+                                }
+                                return field;
+                            }),
+                        };
+
+                        // Variation with [""] description (AEM's default for empty single-value fields)
+                        const variationWithEmptyStringDescription = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_AU/parent-card-3',
+                            id: 'variation-with-empty-string-description',
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') {
+                                    return { ...field, values: ['plans'] };
+                                }
+                                if (field.name === 'description') {
+                                    return { ...field, values: [''], multiple: false }; // [""] = AEM default, should inherit
+                                }
+                                return field;
+                            }),
+                        };
+
+                        const variationFragment = new Fragment(structuredClone(variationWithEmptyStringDescription));
+                        const parentFragment = new Fragment(structuredClone(parentWithDescription));
+
+                        // Field state should be 'inherited' for [""] on single-value fields
+                        const fieldState = variationFragment.getFieldState('description', parentFragment, true);
+                        expect(fieldState, '[""] on single-value field should be inherited').to.equal('inherited');
+
+                        // Effective values should come from parent
+                        const effectiveValues = variationFragment.getEffectiveFieldValues('description', parentFragment, true);
+                        expect(effectiveValues, 'Effective values should be parent description').to.deep.equal([
+                            '<p>Parent description</p>',
+                        ]);
+                    });
+
+                    it('[""] on field without explicit multiple property is treated as inherited', async () => {
+                        // This test reproduces the actual AEM response where multiple may be undefined
+                        const parentWithDescription = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_US/parent-card-4',
+                            id: 'parent-with-description-4',
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') {
+                                    return { ...field, values: ['plans'] };
+                                }
+                                if (field.name === 'description') {
+                                    // Don't set multiple - let it be whatever AEM sends (false or undefined)
+                                    return { ...field, values: ['<p>Parent description</p>'] };
+                                }
+                                return field;
+                            }),
+                        };
+
+                        // Variation with [""] description - don't explicitly set multiple
+                        const variationWithEmptyStringDescription = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_AU/parent-card-4',
+                            id: 'variation-with-empty-string-description-4',
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') {
+                                    return { ...field, values: ['plans'] };
+                                }
+                                if (field.name === 'description') {
+                                    // Don't set multiple - let it be whatever AEM sends
+                                    return { ...field, values: [''] };
+                                }
+                                return field;
+                            }),
+                        };
+
+                        const variationFragment = new Fragment(structuredClone(variationWithEmptyStringDescription));
+                        const parentFragment = new Fragment(structuredClone(parentWithDescription));
+
+                        // Field state should be 'inherited' for [""] when multiple is false or undefined
+                        const fieldState = variationFragment.getFieldState('description', parentFragment, true);
+                        expect(fieldState, '[""] on field without explicit multiple should be inherited').to.equal('inherited');
                     });
                 });
             });

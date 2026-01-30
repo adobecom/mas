@@ -21,7 +21,7 @@ async function main(params) {
         const authToken = getBearerToken(params);
         const allowed = await isAllowed(authToken, params.allowedClientId);
         if (!allowed) {
-            return errorResponse(403, 'Forbidden: Invalid client ID', logger);
+            return errorResponse(401, 'Authorization failed', logger);
         }
 
         const { projectCF, etag } = await getTranslationProject(params.projectId, authToken);

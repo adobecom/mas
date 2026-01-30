@@ -94,7 +94,7 @@ describe('Translation project-start', () => {
             expect(result.error.body.error).to.include('surface');
         });
 
-        it('should return 403 if client ID is not allowed', async () => {
+        it('should return 401 if client ID is not allowed', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: false });
 
             const params = {
@@ -107,8 +107,8 @@ describe('Translation project-start', () => {
 
             const result = await projectStart.main(params);
 
-            expect(result.error.statusCode).to.equal(403);
-            expect(result.error.body.error).to.equal('Forbidden: Invalid client ID');
+            expect(result.error.statusCode).to.equal(401);
+            expect(result.error.body.error).to.equal('Authorization failed');
         });
 
         it('should return 500 if translation project is not found', async () => {
@@ -374,7 +374,7 @@ describe('Translation project-start', () => {
 
             const result = await projectStart.main(params);
 
-            expect(result.error.statusCode).to.equal(403);
+            expect(result.error.statusCode).to.equal(401);
         });
     });
 

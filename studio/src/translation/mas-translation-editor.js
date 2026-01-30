@@ -352,8 +352,6 @@ class MasTranslationEditor extends LitElement {
             if (!response.ok) {
                 throw new Error('Failed to send translation project to localization');
             }
-            const data = await response.json();
-            console.log('data:', data);
         } catch (error) {
             console.error('Error sending translation project to localization:', error);
             showToast('Failed to send translation project to localization.', 'negative');

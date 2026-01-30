@@ -92,8 +92,7 @@ async function main(params) {
     function getTranslationData(projectCF, surface, translationMapping = {}) {
         const itemsToTranslate = getItemsToTranslate(projectCF, surface);
         const locales = projectCF.fields.find((field) => field.name === 'targetLocales')?.values;
-        if (!itemsToTranslate || itemsToTranslate.length === 0) {
-            logger.warn('No items to translate found in translation project');
+        if (!itemsToTranslate) {
             return null;
         }
         if (!locales || locales.length === 0) {
@@ -117,7 +116,7 @@ async function main(params) {
         };
     }
 
-    function getItemsToTranslate(projectCF, surface) {
+    function getItemsToTranslate(projectCF) {
         // Gather items from all three separate arrays
         const fragments = projectCF.fields.find((field) => field.name === 'fragments')?.values || [];
         const collections = projectCF.fields.find((field) => field.name === 'collections')?.values || [];
@@ -126,8 +125,8 @@ async function main(params) {
         // Combine all items into a single array
         const itemsToTranslate = [...fragments, ...collections, ...placeholders];
 
-        if (!itemsToTranslate || itemsToTranslate.length === 0) {
-            logger.warn('No items to translate found in translation project');
+        if (itemsToTranslate.length === 0) {
+            logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
             return null;
         }
         return itemsToTranslate;

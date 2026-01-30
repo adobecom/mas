@@ -137,6 +137,7 @@ describe('Translation project-start', () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
             const mockProjectCF = {
+                id: 'test-project-id',
                 fields: [
                     { name: 'fragments', values: [] },
                     { name: 'collections', values: [] },
@@ -165,7 +166,9 @@ describe('Translation project-start', () => {
 
             expect(result.error.statusCode).to.equal(400);
             expect(result.error.body.error).to.equal('Translation project is incomplete (missing items or locales)');
-            expect(mockLogger.warn).to.have.been.calledWith('No items to translate found in translation project');
+            expect(mockLogger.warn).to.have.been.calledWith(
+                'No items to translate found in translation project: test-project-id',
+            );
         });
 
         it('should return 400 if translation project is incomplete (missing locales)', async () => {

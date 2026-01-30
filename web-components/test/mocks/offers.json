@@ -1906,5 +1906,76 @@
             "language": "MULT",
             "merchant": "ADOBE"
         }
+    ],
+
+    "softbundle-1-au": [
+        {
+            "offerSelectorIds": ["vQmS1H18A6_kPd0tYBgKnp-TQIF0GbT6p8SH8rWcLMs"],
+            "offerId": "7C30A05FE0EC0BA92566737E720C4692",
+            "startDate": "2022-02-17T08:00:00.000Z",
+            "priceDetails": {
+                "price": 31.99,
+                "priceWithoutTax": 29.08,
+                "annualized": {
+                    "annualizedPrice": 383.88,
+                    "annualizedPriceWithoutTax": 348.96
+                },
+                "usePrecision": true,
+                "formatString": "'A$'#,##0.00",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "GST"
+            },
+            "analytics": "{\"offerId\":\"7C30A05FE0EC0BA92566737E720C4692\",\"label\":\"apcc_direct_individual\",\"price\":\"31.99\",\"amountWithoutTax\":\"29.08\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"AUD\"}",
+            "productArrangementCode": "apcc_direct_individual",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "APCC"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "DCLINEUP_2022",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "softbundle-2-au": [
+        {
+            "offerSelectorIds": ["V3W0kzf4e6M2Ht1hP9ZAt3dQNmhuDFrmYmEPlE2SlG0"],
+            "offerId": "EE7B9245A0C474BFCE7D6F82CE3DA0B2",
+            "startDate": "2025-07-24T18:00:00.000Z",
+            "priceDetails": {
+                "price": 39.99,
+                "priceWithoutTax": 36.35,
+                "annualized": {
+                    "annualizedPrice": 479.88,
+                    "annualizedPriceWithoutTax": 436.2
+                },
+                "usePrecision": true,
+                "formatString": "'A$'#,##0.00",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "GST"
+            },
+            "analytics": "{\"offerId\":\"EE7B9245A0C474BFCE7D6F82CE3DA0B2\",\"label\":\"PA-1806\",\"price\":\"39.99\",\"amountWithoutTax\":\"36.35\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"AUD\"}",
+            "productArrangementCode": "PA-1806",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "ARCH"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
     ]
 }

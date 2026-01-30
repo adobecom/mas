@@ -1243,6 +1243,24 @@ describe('commerce service', () => {
             expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleIN);
         });
 
+        it('renders summed price for Australia soft bundle with annualized prices', async () => {
+            await initMasCommerceService({ country: 'AU', language: 'en' });
+            // softbundle-1-au (A$31.99) + softbundle-2-au (A$39.99) = A$71.98
+            // annualizedPrice: A$383.88 + A$479.88 = A$863.76
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-au,softbundle-2-au',
+            );
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleAU);
+            // Verify annualized prices are summed correctly in the value
+            // value is an array of offers, first element is the summed offer
+            const [summedOffer] = inlinePrice.value;
+            const { annualized } = summedOffer.priceDetails;
+            expect(annualized.annualizedPrice).to.equal(863.76);
+            expect(annualized.annualizedPriceWithoutTax).to.equal(785.16);
+        });
+
         it('fails when one OSI exists but another does not (CA partial failure)', async () => {
             await initMasCommerceService({ country: 'CA', language: 'en' });
             // softbundle-1-ca exists, but softbundle-2-ca does NOT exist - should fail

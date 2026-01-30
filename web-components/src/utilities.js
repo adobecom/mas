@@ -46,91 +46,107 @@ export function selectOffers(offers, { country, forceTaxExclusive }) {
 }
 
 /**
+ * Sums a numeric field from offers, rounding to 2 decimal places.
+ * @param {Offer[]} offers
+ * @param {function} getter - Function to extract value from offer
+ * @returns {number|undefined} Rounded sum, or undefined if sum is 0
+ */
+const sumField = (offers, getter) => {
+    const sum = offers.reduce((acc, offer) => acc + (getter(offer) || 0), 0);
+    return sum > 0 ? Math.round(sum * 100) / 100 : undefined;
+};
+
+/**
  * Sums prices from multiple offers into a single combined offer.
  * Used for soft bundles where multiple OSIs need to be summed.
  * @param {Offer[]} offers - Array of offers to sum (one per OSI)
  * @returns {Offer} Combined offer with summed prices
  */
 export function sumOffers(offers) {
-    if (!offers || offers.length === 0) {
-        return null;
-    }
-    if (offers.length === 1) {
-        return offers[0];
-    }
+    if (!offers || offers.length === 0) return null;
+    if (offers.length === 1) return offers[0];
 
     const [firstOffer, ...restOffers] = offers;
 
-    // Validate that all offers have compatible properties
+    // Validate compatibility
     for (const offer of restOffers) {
-        if (offer.commitment !== firstOffer.commitment) {
-            log.warn(
-                'Offers have different commitment types, summing may produce unexpected results',
-                { expected: firstOffer.commitment, actual: offer.commitment },
-            );
-        }
-        if (offer.term !== firstOffer.term) {
-            log.warn(
-                'Offers have different terms, summing may produce unexpected results',
-                { expected: firstOffer.term, actual: offer.term },
-            );
-        }
-        if (
-            offer.priceDetails?.formatString !==
-            firstOffer.priceDetails?.formatString
-        ) {
-            log.warn(
-                'Offers have different currency formats, summing may produce unexpected results',
-                {
-                    expected: firstOffer.priceDetails?.formatString,
-                    actual: offer.priceDetails?.formatString,
-                },
-            );
+        const checks = [
+            ['commitment', 'commitment types'],
+            ['term', 'terms'],
+            ['priceDetails.formatString', 'currency formats'],
+        ];
+        for (const [path, label] of checks) {
+            const expected = path.includes('.')
+                ? firstOffer.priceDetails?.formatString
+                : firstOffer[path];
+            const actual = path.includes('.')
+                ? offer.priceDetails?.formatString
+                : offer[path];
+            if (actual !== expected) {
+                log.warn(
+                    `Offers have different ${label}, summing may produce unexpected results`,
+                    { expected, actual },
+                );
+            }
         }
     }
 
-    // Sum the prices
-    const summedPrice = offers.reduce(
-        (sum, offer) => sum + (offer.priceDetails?.price || 0),
-        0,
-    );
-    const summedPriceWithoutDiscount = offers.reduce(
-        (sum, offer) => sum + (offer.priceDetails?.priceWithoutDiscount || 0),
-        0,
-    );
-    const summedPriceWithoutTax = offers.reduce(
-        (sum, offer) => sum + (offer.priceDetails?.priceWithoutTax || 0),
-        0,
-    );
-    const summedPriceWithoutDiscountAndTax = offers.reduce(
-        (sum, offer) =>
-            sum + (offer.priceDetails?.priceWithoutDiscountAndTax || 0),
-        0,
-    );
+    // Sum priceDetails fields
+    const priceFields = [
+        ['price', (o) => o.priceDetails?.price],
+        ['priceWithoutDiscount', (o) => o.priceDetails?.priceWithoutDiscount],
+        ['priceWithoutTax', (o) => o.priceDetails?.priceWithoutTax],
+        [
+            'priceWithoutDiscountAndTax',
+            (o) => o.priceDetails?.priceWithoutDiscountAndTax,
+        ],
+    ];
 
-    // Combine offerSelectorIds from all offers
-    const combinedOfferSelectorIds = offers.flatMap(
-        (offer) => offer.offerSelectorIds || [],
-    );
+    const summedPrices = {};
+    for (const [key, getter] of priceFields) {
+        const sum = sumField(offers, getter);
+        if (sum !== undefined) summedPrices[key] = sum;
+    }
 
-    // Create combined offer using first offer as base
+    // Sum annualized prices if present
+    const hasAnnualized = offers.some((o) => o.priceDetails?.annualized);
+    let annualized;
+    if (hasAnnualized) {
+        const annualizedFields = [
+            [
+                'annualizedPrice',
+                (o) => o.priceDetails?.annualized?.annualizedPrice,
+            ],
+            [
+                'annualizedPriceWithoutTax',
+                (o) => o.priceDetails?.annualized?.annualizedPriceWithoutTax,
+            ],
+            [
+                'annualizedPriceWithoutDiscount',
+                (o) =>
+                    o.priceDetails?.annualized?.annualizedPriceWithoutDiscount,
+            ],
+            [
+                'annualizedPriceWithoutDiscountAndTax',
+                (o) =>
+                    o.priceDetails?.annualized
+                        ?.annualizedPriceWithoutDiscountAndTax,
+            ],
+        ];
+        annualized = {};
+        for (const [key, getter] of annualizedFields) {
+            const sum = sumField(offers, getter);
+            if (sum !== undefined) annualized[key] = sum;
+        }
+    }
+
     return {
         ...firstOffer,
-        offerSelectorIds: combinedOfferSelectorIds,
+        offerSelectorIds: offers.flatMap((o) => o.offerSelectorIds || []),
         priceDetails: {
             ...firstOffer.priceDetails,
-            price: Math.round(summedPrice * 100) / 100,
-            ...(summedPriceWithoutDiscount > 0 && {
-                priceWithoutDiscount:
-                    Math.round(summedPriceWithoutDiscount * 100) / 100,
-            }),
-            ...(summedPriceWithoutTax > 0 && {
-                priceWithoutTax: Math.round(summedPriceWithoutTax * 100) / 100,
-            }),
-            ...(summedPriceWithoutDiscountAndTax > 0 && {
-                priceWithoutDiscountAndTax:
-                    Math.round(summedPriceWithoutDiscountAndTax * 100) / 100,
-            }),
+            ...summedPrices,
+            ...(annualized && { annualized }),
         },
     };
 }

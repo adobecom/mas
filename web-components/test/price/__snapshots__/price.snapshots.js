@@ -55,3 +55,8 @@ export const softBundleJP =
 // IN: softbundle-1-in (₹944) + softbundle-2-in (₹613.60) = ₹1,557.60
 export const softBundleIN =
     '<span is="inline-price" data-quantity="1" data-wcs-osi="softbundle-1-in,softbundle-2-in" class="placeholder-resolved"><span class="price"><span class="price-currency-symbol">₹</span><span class="price-currency-space disabled"></span><span class="price-integer">1,557</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">60</span><span class="price-recurrence">/माह</span><span class="price-unit-type disabled"></span><span class="price-tax-inclusivity">GST सहित</span></span></span>';
+
+// AU: softbundle-1-au (A$31.99) + softbundle-2-au (A$39.99) = A$71.98
+// annualizedPrice: A$383.88 + A$479.88 = A$863.76
+export const softBundleAU =
+    '<span is="inline-price" data-quantity="1" data-wcs-osi="softbundle-1-au,softbundle-2-au" class="placeholder-resolved"><span class="price"><span class="price-currency-symbol">A$</span><span class="price-currency-space disabled"></span><span class="price-integer">71</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">98</span><span class="price-recurrence">/mo</span><span class="price-unit-type disabled"></span><span class="price-tax-inclusivity">incl. GST</span></span></span>';

@@ -226,4 +226,72 @@ describe('function "sumOffers"', () => {
         const result = sumOffers(offers);
         expect(result.priceDetails.price).to.equal(31.0);
     });
+
+    it('sums annualized prices when present', () => {
+        const offers = [
+            {
+                offerId: '1',
+                offerSelectorIds: ['osi1'],
+                priceDetails: {
+                    price: 31.99,
+                    priceWithoutTax: 29.08,
+                    annualized: {
+                        annualizedPrice: 383.88,
+                        annualizedPriceWithoutTax: 348.96,
+                    },
+                    formatString: "'A$'#,##0.00",
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            },
+            {
+                offerId: '2',
+                offerSelectorIds: ['osi2'],
+                priceDetails: {
+                    price: 39.99,
+                    priceWithoutTax: 36.35,
+                    annualized: {
+                        annualizedPrice: 479.88,
+                        annualizedPriceWithoutTax: 436.2,
+                    },
+                    formatString: "'A$'#,##0.00",
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            },
+        ];
+        const result = sumOffers(offers);
+        expect(result.priceDetails.price).to.equal(71.98);
+        expect(result.priceDetails.priceWithoutTax).to.equal(65.43);
+        expect(result.priceDetails.annualized.annualizedPrice).to.equal(863.76);
+        expect(
+            result.priceDetails.annualized.annualizedPriceWithoutTax,
+        ).to.equal(785.16);
+    });
+
+    it('handles mixed offers with and without annualized prices', () => {
+        const offers = [
+            {
+                offerId: '1',
+                offerSelectorIds: ['osi1'],
+                priceDetails: {
+                    price: 10.0,
+                    annualized: {
+                        annualizedPrice: 120.0,
+                    },
+                },
+            },
+            {
+                offerId: '2',
+                offerSelectorIds: ['osi2'],
+                priceDetails: {
+                    price: 20.0,
+                    // No annualized object
+                },
+            },
+        ];
+        const result = sumOffers(offers);
+        expect(result.priceDetails.price).to.equal(30.0);
+        expect(result.priceDetails.annualized.annualizedPrice).to.equal(120.0);
+    });
 });

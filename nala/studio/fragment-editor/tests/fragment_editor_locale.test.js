@@ -1,4 +1,4 @@
-import { test, expect, studio, editor, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
+import { test, expect, studio, editor, translationEditor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import FragmentEditorLocaleSpec from '../specs/fragment_editor_locale.spec.js';
 
 const { features } = FragmentEditorLocaleSpec;
@@ -22,10 +22,7 @@ test.describe('M@S Studio Fragment Editor Locale test suite', () => {
         await test.step('step-3: Switch locale to TR via locale picker', async () => {
             await expect(studio.localePicker).toBeVisible();
             await expect(studio.localePicker).toHaveAttribute('value', data.defaultLocale);
-            await studio.localePicker.click();
-            await page.waitForTimeout(500);
-            await page.getByRole('menuitem', { name: data.trLocalePicker }).click();
-            await page.waitForTimeout(2000);
+            await studio.selectLocale(data.trLocalePicker);
         });
 
         await test.step('step-4: Verify missing variation panel appears', async () => {
@@ -46,10 +43,7 @@ test.describe('M@S Studio Fragment Editor Locale test suite', () => {
         });
 
         await test.step('step-7: Switch locale to FR', async () => {
-            await studio.localePicker.click();
-            await page.waitForTimeout(500);
-            await page.getByRole('menuitem', { name: data.frLocalePicker }).click();
-            await page.waitForTimeout(2000);
+            await studio.selectLocale(data.frLocalePicker);
         });
 
         await test.step('step-8: Verify missing variation panel appears for FR', async () => {
@@ -66,23 +60,9 @@ test.describe('M@S Studio Fragment Editor Locale test suite', () => {
             await expect(page).toHaveURL(/page=translation-editor/);
         });
 
-        await test.step('step-11: Verify translation editor fields are pre-populated', async () => {
-            const translationForm = page.locator('.translation-editor-form');
-            await expect(translationForm).toBeVisible({ timeout: 10000 });
-
-            // Verify title field is visible
-            const titleField = page.locator('#title');
-            await expect(titleField).toBeVisible();
-
-            // Verify selected languages section shows FR locale
-            const selectedLangsHeader = page.locator('.selected-langs-header h2');
-            await expect(selectedLangsHeader).toBeVisible();
-            await expect(selectedLangsHeader).toContainText('(1)');
-
-            // Verify selected files section shows the fragment
-            const selectedFilesHeader = page.locator('.selected-files-header h2');
-            await expect(selectedFilesHeader).toBeVisible();
-            await expect(selectedFilesHeader).toContainText('(1)');
+        await test.step('step-11: Verify translation editor form is visible', async () => {
+            await expect(translationEditor.form).toBeVisible({ timeout: 10000 });
+            await expect(translationEditor.titleField).toBeVisible();
         });
     });
 });

@@ -486,6 +486,15 @@ class MasTranslationEditor extends LitElement {
     }
 
     render() {
+        console.log('MasTranslationEditor render - stores:', {
+            inEdit: Store.translationProjects.inEdit.get(),
+            translationProjectId: Store.translationProjects.translationProjectId.get(),
+            selectedCards: Store.translationProjects.selectedCards.value,
+            selectedCollections: Store.translationProjects.selectedCollections.value,
+            selectedPlaceholders: Store.translationProjects.selectedPlaceholders.value,
+            targetLocales: Store.translationProjects.targetLocales.value,
+            showSelected: Store.translationProjects.showSelected.get(),
+        });
         return html`
             <div class="translation-editor-breadcrumb">
                 <sp-breadcrumbs>

@@ -695,8 +695,11 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             // Sync region picker to fragment's locale for correct preview placeholders
+            // BUT only if no locale was explicitly set in the URL (i.e., locale filter is still default)
             const fragmentLocale = this.extractLocaleFromPath(fragmentStore?.get()?.path);
-            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+            const urlLocale = Store.filters.value.locale;
+            const isUrlLocaleExplicitlySet = urlLocale && urlLocale !== 'en_US';
+            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion() && !isUrlLocaleExplicitlySet) {
                 Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
                 await this.repository.loadPreviewPlaceholders();
                 fragmentStore.resolvePreviewFragment();
@@ -1420,7 +1423,9 @@ export default class MasFragmentEditor extends LitElement {
             fields: [
                 { name: 'title', type: 'text', multiple: false, values: [] },
                 { name: 'status', type: 'text', multiple: false, values: [] },
-                { name: 'items', type: 'content-fragment', multiple: true, values: fragmentPath ? [fragmentPath] : [] },
+                { name: 'fragments', type: 'content-fragment', multiple: true, values: fragmentPath ? [fragmentPath] : [] },
+                { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
+                { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'targetLocales', type: 'text', multiple: true, values: targetLocale ? [targetLocale] : [] },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
             ],
@@ -1430,7 +1435,7 @@ export default class MasFragmentEditor extends LitElement {
         Store.translationProjects.inEdit.set(new FragmentStore(newProject));
         Store.translationProjects.translationProjectId.set('');
 
-        // Pre-populate fragmentsByPaths with enriched fragment for the table
+        // Pre-populate selectedCards and cardsByPaths with enriched fragment for the table
         if (fragment && fragmentPath) {
             const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
             const { fragmentParts } = getFragmentPartsToUse(Store, fragment);
@@ -1455,16 +1460,19 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             const enrichedFragment = { ...fragment, studioPath, offerData };
-            const fragmentsByPaths = new Map(Store.translationProjects.fragmentsByPaths.value);
-            fragmentsByPaths.set(fragmentPath, enrichedFragment);
-            Store.translationProjects.fragmentsByPaths.set(fragmentsByPaths);
+            const cardsByPaths = new Map(Store.translationProjects.cardsByPaths.value);
+            cardsByPaths.set(fragmentPath, enrichedFragment);
+            Store.translationProjects.cardsByPaths.set(cardsByPaths);
+            Store.translationProjects.selectedCards.set([fragmentPath]);
         }
 
-        // Reset locale to default before navigating
+        // Navigate to translation editor first, then reset locale
+        // This prevents the locale reset from triggering a re-render that could interfere with navigation
+        await router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
+
+        // Reset locale to default after navigating
         Store.search.set((prev) => ({ ...prev, region: null }));
         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
-
-        router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
     }
 
     render() {

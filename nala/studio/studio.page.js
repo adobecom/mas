@@ -74,6 +74,17 @@ export default class StudioPage {
         this.createDialogMerchCardOption = page.getByRole('menuitem', { name: 'Merch Card', exact: true }).first();
     }
 
+    /**
+     * Select a locale from the locale picker dropdown
+     * @param {string} localeName - The display name of the locale (e.g., 'French (FR)', 'Turkish (TR)')
+     */
+    async selectLocale(localeName) {
+        await this.localePicker.click();
+        await this.page.waitForTimeout(500);
+        await this.page.getByRole('menuitem', { name: localeName }).click();
+        await this.page.waitForTimeout(2000);
+    }
+
     async getCard(id, cloned, secondID) {
         const card = this.page.locator('merch-card');
         if (!card) {

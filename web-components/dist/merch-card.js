@@ -4676,6 +4676,12 @@ merch-card[variant="full-pricing-express"] [slot="price"] {
     justify-content: center;
 }
 
+merch-card[variant="full-pricing-express"] [slot="price"] p strong {
+    display: inline-flex;
+    justify-content: center;
+    width: 100%;
+}
+
 merch-card[variant="full-pricing-express"] [slot="price"] > p:first-child {
     display: flex;
     align-items: baseline;

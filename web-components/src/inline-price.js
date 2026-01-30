@@ -387,7 +387,7 @@ export class InlinePrice extends HTMLSpanElement {
                     options.displayOldPrice = true;
                 }
             }
-            if (service.featureFlags[FF_ANNUAL_PRICE]) {
+            if (service.featureFlags[FF_ANNUAL_PRICE] && options.displayAnnual !== false) {
                 options.displayAnnual = true;
             }
             return this.renderOffers(offers, options, version);

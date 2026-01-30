@@ -7,21 +7,16 @@ const NMB_CLMN = 4;
 
 class MasTranslationLanguages extends LitElement {
     static styles = styles;
-
     static properties = {
-        selectedLanguages: { type: Array, state: true },
-        onChange: { type: Function, reflect: false },
+        selectedLanguages: { type: Array, state: true, reflect: true },
     };
 
     constructor() {
         super();
-        this.onChange = null;
-        this.selectedLanguages = [];
     }
 
     connectedCallback() {
         super.connectedCallback();
-
         const surface = Store.search.value.path;
         this.localesArray = getDefaultLocales(surface)
             .map((item) => {
@@ -65,7 +60,6 @@ class MasTranslationLanguages extends LitElement {
         } else {
             this.selectedLanguages = [];
         }
-        this.onChange(this.selectedLanguages);
         this.requestUpdate();
     }
 
@@ -82,7 +76,6 @@ class MasTranslationLanguages extends LitElement {
             }
         }
         this.selectAllCheckbox.checked = this.selectAllChecked;
-        this.onChange(this.selectedLanguages);
         this.requestUpdate();
     }
 

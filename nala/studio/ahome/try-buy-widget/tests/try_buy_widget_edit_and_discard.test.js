@@ -362,7 +362,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-3: Edit CTA field', async () => {
             await expect(await editor.footer).toBeVisible();
-            await expect(await editor.footer).toContainText(data.cta.text.original);
+            await expect(await editor.footer).toContainText(data.cta.label.original);
 
             await (await editor.CTAClassSecondary).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
@@ -372,7 +372,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
                 await ost.ctaTextMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.cta.option}`,
+                        hasText: `${data.cta.label.updated}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -380,18 +380,18 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.cta.option}`,
+                    hasText: `${data.cta.label.updated}`,
                 })
                 .click();
             await ost.checkoutLinkUse.click();
         });
 
         await test.step('step-4: Validate edited CTA in Editor panel', async () => {
-            await expect(await editor.footer).toContainText(data.cta.text.updated);
+            await expect(await editor.footer).toContainText(data.cta.placeholder);
         });
 
         await test.step('step-5: Validate edited price field on the card', async () => {
-            await expect(await trybuywidget.cardCTASlot).toContainText(data.cta.text.updated);
+            await expect(await trybuywidget.cardCTASlot).toContainText(data.cta.label.updated);
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('data-wcs-osi', data.osi);
             await expect(await trybuywidget.cardCTA.first()).toHaveAttribute('is', 'checkout-button');
 
@@ -411,7 +411,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-7: Verify that the changes are not reflected on the card', async () => {
-            await expect(await trybuywidget.cardCTASlot).toContainText(data.cta.text.original);
+            await expect(await trybuywidget.cardCTASlot).toContainText(data.cta.label.original);
         });
     });
 

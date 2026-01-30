@@ -117,6 +117,7 @@ export function Wcs({ settings }) {
         let response;
         if (options.offerSelectorIds.length > 1)
             throw new Error('Multiple OSIs are not supported anymore');
+
         // Create a map of unresolved promises to track which ones need fallback
         const unresolvedPromises = new Map(promises);
 

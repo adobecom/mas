@@ -1208,4 +1208,57 @@ describe('commerce service', () => {
             buildPriceHTML(offers, { country: 'AU', promotionCode: 'promo' });
         });
     });
+
+    describe('Soft Bundle (Multiple OSIs)', () => {
+        it('renders summed price for US soft bundle', async () => {
+            await initMasCommerceService();
+            // softbundle-1-us ($19.99) + softbundle-2-us ($24.99) = $44.98
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-us,softbundle-2-us',
+            );
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleUS);
+        });
+
+        it('renders summed price for Japan soft bundle', async () => {
+            await initMasCommerceService({ country: 'JP', language: 'ja' });
+            // softbundle-1-jp (¥3,300) + softbundle-2-jp (¥1,980) = ¥5,280
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-jp,softbundle-2-jp',
+            );
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleJP);
+        });
+
+        it('renders summed price for India soft bundle', async () => {
+            await initMasCommerceService({ country: 'IN', language: 'hi' });
+            // softbundle-1-in (₹944) + softbundle-2-in (₹613.60) = ₹1,557.60
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-in,softbundle-2-in',
+            );
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleIN);
+        });
+
+        it('fails when one OSI exists but another does not (CA partial failure)', async () => {
+            await initMasCommerceService({ country: 'CA', language: 'en' });
+            // softbundle-1-ca exists, but softbundle-2-ca does NOT exist - should fail
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-ca,softbundle-2-ca',
+            );
+            try {
+                await inlinePrice.onceSettled();
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                // Error is thrown when any OSI fails
+                expect(error).to.be.instanceOf(Error);
+            }
+            expect(inlinePrice.classList.contains('placeholder-failed')).to.be
+                .true;
+        });
+    });
 });

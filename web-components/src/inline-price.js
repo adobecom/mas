@@ -352,9 +352,16 @@ export class InlinePrice extends HTMLSpanElement {
                 offerSelectorPromises,
             );
             // Select best offer from each OSI, then sum them
-            const selectedOffers = resolvedOfferArrays.map(
-                (offers) => selectOffers(offers, options)[0],
-            );
+            const selectedOffers = resolvedOfferArrays.map((offerArray) => {
+                const selected = selectOffers(offerArray, options);
+                return selected?.length ? selected[0] : null;
+            });
+            // Check if any offer selection failed
+            if (selectedOffers.some((offer) => !offer)) {
+                throw new Error(
+                    `Failed to select offers for: ${options.wcsOsi}`,
+                );
+            }
             let offers = selectedOffers;
             const offer = sumOffers(selectedOffers);
 
@@ -388,10 +395,10 @@ export class InlinePrice extends HTMLSpanElement {
                     }
                     if (options.forceTaxExclusive) {
                         // Re-select offers with forceTaxExclusive applied, then re-sum
-                        offers = resolvedOfferArrays.map(
-                            (offerArray) =>
-                                selectOffers(offerArray, options)[0],
-                        );
+                        offers = resolvedOfferArrays.map((offerArray) => {
+                            const selected = selectOffers(offerArray, options);
+                            return selected?.length ? selected[0] : null;
+                        });
                     }
                 }
             } else {

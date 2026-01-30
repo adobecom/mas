@@ -30,6 +30,8 @@ class MasTranslationEditor extends LitElement {
         selectedLangsSnapshot: { type: Set, state: true },
         showLangSelectedEmptyState: { type: Boolean, state: true },
         selectedLangs: { type: Array, state: true },
+        ioBaseUrl: { type: String, state: true },
+        isProjectReadonly: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -43,10 +45,10 @@ class MasTranslationEditor extends LitElement {
             QUICK_ACTION.DISCARD,
             QUICK_ACTION.DELETE,
             QUICK_ACTION.DUPLICATE,
-            QUICK_ACTION.PUBLISH,
             QUICK_ACTION.CANCEL,
             QUICK_ACTION.COPY,
             QUICK_ACTION.LOCK,
+            QUICK_ACTION.LOC,
         ]);
         this.isSelectedFilesOpen = false;
         this.selectedFilesSnapshot = new Set();
@@ -56,6 +58,8 @@ class MasTranslationEditor extends LitElement {
         this.selectedLangsSnapshot = new Set();
         this.isSelectedLangsOpen = false;
         this.selectedLangs = [];
+        this.ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
+        this.isProjectReadonly = false;
     }
 
     async connectedCallback() {
@@ -68,11 +72,15 @@ class MasTranslationEditor extends LitElement {
             } else {
                 await this.#loadTranslationProjectById(translationProjectId);
             }
-            this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
+            this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC] });
         } else {
             this.#initializeNewTranslationProject();
         }
         this.storeController = new StoreController(this, this.translationProjectStore);
+        this.isProjectReadonly = !!this.translationProject?.getFieldValue('submissionDate');
+        if (this.isProjectReadonly) {
+            this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
+        }
     }
 
     /** @type {MasRepository} */
@@ -126,7 +134,6 @@ class MasTranslationEditor extends LitElement {
                 this.showSelectedEmptyState = selectedPaths.size === 0;
                 this.showLangSelectedEmptyState = this.translationProject?.getFieldValues('targetLocales').length === 0;
             }
-            this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE] });
         } catch (err) {
             console.error('Failed to load translation project:', err);
             showToast('Failed to load translation project.', 'negative');
@@ -208,7 +215,10 @@ class MasTranslationEditor extends LitElement {
                 this.storeController.hostDisconnected();
                 this.storeController = new StoreController(this, this.translationProjectStore);
                 this.storeController.hostConnected();
-                this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD], remove: [QUICK_ACTION.DELETE] });
+                this.#updateDisabledActions({
+                    add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD, QUICK_ACTION.PUBLISH],
+                    remove: [QUICK_ACTION.DELETE],
+                });
             }
         } catch (error) {
             console.error('Error creating translation project', error);
@@ -286,6 +296,33 @@ class MasTranslationEditor extends LitElement {
         this.showLangSelectedEmptyState = this.selectedLangsCount === 0;
         Store.translationProjects.showSelected.set(false);
         this.#updateDisabledActions({ add: [QUICK_ACTION.DISCARD, QUICK_ACTION.SAVE] });
+    }
+
+    async #sendTranslationProject() {
+        showToast('Sending translation project to localization...', 'positive');
+
+        try {
+            const params = {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${window.adobeIMS?.getAccessToken()?.token}`,
+                },
+            };
+            const url = `${this.ioBaseUrl}/translation-project-start?projectId=${this.translationProject.id}&surface=${Store.surface()}`;
+            const response = await fetch(url, params);
+            if (!response.ok) {
+                throw new Error('Failed to send translation project to localization');
+            }
+            const data = await response.json();
+            console.log('data:', data);
+        } catch (error) {
+            console.error('Error sending translation project to localization:', error);
+            showToast('Failed to send translation project to localization.', 'negative');
+            return;
+        }
+        showToast('Translation project sent to localization successfully.', 'positive');
+        this.isProjectReadonly = true;
+        this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
     }
 
     async #showDialog(title, message, options = {}) {
@@ -442,12 +479,23 @@ class MasTranslationEditor extends LitElement {
     }
 
     render() {
+        let metadataInfo = '';
+        if (this.isProjectReadonly) {
+            const submissionDate = this.translationProject?.getFieldValue('submissionDate');
+            const formattedDate = submissionDate ? new Date(submissionDate).toLocaleDateString() : '';
+            const submitter = this.translationProject?.modified?.fullName;
+            metadataInfo = `Sent to translation on ${formattedDate} by ${submitter}`;
+        }
         return html`
             <div class="translation-editor-breadcrumb">
                 <sp-breadcrumbs>
                     <sp-breadcrumb-item @click=${this.#handleBackToBreadcrumb}>Translations</sp-breadcrumb-item>
                     <sp-breadcrumb-item
-                        >${this.isNewTranslationProject ? 'Create new project' : 'Edit project'}</sp-breadcrumb-item
+                        >${this.isNewTranslationProject
+                            ? 'Create new project'
+                            : this.isProjectReadonly
+                              ? 'Translation Project'
+                              : 'Edit project'}</sp-breadcrumb-item
                     >
                 </sp-breadcrumbs>
             </div>
@@ -456,7 +504,13 @@ class MasTranslationEditor extends LitElement {
 
             <div class="translation-editor-form">
                 <div class="header">
-                    <h1>${this.isNewTranslationProject ? 'Create new project' : 'Edit project'}</h1>
+                    <h1>
+                        ${this.isNewTranslationProject
+                            ? 'Create new project'
+                            : this.isProjectReadonly
+                              ? 'Translation Project'
+                              : 'Edit project'}
+                    </h1>
                 </div>
                 ${this.isLoading
                     ? html`
@@ -469,12 +523,21 @@ class MasTranslationEditor extends LitElement {
                           </div>
                       `
                     : html`<div class="form-field general-info">
+                    ${
+                        this.isProjectReadonly
+                            ? html`<div class="metadata-info">
+                                  <h2>Metadata</h2>
+                                  <sp-textfield readonly value="${metadataInfo}"></sp-textfield>
+                              </div>`
+                            : nothing
+                    }
                     <h2>General Info</h2>
                     <sp-field-label for="title" required>Title</sp-field-label>
                     <sp-textfield
                         id="title"
                         data-field="title"
                         value="${this.translationProject?.getFieldValue('title') ?? ''}"
+                        ?readonly=${this.isProjectReadonly}
                         @input=${this.#handleFragmentUpdate}
                     ></sp-textfield>
                 </div>
@@ -522,17 +585,28 @@ class MasTranslationEditor extends LitElement {
                                         `
                                       : html`
                                             <div>
-                                                <overlay-trigger type="modal" id="add-languages-overlay" triggered-by="click">
-                                                    ${this.renderAddLanguagesDialog()}
-                                                    <sp-button
-                                                        slot="trigger"
-                                                        class="trigger-btn"
-                                                        @click=${this.createLangSnapshot}
-                                                    >
-                                                        <sp-icon-edit slot="icon" label="Edit Languages"></sp-icon-edit>
-                                                        Edit
-                                                    </sp-button>
-                                                </overlay-trigger>
+                                                ${!this.isProjectReadonly
+                                                    ? html`
+                                                          <overlay-trigger
+                                                              type="modal"
+                                                              id="add-languages-overlay"
+                                                              triggered-by="click"
+                                                          >
+                                                              ${this.renderAddLanguagesDialog()}
+                                                              <sp-button
+                                                                  slot="trigger"
+                                                                  class="trigger-btn"
+                                                                  @click=${this.createLangSnapshot}
+                                                              >
+                                                                  <sp-icon-edit
+                                                                      slot="icon"
+                                                                      label="Edit Languages"
+                                                                  ></sp-icon-edit>
+                                                                  Edit
+                                                              </sp-button>
+                                                          </overlay-trigger>
+                                                      `
+                                                    : nothing}
                                                 <sp-button
                                                     icon-only
                                                     class="toggle-btn"
@@ -592,13 +666,25 @@ class MasTranslationEditor extends LitElement {
                                         `
                                       : html`
                                             <div>
-                                                <overlay-trigger type="modal" id="add-files-overlay" triggered-by="click">
-                                                    ${this.renderAddFilesDialog()}
-                                                    <sp-button slot="trigger" class="trigger-btn" @click=${this.createSnapshot}>
-                                                        <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>
-                                                        Edit
-                                                    </sp-button>
-                                                </overlay-trigger>
+                                                ${!this.isProjectReadonly
+                                                    ? html`
+                                                          <overlay-trigger
+                                                              type="modal"
+                                                              id="add-files-overlay"
+                                                              triggered-by="click"
+                                                          >
+                                                              ${this.renderAddFilesDialog()}
+                                                              <sp-button
+                                                                  slot="trigger"
+                                                                  class="trigger-btn"
+                                                                  @click=${this.createSnapshot}
+                                                              >
+                                                                  <sp-icon-edit slot="icon" label="Edit Files"></sp-icon-edit>
+                                                                  Edit
+                                                              </sp-button>
+                                                          </overlay-trigger>
+                                                      `
+                                                    : nothing}
                                                 <sp-button
                                                     icon-only
                                                     class="toggle-btn"
@@ -618,7 +704,7 @@ class MasTranslationEditor extends LitElement {
                     .actions=${[
                         QUICK_ACTION.SAVE,
                         QUICK_ACTION.DUPLICATE,
-                        QUICK_ACTION.PUBLISH,
+                        QUICK_ACTION.LOC,
                         QUICK_ACTION.CANCEL,
                         QUICK_ACTION.COPY,
                         QUICK_ACTION.LOCK,
@@ -629,6 +715,7 @@ class MasTranslationEditor extends LitElement {
                     @save=${this.isNewTranslationProject ? this.#createTranslationProject : this.#updateTranslationProject}
                     @delete=${this.#deleteTranslationProject}
                     @discard=${this.#discardUnsavedChanges}
+                    @loc=${this.#sendTranslationProject}
                 ></mas-quick-actions>
             </div>`}
             </div>

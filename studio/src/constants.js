@@ -205,4 +205,5 @@ export const QUICK_ACTION = {
     LOCK: 'lock',
     DISCARD: 'discard',
     DELETE: 'delete',
+    LOC: 'loc',
 };

@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
@@ -349,6 +349,14 @@ class MasSearchAndFilters extends LitElement {
         this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
     }
 
+    renderCount() {
+        return html`<div class="result-count">
+            ${Store.fragments.list.loading.get()
+                ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                : html`${this.resultCount} result${this.resultCount !== 1 ? 's' : ''}`}
+        </div>`;
+    }
+
     render() {
         return html`
             <div class="search">
@@ -360,7 +368,7 @@ class MasSearchAndFilters extends LitElement {
                     @input=${this.#handleSearchInput}
                     @submit=${this.#handleSearchSubmit}
                 ></sp-search>
-                <div class="result-count">${`${this.resultCount} result${this.resultCount !== 1 ? 's' : ''}`}</div>
+                ${this.renderCount()}
             </div>
 
                 ${

@@ -27,12 +27,13 @@ export const CSS = `
 merch-card[variant="plans-v2"] {
     width: var(--consonant-merch-card-plans-v2-width);
     height: var(--consonant-merch-card-plans-v2-height);
-    border: 1px solid var(--consonant-merch-card-border-color, var(--consonant-merch-card-plans-v2-border-color));
     border-radius: var(--consonant-merch-card-plans-v2-border-radius);
     background-color: var(--spectrum-gray-50, #FFFFFF);
     overflow: visible;
     position: relative;
     z-index: 1;
+    background: linear-gradient(var(--spectrum-gray-50, #FFFFFF), var(--spectrum-gray-50, #FFFFFF)) padding-box, var(--consonant-merch-card-border-color, var(--consonant-merch-card-plans-v2-border-color)) border-box;
+    border: 1px solid transparent;
 }
 
 merch-card[variant="plans-v2"]:has(merch-quantity-select:not([closed])) {

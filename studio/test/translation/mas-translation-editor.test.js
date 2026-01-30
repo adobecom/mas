@@ -73,7 +73,7 @@ describe('MasTranslationEditor', () => {
             expect(el.disabledActions.has(QUICK_ACTION.DISCARD)).to.be.true;
             expect(el.disabledActions.has(QUICK_ACTION.DELETE)).to.be.true;
             expect(el.disabledActions.has(QUICK_ACTION.DUPLICATE)).to.be.true;
-            expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.be.true;
+            expect(el.disabledActions.has(QUICK_ACTION.LOC)).to.be.true;
         });
 
         it.skip('should load existing translation project when translationProjectId is set', async () => {

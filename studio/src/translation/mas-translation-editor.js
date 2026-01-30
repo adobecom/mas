@@ -525,6 +525,14 @@ class MasTranslationEditor extends LitElement {
             const submitter = this.translationProject?.modified?.fullName;
             metadataInfo = `Sent to translation on ${formattedDate} by ${submitter}`;
         }
+        let createEditLabel = '';
+        if (this.isNewTranslationProject) {
+            createEditLabel = 'Create new project';
+        } else if (this.isProjectReadonly) {
+            createEditLabel = 'Translation Project';
+        } else {
+            createEditLabel = 'Edit project';
+        }
         return html`
             <div class="translation-editor-breadcrumb">
                 <sp-breadcrumbs>
@@ -543,13 +551,7 @@ class MasTranslationEditor extends LitElement {
 
             <div class="translation-editor-form">
                 <div class="header">
-                    <h1>
-                        ${this.isNewTranslationProject
-                            ? 'Create new project'
-                            : this.isProjectReadonly
-                              ? 'Translation Project'
-                              : 'Edit project'}
-                    </h1>
+                    <h1>${createEditLabel}</h1>
                 </div>
                 ${this.isLoading
                     ? html`

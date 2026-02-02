@@ -72,7 +72,6 @@ const ACOM = [
     { lang: 'da', country: 'DK' },
     { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
     { lang: 'el', country: 'GR' },
-    { lang: 'en', country: 'GB', regions: ['AU', 'IN'] },
     {
         lang: 'en',
         country: 'US',
@@ -101,6 +100,7 @@ const ACOM = [
             'ZA',
         ],
     },
+    { lang: 'en', country: 'GB', regions: ['AU', 'IN'] },
     { lang: 'et', country: 'EE' },
     { lang: 'fi', country: 'FI' },
     { lang: 'fil', country: 'PH' },
@@ -421,9 +421,13 @@ export function getCountryFlag(country) {
 
 export function getDefaultLocale(surface, localeCode) {
     const [language, country] = localeCode.split('_');
-    return DEFAULT_LOCALES[surface].find(
+    let defaultLocale = DEFAULT_LOCALES[surface].find(
         (locale) => locale.lang === language && (locale.country === country || locale.regions?.includes(country)),
     );
+    if (!defaultLocale) {
+        defaultLocale = DEFAULT_LOCALES[surface].find((locale) => locale.lang === language);
+    }
+    return defaultLocale;
 }
 
 /**
@@ -434,7 +438,7 @@ export function getDefaultLocale(surface, localeCode) {
  * @param {*} surface e.g. 'acom'
  * @returns
  */
-export function getDefaultLocaleCode(localeCode, surface) {
+export function getDefaultLocaleCode(surface, localeCode) {
     if (!localeCode || !surface) {
         return null;
     }

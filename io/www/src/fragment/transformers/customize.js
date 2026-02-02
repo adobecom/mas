@@ -12,7 +12,7 @@ function skimFragmentFromReferences(fragment) {
 }
 
 function getCorrespondingLocale(surface, locale, parsedLocale) {
-    const defaultLocale = getDefaultLocaleCode(locale, surface);
+    const defaultLocale = getDefaultLocaleCode(surface, locale);
     return defaultLocale || parsedLocale;
 }
 

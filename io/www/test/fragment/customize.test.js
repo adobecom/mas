@@ -480,9 +480,14 @@ describe('customize corner cases', function () {
     });
 });
 
-describe('corresponding local corner case', function () {
+describe('corresponding locale corner case', function () {
     it('locale with no default should be returned as is', async function () {
         const locale = getCorrespondingLocale('sandbox', 'bb_BB', 'bb_BB');
         expect(locale).to.equal('bb_BB');
+    });
+
+    it('invalid locale with valid language should default to default language', async function () {
+        expect(getCorrespondingLocale('sandbox', 'en_ZZ', 'de_DE')).to.equal('en_US');
+        expect(getCorrespondingLocale('sandbox', 'fr_ZZ', 'de_DE')).to.equal('fr_FR');
     });
 });

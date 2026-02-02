@@ -745,7 +745,7 @@ export class MasRepository extends LitElement {
         const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
 
         let parentReference = null;
-        const fallbackLocale = getDefaultLocaleCode(locale, surfaceRoot);
+        const fallbackLocale = getDefaultLocaleCode(surfaceRoot, locale);
         const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
         const acomFallbackLocale = fallbackLocale ?? locale;
 

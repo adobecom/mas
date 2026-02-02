@@ -43,9 +43,9 @@ describe('locales', function () {
 
     describe('getDefaultLocaleCode', function () {
         it('should return default locale code for a regional variant', function () {
-            expect(getDefaultLocaleCode('fr_CA', 'acom'), 'should return fr_FR').to.equal('fr_FR');
-            expect(getDefaultLocaleCode('en_AU', 'acom')).to.equal('en_GB');
-            expect(getDefaultLocaleCode('en_AU', 'ccd')).to.equal('en_US');
+            expect(getDefaultLocaleCode('acom', 'fr_CA'), 'should return fr_FR').to.equal('fr_FR');
+            expect(getDefaultLocaleCode('acom', 'en_AU')).to.equal('en_GB');
+            expect(getDefaultLocaleCode('ccd', 'en_AU')).to.equal('en_US');
         });
     });
 

@@ -20,7 +20,7 @@ export class EditorContextStore extends ReactiveStore {
         const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
         if (!pathMatch) return { isVariation: false, defaultLocale: null };
         const localeCode = pathMatch[1];
-        const expectedDefault = getDefaultLocaleCode(localeCode, Store.surface());
+        const expectedDefault = getDefaultLocaleCode(Store.surface(), localeCode);
         if (expectedDefault && expectedDefault !== localeCode) {
             return { isVariation: true, defaultLocale: expectedDefault, pathLocale: localeCode };
         }

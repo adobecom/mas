@@ -794,7 +794,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         height: 32px;
         position: absolute;
         top: 16px;
-        right: 16px;
+        inset-inline-end: 16px;
         background-color: #f6f6f6;
         background-repeat: no-repeat;
         background-position: center;
@@ -2203,7 +2203,7 @@ merch-card[variant^="plans"] [slot="callout-content"] > p {
 }
 
 merch-card[variant^="plans"] [slot="callout-content"] > p:has(> .icon-button) {
-    padding-right: 36px;
+    padding-inline-end: 36px;
 }
 
 merch-card[variant^="plans"] [slot='callout-content'] > p,
@@ -2293,12 +2293,12 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 
 .columns.checkmark-list ul {
     margin: 0;
-    padding-left: 20px;
+    padding-inline-start: 20px;
     list-style-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -3 18 18" height="18px"><path fill="currentcolor" d="M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z"></path></svg>');
 }
 
 .columns.checkmark-list ul li {
-    padding-left: 8px;
+    padding-inline-start: 8px;
 }
 
 /* Tabs containers */
@@ -2448,12 +2448,17 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     }
 
     .collection-container.plans:has(merch-sidenav) {
+        --translate-direction: -1;
         width: fit-content;
         position: relative;
-        left: 50%;
-        transform: translateX(-50vw);
+        inset-inline-start: 50%;
+        translate: calc(var(--translate-direction) * 50vw) 0;
         justify-content: start;
         padding-inline: 30px;
+    }
+
+    [dir="rtl"] .collection-container.plans:has(merch-sidenav) {
+        --translate-direction: 1;
     }
 
     .plans-individual .content {
@@ -2961,7 +2966,7 @@ merch-card[variant="plans-v2"] [slot="quantity-select"] merch-quantity-select {
     --radius: 4px;
     --button-width: 29px;
     --qs-input-width: 59px;
-    --picker-button-border-left: none;
+    --picker-button-border-inline-start: none;
     --label-color: var(--spectrum-gray-700, #4B4B4B);
 }
 
@@ -6215,7 +6220,7 @@ merch-card [slot='callout-content'] {
 merch-card[variant^='plans'] [slot='badge'] {
     position: absolute;
     top: 16px;
-    right: 0;
+    inset-inline-end: 0;
     line-height: 16px;
 }
 
@@ -6552,6 +6557,16 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
 merch-badge[background-color="spectrum-red-700-plans"] {
   color: #FFFFFF;
 }
+
+/* Badge border-radius with RTL support */
+merch-badge {
+  --merch-badge-border-radius: 4px 0 0 4px; /* LTR default */
+}
+
+[dir="rtl"] merch-badge {
+  --merch-badge-border-radius: 0 4px 4px 0; /* RTL override */
+}
+
 /* Red border color for merch-cards */
 merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
@@ -6610,7 +6625,7 @@ merch-card [slot='callout-content'] .icon-button::before {
     }
 }
 
-`;document.head.appendChild(Cc);var _c="fragment",kc="author",Pc="preview",Lc="loading",Rc="timeout",Aa="aem-fragment",Mc="eager",Oc="cache",_h=[Mc,Oc],Me,bt,Ce,Ta=class{constructor(){E(this,Me,new Map);E(this,bt,new Map);E(this,Ce,new Map)}clear(){h(this,Me).clear(),h(this,bt).clear(),h(this,Ce).clear()}add(t,r=!0){if(!this.has(t.id)&&!this.has(t.fields?.originalId)){if(h(this,Me).set(t.id,t),t.fields?.originalId&&h(this,Me).set(t.fields.originalId,t),h(this,Ce).has(t.id)){let[,i]=h(this,Ce).get(t.id);i()}if(h(this,Ce).has(t.fields?.originalId)){let[,i]=h(this,Ce).get(t.fields?.originalId);i()}if(!(!r||typeof t.references!="object"||Array.isArray(t.references)))for(let i in t.references){let{type:n,value:a}=t.references[i];n==="content-fragment"&&(a.settings={...t?.settings,...a.settings},a.placeholders={...t?.placeholders,...a.placeholders},a.dictionary={...t?.dictionary,...a.dictionary},a.priceLiterals={...t?.priceLiterals,...a.priceLiterals},this.add(a,t))}}}has(t){return h(this,Me).has(t)}entries(){return h(this,Me).entries()}get(t){return h(this,Me).get(t)}getAsPromise(t){let[r]=h(this,Ce).get(t)??[];if(r)return r;let i;return r=new Promise(n=>{i=n,this.has(t)&&n()}),h(this,Ce).set(t,[r,i]),r}getFetchInfo(t){let r=h(this,bt).get(t);return r||(r={url:null,retryCount:0,stale:!1,measure:null,status:null},h(this,bt).set(t,r)),r}remove(t){h(this,Me).delete(t),h(this,bt).delete(t),h(this,Ce).delete(t)}};Me=new WeakMap,bt=new WeakMap,Ce=new WeakMap;var Xe=new Ta,Xt,_e,Be,ye,ue,Z,Ur,Fr,ke,Gr,qr,Kt,Pe,Nc,Ic,Ca,Dc,Ui=class extends HTMLElement{constructor(){super(...arguments);E(this,Pe);m(this,"cache",Xe);E(this,Xt);E(this,_e,null);E(this,Be,null);E(this,ye,null);E(this,ue);E(this,Z);E(this,Ur,Mc);E(this,Fr,5e3);E(this,ke);E(this,Gr,!1);E(this,qr,0);E(this,Kt)}static get observedAttributes(){return[_c,Lc,Rc,kc,Pc]}attributeChangedCallback(r,i,n){r===_c&&(y(this,ue,n),y(this,Z,Xe.getFetchInfo(n))),r===Lc&&_h.includes(n)&&y(this,Ur,n),r===Rc&&y(this,Fr,parseInt(n,10)),r===kc&&y(this,Gr,["","true"].includes(n)),r===Pc&&y(this,Kt,n)}connectedCallback(){if(!h(this,ke)){if(h(this,ye)??y(this,ye,ht(this)),y(this,Kt,h(this,ye).settings?.preview),h(this,Xt)??y(this,Xt,h(this,ye).log.module(`${Aa}[${h(this,ue)}]`)),!h(this,ue)||h(this,ue)==="#"){h(this,Z)??y(this,Z,Xe.getFetchInfo("missing-fragment-id")),ee(this,Pe,Ca).call(this,"Missing fragment id");return}this.refresh(!1)}}get fetchInfo(){return Object.fromEntries(Object.entries(h(this,Z)).filter(([r,i])=>i!=null).map(([r,i])=>[`aem-fragment:${r}`,i]))}async refresh(r=!0){if(h(this,ke)&&!await Promise.race([h(this,ke),Promise.resolve(!1)]))return;r&&Xe.remove(h(this,ue)),h(this,Ur)===Oc&&await Promise.race([Xe.getAsPromise(h(this,ue)),new Promise(s=>setTimeout(s,h(this,Fr)))]);try{y(this,ke,ee(this,Pe,Dc).call(this)),await h(this,ke)}catch(s){return ee(this,Pe,Ca).call(this,s.message),!1}let{references:i,referencesTree:n,placeholders:a,wcs:o}=h(this,_e)||{};return o&&!U("mas.disableWcsCache")&&h(this,ye).prefillWcsCache(o),this.dispatchEvent(new CustomEvent(rt,{detail:{...this.data,references:i,referencesTree:n,placeholders:a,...h(this,Z)},bubbles:!0,composed:!0})),h(this,ke)}get updateComplete(){return h(this,ke)??Promise.reject(new Error("AEM fragment cannot be loaded"))}get data(){return h(this,Be)?h(this,Be):(h(this,Gr)?this.transformAuthorData():this.transformPublishData(),h(this,Be))}get rawData(){return h(this,_e)}transformAuthorData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,Be,r.reduce((l,{name:d,multiple:p,values:u})=>(l.fields[d]=p?u:u[0],l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}transformPublishData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,Be,Object.entries(r).reduce((l,[d,p])=>(l.fields[d]=p?.mimeType?p.value:p??"",l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}getFragmentClientUrl(){let i=new URLSearchParams(window.location.search).get("maslibs");if(!i||i.trim()==="")return"https://mas.adobe.com/studio/libs/fragment-client.js";let n=i.trim().toLowerCase();if(n==="local")return"http://localhost:3030/studio/libs/fragment-client.js";let{hostname:a}=window.location,o=a.endsWith(".page")?"page":"live";return n.includes("--")?`https://${n}.aem.${o}/studio/libs/fragment-client.js`:`https://${n}--mas--adobecom.aem.${o}/studio/libs/fragment-client.js`}async generatePreview(){let r=this.getFragmentClientUrl(),{previewFragment:i}=await import(r);return await i(h(this,ue),{locale:h(this,ye).settings.locale,apiKey:h(this,ye).settings.wcsApiKey})}};Xt=new WeakMap,_e=new WeakMap,Be=new WeakMap,ye=new WeakMap,ue=new WeakMap,Z=new WeakMap,Ur=new WeakMap,Fr=new WeakMap,ke=new WeakMap,Gr=new WeakMap,qr=new WeakMap,Kt=new WeakMap,Pe=new WeakSet,Nc=async function(r){Va(this,qr)._++;let i=`${Aa}:${h(this,ue)}:${h(this,qr)}`,n=`${i}${at}`,a=`${i}${ot}`;if(h(this,Kt))return await this.generatePreview();performance.mark(n);let o;try{if(h(this,Z).stale=!1,h(this,Z).url=r,o=await Ti(r,{cache:"default",credentials:"omit"}),ee(this,Pe,Ic).call(this,o),h(this,Z).status=o?.status,h(this,Z).measure=Re(performance.measure(a,n)),h(this,Z).retryCount=o.retryCount,!o?.ok)throw new Ie("Unexpected fragment response",{response:o,...h(this,ye).duration});return await o.json()}catch(s){if(h(this,Z).measure=Re(performance.measure(a,n)),h(this,Z).retryCount=s.retryCount,h(this,_e))return h(this,Z).stale=!0,h(this,Xt).error("Serving stale data",h(this,Z)),h(this,_e);let c=s.message??"unknown";throw new Ie(`Failed to fetch fragment: ${c}`,{})}},Ic=function(r){Object.assign(h(this,Z),li(r))},Ca=function(r){y(this,ke,null),h(this,Z).message=r,this.classList.add("error");let i={...h(this,Z),...h(this,ye).duration};h(this,Xt).error(r,i),this.dispatchEvent(new CustomEvent(it,{detail:i,bubbles:!0,composed:!0}))},Dc=async function(){var c;this.classList.remove("error"),y(this,Be,null);let r=Xe.get(h(this,ue));if(r)return y(this,_e,r),!0;let{masIOUrl:i,wcsApiKey:n,country:a,locale:o}=h(this,ye).settings,s=`${i}/fragment?id=${h(this,ue)}&api_key=${n}&locale=${o}`;return a&&!o.endsWith(`_${a}`)&&(s+=`&country=${a}`),r=await ee(this,Pe,Nc).call(this,s),(c=r.fields).originalId??(c.originalId=h(this,ue)),Xe.add(r),y(this,_e,r),!0},m(Ui,"cache",Xe);customElements.define(Aa,Ui);M();var Qt=class extends ${constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent}connectedCallback(){this.borderColor&&this.borderColor!=="transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.backgroundColor.startsWith("gradient-")||this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),(!this.borderColor||this.borderColor==="transparent")&&this.backgroundColor.startsWith("gradient-")?this.style.setProperty("--merch-badge-padding","3px 11px 4px 11px"):this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-border-radius","4px 0 0 4px"),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.textContent="";let t=this.closest("merch-card"),r=t?.getAttribute("size"),i=t?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",i),this.style.setProperty("--merch-badge-with-offset",i?1:0),this.style.setProperty("--merch-badge-card-size",r?2:1),super.connectedCallback()}render(){return f`<div class="badge">${this.text}</div>`}};m(Qt,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"}}),m(Qt,"styles",b`
+`;document.head.appendChild(Cc);var _c="fragment",kc="author",Pc="preview",Lc="loading",Rc="timeout",Aa="aem-fragment",Mc="eager",Oc="cache",_h=[Mc,Oc],Me,bt,Ce,Ta=class{constructor(){E(this,Me,new Map);E(this,bt,new Map);E(this,Ce,new Map)}clear(){h(this,Me).clear(),h(this,bt).clear(),h(this,Ce).clear()}add(t,r=!0){if(!this.has(t.id)&&!this.has(t.fields?.originalId)){if(h(this,Me).set(t.id,t),t.fields?.originalId&&h(this,Me).set(t.fields.originalId,t),h(this,Ce).has(t.id)){let[,i]=h(this,Ce).get(t.id);i()}if(h(this,Ce).has(t.fields?.originalId)){let[,i]=h(this,Ce).get(t.fields?.originalId);i()}if(!(!r||typeof t.references!="object"||Array.isArray(t.references)))for(let i in t.references){let{type:n,value:a}=t.references[i];n==="content-fragment"&&(a.settings={...t?.settings,...a.settings},a.placeholders={...t?.placeholders,...a.placeholders},a.dictionary={...t?.dictionary,...a.dictionary},a.priceLiterals={...t?.priceLiterals,...a.priceLiterals},this.add(a,t))}}}has(t){return h(this,Me).has(t)}entries(){return h(this,Me).entries()}get(t){return h(this,Me).get(t)}getAsPromise(t){let[r]=h(this,Ce).get(t)??[];if(r)return r;let i;return r=new Promise(n=>{i=n,this.has(t)&&n()}),h(this,Ce).set(t,[r,i]),r}getFetchInfo(t){let r=h(this,bt).get(t);return r||(r={url:null,retryCount:0,stale:!1,measure:null,status:null},h(this,bt).set(t,r)),r}remove(t){h(this,Me).delete(t),h(this,bt).delete(t),h(this,Ce).delete(t)}};Me=new WeakMap,bt=new WeakMap,Ce=new WeakMap;var Xe=new Ta,Xt,_e,Be,ye,ue,Z,Ur,Fr,ke,Gr,qr,Kt,Pe,Nc,Ic,Ca,Dc,Ui=class extends HTMLElement{constructor(){super(...arguments);E(this,Pe);m(this,"cache",Xe);E(this,Xt);E(this,_e,null);E(this,Be,null);E(this,ye,null);E(this,ue);E(this,Z);E(this,Ur,Mc);E(this,Fr,5e3);E(this,ke);E(this,Gr,!1);E(this,qr,0);E(this,Kt)}static get observedAttributes(){return[_c,Lc,Rc,kc,Pc]}attributeChangedCallback(r,i,n){r===_c&&(y(this,ue,n),y(this,Z,Xe.getFetchInfo(n))),r===Lc&&_h.includes(n)&&y(this,Ur,n),r===Rc&&y(this,Fr,parseInt(n,10)),r===kc&&y(this,Gr,["","true"].includes(n)),r===Pc&&y(this,Kt,n)}connectedCallback(){if(!h(this,ke)){if(h(this,ye)??y(this,ye,ht(this)),y(this,Kt,h(this,ye).settings?.preview),h(this,Xt)??y(this,Xt,h(this,ye).log.module(`${Aa}[${h(this,ue)}]`)),!h(this,ue)||h(this,ue)==="#"){h(this,Z)??y(this,Z,Xe.getFetchInfo("missing-fragment-id")),ee(this,Pe,Ca).call(this,"Missing fragment id");return}this.refresh(!1)}}get fetchInfo(){return Object.fromEntries(Object.entries(h(this,Z)).filter(([r,i])=>i!=null).map(([r,i])=>[`aem-fragment:${r}`,i]))}async refresh(r=!0){if(h(this,ke)&&!await Promise.race([h(this,ke),Promise.resolve(!1)]))return;r&&Xe.remove(h(this,ue)),h(this,Ur)===Oc&&await Promise.race([Xe.getAsPromise(h(this,ue)),new Promise(s=>setTimeout(s,h(this,Fr)))]);try{y(this,ke,ee(this,Pe,Dc).call(this)),await h(this,ke)}catch(s){return ee(this,Pe,Ca).call(this,s.message),!1}let{references:i,referencesTree:n,placeholders:a,wcs:o}=h(this,_e)||{};return o&&!U("mas.disableWcsCache")&&h(this,ye).prefillWcsCache(o),this.dispatchEvent(new CustomEvent(rt,{detail:{...this.data,references:i,referencesTree:n,placeholders:a,...h(this,Z)},bubbles:!0,composed:!0})),h(this,ke)}get updateComplete(){return h(this,ke)??Promise.reject(new Error("AEM fragment cannot be loaded"))}get data(){return h(this,Be)?h(this,Be):(h(this,Gr)?this.transformAuthorData():this.transformPublishData(),h(this,Be))}get rawData(){return h(this,_e)}transformAuthorData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,Be,r.reduce((l,{name:d,multiple:p,values:u})=>(l.fields[d]=p?u:u[0],l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}transformPublishData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,Be,Object.entries(r).reduce((l,[d,p])=>(l.fields[d]=p?.mimeType?p.value:p??"",l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}getFragmentClientUrl(){let i=new URLSearchParams(window.location.search).get("maslibs");if(!i||i.trim()==="")return"https://mas.adobe.com/studio/libs/fragment-client.js";let n=i.trim().toLowerCase();if(n==="local")return"http://localhost:3030/studio/libs/fragment-client.js";let{hostname:a}=window.location,o=a.endsWith(".page")?"page":"live";return n.includes("--")?`https://${n}.aem.${o}/studio/libs/fragment-client.js`:`https://${n}--mas--adobecom.aem.${o}/studio/libs/fragment-client.js`}async generatePreview(){let r=this.getFragmentClientUrl(),{previewFragment:i}=await import(r);return await i(h(this,ue),{locale:h(this,ye).settings.locale,apiKey:h(this,ye).settings.wcsApiKey})}};Xt=new WeakMap,_e=new WeakMap,Be=new WeakMap,ye=new WeakMap,ue=new WeakMap,Z=new WeakMap,Ur=new WeakMap,Fr=new WeakMap,ke=new WeakMap,Gr=new WeakMap,qr=new WeakMap,Kt=new WeakMap,Pe=new WeakSet,Nc=async function(r){Va(this,qr)._++;let i=`${Aa}:${h(this,ue)}:${h(this,qr)}`,n=`${i}${at}`,a=`${i}${ot}`;if(h(this,Kt))return await this.generatePreview();performance.mark(n);let o;try{if(h(this,Z).stale=!1,h(this,Z).url=r,o=await Ti(r,{cache:"default",credentials:"omit"}),ee(this,Pe,Ic).call(this,o),h(this,Z).status=o?.status,h(this,Z).measure=Re(performance.measure(a,n)),h(this,Z).retryCount=o.retryCount,!o?.ok)throw new Ie("Unexpected fragment response",{response:o,...h(this,ye).duration});return await o.json()}catch(s){if(h(this,Z).measure=Re(performance.measure(a,n)),h(this,Z).retryCount=s.retryCount,h(this,_e))return h(this,Z).stale=!0,h(this,Xt).error("Serving stale data",h(this,Z)),h(this,_e);let c=s.message??"unknown";throw new Ie(`Failed to fetch fragment: ${c}`,{})}},Ic=function(r){Object.assign(h(this,Z),li(r))},Ca=function(r){y(this,ke,null),h(this,Z).message=r,this.classList.add("error");let i={...h(this,Z),...h(this,ye).duration};h(this,Xt).error(r,i),this.dispatchEvent(new CustomEvent(it,{detail:i,bubbles:!0,composed:!0}))},Dc=async function(){var c;this.classList.remove("error"),y(this,Be,null);let r=Xe.get(h(this,ue));if(r)return y(this,_e,r),!0;let{masIOUrl:i,wcsApiKey:n,country:a,locale:o}=h(this,ye).settings,s=`${i}/fragment?id=${h(this,ue)}&api_key=${n}&locale=${o}`;return a&&!o.endsWith(`_${a}`)&&(s+=`&country=${a}`),r=await ee(this,Pe,Nc).call(this,s),(c=r.fields).originalId??(c.originalId=h(this,ue)),Xe.add(r),y(this,_e,r),!0},m(Ui,"cache",Xe);customElements.define(Aa,Ui);M();var Qt=class extends ${constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent}connectedCallback(){this.borderColor&&this.borderColor!=="transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.backgroundColor.startsWith("gradient-")||this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),(!this.borderColor||this.borderColor==="transparent")&&this.backgroundColor.startsWith("gradient-")?this.style.setProperty("--merch-badge-padding","3px 11px 4px 11px"):this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.textContent="";let t=this.closest("merch-card"),r=t?.getAttribute("size"),i=t?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",i),this.style.setProperty("--merch-badge-with-offset",i?1:0),this.style.setProperty("--merch-badge-card-size",r?2:1),super.connectedCallback()}render(){return f`<div class="badge">${this.text}</div>`}};m(Qt,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"}}),m(Qt,"styles",b`
         :host {
             display: block;
             background: var(--merch-badge-background-color);
@@ -6621,7 +6636,7 @@ merch-card [slot='callout-content'] .icon-button::before {
             line-height: 21px;
             border: var(--merch-badge-border);
             position: relative;
-            left: 1px;
+            inset-inline-start: 1px;
         }
     `);customElements.define("merch-badge",Qt);M();var Vr=class extends ${constructor(){super()}render(){return f`
             <slot name="icon"></slot>
@@ -6972,11 +6987,11 @@ merch-card [slot='callout-content'] .icon-button::before {
         height: var(--input-height);
         width: calc(var(--input-width) - var(--button-width));
         border: var(--border-width) solid var(--border-color);
-        border-top-left-radius: var(--radius);
-        border-bottom-left-radius: var(--radius);
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        border-right: none;
+        border-start-start-radius: var(--radius);
+        border-end-start-radius: var(--radius);
+        border-start-end-radius: 0;
+        border-end-end-radius: 0;
+        border-inline-end: none;
         padding-inline-start: 12px;
         box-sizing: border-box;
         -moz-appearance: textfield;
@@ -7000,12 +7015,12 @@ merch-card [slot='callout-content'] .icon-button::before {
         position: absolute;
         inset-inline-end: 0;
         border: var(--border-width) solid var(--border-color);
-        border-left: var(
-            --picker-button-border-left,
+        border-inline-start: var(
+            --picker-button-border-inline-start,
             var(--border-width) solid var(--border-color)
         );
-        border-top-right-radius: var(--radius);
-        border-bottom-right-radius: var(--radius);
+        border-start-end-radius: var(--radius);
+        border-end-end-radius: var(--radius);
         background-color: var(--background-color);
         display: flex;
         align-items: center;
@@ -7031,7 +7046,7 @@ merch-card [slot='callout-content'] .icon-button::before {
 
     .popover {
         position: absolute;
-        left: 0;
+        inset-inline-start: 0;
         width: var(--input-width);
         border-radius: var(--radius);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -7085,6 +7100,10 @@ merch-card [slot='callout-content'] .icon-button::before {
         background-image: var(--checkmark-icon);
         background-position: right 7px center;
         background-repeat: no-repeat;
+    }
+
+    :host(:dir(rtl)) .item.selected {
+        background-position: left 7px center;
     }
 `;var[ub,gb,Ma,Oa,Vc,jc]=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter","Tab"];var Na=class extends ${static get properties(){return{closed:{type:Boolean,reflect:!0},selected:{type:Number},min:{type:Number},max:{type:Number},step:{type:Number},maxInput:{type:Number,attribute:"max-input"},options:{type:Array},highlightedIndex:{type:Number},defaultValue:{type:Number,attribute:"default-value",reflect:!0},title:{type:String}}}static get styles(){return qc}constructor(){super(),this.options=[],this.title="",this.closed=!0,this.min=0,this.max=0,this.step=0,this.maxInput=void 0,this.defaultValue=void 0,this.selectedValue=0,this.highlightedIndex=0,this.toggleMenu=this.toggleMenu.bind(this),this.closeMenu=this.closeMenu.bind(this),this.openMenu=this.openMenu.bind(this),this.handleClickOutside=this.handleClickOutside.bind(this),this.boundKeydownListener=this.handleKeydown.bind(this),this.handleKeyupDebounced=Cr(this.handleKeyup.bind(this),500),this.debouncedQuantityUpdate=Cr(this.handleQuantityUpdate.bind(this),500)}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this.boundKeydownListener),window.addEventListener("mousedown",this.handleClickOutside),this.addEventListener(Ct,this.debouncedQuantityUpdate)}get button(){return this.shadowRoot.querySelector("button")}handleKeyup(t){t.key===Oa||t.key===Ma||(this.handleInput(),this.sendEvent())}selectValue(){if(!this.closed){let t=this.options[this.highlightedIndex];if(!t){this.closed=!0;return}this.selectedValue=t,this.handleMenuOption(this.selectedValue),this.closed=!0}}handleKeydown(t){switch(t.key){case" ":this.selectValue();break;case"Escape":this.closed=!0;break;case jc:this.selectValue();break;case Oa:this.closed?this.openMenu():this.highlightedIndex=(this.highlightedIndex+1)%this.options.length,t.preventDefault();break;case Ma:this.closed||(this.highlightedIndex=(this.highlightedIndex-1+this.options.length)%this.options.length),t.preventDefault();break;case Vc:this.selectValue(),this.button.classList.contains("focused")&&t.preventDefault();break}t.composedPath().includes(this)&&t.stopPropagation()}adjustInput(t,r){this.selectedValue=r,t.value=r,this.highlightedIndex=this.options.indexOf(r)}handleInput(){let t=this.shadowRoot.querySelector(".text-field-input"),r=t.value.replace(/\D/g,"");t.value=r;let i=parseInt(r);if(!isNaN(i))if(i>0&&i!==this.selectedValue){let n=i;this.maxInput&&i>this.maxInput&&(n=this.maxInput),this.min&&n<this.min&&(n=this.min),this.adjustInput(t,n)}else this.adjustInput(t,this.selectedValue||this.min||1)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside),this.removeEventListener("keydown",this.boundKeydownListener),this.removeEventListener(Ct,this.debouncedQuantityUpdate)}generateOptionsArray(){let t=[];if(this.step>0)for(let r=this.min;r<=this.max;r+=this.step)t.push(r);return t}update(t){(t.has("min")||t.has("max")||t.has("step")||t.has("defaultValue"))&&(this.options=this.generateOptionsArray(),this.highlightedIndex=this.defaultValue?this.options.indexOf(this.defaultValue):0,this.handleMenuOption(this.defaultValue?this.defaultValue:this.options[0])),super.update(t)}handleClickOutside(t){t.composedPath().includes(this)||this.closeMenu()}toggleMenu(){this.closed=!this.closed,this.adjustPopoverPlacement(),this.closed&&(this.highlightedIndex=this.options.indexOf(this.selectedValue))}closeMenu(){this.closed=!0,this.highlightedIndex=this.options.indexOf(this.selectedValue)}openMenu(){this.closed=!1,this.adjustPopoverPlacement()}adjustPopoverPlacement(){let t=this.shadowRoot.querySelector(".popover");this.closed||t.getBoundingClientRect().bottom<=window.innerHeight?t.setAttribute("placement","bottom"):t.setAttribute("placement","top")}handleMouseEnter(t){this.highlightedIndex=t}handleMenuOption(t,r){t===this.max&&this.shadowRoot.querySelector(".text-field-input")?.focus(),this.selectedValue=t,this.sendEvent(),r&&this.closeMenu()}sendEvent(){let t=new CustomEvent(ne,{detail:{option:this.selectedValue},bubbles:!0});this.dispatchEvent(t)}get offerSelect(){return this.querySelector("merch-offer-select")}get popover(){return f` <div
             id="qsPopover"

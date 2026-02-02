@@ -396,7 +396,7 @@ merch-card [slot='callout-content'] {
 merch-card[variant^='plans'] [slot='badge'] {
     position: absolute;
     top: 16px;
-    right: 0;
+    inset-inline-end: 0;
     line-height: 16px;
 }
 
@@ -733,6 +733,16 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
 merch-badge[background-color="spectrum-red-700-plans"] {
   color: #FFFFFF;
 }
+
+/* Badge border-radius with RTL support */
+merch-badge {
+  --merch-badge-border-radius: 4px 0 0 4px; /* LTR default */
+}
+
+[dir="rtl"] merch-badge {
+  --merch-badge-border-radius: 0 4px 4px 0; /* RTL override */
+}
+
 /* Red border color for merch-cards */
 merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);

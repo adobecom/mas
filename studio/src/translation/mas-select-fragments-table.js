@@ -4,16 +4,8 @@ import { keyed } from 'lit/directives/keyed.js';
 import { styles } from './mas-select-fragments-table.css.js';
 import Store from '../store.js';
 import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-panel.js';
-import {
-    CARD_MODEL_PATH,
-    COLLECTION_MODEL_PATH,
-    FRAGMENT_STATUS,
-    ROOT_PATH,
-    TABLE_TYPE,
-    TAG_MODEL_ID_MAPPING,
-} from '../constants.js';
-import { getService, showToast } from '../utils.js';
-import { Fragment } from '../aem/fragment.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS, TABLE_TYPE } from '../constants.js';
+import { getService } from '../utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasSelectFragmentsTable extends LitElement {
@@ -87,18 +79,17 @@ class MasSelectFragmentsTable extends LitElement {
                     allCards.forEach((card, i) => {
                         card.offerData = offerDataResults[i];
                     });
+                    Store.translationProjects.allCards.set(allCards);
+                    const cardsByPaths = new Map(allCards.map((fragment) => [fragment.path, fragment]));
+                    Store.translationProjects.cardsByPaths.set(cardsByPaths);
+                    Store.translationProjects.displayCards.set(allCards);
                 }
-
-                Store.translationProjects.allCards.set(allCards);
-                Store.translationProjects.allCollections.set(allCollections);
-
-                const cardsByPaths = new Map(allCards.map((fragment) => [fragment.path, fragment]));
-                const collectionsByPaths = new Map(allCollections.map((fragment) => [fragment.path, fragment]));
-                Store.translationProjects.cardsByPaths.set(cardsByPaths);
-                Store.translationProjects.collectionsByPaths.set(collectionsByPaths);
-
-                Store.translationProjects.displayCards.set(allCards);
-                Store.translationProjects.displayCollections.set(allCollections);
+                if (this.type === TABLE_TYPE.COLLECTIONS) {
+                    Store.translationProjects.allCollections.set(allCollections);
+                    const collectionsByPaths = new Map(allCollections.map((fragment) => [fragment.path, fragment]));
+                    Store.translationProjects.collectionsByPaths.set(collectionsByPaths);
+                    Store.translationProjects.displayCollections.set(allCollections);
+                }
             });
         }
         if (this.type === TABLE_TYPE.PLACEHOLDERS) {
@@ -134,7 +125,7 @@ class MasSelectFragmentsTable extends LitElement {
 
     get isLoading() {
         if (this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.COLLECTIONS) {
-            return Store.fragments.list.loading.get();
+            return Store.fragments.list.firstPageLoaded.get() === false;
         }
         if (this.type === TABLE_TYPE.PLACEHOLDERS) {
             return Store.placeholders.list.loading.get();

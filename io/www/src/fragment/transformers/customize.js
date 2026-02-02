@@ -11,9 +11,9 @@ function skimFragmentFromReferences(fragment) {
     return skimmedFragment;
 }
 
-function getCorrespondingLocale(surface, locale, parsedLocale) {
+function getCorrespondingLocale(surface, locale) {
     const defaultLocale = getDefaultLocaleCode(surface, locale);
-    return defaultLocale || parsedLocale;
+    return defaultLocale || locale;
 }
 
 /**
@@ -24,7 +24,7 @@ function getCorrespondingLocale(surface, locale, parsedLocale) {
 async function getDefaultLanguageVariation(context) {
     let { body } = context;
     const { surface, locale, fragmentPath, preview, parsedLocale } = context;
-    const defaultLocale = getCorrespondingLocale(surface, locale, parsedLocale);
+    const defaultLocale = locale ? getCorrespondingLocale(surface, locale) : parsedLocale;
     if (defaultLocale !== parsedLocale) {
         logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);
         const defaultLocaleIdUrl = odinUrl(surface, defaultLocale, fragmentPath, preview);

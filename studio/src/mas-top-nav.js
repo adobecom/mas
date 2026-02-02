@@ -113,7 +113,7 @@ class MasTopNav extends LitElement {
         return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
     }
 
-    renderEnvironmentIndicator() {
+    get environmentIndicator() {
         if (this.aemEnv === 'prod') {
             return html``;
         }
@@ -145,7 +145,7 @@ class MasTopNav extends LitElement {
                         />
                     </svg>
                     <span id="mas-studio">Merch At Scale Studio</span>
-                    ${this.renderEnvironmentIndicator()}
+                    ${this.environmentIndicator}
                 </a>
 
                 <div class="spacer"></div>

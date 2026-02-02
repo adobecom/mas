@@ -154,17 +154,23 @@
                                 '[slot="badge"] merch-badge',
                             );
 
-                            // Check that the style properties are set
+                            // Check that the inline style properties are set
                             expect(
                                 badge.style.getPropertyValue(
                                     '--merch-badge-padding',
                                 ),
                             ).to.equal('2px 10px 3px 10px');
+
+                            // Check border-radius from computed style (defined in global.css.js with RTL support)
+                            const computedStyle = getComputedStyle(badge);
                             expect(
-                                badge.style.getPropertyValue(
-                                    '--merch-badge-border-radius',
-                                ),
+                                computedStyle
+                                    .getPropertyValue(
+                                        '--merch-badge-border-radius',
+                                    )
+                                    .trim(),
                             ).to.equal('4px 0 0 4px');
+
                             expect(
                                 badge.style.getPropertyValue(
                                     '--merch-badge-font-size',

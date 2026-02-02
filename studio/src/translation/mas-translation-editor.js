@@ -359,6 +359,7 @@ class MasTranslationEditor extends LitElement {
             showToast('Failed to send translation project to localization.', 'negative');
             return;
         }
+        await this.repository.refreshFragment(this.translationProjectStore);
         showToast('Translation project sent to localization successfully.', 'positive');
         this.isProjectReadonly = true;
         this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });

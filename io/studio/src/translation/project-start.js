@@ -77,7 +77,14 @@ async function main(params) {
             logger.info(`response.status: ${response.status}`);
             logger.info(`response.statusText: ${response.statusText}`);
             if (!response.ok) {
+                let errorBody = {};
+                try {
+                    errorBody = await response.json();
+                } catch (e) {
+                    // Response body is not valid JSON, use empty object
+                }
                 logger.error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
+                logger.error(`Error body: ${JSON.stringify(errorBody, null, 2)}`);
                 throw new Error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
             }
             const projectCF = await response.json();
@@ -259,7 +266,14 @@ async function main(params) {
                 body: JSON.stringify([{ op: 'replace', path, value: [new Date().toISOString()] }]),
             });
             if (!response.ok) {
+                let errorBody = {};
+                try {
+                    errorBody = await response.json();
+                } catch (e) {
+                    // Response body is not valid JSON, use empty object
+                }
                 logger.error(`Failed to update translation project submission date: ${response.status} ${response.statusText}`);
+                logger.error(`Error body: ${JSON.stringify(errorBody, null, 2)}`);
                 throw new Error(
                     `Failed to update translation project submission date: ${response.status} ${response.statusText}`,
                 );

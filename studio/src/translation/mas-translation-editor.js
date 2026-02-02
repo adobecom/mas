@@ -244,8 +244,8 @@ class MasTranslationEditor extends LitElement {
                 this.storeController = new StoreController(this, Store.translationProjects.inEdit);
                 this.storeController.hostConnected();
                 this.#updateDisabledActions({
-                    add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD, QUICK_ACTION.PUBLISH],
-                    remove: [QUICK_ACTION.DELETE],
+                    add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD],
+                    remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC],
                 });
             }
         } catch (error) {

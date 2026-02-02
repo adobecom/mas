@@ -120,7 +120,7 @@ describe('customize collections', function () {
         const result = await process({
             ...FAKE_CONTEXT,
             fragmentPath: 'another-collection',
-            locale: 'en_AU',
+            locale: 'en_KW',
             id: 'coll-en-us',
             body: FRAGMENT_COLL_RESPONSE_US,
         });
@@ -128,18 +128,18 @@ describe('customize collections', function () {
         expect(result.status).to.equal(200);
 
         expect(result.body.fields.collections[0], 'expecting main fragment collections field to be customized').to.equal(
-            'subcoll-en-au',
+            'subcoll-en-kw',
         );
 
         expect(
             result.body.referencesTree[0].identifier,
             'expecting main fragment reference tree field to be customized as well',
-        ).to.equal('subcoll-en-au');
+        ).to.equal('subcoll-en-kw');
 
         expect(
-            result.body.references['subcoll-en-au'].value.fields.cards,
+            result.body.references['subcoll-en-kw'].value.fields.cards,
             'expecting cards field in references to be customized',
-        ).to.deep.equal(['some-card-en-us', 'some-other-card-en-au']);
+        ).to.deep.equal(['some-card-en-us', 'some-other-card-en-kw']);
 
         expect(
             result.body.referencesTree[0].referencesTree[0].identifier,
@@ -149,12 +149,12 @@ describe('customize collections', function () {
         expect(
             result.body.referencesTree[0].referencesTree[1].identifier,
             'expecting 2nd card to be customized in references tree',
-        ).to.deep.equal('some-other-card-en-au');
+        ).to.deep.equal('some-other-card-en-kw');
 
-        const cardAU = result.body.references['some-other-card-en-au'].value;
-        expect(cardAU.title).to.equal('Photography Promo AU');
-        expect(cardAU.fields.cardTitle).to.equal('Photography  (1TB)');
-        expect(cardAU.fields.backgroundImage).to.equal('https://www.adobe.com/my/image.jpg');
+        const cardKW = result.body.references['some-other-card-en-kw'].value;
+        expect(cardKW.title).to.equal('Photography Promo KW');
+        expect(cardKW.fields.cardTitle).to.equal('Photography  (1TB)');
+        expect(cardKW.fields.backgroundImage).to.equal('https://www.adobe.com/my/image.jpg');
     });
 });
 
@@ -287,7 +287,7 @@ describe('customize typical cases', function () {
         });
     });
 
-    it('should return en_US fragment (us fragment, en_AU locale)', async function () {
+    it('should return en_US fragment (us fragment, en_KW locale)', async function () {
         const usFragment = structuredClone(FRAGMENT_RESPONSE_FR);
         usFragment.path = '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app';
         usFragment.fields.variations = [''];
@@ -315,7 +315,7 @@ describe('customize typical cases', function () {
                 path: '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app',
             },
             fragmentPath: 'ccd-slice-wide-cc-all-app',
-            locale: 'en_AU',
+            locale: 'en_KW',
         });
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.include({

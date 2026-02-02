@@ -197,6 +197,8 @@ class MasTranslationEditor extends LitElement {
                 return Store.translationProjects.selectedPlaceholders.value;
             case 'collections':
                 return Store.translationProjects.selectedCollections.value;
+            case 'targetLocales':
+                return Store.translationProjects.targetLocales.value;
             default:
                 return field.values;
         }

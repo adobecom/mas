@@ -22,11 +22,19 @@ describe('locales', function () {
         it('should return country name for valid country code', function () {
             expect(getCountryName('US')).to.equal('United States');
         });
+
+        it('should return country code when country is not found', function () {
+            expect(getCountryName('XX')).to.equal('XX');
+        });
     });
 
     describe('getCountryFlag', function () {
         it('should return country flag emoji for valid country code', function () {
             expect(getCountryFlag('US')).to.equal('🇺🇸');
+        });
+
+        it('should return default flag when country is not found', function () {
+            expect(getCountryFlag('XX')).to.equal('🏴');
         });
     });
 
@@ -82,6 +90,10 @@ describe('locales', function () {
     describe('getLanguageName', function () {
         it('should return language name for a given language code', function () {
             expect(getLanguageName('en')).to.equal('English');
+        });
+
+        it('should return language code when language is not found', function () {
+            expect(getLanguageName('xx')).to.equal('xx');
         });
     });
 });

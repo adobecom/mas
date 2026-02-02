@@ -11,6 +11,11 @@ function skimFragmentFromReferences(fragment) {
     return skimmedFragment;
 }
 
+function getCorrespondingLocale(surface, locale, parsedLocale) {
+    const defaultLocale = getDefaultLocaleCode(locale, surface);
+    return defaultLocale || parsedLocale;
+}
+
 /**
  * get fragment associated to default language, just returning the body
  * @param {*} context
@@ -19,8 +24,7 @@ function skimFragmentFromReferences(fragment) {
 async function getDefaultLanguageVariation(context) {
     let { body } = context;
     const { surface, locale, fragmentPath, preview, parsedLocale } = context;
-    const defaultLocale = getDefaultLocaleCode(locale, surface);
-    if (!defaultLocale) defaultLocale = parsedLocale;
+    const defaultLocale = getCorrespondingLocale(surface, locale, parsedLocale);
     if (defaultLocale !== parsedLocale) {
         logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);
         const defaultLocaleIdUrl = odinUrl(surface, defaultLocale, fragmentPath, preview);
@@ -180,4 +184,4 @@ export const transformer = {
     process: customize,
     init,
 };
-export { getDefaultLocaleCode, deepMerge };
+export { getCorrespondingLocale, deepMerge };

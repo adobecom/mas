@@ -419,7 +419,7 @@ export function getCountryFlag(country) {
     return COUNTRY_DATA[country]?.flag || '🏴';
 }
 
-export function getDefaultLocale(localeCode, surface) {
+export function getDefaultLocale(surface, localeCode) {
     const [language, country] = localeCode.split('_');
     return DEFAULT_LOCALES[surface].find(
         (locale) => locale.lang === language && (locale.country === country || locale.regions?.includes(country)),
@@ -438,7 +438,7 @@ export function getDefaultLocaleCode(localeCode, surface) {
     if (!localeCode || !surface) {
         return null;
     }
-    const defaultLocale = getDefaultLocale(localeCode, surface);
+    const defaultLocale = getDefaultLocale(surface, localeCode);
     return defaultLocale ? getLocaleCode(defaultLocale) : null; // todo check null case and process
 }
 
@@ -466,7 +466,7 @@ export function getRegionLocales(surface, defaultLocale, includeDefault) {
             .filter((locale) => locale.lang === language && locale.country === country)
             .map((l) => l.regions)
             .flat()
-            .map((region) => ({ language, country: region }))
+            .map((region) => ({ lang: language, country: region }))
             .sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)));
         regionLocalesCache[cacheKey] = regionLocales;
     }

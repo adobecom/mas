@@ -173,7 +173,8 @@ export class MasLocalePicker extends LitElement {
 
     getLocales() {
         if (this.mode === 'region') {
-            return getRegionLocales(this.surface, this.locale);
+            const defaultLocale = getDefaultLocale(this.surface, this.locale);
+            return getRegionLocales(this.surface, getLocaleCode(defaultLocale));
         } else {
             return getDefaultLocales(this.surface);
         }
@@ -204,7 +205,7 @@ export class MasLocalePicker extends LitElement {
             return locale;
         } else {
             this.locale = 'en_US';
-            return getDefaultLocale(this.locale, this.surface);
+            return getDefaultLocale(this.surface, this.locale);
         }
     }
 

@@ -47,7 +47,7 @@ export class MerchSidenavList extends LitElement {
 
         .right {
             position: absolute;
-            right: 0;
+            inset-inline-end: 0;
         }
 
         :host(:dir(rtl)) .right {

@@ -50,45 +50,19 @@ describe('customize subfunctions', function () {
     });
 
     it('getCorrespondingLocale should return correct default locale', function () {
-        expect(getCorrespondingLocale('sandbox', 'fr_CA'), 'should return fr_FR for fr_CA for sandbox').to.equal(
-            'fr_FR',
-        );
-        expect(getCorrespondingLocale('sandbox', 'fr_FR'), 'should return fr_FR for fr_FR for sandbox').to.equal(
-            'fr_FR',
-        );
-        expect(getCorrespondingLocale('sandbox', 'fr_CH'), 'should return fr_FR for fr_CH for sandbox').to.equal(
-            'fr_FR',
-        );
-        expect(getCorrespondingLocale('sandbox', 'en_EG'), 'should return en_US for en_EG for sandbox').to.equal(
-            'en_US',
-        );
-        expect(getCorrespondingLocale('sandbox', 'en_US'), 'should return en_US for en_US for sandbox').to.equal(
-            'en_US',
-        );
-        expect(getCorrespondingLocale('sandbox', 'en_CA'), 'should return en_US for en_CA for sandbox').to.equal(
-            'en_US',
-        );
-        expect(getCorrespondingLocale('sandbox', 'es_MX'), 'should return es_ES for es_MX for sandbox').to.equal(
-            'es_ES',
-        );
-        expect(getCorrespondingLocale('sandbox', 'es_ES'), 'should return es_ES for es_ES for sandbox').to.equal(
-            'es_ES',
-        );
-        expect(getCorrespondingLocale('sandbox', 'de_DE'), 'should return de_DE for de_DE for sandbox').to.equal(
-            'de_DE',
-        );
-        expect(getCorrespondingLocale('sandbox', 'it_IT'), 'should return it_IT for it_IT for sandbox').to.equal(
-            'it_IT',
-        );
-        expect(getCorrespondingLocale('sandbox', 'ja_JP'), 'should return ja_JP for ja_JP for sandbox').to.equal(
-            'ja_JP',
-        );
-        expect(getCorrespondingLocale('sandbox', 'zh_CN'), 'should return zh_CN for zh_CN for sandbox').to.equal(
-            'zh_CN',
-        );
-        expect(getCorrespondingLocale('sandbox', 'zh_TW'), 'should return zh_TW for zh_TW for sandbox').to.equal(
-            'zh_TW',
-        );
+        expect(getCorrespondingLocale('sandbox', 'fr_CA'), 'should return fr_FR for fr_CA for sandbox').to.equal('fr_FR');
+        expect(getCorrespondingLocale('sandbox', 'fr_FR'), 'should return fr_FR for fr_FR for sandbox').to.equal('fr_FR');
+        expect(getCorrespondingLocale('sandbox', 'fr_CH'), 'should return fr_FR for fr_CH for sandbox').to.equal('fr_FR');
+        expect(getCorrespondingLocale('sandbox', 'en_EG'), 'should return en_US for en_EG for sandbox').to.equal('en_US');
+        expect(getCorrespondingLocale('sandbox', 'en_US'), 'should return en_US for en_US for sandbox').to.equal('en_US');
+        expect(getCorrespondingLocale('sandbox', 'en_CA'), 'should return en_US for en_CA for sandbox').to.equal('en_US');
+        expect(getCorrespondingLocale('sandbox', 'es_MX'), 'should return es_ES for es_MX for sandbox').to.equal('es_ES');
+        expect(getCorrespondingLocale('sandbox', 'es_ES'), 'should return es_ES for es_ES for sandbox').to.equal('es_ES');
+        expect(getCorrespondingLocale('sandbox', 'de_DE'), 'should return de_DE for de_DE for sandbox').to.equal('de_DE');
+        expect(getCorrespondingLocale('sandbox', 'it_IT'), 'should return it_IT for it_IT for sandbox').to.equal('it_IT');
+        expect(getCorrespondingLocale('sandbox', 'ja_JP'), 'should return ja_JP for ja_JP for sandbox').to.equal('ja_JP');
+        expect(getCorrespondingLocale('sandbox', 'zh_CN'), 'should return zh_CN for zh_CN for sandbox').to.equal('zh_CN');
+        expect(getCorrespondingLocale('sandbox', 'zh_TW'), 'should return zh_TW for zh_TW for sandbox').to.equal('zh_TW');
 
         // for acom AU and IN fall back to GB, pt_BR exists as a default language
         expect(getCorrespondingLocale('acom', 'en_GB'), 'should return en_GB for en_GB for acom').to.equal('en_GB');

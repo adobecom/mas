@@ -9,9 +9,7 @@
     },
     "fields": {
         "cards": [],
-        "collections": [
-            "subcoll-en-us"
-        ],
+        "collections": ["subcoll-en-us"],
         "originalId": "coll-en-us"
     },
     "references": {
@@ -28,15 +26,10 @@
                 },
                 "fields": {
                     "label": "blah",
-                    "cards": [
-                        "some-card-en-us",
-                        "some-other-card-en-us"
-                    ],
+                    "cards": ["some-card-en-us", "some-other-card-en-us"],
                     "collections": [],
                     "originalId": "subcoll-en-us",
-                    "variations": [
-                        "subcoll-en-kw"
-                    ]
+                    "variations": ["subcoll-en-kw"]
                 }
             }
         },
@@ -74,15 +67,9 @@
                     "variant": "plans",
                     "osi": "Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ",
                     "size": "super-wide",
-                    "mnemonicIcon": [
-                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"
-                    ],
-                    "mnemonicAlt": [
-                        ""
-                    ],
-                    "mnemonicLink": [
-                        "http://www.adobe.com/creativecloud/plans.html"
-                    ],
+                    "mnemonicIcon": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"],
+                    "mnemonicAlt": [""],
+                    "mnemonicLink": ["http://www.adobe.com/creativecloud/plans.html"],
                     "badge": {
                         "value": "<merch-badge background-color=\"spectrum-green-900-plans\" color=\"#fff\" border-color=\"spectrum-yellow-300-plans\" variant=\"plans\">badge</merch-badge>",
                         "mimeType": "text/html"
@@ -235,14 +222,8 @@
                         "https://www.adobe.com/my/images/product-icons/svg/lightroom.svg",
                         "https://www.adobe.com/my/images/product-icons/svg/photoshop.svg"
                     ],
-                    "mnemonicAlt": [
-                        "Lightroom",
-                        "Illustrator"
-                    ],
-                    "mnemonicLink": [
-                        "https://www.adobe.com/products/catalog.html",
-                        "https://www.adobe.com"
-                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
                     "badge": {
                         "value": "<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"default\" variant=\"plans\">default badge</merch-badge>",
                         "mimeType": "text/html"
@@ -272,10 +253,7 @@
                         "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
                         "mimeType": "text/html"
                     },
-                    "variations": [
-                        "some-other-card-en-kw",
-                        "15891dd8-872f-4643-99a6-492d8917d46b"
-                    ],
+                    "variations": ["some-other-card-en-kw", "15891dd8-872f-4643-99a6-492d8917d46b"],
                     "tags": [
                         "mas:offer_type/base",
                         "mas:plan_type/abm",
@@ -355,14 +333,8 @@
                         "https://www.adobe.com/my/images/product-icons/svg/lightroom.svg",
                         "https://www.adobe.com/my/images/product-icons/svg/photoshop.svg"
                     ],
-                    "mnemonicAlt": [
-                        "Lightroom",
-                        "Illustrator"
-                    ],
-                    "mnemonicLink": [
-                        "https://www.adobe.com/products/catalog.html",
-                        "https://www.adobe.com"
-                    ],
+                    "mnemonicAlt": ["Lightroom", "Illustrator"],
+                    "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
                     "badge": {
                         "mimeType": "text/html"
                     },

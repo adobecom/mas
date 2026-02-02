@@ -349,7 +349,7 @@ merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template
 
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough {
-    color: #8F8F8F;
+    color: var(--express-custom-gray-500);
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"],

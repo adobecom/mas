@@ -183,6 +183,8 @@ export class FullPricingExpress extends VariantLayout {
             --merch-card-full-pricing-express-padding: 24px;
             --merch-card-full-pricing-express-padding-mobile: 20px;
             --merch-card-full-pricing-express-section-gap: 24px;
+            --express-custom-gray-500: #8f8f8f;
+            --express-custom-gray-400: #d5d5d5;
 
             /* Price container specific */
             --merch-card-full-pricing-express-price-bg: #f8f8f8;
@@ -410,7 +412,7 @@ export class FullPricingExpress extends VariantLayout {
             background: var(--merch-card-full-pricing-express-price-bg);
             padding: 24px 16px;
             border-radius: var(--merch-card-full-pricing-express-price-radius);
-            border: 1px solid #d5d5d5;
+            border: 1px solid var(--express-custom-gray-400);
             display: flex;
             flex-direction: column;
             position: relative;

@@ -403,6 +403,8 @@ const LANG_TO_LANGUAGE = {
 
 const regionLocalesCache = {};
 
+const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
+
 // Helper to generate locale code from lang and country
 export function getLocaleCode(locale) {
     if (!locale) {
@@ -422,10 +424,10 @@ export function getCountryFlag(country) {
 }
 
 export function getDefaultLocale(surface, localeCode) {
+    const [language, country] = parseLocaleCode(localeCode);
     if (!DEFAULT_LOCALES[surface]) {
         return null;
     }
-    const [language, country] = localeCode.split('_');
     let defaultLocale = DEFAULT_LOCALES[surface].find(
         (locale) => locale.lang === language && (locale.country === country || locale.regions?.includes(country)),
     );
@@ -452,7 +454,7 @@ export function getDefaultLocaleCode(surface, localeCode) {
 }
 
 export function getDefaultLocales(surface) {
-    return DEFAULT_LOCALES[surface];
+    return DEFAULT_LOCALES[surface] || [];
 }
 
 /**
@@ -467,7 +469,7 @@ export function getDefaultLocales(surface) {
 export function getRegionLocales(surface, localeCode, includeDefault) {
     const cacheKey = `${surface}-${localeCode}-${includeDefault}`;
     if (!regionLocalesCache[cacheKey]) {
-        const [lang, country] = localeCode.split('_');
+        const [lang, country] = parseLocaleCode(localeCode);
         const defaultLocale = getDefaultLocale(surface, localeCode);
         const regionLocales = defaultLocale?.regions
             ? defaultLocale.regions

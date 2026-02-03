@@ -67,9 +67,25 @@ describe('locales', function () {
 
     describe('getDefaultLocaleCode', function () {
         it('should return default locale code for a regional variant', function () {
-            expect(getDefaultLocaleCode('acom', 'fr_CA'), 'should return fr_FR').to.equal('fr_FR');
-            expect(getDefaultLocaleCode('acom', 'en_AU')).to.equal('en_GB');
-            expect(getDefaultLocaleCode('ccd', 'en_AU')).to.equal('en_US');
+            expect(getDefaultLocaleCode('acom', 'fr_CA'), 'return fr_FR for fr_CA').to.equal('fr_FR');
+            expect(getDefaultLocaleCode('acom', 'en_EG'), 'return en_US for en_EG').to.equal('en_US');
+            expect(getDefaultLocaleCode('acom', 'en_US'), 'return en_US for en_US').to.equal('en_US');
+            expect(getDefaultLocaleCode('acom', 'zh_TW'), 'return zh_TW for zh_TW').to.equal('zh_TW');
+            // for acom AU and IN fall back to GB, pt_BR exists as a default language
+            expect(getDefaultLocaleCode('acom', 'en_GB'), 'return en_GB for en_GB').to.equal('en_GB');
+            expect(getDefaultLocaleCode('acom', 'en_AU'), 'return en_GB for en_AU').to.equal('en_GB');
+            expect(getDefaultLocaleCode('acom', 'en_IN'), 'return en_GB for en_IN').to.equal('en_GB');
+            expect(getDefaultLocaleCode('acom', 'pt_PT'), 'return pt_PT for pt_PT').to.equal('pt_PT');
+            expect(getDefaultLocaleCode('acom', 'pt_BR'), 'return pt_BR for pt_BR').to.equal('pt_BR');
+
+            // for ccd AU and IN fall back to US, pt_PT is a variation of pt_BR
+            expect(getDefaultLocaleCode('ccd', 'pt_PT'), 'return pt_BR for pt_PT for ccd').to.equal('pt_BR');
+            expect(getDefaultLocaleCode('ccd', 'en_AU'), 'return en_US for en_AU for ccd').to.equal('en_US');
+            expect(getDefaultLocaleCode('ccd', 'en_IN'), 'return en_US for en_IN for ccd').to.equal('en_US');
+
+            expect(getDefaultLocaleCode(null, 'pt_BR'), 'return null if no surface').to.be.null;
+            expect(getDefaultLocaleCode('acom', null), 'return null if no locale code').to.be.null;
+            expect(getDefaultLocaleCode('acom', undefined), 'return null if no locale code').to.be.null;
         });
     });
 

@@ -279,7 +279,7 @@ describe('customize typical cases', function () {
             country: 'CH',
         });
         expect(result.status).to.equal(400);
-        expect(result.message).to.equal('Default locale not found for requested locale \'zz_CH\'');
+        expect(result.message).to.equal("Default locale not found for requested locale 'zz_CH'");
     });
 
     it('should return en_US fragment (us fragment, en_KW locale)', async function () {

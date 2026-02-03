@@ -462,16 +462,17 @@ export function getDefaultLocales(surface) {
  * @param {*} includeDefault e.g. true
  * @returns
  */
-export function getRegionLocales(surface, defaultLocale, includeDefault) {
-    const cacheKey = `${surface}-${defaultLocale}-${includeDefault}`;
+export function getRegionLocales(surface, localeCode, includeDefault) {
+    const cacheKey = `${surface}-${localeCode}-${includeDefault}`;
     if (!regionLocalesCache[cacheKey]) {
-        const [language, country] = defaultLocale.split('_');
-        const regionLocales = DEFAULT_LOCALES[surface]
-            .filter((locale) => locale.lang === language && locale.country === country)
-            .map((l) => l.regions)
-            .flat()
-            .map((region) => ({ lang: language, country: region }))
+        const [lang, country] = localeCode.split('_');
+        const defaultLocale = getDefaultLocale(surface, localeCode);
+        const regionLocales = defaultLocale.regions
+            .map((region) => ({ lang, country: region }))
             .sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)));
+        if (includeDefault) {
+            regionLocales.push({ lang, country: defaultLocale.country });
+        }
         regionLocalesCache[cacheKey] = regionLocales;
     }
     return regionLocalesCache[cacheKey];

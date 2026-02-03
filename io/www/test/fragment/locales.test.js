@@ -69,21 +69,27 @@ describe('locales', function () {
 
     describe('getRegionLocales', function () {
         it('should return region locales for a default locale on a surface', function () {
-            const result = getRegionLocales('acom', 'en_GB', false);
+            const result = getRegionLocales('acom', 'en_GB', true);
             expect(result).to.be.an('array');
-            // en_GB has regions ['AU', 'IN'] in ACOM
-            expect(result.length).to.be.greaterThan(0);
+            // en_GB has regions ['AU', 'IN', 'GB'] in ACOM
+            expect(result.length).to.be.equal(3);
             expect(result[0]).to.have.property('lang');
             expect(result[0]).to.have.property('country');
             expect(result[0].lang).to.equal('en');
             expect(result[0].country).to.equal('AU');
         });
 
-        it('should return nothing for a non default locale', function () {
-            const result = getRegionLocales('ccd', 'en_GB', false);
+        it('should not include default locale when includeDefault is false', function () {
+            const result = getRegionLocales('acom', 'en_GB', false);
             expect(result).to.be.an('array');
-            // en_GB is not default locale for ccd
-            expect(result.length).to.be.equal(0);
+            // en_GB has regions ['AU', 'IN'] in ACOM
+            expect(result.length).to.be.equal(2);
+        });
+
+        it('should return region locales for a non default locale', function () {
+            const result = getRegionLocales('acom', 'fr_LU', false);
+            expect(result).to.be.an('array');
+            expect(result.length).to.be.equal(4);
         });
     });
 

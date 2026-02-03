@@ -173,8 +173,7 @@ export class MasLocalePicker extends LitElement {
 
     getLocales() {
         if (this.mode === 'region') {
-            const defaultLocale = getDefaultLocale(this.surface, this.locale);
-            return getRegionLocales(this.surface, getLocaleCode(defaultLocale));
+            return getRegionLocales(this.surface, this.locale, true);
         } else {
             return getDefaultLocales(this.surface);
         }

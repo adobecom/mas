@@ -93,7 +93,13 @@ registerVariant(
     PlansV2.collectionOptions,
 );
 registerVariant('product', Product, null, Product.variantStyle);
-registerVariant('segment', Segment, SEGMENT_AEM_FRAGMENT_MAPPING, Segment.variantStyle, Segment.collectionOptions);
+registerVariant(
+    'segment',
+    Segment,
+    SEGMENT_AEM_FRAGMENT_MAPPING,
+    Segment.variantStyle,
+    Segment.collectionOptions,
+);
 registerVariant(
     'special-offers',
     SpecialOffer,

@@ -67,6 +67,11 @@ export const styles = css`
                 height: 48px;
             }
 
+            sp-icon-asterisk100 {
+                width: 10px;
+                height: 10px;
+            }
+
             .label {
                 align-content: center;
             }
@@ -104,6 +109,11 @@ export const styles = css`
 
                     span {
                         font-weight: 500;
+                    }
+
+                    sp-icon-asterisk100 {
+                        width: 10px;
+                        height: 10px;
                     }
                 }
 

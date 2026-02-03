@@ -10,7 +10,7 @@ import {
 } from './plans.js';
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
 import { Product } from './product.js';
-import { Segment } from './segment.js';
+import { Segment, SEGMENT_AEM_FRAGMENT_MAPPING } from './segment.js';
 import {
     SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
     SpecialOffer,
@@ -93,7 +93,7 @@ registerVariant(
     PlansV2.collectionOptions,
 );
 registerVariant('product', Product, null, Product.variantStyle);
-registerVariant('segment', Segment, null, Segment.variantStyle);
+registerVariant('segment', Segment, SEGMENT_AEM_FRAGMENT_MAPPING, Segment.variantStyle, Segment.collectionOptions);
 registerVariant(
     'special-offers',
     SpecialOffer,

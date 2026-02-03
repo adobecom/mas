@@ -4,6 +4,10 @@ export const CSS = `
   --consonant-merch-card-segment-width: 378px;
 }
 
+merch-card[variant="segment"] {
+  width: var(--consonant-merch-card-segment-width);
+}
+
 /* grid style for segment */
 .one-merch-card.segment,
 .two-merch-cards.segment,

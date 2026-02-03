@@ -148,8 +148,24 @@ export class MasText extends LitElement {
             return;
         }
 
-        this.#content = fieldValue;
+        // Unwrap single paragraph - AEM rich text fields often wrap content in <p> tags
+        // which creates unwanted margins when used inline
+        this.#content = this.#unwrapSingleParagraph(fieldValue);
         this.requestUpdate();
+    }
+
+    #unwrapSingleParagraph(html) {
+        if (!html || typeof html !== 'string') return html;
+        const trimmed = html.trim();
+        // Check if content is wrapped in a single <p> tag
+        if (trimmed.startsWith('<p>') && trimmed.endsWith('</p>')) {
+            const inner = trimmed.slice(3, -4);
+            // Only unwrap if there are no other <p> tags inside (single paragraph)
+            if (!inner.includes('<p>') && !inner.includes('</p>')) {
+                return inner;
+            }
+        }
+        return html;
     }
 
     #fail(message) {
@@ -184,4 +200,6 @@ export class MasText extends LitElement {
     }
 }
 
-customElements.define(TAG_NAME, MasText);
+if (!customElements.get(TAG_NAME)) {
+    customElements.define(TAG_NAME, MasText);
+}

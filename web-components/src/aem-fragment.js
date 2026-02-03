@@ -475,4 +475,7 @@ export class AemFragment extends HTMLElement {
     }
 }
 
-customElements.define(AEM_FRAGMENT_TAG_NAME, AemFragment);
+// Guard against double registration (e.g., when maslibs=local with Milo bundle)
+if (!customElements.get(AEM_FRAGMENT_TAG_NAME)) {
+    customElements.define(AEM_FRAGMENT_TAG_NAME, AemFragment);
+}

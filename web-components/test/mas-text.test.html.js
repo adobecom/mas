@@ -89,6 +89,17 @@ runTests(async () => {
                 expect(masText.textContent).to.include('Professional photo editing');
             });
 
+            it('should render specified field - prices', async () => {
+                const masText = appendTemplate('mas-text-prices');
+
+                const loadEvent = await new Promise((resolve) => {
+                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(loadEvent.detail.field).to.equal('prices');
+                expect(masText.innerHTML).to.include('inline-price');
+            });
+
             it('should expose fragment data via data getter', async () => {
                 const masText = appendTemplate('mas-text-basic');
 

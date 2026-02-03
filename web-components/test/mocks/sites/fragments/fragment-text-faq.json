@@ -23,6 +23,10 @@
         "callout": {
             "value": "<p>Best seller</p>",
             "mimeType": "text/html"
+        },
+        "prices": {
+            "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abc123\"></span>",
+            "mimeType": "text/html"
         }
     }
 }

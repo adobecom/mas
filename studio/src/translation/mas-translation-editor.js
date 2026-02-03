@@ -636,9 +636,7 @@ class MasTranslationEditor extends LitElement {
                                   <h2>
                                       Selected languages
                                       <span>(${this.targetLocalesCount})</span>
-                                      <sp-icon-asterisk100
-                                          class="required-icon spectrum-UIIcon-Asterisk100"
-                                      ></sp-icon-asterisk100>
+                                      <sp-icon-asterisk100></sp-icon-asterisk100>
                                   </h2>
                                   ${this.isSelectedLangsOpen
                                       ? html`

@@ -84,6 +84,9 @@ export class Router extends EventTarget {
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
                     }
+                    if (value === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
+                        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+                    }
                     Store.fragments.inEdit.set();
                     if (value !== PAGE_NAMES.CONTENT) {
                         Store.fragments.list.data.set([]);

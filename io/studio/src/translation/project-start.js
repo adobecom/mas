@@ -21,7 +21,7 @@ async function main(params) {
         const authToken = getBearerToken(params);
         const allowed = await isAllowed(authToken, params.allowedClientId);
         if (!allowed) {
-            return errorResponse(403, 'Forbidden: Invalid client ID', logger);
+            return errorResponse(401, 'Authorization failed', logger);
         }
 
         const { projectCF, etag } = await getTranslationProject(params.projectId, authToken);
@@ -77,7 +77,14 @@ async function main(params) {
             logger.info(`response.status: ${response.status}`);
             logger.info(`response.statusText: ${response.statusText}`);
             if (!response.ok) {
+                let errorBody = {};
+                try {
+                    errorBody = await response.json();
+                } catch (e) {
+                    // Response body is not valid JSON, use empty object
+                }
                 logger.error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
+                logger.error(`Error body: ${JSON.stringify(errorBody, null, 2)}`);
                 throw new Error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
             }
             const projectCF = await response.json();
@@ -90,10 +97,9 @@ async function main(params) {
     }
 
     function getTranslationData(projectCF, surface, translationMapping = {}) {
-        const itemsToTranslate = projectCF.fields.find((field) => field.name === 'items')?.values;
+        const itemsToTranslate = getItemsToTranslate(projectCF, surface);
         const locales = projectCF.fields.find((field) => field.name === 'targetLocales')?.values;
-        if (!itemsToTranslate || itemsToTranslate.length === 0) {
-            logger.warn('No items to translate found in translation project');
+        if (!itemsToTranslate) {
             return null;
         }
         if (!locales || locales.length === 0) {
@@ -115,6 +121,22 @@ async function main(params) {
                   }
                 : {},
         };
+    }
+
+    function getItemsToTranslate(projectCF) {
+        // Gather items from all three separate arrays
+        const fragments = projectCF.fields.find((field) => field.name === 'fragments')?.values || [];
+        const collections = projectCF.fields.find((field) => field.name === 'collections')?.values || [];
+        const placeholders = projectCF.fields.find((field) => field.name === 'placeholders')?.values || [];
+
+        // Combine all items into a single array
+        const itemsToTranslate = [...fragments, ...collections, ...placeholders];
+
+        if (itemsToTranslate.length === 0) {
+            logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
+            return null;
+        }
+        return itemsToTranslate;
     }
 
     // Helper function to send a single request with retry logic
@@ -244,7 +266,14 @@ async function main(params) {
                 body: JSON.stringify([{ op: 'replace', path, value: [new Date().toISOString()] }]),
             });
             if (!response.ok) {
+                let errorBody = {};
+                try {
+                    errorBody = await response.json();
+                } catch (e) {
+                    // Response body is not valid JSON, use empty object
+                }
                 logger.error(`Failed to update translation project submission date: ${response.status} ${response.statusText}`);
+                logger.error(`Error body: ${JSON.stringify(errorBody, null, 2)}`);
                 throw new Error(
                     `Failed to update translation project submission date: ${response.status} ${response.statusText}`,
                 );

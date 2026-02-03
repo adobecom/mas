@@ -1,6 +1,6 @@
 import { STATE_FAILED, FF_DEFAULTS, FF_ANNUAL_PRICE } from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
-import { selectOffers, getService } from './utilities.js';
+import { selectOffers, sumOffers, getService } from './utilities.js';
 import { Defaults } from './defaults.js';
 
 const INDIVIDUAL = 'INDIVIDUAL_COM';
@@ -345,10 +345,25 @@ export class InlinePrice extends HTMLSpanElement {
         try {
             const version = this.masElement.togglePending({});
             this.innerHTML = '';
-            const [offerSelectors] =
-                await service.resolveOfferSelectors(options);
-            let offers = selectOffers(await offerSelectors, options);
-            const [offer] = offers;
+            // Resolve all OSI promises - if any fails, Promise.all rejects
+            const offerSelectorPromises =
+                service.resolveOfferSelectors(options);
+            const resolvedOfferArrays = await Promise.all(
+                offerSelectorPromises,
+            );
+            // Select best offer from each OSI, then sum them
+            const selectedOffers = resolvedOfferArrays.map((offerArray) => {
+                const selected = selectOffers(offerArray, options);
+                return selected?.length ? selected[0] : null;
+            });
+            // Check if any offer selection failed
+            if (selectedOffers.some((offer) => !offer)) {
+                throw new Error(
+                    `Failed to select offers for: ${options.wcsOsi}`,
+                );
+            }
+            let offers = selectedOffers;
+            const offer = sumOffers(selectedOffers);
 
             if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
                 if (priceOptions.displayPerUnit === undefined) {
@@ -379,7 +394,11 @@ export class InlinePrice extends HTMLSpanElement {
                             options.forceTaxExclusive;
                     }
                     if (options.forceTaxExclusive) {
-                        offers = selectOffers(offers, options);
+                        // Re-select offers with forceTaxExclusive applied, then re-sum
+                        offers = resolvedOfferArrays.map((offerArray) => {
+                            const selected = selectOffers(offerArray, options);
+                            return selected?.length ? selected[0] : null;
+                        });
                     }
                 }
             } else {
@@ -387,13 +406,17 @@ export class InlinePrice extends HTMLSpanElement {
                     options.displayOldPrice = true;
                 }
             }
+
             if (
                 service.featureFlags[FF_ANNUAL_PRICE] &&
                 options.displayAnnual !== false
             ) {
                 options.displayAnnual = true;
             }
-            return this.renderOffers(offers, options, version);
+
+            // Sum the final offers for rendering
+            const finalOffer = sumOffers(offers);
+            return this.renderOffers([finalOffer], options, version);
         } catch (error) {
             this.innerHTML = '';
             throw error;

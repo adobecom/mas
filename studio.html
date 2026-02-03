@@ -7,6 +7,7 @@
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="aem-base-url" />
+        <meta name="io-base-url" />
         <script type="importmap">
             {
                 "imports": {
@@ -47,6 +48,15 @@
                 baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
             }
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
+
+            let ioEnv;
+            if (isLocal && !envOverride) {
+                ioEnv = '';
+            } else {
+                ioEnv = envOverride ? `-${envOverride}` : '';
+            }
+            const ioBaseUrl = `https://14257-masstudio${ioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+            document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);
         </script>
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>

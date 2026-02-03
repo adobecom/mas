@@ -89,10 +89,6 @@ class MasTopNav extends LitElement {
         });
     }
 
-    get envIndicator() {
-        return EnvColorCode[this.aemEnv];
-    }
-
     get shouldShowPickers() {
         return this.showPickers;
     }
@@ -117,9 +113,7 @@ class MasTopNav extends LitElement {
         if (this.aemEnv === 'prod') {
             return html``;
         }
-        return html`
-            <sp-badge size="small" class="env-indicator ${this.envIndicator}">${this.aemEnv.toUpperCase()}</sp-badge>
-        `;
+        return html` <sp-badge size="small" variant="${EnvColorCode[this.aemEnv]}"> ${this.aemEnv.toUpperCase()} </sp-badge> `;
     }
 
     render() {

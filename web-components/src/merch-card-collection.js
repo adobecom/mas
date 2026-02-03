@@ -24,6 +24,7 @@ const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 20000;
 const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
     plans: ['four-merch-cards'],
+    segment: ['four-merch-cards'],
     plansThreeColumns: ['three-merch-cards'],
 };
 

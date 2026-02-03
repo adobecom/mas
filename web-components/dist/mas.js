@@ -4028,6 +4028,11 @@ merch-card[variant="segment"] {
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 }
+
+merch-card-collection.segment merch-card {
+    width: auto;
+    height: 100%;
+}
 `;var xc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},callout:{tag:"div",slot:"callout-content"},planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},bt=class extends C{constructor(t){super(t)}getGlobalCSS(){return fc}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return f` ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>

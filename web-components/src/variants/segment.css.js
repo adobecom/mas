@@ -49,4 +49,9 @@ merch-card[variant="segment"] {
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 }
+
+merch-card-collection.segment merch-card {
+    width: auto;
+    height: 100%;
+}
 `;

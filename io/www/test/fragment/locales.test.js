@@ -91,6 +91,12 @@ describe('locales', function () {
             expect(result).to.be.an('array');
             expect(result.length).to.be.equal(4);
         });
+
+        it('should return empty array if no regions', function () {
+            const result = getRegionLocales('acom', 'pt_PT', false);
+            expect(result).to.be.an('array');
+            expect(result.length).to.be.equal(0);
+        });
     });
 
     describe('getLanguageName', function () {

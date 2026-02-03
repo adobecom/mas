@@ -467,11 +467,13 @@ export function getRegionLocales(surface, localeCode, includeDefault) {
     if (!regionLocalesCache[cacheKey]) {
         const [lang, country] = localeCode.split('_');
         const defaultLocale = getDefaultLocale(surface, localeCode);
-        const regionLocales = defaultLocale.regions
-            .map((region) => ({ lang, country: region }))
-            .sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)));
+        const regionLocales = defaultLocale?.regions
+            ? defaultLocale.regions
+                  .map((region) => ({ lang, country: region }))
+                  .sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)))
+            : [];
         if (includeDefault) {
-            regionLocales.push({ lang, country: defaultLocale.country });
+            regionLocales.push({ lang, country: defaultLocale?.country });
         }
         regionLocalesCache[cacheKey] = regionLocales;
     }

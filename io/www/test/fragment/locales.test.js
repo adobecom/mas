@@ -16,6 +16,11 @@ describe('locales', function () {
             const locale = { lang: 'en', country: 'US' };
             expect(getLocaleCode(locale)).to.equal('en_US');
         });
+
+        it('should return null when locale is null or undefined', function () {
+            expect(getLocaleCode(null)).to.be.null;
+            expect(getLocaleCode(undefined)).to.be.null;
+        });
     });
 
     describe('getCountryName', function () {
@@ -47,6 +52,17 @@ describe('locales', function () {
             expect(result.regions).to.be.an('array');
             expect(result.regions.length).to.be.greaterThan(0);
         });
+
+        it('should return null for invalid surface', function () {
+            const result = getDefaultLocale('invalid_surface', 'en_US');
+            expect(result).to.be.null;
+        });
+
+        it('should fallback to language match when country does not match', function () {
+            const result = getDefaultLocale('acom', 'en_XX');
+            expect(result).to.be.an('object');
+            expect(result.lang).to.equal('en');
+        });
     });
 
     describe('getDefaultLocaleCode', function () {
@@ -64,6 +80,12 @@ describe('locales', function () {
             expect(result.length).to.be.greaterThan(0);
             expect(result[0]).to.have.property('lang');
             expect(result[0]).to.have.property('country');
+        });
+
+        it('should return empty array for invalid surface', function () {
+            const result = getDefaultLocales('invalid_surface');
+            expect(result).to.be.an('array');
+            expect(result.length).to.equal(0);
         });
     });
 
@@ -96,6 +118,12 @@ describe('locales', function () {
             const result = getRegionLocales('acom', 'pt_PT', false);
             expect(result).to.be.an('array');
             expect(result.length).to.be.equal(0);
+        });
+
+        it('should return empty array for invalid surface', function () {
+            const result = getRegionLocales('invalid_surface', 'en_US', false);
+            expect(result).to.be.an('array');
+            expect(result.length).to.equal(0);
         });
     });
 

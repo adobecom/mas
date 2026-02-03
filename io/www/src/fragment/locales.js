@@ -401,11 +401,13 @@ const LANG_TO_LANGUAGE = {
     zh: 'Chinese',
 };
 
-const defaultLocalesCache = {};
 const regionLocalesCache = {};
 
 // Helper to generate locale code from lang and country
 export function getLocaleCode(locale) {
+    if (!locale) {
+        return null;
+    }
     return `${locale.lang}_${locale.country}`;
 }
 
@@ -420,6 +422,9 @@ export function getCountryFlag(country) {
 }
 
 export function getDefaultLocale(surface, localeCode) {
+    if (!DEFAULT_LOCALES[surface]) {
+        return null;
+    }
     const [language, country] = localeCode.split('_');
     let defaultLocale = DEFAULT_LOCALES[surface].find(
         (locale) => locale.lang === language && (locale.country === country || locale.regions?.includes(country)),
@@ -443,14 +448,11 @@ export function getDefaultLocaleCode(surface, localeCode) {
         return null;
     }
     const defaultLocale = getDefaultLocale(surface, localeCode);
-    return defaultLocale ? getLocaleCode(defaultLocale) : null; // todo check null case and process
+    return defaultLocale ? getLocaleCode(defaultLocale) : null;
 }
 
 export function getDefaultLocales(surface) {
-    if (!defaultLocalesCache[surface]) {
-        defaultLocalesCache[surface] = DEFAULT_LOCALES[surface];
-    }
-    return defaultLocalesCache[surface];
+    return DEFAULT_LOCALES[surface];
 }
 
 /**
@@ -472,8 +474,8 @@ export function getRegionLocales(surface, localeCode, includeDefault) {
                   .map((region) => ({ lang, country: region }))
                   .sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)))
             : [];
-        if (includeDefault) {
-            regionLocales.push({ lang, country: defaultLocale?.country });
+        if (includeDefault && defaultLocale) {
+            regionLocales.push({ lang, country: defaultLocale.country });
         }
         regionLocalesCache[cacheKey] = regionLocales;
     }

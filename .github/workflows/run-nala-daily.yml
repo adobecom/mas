@@ -18,7 +18,7 @@ jobs:
             matrix:
                 node-version: [20.x]
         name: Running Daily Nala tests
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 20 # Prevent hanging jobs
         env:
             WORKFLOW_NAME: 'Nala Daily Run'
@@ -50,7 +50,6 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
             - name: Install Playwright dependencies
-              if: steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install --with-deps
 
             - name: Set execute permission for gh.run.sh

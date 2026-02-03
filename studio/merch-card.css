@@ -17,10 +17,6 @@ merch-card [slot='price'] {
     min-width: 21px;
 }
 
-merch-card:hover {
-    background-color: var(--spectrum-background-base-color) !important;
-}
-
 merch-card:hover:not(.selected) sp-icon-add {
     display: block;
 }

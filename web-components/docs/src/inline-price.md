@@ -19,7 +19,7 @@ See [MAS](mas.html#terminology) to learn more.
 
 | Attribute                  | Description                                                                                             | Default Value | Required |
 | -------------------------- | ------------------------------------------------------------------------------------------------------- | ------------- | -------- |
-| `data-wcs-osi`             | Offer Selector ID                                                                                       |               | `true`   |
+| `data-wcs-osi`             | Offer Selector ID. Supports multiple comma-separated OSIs for soft bundles (prices will be summed).     |               | `true`   |
 | `data-display-old-price`   | Whether to display the old price (in case of flex or legacy promo offer)                                | `true`        | `false`  |
 | `data-display-per-unit`    | Whether to display the price per unit (e.g:, per license)                                               | `false`       | `false`  |
 | `data-display-recurrence`  | Whether to display the recurrence information (e.g:, /mo)                                               | `true`        | `false`  |
@@ -41,6 +41,21 @@ See [MAS](mas.html#terminology) to learn more.
 | `strikethrough` | render the price as strikethrough.                              |
 
 ### Examples {#examples}
+
+#### Soft Bundle (Multiple OSIs)
+
+When multiple Offer Selector IDs are provided (comma-separated), the prices are summed together. This is useful for displaying the total price of a soft bundle containing multiple products.
+
+```html {.demo}
+<span
+    is="inline-price"
+    data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M,Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"
+></span>
+```
+
+::: warning
+**Note**: All OSIs in a soft bundle must resolve successfully. If any OSI fails to resolve, the entire price will fail to render. The `data-quantity` attribute is not supported for soft bundles.
+:::
 
 #### Display Per Unit Price with Tax
 

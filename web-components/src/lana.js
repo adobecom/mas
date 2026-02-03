@@ -5,6 +5,7 @@ const config = {
     ignoredProperties: ['analytics', 'literals', 'element'],
     serializableTypes: ['Array', 'Object'],
     sampleRate: 1,
+    severity: 'e',
     tags: 'acom',
     isProdDomain: false,
 };

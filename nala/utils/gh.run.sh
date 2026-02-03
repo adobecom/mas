@@ -38,7 +38,6 @@ PR_BRANCH_LIVE_URL_GH="https://$FEATURE_BRANCH--$prRepo--$prOrg.aem.live"
 # set pr branch url as env
 export PR_BRANCH_LIVE_URL_GH
 export PR_NUMBER
-export SKIP_AUTH="false"
 
 echo "PR Branch live URL: $PR_BRANCH_LIVE_URL_GH"
 
@@ -64,9 +63,36 @@ echo "Run Command : npx playwright test ${TAGS} ${EXCLUDE_TAGS} ${REPORTER}"
 echo -e "\n"
 echo "*******************************"
 
+if [[ -z "$PROJECT" ]]; then
+    # Check labels for explicit project indicators
+    if [[ "$labels" == *"mas-studio"* ]]; then
+        PROJECT="mas-studio-chromium" # Studio tests (requires auth)
+    elif [[ "$labels" == *"mas-docs"* ]]; then
+        PROJECT="mas-docs-chromium" # Docs tests (no auth needed)
+    else
+        # Labels don't explicitly indicate project, detect from test files
+        # This handles cases like @MAS-Plans, @commerce, or file paths
+        LIST_OUTPUT=$(npx playwright test --config=./playwright.config.js --list ${TAGS} ${EXCLUDE_TAGS} 2>/dev/null || echo "")
+        
+        if [[ -n "$LIST_OUTPUT" ]]; then
+            # Check for project names in brackets or relative paths in output
+            # Using bash pattern matching (like JS includes()) - more efficient than grep
+            if [[ "$LIST_OUTPUT" == *"[mas-studio-chromium]"* ]] || [[ "$LIST_OUTPUT" == *"studio/"* ]]; then
+                PROJECT="mas-studio-chromium"
+            elif [[ "$LIST_OUTPUT" == *"[mas-docs-chromium]"* ]] || [[ "$LIST_OUTPUT" == *"docs/"* ]]; then
+                PROJECT="mas-docs-chromium"
+            fi
+        fi
+        
+        # Default to mas-live-chromium if still not determined (safe with auth)
+        PROJECT="${PROJECT:-mas-live-chromium}"
+    fi
+fi
+
 # Run Playwright tests on the specific projects using root-level playwright.config.js
 echo "*** Running tests on specific projects ***"
-npx playwright test --config=./playwright.config.js ${TAGS} ${EXCLUDE_TAGS} --project=mas-live-chromium ${REPORTER} || EXIT_STATUS=$?
+echo "Using project: $PROJECT"
+npx playwright test --config=./playwright.config.js ${TAGS} ${EXCLUDE_TAGS} --project=${PROJECT} ${REPORTER} || EXIT_STATUS=$?
 
 # Check if tests passed or failed
 if [ $EXIT_STATUS -ne 0 ]; then

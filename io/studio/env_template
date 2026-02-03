@@ -6,7 +6,7 @@ AIO_runtime_apihost=https://adobeioruntime.net
 
 # project specific variables
 
- # odin QA author
+ # odin author
 ODIN_ENDPOINT=https://author-p22655-xxxx.adobeaemcloud.com
 
 # batch size of concurrent requests to send to odin loc v2 API ODIN_ENDPOINT (default: 10)

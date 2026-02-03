@@ -36,6 +36,13 @@ export const styles = css`
             h2 {
                 margin: 0 0 20px 0;
             }
+
+            .metadata-info {
+                display: flex;
+                flex-direction: column;
+                border-radius: 10px;
+                margin-bottom: 20px;
+            }
         }
 
         .general-info {

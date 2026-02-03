@@ -41,11 +41,11 @@ export const styles = css`
         height: var(--input-height);
         width: calc(var(--input-width) - var(--button-width));
         border: var(--border-width) solid var(--border-color);
-        border-top-left-radius: var(--radius);
-        border-bottom-left-radius: var(--radius);
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        border-right: none;
+        border-start-start-radius: var(--radius);
+        border-end-start-radius: var(--radius);
+        border-start-end-radius: 0;
+        border-end-end-radius: 0;
+        border-inline-end: none;
         padding-inline-start: 12px;
         box-sizing: border-box;
         -moz-appearance: textfield;
@@ -69,12 +69,12 @@ export const styles = css`
         position: absolute;
         inset-inline-end: 0;
         border: var(--border-width) solid var(--border-color);
-        border-left: var(
-            --picker-button-border-left,
+        border-inline-start: var(
+            --picker-button-border-inline-start,
             var(--border-width) solid var(--border-color)
         );
-        border-top-right-radius: var(--radius);
-        border-bottom-right-radius: var(--radius);
+        border-start-end-radius: var(--radius);
+        border-end-end-radius: var(--radius);
         background-color: var(--background-color);
         display: flex;
         align-items: center;
@@ -100,7 +100,7 @@ export const styles = css`
 
     .popover {
         position: absolute;
-        left: 0;
+        inset-inline-start: 0;
         width: var(--input-width);
         border-radius: var(--radius);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -154,5 +154,9 @@ export const styles = css`
         background-image: var(--checkmark-icon);
         background-position: right 7px center;
         background-repeat: no-repeat;
+    }
+
+    :host(:dir(rtl)) .item.selected {
+        background-position: left 7px center;
     }
 `;

@@ -377,7 +377,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
                 await ost.ctaTextMenu.click();
                 await expect(
                     page.locator('div[role="option"]', {
-                        hasText: `${data.ctaText.option}`,
+                        hasText: `${data.ctaText.updated}`,
                     }),
                 ).toBeVisible({
                     timeout: 500,
@@ -385,14 +385,14 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             }).toPass();
             await page
                 .locator('div[role="option"]', {
-                    hasText: `${data.ctaText.option}`,
+                    hasText: `${data.ctaText.updated}`,
                 })
                 .click();
             await ost.checkoutLinkUse.click();
         });
 
         await test.step('step-4: Validate edited CTA in Editor panel', async () => {
-            await expect(await editor.footer).toContainText(data.ctaText.updated);
+            await expect(await editor.footer).toContainText(data.ctaText.placeholder);
         });
 
         await test.step('step-5: Validate edited CTA on the card', async () => {

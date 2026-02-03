@@ -45,7 +45,7 @@ describe('MasNavFolderPicker', () => {
             expect(el.disabledFolders.has('ccd')).to.be.true;
             expect(el.disabledFolders.has('commerce')).to.be.true;
             expect(el.disabledFolders.has('docs')).to.be.true;
-            expect(el.disabledFolders.has('nala')).to.be.true;
+            expect(el.disabledFolders.has('nala')).to.be.false;
             expect(el.disabledFolders.has('sandbox')).to.be.false;
             expect(el.disabledFolders.has('acom')).to.be.false;
             expect(el.disabledFolders.has('express')).to.be.false;
@@ -67,7 +67,7 @@ describe('MasNavFolderPicker', () => {
             expect(adobeHomeItem.hasAttribute('disabled')).to.be.true;
             expect(commerceItem.hasAttribute('disabled')).to.be.true;
             expect(docsItem.hasAttribute('disabled')).to.be.true;
-            expect(nalaItem.hasAttribute('disabled')).to.be.true;
+            expect(nalaItem.hasAttribute('disabled')).to.be.false;
         });
 
         it('should render menu items without disabled attribute for allowed folders', async () => {

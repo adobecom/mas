@@ -85,7 +85,7 @@ describe('addParamsFromPageUrl', () => {
         window.history.replaceState(
             {},
             '',
-            '?gid=123&gtoken=token&cohortid=c1&productname=photoshop&sdid=sd123&attimer=5&gcsrc=src&gcprog=prog&gcprogcat=cat&gcpagetype=type',
+            '?gid=123&gtoken=token&cohortid=c1&productname=photoshop&sdid=sd123&attimer=5&gcsrc=src&gcprog=prog&gcprogcat=cat&gcpagetype=type&mv=search&mv2=paidsearch',
         );
         const url = new URL(
             'https://commerce.adobe.com/store/checkout?cli=testClient&co=US',
@@ -103,13 +103,15 @@ describe('addParamsFromPageUrl', () => {
         expect(url.searchParams.get('gcpagetype')).to.equal('type');
         expect(url.searchParams.get('cli')).to.equal('testClient');
         expect(url.searchParams.get('co')).to.equal('US');
+        expect(url.searchParams.get('mv')).to.equal('search');
+        expect(url.searchParams.get('mv2')).to.equal('paidsearch');
     });
 
     it('should add allowed parameters with empty value as well', () => {
         window.history.replaceState(
             {},
             '',
-            '?gid=&gtoken=&cohortid=&productname=&sdid=&attimer=&gcsrc=&gcprog=&gcprogcat=&gcpagetype=',
+            '?gid=&gtoken=&cohortid=&productname=&sdid=&attimer=&gcsrc=&gcprog=&gcprogcat=&gcpagetype=&mv=&mv2=',
         );
         const url = new URL(
             'https://commerce.adobe.com/store/checkout?cli=testClient&co=US',
@@ -127,6 +129,8 @@ describe('addParamsFromPageUrl', () => {
         expect(url.searchParams.get('gcpagetype')).to.equal('');
         expect(url.searchParams.get('cli')).to.equal('testClient');
         expect(url.searchParams.get('co')).to.equal('US');
+        expect(url.searchParams.get('mv')).to.equal('');
+        expect(url.searchParams.get('mv2')).to.equal('');
     });
 
     it('should not add parameters that are not in the allowed list', () => {

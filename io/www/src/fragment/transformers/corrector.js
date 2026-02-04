@@ -50,7 +50,7 @@ export function fixFieldsDataExtraOptions(context) {
             }
         }
     }
-    logDebug(() => `Fixed data-extra-options attributes for adobe-home surface.`, context);
+    logDebug(() => `Fixed data-extra-options attributes for adobe-home surface`, context);
 }
 
 /**

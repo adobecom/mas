@@ -124,5 +124,9 @@ export const styles = css`
                 }
             }
         }
+        h2 sp-icon-asterisk100 {
+            width: 10px;
+            height: 10px;
+        }
     }
 `;

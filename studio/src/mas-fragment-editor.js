@@ -421,6 +421,7 @@ export default class MasFragmentEditor extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.fragmentEditor.fragmentId.unsubscribe(this.handleFragmentIdChange);
+        Store.fragmentEditor.translatedLocales.set(null);
         if (this.previewLazyLoadTimer) {
             cancelAnimationFrame(this.previewLazyLoadTimer);
             this.previewLazyLoadTimer = null;
@@ -707,10 +708,28 @@ export default class MasFragmentEditor extends LitElement {
 
             await placeholdersPromise;
 
+            // Update translated locales store for locale picker
+            this.updateTranslatedLocalesStore(isVariation);
+
             this.initializationComplete = true;
             this.localeDefaultFragmentLoading = false;
             this.requestUpdate();
         });
+    }
+
+    updateTranslatedLocalesStore(isVariation) {
+        const sourceFragment = isVariation ? this.localeDefaultFragment : this.fragment;
+        if (!sourceFragment) {
+            Store.fragmentEditor.translatedLocales.set(null);
+            return;
+        }
+        const variations = sourceFragment.listLocaleVariations() || [];
+        const locales = variations.map((v) => this.extractLocaleFromPath(v.path)).filter(Boolean);
+        const sourceLocale = this.extractLocaleFromPath(sourceFragment.path);
+        if (sourceLocale && !locales.includes(sourceLocale)) {
+            locales.push(sourceLocale);
+        }
+        Store.fragmentEditor.translatedLocales.set(locales);
     }
 
     dispatchFragmentLoaded() {

@@ -1,5 +1,6 @@
 import { html, css, LitElement } from 'lit';
 import Store from './store.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 import {
     getDefaultLocales,
     getRegionLocales,
@@ -22,6 +23,8 @@ export class MasLocalePicker extends LitElement {
         searchQuery: { type: String },
         surface: { type: String },
     };
+
+    reactiveController = new ReactiveController(this, [Store.fragmentEditor.translatedLocales]);
 
     static styles = css`
         sp-label {
@@ -73,6 +76,19 @@ export class MasLocalePicker extends LitElement {
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+
+        sp-menu-item .locale-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .not-translated {
+            color: var(--spectrum-gray-500);
+            font-size: 12px;
+            margin-left: auto;
         }
 
         :host([disabled]) {
@@ -214,6 +230,8 @@ export class MasLocalePicker extends LitElement {
     renderMenuItem(locale) {
         const { lang, country } = locale;
         const code = getLocaleCode(locale);
+        const translatedLocales = Store.fragmentEditor.translatedLocales.get();
+        const isTranslated = !translatedLocales || translatedLocales.includes(code);
         return html`
             <sp-menu-item .value=${code} ?selected=${this.locale === code} @click=${() => this.handleLocaleChange(code)}>
                 <div class="locale-label">
@@ -221,6 +239,7 @@ export class MasLocalePicker extends LitElement {
                     ${this.mode === 'region'
                         ? html`<span>${getCountryName(country)}</span>`
                         : html`<span>${getLanguageName(lang)} (${country})</span>`}
+                    ${!isTranslated ? html`<span class="not-translated">Not translated</span>` : ''}
                 </div>
             </sp-menu-item>
         `;

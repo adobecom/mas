@@ -791,7 +791,6 @@ class MerchCardEditor extends LitElement {
                         value="${this.whatsIncluded.label}"
                         @input="${this.#updateWhatsIncluded}"
                     ></sp-textfield>
-                    ${this.renderSectionStatusIndicator(['whatsIncluded'])}
                     <mas-multifield
                         button-label="Add application"
                         data-field-state="${this.getFieldState('whatsIncluded')}"
@@ -1219,8 +1218,9 @@ class MerchCardEditor extends LitElement {
             this.fragmentStore.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
         }
 
-        const previousCount = this.lastMnemonicState.mnemonicIcon.length;
-        const newCount = mnemonicIcon.length;
+        // Only count non-empty mnemonics (those with an icon) for toast notifications
+        const previousCount = this.lastMnemonicState.mnemonicIcon.filter((icon) => icon).length;
+        const newCount = mnemonicIcon.filter((icon) => icon).length;
         const isAdd = newCount > previousCount;
         const isRemove = newCount < previousCount;
 

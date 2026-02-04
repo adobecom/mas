@@ -99,6 +99,10 @@ class IncludedField extends LitElement {
 
     #handleModalClose() {
         this.modalOpen = false;
+        // If field is empty (no icon selected), remove it
+        if (!this.icon) {
+            this.#handleDeleteClick();
+        }
     }
 
     #handleDeleteClick() {

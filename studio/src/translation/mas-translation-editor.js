@@ -354,12 +354,16 @@ class MasTranslationEditor extends LitElement {
             if (!response.ok) {
                 throw new Error('Failed to send translation project to localization');
             }
+            const data = await response.json();
+            const submissionDateField = this.translationProject.getField('submissionDate');
+            if (submissionDateField) {
+                submissionDateField.values = [data.submissionDate];
+            }
         } catch (error) {
             console.error('Error sending translation project to localization:', error);
             showToast('Failed to send translation project to localization.', 'negative');
             return;
         }
-        await this.repository.refreshFragment(this.translationProjectStore);
         showToast('Translation project sent to localization successfully.', 'positive');
         this.isProjectReadonly = true;
         this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });

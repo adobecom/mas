@@ -109,8 +109,6 @@ merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
     position: absolute;
     top: -8px;
     right: 16px;
-    background: var(--spectrum-indigo-300);
-    border-radius: 4px;
     font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
     font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
     line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
@@ -124,7 +122,8 @@ merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
     font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
     font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
     line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
-    color: var(--spectrum-indigo-900);
+    color: var(--spectrum-express-accent);
+    border-radius: 4px;
 }
 
 merch-card[variant="full-pricing-express"] [slot="trial-badge"]:empty {
@@ -286,6 +285,28 @@ merch-card[variant="full-pricing-express"] [slot="price"] p a {
     color: var(--spectrum-indigo-900);
     font-weight: 700;
     text-decoration: none;
+}
+
+/* Callout content styling - inside price container */
+merch-card[variant="full-pricing-express"] [slot="callout-content"] {
+    color: var(--spectrum-gray-800);
+    width: 100%;
+    gap: 12px;
+    margin: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="callout-content"] > p {
+    background: transparent;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    padding: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="callout-content"] a {
+    color: var(--spectrum-indigo-900);
+    font-weight: 700;
+    text-decoration: underline;
 }
 
 /* Strikethrough price styling */

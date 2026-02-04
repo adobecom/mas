@@ -9,13 +9,11 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, getFragmentMapping, showToast, getService } from './utils.js';
-import { getFragmentPartsToUse } from './editor-panel.js';
+import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
-import { TranslationProject } from './translation/translation-project.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -1413,66 +1411,8 @@ export default class MasFragmentEditor extends LitElement {
 
     async goToTranslationEditor() {
         const targetLocale = Store.localeOrRegion();
-        const fragment = this.fragment;
-        const fragmentPath = fragment?.path;
-
-        // Create a new translation project with pre-populated values
-        const newProject = new TranslationProject({
-            id: null,
-            title: '',
-            fields: [
-                { name: 'title', type: 'text', multiple: false, values: [] },
-                { name: 'status', type: 'text', multiple: false, values: [] },
-                { name: 'fragments', type: 'content-fragment', multiple: true, values: fragmentPath ? [fragmentPath] : [] },
-                { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
-                { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
-                { name: 'targetLocales', type: 'text', multiple: true, values: targetLocale ? [targetLocale] : [] },
-                { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
-            ],
-        });
-
-        // Set the store directly
-        Store.translationProjects.inEdit.set(new FragmentStore(newProject));
-        Store.translationProjects.translationProjectId.set('');
-
-        // Pre-populate selectedCards and cardsByPaths with enriched fragment for the table
-        if (fragment && fragmentPath) {
-            const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
-            const { fragmentParts } = getFragmentPartsToUse(Store, fragment);
-            const studioPath = `${webComponentName}: ${fragmentParts}`;
-
-            let offerData;
-            try {
-                const wcsOsi = fragment?.getField?.('osi')?.values?.[0];
-                if (wcsOsi) {
-                    const service = getService();
-                    const priceOptions = service?.collectPriceOptions?.({ wcsOsi });
-                    if (priceOptions) {
-                        const [offersPromise] = service.resolveOfferSelectors(priceOptions);
-                        if (offersPromise) {
-                            const [offer] = await offersPromise;
-                            offerData = offer;
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn('Failed to load offer data:', err);
-            }
-
-            const enrichedFragment = { ...fragment, studioPath, offerData };
-            const cardsByPaths = new Map(Store.translationProjects.cardsByPaths.value);
-            cardsByPaths.set(fragmentPath, enrichedFragment);
-            Store.translationProjects.cardsByPaths.set(cardsByPaths);
-            Store.translationProjects.selectedCards.set([fragmentPath]);
-        }
-
-        // Navigate to translation editor first, then reset locale
-        // This prevents the locale reset from triggering a re-render that could interfere with navigation
-        await router.navigateToPage(PAGE_NAMES.TRANSLATION_EDITOR)();
-
-        // Reset locale to default after navigating
-        Store.search.set((prev) => ({ ...prev, region: null }));
-        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+        const fragmentId = this.fragment?.id;
+        await router.navigateToTranslationEditor({ targetLocale, fragmentId });
     }
 
     render() {

@@ -193,6 +193,50 @@ export class Router extends EventTarget {
     }
 
     /**
+     * Navigate to the translation editor with optional pre-fill data
+     * @param {Object} options - Navigation options
+     * @param {string} options.targetLocale - Optional target locale to pre-fill
+     * @param {string} options.fragmentId - Optional fragment ID to pre-fill
+     */
+    async navigateToTranslationEditor(options = {}) {
+        const { targetLocale, fragmentId } = options;
+
+        this.isNavigating = true;
+        try {
+            // Check for unsaved changes
+            const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+            const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
+
+            if (!confirmed) return;
+
+            // Clear fragment editor state
+            Store.fragmentEditor.fragmentId.set(null);
+            Store.fragments.inEdit.set();
+
+            // Reset locale to default
+            Store.search.set((prev) => ({ ...prev, region: null }));
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
+            // Pass pre-fill data through history state (not URL params)
+            const prefillState = (targetLocale || fragmentId) 
+                ? { targetLocale, targetFragmentId: fragmentId } 
+                : null;
+            
+            // Update URL and set state before component mounts
+            // Use pushState to create a new history entry (so back button works)
+            this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
+            this.currentParams.set('page', PAGE_NAMES.TRANSLATION_EDITOR);
+            history.pushState(prefillState, '', `#${this.currentParams.toString()}`);
+            this.currentParams = undefined;
+
+            // Now set the store to trigger component mount
+            Store.page.set(PAGE_NAMES.TRANSLATION_EDITOR);
+        } finally {
+            this.isNavigating = false;
+        }
+    }
+
+    /**
      * Syncs a store with the current URL hash parameters
      * @param {ReactiveStore} store - The store to sync
      * @param {any} currentValue - The current value of the store

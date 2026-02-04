@@ -118,6 +118,7 @@ styles.innerHTML = `
     --spectrum-gray-300-plans: #DADADA;
     --spectrum-gray-700-plans: #505050;
     --spectrum-red-700-plans: #EB1000;
+    --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
 
     /* simplified-pricing-express colors */
     --spectrum-gray-50: #FFFFFF;
@@ -395,7 +396,7 @@ merch-card [slot='callout-content'] {
 merch-card[variant^='plans'] [slot='badge'] {
     position: absolute;
     top: 16px;
-    right: 0;
+    inset-inline-end: 0;
     line-height: 16px;
 }
 
@@ -742,6 +743,16 @@ merch-card merch-whats-included[has-bullets] [slot="content"] {
 merch-badge[background-color="spectrum-red-700-plans"] {
   color: #FFFFFF;
 }
+
+/* Badge border-radius with RTL support */
+merch-badge {
+  --merch-badge-border-radius: 4px 0 0 4px; /* LTR default */
+}
+
+[dir="rtl"] merch-badge {
+  --merch-badge-border-radius: 0 4px 4px 0; /* RTL override */
+}
+
 /* Red border color for merch-cards */
 merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);

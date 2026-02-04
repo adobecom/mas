@@ -29,12 +29,12 @@ export default class MerchBadge extends LitElement {
     }
 
     connectedCallback() {
-        if (this.borderColor && this.borderColor !== 'Transparent') {
+        if (this.borderColor && this.borderColor !== 'transparent') {
             this.style.setProperty(
                 '--merch-badge-border',
                 `1px solid var(--${this.borderColor})`,
             );
-        } else {
+        } else if (!this.backgroundColor.startsWith('gradient-')) {
             this.style.setProperty(
                 '--merch-badge-border',
                 `1px solid var(--${this.backgroundColor})`,
@@ -44,9 +44,24 @@ export default class MerchBadge extends LitElement {
             '--merch-badge-background-color',
             `var(--${this.backgroundColor})`,
         );
+
+        if (
+            (!this.borderColor || this.borderColor === 'transparent') &&
+            this.backgroundColor.startsWith('gradient-')
+        ) {
+            this.style.setProperty(
+                '--merch-badge-padding',
+                '3px 11px 4px 11px',
+            );
+        } else {
+            this.style.setProperty(
+                '--merch-badge-padding',
+                '2px 10px 3px 10px',
+            );
+        }
+
         this.style.setProperty('--merch-badge-color', this.color);
-        this.style.setProperty('--merch-badge-padding', '2px 10px 3px 10px');
-        this.style.setProperty('--merch-badge-border-radius', '4px 0 0 4px');
+        // Border-radius is handled in global.css.js with RTL support
         this.style.setProperty(
             '--merch-badge-font-size',
             'var(--consonant-merch-card-body-xs-font-size)',
@@ -73,7 +88,7 @@ export default class MerchBadge extends LitElement {
     static styles = css`
         :host {
             display: block;
-            background-color: var(--merch-badge-background-color);
+            background: var(--merch-badge-background-color);
             color: var(--merch-badge-color, #000);
             padding: var(--merch-badge-padding);
             border-radius: var(--merch-badge-border-radius);
@@ -81,7 +96,7 @@ export default class MerchBadge extends LitElement {
             line-height: 21px;
             border: var(--merch-badge-border);
             position: relative;
-            left: 1px;
+            inset-inline-start: 1px;
         }
 
         :host .badge-icon {

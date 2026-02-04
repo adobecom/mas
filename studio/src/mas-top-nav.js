@@ -89,10 +89,6 @@ class MasTopNav extends LitElement {
         });
     }
 
-    get envIndicator() {
-        return EnvColorCode[this.aemEnv];
-    }
-
     get shouldShowPickers() {
         return this.showPickers;
     }
@@ -111,6 +107,13 @@ class MasTopNav extends LitElement {
 
     get isDraftLandscape() {
         return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
+    }
+
+    get environmentIndicator() {
+        if (this.aemEnv === 'prod') {
+            return html``;
+        }
+        return html` <sp-badge size="small" variant="${EnvColorCode[this.aemEnv]}"> ${this.aemEnv.toUpperCase()} </sp-badge> `;
     }
 
     render() {
@@ -136,6 +139,7 @@ class MasTopNav extends LitElement {
                         />
                     </svg>
                     <span id="mas-studio">Merch At Scale Studio</span>
+                    ${this.environmentIndicator}
                 </a>
 
                 <div class="spacer"></div>

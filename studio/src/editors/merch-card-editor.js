@@ -1606,7 +1606,11 @@ class MerchCardEditor extends LitElement {
         const element = document.createElement('merch-badge');
         if (bgColor) {
             element.setAttribute('background-color', bgColor);
-            if (bgColor === 'spectrum-green-900-plans' || bgColor === 'spectrum-gray-700-plans')
+            if (
+                bgColor === 'spectrum-green-900-plans' ||
+                bgColor === 'spectrum-gray-700-plans' ||
+                bgColor === 'gradient-purple-blue'
+            )
                 element.setAttribute('color', '#fff');
         }
         if (borderColor) {
@@ -1694,6 +1698,10 @@ class MerchCardEditor extends LitElement {
             .trim();
     }
 
+    #removeGradientColors(colors) {
+        return colors.filter((color) => !color.startsWith('gradient-'));
+    }
+
     #renderBadgeColors() {
         if (!this.supportsBadgeColors) return;
 
@@ -1709,7 +1717,7 @@ class MerchCardEditor extends LitElement {
                 ${this.#renderColorPicker(
                     'badgeBorderColor',
                     'Badge Border Color',
-                    this.availableBadgeColors,
+                    this.#removeGradientColors(this.availableBadgeColors),
                     this.badge.borderColor,
                     'badgeBorderColor',
                 )}

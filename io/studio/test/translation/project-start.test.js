@@ -94,7 +94,7 @@ describe('Translation project-start', () => {
             expect(result.error.body.error).to.include('surface');
         });
 
-        it('should return 403 if client ID is not allowed', async () => {
+        it('should return 401 if client ID is not allowed', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: false });
 
             const params = {
@@ -107,8 +107,8 @@ describe('Translation project-start', () => {
 
             const result = await projectStart.main(params);
 
-            expect(result.error.statusCode).to.equal(403);
-            expect(result.error.body.error).to.equal('Forbidden: Invalid client ID');
+            expect(result.error.statusCode).to.equal(401);
+            expect(result.error.body.error).to.equal('Authorization failed');
         });
 
         it('should return 500 if translation project is not found', async () => {
@@ -137,8 +137,11 @@ describe('Translation project-start', () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
             const mockProjectCF = {
+                id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: [] },
+                    { name: 'fragments', values: [] },
+                    { name: 'collections', values: [] },
+                    { name: 'placeholders', values: [] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
                 ],
             };
@@ -163,7 +166,9 @@ describe('Translation project-start', () => {
 
             expect(result.error.statusCode).to.equal(400);
             expect(result.error.body.error).to.equal('Translation project is incomplete (missing items or locales)');
-            expect(mockLogger.warn).to.have.been.calledWith('No items to translate found in translation project');
+            expect(mockLogger.warn).to.have.been.calledWith(
+                'No items to translate found in translation project: test-project-id',
+            );
         });
 
         it('should return 400 if translation project is incomplete (missing locales)', async () => {
@@ -171,7 +176,7 @@ describe('Translation project-start', () => {
 
             const mockProjectCF = {
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2'] },
+                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2'] },
                     { name: 'targetLocales', values: [] },
                 ],
             };
@@ -204,7 +209,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -257,7 +262,9 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
+                    { name: 'placeholders', values: [] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -321,7 +328,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['en-US'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -370,7 +377,7 @@ describe('Translation project-start', () => {
 
             const result = await projectStart.main(params);
 
-            expect(result.error.statusCode).to.equal(403);
+            expect(result.error.statusCode).to.equal(401);
         });
     });
 
@@ -381,7 +388,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -450,7 +457,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: items },
+                    { name: 'fragments', values: items },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -499,7 +506,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: items },
+                    { name: 'fragments', values: items },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -547,7 +554,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -591,7 +598,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -632,7 +639,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -677,7 +684,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR', 'it_IT'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -732,7 +739,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2', '/content/fragment3'] },
+                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2', '/content/fragment3'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -787,7 +794,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -835,7 +842,7 @@ describe('Translation project-start', () => {
             expect(patchBody[0]).to.have.property('op', 'replace');
             expect(patchBody[0]).to.have.property('path', '/fields/2/values');
             expect(patchBody[0].value).to.be.an('array').with.lengthOf(1);
-            expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+            expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
         });
 
         it('should return 500 if submission date update fails', async () => {
@@ -844,7 +851,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -891,7 +898,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     // Missing submissionDate field
                 ],

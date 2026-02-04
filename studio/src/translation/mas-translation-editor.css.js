@@ -36,6 +36,13 @@ export const styles = css`
             h2 {
                 margin: 0 0 20px 0;
             }
+
+            .metadata-info {
+                display: flex;
+                flex-direction: column;
+                border-radius: 10px;
+                margin-bottom: 20px;
+            }
         }
 
         .general-info {
@@ -116,6 +123,10 @@ export const styles = css`
                     --mod-button-content-color-hover: var(--spectrum-blue-1000);
                 }
             }
+        }
+        h2 sp-icon-asterisk100 {
+            width: 10px;
+            height: 10px;
         }
     }
 `;

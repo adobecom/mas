@@ -42,7 +42,7 @@ export class SourceFragmentStore extends FragmentStore {
         this.notify();
         // For variations, restore preview with parent-merged values
         if (this.parentFragment) {
-            const previewData = this.#createPreviewData(this.value, this.parentFragment);
+            const previewData = createPreviewDataWithParent(this.value, this.parentFragment);
             this.previewStore.refreshFrom(previewData);
         } else {
             this.previewStore.refreshFrom(structuredClone(value));
@@ -54,7 +54,7 @@ export class SourceFragmentStore extends FragmentStore {
         this.notify();
         // For variations, restore preview with parent-merged values
         if (this.parentFragment) {
-            const previewData = this.#createPreviewData(this.value, this.parentFragment);
+            const previewData = createPreviewDataWithParent(this.value, this.parentFragment);
             this.previewStore.refreshFrom(previewData);
         } else {
             this.previewStore.refreshFrom(structuredClone(this.value));
@@ -76,42 +76,6 @@ export class SourceFragmentStore extends FragmentStore {
 
     refreshAemFragment() {
         /* Source fragments aren't linked to the aem-fragment cache */
-    }
-
-    /**
-     * Creates preview data by merging parent values into empty variation fields
-     * @param {Fragment} sourceFragment
-     * @param {Fragment} parentFragment
-     * @returns {object}
-     */
-    #createPreviewData(sourceFragment, parentFragment) {
-        const previewData = structuredClone(sourceFragment);
-
-        parentFragment.fields?.forEach((parentField) => {
-            const sourceField = previewData.fields?.find((f) => f.name === parentField.name);
-            const sourceValues = sourceField?.values || [];
-
-            // Check if variation should inherit from parent
-            let shouldInherit = sourceValues.length === 0;
-
-            // For [""], check if it's a multi-value field
-            if (!shouldInherit && sourceValues.length === 1 && sourceValues[0] === '') {
-                // For multi-value fields, [""] is explicit clear - don't inherit
-                // For single-value fields, [""] is AEM's default - inherit
-                const isMultipleField = sourceField?.multiple === true;
-                shouldInherit = !isMultipleField;
-            }
-
-            if (shouldInherit && parentField?.values?.length > 0) {
-                if (sourceField) {
-                    sourceField.values = [...parentField.values];
-                } else {
-                    previewData.fields.push({ ...parentField });
-                }
-            }
-        });
-
-        return previewData;
     }
 }
 

@@ -36,7 +36,6 @@ class MerchCardEditor extends LitElement {
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
         fieldsReady: { type: Boolean, state: true },
-        pendingMnemonics: { type: Array, state: true }, // Holds unsaved mnemonic edits (e.g., newly added empty placeholders)
     };
 
     static SECTION_FIELDS = {
@@ -129,11 +128,8 @@ class MerchCardEditor extends LitElement {
     }
 
     async resetTagsToParent() {
-        const parentTags = this.localeDefaultFragment?.tags || [];
-        this.fragment.tags = [...parentTags];
-        this.fragment.newTags = null;
-        this.fragment.hasChanges = true;
-        this.fragmentStore.set(this.fragment);
+        const parentTagIds = this.localeDefaultFragment?.tags?.map((t) => t.id) || [];
+        this.fragmentStore.updateField('tags', parentTagIds);
         showToast('Tags restored to parent value', 'positive');
     }
 
@@ -277,11 +273,6 @@ class MerchCardEditor extends LitElement {
     }
 
     get mnemonics() {
-        // Return pending mnemonics if there are unsaved edits (e.g., newly added empty placeholders)
-        if (this.pendingMnemonics) {
-            return this.pendingMnemonics;
-        }
-
         if (!this.fragment) return [];
 
         const mnemonicIcon = this.getEffectiveFieldValues('mnemonicIcon');
@@ -1215,38 +1206,14 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = [];
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
-        let hasEmptyPlaceholder = false;
 
-        // Build the pending mnemonics array for UI display
-        const pendingMnemonics = event.target.value.map(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
-            // Track if there's an empty placeholder (newly added but not yet filled in)
-            if (!icon) {
-                hasEmptyPlaceholder = true;
-            }
-            // Include all mnemonics, even empty ones, to preserve the multifield state
+        event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
             mnemonicTooltipText.push(mnemonicText ?? '');
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
-
-            return {
-                icon: icon ?? '',
-                alt: alt ?? '',
-                link: link ?? '',
-                mnemonicText: mnemonicText ?? '',
-                mnemonicPlacement: mnemonicPlacement ?? 'top',
-            };
         });
-
-        // If there's an empty placeholder, store pending state but don't update fragment
-        if (hasEmptyPlaceholder) {
-            this.pendingMnemonics = pendingMnemonics;
-            return;
-        }
-
-        // Clear pending state when saving to fragment
-        this.pendingMnemonics = null;
 
         // If all mnemonics removed in a variation, use empty string sentinel [""]
         // to indicate explicit clear (vs [] which means inherit from parent)

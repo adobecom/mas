@@ -156,11 +156,11 @@ export class MasLocalePicker extends LitElement {
         }
     }
 
-    handleLocaleChange(locale) {
+    handleLocaleChange(locale, fragmentId) {
         this.locale = locale;
         this.dispatchEvent(
             new CustomEvent('locale-changed', {
-                detail: { locale },
+                detail: { locale, fragmentId },
                 bubbles: true,
                 composed: true,
             }),
@@ -227,13 +227,24 @@ export class MasLocalePicker extends LitElement {
             : null;
     }
 
+    getTranslationInfo(localeCode) {
+        const translatedLocales = Store.fragmentEditor.translatedLocales.get();
+        if (!translatedLocales) return null;
+        return translatedLocales.find((item) => item.locale === localeCode);
+    }
+
     renderMenuItem(locale) {
         const { lang, country } = locale;
         const code = getLocaleCode(locale);
+        const translationInfo = this.getTranslationInfo(code);
         const translatedLocales = Store.fragmentEditor.translatedLocales.get();
-        const isTranslated = !translatedLocales || translatedLocales.includes(code);
+        const isTranslated = !translatedLocales || translationInfo;
         return html`
-            <sp-menu-item .value=${code} ?selected=${this.locale === code} @click=${() => this.handleLocaleChange(code)}>
+            <sp-menu-item
+                .value=${code}
+                ?selected=${this.locale === code}
+                @click=${() => this.handleLocaleChange(code, translationInfo?.id)}
+            >
                 <div class="locale-label">
                     <span class="flag">${getCountryFlag(country)}</span>
                     ${this.mode === 'region'

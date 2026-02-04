@@ -731,10 +731,12 @@ export default class MasFragmentEditor extends LitElement {
 
         try {
             const { languageCopies = [] } = await this.repository.aem.sites.cf.fragments.getTranslations(this.fragment.id);
-            const locales = [
-                this.fragment.locale,
-                ...languageCopies.map((copy) => this.extractLocaleFromPath(copy.path)),
-            ].filter(Boolean);
+            const locales = languageCopies
+                .map((copy) => ({
+                    locale: this.extractLocaleFromPath(copy.path),
+                    id: copy.id,
+                }))
+                .filter((item) => item.locale);
             Store.fragmentEditor.translatedLocales.set(locales);
         } catch (error) {
             console.warn('Failed to fetch fragment translations:', error.message);

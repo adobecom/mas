@@ -1,7 +1,6 @@
 import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES } from './constants.js';
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
-import { Fragment } from './aem/fragment.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
@@ -155,45 +154,11 @@ class MasTopNav extends LitElement {
         return null;
     }
 
-    get availableLocales() {
-        if (this.isFragmentEditorPage && this.inEdit.value) {
-            const currentFragment = this.inEdit.value.get();
-            if (!currentFragment) return null;
-
-            let sourceFragment = currentFragment;
-            if (this.editorContext.isVariation(currentFragment.id)) {
-                const parent = this.editorContext.getLocaleDefaultFragment();
-                if (parent) {
-                    sourceFragment = new Fragment(parent);
-                }
-            }
-
-            const variations = sourceFragment.listLocaleVariations() || [];
-            const sourceLocale = extractLocaleFromPath(sourceFragment.path);
-            const locales = variations.map((v) => {
-                const localeCode = extractLocaleFromPath(v.path);
-                const [lang, country] = localeCode.split('_');
-                return { lang, country, id: v.id };
-            });
-            // Add source locale to the list
-            if (sourceLocale) {
-                const [lang, country] = sourceLocale.split('_');
-                locales.push({ lang, country, id: sourceFragment.id });
-            }
-            return locales.sort((a, b) => a.lang.localeCompare(b.lang) || a.country.localeCompare(b.country));
-        }
-        return null;
-    }
-
     async onLocaleChanged(e) {
-        const { locale } = e.detail;
+        const { locale, fragmentId } = e.detail;
         if (this.isFragmentEditorPage) {
-            const availableLocales = this.availableLocales;
-            const targetLocale = availableLocales?.find((l) => `${l.lang}_${l.country}` === locale);
-            const id = targetLocale?.id;
-
             const currentFragment = this.inEdit.get()?.get();
-            if (id && id !== currentFragment?.id) {
+            if (fragmentId && fragmentId !== currentFragment?.id) {
                 if (currentFragment?.hasChanges) {
                     const editor = document.querySelector('mas-fragment-editor');
                     const confirmed = await editor?.promptDiscardChanges();
@@ -206,19 +171,14 @@ class MasTopNav extends LitElement {
                 // Clear the region override and update locale filter before navigating
                 Store.search.set((prev) => ({ ...prev, region: null }));
                 this.filters.set((prev) => ({ ...prev, locale }));
-                router.navigateToFragmentEditor(id);
-            } else if (id && id === currentFragment?.id) {
-                // User selected the same fragment's locale (e.g., selecting en_US when already on en_US fragment)
-                // or returning from missing variation state to the default locale
-                // Reset hasChanges since we're not actually changing fragments
+                router.navigateToFragmentEditor(fragmentId);
+            } else if (fragmentId && fragmentId === currentFragment?.id) {
+                // User selected the same fragment's locale
                 Store.editor.resetChanges();
                 Store.search.set((prev) => ({ ...prev, region: null }));
                 this.filters.set((prev) => ({ ...prev, locale }));
-            } else if (!id) {
-                // If no variation exists for this locale, update both the search region
-                // (so the editor can show the "missing variation" state) and the locale filter
-                // (so the URL is updated)
-                // Reset hasChanges since we're entering a "view only" missing variation state
+            } else if (!fragmentId) {
+                // If no translation exists for this locale, show the "missing variation" state
                 Store.editor.resetChanges();
                 Store.search.set((prev) => ({ ...prev, region: locale }));
                 this.filters.set((prev) => ({ ...prev, locale }));

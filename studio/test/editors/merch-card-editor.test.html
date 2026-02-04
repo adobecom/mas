@@ -246,7 +246,12 @@
 
                     const restoreTests = [
                         { name: 'text field (cardName)', field: 'cardName', selector: '#cardName', value: ['Overridden Name'] },
-                        { name: 'RTE field (description)', field: 'description', selector: '#description', value: ['<p>Overridden Description</p>'] },
+                        {
+                            name: 'RTE field (description)',
+                            field: 'description',
+                            selector: '#description',
+                            value: ['<p>Overridden Description</p>'],
+                        },
                         { name: 'dropdown field (size)', field: 'size', selector: '#size', value: ['super-wide'] },
                         { name: 'multifield (mnemonics)', field: 'mnemonicIcon', selector: '#mnemonics', value: [''] },
                     ];
@@ -284,27 +289,48 @@
                     describe('description field inheritance logic', () => {
                         it('correctly handles inheritance and overrides for RTE fields', async () => {
                             const parent = new Fragment(structuredClone(parentWithAllFields));
-                            
+
                             // 1. Inherited (Empty values)
-                            const variationInherited = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: [] } : f) });
+                            const variationInherited = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [] } : f)),
+                            });
                             expect(variationInherited.getFieldState('description', parent, true)).to.equal('inherited');
-                            expect(variationInherited.getEffectiveFieldValues('description', parent, true)).to.deep.equal(['<p>Parent Description</p>']);
+                            expect(variationInherited.getEffectiveFieldValues('description', parent, true)).to.deep.equal([
+                                '<p>Parent Description</p>',
+                            ]);
 
                             // 2. Inherited (AEM default [""])
-                            const variationAemDefault = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: [''] } : f) });
+                            const variationAemDefault = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [''] } : f)),
+                            });
                             expect(variationAemDefault.getFieldState('description', parent, true)).to.equal('inherited');
 
                             // 3. Overridden
-                            const variationOverridden = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: ['<p>New</p>'] } : f) });
+                            const variationOverridden = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) =>
+                                    f.name === 'description' ? { ...f, values: ['<p>New</p>'] } : f,
+                                ),
+                            });
                             expect(variationOverridden.getFieldState('description', parent, true)).to.equal('overridden');
 
                             // 4. Same as parent
-                            const variationSame = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: ['<p>Parent Description</p>'] } : f) });
+                            const variationSame = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) =>
+                                    f.name === 'description' ? { ...f, values: ['<p>Parent Description</p>'] } : f,
+                                ),
+                            });
                             expect(variationSame.getFieldState('description', parent, true)).to.equal('same-as-parent');
                         });
 
                         it('source store is not contaminated after preview resolution', async () => {
-                            const variation = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: [] } : f) });
+                            const variation = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [] } : f)),
+                            });
                             const parent = new Fragment(structuredClone(parentWithAllFields));
                             const store = generateFragmentStore(variation, parent);
 

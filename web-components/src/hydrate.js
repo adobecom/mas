@@ -688,7 +688,9 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
 export function processAnalytics(fields, merchCard) {
     const { tags } = fields;
     const cardAnalyticsId = tags
-        ?.find((tag) => typeof tag === 'string' && tag.startsWith(ANALYTICS_TAG))
+        ?.find(
+            (tag) => typeof tag === 'string' && tag.startsWith(ANALYTICS_TAG),
+        )
         ?.split('/')
         .pop();
     if (!cardAnalyticsId) return;

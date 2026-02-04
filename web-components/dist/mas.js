@@ -4037,8 +4037,12 @@ merch-card-collection.segment merch-card {
             ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
-                <slot name="callout-content"></slot>
+                <slot name="body-xxs"></slot>
+                ${this.promoBottom?"":f`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`}
                 <slot name="body-xs"></slot>
+                ${this.promoBottom?f`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`:""}
                 <slot name="badge"></slot>
             </div>
             <hr />

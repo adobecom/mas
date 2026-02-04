@@ -50,8 +50,16 @@ export class Segment extends VariantLayout {
             ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
-                <slot name="callout-content"></slot>
+                <slot name="body-xxs"></slot>
+                ${!this.promoBottom
+                    ? html`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`
+                    : ''}
                 <slot name="body-xs"></slot>
+                ${this.promoBottom
+                    ? html`<slot name="promo-text"></slot
+                          ><slot name="callout-content"></slot>`
+                    : ''}
                 <slot name="badge"></slot>
             </div>
             <hr />

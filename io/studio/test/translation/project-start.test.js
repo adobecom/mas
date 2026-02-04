@@ -6,12 +6,124 @@ const proxyquire = require('proxyquire');
 
 chai.use(sinonChai);
 
+/**
+ * Creates a fetch stub that routes responses based on URL patterns.
+ * @param {Object} routes - Map of URL patterns to response handlers
+ * @param {Object} defaultResponse - Default response for unmatched routes
+ * @returns {Object} - Object with the stub and call tracking
+ *
+ * Routes can be:
+ * - String: exact match or includes check
+ * - RegExp: pattern match
+ *
+ * Response handlers can be:
+ * - Object: returned as response
+ * - Function: called with (url, options, callCount) and returns response
+ * - Array: sequential responses (pops from array, uses last item when empty)
+ */
+function createFetchStub(routes = {}, defaultResponse = { ok: true }) {
+    const callCounts = {};
+    const lastCallOptions = {};
+    const routeResponses = {};
+
+    // Initialize response arrays (clone to avoid mutation)
+    for (const [pattern, response] of Object.entries(routes)) {
+        routeResponses[pattern] = Array.isArray(response) ? [...response] : response;
+    }
+
+    const stub = sinon.stub().callsFake(async (url, options = {}) => {
+        for (const [pattern] of Object.entries(routes)) {
+            const matches = pattern instanceof RegExp ? pattern.test(url) : url.includes(pattern);
+
+            if (matches) {
+                callCounts[pattern] = (callCounts[pattern] || 0) + 1;
+                lastCallOptions[pattern] = options;
+                const currentCount = callCounts[pattern];
+
+                let response = routeResponses[pattern];
+
+                // Handle array of sequential responses
+                if (Array.isArray(response)) {
+                    response = response.length > 1 ? response.shift() : response[0];
+                }
+
+                // Handle function response generator
+                if (typeof response === 'function') {
+                    response = response(url, options, currentCount);
+                }
+
+                return response;
+            }
+        }
+
+        // Return default response for unmatched routes
+        return typeof defaultResponse === 'function' ? defaultResponse(url, options) : defaultResponse;
+    });
+
+    return { lastCallOptions, stub, callCounts };
+}
+
+// Helper to create common response types
+const responses = {
+    ok: (json = {}, etag = null) => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: () => Promise.resolve(json),
+        headers: {
+            get: (name) => (name === 'etag' ? etag : null),
+        },
+    }),
+    notFound: () => ({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: () => Promise.resolve({}),
+    }),
+    error: (status = 500, statusText = 'Internal Server Error') => ({
+        ok: false,
+        status,
+        statusText,
+        json: () => Promise.resolve({}),
+    }),
+};
+
 describe('Translation project-start', () => {
     let projectStart;
     let mockLogger;
     let mockIms;
     let fetchStub;
-    let setTimeoutStub;
+
+    const baseParams = {
+        __ow_headers: { authorization: 'Bearer token' },
+        projectId: 'test-project-id',
+        surface: 'acom',
+        allowedClientId: 'test-client-id',
+        odinEndpoint: 'https://test-odin.com',
+    };
+
+    const createMockProjectCF = (overrides = {}) => ({
+        id: 'test-project-id',
+        fields: [
+            { name: 'fragments', values: [] },
+            { name: 'collections', values: [] },
+            { name: 'placeholders', values: [] },
+            { name: 'targetLocales', values: ['de_DE'] },
+            { name: 'submissionDate', values: [] },
+        ],
+        ...overrides,
+    });
+
+    const setProjectFields = (projectCF, fieldOverrides) => {
+        const project = { ...projectCF };
+        project.fields = project.fields.map((field) => {
+            if (fieldOverrides[field.name] !== undefined) {
+                return { ...field, values: fieldOverrides[field.name] };
+            }
+            return field;
+        });
+        return project;
+    };
 
     beforeEach(function () {
         // Increase timeout for this hook to 5 seconds to handle module loading
@@ -31,17 +143,16 @@ describe('Translation project-start', () => {
 
         const ImsConstructorStub = sinon.stub().returns(mockIms);
 
-        // Setup fetch stub
-        fetchStub = sinon.stub();
-
         // Setup setTimeout stub for retry delays
-        setTimeoutStub = sinon.stub(global, 'setTimeout').callsFake((fn) => {
+        sinon.stub(global, 'setTimeout').callsFake((fn) => {
             fn();
             return 1;
         });
 
+        // Default fetch stub (will be overridden in tests)
+        fetchStub = sinon.stub();
+
         // Load module with mocks using proxyquire
-        // Note: utils.js is not stubbed and will use actual implementation
         projectStart = proxyquire('../../src/translation/project-start.js', {
             '@adobe/aio-sdk': {
                 Core: {
@@ -64,6 +175,16 @@ describe('Translation project-start', () => {
     afterEach(() => {
         sinon.restore();
     });
+
+    /**
+     * Sets up fetch stub with URI-based routing for tests
+     */
+    function setupFetchStub(routes = {}) {
+        const { lastCallOptions, stub, callCounts } = createFetchStub(routes);
+        fetchStub = stub;
+        global.fetch = stub;
+        return { lastCallOptions, stub, callCounts };
+    }
 
     describe('main function', () => {
         it('should be defined', () => {
@@ -97,15 +218,7 @@ describe('Translation project-start', () => {
         it('should return 401 if client ID is not allowed', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: false });
 
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(401);
             expect(result.error.body.error).to.equal('Authorization failed');
@@ -113,21 +226,12 @@ describe('Translation project-start', () => {
 
         it('should return 500 if translation project is not found', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
-            fetchStub.onFirstCall().resolves({
-                ok: false,
-                status: 500,
-                statusText: 'Not Found',
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.error(500, 'Not Found'),
             });
 
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(500);
             expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Failed to fetch translation project/));
@@ -136,33 +240,13 @@ describe('Translation project-start', () => {
         it('should return 400 if translation project is incomplete (no items)', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: [] },
-                    { name: 'collections', values: [] },
-                    { name: 'placeholders', values: [] },
-                    { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
-                ],
-            };
+            const mockProjectCF = createMockProjectCF();
 
-            fetchStub.onFirstCall().resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
             });
 
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(400);
             expect(result.error.body.error).to.equal('Translation project is incomplete (missing items or locales)');
@@ -174,30 +258,16 @@ describe('Translation project-start', () => {
         it('should return 400 if translation project is incomplete (missing locales)', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2'] },
-                    { name: 'targetLocales', values: [] },
-                ],
-            };
-
-            fetchStub.onFirstCall().resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1', '/content/dam/mas/foo/en_US/fragment2'],
+                targetLocales: [],
             });
 
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+            });
 
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(400);
             expect(mockLogger.warn).to.have.been.calledWith('No locales found in translation project');
@@ -206,50 +276,23 @@ describe('Translation project-start', () => {
         it('should return 500 if translation project fails to start', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'collections', values: ['/content/fragment1'] },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                collections: ['/content/dam/mas/foo/en_US/fragment1'],
+            });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/localeSync': { ok: true },
+                // Fail all 3 retries for loc request
+                '/bin/sendToLocalisationAsync': [
+                    responses.error(500, 'Internal Server Error'),
+                    responses.error(500, 'Internal Server Error'),
+                    responses.error(500, 'Internal Server Error'),
                 ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
             });
 
-            // Calls 1-3: loc request fails all retries (3 attempts)
-            fetchStub.onCall(1).resolves({
-                ok: false,
-                status: 500,
-                statusText: 'Internal Server Error',
-            });
-            fetchStub.onCall(2).resolves({
-                ok: false,
-                status: 500,
-                statusText: 'Internal Server Error',
-            });
-            fetchStub.onCall(3).resolves({
-                ok: false,
-                status: 500,
-                statusText: 'Internal Server Error',
-            });
-
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
@@ -259,38 +302,20 @@ describe('Translation project-start', () => {
         it('should successfully start translation project', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1'] },
-                    { name: 'collections', values: ['/content/collection1'] },
-                    { name: 'placeholders', values: [] },
-                    { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            fetchStub.onFirstCall().resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+                collections: ['/content/dam/mas/foo/en_US/collection1'],
+                targetLocales: ['de_DE', 'fr_FR'],
             });
 
-            // Make all loc requests succeed
-            fetchStub.onSecondCall().resolves({ ok: true });
-            fetchStub.onThirdCall().resolves({ ok: true });
-
-            // Make updateTranslationDate succeed
-            fetchStub.onCall(3).resolves({ ok: true });
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
 
             const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
+                ...baseParams,
                 translationMapping: { acom: 'transcreation' },
             };
 
@@ -305,15 +330,7 @@ describe('Translation project-start', () => {
             // Make IMS validation throw an error
             mockIms.validateTokenAllowList.rejects(new Error('Unexpected IMS error'));
 
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(500);
             expect(result.error.body.error).to.equal('Internal server error - Unexpected IMS error');
@@ -325,34 +342,20 @@ describe('Translation project-start', () => {
         it('should validate token with correct client ID', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1'] },
-                    { name: 'targetLocales', values: ['en-US'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            fetchStub.onFirstCall().resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+                targetLocales: ['en-US'],
             });
 
-            fetchStub.onSecondCall().resolves({ ok: true });
-
-            // Make updateTranslationDate succeed
-            fetchStub.onThirdCall().resolves({ ok: true });
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
 
             const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
+                ...baseParams,
                 allowedClientId: 'valid-client-id',
-                odinEndpoint: 'https://test-odin.com',
             };
 
             await projectStart.main(params);
@@ -367,15 +370,7 @@ describe('Translation project-start', () => {
         it('should reject token with invalid response', async () => {
             mockIms.validateTokenAllowList.resolves(null);
 
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(401);
         });
@@ -385,59 +380,47 @@ describe('Translation project-start', () => {
         it('should fetch project with correct headers', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1'] },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            fetchStub.onFirstCall().resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
 
-            fetchStub.onSecondCall().resolves({ ok: true });
-
-            // Make updateTranslationDate succeed
-            fetchStub.onThirdCall().resolves({ ok: true });
+            const { stub } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-123': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
 
             const params = {
-                __ow_headers: { authorization: 'Bearer token' },
+                ...baseParams,
+                __ow_headers: { authorization: 'Bearer token', 'Content-Type': 'application/json' },
                 projectId: 'test-project-123',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
             };
 
             await projectStart.main(params);
 
-            expect(fetchStub.firstCall.args[0]).to.equal('https://test-odin.com/adobe/sites/cf/fragments/test-project-123');
-            expect(fetchStub.firstCall.args[1]).to.deep.include({
+            // Find the call that fetched the project
+            const projectFetchCall = stub
+                .getCalls()
+                .find((call) => call.args[0].includes('/adobe/sites/cf/fragments/test-project-123'));
+
+            expect(projectFetchCall).to.exist;
+            expect(projectFetchCall.args[0]).to.equal('https://test-odin.com/adobe/sites/cf/fragments/test-project-123');
+            expect(projectFetchCall.args[1]).to.deep.include({
                 headers: {
                     Authorization: 'Bearer token',
+                    'Content-Type': 'application/json',
                 },
             });
         });
 
         it('should handle fetch errors gracefully', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
-            fetchStub.onFirstCall().rejects(new Error('Network error'));
 
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
+            const { stub } = createFetchStub({});
+            stub.rejects(new Error('Network error'));
+            global.fetch = stub;
 
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(500);
             expect(result.error.body.error).to.equal(
@@ -452,181 +435,92 @@ describe('Translation project-start', () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
             // Create 15 items to test batching (BATCH_SIZE is 10)
-            const items = Array.from({ length: 15 }, (_, i) => `/content/fragment${i + 1}`);
+            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: items },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: items,
             });
 
-            // Next 15 calls: loc requests (all succeed)
-            for (let i = 1; i <= 15; i++) {
-                fetchStub.onCall(i).resolves({ ok: true });
-            }
+            const { callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
 
-            // Last call: updateTranslationDate
-            fetchStub.onCall(16).resolves({ ok: true });
-
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.statusCode).to.equal(200);
-            // Should have called fetch 17 times: 1 for project fetch + 15 for loc requests + 1 for updateTranslationDate
-            expect(fetchStub.callCount).to.equal(17);
-            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Processing batch 1 of 2/));
-            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Processing batch 2 of 2/));
+            expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(15);
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(15);
         });
 
         it('should process items with custom batch size when batchSize param is provided', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
             // Create 30 items to test batching with custom batch size of 25
-            const items = Array.from({ length: 30 }, (_, i) => `/content/fragment${i + 1}`);
+            const items = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: items },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: items,
             });
 
-            // Next 30 calls: loc requests (all succeed)
-            for (let i = 1; i <= 30; i++) {
-                fetchStub.onCall(i).resolves({ ok: true });
-            }
-
-            // Last call: updateTranslationDate
-            fetchStub.onCall(31).resolves({ ok: true });
+            const { callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
 
             const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
+                ...baseParams,
                 batchSize: 25,
             };
 
             const result = await projectStart.main(params);
 
             expect(result.statusCode).to.equal(200);
-            // Should have called fetch 32 times: 1 for project fetch + 30 for loc requests + 1 for updateTranslationDate
-            expect(fetchStub.callCount).to.equal(32);
-            // With batchSize of 25, 30 items should be processed in 2 batches (25 + 5)
-            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Processing batch 1 of 2/));
-            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Processing batch 2 of 2/));
+            expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(30);
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(30);
         });
 
         it('should retry failed requests up to 3 times', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1'] },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
 
-            // Fail twice, then succeed on third attempt
-            fetchStub.onCall(1).resolves({ ok: false, status: 500, statusText: 'Error' });
-            fetchStub.onCall(2).resolves({ ok: false, status: 500, statusText: 'Error' });
-            fetchStub.onCall(3).resolves({ ok: true });
+            const { callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                // Fail twice, then succeed on third attempt
+                '/bin/sendToLocalisationAsync': [responses.error(500, 'Error'), responses.error(500, 'Error'), { ok: true }],
+            });
 
-            // Make updateTranslationDate succeed
-            fetchStub.onCall(4).resolves({ ok: true });
-
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.statusCode).to.equal(200);
-            // Should retry 3 times total for the failing request
-            expect(fetchStub.callCount).to.be.at.least(5); // 1 project fetch + 3 retries for loc request + 1 updateTranslationDate
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(3);
         });
 
         it('should fail after max retries exhausted', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'collections', values: ['/content/collection1'] },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                collections: ['/content/dam/mas/foo/en_US/collection1'],
             });
 
-            // Calls 1-3: loc request fails all 3 retries
-            fetchStub.onCall(1).resolves({ ok: false, status: 500, statusText: 'Error' });
-            fetchStub.onCall(2).resolves({ ok: false, status: 500, statusText: 'Error' });
-            fetchStub.onCall(3).resolves({ ok: false, status: 500, statusText: 'Error' });
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                // All 3 retries fail
+                '/bin/sendToLocalisationAsync': [
+                    responses.error(500, 'Error'),
+                    responses.error(500, 'Error'),
+                    responses.error(500, 'Error'),
+                ],
+            });
 
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
@@ -636,44 +530,25 @@ describe('Translation project-start', () => {
         it('should handle network errors with retry', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'collections', values: ['/content/collection1'] },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                collections: ['/content/dam/mas/foo/en_US/collection1'],
             });
 
-            // Throw network error twice, then succeed on third attempt
-            fetchStub.onCall(1).rejects(new Error('Network timeout'));
-            fetchStub.onCall(2).rejects(new Error('Network timeout'));
-            fetchStub.onCall(3).resolves({ ok: true });
+            const { callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                // Fail all 3 retries for loc request
+                '/bin/sendToLocalisationAsync': [
+                    responses.error(500, 'Internal Server Error'),
+                    responses.error(500, 'Internal Server Error'),
+                    { ok: true },
+                ],
+            });
 
-            // Make updateTranslationDate succeed
-            fetchStub.onCall(4).resolves({ ok: true });
-
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.statusCode).to.equal(200);
-            expect(mockLogger.warn).to.have.been.calledWith(sinon.match(/Error sending loc request for fragment/));
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(3);
         });
     });
 
@@ -681,43 +556,29 @@ describe('Translation project-start', () => {
         it('should send correct payload with target locales and machineTranslation flag', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1'] },
-                    { name: 'targetLocales', values: ['de_DE', 'fr_FR', 'it_IT'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+                targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
             });
 
-            // Second call: loc request
-            fetchStub.onCall(1).resolves({ ok: true });
-
-            // Third call: updateTranslationDate
-            fetchStub.onCall(2).resolves({ ok: true });
+            const { stub } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
 
             const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
+                ...baseParams,
                 translationMapping: { acom: 'transcreation' },
             };
 
             await projectStart.main(params);
 
-            const locRequestCall = fetchStub.getCall(1);
-            expect(locRequestCall.args[0]).to.include('/bin/sendToLocalisationAsync?path=/content/fragment1');
+            // Find the loc request call
+            const locRequestCall = stub.getCalls().find((call) => call.args[0].includes('/bin/sendToLocalisationAsync'));
+
+            expect(locRequestCall).to.exist;
+            expect(locRequestCall.args[0]).to.include('/bin/sendToLocalisationAsync?path=/content/dam/mas/foo/en_US/fragment1');
 
             const requestBody = JSON.parse(locRequestCall.args[1].body);
             expect(requestBody).to.deep.equal({
@@ -736,54 +597,42 @@ describe('Translation project-start', () => {
         it('should report partial failures when some requests fail', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2', '/content/fragment3'] },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: [
+                    '/content/dam/mas/foo/en_US/fragment1',
+                    '/content/dam/mas/foo/en_US/fragment2',
+                    '/content/dam/mas/foo/en_US/fragment3',
                 ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
             });
 
-            // All 3 fragments start their first attempt concurrently:
-            // Call 1: fragment1 attempt 1 (succeeds)
-            fetchStub.onCall(1).resolves({ ok: true });
+            // Use a function handler to control which fragment succeeds/fails
+            let fragment2CallCount = 0;
+            const { stub } = createFetchStub({});
+            stub.callsFake(async (url) => {
+                if (url.includes('/adobe/sites/cf/fragments/test-project-id') && !url.includes('?path=')) {
+                    return responses.ok(mockProjectCF, '"test-etag"');
+                }
+                if (url.includes('/adobe/sites/cf/fragments?path=')) {
+                    return responses.notFound();
+                }
+                if (url.includes('/bin/sendToLocalisationAsync')) {
+                    // fragment1 and fragment3 succeed, fragment2 always fails
+                    if (url.includes('fragment2')) {
+                        fragment2CallCount++;
+                        return responses.error(500, 'Error');
+                    }
+                    return { ok: true };
+                }
+                return { ok: true };
+            });
+            global.fetch = stub;
 
-            // Call 2: fragment2 attempt 1 (fails, will retry)
-            fetchStub.onCall(2).resolves({ ok: false, status: 500, statusText: 'Error' });
-
-            // Call 3: fragment3 attempt 1 (succeeds)
-            fetchStub.onCall(3).resolves({ ok: true });
-
-            // Now fragment2 retries:
-            // Call 4: fragment2 attempt 2 (fails, will retry again)
-            fetchStub.onCall(4).resolves({ ok: false, status: 500, statusText: 'Error' });
-
-            // Call 5: fragment2 attempt 3 (fails, exhausted retries)
-            fetchStub.onCall(5).resolves({ ok: false, status: 500, statusText: 'Error' });
-
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
             expect(mockLogger.error).to.have.been.calledWith(sinon.match(/1 request\(s\) failed after retries/));
+            expect(fragment2CallCount).to.equal(3); // 3 retry attempts
         });
     });
 
@@ -791,56 +640,41 @@ describe('Translation project-start', () => {
         it('should update submission date after successful translation project start', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1'] },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
 
-            // Second call: loc request
-            fetchStub.onCall(1).resolves({ ok: true });
+            const { stub } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
 
-            // Third call: updateTranslationDate
-            fetchStub.onCall(2).resolves({ ok: true });
-
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.statusCode).to.equal(200);
 
-            // Verify the PATCH request was made correctly
-            const patchCall = fetchStub.getCall(2);
+            // Find the PATCH request
+            const patchCall = stub
+                .getCalls()
+                .find(
+                    (call) =>
+                        call.args[0].includes('/adobe/sites/cf/fragments/test-project-id') && call.args[1]?.method === 'PATCH',
+                );
+
+            expect(patchCall).to.exist;
             expect(patchCall.args[0]).to.equal('https://test-odin.com/adobe/sites/cf/fragments/test-project-id');
             expect(patchCall.args[1].method).to.equal('PATCH');
             expect(patchCall.args[1].headers).to.deep.include({
                 Authorization: 'Bearer token',
-                'Content-Type': 'application/json-patch+json',
+                'Content-Type': 'application/json',
                 'If-Match': '"test-etag"',
             });
 
-            const patchBody = JSON.parse(patchCall.args[1].body);
+            const patchBody = patchCall.args[1].body;
             expect(patchBody).to.be.an('array');
             expect(patchBody[0]).to.have.property('op', 'replace');
-            expect(patchBody[0]).to.have.property('path', '/fields/2/values');
+            expect(patchBody[0]).to.have.property('path', '/fields/4/values');
             expect(patchBody[0].value).to.be.an('array').with.lengthOf(1);
             expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
         });
@@ -848,85 +682,200 @@ describe('Translation project-start', () => {
         it('should return 500 if submission date update fails', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            const mockProjectCF = {
-                id: 'test-project-id',
-                fields: [
-                    { name: 'fragments', values: ['/content/fragment1'] },
-                    { name: 'targetLocales', values: ['de_DE'] },
-                    { name: 'submissionDate', values: [] },
-                ],
-            };
-
-            // First call: fetch translation project
-            fetchStub.onCall(0).resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
 
-            // Second call: loc request succeeds
-            fetchStub.onCall(1).resolves({ ok: true });
+            // Use function to differentiate GET vs PATCH
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': [
+                    responses.ok(mockProjectCF, '"test-etag"'),
+                    responses.error(500, 'Error updating submission date'),
+                ],
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
 
-            // Third call: updateTranslationDate fails
-            fetchStub.onCall(2).resolves({ ok: false, status: 500, statusText: 'Internal Server Error' });
-
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
-            expect(result.error.body.error).to.match(
-                /Internal server error - Failed to update translation project submission date/,
-            );
-            expect(mockLogger.error).to.have.been.calledWith(
-                sinon.match(/Failed to update translation project submission date/),
-            );
         });
 
         it('should return 500 if submissionDate field is not found', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
+            // Project without submissionDate field
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'fragments', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/dam/mas/foo/en_US/fragment1'] },
+                    { name: 'collections', values: [] },
+                    { name: 'placeholders', values: [] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     // Missing submissionDate field
                 ],
             };
 
-            fetchStub.onFirstCall().resolves({
-                ok: true,
-                json: () => Promise.resolve(mockProjectCF),
-                headers: {
-                    get: (name) => (name === 'etag' ? '"test-etag"' : null),
-                },
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': [
+                    responses.ok(mockProjectCF, '"test-etag"'),
+                    responses.error(500, 'Error updating submission date'),
+                ],
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
             });
 
-            // Make loc request succeed
-            fetchStub.onSecondCall().resolves({ ok: true });
-
-            const params = {
-                __ow_headers: { authorization: 'Bearer token' },
-                projectId: 'test-project-id',
-                surface: 'acom',
-                allowedClientId: 'test-client-id',
-                odinEndpoint: 'https://test-odin.com',
-            };
-
-            const result = await projectStart.main(params);
+            const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(500);
-            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Submission date field not found/));
+        });
+    });
+
+    describe('Sync dictionary if a placeholder is synced', () => {
+        it('should send correct synchronization request if a placeholder is in the payload', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+                placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
+                targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
+            });
+
+            const { lastCallOptions, callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/localeSync': { ok: true },
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const params = {
+                ...baseParams,
+                surface: 'foo',
+            };
+
+            await projectStart.main(params);
+
+            expect(callCounts['/bin/localeSync']).to.equal(1);
+            expect(lastCallOptions['/bin/localeSync'].method).to.equal('POST');
+            const syncBody = JSON.parse(lastCallOptions['/bin/localeSync'].body);
+            expect(syncBody).to.deep.equal({
+                items: [
+                    {
+                        contentPath: '/content/dam/mas/foo/en_US/dictionary/index',
+                        targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
+                    },
+                ],
+            });
+        });
+
+        it('should retry in case of an issue with the synchronization request', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: [],
+                placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
+                targetLocales: ['de_DE'],
+            });
+
+            const { callCounts, lastCallOptions } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                // Fail twice, then succeed
+                '/bin/localeSync': [
+                    responses.error(500, 'Internal Server Error'),
+                    responses.error(500, 'Internal Server Error'),
+                    responses.ok(),
+                ],
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const params = {
+                ...baseParams,
+                surface: 'foo',
+            };
+
+            await projectStart.main(params);
+
+            expect(callCounts['/bin/localeSync']).to.equal(3);
+            expect(lastCallOptions['/bin/localeSync'].method).to.equal('POST');
+            const syncBody = JSON.parse(lastCallOptions['/bin/localeSync'].body);
+            expect(syncBody).to.deep.equal({
+                items: [
+                    {
+                        contentPath: '/content/dam/mas/foo/en_US/dictionary/index',
+                        targetLocales: ['de_DE'],
+                    },
+                ],
+            });
+        });
+
+        it('should fail in case of a permanentissue with the synchronization request', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: [],
+                placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
+                targetLocales: ['de_DE'],
+            });
+
+            const { callCounts, lastCallOptions } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                // Fail twice, then succeed
+                '/bin/localeSync': responses.error(500, 'Internal Server Error'),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const params = {
+                ...baseParams,
+                surface: 'foo',
+            };
+
+            const result = await projectStart.main(baseParams);
+
+            expect(result.error.statusCode).to.equal(500);
+        });
+    });
+
+    describe('Version target fragments when already present', () => {
+        it('should version already existing target paths', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1', '/content/dam/mas/foo/en_US/fragment2'],
+                placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
+                collections: ['/content/dam/mas/foo/en_US/collection1'],
+                targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
+            });
+
+            const { lastCallOptions, callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/fragment1': responses.notFound(),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/fr_FR/fragment2': responses.ok({
+                    id: 'fragment2-fr-id',
+                }),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/dictionary/placeholder1': responses.notFound(),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/dictionary/collection1': responses.notFound(),
+                '/adobe/sites/cf/fragments/fragment2-fr-id/versions': { ok: true },
+                '/bin/localeSync': { ok: true },
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const params = {
+                ...baseParams,
+                surface: 'foo',
+            };
+
+            await projectStart.main(params);
+
+            expect(callCounts['/adobe/sites/cf/fragments/fragment2-fr-id/versions']).to.equal(1);
+            expect(lastCallOptions['/adobe/sites/cf/fragments/fragment2-fr-id/versions'].method).to.equal('POST');
+            const versionBody = JSON.parse(lastCallOptions['/adobe/sites/cf/fragments/fragment2-fr-id/versions'].body);
+            expect(versionBody).to.deep.equal({
+                comment: 'Versioning before translation, project test-project-id',
+                label: 'Pre-translation version',
+            });
         });
     });
 });

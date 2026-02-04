@@ -263,7 +263,7 @@ async function main(params) {
                     'If-Match': etag,
                 },
                 method: 'PATCH',
-                body: JSON.stringify([{ op: 'replace', path, value: [new Date().toISOString()] }]),
+                body: JSON.stringify([{ op: 'replace', path, value: [`${new Date().toISOString().split('.')[0]}Z`] }]),
             });
             if (!response.ok) {
                 let errorBody = {};

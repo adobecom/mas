@@ -842,7 +842,7 @@ describe('Translation project-start', () => {
             expect(patchBody[0]).to.have.property('op', 'replace');
             expect(patchBody[0]).to.have.property('path', '/fields/2/values');
             expect(patchBody[0].value).to.be.an('array').with.lengthOf(1);
-            expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+            expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
         });
 
         it('should return 500 if submission date update fails', async () => {

@@ -212,6 +212,7 @@ export class Router extends EventTarget {
             // Clear fragment editor state
             Store.fragmentEditor.fragmentId.set(null);
             Store.fragments.inEdit.set();
+            Store.viewMode.set('default');
 
             // Reset locale to default
             Store.search.set((prev) => ({ ...prev, region: null }));

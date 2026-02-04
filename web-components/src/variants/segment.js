@@ -8,7 +8,6 @@ export const SEGMENT_AEM_FRAGMENT_MAPPING = {
     prices: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     callout: { tag: 'div', slot: 'callout-content' },
-    planType: true,
     badge: { tag: 'div', slot: 'badge', default: 'spectrum-red-700-plans' },
     allowedBadgeColors: [
         'spectrum-yellow-300-plans',
@@ -28,7 +27,6 @@ export const SEGMENT_AEM_FRAGMENT_MAPPING = {
     borderColor: { attribute: 'border-color' },
     ctas: { slot: 'footer', size: 'm' },
     style: 'consonant',
-    perUnitLabel: { tag: 'span', slot: 'per-unit-label' },
 };
 export class Segment extends VariantLayout {
     constructor(card) {
@@ -39,23 +37,26 @@ export class Segment extends VariantLayout {
         return CSS;
     }
 
+    get badgeElement() {
+        return this.card.querySelector('[slot="badge"]');
+    }
+
     postCardUpdateHook() {
         this.adjustTitleWidth();
     }
 
     renderLayout() {
-        return html` ${this.badge}
+        return html`
+            ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
-                <slot name="annualPrice"></slot>
-                <slot name="priceLabel"></slot>
                 <slot name="callout-content"></slot>
                 <slot name="body-xs"></slot>
                 <slot name="badge"></slot>
             </div>
             <hr />
             ${this.secureLabelFooter}
-            <slot></slot>`;
+        `;
     }
 
     static variantStyle = css`

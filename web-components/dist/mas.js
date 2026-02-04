@@ -1063,7 +1063,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
                   >${this.card.secureLabel}</span
               >`:R}get secureLabelFooter(){return f`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return Di(this.card.variant)}};Ut=new WeakMap,m(Br,"styleMap",{});var C=Br;M();var ac=`
+        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return Di(this.card.variant)}};Ut=new WeakMap,m(Br,"styleMap",{});var C=Br;M();var ac=`
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;
@@ -4033,18 +4033,17 @@ merch-card-collection.segment merch-card {
     width: auto;
     height: 100%;
 }
-`;var xc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},callout:{tag:"div",slot:"callout-content"},planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},bt=class extends C{constructor(t){super(t)}getGlobalCSS(){return fc}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return f` ${this.badge}
+`;var xc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},callout:{tag:"div",slot:"callout-content"},badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},ctas:{slot:"footer",size:"m"},style:"consonant"},bt=class extends C{constructor(t){super(t)}getGlobalCSS(){return fc}get badgeElement(){return this.card.querySelector('[slot="badge"]')}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return f`
+            ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
-                <slot name="annualPrice"></slot>
-                <slot name="priceLabel"></slot>
                 <slot name="callout-content"></slot>
                 <slot name="body-xs"></slot>
                 <slot name="badge"></slot>
             </div>
             <hr />
             ${this.secureLabelFooter}
-            <slot></slot>`}};m(bt,"variantStyle",b`
+        `}};m(bt,"variantStyle",b`
         :host([variant='segment']) {
             min-height: 214px;
             background:

@@ -555,7 +555,7 @@ var Wt=Object.defineProperty;var Yt=i=>{throw TypeError(i)};var ui=(i,t,e)=>t in
                   >${this.card.secureLabel}</span
               >`:zi}get secureLabelFooter(){return nt`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,e=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||e===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-e-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return ot(this.card.variant)}};ve=new WeakMap,l(Be,"styleMap",{});var x=Be;import{html as At,css as _i}from"./lit-all.min.js";var ur=`
+        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,e=this.badgeElement?.getBoundingClientRect().width||0;t===0||e===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-e-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return ot(this.card.variant)}};ve=new WeakMap,l(Be,"styleMap",{});var x=Be;import{html as At,css as _i}from"./lit-all.min.js";var ur=`
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;
@@ -3525,18 +3525,17 @@ merch-card-collection.segment merch-card {
     width: auto;
     height: 100%;
 }
-`;var _r={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},callout:{tag:"div",slot:"callout-content"},planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},te=class extends x{constructor(t){super(t)}getGlobalCSS(){return zr}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return Ni` ${this.badge}
+`;var _r={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},callout:{tag:"div",slot:"callout-content"},badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},ctas:{slot:"footer",size:"m"},style:"consonant"},te=class extends x{constructor(t){super(t)}getGlobalCSS(){return zr}get badgeElement(){return this.card.querySelector('[slot="badge"]')}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return Ni`
+            ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
-                <slot name="annualPrice"></slot>
-                <slot name="priceLabel"></slot>
                 <slot name="callout-content"></slot>
                 <slot name="body-xs"></slot>
                 <slot name="badge"></slot>
             </div>
             <hr />
             ${this.secureLabelFooter}
-            <slot></slot>`}};l(te,"variantStyle",$i`
+        `}};l(te,"variantStyle",$i`
         :host([variant='segment']) {
             min-height: 214px;
             background:

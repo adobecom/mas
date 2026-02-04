@@ -5052,8 +5052,6 @@ merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
     position: absolute;
     top: -8px;
     right: 16px;
-    background: var(--spectrum-indigo-300);
-    border-radius: 4px;
     font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
     font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
     line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
@@ -5067,7 +5065,8 @@ merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
     font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
     font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
     line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
-    color: var(--spectrum-indigo-900);
+    color: var(--spectrum-express-accent);
+    border-radius: 4px;
 }
 
 merch-card[variant="full-pricing-express"] [slot="trial-badge"]:empty {
@@ -5229,6 +5228,28 @@ merch-card[variant="full-pricing-express"] [slot="price"] p a {
     color: var(--spectrum-indigo-900);
     font-weight: 700;
     text-decoration: none;
+}
+
+/* Callout content styling - inside price container */
+merch-card[variant="full-pricing-express"] [slot="callout-content"] {
+    color: var(--spectrum-gray-800);
+    width: 100%;
+    gap: 12px;
+    margin: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="callout-content"] > p {
+    background: transparent;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    padding: 0;
+}
+
+merch-card[variant="full-pricing-express"] [slot="callout-content"] a {
+    color: var(--spectrum-indigo-900);
+    font-weight: 700;
+    text-decoration: underline;
 }
 
 /* Strikethrough price styling */
@@ -5437,14 +5458,14 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
         margin-bottom: 0;
     }
 }
-`;var wa={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"xs"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:[]},Wt=class extends C{getGlobalCSS(){return yc}get aemFragmentMapping(){return wa}get headingSelector(){return'[slot="heading-xs"]'}get badgeElement(){return this.card.querySelector('[slot="badge"]')}get badge(){return f`
+`;var wa={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},callout:{tag:"div",slot:"callout-content",editorLabel:"Price description"},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"xs"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:[]},Wt=class extends C{getGlobalCSS(){return yc}get aemFragmentMapping(){return wa}get headingSelector(){return'[slot="heading-xs"]'}get badgeElement(){return this.card.querySelector('[slot="badge"]')}get badge(){return f`
             <div
                 class="badge-wrapper"
                 style="${this.badgeElement?"":"visibility: hidden"}"
             >
                 <slot name="badge"></slot>
             </div>
-        `}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.querySelector('[slot="short-description"]');t&&this.updateCardElementMinHeight(t,"short-description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price");let i=this.card.querySelector('[slot="cta"]');i&&this.updateCardElementMinHeight(i,"cta")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,await Promise.all(this.card.prices.map(t=>t.onceSettled())),window.matchMedia("(min-width: 1025px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-price-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}renderLayout(){return f`
+        `}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.querySelector('[slot="short-description"]');t&&this.updateCardElementMinHeight(t,"short-description");let r=this.card.querySelector('[slot="price"]'),i=this.card.querySelector('[slot="callout-content"]'),n=r&&parseInt(window.getComputedStyle(r).height)||0,a=i&&parseInt(window.getComputedStyle(i).height)||0,o=n+a;if(o>0){let c=`--consonant-merch-card-${this.card.variant}-price-height`,l=this.getContainer(),d=parseInt(l.style.getPropertyValue(c))||0;o>d&&l.style.setProperty(c,`${o}px`)}let s=this.card.querySelector('[slot="cta"]');s&&this.updateCardElementMinHeight(s,"cta")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,await Promise.all(this.card.prices.map(t=>t.onceSettled())),window.matchMedia("(min-width: 1025px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-price-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}renderLayout(){return f`
             ${this.badge}
             <div class="card-content">
                 <div class="header">
@@ -5459,6 +5480,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
                 <div class="price-container">
                     <slot name="trial-badge"></slot>
                     <slot name="price"></slot>
+                    <slot name="callout-content"></slot>
                 </div>
                 <div class="cta">
                     <slot name="cta"></slot>
@@ -5491,6 +5513,10 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             --merch-card-full-pricing-express-cta-font-size: 18px;
             --merch-card-full-pricing-express-cta-font-weight: 700;
             --merch-card-full-pricing-express-cta-line-height: 23.4px;
+
+            /* Accent color */
+            --spectrum-express-accent: #5258e4;
+            --spectrum-express-indigo-300: #d3d5ff;
 
             /* Gradient definitions (reused) */
             --gradient-purple-blue: linear-gradient(
@@ -5620,7 +5646,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             left: 1px;
             right: 1px;
             bottom: 1px;
-            background: var(--spectrum-gray-50);
+            background: var(--spectrum-white);
             border-radius: 7px;
             z-index: 0;
             pointer-events: none;
@@ -5714,7 +5740,17 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             overflow: visible;
             margin-bottom: var(--merch-card-full-pricing-express-section-gap);
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
+        }
+
+        :host([variant='full-pricing-express']) [slot='callout-content'] {
+            font-size: 12px;
+            font-weight: 400;
+            font-style: normal;
+            line-height: 18px;
+            color: var(--spectrum-gray-800);
+            text-align: center;
+            background: transparent;
         }
 
         /* CTA styling */

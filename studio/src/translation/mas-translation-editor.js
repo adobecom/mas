@@ -185,19 +185,16 @@ class MasTranslationEditor extends LitElement {
     }
 
     #validateRequiredFields(translationProject = {}) {
-        // Validate title is not empty
         const title = translationProject.getFieldValue('title');
         if (!title || title.trim() === '') {
             return false;
         }
 
-        // Validate at least one target locale
         const targetLocales = Store.translationProjects.targetLocales.value;
         if (targetLocales.length === 0) {
             return false;
         }
 
-        // Validate at least one entry in fragments, placeholders, or collections
         const fragments = Store.translationProjects.selectedCards.value;
         const placeholders = Store.translationProjects.selectedPlaceholders.value;
         const collections = Store.translationProjects.selectedCollections.value;

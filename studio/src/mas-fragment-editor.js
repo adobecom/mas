@@ -856,14 +856,7 @@ export default class MasFragmentEditor extends LitElement {
 
     async saveFragment() {
         try {
-            const isVariation = this.editorContextStore.isVariation(this.fragment?.id);
-            // For variations, pass the effective OSI (own or inherited) and parent fragment
-            const effectiveOsi =
-                isVariation && this.localeDefaultFragment
-                    ? this.fragment.getFieldValue('osi') || this.localeDefaultFragment.getFieldValue('osi')
-                    : null;
-            const parentFragment = isVariation ? this.localeDefaultFragment : null;
-            await this.repository.saveCardFragment(this.fragmentStore, true, effectiveOsi, parentFragment);
+            await this.repository.saveFragment(this.fragmentStore, true);
         } catch (error) {
             console.error('Failed to save fragment:', error);
             showToast(`Failed to save fragment: ${error.message}`, 'negative');

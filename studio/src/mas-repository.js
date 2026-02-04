@@ -904,18 +904,34 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Generic method to save any fragment
+     * Generic method to save any fragment with card-specific validation and variation handling
      * @param {FragmentStore} fragmentStore - The fragment store to save
      * @param {boolean} withToast - Whether to show toast notifications
-     * @param {Fragment} fragmentToSave - Optional prepared fragment to save (if not provided, uses fragmentStore.get())
      * @returns {Promise<Object>} The saved fragment
      */
-    async saveFragment(fragmentStore, withToast = true, fragmentToSave = null) {
+    async saveFragment(fragmentStore, withToast = true) {
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
 
+        const fragment = fragmentStore.get();
+        const parentFragment = fragmentStore.parentFragment;
+
+        // Card-specific validation
+        const tags = fragment.getField('tags')?.values || [];
+        const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
+        const osi = fragment.getFieldValue('osi') || parentFragment?.getFieldValue('osi');
+
+        if (!osi && !hasOfferlessTag) {
+            if (withToast) showToast('Please select offer', 'negative');
+            this.operation.set(null);
+            return false;
+        }
+
+        // For variations, prepare the fragment by stripping inherited values before save
+        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : fragment;
+
         try {
-            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave || fragmentStore.get());
+            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
@@ -929,31 +945,6 @@ export class MasRepository extends LitElement {
         } finally {
             this.operation.set(null);
         }
-    }
-
-    /**
-     * Save a card fragment with card-specific validation and variation handling
-     * @param {FragmentStore} fragmentStore - The fragment store to save
-     * @param {boolean} withToast - Whether to show toast notifications
-     * @param {string} effectiveOsi - Optional OSI for validation (e.g., inherited from parent for variations)
-     * @param {Fragment} parentFragment - Optional parent fragment for variations (to strip inherited values)
-     * @returns {Promise<Object>} The saved fragment
-     */
-    async saveCardFragment(fragmentStore, withToast = true, effectiveOsi = null, parentFragment = null) {
-        const fragment = fragmentStore.get();
-        const tags = fragment.getField('tags')?.values || [];
-        const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
-        const osi = effectiveOsi || fragment.getFieldValue('osi');
-
-        if (!osi && !hasOfferlessTag) {
-            if (withToast) showToast('Please select offer', 'negative');
-            return false;
-        }
-
-        // For variations, prepare the fragment by stripping inherited values before save
-        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : null;
-
-        return this.saveFragment(fragmentStore, withToast, fragmentToSave);
     }
 
     /**

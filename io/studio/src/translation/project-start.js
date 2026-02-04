@@ -37,20 +37,21 @@ async function main(params) {
         }
 
         const updatedProjectCF = await updateTranslationDate(projectCF, etag, authToken);
-        if (!updatedProjectCF) {
+        if (!updatedProjectCF?.success) {
             return errorResponse(500, 'Failed to update translation project submission date', logger);
         }
+
+        return {
+            statusCode: 200,
+            body: {
+                message: 'Translation project started',
+                submissionDate: updatedProjectCF.submissionDate,
+            },
+        };
     } catch (error) {
         logger.error('Error calling the main action', error);
         return errorResponse(500, `Internal server error - ${error.message}`, logger);
     }
-
-    return {
-        statusCode: 200,
-        body: {
-            message: 'Translation project started',
-        },
-    };
 
     async function isAllowed(token, allowedClientId) {
         logger.info(`Validating IMS token for client ID: ${allowedClientId}`);
@@ -278,7 +279,9 @@ async function main(params) {
                     `Failed to update translation project submission date: ${response.status} ${response.statusText}`,
                 );
             }
-            return response.ok;
+            const updatedFragment = await response.json();
+            const submissionDate = updatedFragment.fields.find((field) => field.name === 'submissionDate')?.values[0];
+            return { success: true, submissionDate };
         } catch (error) {
             logger.error(`Error updating translation project submission date: ${error}`);
             throw new Error(`Failed to update translation project submission date: ${error.message || error.toString()}`);

@@ -1,4 +1,4 @@
-import { css, html, LitElement, nothing } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { EVENT_CHANGE } from '../constants.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 import '../mas-mnemonic-modal.js';
@@ -224,12 +224,10 @@ class MnemonicField extends LitElement {
                 <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>
                     <sp-icon-more slot="icon"></sp-icon-more>
                     <sp-menu>
-                        ${this.iconLibrary
-                            ? nothing
-                            : html`<sp-menu-item value="edit">
-                                  <sp-icon-edit slot="icon"></sp-icon-edit>
-                                  Edit
-                              </sp-menu-item>`}
+                        <sp-menu-item value="edit">
+                            <sp-icon-edit slot="icon"></sp-icon-edit>
+                            Edit
+                        </sp-menu-item>
                         <sp-menu-item value="delete">
                             <sp-icon-delete slot="icon"></sp-icon-delete>
                             Delete

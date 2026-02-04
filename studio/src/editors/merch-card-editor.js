@@ -36,6 +36,7 @@ class MerchCardEditor extends LitElement {
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
         fieldsReady: { type: Boolean, state: true },
+        pendingMnemonics: { type: Array, state: true }, // Holds unsaved mnemonic edits (e.g., newly added empty placeholders)
     };
 
     static SECTION_FIELDS = {
@@ -131,6 +132,7 @@ class MerchCardEditor extends LitElement {
         const parentTags = this.localeDefaultFragment?.tags || [];
         this.fragment.tags = [...parentTags];
         this.fragment.newTags = null;
+        this.fragment.hasChanges = true;
         this.fragmentStore.set(this.fragment);
         showToast('Tags restored to parent value', 'positive');
     }
@@ -138,17 +140,10 @@ class MerchCardEditor extends LitElement {
     static MNEMONIC_FIELDS = ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink', 'mnemonicTooltipText', 'mnemonicTooltipPlacement'];
 
     async resetMnemonicsToParent() {
-        const fragment = this.fragmentStore.get();
         for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
-            // Set to empty array [] to inherit from parent
-            // (vs [""] which means explicit clear)
-            fragment.updateField(fieldName, []);
-
-            // Update preview store with parent values for immediate preview rendering
             const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-            this.fragmentStore.previewStore?.updateFieldWithParentValue(fieldName, parentValues);
+            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         }
-        this.fragmentStore.notify();
         showToast('Visuals restored to parent value', 'positive');
     }
 
@@ -158,19 +153,25 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetMnemonicsToParent());
     }
 
+    // Track fields being restored to prevent RTE change events from re-adding them
+    #restoringFields = new Set();
+
     async resetFieldToParent(fieldName) {
         await this.updateComplete;
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+        this.#restoringFields.add(fieldName);
         const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         if (success) {
             showToast('Field restored to parent value', 'positive');
-            await this.updateComplete;
-            const rteField = this.querySelector(`rte-field[data-field="${fieldName}"]`);
-            if (rteField && parentValues.length > 0) {
-                rteField.updateContent(parentValues[0]);
-            }
         }
+        // Clear the flag after the next render cycle
+        await this.updateComplete;
+        this.#restoringFields.delete(fieldName);
         return success;
+    }
+
+    isFieldBeingRestored(fieldName) {
+        return this.#restoringFields.has(fieldName);
     }
 
     renderFieldStatusIndicator(fieldName) {
@@ -276,6 +277,11 @@ class MerchCardEditor extends LitElement {
     }
 
     get mnemonics() {
+        // Return pending mnemonics if there are unsaved edits (e.g., newly added empty placeholders)
+        if (this.pendingMnemonics) {
+            return this.pendingMnemonics;
+        }
+
         if (!this.fragment) return [];
 
         const mnemonicIcon = this.getEffectiveFieldValues('mnemonicIcon');
@@ -1210,8 +1216,9 @@ class MerchCardEditor extends LitElement {
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
         let hasEmptyPlaceholder = false;
-        
-        event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
+
+        // Build the pending mnemonics array for UI display
+        const pendingMnemonics = event.target.value.map(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
             // Track if there's an empty placeholder (newly added but not yet filled in)
             if (!icon) {
                 hasEmptyPlaceholder = true;
@@ -1222,13 +1229,24 @@ class MerchCardEditor extends LitElement {
             mnemonicLink.push(link ?? '');
             mnemonicTooltipText.push(mnemonicText ?? '');
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
+
+            return {
+                icon: icon ?? '',
+                alt: alt ?? '',
+                link: link ?? '',
+                mnemonicText: mnemonicText ?? '',
+                mnemonicPlacement: mnemonicPlacement ?? 'top',
+            };
         });
 
-        // Don't update fragment store if there's just an empty placeholder
-        // This allows the user to fill in the mnemonic before it's saved
+        // If there's an empty placeholder, store pending state but don't update fragment
         if (hasEmptyPlaceholder) {
+            this.pendingMnemonics = pendingMnemonics;
             return;
         }
+
+        // Clear pending state when saving to fragment
+        this.pendingMnemonics = null;
 
         // If all mnemonics removed in a variation, use empty string sentinel [""]
         // to indicate explicit clear (vs [] which means inherit from parent)
@@ -1691,11 +1709,11 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    #handleFragmentUpdate = (event) => {
+    #handleFragmentUpdate(event) {
         if (this.updateFragment) {
             this.updateFragment(event);
         }
-    };
+    }
 
     #handleLocReady() {
         const value = !this.fragment.getField('locReady')?.values[0];

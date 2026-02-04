@@ -615,6 +615,19 @@ export default class MasFragmentEditor extends LitElement {
             this.reactiveController.updateStores([this.inEdit, fragmentStore, fragmentStore.previewStore, this.operation]);
             this.dispatchFragmentLoaded();
 
+            // Update mas-side-nav to subscribe to the fragment store for hasChanges updates
+            const sideNav = document.querySelector('mas-side-nav');
+            if (sideNav?.reactiveController) {
+                sideNav.reactiveController.updateStores([
+                    Store.page,
+                    Store.search,
+                    Store.viewMode,
+                    Store.fragmentEditor.editorContext,
+                    Store.fragments.inEdit,
+                    fragmentStore,
+                ]);
+            }
+
             // Handle locale-specific placeholder reload for variations
             if (isVariation) {
                 const fragmentLocale = this.extractLocaleFromPath(fragment.path);
@@ -700,6 +713,29 @@ export default class MasFragmentEditor extends LitElement {
         this.titleClone = event.target.value;
     }
 
+    /**
+     * Compare two HTML strings semantically by normalizing them.
+     * This handles cases where attribute order differs but content is the same.
+     */
+    #htmlValuesMatch(html1, html2) {
+        if (html1 === html2) return true;
+        if (!html1 || !html2) return false;
+
+        // Normalize by parsing and re-serializing
+        const normalize = (html) => {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.innerHTML;
+        };
+
+        return normalize(html1) === normalize(html2);
+    }
+
+    #valuesMatchParent(values, parentValues) {
+        if (values.length !== parentValues.length) return false;
+        return values.every((v, i) => this.#htmlValuesMatch(v, parentValues[i]));
+    }
+
     updateFragment({ target, detail, values }) {
         const fieldName = target.dataset.field;
         let value = values;
@@ -708,37 +744,39 @@ export default class MasFragmentEditor extends LitElement {
             value = target.multiline ? value?.split(',') : [value ?? ''];
         }
 
-        // For variations: if the field is currently inherited and source is empty,
-        // skip updates that just echo the parent value (from RTE initialization)
+        // For variations: skip updates that just echo the parent value
         if (this.localeDefaultFragment && this.editorContextStore.isVariation(this.fragment?.id)) {
             const sourceField = this.fragment.getField(fieldName);
+
+            // Skip if field is being restored (prevents RTE change events from re-adding the field)
+            const editor = this.querySelector('merch-card-editor, merch-card-collection-editor');
+            if (editor?.isFieldBeingRestored?.(fieldName)) {
+                return;
+            }
+
+            // If field doesn't exist in source (inherited), skip update
+            // This prevents RTE re-rendering from re-adding a just-removed field
+            if (!sourceField) {
+                return;
+            }
+
+            // If field exists but is empty, skip if value matches parent (RTE initialization)
             if (sourceField) {
                 const sourceValues = sourceField.values || [];
                 const isSourceEmpty = sourceValues.length === 0 || (sourceValues.length === 1 && sourceValues[0] === '');
 
                 if (isSourceEmpty) {
-                    const parentValues = this.localeDefaultFragment.getFieldValues(fieldName) || [];
                     const isNewValueEmpty = value.length === 0 || (value.length === 1 && value[0] === '');
-                    
+
                     // If new value is empty, preserve inheritance
                     if (isNewValueEmpty) {
                         return;
                     }
-                    
-                    // If new value matches parent exactly, it's likely RTE initialization - skip
-                    const valuesMatchParent =
-                        value.length === parentValues.length && value.every((v, i) => v === parentValues[i]);
-                    if (valuesMatchParent) {
+
+                    const parentValues = this.localeDefaultFragment.getFieldValues(fieldName) || [];
+                    // If new value matches parent, it's likely RTE initialization - skip
+                    if (this.#valuesMatchParent(value, parentValues)) {
                         return;
-                    }
-                    
-                    // If parent is empty, allow the update (user is adding new content)
-                    const isParentEmpty = parentValues.length === 0 || (parentValues.length === 1 && parentValues[0] === '');
-                    if (isParentEmpty) {
-                        // User is adding content to an empty inherited field - allow
-                    } else {
-                        // Parent has content, new value differs - could be user edit or RTE serialization
-                        // Allow the update (user intent takes precedence)
                     }
                 }
             }

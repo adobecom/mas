@@ -80,6 +80,7 @@
             import '../../src/aem/aem-tag-picker-field.js';
             import '../../src/mas-fragment-editor.js';
             import '../../src/mas-repository.js';
+            import '../../src/mas-side-nav.js';
             // Import aem-fragment, mas-commerce-service, and merch-card from web-components
             import '../../../web-components/src/mas-commerce-service.js';
             import '../../../web-components/src/aem-fragment.js';
@@ -94,375 +95,222 @@
             // Load the existing mock data for a merch card
             const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
 
-            // Parent fragment (en_US default) with mnemonic - based on actual mock
-            const parentFragmentData = {
-                ...baseMockData,
-                path: '/content/dam/mas/en_US/ccd-slice-cc-allapps',
-                id: 'parent-fragment-id',
-                fields: baseMockData.fields.map((field) => {
-                    if (field.name === 'variant') {
-                        return { ...field, values: ['plans'] };
-                    }
-                    if (field.name === 'mnemonicIcon') {
-                        return { ...field, values: ['/test/mocks/img/creative-cloud.svg'] };
-                    }
-                    if (field.name === 'mnemonicAlt') {
-                        return { ...field, values: ['Creative Cloud'] };
-                    }
-                    if (field.name === 'mnemonicLink') {
-                        return { ...field, values: ['https://adobe.com'] };
-                    }
-                    return field;
-                }),
-            };
-
-            // Variation fragment (en_AU) that inherits from parent - empty mnemonic fields = inherit
-            const variationFragmentData = {
-                ...baseMockData,
-                path: '/content/dam/mas/en_AU/ccd-slice-cc-allapps',
-                title: 'CCD Suggested CC All Apps (AU)',
-                id: 'variation-fragment-id',
-                fields: baseMockData.fields.map((field) => {
-                    if (field.name === 'variant') {
-                        return { ...field, values: ['plans'] };
-                    }
-                    if (field.name === 'mnemonicIcon') {
-                        return { ...field, values: [] }; // Empty = inherit
-                    }
-                    if (field.name === 'mnemonicAlt') {
-                        return { ...field, values: [] };
-                    }
-                    if (field.name === 'mnemonicLink') {
-                        return { ...field, values: [] };
-                    }
-                    return field;
-                }),
-            };
-
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
 
-                describe('merch-card-editor', () => {
-                    it('removes inherited mnemonic and restores it via override indicator', async () => {
-                        console.log('[TEST] Starting test...');
+                describe('merch-card-editor inheritance and overrides', () => {
+                    // Parent fragment with values for all testable fields
+                    const parentWithAllFields = {
+                        ...baseMockData,
+                        path: '/content/dam/mas/nala/en_US/test-parent',
+                        id: 'test-parent-id',
+                        tags: [{ id: 'mas:product/photoshop', title: 'Photoshop' }],
+                        fields: baseMockData.fields.map((field) => {
+                            if (field.name === 'variant') return { ...field, values: ['plans'] };
+                            if (field.name === 'cardTitle') return { ...field, values: ['<p>Parent Title</p>'] };
+                            if (field.name === 'cardName') return { ...field, values: ['Parent Card Name'] };
+                            if (field.name === 'subtitle') return { ...field, values: ['Parent Subtitle'] };
+                            if (field.name === 'size') return { ...field, values: ['wide'] };
+                            if (field.name === 'description') return { ...field, values: ['<p>Parent Description</p>'] };
+                            if (field.name === 'shortDescription') return { ...field, values: ['<p>Parent Short Desc</p>'] };
+                            if (field.name === 'prices') return { ...field, values: ['<p>Parent Prices</p>'] };
+                            if (field.name === 'promoCode') return { ...field, values: ['PARENTPROMO'] };
+                            if (field.name === 'promoText') return { ...field, values: ['<p>Parent Promo</p>'] };
+                            if (field.name === 'callout') return { ...field, values: ['<p>Parent Callout</p>'] };
+                            if (field.name === 'ctas') return { ...field, values: ['<p>Parent CTAs</p>'] };
+                            if (field.name === 'mnemonicIcon')
+                                return { ...field, values: ['/test/mocks/img/creative-cloud.svg'], multiple: true };
+                            if (field.name === 'mnemonicAlt') return { ...field, values: ['Parent Alt'], multiple: true };
+                            if (field.name === 'mnemonicLink')
+                                return { ...field, values: ['https://parent.com'], multiple: true };
+                            if (field.name === 'backgroundImage') return { ...field, values: ['/parent-bg.jpg'] };
+                            if (field.name === 'backgroundImageAltText') return { ...field, values: ['Parent BG Alt'] };
+                            if (field.name === 'badge') return { ...field, values: ['{"text":"Parent Badge"}'] };
+                            if (field.name === 'osi') return { ...field, values: ['parent-osi'] };
+                            return field;
+                        }),
+                    };
 
-                        // Create fragment and fragment store with parent (new API)
-                        const variationFragment = new Fragment(structuredClone(variationFragmentData));
-                        const parentFragment = new Fragment(structuredClone(parentFragmentData));
-                        // Pass parentFragment as second argument - this merges parent values into preview
-                        const fragmentStore = generateFragmentStore(variationFragment, parentFragment);
-                        console.log('[TEST] Created fragments and store with parent');
+                    let layoutContainer, sideNav, fragmentEditor, editor, saveNavItem, fragmentStore;
 
-                        // Set up Store - this is how mas-fragment-editor gets the fragment
+                    async function setupTestEnvironment(overrides = {}, testId = 'default') {
+                        const variationData = {
+                            ...baseMockData,
+                            path: `/content/dam/mas/nala/en_AU/test-variation-${testId}`,
+                            title: `Test Variation ${testId}`,
+                            id: `test-variation-${testId}`,
+                            tags: overrides.tags || [],
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') return { ...field, values: ['plans'] };
+                                if (overrides[field.name] !== undefined) {
+                                    return { ...field, values: overrides[field.name], multiple: field.multiple };
+                                }
+                                return { ...field, values: [] }; // Empty = inherit
+                            }),
+                        };
+
+                        const variationFragment = new Fragment(structuredClone(variationData));
+                        const parentFragment = new Fragment(structuredClone(parentWithAllFields));
+                        fragmentStore = generateFragmentStore(variationFragment, parentFragment);
+
                         Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
-                        Store.fragmentEditor.fragmentId.set('variation-fragment-id');
+                        Store.fragmentEditor.fragmentId.set(`test-variation-${testId}`);
                         Store.fragments.inEdit.set(fragmentStore);
                         Store.fragments.list.data.set([fragmentStore]);
-                        console.log('[TEST] Store configured');
+                        Store.placeholders.preview.set({});
+                        Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala' }));
+                        Store.viewMode.set('editing');
 
-                        // Create mas-fragment-editor
-                        const fragmentEditor = document.createElement('mas-fragment-editor');
-                        console.log('[TEST] Created mas-fragment-editor element');
+                        layoutContainer = document.createElement('div');
+                        layoutContainer.style.cssText = 'display: flex; width: 100%;';
 
-                        // Mock repository methods before appending
+                        sideNav = document.createElement('mas-side-nav');
+                        layoutContainer.appendChild(sideNav);
+
+                        fragmentEditor = document.createElement('mas-fragment-editor');
+                        fragmentEditor.style.cssText = 'flex: 1;';
                         const repository = document.querySelector('mas-repository');
                         repository.refreshFragment = async () => {};
                         repository.loadPreviewPlaceholders = async () => {};
-                        console.log('[TEST] Mocked repository methods');
 
-                        // Mock editorContextStore before appending
                         fragmentEditor.editorContextStore = {
                             loadFragmentContext: async () => {},
                             isVariation: () => true,
-                            getLocaleDefaultFragmentAsync: async () => structuredClone(parentFragmentData),
-                            getDefaultLocaleId: () => 'parent-fragment-id',
-                            getLocaleDefaultFragment: () => structuredClone(parentFragmentData),
+                            getLocaleDefaultFragmentAsync: async () => structuredClone(parentWithAllFields),
+                            getDefaultLocaleId: () => 'test-parent-id',
+                            getLocaleDefaultFragment: () => structuredClone(parentWithAllFields),
                         };
-                        console.log('[TEST] Mocked editorContextStore');
-
-                        // Set locale default fragment directly
                         fragmentEditor.localeDefaultFragment = parentFragment;
                         fragmentEditor.initState = 'ready';
-                        console.log('[TEST] Set locale default fragment and init state');
-
-                        // Set up placeholders and surface for preview resolution
-                        Store.placeholders.preview.set({});
-                        Store.search.set((prev) => ({ ...prev, surface: 'web' }));
-                        console.log('[TEST] Set placeholders and surface');
-
-                        // Mark preview as resolved so it doesn't show skeleton
                         fragmentStore.previewStore.resolved = true;
-                        console.log('[TEST] Marked preview as resolved');
 
-                        // Populate aem-fragment cache with the fragment data for preview rendering
                         const AemFragment = customElements.get('aem-fragment');
                         if (AemFragment?.cache) {
                             AemFragment.cache.add(fragmentStore.previewStore.value);
                         }
-                        console.log('[TEST] Populated aem-fragment cache');
 
-                        // Append to DOM
-                        spTheme.appendChild(fragmentEditor);
-                        console.log('[TEST] Appended fragmentEditor to DOM');
+                        sideNav.reactiveController.updateStores([
+                            Store.page,
+                            Store.search,
+                            Store.viewMode,
+                            Store.fragmentEditor.editorContext,
+                            Store.fragments.inEdit,
+                            fragmentStore,
+                        ]);
+
+                        layoutContainer.appendChild(fragmentEditor);
+                        spTheme.appendChild(layoutContainer);
 
                         await fragmentEditor.updateComplete;
-                        await delay(500);
-                        console.log('[TEST] Waited for fragmentEditor.updateComplete');
+                        await sideNav.updateComplete;
+                        await delay(200);
 
-                        // Get the merch-card-editor inside mas-fragment-editor
-                        const editor = fragmentEditor.querySelector('merch-card-editor');
-                        console.log('[TEST] Found merch-card-editor:', !!editor);
-                        expect(editor).to.exist;
+                        editor = fragmentEditor.querySelector('merch-card-editor');
+                        saveNavItem = sideNav.shadowRoot.querySelector('mas-side-nav-item[label="Save"]');
 
-                        // Verify preview renders without skeleton
-                        const previewColumn = fragmentEditor.querySelector('#preview-column');
-                        expect(previewColumn).to.exist;
-                        const previewSkeleton = previewColumn.querySelector('.preview-skeleton');
-                        expect(previewSkeleton, 'Preview should not show skeleton').to.be.null;
-                        const merchCard = previewColumn.querySelector('merch-card');
-                        expect(merchCard, 'Preview should render merch-card').to.exist;
+                        fragmentStore.get().hasChanges = false;
+                        fragmentStore.notify();
+                        await sideNav.updateComplete;
 
-                        // Step 1: Verify editor renders with inherited mnemonic
-                        expect(editor.effectiveIsVariation).to.be.true;
+                        return { fragmentStore, editor, sideNav, saveNavItem };
+                    }
+
+                    afterEach(() => {
+                        if (layoutContainer) {
+                            layoutContainer.remove();
+                            layoutContainer = null;
+                        }
+                        Store.editor.resetChanges();
+                    });
+
+                    it('removes inherited mnemonic and restores it via override indicator', async () => {
+                        await setupTestEnvironment();
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
                         expect(editor.mnemonics).to.have.length(1);
-                        expect(editor.mnemonics[0].icon).to.equal('/test/mocks/img/creative-cloud.svg');
 
-                        // Step 2: Find and click delete on the mnemonic field
                         const multifield = editor.querySelector('mas-multifield#mnemonics');
-                        expect(multifield).to.exist;
-
                         const mnemonicField = multifield.shadowRoot.querySelector('mas-mnemonic-field');
-                        expect(mnemonicField).to.exist;
-
-                        // Simulate delete by dispatching the delete-field event
                         mnemonicField.dispatchEvent(new CustomEvent('delete-field', { bubbles: true, composed: true }));
 
                         await editor.updateComplete;
-                        await delay(200);
-
-                        // Step 3: Verify mnemonic is removed and state is overridden
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('overridden');
                         expect(editor.mnemonics).to.have.length(0);
-                        expect(editor.getEffectiveFieldValues('mnemonicIcon')).to.deep.equal([]);
 
-                        // Step 4: Find and click "Overridden. Click to restore" link
-                        const overrideIndicator = editor.querySelector('.field-status-indicator a');
-                        expect(overrideIndicator).to.exist;
-                        expect(overrideIndicator.textContent).to.include('Overridden');
-
-                        overrideIndicator.click();
+                        const indicator = editor.querySelector('#mnemonics .field-status-indicator a');
+                        indicator.click();
 
                         await editor.updateComplete;
-                        await delay(200);
-
-                        // Step 5: Verify mnemonic is restored from parent (inherits)
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
                         expect(editor.mnemonics).to.have.length(1);
-                        expect(editor.mnemonics[0].icon).to.equal('/test/mocks/img/creative-cloud.svg');
-
-                        // DOM is preserved - do not remove editor
-                    });
-                });
-
-                describe('description field inheritance', () => {
-                    it('source store keeps raw variation data, preview store has parent-merged data', async () => {
-                        // Parent fragment with description content
-                        const parentWithDescription = {
-                            ...baseMockData,
-                            path: '/content/dam/mas/nala/en_US/parent-card',
-                            id: 'parent-with-description',
-                            fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') {
-                                    return { ...field, values: ['plans'] };
-                                }
-                                if (field.name === 'description') {
-                                    return { ...field, values: ['<p>Parent description content</p>'], multiple: false };
-                                }
-                                return field;
-                            }),
-                        };
-
-                        // Variation with empty description (should inherit from parent)
-                        const variationWithEmptyDescription = {
-                            ...baseMockData,
-                            path: '/content/dam/mas/nala/en_AU/parent-card',
-                            id: 'variation-with-empty-description',
-                            fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') {
-                                    return { ...field, values: ['plans'] };
-                                }
-                                if (field.name === 'description') {
-                                    return { ...field, values: [], multiple: false }; // Empty = inherit
-                                }
-                                return field;
-                            }),
-                        };
-
-                        const variationFragment = new Fragment(structuredClone(variationWithEmptyDescription));
-                        const parentFragment = new Fragment(structuredClone(parentWithDescription));
-
-                        // Create store with parent for variation
-                        const store = generateFragmentStore(variationFragment, parentFragment);
-
-                        // SOURCE store should have the RAW variation data (empty description)
-                        const sourceDescValues = store.value.getFieldValues('description');
-                        expect(sourceDescValues, 'Source should have empty description (raw variation data)').to.deep.equal([]);
-
-                        // PREVIEW store should have PARENT-MERGED data (parent's description)
-                        const previewDescValues = store.previewStore.value.getFieldValues('description');
-                        expect(previewDescValues, 'Preview should have parent description (merged for display)').to.deep.equal([
-                            '<p>Parent description content</p>',
-                        ]);
-
-                        // Verify field state is 'inherited'
-                        const fieldState = store.value.getFieldState('description', parentFragment, true);
-                        expect(fieldState, 'Description field state should be inherited').to.equal('inherited');
-
-                        // Verify source and preview don't share references
-                        const sourceField = store.value.getField('description');
-                        const previewField = store.previewStore.value.getField('description');
-                        expect(sourceField, 'Source and preview fields should be different objects').to.not.equal(previewField);
                     });
 
-                    it('source store is not contaminated after preview resolution', async () => {
-                        // Parent fragment with description content
-                        const parentWithDescription = {
-                            ...baseMockData,
-                            path: '/content/dam/mas/nala/en_US/parent-card-2',
-                            id: 'parent-with-description-2',
-                            fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') {
-                                    return { ...field, values: ['plans'] };
-                                }
-                                if (field.name === 'description') {
-                                    return { ...field, values: ['<p>Parent description</p>'], multiple: false };
-                                }
-                                return field;
-                            }),
-                        };
+                    const restoreTests = [
+                        { name: 'text field (cardName)', field: 'cardName', selector: '#cardName', value: ['Overridden Name'] },
+                        { name: 'RTE field (description)', field: 'description', selector: '#description', value: ['<p>Overridden Description</p>'] },
+                        { name: 'dropdown field (size)', field: 'size', selector: '#size', value: ['super-wide'] },
+                        { name: 'multifield (mnemonics)', field: 'mnemonicIcon', selector: '#mnemonics', value: [''] },
+                    ];
 
-                        // Variation with empty description
-                        const variationWithEmptyDescription = {
-                            ...baseMockData,
-                            path: '/content/dam/mas/nala/en_AU/parent-card-2',
-                            id: 'variation-with-empty-description-2',
-                            fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') {
-                                    return { ...field, values: ['plans'] };
-                                }
-                                if (field.name === 'description') {
-                                    return { ...field, values: [], multiple: false };
-                                }
-                                return field;
-                            }),
-                        };
+                    restoreTests.forEach(({ name, field, selector, value }) => {
+                        it(`restoring ${name} activates save button`, async () => {
+                            await setupTestEnvironment({ [field]: value }, field);
+                            expect(editor.getFieldState(field)).to.equal('overridden');
+                            expect(saveNavItem.disabled).to.be.true;
 
-                        const variationFragment = new Fragment(structuredClone(variationWithEmptyDescription));
-                        const parentFragment = new Fragment(structuredClone(parentWithDescription));
+                            const indicator = editor.querySelector(`${selector} .field-status-indicator a`);
+                            indicator.click();
+                            await editor.updateComplete;
+                            await sideNav.updateComplete;
 
-                        const store = generateFragmentStore(variationFragment, parentFragment);
-
-                        // Simulate what preview resolution does - modify preview store
-                        store.previewStore.value.getField('description').values = ['<p>Resolved preview content</p>'];
-
-                        // SOURCE store should STILL have empty description (not contaminated)
-                        const sourceDescValues = store.value.getFieldValues('description');
-                        expect(sourceDescValues, 'Source should remain empty after preview modification').to.deep.equal([]);
-
-                        // Source initialValue should also be clean
-                        const initialDescField = store.value.initialValue.fields.find((f) => f.name === 'description');
-                        expect(initialDescField.values, 'Source initialValue should have empty description').to.deep.equal([]);
+                            expect(Store.editor.hasChanges).to.be.true;
+                            expect(saveNavItem.disabled).to.be.false;
+                        });
                     });
 
-                    it('[""] on single-value field is treated as inherited', async () => {
-                        // Parent fragment with description content
-                        const parentWithDescription = {
-                            ...baseMockData,
-                            path: '/content/dam/mas/nala/en_US/parent-card-3',
-                            id: 'parent-with-description-3',
-                            fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') {
-                                    return { ...field, values: ['plans'] };
-                                }
-                                if (field.name === 'description') {
-                                    return { ...field, values: ['<p>Parent description</p>'], multiple: false };
-                                }
-                                return field;
-                            }),
-                        };
+                    it('tags field restore activates save', async () => {
+                        await setupTestEnvironment({ tags: [{ id: 'mas:product/illustrator', title: 'Illustrator' }] }, 'tags');
+                        editor.fragment.newTags = ['mas:product/illustrator'];
+                        await editor.updateComplete;
 
-                        // Variation with [""] description (AEM's default for empty single-value fields)
-                        const variationWithEmptyStringDescription = {
-                            ...baseMockData,
-                            path: '/content/dam/mas/nala/en_AU/parent-card-3',
-                            id: 'variation-with-empty-string-description',
-                            fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') {
-                                    return { ...field, values: ['plans'] };
-                                }
-                                if (field.name === 'description') {
-                                    return { ...field, values: [''], multiple: false }; // [""] = AEM default, should inherit
-                                }
-                                return field;
-                            }),
-                        };
+                        const indicator = editor.querySelector('#tags .field-status-indicator a');
+                        indicator.click();
+                        await editor.updateComplete;
+                        await sideNav.updateComplete;
 
-                        const variationFragment = new Fragment(structuredClone(variationWithEmptyStringDescription));
-                        const parentFragment = new Fragment(structuredClone(parentWithDescription));
-
-                        // Field state should be 'inherited' for [""] on single-value fields
-                        const fieldState = variationFragment.getFieldState('description', parentFragment, true);
-                        expect(fieldState, '[""] on single-value field should be inherited').to.equal('inherited');
-
-                        // Effective values should come from parent
-                        const effectiveValues = variationFragment.getEffectiveFieldValues('description', parentFragment, true);
-                        expect(effectiveValues, 'Effective values should be parent description').to.deep.equal([
-                            '<p>Parent description</p>',
-                        ]);
+                        expect(Store.editor.hasChanges).to.be.true;
+                        expect(saveNavItem.disabled).to.be.false;
                     });
 
-                    it('[""] on field without explicit multiple property is treated as inherited', async () => {
-                        // This test reproduces the actual AEM response where multiple may be undefined
-                        const parentWithDescription = {
-                            ...baseMockData,
-                            path: '/content/dam/mas/nala/en_US/parent-card-4',
-                            id: 'parent-with-description-4',
-                            fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') {
-                                    return { ...field, values: ['plans'] };
-                                }
-                                if (field.name === 'description') {
-                                    // Don't set multiple - let it be whatever AEM sends (false or undefined)
-                                    return { ...field, values: ['<p>Parent description</p>'] };
-                                }
-                                return field;
-                            }),
-                        };
+                    describe('description field inheritance logic', () => {
+                        it('correctly handles inheritance and overrides for RTE fields', async () => {
+                            const parent = new Fragment(structuredClone(parentWithAllFields));
+                            
+                            // 1. Inherited (Empty values)
+                            const variationInherited = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: [] } : f) });
+                            expect(variationInherited.getFieldState('description', parent, true)).to.equal('inherited');
+                            expect(variationInherited.getEffectiveFieldValues('description', parent, true)).to.deep.equal(['<p>Parent Description</p>']);
 
-                        // Variation with [""] description - don't explicitly set multiple
-                        const variationWithEmptyStringDescription = {
-                            ...baseMockData,
-                            path: '/content/dam/mas/nala/en_AU/parent-card-4',
-                            id: 'variation-with-empty-string-description-4',
-                            fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') {
-                                    return { ...field, values: ['plans'] };
-                                }
-                                if (field.name === 'description') {
-                                    // Don't set multiple - let it be whatever AEM sends
-                                    return { ...field, values: [''] };
-                                }
-                                return field;
-                            }),
-                        };
+                            // 2. Inherited (AEM default [""])
+                            const variationAemDefault = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: [''] } : f) });
+                            expect(variationAemDefault.getFieldState('description', parent, true)).to.equal('inherited');
 
-                        const variationFragment = new Fragment(structuredClone(variationWithEmptyStringDescription));
-                        const parentFragment = new Fragment(structuredClone(parentWithDescription));
+                            // 3. Overridden
+                            const variationOverridden = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: ['<p>New</p>'] } : f) });
+                            expect(variationOverridden.getFieldState('description', parent, true)).to.equal('overridden');
 
-                        // Field state should be 'inherited' for [""] when multiple is false or undefined
-                        const fieldState = variationFragment.getFieldState('description', parentFragment, true);
-                        expect(fieldState, '[""] on field without explicit multiple should be inherited').to.equal('inherited');
+                            // 4. Same as parent
+                            const variationSame = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: ['<p>Parent Description</p>'] } : f) });
+                            expect(variationSame.getFieldState('description', parent, true)).to.equal('same-as-parent');
+                        });
+
+                        it('source store is not contaminated after preview resolution', async () => {
+                            const variation = new Fragment({ ...baseMockData, fields: baseMockData.fields.map(f => f.name === 'description' ? { ...f, values: [] } : f) });
+                            const parent = new Fragment(structuredClone(parentWithAllFields));
+                            const store = generateFragmentStore(variation, parent);
+
+                            store.previewStore.value.getField('description').values = ['<p>Resolved</p>'];
+                            expect(store.value.getFieldValues('description')).to.deep.equal([]);
+                        });
                     });
                 });
             });

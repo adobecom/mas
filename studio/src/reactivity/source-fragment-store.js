@@ -40,7 +40,13 @@ export class SourceFragmentStore extends FragmentStore {
     refreshFrom(value) {
         this.value.refreshFrom(value);
         this.notify();
-        this.previewStore.refreshFrom(structuredClone(value));
+        // For variations, restore preview with parent-merged values
+        if (this.parentFragment) {
+            const previewData = this.#createPreviewData(this.value, this.parentFragment);
+            this.previewStore.refreshFrom(previewData);
+        } else {
+            this.previewStore.refreshFrom(structuredClone(value));
+        }
     }
 
     discardChanges() {

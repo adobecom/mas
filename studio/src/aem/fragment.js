@@ -119,7 +119,7 @@ export class Fragment {
             existingField.values = encodedValues;
             this.hasChanges = true;
             change = true;
-        } else if (encodedValues.length > 0 && encodedValues.some((v) => v !== '')) {
+        } else if (encodedValues.length > 0 && encodedValues.some((v) => v?.trim?.())) {
             this.fields.push({
                 name: fieldName,
                 type: 'text',
@@ -220,6 +220,7 @@ export class Fragment {
         const areEqual =
             ownValues.length === parentValues.length &&
             ownValues.every((v, i) => normalizeForComparison(v) === normalizeForComparison(parentValues[i]));
+
         return areEqual ? 'same-as-parent' : 'overridden';
     }
 

@@ -4029,6 +4029,21 @@ merch-card[variant="segment"] {
   }
 }
 
+merch-card[variant="segment"] [slot='callout-content'] > div > div,
+merch-card[variant="segment"] [slot="callout-content"] > p {
+    position: relative;
+    padding: 2px 10px 3px;
+    background: #D9D9D9;
+}
+
+merch-card[variant="segment"] [slot="callout-content"] > p:has(> .icon-button) {
+  padding-inline-end: 36px;
+}
+
+merch-card[variant="segment"] [slot="callout-content"] .icon-button {
+  margin: 1.5px 0 1.5px 8px;
+}
+
 merch-card-collection.segment merch-card {
     width: auto;
     height: 100%;

@@ -5,7 +5,7 @@ export const CSS = `
 }
 
 merch-card[variant="segment"] {
-  width: var(--consonant-merch-card-segment-width);
+  max-width: var(--consonant-merch-card-segment-width);
 }
 
 /* grid style for segment */

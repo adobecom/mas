@@ -2936,7 +2936,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 merch-card[variant="segment"] {
-  width: var(--consonant-merch-card-segment-width);
+  max-width: var(--consonant-merch-card-segment-width);
 }
 
 /* grid style for segment */

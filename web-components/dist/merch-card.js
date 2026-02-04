@@ -555,7 +555,7 @@ var Wt=Object.defineProperty;var Yt=i=>{throw TypeError(i)};var ui=(i,t,e)=>t in
                   >${this.card.secureLabel}</span
               >`:zi}get secureLabelFooter(){return nt`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,e=this.badgeElement?.getBoundingClientRect().width||0;t===0||e===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-e-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return ot(this.card.variant)}};ve=new WeakMap,l(Be,"styleMap",{});var x=Be;import{html as At,css as _i}from"./lit-all.min.js";var ur=`
+        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,e=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||e===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-e-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return ot(this.card.variant)}};ve=new WeakMap,l(Be,"styleMap",{});var x=Be;import{html as At,css as _i}from"./lit-all.min.js";var ur=`
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;

@@ -126,7 +126,7 @@ export class VariantLayout {
     async adjustTitleWidth() {
         const cardWidth = this.card.getBoundingClientRect().width;
         const badgeWidth =
-            this.badgeElement?.getBoundingClientRect().width || 0;
+            this.card.badgeElement?.getBoundingClientRect().width || 0;
         if (cardWidth === 0 || badgeWidth === 0) return;
         this.card.style.setProperty(
             '--consonant-merch-card-heading-xs-max-width',

@@ -1063,7 +1063,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
                   >${this.card.secureLabel}</span
               >`:R}get secureLabelFooter(){return f`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return Di(this.card.variant)}};Ut=new WeakMap,m(Br,"styleMap",{});var C=Br;M();var ac=`
+        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return Di(this.card.variant)}};Ut=new WeakMap,m(Br,"styleMap",{});var C=Br;M();var ac=`
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;

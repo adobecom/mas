@@ -185,8 +185,25 @@ class MasTranslationEditor extends LitElement {
     }
 
     #validateRequiredFields(translationProject = {}) {
-        const requiredFields = ['title'];
-        return requiredFields.every((field) => translationProject.getFieldValue(field));
+        const title = translationProject.getFieldValue('title');
+        if (!title || title.trim() === '') {
+            return false;
+        }
+
+        const targetLocales = Store.translationProjects.targetLocales.value;
+        if (targetLocales.length === 0) {
+            return false;
+        }
+
+        const fragments = Store.translationProjects.selectedCards.value;
+        const placeholders = Store.translationProjects.selectedPlaceholders.value;
+        const collections = Store.translationProjects.selectedCollections.value;
+
+        if (fragments.length === 0 && placeholders.length === 0 && collections.length === 0) {
+            return false;
+        }
+
+        return true;
     }
 
     #getValues(field) {
@@ -593,7 +610,7 @@ class MasTranslationEditor extends LitElement {
                     this.showLangSelectedEmptyState
                         ? html`
                               <div class="form-field select-langs">
-                                  <h2>Select languages</h2>
+                                  <h2>Select languages <sp-icon-asterisk100></sp-icon-asterisk100></h2>
                                   <div class="languages-empty-state">
                                       <div class="icon">
                                           <overlay-trigger
@@ -620,6 +637,7 @@ class MasTranslationEditor extends LitElement {
                                   <h2>
                                       Selected languages
                                       <span>(${this.targetLocalesCount})</span>
+                                      <sp-icon-asterisk100></sp-icon-asterisk100>
                                   </h2>
                                   ${this.isSelectedLangsOpen
                                       ? html`
@@ -674,7 +692,7 @@ class MasTranslationEditor extends LitElement {
                     this.showSelectedEmptyState
                         ? html`
                               <div class="form-field select-files">
-                                  <h2>Select files</h2>
+                                  <h2>Select files <sp-icon-asterisk100></sp-icon-asterisk100></h2>
                                   <div class="files-empty-state">
                                       <div class="icon">
                                           <overlay-trigger
@@ -701,6 +719,7 @@ class MasTranslationEditor extends LitElement {
                                   <h2>
                                       Selected files
                                       <span>(${this.selectedCount})</span>
+                                      <sp-icon-asterisk100></sp-icon-asterisk100>
                                   </h2>
                                   ${this.isSelectedFilesOpen
                                       ? html`

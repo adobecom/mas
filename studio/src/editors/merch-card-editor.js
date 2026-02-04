@@ -149,25 +149,13 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetMnemonicsToParent());
     }
 
-    // Track fields being restored to prevent RTE change events from re-adding them
-    #restoringFields = new Set();
-
     async resetFieldToParent(fieldName) {
-        await this.updateComplete;
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-        this.#restoringFields.add(fieldName);
         const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         if (success) {
             showToast('Field restored to parent value', 'positive');
         }
-        // Clear the flag after the next render cycle
-        await this.updateComplete;
-        this.#restoringFields.delete(fieldName);
         return success;
-    }
-
-    isFieldBeingRestored(fieldName) {
-        return this.#restoringFields.has(fieldName);
     }
 
     renderFieldStatusIndicator(fieldName) {

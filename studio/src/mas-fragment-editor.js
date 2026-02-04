@@ -713,29 +713,6 @@ export default class MasFragmentEditor extends LitElement {
         this.titleClone = event.target.value;
     }
 
-    /**
-     * Compare two HTML strings semantically by normalizing them.
-     * This handles cases where attribute order differs but content is the same.
-     */
-    #htmlValuesMatch(html1, html2) {
-        if (html1 === html2) return true;
-        if (!html1 || !html2) return false;
-
-        // Normalize by parsing and re-serializing
-        const normalize = (html) => {
-            const div = document.createElement('div');
-            div.innerHTML = html;
-            return div.innerHTML;
-        };
-
-        return normalize(html1) === normalize(html2);
-    }
-
-    #valuesMatchParent(values, parentValues) {
-        if (values.length !== parentValues.length) return false;
-        return values.every((v, i) => this.#htmlValuesMatch(v, parentValues[i]));
-    }
-
     updateFragment({ target, detail, values }) {
         const fieldName = target.dataset.field;
         let value = values;
@@ -775,7 +752,7 @@ export default class MasFragmentEditor extends LitElement {
 
                     const parentValues = this.localeDefaultFragment.getFieldValues(fieldName) || [];
                     // If new value matches parent, it's likely RTE initialization - skip
-                    if (this.#valuesMatchParent(value, parentValues)) {
+                    if (value.length === parentValues.length && value.every((v, i) => v === parentValues[i])) {
                         return;
                     }
                 }

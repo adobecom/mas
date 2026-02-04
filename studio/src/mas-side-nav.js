@@ -170,41 +170,37 @@ class MasSideNav extends LitElement {
     get editNavigation() {
         const fragmentId = this.fragmentEditor?.fragment?.id;
         const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
-
+        const loading = this.variationDataLoading;
         return html`
-            <mas-side-nav-item
-                label="Save"
-                ?disabled=${!Store.editor.hasChanges || this.loading}
-                @nav-click="${this.saveFragment}"
-            >
+            <mas-side-nav-item label="Save" ?disabled=${!Store.editor.hasChanges || loading} @nav-click="${this.saveFragment}">
                 <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
             </mas-side-nav-item>
             ${!isVariation
                 ? html`
-                      <mas-side-nav-item label="Create Variation" ?disabled=${this.loading} @nav-click="${this.createVariant}">
+                      <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
                           <sp-icon-add slot="icon"></sp-icon-add>
                       </mas-side-nav-item>
-                      <mas-side-nav-item label="Duplicate" ?disabled=${this.loading} @nav-click="${this.duplicateFragment}">
+                      <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
                           <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                       </mas-side-nav-item>
                   `
                 : ''}
-            <mas-side-nav-item label="Publish" ?disabled=${this.loading} @nav-click="${this.publishFragment}">
+            <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
             <mas-side-nav-item label="Unpublish" disabled>
                 <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Copy Code" ?disabled=${this.loading} @nav-click="${this.copyCode}">
+            <mas-side-nav-item label="Copy Code" ?disabled=${loading} @nav-click="${this.copyCode}">
                 <sp-icon-code slot="icon"></sp-icon-code>
             </mas-side-nav-item>
-            <mas-side-nav-item label="History" ?disabled=${this.loading} @nav-click="${this.showHistory}">
+            <mas-side-nav-item label="History" ?disabled=${loading} @nav-click="${this.showHistory}">
                 <sp-icon-history slot="icon"></sp-icon-history>
             </mas-side-nav-item>
             <mas-side-nav-item label="Unlock" @nav-click="${this.unlockFragment}" disabled>
                 <sp-icon-settings slot="icon"></sp-icon-settings>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Delete" ?disabled=${this.loading} @nav-click="${this.deleteFragment}">
+            <mas-side-nav-item label="Delete" ?disabled=${loading} @nav-click="${this.deleteFragment}">
                 <sp-icon-delete slot="icon"></sp-icon-delete>
             </mas-side-nav-item>
         `;

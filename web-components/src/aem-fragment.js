@@ -25,11 +25,13 @@ class FragmentCache {
     #fragmentCache = new Map();
     #fetchInfos = new Map();
     #promises = new Map();
+    #fetchPromises = new Map();
 
     clear() {
         this.#fragmentCache.clear();
         this.#fetchInfos.clear();
         this.#promises.clear();
+        this.#fetchPromises.clear();
     }
 
     /**
@@ -131,6 +133,18 @@ class FragmentCache {
         this.#fragmentCache.delete(fragmentId);
         this.#fetchInfos.delete(fragmentId);
         this.#promises.delete(fragmentId);
+    }
+
+    setFetchPromise(fragmentId, promise) {
+        this.#fetchPromises.set(fragmentId, promise);
+    }
+
+    getFetchPromise(fragmentId) {
+        return this.#fetchPromises.get(fragmentId);
+    }
+
+    removeFetchPromise(fragmentId) {
+        this.#fetchPromises.delete(fragmentId);
     }
 }
 
@@ -396,17 +410,37 @@ export class AemFragment extends HTMLElement {
             this.#rawData = fragment;
             return true;
         }
+
+        // Check for in-flight fetch - wait for it instead of starting another
+        const inFlightPromise = cache.getFetchPromise(this.#fragmentId);
+        if (inFlightPromise) {
+            await inFlightPromise;
+            fragment = cache.get(this.#fragmentId);
+            if (fragment) {
+                this.#rawData = fragment;
+                return true;
+            }
+        }
+
         const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
         }
 
-        fragment = await this.#getFragmentById(endpoint);
-        fragment.fields.originalId ??= this.#fragmentId;
-        cache.add(fragment);
-        this.#rawData = fragment;
-        return true;
+        // Store promise BEFORE fetching so others can wait on it
+        const fetchPromise = this.#getFragmentById(endpoint);
+        cache.setFetchPromise(this.#fragmentId, fetchPromise);
+
+        try {
+            fragment = await fetchPromise;
+            fragment.fields.originalId ??= this.#fragmentId;
+            cache.add(fragment);
+            this.#rawData = fragment;
+            return true;
+        } finally {
+            cache.removeFetchPromise(this.#fragmentId);
+        }
     }
 
     get updateComplete() {

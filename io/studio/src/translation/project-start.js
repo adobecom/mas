@@ -157,7 +157,9 @@ async function main(params) {
             }
             if (response.ok) {
                 const fragmentCF = await response.json();
-                const { id } = fragmentCF;
+                const {
+                    items: [{ id }],
+                } = fragmentCF;
                 await postToOdin(odinEndpoint, `/adobe/sites/cf/fragments/${id}/versions`, authToken, {
                     label: 'Pre-translation version',
                     comment: `Versioning before translation, project ${params.projectId}`,

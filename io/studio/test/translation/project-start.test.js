@@ -855,7 +855,7 @@ describe('Translation project-start', () => {
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/fragment1': responses.notFound(),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/fr_FR/fragment2': responses.ok({
-                    id: 'fragment2-fr-id',
+                    items: [{ id: 'fragment2-fr-id' }],
                 }),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/dictionary/placeholder1': responses.notFound(),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/dictionary/collection1': responses.notFound(),

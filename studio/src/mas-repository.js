@@ -981,6 +981,10 @@ export class MasRepository extends LitElement {
             sourceStore.get().hasChanges = false;
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
             this.skipVariationDetection = true;
+
+            // Reset changes on the current fragment to prevent discard prompt during navigation
+            Store.editor.resetChanges();
+
             await router.navigateToFragmentEditor(newFragment.id);
 
             this.operation.set();

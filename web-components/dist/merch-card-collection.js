@@ -2996,6 +2996,10 @@ merch-card[variant="segment"] [slot="callout-content"] .icon-button {
   margin: 1.5px 0 1.5px 8px;
 }
 
+merch-card[variant="segment"] a:not([class*="button"]) {
+  color: inherit;
+}
+
 merch-card-collection.segment merch-card {
     width: auto;
     height: 100%;

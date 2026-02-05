@@ -14,13 +14,13 @@ chai.use(chaiAsPromised);
 function appendTemplate(id) {
     const elements = getTemplateContent(id);
     elements.forEach((el) => document.body.appendChild(el));
-    return document.querySelector('mas-text');
+    return document.querySelector('mas-inline');
 }
 
 runTests(async () => {
     const { cache } = customElements.get('aem-fragment');
 
-    describe('mas-text', () => {
+    describe('mas-inline', () => {
         let aemMock;
 
         beforeEach(async () => {
@@ -29,147 +29,147 @@ runTests(async () => {
         });
 
         afterEach(() => {
-            // Only remove mas-text elements, not templates
-            document.querySelectorAll('mas-text').forEach((el) => el.remove());
+            // Only remove mas-inline elements, not templates
+            document.querySelectorAll('mas-inline').forEach((el) => el.remove());
         });
 
         describe('core functionality', () => {
             it('should render with fragment attribute', async () => {
-                const masText = appendTemplate('mas-text-basic');
+                const masInline = appendTemplate('mas-inline-basic');
 
                 const loadEvent = await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
                 expect(loadEvent.detail.field).to.equal('description');
-                expect(masText.textContent).to.include('Get Photoshop');
-                expect(masText.innerHTML).to.include('inline-price');
-                expect(masText.classList.contains('error')).to.be.false;
+                expect(masInline.textContent).to.include('Get Photoshop');
+                expect(masInline.innerHTML).to.include('inline-price');
+                expect(masInline.classList.contains('error')).to.be.false;
             });
 
             it('should create an internal aem-fragment element', async () => {
-                const masText = appendTemplate('mas-text-basic');
-                await masText.updateComplete;
+                const masInline = appendTemplate('mas-inline-basic');
+                await masInline.updateComplete;
 
-                const aemFragment = masText.querySelector('aem-fragment');
+                const aemFragment = masInline.querySelector('aem-fragment');
                 expect(aemFragment).to.exist;
                 expect(aemFragment.getAttribute('fragment')).to.equal('fragment-text-faq');
             });
 
             it('should use description field by default', async () => {
-                const masText = appendTemplate('mas-text-basic');
+                const masInline = appendTemplate('mas-inline-basic');
 
                 const loadEvent = await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
                 expect(loadEvent.detail.field).to.equal('description');
-                expect(masText.textContent).to.include('Get Photoshop');
+                expect(masInline.textContent).to.include('Get Photoshop');
             });
 
             it('should render specified field - promoText', async () => {
-                const masText = appendTemplate('mas-text-with-field');
+                const masInline = appendTemplate('mas-inline-with-field');
 
                 const loadEvent = await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
                 expect(loadEvent.detail.field).to.equal('promoText');
-                expect(masText.textContent).to.include('Save 50%');
+                expect(masInline.textContent).to.include('Save 50%');
             });
 
             it('should render specified field - shortDescription', async () => {
-                const masText = appendTemplate('mas-text-short-description');
+                const masInline = appendTemplate('mas-inline-short-description');
 
                 const loadEvent = await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
                 expect(loadEvent.detail.field).to.equal('shortDescription');
-                expect(masText.textContent).to.include('Professional photo editing');
+                expect(masInline.textContent).to.include('Professional photo editing');
             });
 
             it('should render specified field - prices', async () => {
-                const masText = appendTemplate('mas-text-prices');
+                const masInline = appendTemplate('mas-inline-prices');
 
                 const loadEvent = await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
                 expect(loadEvent.detail.field).to.equal('prices');
-                expect(masText.innerHTML).to.include('inline-price');
+                expect(masInline.innerHTML).to.include('inline-price');
             });
 
             it('should expose fragment data via data getter', async () => {
-                const masText = appendTemplate('mas-text-basic');
+                const masInline = appendTemplate('mas-inline-basic');
 
                 await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(masText.data).to.exist;
-                expect(masText.data.id).to.equal('fragment-text-faq');
-                expect(masText.data.fields).to.exist;
+                expect(masInline.data).to.exist;
+                expect(masInline.data.id).to.equal('fragment-text-faq');
+                expect(masInline.data.fields).to.exist;
             });
 
             it('should expose aemFragment getter', async () => {
-                const masText = appendTemplate('mas-text-basic');
-                await masText.updateComplete;
+                const masInline = appendTemplate('mas-inline-basic');
+                await masInline.updateComplete;
 
-                expect(masText.aemFragment).to.exist;
-                expect(masText.aemFragment.tagName).to.equal('AEM-FRAGMENT');
+                expect(masInline.aemFragment).to.exist;
+                expect(masInline.aemFragment.tagName).to.equal('AEM-FRAGMENT');
             });
         });
 
         describe('error handling', () => {
             it('should fire aem:error event for missing fragment attribute', async () => {
-                const masText = appendTemplate('mas-text-missing-fragment');
+                const masInline = appendTemplate('mas-inline-missing-fragment');
 
                 const errorEvent = await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_ERROR, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_ERROR, resolve, { once: true });
                 });
 
                 expect(errorEvent.detail.message).to.include('Missing fragment');
-                expect(masText.classList.contains('error')).to.be.true;
+                expect(masInline.classList.contains('error')).to.be.true;
             });
 
             it('should fire aem:error event on fetch failure', async () => {
-                const masText = appendTemplate('mas-text-not-found');
+                const masInline = appendTemplate('mas-inline-not-found');
 
                 const errorEvent = await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_ERROR, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_ERROR, resolve, { once: true });
                 });
 
                 expect(errorEvent.detail).to.exist;
-                expect(masText.classList.contains('error')).to.be.true;
+                expect(masInline.classList.contains('error')).to.be.true;
             });
         });
 
         describe('refresh functionality', () => {
             it('should have refresh method that delegates to aem-fragment', async () => {
-                const masText = appendTemplate('mas-text-basic');
+                const masInline = appendTemplate('mas-inline-basic');
 
                 await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(masText.refresh).to.be.a('function');
-                expect(masText.aemFragment.refresh).to.be.a('function');
+                expect(masInline.refresh).to.be.a('function');
+                expect(masInline.aemFragment.refresh).to.be.a('function');
 
-                const refreshPromise = masText.refresh();
+                const refreshPromise = masInline.refresh();
                 expect(refreshPromise).to.be.a('promise');
             });
         });
 
         describe('cleanup', () => {
             it('should remove event listeners on disconnect', async () => {
-                const masText = appendTemplate('mas-text-basic');
+                const masInline = appendTemplate('mas-inline-basic');
 
                 await new Promise((resolve) => {
-                    masText.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masInline.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(() => masText.remove()).to.not.throw;
+                expect(() => masInline.remove()).to.not.throw;
             });
         });
     });

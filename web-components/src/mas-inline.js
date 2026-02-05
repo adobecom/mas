@@ -6,11 +6,11 @@ import {
 import { getService } from './utils.js';
 import './aem-fragment.js';
 
-const TAG_NAME = 'mas-text';
+const TAG_NAME = 'mas-inline';
 const DEFAULT_FIELD = 'description';
 
 /**
- * MAS Text component - renders text content from a Card fragment.
+ * MAS Inline component - renders text content from a Card fragment.
  *
  * Designed for use cases where text content (with optional pricing/CTAs)
  * needs to be displayed outside of a full merch-card context, such as
@@ -20,7 +20,7 @@ const DEFAULT_FIELD = 'description';
  * Delegates fragment loading to aem-fragment for consistent behavior.
  * Supports regional variations via the MAS I/O customize.js pipeline.
  *
- * @element mas-text
+ * @element mas-inline
  *
  * @attr {string} fragment - Required. The fragment ID to load.
  * @attr {string} field - Optional. The field to render. Default: 'description'.
@@ -29,7 +29,7 @@ const DEFAULT_FIELD = 'description';
  * @fires aem:load - When fragment loads successfully
  * @fires aem:error - When fragment fails to load
  */
-export class MasText extends LitElement {
+export class MasInline extends LitElement {
     static properties = {
         fragment: { type: String, reflect: true },
         field: { type: String, reflect: true },
@@ -201,5 +201,5 @@ export class MasText extends LitElement {
 }
 
 if (!customElements.get(TAG_NAME)) {
-    customElements.define(TAG_NAME, MasText);
+    customElements.define(TAG_NAME, MasInline);
 }

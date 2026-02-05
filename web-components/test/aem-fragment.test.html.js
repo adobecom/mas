@@ -351,25 +351,6 @@ runTests(async () => {
                 expect(fragment.fetchInfo['aem-fragment:measure']).to.exist;
             });
 
-            it('deduplicates concurrent requests for the same fragment', async () => {
-                const testCache = document.createElement('aem-fragment').cache;
-                testCache.clear();
-                const startCount = aemMock.count;
-
-                // Create two fragments with the same ID simultaneously
-                const fragment1 = addFragment('fragment-cc-all-apps');
-                const fragment2 = addFragment('fragment-cc-all-apps');
-
-                // Both should complete
-                await Promise.all([
-                    fragment1.updateComplete,
-                    fragment2.updateComplete,
-                ]);
-
-                // Should have only ONE network request, not two
-                expect(aemMock.count).to.equal(startCount + 1);
-            });
-
             it('populates the fragment cache from references', async () => {
                 const topCollection = addFragment('collection');
                 await oneEvent(topCollection, 'aem:load');

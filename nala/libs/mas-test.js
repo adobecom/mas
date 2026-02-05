@@ -8,7 +8,7 @@ import COMFries from '../studio/commerce/fries/fries.page.js';
 import AHTryBuyWidgetPage from '../studio/ahome/try-buy-widget/try-buy-widget.page.js';
 import AHPromotedPlansPage from '../studio/ahome/promoted-plans/promoted-plans.page.js';
 import ACOMPlansIndividualsPage from '../studio/acom/plans/individuals/individuals.page.js';
-import ACOMFullPricingExpressPage from '../studio/acom/full-pricing-express/full-pricing-express.page.js';
+import ACOMFullPricingExpressPage from '../studio/express/full-pricing-express/full-pricing-express.page.js';
 import OSTPage from '../studio/ost.page.js';
 import WebUtil from './webutil.js';
 

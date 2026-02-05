@@ -126,16 +126,5 @@ export default {
             browserParams: '#page=content&path=nala',
             tags: '@mas-studio',
         },
-        {
-            tcid: '14',
-            name: '@studio-create-fragment',
-            path: '/studio.html',
-            browserParams: '#page=content&path=nala',
-            data: {
-                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
-                variant: 'plans',
-            },
-            tags: '@mas-studio',
-        },
     ],
 };

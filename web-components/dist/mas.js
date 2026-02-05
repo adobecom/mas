@@ -1046,7 +1046,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `);customElements.define("merch-addon",Ht);M();var Bt,Br=class Br{constructor(t){m(this,"card");E(this,Bt);this.card=t,this.insertVariantStyle()}getContainer(){return y(this,Bt,h(this,Bt)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),h(this,Bt)}insertVariantStyle(){let t=this.constructor.name;if(!Br.styleMap[t]){Br.styleMap[t]=!0;let r=document.createElement("style");r.innerHTML=this.getGlobalCSS(),document.head.appendChild(r)}}updateCardElementMinHeight(t,r){if(!t)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),a=parseInt(this.getContainer().style.getPropertyValue(i))||0;n>a&&this.getContainer().style.setProperty(i,`${n}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
+    `);customElements.define("merch-addon",Ht);M();var Bt,Br=class Br{constructor(t){m(this,"card");E(this,Bt);this.card=t,this.insertVariantStyle()}getContainer(){return y(this,Bt,h(this,Bt)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),h(this,Bt)}insertVariantStyle(){let t=this.constructor.name;if(!Br.styleMap[t]){Br.styleMap[t]=!0;let r=document.createElement("style");r.innerHTML=this.getGlobalCSS(),document.head.appendChild(r)}}updateCardElementMinHeight(t,r){if(!t)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),a=parseInt(this.getContainer().style.getPropertyValue(i))||0;n>a&&this.getContainer().style.setProperty(i,`${n}px`)}updateCombinedMinHeight(t,r){let i=t.reduce((s,c)=>{let l=this.card.querySelector(`[slot="${c}"]`);return s+(l&&parseInt(getComputedStyle(l).height)||0)},0);if(i<=0)return;let n=`--consonant-merch-card-${this.card.variant}-${r}-height`,a=this.getContainer(),o=parseInt(a.style.getPropertyValue(n))||0;i>o&&a.style.setProperty(n,`${i}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
@@ -5465,7 +5465,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             >
                 <slot name="badge"></slot>
             </div>
-        `}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.querySelector('[slot="short-description"]');t&&this.updateCardElementMinHeight(t,"short-description");let r=this.card.querySelector('[slot="price"]'),i=this.card.querySelector('[slot="callout-content"]'),n=r&&parseInt(window.getComputedStyle(r).height)||0,a=i&&parseInt(window.getComputedStyle(i).height)||0,o=n+a;if(o>0){let c=`--consonant-merch-card-${this.card.variant}-price-height`,l=this.getContainer(),d=parseInt(l.style.getPropertyValue(c))||0;o>d&&l.style.setProperty(c,`${o}px`)}let s=this.card.querySelector('[slot="cta"]');s&&this.updateCardElementMinHeight(s,"cta")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,await Promise.all(this.card.prices.map(t=>t.onceSettled())),window.matchMedia("(min-width: 1025px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-price-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}renderLayout(){return f`
+        `}syncHeights(){this.card.getBoundingClientRect().width<=2||(["short-description","cta"].forEach(t=>this.updateCardElementMinHeight(this.card.querySelector(`[slot="${t}"]`),t)),this.updateCombinedMinHeight(["price","callout-content"],"price"))}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,await Promise.all(this.card.prices.map(t=>t.onceSettled())),window.matchMedia("(min-width: 1025px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-price-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}renderLayout(){return f`
             ${this.badge}
             <div class="card-content">
                 <div class="header">
@@ -5517,6 +5517,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             /* Accent color */
             --spectrum-express-accent: #5258e4;
             --spectrum-express-indigo-300: #d3d5ff;
+            --spectrum-express-white: #ffffff;
 
             /* Gradient definitions (reused) */
             --gradient-purple-blue: linear-gradient(
@@ -5646,7 +5647,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             left: 1px;
             right: 1px;
             bottom: 1px;
-            background: var(--spectrum-white);
+            background: var(--spectrum-express-white, #ffffff);
             border-radius: 7px;
             z-index: 0;
             pointer-events: none;

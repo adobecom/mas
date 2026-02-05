@@ -50,6 +50,22 @@ export class VariantLayout {
         }
     }
 
+    updateCombinedMinHeight(slots, name) {
+        const totalHeight = slots.reduce((sum, slot) => {
+            const el = this.card.querySelector(`[slot="${slot}"]`);
+            return sum + (el ? parseInt(getComputedStyle(el).height) || 0 : 0);
+        }, 0);
+        if (totalHeight <= 0) return;
+
+        const varName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
+        const container = this.getContainer();
+        const currentMax =
+            parseInt(container.style.getPropertyValue(varName)) || 0;
+        if (totalHeight > currentMax) {
+            container.style.setProperty(varName, `${totalHeight}px`);
+        }
+    }
+
     constructor(card) {
         this.card = card;
         this.insertVariantStyle();

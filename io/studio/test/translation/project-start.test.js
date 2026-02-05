@@ -6,6 +6,15 @@ const proxyquire = require('proxyquire');
 
 chai.use(sinonChai);
 
+function getUpdatedFragment(projectCF) {
+    return {
+        ...projectCF,
+        fields: projectCF.fields.map((field) =>
+            field.name === 'submissionDate' ? { ...field, values: ['2026-02-04T11:00:00Z'] } : field,
+        ),
+    };
+}
+
 describe('Translation project-start', () => {
     let projectStart;
     let mockLogger;
@@ -282,8 +291,12 @@ describe('Translation project-start', () => {
             fetchStub.onSecondCall().resolves({ ok: true });
             fetchStub.onThirdCall().resolves({ ok: true });
 
-            // Make updateTranslationDate succeed
-            fetchStub.onCall(3).resolves({ ok: true });
+            // Make updateTranslationDate succeed and return updated fragment
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(3).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -298,6 +311,7 @@ describe('Translation project-start', () => {
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.message).to.equal('Translation project started');
+            expect(result.body.submissionDate).to.equal('2026-02-04T11:00:00Z');
             expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Successfully sent \d+ loc requests/));
         });
 
@@ -344,8 +358,12 @@ describe('Translation project-start', () => {
 
             fetchStub.onSecondCall().resolves({ ok: true });
 
-            // Make updateTranslationDate succeed
-            fetchStub.onThirdCall().resolves({ ok: true });
+            // Make updateTranslationDate succeed and return updated fragment
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onThirdCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -404,8 +422,12 @@ describe('Translation project-start', () => {
 
             fetchStub.onSecondCall().resolves({ ok: true });
 
-            // Make updateTranslationDate succeed
-            fetchStub.onThirdCall().resolves({ ok: true });
+            // Make updateTranslationDate succeed and return updated fragment
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onThirdCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -478,7 +500,11 @@ describe('Translation project-start', () => {
             }
 
             // Last call: updateTranslationDate
-            fetchStub.onCall(16).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(16).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -527,7 +553,11 @@ describe('Translation project-start', () => {
             }
 
             // Last call: updateTranslationDate
-            fetchStub.onCall(31).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(31).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -575,7 +605,11 @@ describe('Translation project-start', () => {
             fetchStub.onCall(3).resolves({ ok: true });
 
             // Make updateTranslationDate succeed
-            fetchStub.onCall(4).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(4).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -660,7 +694,11 @@ describe('Translation project-start', () => {
             fetchStub.onCall(3).resolves({ ok: true });
 
             // Make updateTranslationDate succeed
-            fetchStub.onCall(4).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(4).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -703,7 +741,11 @@ describe('Translation project-start', () => {
             fetchStub.onCall(1).resolves({ ok: true });
 
             // Third call: updateTranslationDate
-            fetchStub.onCall(2).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(2).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -813,7 +855,11 @@ describe('Translation project-start', () => {
             fetchStub.onCall(1).resolves({ ok: true });
 
             // Third call: updateTranslationDate
-            fetchStub.onCall(2).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(2).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -870,7 +916,12 @@ describe('Translation project-start', () => {
             fetchStub.onCall(1).resolves({ ok: true });
 
             // Third call: updateTranslationDate fails
-            fetchStub.onCall(2).resolves({ ok: false, status: 500, statusText: 'Internal Server Error' });
+            fetchStub.onCall(2).resolves({
+                ok: false,
+                status: 500,
+                statusText: 'Internal Server Error',
+                json: () => Promise.resolve({}),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },

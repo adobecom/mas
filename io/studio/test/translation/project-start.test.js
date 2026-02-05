@@ -6,6 +6,15 @@ const proxyquire = require('proxyquire');
 
 chai.use(sinonChai);
 
+function getUpdatedFragment(projectCF) {
+    return {
+        ...projectCF,
+        fields: projectCF.fields.map((field) =>
+            field.name === 'submissionDate' ? { ...field, values: ['2026-02-04T11:00:00Z'] } : field,
+        ),
+    };
+}
+
 describe('Translation project-start', () => {
     let projectStart;
     let mockLogger;
@@ -94,7 +103,7 @@ describe('Translation project-start', () => {
             expect(result.error.body.error).to.include('surface');
         });
 
-        it('should return 403 if client ID is not allowed', async () => {
+        it('should return 401 if client ID is not allowed', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: false });
 
             const params = {
@@ -107,8 +116,8 @@ describe('Translation project-start', () => {
 
             const result = await projectStart.main(params);
 
-            expect(result.error.statusCode).to.equal(403);
-            expect(result.error.body.error).to.equal('Forbidden: Invalid client ID');
+            expect(result.error.statusCode).to.equal(401);
+            expect(result.error.body.error).to.equal('Authorization failed');
         });
 
         it('should return 500 if translation project is not found', async () => {
@@ -137,8 +146,11 @@ describe('Translation project-start', () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
             const mockProjectCF = {
+                id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: [] },
+                    { name: 'fragments', values: [] },
+                    { name: 'collections', values: [] },
+                    { name: 'placeholders', values: [] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
                 ],
             };
@@ -163,7 +175,9 @@ describe('Translation project-start', () => {
 
             expect(result.error.statusCode).to.equal(400);
             expect(result.error.body.error).to.equal('Translation project is incomplete (missing items or locales)');
-            expect(mockLogger.warn).to.have.been.calledWith('No items to translate found in translation project');
+            expect(mockLogger.warn).to.have.been.calledWith(
+                'No items to translate found in translation project: test-project-id',
+            );
         });
 
         it('should return 400 if translation project is incomplete (missing locales)', async () => {
@@ -171,7 +185,7 @@ describe('Translation project-start', () => {
 
             const mockProjectCF = {
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2'] },
+                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2'] },
                     { name: 'targetLocales', values: [] },
                 ],
             };
@@ -204,7 +218,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -257,7 +271,9 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
+                    { name: 'placeholders', values: [] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -275,8 +291,12 @@ describe('Translation project-start', () => {
             fetchStub.onSecondCall().resolves({ ok: true });
             fetchStub.onThirdCall().resolves({ ok: true });
 
-            // Make updateTranslationDate succeed
-            fetchStub.onCall(3).resolves({ ok: true });
+            // Make updateTranslationDate succeed and return updated fragment
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(3).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -291,6 +311,7 @@ describe('Translation project-start', () => {
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.message).to.equal('Translation project started');
+            expect(result.body.submissionDate).to.equal('2026-02-04T11:00:00Z');
             expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Successfully sent \d+ loc requests/));
         });
 
@@ -321,7 +342,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['en-US'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -337,8 +358,12 @@ describe('Translation project-start', () => {
 
             fetchStub.onSecondCall().resolves({ ok: true });
 
-            // Make updateTranslationDate succeed
-            fetchStub.onThirdCall().resolves({ ok: true });
+            // Make updateTranslationDate succeed and return updated fragment
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onThirdCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -370,7 +395,7 @@ describe('Translation project-start', () => {
 
             const result = await projectStart.main(params);
 
-            expect(result.error.statusCode).to.equal(403);
+            expect(result.error.statusCode).to.equal(401);
         });
     });
 
@@ -381,7 +406,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -397,8 +422,12 @@ describe('Translation project-start', () => {
 
             fetchStub.onSecondCall().resolves({ ok: true });
 
-            // Make updateTranslationDate succeed
-            fetchStub.onThirdCall().resolves({ ok: true });
+            // Make updateTranslationDate succeed and return updated fragment
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onThirdCall().resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -450,7 +479,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: items },
+                    { name: 'fragments', values: items },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -471,7 +500,11 @@ describe('Translation project-start', () => {
             }
 
             // Last call: updateTranslationDate
-            fetchStub.onCall(16).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(16).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -499,7 +532,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: items },
+                    { name: 'fragments', values: items },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -520,7 +553,11 @@ describe('Translation project-start', () => {
             }
 
             // Last call: updateTranslationDate
-            fetchStub.onCall(31).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(31).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -547,7 +584,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -568,7 +605,11 @@ describe('Translation project-start', () => {
             fetchStub.onCall(3).resolves({ ok: true });
 
             // Make updateTranslationDate succeed
-            fetchStub.onCall(4).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(4).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -591,7 +632,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -632,7 +673,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'collections', values: ['/content/collection1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -653,7 +694,11 @@ describe('Translation project-start', () => {
             fetchStub.onCall(3).resolves({ ok: true });
 
             // Make updateTranslationDate succeed
-            fetchStub.onCall(4).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(4).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -677,7 +722,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE', 'fr_FR', 'it_IT'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -696,7 +741,11 @@ describe('Translation project-start', () => {
             fetchStub.onCall(1).resolves({ ok: true });
 
             // Third call: updateTranslationDate
-            fetchStub.onCall(2).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(2).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -732,7 +781,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1', '/content/fragment2', '/content/fragment3'] },
+                    { name: 'fragments', values: ['/content/fragment1', '/content/fragment2', '/content/fragment3'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -787,7 +836,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -806,7 +855,11 @@ describe('Translation project-start', () => {
             fetchStub.onCall(1).resolves({ ok: true });
 
             // Third call: updateTranslationDate
-            fetchStub.onCall(2).resolves({ ok: true });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+            fetchStub.onCall(2).resolves({
+                ok: true,
+                json: () => Promise.resolve(updatedFragment),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -835,7 +888,7 @@ describe('Translation project-start', () => {
             expect(patchBody[0]).to.have.property('op', 'replace');
             expect(patchBody[0]).to.have.property('path', '/fields/2/values');
             expect(patchBody[0].value).to.be.an('array').with.lengthOf(1);
-            expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+            expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
         });
 
         it('should return 500 if submission date update fails', async () => {
@@ -844,7 +897,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
                 ],
@@ -863,7 +916,12 @@ describe('Translation project-start', () => {
             fetchStub.onCall(1).resolves({ ok: true });
 
             // Third call: updateTranslationDate fails
-            fetchStub.onCall(2).resolves({ ok: false, status: 500, statusText: 'Internal Server Error' });
+            fetchStub.onCall(2).resolves({
+                ok: false,
+                status: 500,
+                statusText: 'Internal Server Error',
+                json: () => Promise.resolve({}),
+            });
 
             const params = {
                 __ow_headers: { authorization: 'Bearer token' },
@@ -891,7 +949,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
-                    { name: 'items', values: ['/content/fragment1'] },
+                    { name: 'fragments', values: ['/content/fragment1'] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     // Missing submissionDate field
                 ],

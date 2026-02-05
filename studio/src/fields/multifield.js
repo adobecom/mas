@@ -68,7 +68,6 @@ class MasMultifield extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.initFieldTemplate();
         this.addEventListener('delete-field', this.#boundHandlers.deleteField);
     }
 
@@ -77,14 +76,15 @@ class MasMultifield extends LitElement {
         this.removeEventListener('delete-field', this.#boundHandlers.deleteField);
     }
 
+    #initialized = false;
+
     shouldUpdate(changedProperties) {
-        if (!this.#template) return false;
+        // Always allow render until fully initialized
+        if (!this.#initialized) return true;
         if (changedProperties.has('value')) {
             const oldValue = changedProperties.get('value');
             const newValue = this.value;
-            if (!this.hasUpdated) {
-                return true;
-            }
+            // Skip render if value content is the same (prevents blinking on unrelated updates)
             return !deepEquals(oldValue, newValue);
         }
         return true;
@@ -110,8 +110,11 @@ class MasMultifield extends LitElement {
             })) ?? [];
     }
 
-    firstUpdated() {
+    async firstUpdated() {
         this.initValue();
+        this.initFieldTemplate();
+        await this.updateComplete;
+        this.#initialized = true;
     }
 
     // Initialize the field template
@@ -151,8 +154,7 @@ class MasMultifield extends LitElement {
 
     // Remove a field by its index
     removeField(index) {
-        this.value.splice(index, 1);
-        this.value = [...this.value];
+        this.value = this.value.filter((_, i) => i !== index);
         this.#dispatchEvent();
     }
 

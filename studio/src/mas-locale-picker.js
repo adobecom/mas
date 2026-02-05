@@ -3,7 +3,7 @@ import Store from './store.js';
 import {
     getDefaultLocales,
     getRegionLocales,
-    getLocaleByCode,
+    getDefaultLocale,
     getLanguageName,
     getLocaleCode,
     getCountryName,
@@ -162,9 +162,18 @@ export class MasLocalePicker extends LitElement {
         e.stopPropagation();
     }
 
+    handleMenuOpen() {
+        this.updateComplete.then(() => {
+            const search = this.shadowRoot.querySelector('sp-search');
+            if (search) {
+                search.focus();
+            }
+        });
+    }
+
     getLocales() {
         if (this.mode === 'region') {
-            return getRegionLocales(this.surface, this.lang);
+            return getRegionLocales(this.surface, this.locale, true);
         } else {
             return getDefaultLocales(this.surface);
         }
@@ -188,18 +197,15 @@ export class MasLocalePicker extends LitElement {
         });
     }
 
+    /** can only be one of default languages, not regional ones */
     get currentLocale() {
-        const defaultLocale = 'en_US';
-        let code = this.locale || defaultLocale;
-        if (
-            !this.getLocales()
-                .map((l) => getLocaleCode(l))
-                .includes(code)
-        ) {
-            code = defaultLocale;
-            this.locale = code;
+        const locale = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
+        if (locale) {
+            return locale;
+        } else {
+            this.locale = 'en_US';
+            return getDefaultLocale(this.surface, this.locale);
         }
-        return getLocaleByCode(code);
     }
 
     get searchField() {
@@ -233,7 +239,7 @@ export class MasLocalePicker extends LitElement {
         const code = getLocaleCode(currentLocale);
         return html`
             ${this.label ? html`<sp-label>${this.label}</sp-label>` : ''}
-            <sp-action-menu value=${code} ?disabled=${this.disabled}>
+            <sp-action-menu value=${code} ?disabled=${this.disabled} @sp-opened=${this.handleMenuOpen}>
                 ${this.displayMode === 'strong'
                     ? html`<sp-icon-globe-grid class="icon-globe" slot="icon"></sp-icon-globe-grid>`
                     : html`<span slot="icon"></span>`}

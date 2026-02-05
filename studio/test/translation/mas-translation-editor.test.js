@@ -37,6 +37,7 @@ describe('MasTranslationEditor', () => {
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
         Store.translationProjects.showSelected.value = false;
+        Store.search.value = { path: 'acom' };
     });
 
     afterEach(() => {

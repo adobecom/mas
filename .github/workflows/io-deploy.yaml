@@ -95,4 +95,4 @@ jobs:
                   aio config set OST_WRITE_API_KEY "$OST_WRITE_API_KEY"
                   aio config set WCS_CDN_ENDPOINT "$WCS_CDN_ENDPOINT"
                   aio config set WCS_ORIGIN_ENDPOINT "$WCS_ORIGIN_ENDPOINT"
-                  aio app deploy
+                  aio app deploy --force-deploy

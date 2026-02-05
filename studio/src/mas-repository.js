@@ -25,7 +25,7 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDefaultLocale, getLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
@@ -745,7 +745,7 @@ export class MasRepository extends LitElement {
         const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
 
         let parentReference = null;
-        const fallbackLocale = getLocaleCode(getDefaultLocale(locale, surfaceRoot));
+        const fallbackLocale = getDefaultLocaleCode(surfaceRoot, locale);
         const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
         const acomFallbackLocale = fallbackLocale ?? locale;
 

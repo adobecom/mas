@@ -24,6 +24,7 @@ describe('MasTopNav', () => {
         sandbox.stub(window, 'fetch').resolves({
             json: () => Promise.resolve({ user: { avatar: 'https://example.com/avatar.png' } }),
         });
+        Store.search.value = { path: 'acom' };
     });
 
     afterEach(() => {

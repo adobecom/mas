@@ -61,7 +61,7 @@ class MasTopNav extends LitElement {
                 e.preventDefault();
                 window.adobeIMS.signOut();
             });
-            studioContentEl.addEventListener('click', () => {
+            studioContentEl?.addEventListener('click', () => {
                 profileBody.classList.remove('show');
             });
 

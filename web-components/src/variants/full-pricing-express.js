@@ -98,46 +98,14 @@ export class FullPricingExpress extends VariantLayout {
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
 
-        const shortDescriptionSlot = this.card.querySelector(
-            '[slot="short-description"]',
-        );
-        if (shortDescriptionSlot) {
+        ['short-description', 'cta'].forEach((slot) =>
             this.updateCardElementMinHeight(
-                shortDescriptionSlot,
-                'short-description',
-            );
-        }
+                this.card.querySelector(`[slot="${slot}"]`),
+                slot,
+            ),
+        );
 
-        const priceSlot = this.card.querySelector('[slot="price"]');
-        const calloutSlot = this.card.querySelector('[slot="callout-content"]');
-
-        const priceHeight = priceSlot
-            ? parseInt(window.getComputedStyle(priceSlot).height) || 0
-            : 0;
-        const calloutHeight = calloutSlot
-            ? parseInt(window.getComputedStyle(calloutSlot).height) || 0
-            : 0;
-
-        const totalPriceContainerContent = priceHeight + calloutHeight;
-
-        if (totalPriceContainerContent > 0) {
-            const varName = `--consonant-merch-card-${this.card.variant}-price-height`;
-            const container = this.getContainer();
-            const currentMax =
-                parseInt(container.style.getPropertyValue(varName)) || 0;
-
-            if (totalPriceContainerContent > currentMax) {
-                container.style.setProperty(
-                    varName,
-                    `${totalPriceContainerContent}px`,
-                );
-            }
-        }
-
-        const ctaSlot = this.card.querySelector('[slot="cta"]');
-        if (ctaSlot) {
-            this.updateCardElementMinHeight(ctaSlot, 'cta');
-        }
+        this.updateCombinedMinHeight(['price', 'callout-content'], 'price');
     }
 
     async postCardUpdateHook() {
@@ -228,6 +196,7 @@ export class FullPricingExpress extends VariantLayout {
             /* Accent color */
             --spectrum-express-accent: #5258e4;
             --spectrum-express-indigo-300: #d3d5ff;
+            --spectrum-express-white: #ffffff;
 
             /* Gradient definitions (reused) */
             --gradient-purple-blue: linear-gradient(
@@ -357,7 +326,7 @@ export class FullPricingExpress extends VariantLayout {
             left: 1px;
             right: 1px;
             bottom: 1px;
-            background: var(--spectrum-white);
+            background: var(--spectrum-express-white, #ffffff);
             border-radius: 7px;
             z-index: 0;
             pointer-events: none;

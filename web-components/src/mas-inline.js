@@ -1,4 +1,5 @@
 import { LitElement, html } from 'lit';
+import { guard } from 'lit/directives/guard.js';
 import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
@@ -38,6 +39,7 @@ export class MasInline extends LitElement {
     #log;
     #service = null;
     #content = '';
+    #aemFragmentEl = null;
 
     constructor() {
         super();
@@ -45,10 +47,10 @@ export class MasInline extends LitElement {
     }
 
     /**
-     * Returns the internal aem-fragment element
+     * Returns the internal aem-fragment element (cached after first access)
      */
     get aemFragment() {
-        return this.querySelector('aem-fragment');
+        return (this.#aemFragmentEl ??= this.querySelector('aem-fragment'));
     }
 
     /**
@@ -77,6 +79,7 @@ export class MasInline extends LitElement {
         super.disconnectedCallback();
         this.removeEventListener(EVENT_AEM_LOAD, this.#handleLoad, true);
         this.removeEventListener(EVENT_AEM_ERROR, this.#handleError, true);
+        this.#aemFragmentEl = null;
     }
 
     /**
@@ -94,7 +97,7 @@ export class MasInline extends LitElement {
         if (e.target !== this.aemFragment) return;
 
         this.classList.remove('error');
-        this.#extractContent();
+        this.#extractContent(e.detail);
 
         // Re-dispatch with additional context
         this.dispatchEvent(
@@ -135,8 +138,9 @@ export class MasInline extends LitElement {
         e.stopPropagation();
     };
 
-    #extractContent() {
-        const data = this.data;
+    #extractContent(eventDetail = null) {
+        // Use event detail if available, otherwise fall back to getter
+        const data = eventDetail?.fields ? eventDetail : this.data;
         if (!data?.fields) {
             this.#log?.warn('No fields in fragment data');
             return;
@@ -195,7 +199,7 @@ export class MasInline extends LitElement {
                 fragment="${this.fragment}"
                 style="display: none"
             ></aem-fragment>
-            <span .innerHTML="${this.#content}"></span>
+            <span .innerHTML="${guard([this.#content], () => this.#content)}"></span>
         `;
     }
 }

@@ -28,7 +28,7 @@ async function getDefaultLanguageVariation(context) {
     }
     const defaultLocale = getDefaultLocaleCode(surface, locale);
     if (!defaultLocale) {
-        return { status: 400, message: `Default locale not found for requested locale: '${locale}'` };
+        return { status: 400, message: `Default locale not found for requested locale '${locale}'` };
     }
     if (defaultLocale !== parsedLocale) {
         logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);

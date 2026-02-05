@@ -106,12 +106,14 @@ export class Fragment {
         const existingField = this.getField(fieldName);
 
         if (existingField) {
+            // If both old and new values are effectively empty, no change needed
+            // This handles cases like [] -> [''] which should not be considered a change
+            if (this.isValueEmpty(existingField.values) && this.isValueEmpty(value)) {
+                return change;
+            }
             // Check if the array lengths differ - this handles adding/removing items
             // even when values are "empty" strings
             const lengthChanged = existingField.values.length !== encodedValues.length;
-            if (!lengthChanged && this.isValueEmpty(existingField.values) && this.isValueEmpty(value)) {
-                return change;
-            }
             if (!lengthChanged && existingField.values.every((v, index) => v === encodedValues[index])) {
                 if (fieldName === 'tags') this.newTags = value;
                 return change;

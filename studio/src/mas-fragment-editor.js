@@ -615,19 +615,6 @@ export default class MasFragmentEditor extends LitElement {
             this.reactiveController.updateStores([this.inEdit, fragmentStore, fragmentStore.previewStore, this.operation]);
             this.dispatchFragmentLoaded();
 
-            // Update mas-side-nav to subscribe to the fragment store for hasChanges updates
-            const sideNav = document.querySelector('mas-side-nav');
-            if (sideNav?.reactiveController) {
-                sideNav.reactiveController.updateStores([
-                    Store.page,
-                    Store.search,
-                    Store.viewMode,
-                    Store.fragmentEditor.editorContext,
-                    Store.fragments.inEdit,
-                    fragmentStore,
-                ]);
-            }
-
             // Handle locale-specific placeholder reload for variations
             if (isVariation) {
                 const fragmentLocale = this.extractLocaleFromPath(fragment.path);

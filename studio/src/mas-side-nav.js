@@ -49,6 +49,24 @@ class MasSideNav extends LitElement {
         this.handleStoreChanges,
     );
 
+    connectedCallback() {
+        super.connectedCallback();
+        Store.fragments.inEdit.subscribe(this.#handleFragmentInEditChange);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        Store.fragments.inEdit.unsubscribe(this.#handleFragmentInEditChange);
+    }
+
+    #handleFragmentInEditChange = (fragmentStore) => {
+        const stores = [Store.page, Store.search, Store.viewMode, Store.fragmentEditor.editorContext];
+        if (fragmentStore) {
+            stores.push(fragmentStore);
+        }
+        this.reactiveController.updateStores(stores);
+    };
+
     handleStoreChanges() {
         // Redirect away from the translation page when it becomes disabled
         if (!this.isTranslationEnabled && [PAGE_NAMES.TRANSLATIONS, PAGE_NAMES.TRANSLATION_EDITOR].includes(Store.page.get())) {

@@ -6,6 +6,15 @@ const proxyquire = require('proxyquire');
 
 chai.use(sinonChai);
 
+function getUpdatedFragment(projectCF) {
+    return {
+        ...projectCF,
+        fields: projectCF.fields.map((field) =>
+            field.name === 'submissionDate' ? { ...field, values: ['2026-02-04T11:00:00Z'] } : field,
+        ),
+    };
+}
+
 /**
  * Creates a fetch stub that routes responses based on URL patterns.
  * @param {Object} routes - Map of URL patterns to response handlers
@@ -307,9 +316,10 @@ describe('Translation project-start', () => {
                 collections: ['/content/dam/mas/foo/en_US/collection1'],
                 targetLocales: ['de_DE', 'fr_FR'],
             });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
 
             setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(updatedFragment, '"test-etag"'),
                 '/adobe/sites/cf/fragments?path=': responses.notFound(),
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
@@ -323,6 +333,7 @@ describe('Translation project-start', () => {
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.message).to.equal('Translation project started');
+            expect(result.body.submissionDate).to.equal('2026-02-04T11:00:00Z');
             expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Successfully sent \d+ loc requests/));
         });
 
@@ -644,7 +655,7 @@ describe('Translation project-start', () => {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
 
-            const { stub } = setupFetchStub({
+            const { lastCallOptions } = setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
                 '/adobe/sites/cf/fragments?path=': responses.notFound(),
                 '/bin/sendToLocalisationAsync': { ok: true },
@@ -654,29 +665,20 @@ describe('Translation project-start', () => {
 
             expect(result.statusCode).to.equal(200);
 
-            // Find the PATCH request
-            const patchCall = stub
-                .getCalls()
-                .find(
-                    (call) =>
-                        call.args[0].includes('/adobe/sites/cf/fragments/test-project-id') && call.args[1]?.method === 'PATCH',
-                );
-
-            expect(patchCall).to.exist;
-            expect(patchCall.args[0]).to.equal('https://test-odin.com/adobe/sites/cf/fragments/test-project-id');
-            expect(patchCall.args[1].method).to.equal('PATCH');
-            expect(patchCall.args[1].headers).to.deep.include({
+            const options = lastCallOptions['/adobe/sites/cf/fragments/test-project-id'];
+            expect(options.method).to.equal('PATCH');
+            expect(options.headers).to.deep.include({
                 Authorization: 'Bearer token',
                 'Content-Type': 'application/json',
                 'If-Match': '"test-etag"',
             });
 
-            const patchBody = patchCall.args[1].body;
+            const patchBody = JSON.parse(options.body);
             expect(patchBody).to.be.an('array');
             expect(patchBody[0]).to.have.property('op', 'replace');
             expect(patchBody[0]).to.have.property('path', '/fields/4/values');
             expect(patchBody[0].value).to.be.an('array').with.lengthOf(1);
-            expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+            expect(patchBody[0].value[0]).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
         });
 
         it('should return 500 if submission date update fails', async () => {

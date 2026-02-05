@@ -50,20 +50,21 @@ async function main(params) {
         }
 
         const updatedProjectCF = await updateTranslationDate(projectCF, etag, authToken);
-        if (!updatedProjectCF) {
+        if (!updatedProjectCF?.success) {
             return errorResponse(500, 'Failed to update translation project submission date', logger);
         }
+
+        return {
+            statusCode: 200,
+            body: {
+                message: 'Translation project started',
+                submissionDate: updatedProjectCF.submissionDate,
+            },
+        };
     } catch (error) {
         logger.error('Error calling the main action', error);
         return errorResponse(500, `Internal server error - ${error.message}`, logger);
     }
-
-    return {
-        statusCode: 200,
-        body: {
-            message: 'Translation project started',
-        },
-    };
 
     async function isAllowed(token, allowedClientId) {
         logger.info(`Validating IMS token for client ID: ${allowedClientId}`);
@@ -325,10 +326,12 @@ async function main(params) {
             // save translation project
             const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectCF.id}`, authToken, {
                 method: 'PATCH',
-                body: [{ op: 'replace', path, value: [new Date().toISOString()] }],
                 etag,
+                body: JSON.stringify([{ op: 'replace', path, value: [`${new Date().toISOString().split('.')[0]}Z`] }]),
             });
-            return response.ok;
+            const updatedFragment = await response.json();
+            const submissionDate = updatedFragment.fields.find((field) => field.name === 'submissionDate')?.values[0];
+            return { success: true, submissionDate };
         } catch (error) {
             logger.error(`Error updating translation project submission date: ${error}`);
             return false;

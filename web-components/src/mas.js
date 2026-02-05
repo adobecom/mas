@@ -1,6 +1,5 @@
 import './lana.js';
 import './commerce.js';
-import './mas-inline.js';
 import './merch-card.js';
 import './merch-icon.js';
 import './merch-addon.js';

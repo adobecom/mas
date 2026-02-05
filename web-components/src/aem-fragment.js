@@ -15,6 +15,7 @@ const ATTRIBUTE_AUTHOR = 'author';
 const ATTRIBUTE_PREVIEW = 'preview';
 const ATTRIBUTE_LOADING = 'loading';
 const ATTRIBUTE_TIMEOUT = 'timeout';
+const ATTRIBUTE_FIELD = 'field';
 const AEM_FRAGMENT_TAG_NAME = 'aem-fragment';
 const LOADING_EAGER = 'eager';
 const LOADING_CACHE = 'cache';
@@ -168,6 +169,8 @@ export class AemFragment extends HTMLElement {
 
     #preview = undefined;
 
+    #field = null;
+
     static get observedAttributes() {
         return [
             ATTRIBUTE_FRAGMENT,
@@ -175,6 +178,7 @@ export class AemFragment extends HTMLElement {
             ATTRIBUTE_TIMEOUT,
             ATTRIBUTE_AUTHOR,
             ATTRIBUTE_PREVIEW,
+            ATTRIBUTE_FIELD,
         ];
     }
 
@@ -194,6 +198,9 @@ export class AemFragment extends HTMLElement {
         }
         if (name === ATTRIBUTE_PREVIEW) {
             this.#preview = newValue;
+        }
+        if (name === ATTRIBUTE_FIELD) {
+            this.#field = newValue;
         }
     }
 
@@ -277,6 +284,42 @@ export class AemFragment extends HTMLElement {
         Object.assign(this.#fetchInfo, getLogHeaders(response));
     }
 
+    /**
+     * Unwraps content from a single paragraph tag.
+     * AEM rich text fields often wrap content in <p> tags which creates
+     * unwanted margins when used inline.
+     * @param {string} html - The HTML content to unwrap
+     * @returns {string} The unwrapped content
+     */
+    #unwrapSingleParagraph(html) {
+        if (!html || typeof html !== 'string') return html;
+        const trimmed = html.trim();
+        if (trimmed.startsWith('<p>') && trimmed.endsWith('</p>')) {
+            const inner = trimmed.slice(3, -4);
+            if (!inner.includes('<p>') && !inner.includes('</p>')) {
+                return inner;
+            }
+        }
+        return html;
+    }
+
+    /**
+     * Renders a specific field's content into the element.
+     * Only renders if 'field' attribute is set.
+     */
+    #renderField() {
+        if (!this.#field) return;
+
+        const fieldValue = this.data?.fields?.[this.#field];
+        if (fieldValue === undefined) {
+            this.#log?.warn?.(`Field "${this.#field}" not found in fragment`);
+            return;
+        }
+
+        const content = this.#unwrapSingleParagraph(fieldValue);
+        this.innerHTML = content;
+    }
+
     async refresh(flushCache = true) {
         if (this.#fetchPromise) {
             const ready = await Promise.race([
@@ -307,6 +350,9 @@ export class AemFragment extends HTMLElement {
         if (wcs && !getParameter('mas.disableWcsCache')) {
             this.#service.prefillWcsCache(wcs);
         }
+
+        // Render field content if render attribute is set
+        this.#renderField();
 
         this.dispatchEvent(
             new CustomEvent(EVENT_AEM_LOAD, {

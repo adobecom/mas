@@ -11,6 +11,7 @@ import {
     EVENT_MAS_ERROR,
     EVENT_MAS_READY,
     EVENT_TYPE_FAILED,
+    EVENT_AEM_LOAD,
 } from '../src/constants.js';
 
 chai.use(chaiAsPromised);
@@ -471,6 +472,72 @@ runTests(async () => {
                 expect(fetch.lastCall.firstArg).to.equal(
                     'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
+            });
+        });
+
+        describe('field attribute', () => {
+            afterEach(() => {
+                document.querySelectorAll('aem-fragment[field]').forEach((el) => el.remove());
+            });
+
+            it('should render field content when field attribute is present', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-render-field');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(aemFragment.textContent).to.include('Get Photoshop');
+                expect(aemFragment.innerHTML).to.include('inline-price');
+            });
+
+            it('should render different fields based on field attribute', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-render-promo');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(aemFragment.textContent).to.include('Save 50%');
+            });
+
+            it('should not render content without field attribute', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-no-field');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(aemFragment.innerHTML).to.equal('');
+            });
+
+            it('should handle missing field gracefully', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-render-missing-field');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(aemFragment.innerHTML).to.equal('');
+            });
+
+            it('should unwrap single paragraph tags', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-render-field');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                // Should not be wrapped in <p> tags if it was a single paragraph
+                const trimmed = aemFragment.innerHTML.trim();
+                // Check that single paragraph unwrapping is working
+                // (content should not start with <p> if it was the only paragraph)
+                expect(trimmed.startsWith('<p>') && trimmed.endsWith('</p>') && !trimmed.slice(3, -4).includes('<p>')).to.be.false;
             });
         });
     });

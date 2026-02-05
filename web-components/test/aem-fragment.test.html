@@ -109,5 +109,22 @@
                 </aem-fragment>
             </merch-card>
         </template>
+
+        <!-- Templates for field attribute tests -->
+        <template id="aem-fragment-render-field">
+            <aem-fragment fragment="fragment-text-faq" field="description"></aem-fragment>
+        </template>
+
+        <template id="aem-fragment-render-promo">
+            <aem-fragment fragment="fragment-text-faq" field="promoText"></aem-fragment>
+        </template>
+
+        <template id="aem-fragment-render-missing-field">
+            <aem-fragment fragment="fragment-text-faq" field="nonexistent"></aem-fragment>
+        </template>
+
+        <template id="aem-fragment-no-field">
+            <aem-fragment fragment="fragment-text-faq"></aem-fragment>
+        </template>
     </body>
 </html>

@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, nothing } from 'lit';
 
 export class MerchWhatsIncluded extends LitElement {
     static styles = css`
@@ -84,12 +84,16 @@ export class MerchWhatsIncluded extends LitElement {
     render() {
         return html`<slot name="heading"></slot>
             <slot name="contentBullets"></slot>
-            <slot name="content"></slot>
-            ${this.isMobile && this.rows.length > this.mobileRows
+            ${!this.isMobile || !this.bulletsAdded
+                ? html`<slot name="content"></slot>`
+                : nothing}
+            ${this.isMobile &&
+            this.rows.length > this.mobileRows &&
+            !this.bulletsAdded
                 ? html`<div @click=${this.toggle} class="see-more">
                       ${this.showAll ? '- See less' : '+ See more'}
                   </div>`
-                : html``}`;
+                : nothing}`;
     }
 
     get isMobile() {
@@ -97,7 +101,13 @@ export class MerchWhatsIncluded extends LitElement {
     }
 
     get rows() {
-        return this.querySelectorAll('merch-mnemonic-list');
+        return this.querySelectorAll('[slot="content"] merch-mnemonic-list');
+    }
+
+    get bulletsAdded() {
+        return !!this.querySelector(
+            '[slot="contentBullets"] merch-mnemonic-list',
+        );
     }
 }
 

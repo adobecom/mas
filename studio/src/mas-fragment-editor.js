@@ -794,6 +794,10 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async showClone() {
+        if (Store.editor.hasChanges) {
+            const confirmed = await this.promptDiscardChanges();
+            if (!confirmed) return;
+        }
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
     }

@@ -43,11 +43,13 @@ export class Router extends EventTarget {
             }
             case PAGE_NAMES.TRANSLATION_EDITOR: {
                 const editor = document.querySelector('mas-translation-editor');
+                if (!editor) {
+                    return { editor: null, hasChanges: null, shouldCheckUnsavedChanges: null };
+                }
                 return {
                     editor,
-                    hasChanges: editor && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
-                    shouldCheckUnsavedChanges:
-                        editor && !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    hasChanges: !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    shouldCheckUnsavedChanges: !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
                 };
             }
             default:
@@ -81,6 +83,9 @@ export class Router extends EventTarget {
                         Store.translationProjects.translationProjectId.set(null);
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
+                    }
+                    if (value === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
+                        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
                     }
                     Store.fragments.inEdit.set();
                     if (value !== PAGE_NAMES.CONTENT) {

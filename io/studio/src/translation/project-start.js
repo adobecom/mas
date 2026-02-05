@@ -6,13 +6,13 @@ const logger = Core.Logger('main', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 10;
 
 async function main(params) {
-    const batchSize = params.batchSize ?? DEFAULT_BATCH_SIZE;
+    const batchSize = params.batchSize || DEFAULT_BATCH_SIZE;
 
     try {
         logger.info('Calling the main action');
 
         const requiredHeaders = ['Authorization'];
-        const requiredParams = ['projectId'];
+        const requiredParams = ['projectId', 'surface'];
         const errorMessage = checkMissingRequestInputs(params, requiredParams, requiredHeaders);
         if (errorMessage) {
             return errorResponse(400, errorMessage, logger);
@@ -21,12 +21,12 @@ async function main(params) {
         const authToken = getBearerToken(params);
         const allowed = await isAllowed(authToken, params.allowedClientId);
         if (!allowed) {
-            return errorResponse(403, 'Forbidden: Invalid client ID', logger);
+            return errorResponse(401, 'Authorization failed', logger);
         }
 
-        const projectCF = await getTranslationProject(params.projectId, authToken);
+        const { projectCF, etag } = await getTranslationProject(params.projectId, authToken);
 
-        const translationData = getTranslationData(projectCF);
+        const translationData = getTranslationData(projectCF, params.surface, params.translationMapping);
         if (!translationData) {
             return errorResponse(400, 'Translation project is incomplete (missing items or locales)', logger);
         }
@@ -35,17 +35,23 @@ async function main(params) {
         if (!translationProject) {
             return errorResponse(500, 'Failed to start translation project', logger);
         }
+
+        const updatedProjectCF = await updateTranslationDate(projectCF, etag, authToken);
+        if (!updatedProjectCF?.success) {
+            return errorResponse(500, 'Failed to update translation project submission date', logger);
+        }
+
+        return {
+            statusCode: 200,
+            body: {
+                message: 'Translation project started',
+                submissionDate: updatedProjectCF.submissionDate,
+            },
+        };
     } catch (error) {
         logger.error('Error calling the main action', error);
         return errorResponse(500, `Internal server error - ${error.message}`, logger);
     }
-
-    return {
-        statusCode: 200,
-        body: {
-            message: 'Translation project started',
-        },
-    };
 
     async function isAllowed(token, allowedClientId) {
         logger.info(`Validating IMS token for client ID: ${allowedClientId}`);
@@ -72,28 +78,66 @@ async function main(params) {
             logger.info(`response.status: ${response.status}`);
             logger.info(`response.statusText: ${response.statusText}`);
             if (!response.ok) {
+                let errorBody = {};
+                try {
+                    errorBody = await response.json();
+                } catch (e) {
+                    // Response body is not valid JSON, use empty object
+                }
                 logger.error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
+                logger.error(`Error body: ${JSON.stringify(errorBody, null, 2)}`);
                 throw new Error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
             }
-            return await response.json();
+            const projectCF = await response.json();
+            const etag = response.headers.get('etag');
+            return { projectCF, etag };
         } catch (error) {
             logger.error(`Error fetching translation project: ${error}`);
             throw new Error(`Failed to fetch translation project: ${error.message || error.toString()}`);
         }
     }
 
-    function getTranslationData(projectCF) {
-        const itemsToTranslate = projectCF.fields.find((field) => field.name === 'items')?.values;
+    function getTranslationData(projectCF, surface, translationMapping = {}) {
+        const itemsToTranslate = getItemsToTranslate(projectCF, surface);
         const locales = projectCF.fields.find((field) => field.name === 'targetLocales')?.values;
-        if (!itemsToTranslate || itemsToTranslate.length === 0) {
-            logger.warn('No items to translate found in translation project');
+        if (!itemsToTranslate) {
             return null;
         }
         if (!locales || locales.length === 0) {
             logger.warn('No locales found in translation project');
             return null;
         }
-        return { itemsToTranslate, locales };
+
+        // set translation flow
+        const translationFlow = translationMapping[surface];
+        logger.info(`Translation flow: ${translationFlow}`);
+
+        return {
+            itemsToTranslate,
+            locales,
+            surface,
+            translationFlow: translationFlow
+                ? {
+                      [translationFlow]: true,
+                  }
+                : {},
+        };
+    }
+
+    function getItemsToTranslate(projectCF) {
+        // Gather items from all three separate arrays
+        const fragments = projectCF.fields.find((field) => field.name === 'fragments')?.values || [];
+        const collections = projectCF.fields.find((field) => field.name === 'collections')?.values || [];
+        const placeholders = projectCF.fields.find((field) => field.name === 'placeholders')?.values || [];
+
+        // Combine all items into a single array
+        const itemsToTranslate = [...fragments, ...collections, ...placeholders];
+
+        if (itemsToTranslate.length === 0) {
+            logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
+            return null;
+        }
+        return itemsToTranslate;
     }
 
     // Helper function to send a single request with retry logic
@@ -163,14 +207,15 @@ async function main(params) {
     }
 
     async function startTranslationProject(translationData = {}, authToken) {
-        const { itemsToTranslate, locales } = translationData;
-        logger.info(`Starting translation project ${itemsToTranslate} for locales ${locales}`);
+        const { itemsToTranslate, locales, surface, translationFlow } = translationData;
+        logger.info(`Starting translation project ${itemsToTranslate} for locales ${locales} and surface ${surface}`);
 
-        // TODO: remove machineTranslation once we have a way to configure the translation project
         const locPayload = {
             targetLocales: locales,
-            machineTranslation: true,
+            ...(translationFlow || {}),
         };
+
+        logger.info(`locPayload: ${JSON.stringify(locPayload)}`);
 
         const config = {
             authToken,
@@ -195,6 +240,52 @@ async function main(params) {
 
         logger.info(`Successfully sent ${results.length} loc requests`);
         return true;
+    }
+
+    async function updateTranslationDate(projectCF, etag, authToken) {
+        try {
+            logger.info(`Updating translation project submission date for ${projectCF.id}`);
+
+            // find field index of submissionDate
+            const submissionDateFieldIndex = projectCF.fields.findIndex((field) => field.name === 'submissionDate');
+            if (submissionDateFieldIndex === -1) {
+                logger.error('Submission date field not found in translation project');
+                throw new Error('Submission date field not found in translation project');
+            }
+
+            // update submissionDate field
+            const path = `/fields/${submissionDateFieldIndex}/values`;
+
+            // save translation project
+            const response = await fetch(`${params.odinEndpoint}/adobe/sites/cf/fragments/${projectCF.id}`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                    'Content-Type': 'application/json-patch+json',
+                    'If-Match': etag,
+                },
+                method: 'PATCH',
+                body: JSON.stringify([{ op: 'replace', path, value: [`${new Date().toISOString().split('.')[0]}Z`] }]),
+            });
+            if (!response.ok) {
+                let errorBody = {};
+                try {
+                    errorBody = await response.json();
+                } catch (e) {
+                    // Response body is not valid JSON, use empty object
+                }
+                logger.error(`Failed to update translation project submission date: ${response.status} ${response.statusText}`);
+                logger.error(`Error body: ${JSON.stringify(errorBody, null, 2)}`);
+                throw new Error(
+                    `Failed to update translation project submission date: ${response.status} ${response.statusText}`,
+                );
+            }
+            const updatedFragment = await response.json();
+            const submissionDate = updatedFragment.fields.find((field) => field.name === 'submissionDate')?.values[0];
+            return { success: true, submissionDate };
+        } catch (error) {
+            logger.error(`Error updating translation project submission date: ${error}`);
+            throw new Error(`Failed to update translation project submission date: ${error.message || error.toString()}`);
+        }
     }
 }
 

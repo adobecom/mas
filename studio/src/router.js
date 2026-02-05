@@ -219,7 +219,7 @@ export class Router extends EventTarget {
             Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
 
             // Pass pre-fill data through history state (not URL params)
-            const prefillState = targetLocale || fragmentId ? { targetLocale, targetFragmentId: fragmentId } : null;
+            const prefillState = targetLocale || fragmentId ? { targetLocale, fragmentId } : null;
 
             // Update URL and set state before component mounts
             // Use pushState to create a new history entry (so back button works)

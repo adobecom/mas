@@ -1665,6 +1665,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #handleFragmentUpdate(event) {
+        if (event.detail?.initialize) return;
         if (this.updateFragment) {
             this.updateFragment(event);
         }

@@ -1126,6 +1126,7 @@ class RteField extends LitElement {
             const parser = DOMParser.fromSchema(this.#editorSchema);
             const doc = parser.parse(container);
             const tr = this.editorView.state.tr.replaceWith(0, this.editorView.state.doc.content.size, doc.content);
+            tr.setMeta('initialize', true);
             this.editorView.dispatch(tr);
         } catch (error) {
             console.error('Error setting editor value:', error);
@@ -1199,6 +1200,9 @@ class RteField extends LitElement {
                         new CustomEvent('change', {
                             bubbles: true,
                             composed: true,
+                            detail: {
+                                initialize: transaction.getMeta('initialize'),
+                            },
                         }),
                     );
                 }

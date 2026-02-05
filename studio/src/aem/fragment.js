@@ -95,47 +95,35 @@ export class Fragment {
     }
 
     updateField(fieldName, value) {
-        let change = false;
-        const encodedValues = value.map((v) => {
-            if (typeof v === 'string') {
-                return v.normalize('NFC');
-            }
-            return v;
-        });
-
+        const encodedValues = value.map((v) => (typeof v === 'string' ? v.normalize('NFC') : v));
         const existingField = this.getField(fieldName);
+        const isTags = fieldName === 'tags';
 
         if (existingField) {
-            // If going from [] to [''] on a single-value field, skip the change.
-            // This handles RTE initialization which sends [''] for empty fields.
-            // For multiple:true fields, [''] is an explicit "clear" sentinel (overridden).
-            const wasEmpty = existingField.values.length === 0;
-            const isEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
-            if (wasEmpty && isEmptyString && !existingField.multiple) {
-                return change;
+            const { values, multiple } = existingField;
+            // Skip [] to [''] on single-value fields (RTE initialization sends [''] for empty fields).
+            // For multiple:true fields, [''] is an explicit "clear" sentinel.
+            if (values.length === 0 && encodedValues.length === 1 && encodedValues[0] === '' && !multiple) {
+                return false;
             }
-            // Check if the array lengths differ - this handles adding/removing items
-            // even when values are "empty" strings
-            const lengthChanged = existingField.values.length !== encodedValues.length;
-            if (!lengthChanged && existingField.values.every((v, index) => v === encodedValues[index])) {
-                if (fieldName === 'tags') this.newTags = value;
-                return change;
+            // No change if values are identical
+            if (values.length === encodedValues.length && values.every((v, i) => v === encodedValues[i])) {
+                if (isTags) this.newTags = value;
+                return false;
             }
             existingField.values = encodedValues;
-            this.hasChanges = true;
-            change = true;
-        } else if (encodedValues.length > 0 && encodedValues.some((v) => v?.trim?.())) {
-            this.fields.push({
-                name: fieldName,
-                type: 'text',
-                values: encodedValues,
-            });
-            this.hasChanges = true;
-            change = true;
+        } else {
+            // Only create new field if there's meaningful content
+            if (!encodedValues.length || !encodedValues.some((v) => v?.trim?.())) {
+                if (isTags) this.newTags = value;
+                return false;
+            }
+            this.fields.push({ name: fieldName, type: 'text', values: encodedValues });
         }
 
-        if (fieldName === 'tags') this.newTags = value;
-        return change;
+        this.hasChanges = true;
+        if (isTags) this.newTags = value;
+        return true;
     }
 
     getEffectiveFieldValue(fieldName, parentFragment, isVariation, index = 0) {

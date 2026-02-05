@@ -34,3 +34,10 @@ jobs:
 
             - name: Run the tests
               run: xvfb-run -a npm test
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v5
+              continue-on-error: true
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  files: studio/coverage/lcov.info,web-components/coverage/lcov.info

@@ -106,9 +106,12 @@ export class Fragment {
         const existingField = this.getField(fieldName);
 
         if (existingField) {
-            // If both old and new values are effectively empty, no change needed
-            // This handles cases like [] -> [''] which should not be considered a change
-            if (this.isValueEmpty(existingField.values) && this.isValueEmpty(value)) {
+            // If going from [] to [''] on a single-value field, skip the change.
+            // This handles RTE initialization which sends [''] for empty fields.
+            // For multiple:true fields, [''] is an explicit "clear" sentinel (overridden).
+            const wasEmpty = existingField.values.length === 0;
+            const isEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
+            if (wasEmpty && isEmptyString && !existingField.multiple) {
                 return change;
             }
             // Check if the array lengths differ - this handles adding/removing items

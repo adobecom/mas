@@ -123,15 +123,39 @@ describe('Fragment', () => {
     });
 
     describe('updateField', () => {
-        it('updates field correctly', () => {
-            const fragment = new Fragment(createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: [] }] }));
+        it('marks changes for multiple:true field going from [] to [""] (explicit clear)', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: [], multiple: true }] }),
+            );
 
+            // For multiple:true fields, [''] is an explicit "clear" sentinel
             expect(fragment.updateField('mnemonicIcon', [''])).to.be.true;
             expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
             expect(fragment.hasChanges).to.be.true;
 
             expect(fragment.updateField('mnemonicIcon', [])).to.be.true;
             expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal([]);
+        });
+
+        it('does not mark changes for single-value field going from [] to [""]', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+            );
+
+            // For single-value fields, [] -> [''] is RTE initialization, not a real change
+            expect(fragment.updateField('description', [''])).to.be.false;
+            expect(fragment.getFieldValues('description')).to.deep.equal([]);
+            expect(fragment.hasChanges).to.be.false;
+        });
+
+        it('marks changes for actual value updates', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+            );
+
+            expect(fragment.updateField('description', ['<p>Content</p>'])).to.be.true;
+            expect(fragment.getFieldValues('description')).to.deep.equal(['<p>Content</p>']);
+            expect(fragment.hasChanges).to.be.true;
         });
     });
 

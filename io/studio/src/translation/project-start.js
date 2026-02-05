@@ -328,6 +328,7 @@ async function main(params) {
             // save translation project
             const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectCF.id}`, authToken, {
                 method: 'PATCH',
+                contentType: 'application/json-patch+json',
                 etag,
                 body: JSON.stringify([{ op: 'replace', path, value: [`${new Date().toISOString().split('.')[0]}Z`] }]),
             });

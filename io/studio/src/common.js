@@ -21,12 +21,17 @@ async function postToOdin(odinEndpoint, URI, authToken, payload) {
  * @throws Error when response is not ok and status code is not in ignoreErrors
  * @returns response object
  */
-async function fetchOdin(odinEndpoint, URI, authToken, { method = 'GET', body = null, etag = null, ignoreErrors = [] } = {}) {
+async function fetchOdin(
+    odinEndpoint,
+    URI,
+    authToken,
+    { method = 'GET', body = null, contentType = null, etag = null, ignoreErrors = [] } = {},
+) {
     const path = `${odinEndpoint}${URI}`;
     logger.info(`fetching ${path}`);
     const headers = {
         Authorization: `Bearer ${authToken}`,
-        'Content-Type': 'application/json',
+        'Content-Type': contentType || 'application/json',
     };
     if (etag) {
         headers['If-Match'] = etag;

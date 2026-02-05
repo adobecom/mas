@@ -669,7 +669,7 @@ describe('Translation project-start', () => {
             expect(options.method).to.equal('PATCH');
             expect(options.headers).to.deep.include({
                 Authorization: 'Bearer token',
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json-patch+json',
                 'If-Match': '"test-etag"',
             });
 
@@ -821,7 +821,7 @@ describe('Translation project-start', () => {
                 targetLocales: ['de_DE'],
             });
 
-            const { callCounts, lastCallOptions } = setupFetchStub({
+            setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
                 '/adobe/sites/cf/fragments?path=': responses.notFound(),
                 // Fail twice, then succeed
@@ -834,7 +834,7 @@ describe('Translation project-start', () => {
                 surface: 'foo',
             };
 
-            const result = await projectStart.main(baseParams);
+            const result = await projectStart.main(params);
 
             expect(result.error.statusCode).to.equal(500);
         });

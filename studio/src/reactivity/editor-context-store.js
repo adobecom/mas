@@ -32,7 +32,7 @@ export class EditorContextStore extends ReactiveStore {
     }
 
     async loadFragmentContext(fragmentId, fragmentPath) {
-        this.loading = true;
+        this.loading = false;
         this.localeDefaultFragment = null;
         this.defaultLocaleId = null;
         this.parentFetchPromise = null;

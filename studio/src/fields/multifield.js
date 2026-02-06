@@ -1,5 +1,6 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE, EVENT_INPUT } from '../constants.js';
+import { deepEquals } from '../utils.js';
 
 class MasMultifield extends LitElement {
     static get properties() {
@@ -75,6 +76,20 @@ class MasMultifield extends LitElement {
         this.removeEventListener('delete-field', this.#boundHandlers.deleteField);
     }
 
+    #initialized = false;
+
+    shouldUpdate(changedProperties) {
+        // Always allow render until fully initialized
+        if (!this.#initialized) return true;
+        if (changedProperties.has('value')) {
+            const oldValue = changedProperties.get('value');
+            const newValue = this.value;
+            // Skip render if value content is the same (prevents blinking on unrelated updates)
+            return !deepEquals(oldValue, newValue);
+        }
+        return true;
+    }
+
     #handleDeleteField(event) {
         event.stopPropagation();
         const path = event.composedPath();
@@ -95,9 +110,11 @@ class MasMultifield extends LitElement {
             })) ?? [];
     }
 
-    firstUpdated() {
+    async firstUpdated() {
         this.initValue();
         this.initFieldTemplate();
+        await this.updateComplete;
+        this.#initialized = true;
     }
 
     // Initialize the field template
@@ -137,8 +154,7 @@ class MasMultifield extends LitElement {
 
     // Remove a field by its index
     removeField(index) {
-        this.value.splice(index, 1);
-        this.value = [...this.value];
+        this.value = this.value.filter((_, i) => i !== index);
         this.#dispatchEvent();
     }
 

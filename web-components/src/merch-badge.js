@@ -1,11 +1,21 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
+const renderIcon = (iconName) => {
+    if (!iconName) return nothing;
+    if (iconName.startsWith('sp-icon-'))
+        return html`${unsafeHTML(
+            `<${iconName} class="badge-icon"></${iconName}>`,
+        )}`;
+    return html`<img src="${iconName}" class="badge-icon" />`;
+};
 export default class MerchBadge extends LitElement {
     static properties = {
         color: { type: String },
         variant: { type: String },
         backgroundColor: { type: String, attribute: 'background-color' },
         borderColor: { type: String, attribute: 'border-color' },
+        icon: { type: String },
     };
 
     constructor() {
@@ -15,6 +25,7 @@ export default class MerchBadge extends LitElement {
         this.backgroundColor = '';
         this.borderColor = '';
         this.text = this.textContent;
+        this.icon = '';
     }
 
     connectedCallback() {
@@ -69,7 +80,9 @@ export default class MerchBadge extends LitElement {
     }
 
     render() {
-        return html`<div class="badge">${this.text}</div>`;
+        return html`<div class="badge">
+            ${renderIcon(this.icon)}${this.text}
+        </div>`;
     }
 
     static styles = css`
@@ -84,6 +97,14 @@ export default class MerchBadge extends LitElement {
             border: var(--merch-badge-border);
             position: relative;
             inset-inline-start: 1px;
+        }
+
+        :host .badge-icon {
+            margin-right: 5px;
+            position: relative;
+            top: 3px;
+            height: 18px;
+            width: 18px;
         }
     `;
 }

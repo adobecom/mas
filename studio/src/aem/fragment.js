@@ -56,30 +56,28 @@ export class Fragment {
         return match?.groups?.parsedLocale || '';
     }
 
-    refreshFrom(fragmentData) {
-        this.newTags = undefined;
-        Object.assign(this, fragmentData);
-        this.initialValue = structuredClone(this);
-        this.hasChanges = false;
-    }
-
     /**
      * Updates the fragment entirely while preserving the initial value & hasChange status if not specified
      * @param {object} fragmentData
      * @param {Boolean | undefined} hasChanges
      */
     replaceFrom(fragmentData, hasChanges) {
-        Object.assign(this, fragmentData);
+        const clonedData = structuredClone(fragmentData);
+        Object.assign(this, clonedData);
         if (hasChanges === undefined) return;
         this.hasChanges = hasChanges;
+    }
+
+    refreshFrom(fragmentData) {
+        this.replaceFrom(fragmentData, false);
+        this.initialValue = structuredClone(fragmentData);
+        this.newTags = undefined;
     }
 
     discardChanges() {
         if (!this.hasChanges) return;
         this.newTags = undefined;
-        Object.assign(this, this.initialValue);
-        this.initialValue = structuredClone(this);
-        this.hasChanges = false;
+        this.replaceFrom(this.initialValue, false);
     }
 
     updateFieldInternal(fieldName, value) {
@@ -97,42 +95,35 @@ export class Fragment {
     }
 
     updateField(fieldName, value) {
-        let change = false;
-        const encodedValues = value.map((v) => {
-            if (typeof v === 'string') {
-                return v.normalize('NFC');
-            }
-            return v;
-        });
-
+        const encodedValues = value.map((v) => (typeof v === 'string' ? v.normalize('NFC') : v));
         const existingField = this.getField(fieldName);
+        const isTags = fieldName === 'tags';
 
         if (existingField) {
-            if (this.isValueEmpty(existingField.values) && this.isValueEmpty(value)) {
-                return change;
+            const { values, multiple } = existingField;
+            // Skip [] to [''] on single-value fields (RTE initialization sends [''] for empty fields).
+            // For multiple:true fields, [''] is an explicit "clear" sentinel.
+            if (values.length === 0 && encodedValues.length === 1 && encodedValues[0] === '' && !multiple) {
+                return false;
             }
-            if (
-                existingField.values.length === encodedValues.length &&
-                existingField.values.every((v, index) => v === encodedValues[index])
-            ) {
-                if (fieldName === 'tags') this.newTags = value;
-                return change;
+            // No change if values are identical
+            if (values.length === encodedValues.length && values.every((v, i) => v === encodedValues[i])) {
+                if (isTags) this.newTags = value;
+                return false;
             }
             existingField.values = encodedValues;
-            this.hasChanges = true;
-            change = true;
-        } else if (encodedValues.length > 0 && encodedValues.some((v) => v !== '')) {
-            this.fields.push({
-                name: fieldName,
-                type: 'text',
-                values: encodedValues,
-            });
-            this.hasChanges = true;
-            change = true;
+        } else {
+            // Only create new field if there's meaningful content
+            if (!encodedValues.length || !encodedValues.some((v) => v?.trim?.())) {
+                if (isTags) this.newTags = value;
+                return false;
+            }
+            this.fields.push({ name: fieldName, type: 'text', values: encodedValues });
         }
 
-        if (fieldName === 'tags') this.newTags = value;
-        return change;
+        this.hasChanges = true;
+        if (isTags) this.newTags = value;
+        return true;
     }
 
     getEffectiveFieldValue(fieldName, parentFragment, isVariation, index = 0) {
@@ -148,32 +139,65 @@ export class Fragment {
 
     getEffectiveFieldValues(fieldName, parentFragment, isVariation) {
         const ownField = this.getField(fieldName);
-        if (ownField && ownField.values && ownField.values.length > 0) {
-            return ownField.values;
+        const ownValues = ownField?.values || [];
+
+        // [] (empty array) = inherit from parent if variation
+        if (ownValues.length === 0) {
+            if (!parentFragment || !isVariation) {
+                return [];
+            }
+            const parentField = parentFragment.getField(fieldName);
+            return parentField?.values || [];
         }
-        if (!parentFragment || !isVariation) {
-            return ownField?.values || [];
+
+        // For [""] (single empty string):
+        // - For multi-value fields (multiple: true): explicit clear sentinel → return empty array
+        // - For single-value fields (multiple: false): AEM initializes empty fields this way → inherit from parent
+        const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
+        if (isSingleEmptyString) {
+            const isMultipleField = ownField?.multiple === true;
+            if (isMultipleField) {
+                // Explicit clear for multi-value fields
+                return [];
+            }
+            // Single-value field with [""] - inherit from parent if variation
+            if (!parentFragment || !isVariation) {
+                return [];
+            }
+            const parentField = parentFragment.getField(fieldName);
+            return parentField?.values || [];
         }
-        const parentField = parentFragment.getField(fieldName);
-        return parentField?.values || [];
+
+        // Has actual values - return them
+        return ownValues;
     }
 
     getFieldState(fieldName, parentFragment, isVariation) {
         if (!isVariation || !parentFragment) {
             return 'no-parent';
         }
-        const ownValues = this.getFieldValues(fieldName) || [];
+        const ownField = this.getField(fieldName);
+        const ownValues = ownField?.values || [];
         const parentValues = parentFragment.getFieldValues(fieldName) || [];
 
-        const ownIsEmpty = this.isValueEmpty(ownValues);
-
-        if (ownIsEmpty && this.isValueEmpty(parentValues)) {
-            return 'inherited';
-        }
-        if (ownIsEmpty) {
+        // [] (empty array) = inherited
+        if (ownValues.length === 0) {
             return 'inherited';
         }
 
+        // For [""] (single empty string):
+        // - For multi-value fields (multiple: true): this is explicit clear sentinel → overridden
+        // - For single-value fields (multiple: false): AEM initializes empty fields this way → inherited
+        const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
+        if (isSingleEmptyString) {
+            const isMultipleField = ownField?.multiple === true;
+            if (!isMultipleField) {
+                return 'inherited';
+            }
+            // For multiple fields, [""] is explicit clear - fall through to comparison
+        }
+
+        // Has actual values - compare with parent
         const normalizeForComparison = (v) => {
             if (v === null || v === undefined) return '';
             if (typeof v === 'string') {
@@ -189,11 +213,43 @@ export class Fragment {
         const areEqual =
             ownValues.length === parentValues.length &&
             ownValues.every((v, i) => normalizeForComparison(v) === normalizeForComparison(parentValues[i]));
+
         return areEqual ? 'same-as-parent' : 'overridden';
     }
 
     isFieldOverridden(fieldName, parentFragment, isVariation) {
         return this.getFieldState(fieldName, parentFragment, isVariation) === 'overridden';
+    }
+
+    /**
+     * Prepares a variation fragment for saving by resetting fields that match parent values.
+     * This ensures we don't save inherited values as explicit overrides.
+     * @param {Fragment} parentFragment - The parent fragment to compare against
+     * @returns {Fragment} A clone of this fragment with inherited fields reset to []
+     */
+    prepareVariationForSave(parentFragment) {
+        if (!parentFragment) return this;
+
+        // Create a new Fragment instance from a deep clone of this fragment's data
+        const clonedData = JSON.parse(JSON.stringify(this));
+        const prepared = new Fragment(clonedData);
+
+        // Fields that should never be reset (they're fragment-specific, not inherited)
+        const excludeFields = ['variations', 'tags', 'originalId', 'locReady'];
+
+        for (const field of prepared.fields) {
+            if (excludeFields.includes(field.name)) continue;
+
+            const fieldState = this.getFieldState(field.name, parentFragment, true);
+
+            // If field is inherited or same-as-parent, reset to empty array
+            // Only keep values that are truly overridden (different from parent)
+            if (fieldState === 'inherited' || fieldState === 'same-as-parent') {
+                field.values = [];
+            }
+        }
+
+        return prepared;
     }
 
     resetFieldToParent(fieldName) {

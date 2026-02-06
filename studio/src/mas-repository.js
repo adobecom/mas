@@ -29,7 +29,6 @@ import { getDefaultLocale, getLocaleCode } from '../../io/www/src/fragment/local
 import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
-import { TranslationProject } from './translation/translation-project.js';
 
 let fragmentCache;
 
@@ -812,7 +811,7 @@ export class MasRepository extends LitElement {
                 50,
                 this.#abortControllers.translations,
             );
-            const translationProjects = fragments.map((fragment) => new FragmentStore(new TranslationProject(fragment)));
+            const translationProjects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
             Store.translationProjects.list.data.set(translationProjects);
         } catch (error) {
             this.processError(error, 'Could not load translation projects.');

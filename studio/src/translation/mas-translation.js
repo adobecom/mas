@@ -5,10 +5,8 @@ import router from '../router.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { MasRepository } from '../mas-repository.js';
-import { PAGE_NAMES } from '../constants.js';
+import { PAGE_NAMES, TRANSLATIONS_ALLOWED_SURFACES } from '../constants.js';
 import { showToast } from '../utils.js';
-
-const ALLOWED_PATHS = ['acom', 'express', 'sandbox', 'nala'];
 
 class MasTranslation extends LitElement {
     static styles = styles;
@@ -18,7 +16,7 @@ class MasTranslation extends LitElement {
         confirmDialogConfig: { type: Object, state: true },
     };
 
-    #searchUnsubscribe = null;
+    #searchCallback = null;
 
     constructor() {
         super();
@@ -43,19 +41,9 @@ class MasTranslation extends LitElement {
         return document.querySelector('mas-repository');
     }
 
-    /**
-     * Ensures the repository is available
-     * @param {string} [errorMessage='Repository component not found'] - Custom error message
-     * @throws {Error} If repository is not available
-     * @returns {MasRepository} The repository instance
-     */
-    ensureRepository(errorMessage = 'Repository component not found') {
-        const repository = this.repository;
-        if (!repository) {
-            this.error = errorMessage;
-            throw new Error(errorMessage);
-        }
-        return repository;
+    get loadingIndicator() {
+        if (!this.translationProjectsLoading) return nothing;
+        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
     }
 
     async connectedCallback() {
@@ -72,32 +60,24 @@ class MasTranslation extends LitElement {
             return;
         }
 
-        this.#searchUnsubscribe = Store.search.subscribe((search) => {
+        this.#searchCallback = (search) => {
             const path = search?.path;
-            if (path && !ALLOWED_PATHS.includes(path)) {
+            if (path && !TRANSLATIONS_ALLOWED_SURFACES.includes(path)) {
                 router.navigateToPage(PAGE_NAMES.CONTENT)();
             }
-        });
+        };
+        Store.search.subscribe(this.#searchCallback);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        if (this.#searchUnsubscribe) {
-            this.#searchUnsubscribe();
-            this.#searchUnsubscribe = null;
+        if (this.#searchCallback) {
+            Store.search.unsubscribe(this.#searchCallback);
+            this.#searchCallback = null;
         }
     }
 
-    get loadingIndicator() {
-        if (!this.translationProjectsLoading) return nothing;
-        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
-    }
-
-    /**
-     * Renders a confirmation dialog
-     * @returns {TemplateResult} - HTML template
-     */
-    renderConfirmDialog() {
+    #renderConfirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
 
         const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
@@ -129,13 +109,6 @@ class MasTranslation extends LitElement {
         `;
     }
 
-    /**
-     * Display a dialog for confirmation
-     * @param {string} title - Dialog title
-     * @param {string} message - Dialog message
-     * @param {Object} options - Additional options
-     * @returns {Promise<boolean>} - True if confirmed, false if canceled
-     */
     async #showDialog(title, message, options = {}) {
         if (this.isDialogOpen) return false;
 
@@ -205,7 +178,7 @@ class MasTranslation extends LitElement {
         }
     }
 
-    renderActionCell(translationProject) {
+    #renderActionCell(translationProject) {
         return html`
             <sp-table-cell class="action-cell">
                 <sp-action-menu size="m">
@@ -236,7 +209,7 @@ class MasTranslation extends LitElement {
         `;
     }
 
-    renderTableHeader(columns) {
+    #renderTableHeader(columns) {
         return html`
             <sp-table-head>
                 ${columns.map(
@@ -262,7 +235,7 @@ class MasTranslation extends LitElement {
         ];
         return html`
             <sp-table emphasized .scroller=${true} class="translation-table">
-                ${this.renderTableHeader(columns)}
+                ${this.#renderTableHeader(columns)}
                 <sp-table-body>
                     ${repeat(
                         this.translationProjectsData,
@@ -276,7 +249,7 @@ class MasTranslation extends LitElement {
                                 <sp-table-cell>${translationProject.get().title}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
                                 <sp-table-cell>N/A</sp-table-cell>
-                                ${this.renderActionCell(translationProject)}
+                                ${this.#renderActionCell(translationProject)}
                             </sp-table-row>
                         `,
                     )}
@@ -285,7 +258,7 @@ class MasTranslation extends LitElement {
         `;
     }
 
-    renderTranslationsProjects() {
+    #renderTranslationsProjects() {
         if (this.translationProjectsLoading) {
             return html`<div class="loading-container">${this.loadingIndicator}</div>`;
         }
@@ -309,8 +282,8 @@ class MasTranslation extends LitElement {
                     <sp-search size="m" placeholder="Search" disabled></sp-search>
                     <div>${this.translationProjectsData.length} result(s)</div>
                 </div>
-                ${this.renderConfirmDialog()}
-                <div class="translation-content">${this.renderTranslationsProjects()}</div>
+                ${this.#renderConfirmDialog()}
+                <div class="translation-content">${this.#renderTranslationsProjects()}</div>
             </div>
         `;
     }

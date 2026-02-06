@@ -15,7 +15,7 @@ export const styles = css`
         border-radius: 12px;
         background: var(--spectrum-gray-50);
 
-        .file {
+        .item {
             display: grid;
             grid-template-columns: 160px auto;
             grid-template-rows: max-content max-content;
@@ -25,19 +25,20 @@ export const styles = css`
             border-radius: 12px;
             background: var(--spectrum-white);
 
-            h3 {
+            .title {
                 grid-column: 1;
                 grid-row: 1;
                 margin: 0;
+                overflow-wrap: break-word;
             }
 
-            div {
+            .details {
                 grid-column: 1;
                 grid-row: 2;
                 font-size: 0.875em;
             }
 
-            sp-button {
+            .remove-button {
                 --mod-button-background-color-default: transparent;
                 --mod-button-background-color-hover: var(--spectrum-gray-200);
                 grid-column: 2;

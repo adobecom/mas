@@ -35,7 +35,7 @@ function applyCollectionSettings(context) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
             if (ref && ref.type === 'content-fragment') {
                 const variant = ref.value?.fields?.variant;
-                if (variant?.startsWith('plans')) {
+                if (variant?.startsWith('plans') || variant === 'segment') {
                     applyPlansSettings(ref.value, context);
                 }
                 if (variant === 'mini') {
@@ -131,7 +131,7 @@ function applyPriceLiterals(fragment) {
 async function settings(context) {
     applyPriceLiterals(context.body);
 
-    if (context.body?.fields?.variant?.startsWith('plans')) {
+    if (context.body?.fields?.variant?.startsWith('plans') || context.body?.fields?.variant === 'segment') {
         applyPlansSettings(context.body, context);
     }
 

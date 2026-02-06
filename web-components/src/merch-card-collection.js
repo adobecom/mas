@@ -26,6 +26,7 @@ const VARIANT_CLASSES = {
     plans: ['four-merch-cards'],
     segment: ['four-merch-cards'],
     plansThreeColumns: ['three-merch-cards'],
+    segmentThreeColumns: ['three-merch-cards'],
 };
 
 const SIDENAV_AUTOCLOSE = {
@@ -544,7 +545,7 @@ export class MerchCardCollection extends LitElement {
             const variant = normalizeVariant(cards[0]?.fields?.variant);
             this.variant = variant;
             if (
-                variant === 'plans' &&
+                (variant === 'plans' || variant === 'segment') &&
                 cards.length === 3 &&
                 !cards.some((card) => card.fields?.size?.includes('wide'))
             )

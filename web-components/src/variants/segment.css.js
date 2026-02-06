@@ -65,8 +65,21 @@ merch-card[variant="segment"] [slot="callout-content"] .icon-button {
   margin: 1.5px 0 1.5px 8px;
 }
 
-merch-card[variant="segment"] a:not([class*="button"]) {
+merch-card[variant="segment"] a.spectrum-Link--secondary {
   color: inherit;
+}
+
+merch-card[variant="segment"] span[data-template="legal"] {
+    display: block;
+    color: var(----merch-color-grey-80);
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 21px;
+}
+
+merch-card[variant="segment"] .price-unit-type:not(.disabled)::before {
+    content: "";
 }
 
 merch-card-collection.segment merch-card {

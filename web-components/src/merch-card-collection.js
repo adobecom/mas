@@ -26,6 +26,7 @@ const VARIANT_CLASSES = {
     plans: ['four-merch-cards'],
     segment: ['four-merch-cards'],
     plansThreeColumns: ['three-merch-cards'],
+    segmentTwoColumns: ['two-merch-cards'],
     segmentThreeColumns: ['three-merch-cards'],
 };
 
@@ -546,10 +547,13 @@ export class MerchCardCollection extends LitElement {
             this.variant = variant;
             if (
                 (variant === 'plans' || variant === 'segment') &&
-                cards.length === 3 &&
+                (cards.length === 2 || cards.length === 3) &&
                 !cards.some((card) => card.fields?.size?.includes('wide'))
-            )
-                nmbOfColumns = 'ThreeColumns';
+            ) {
+                nmbOfColumns =
+                    cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
+            }
+
             if (variant) {
                 this.classList.add(
                     'merch-card-collection',

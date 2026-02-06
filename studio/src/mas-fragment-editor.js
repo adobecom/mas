@@ -611,7 +611,14 @@ export default class MasFragmentEditor extends LitElement {
             });
             this.inEdit.set(existingStore);
             Store.editor.resetChanges();
-            this.reactiveController.updateStores([this.inEdit, existingStore, existingStore.previewStore, this.operation]);
+            this.reactiveController.updateStores([
+                this.inEdit,
+                existingStore,
+                existingStore.previewStore,
+                this.operation,
+                Store.search,
+                Store.filters,
+            ]);
 
             this.#updateLocaleIfNeeded(existingStore.get().path);
             this.localeDefaultFragment = existingStore.parentFragment;
@@ -659,7 +666,14 @@ export default class MasFragmentEditor extends LitElement {
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
             Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
             this.inEdit.set(fragmentStore);
-            this.reactiveController.updateStores([this.inEdit, fragmentStore, fragmentStore.previewStore, this.operation]);
+            this.reactiveController.updateStores([
+                this.inEdit,
+                fragmentStore,
+                fragmentStore.previewStore,
+                this.operation,
+                Store.search,
+                Store.filters,
+            ]);
             this.dispatchFragmentLoaded();
 
             // Handle locale-specific placeholder reload for variations

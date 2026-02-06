@@ -730,6 +730,16 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
   display: none;
 }
 
+merch-card merch-whats-included [slot="contentBullets"] [slot="icon"] {
+    margin-right: 10px;
+}
+
+merch-card merch-whats-included[has-bullets] [slot="content"] {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 10px;
+}
+
 merch-badge[background-color="spectrum-red-700-plans"] {
   color: #FFFFFF;
 }

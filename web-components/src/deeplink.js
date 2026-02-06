@@ -43,7 +43,7 @@ export function pushState(state) {
     hash.sort();
     const value = hash.toString();
     if (value === window.location.hash) return;
-    let lastScrollTop = window.scrollY || document.documentElement.scrollTop;
+    const lastScrollTop = window.scrollY || document.documentElement.scrollTop;
     window.location.hash = value;
     window.scrollTo(0, lastScrollTop);
 }

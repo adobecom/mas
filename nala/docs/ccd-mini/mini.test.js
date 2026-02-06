@@ -24,7 +24,6 @@ test.describe('CCD Mini Cards Feature', () => {
     });
 
     test.afterEach(async ({}, testInfo) => {
-        // eslint-disable-line no-empty-pattern
         workerSetup.attachWorkerErrorsToFailure(testInfo);
     });
 

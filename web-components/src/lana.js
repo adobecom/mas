@@ -65,7 +65,7 @@ const lanaAppender = {
         });
 
         if (errors.length) {
-            payload += ' ' + errors.map(serializeValue).join(' ');
+            payload += ` ${errors.map(serializeValue).join(' ')}`;
         }
 
         const { pathname, search } = window.location;

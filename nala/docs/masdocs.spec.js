@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import { DOCS_GALLERY_PATH } from '../utils/commerce.js';
 
 export const FeatureName = 'Merch CCD Card Feature';

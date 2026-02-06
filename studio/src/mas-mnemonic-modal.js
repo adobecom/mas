@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { ADOBE_PRODUCTS } from './constants/adobe-products.js';
+import { ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
 
 class MasMnemonicModal extends LitElement {
     #originalIcon = '';
@@ -13,6 +14,9 @@ class MasMnemonicModal extends LitElement {
         link: { type: String },
         selectedTab: { type: String, state: true },
         selectedProductId: { type: String, state: true },
+        iconLibrary: { type: Boolean },
+        useRte: { type: Boolean },
+        variant: { type: String },
     };
 
     static styles = css`
@@ -150,6 +154,10 @@ class MasMnemonicModal extends LitElement {
             --spectrum-dialog-footer-border-top: 1px solid var(--spectrum-gray-200);
         }
 
+        sp-dialog.icon-library .icon-lib-optional {
+            display: none;
+        }
+
         sp-button[slot='button'][variant='secondary'] {
             margin-right: auto;
         }
@@ -167,10 +175,15 @@ class MasMnemonicModal extends LitElement {
         this.link = '';
         this.selectedTab = 'product-icon';
         this.selectedProductId = null;
+        this.icons = [];
+        this.useRte = false;
+        this.altHtml = '';
+        this.variant = '';
     }
 
     connectedCallback() {
         super.connectedCallback();
+        this.icons = this.iconLibrary ? ICON_LIBRARY : ADOBE_PRODUCTS;
         this.#initializeFromIcon();
     }
 
@@ -188,15 +201,21 @@ class MasMnemonicModal extends LitElement {
     }
 
     #initializeFromIcon() {
-        if (this.icon && this.icon.includes('/product-icons/svg/')) {
-            const match = this.icon.match(/\/([^/]+)\.svg$/);
-            if (match) {
-                const productId = match[1];
-                const product = ADOBE_PRODUCTS.find((p) => p.id === productId);
-                if (product) {
-                    this.selectedProductId = productId;
-                    this.selectedTab = 'product-icon';
-                    return;
+        if (this.icon) {
+            if (this.iconLibrary && this.icon.startsWith('sp-icon-')) {
+                this.selectedProductId = this.icon;
+                this.selectedTab = 'product-icon';
+                return;
+            } else if (!this.iconLibrary && this.icon.includes('/product-icons/svg/')) {
+                const match = this.icon.match(/\/([^/]+)\.svg$/);
+                if (match) {
+                    const productId = match[1];
+                    const product = ADOBE_PRODUCTS.find((p) => p.id === productId);
+                    if (product) {
+                        this.selectedProductId = productId;
+                        this.selectedTab = 'product-icon';
+                        return;
+                    }
                 }
             }
         }
@@ -230,7 +249,9 @@ class MasMnemonicModal extends LitElement {
 
     #handleProductSelect(productId) {
         this.selectedProductId = productId;
-        this.icon = `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;
+        this.icon = this.iconLibrary
+            ? productId
+            : `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${productId}.svg`;
     }
 
     #handleClose() {
@@ -252,7 +273,11 @@ class MasMnemonicModal extends LitElement {
 
         if (this.selectedTab === 'product-icon') {
             if (this.selectedProductId) {
-                iconValue = `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${this.selectedProductId}.svg`;
+                if (this.iconLibrary) {
+                    iconValue = this.selectedProductId;
+                } else {
+                    iconValue = `https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${this.selectedProductId}.svg`;
+                }
             } else {
                 iconValue = '';
             }
@@ -270,7 +295,7 @@ class MasMnemonicModal extends LitElement {
                 composed: true,
                 detail: {
                     icon: iconValue,
-                    alt: this.alt || '',
+                    alt: this.altHtml || this.alt || '',
                     link: this.link || '',
                 },
             }),
@@ -283,36 +308,51 @@ class MasMnemonicModal extends LitElement {
         return html`
             <div class="tab-content">
                 <div class="icon-grid">
-                    ${ADOBE_PRODUCTS.map(
+                    ${this.icons.map(
                         (product) => html`
                             <div
                                 class="icon-item ${this.selectedProductId === product.id ? 'selected' : ''}"
                                 @click=${() => this.#handleProductSelect(product.id)}
                             >
-                                <img
-                                    src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
-                                    alt="${product.name}"
-                                    @error=${(e) => {
-                                        e.target.style.display = 'none';
-                                    }}
-                                />
+                                ${this.iconLibrary
+                                    ? html`${renderSpIcon(product.id, this.variant)}`
+                                    : html` <img
+                                          src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
+                                          alt="${product.name}"
+                                          @error=${(e) => {
+                                              e.target.style.display = 'none';
+                                          }}
+                                      />`}
                                 <span>${product.name}</span>
                             </div>
                         `,
                     )}
                 </div>
+                ${this.useRte
+                    ? html`
+                          <div class="form-field">
+                              <sp-field-label for="description">Description</sp-field-label>
+                              <rte-field
+                                  id="description"
+                                  link
+                                  .value=${this.alt || ''}
+                                  @change=${(e) => (this.altHtml = e.target.value)}
+                              ></rte-field>
+                          </div>
+                      `
+                    : html`
+                          <div class="form-field icon-lib-optional">
+                              <sp-field-label for="product-alt">Alt Text</sp-field-label>
+                              <sp-textfield
+                                  id="product-alt"
+                                  placeholder="Descriptive text for accessibility"
+                                  value="${this.alt}"
+                                  @input=${(e) => (this.alt = e.target.value)}
+                              ></sp-textfield>
+                          </div>
+                      `}
 
-                <div class="form-field">
-                    <sp-field-label for="product-alt">Alt Text</sp-field-label>
-                    <sp-textfield
-                        id="product-alt"
-                        placeholder="Descriptive text for accessibility"
-                        value="${this.alt}"
-                        @input=${(e) => (this.alt = e.target.value)}
-                    ></sp-textfield>
-                </div>
-
-                <div class="form-field">
+                <div class="form-field icon-lib-optional">
                     <sp-field-label for="product-link">Link URL</sp-field-label>
                     <sp-textfield
                         id="product-link"
@@ -334,22 +374,36 @@ class MasMnemonicModal extends LitElement {
                         id="url-icon"
                         required
                         placeholder="https://example.com/icon.svg"
-                        value="${this.icon}"
+                        value="${!this.icon?.startsWith('sp-icon-') ? this.icon : ''}"
                         @input=${(e) => (this.icon = e.target.value)}
                     ></sp-textfield>
                 </div>
 
-                <div class="form-field">
-                    <sp-field-label for="url-alt">Alt Text</sp-field-label>
-                    <sp-textfield
-                        id="url-alt"
-                        placeholder="Descriptive text for accessibility"
-                        value="${this.alt}"
-                        @input=${(e) => (this.alt = e.target.value)}
-                    ></sp-textfield>
-                </div>
+                ${this.useRte
+                    ? html`
+                          <div class="form-field">
+                              <sp-field-label for="url-description">Description</sp-field-label>
+                              <rte-field
+                                  id="url-description"
+                                  link
+                                  .value=${this.alt || ''}
+                                  @change=${(e) => (this.altHtml = e.target.value)}
+                              ></rte-field>
+                          </div>
+                      `
+                    : html`
+                          <div class="form-field icon-lib-optional">
+                              <sp-field-label for="url-alt">Alt Text</sp-field-label>
+                              <sp-textfield
+                                  id="url-alt"
+                                  placeholder="Descriptive text for accessibility"
+                                  value="${this.alt}"
+                                  @input=${(e) => (this.alt = e.target.value)}
+                              ></sp-textfield>
+                          </div>
+                      `}
 
-                <div class="form-field">
+                <div class="form-field icon-lib-optional">
                     <sp-field-label for="url-link">Link URL</sp-field-label>
                     <sp-textfield
                         id="url-link"
@@ -368,12 +422,12 @@ class MasMnemonicModal extends LitElement {
         return html`
             <div @input=${(e) => e.stopPropagation()} @change=${(e) => e.stopPropagation()}>
                 <sp-underlay ?open=${this.open}></sp-underlay>
-                <sp-dialog>
-                    <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} Mnemonic Icon</h2>
+                <sp-dialog class="${this.iconLibrary ? 'icon-library' : ''}">
+                    <h2 slot="heading">${isEditing ? 'Edit' : 'Add'} ${this.iconLibrary ? '' : 'Mnemonic '}Icon</h2>
 
                     <form @submit=${this.#handleSubmit}>
                         <sp-tabs selected="${this.selectedTab}" @change=${this.#handleTabChange}>
-                            <sp-tab value="product-icon">Product Icon</sp-tab>
+                            <sp-tab value="product-icon">${this.iconLibrary ? '' : 'Product '}Icon</sp-tab>
                             <sp-tab value="url">URL</sp-tab>
                             <sp-tab-panel value="product-icon"> ${this.productIconTab} </sp-tab-panel>
                             <sp-tab-panel value="url"> ${this.urlTab} </sp-tab-panel>

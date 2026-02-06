@@ -22,6 +22,7 @@ export const PLANS_V2_AEM_FRAGMENT_MAPPING = {
     addon: true,
     secureLabel: true,
     planType: true,
+    badgeIcon: true,
     badge: { tag: 'div', slot: 'badge', default: 'spectrum-red-700-plans' },
     allowedBadgeColors: [
         'spectrum-yellow-300-plans',

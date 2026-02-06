@@ -175,7 +175,7 @@ async function cleanupClonedCards() {
 
         let totalFragmentsFound = 0;
         let totalFragmentsDeleted = 0;
-        let allFailedFragments = [];
+        const allFailedFragments = [];
         const processedFragmentIds = new Set(); // Track fragments we've already processed
 
         try {

@@ -9,6 +9,7 @@ import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFI
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
+import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
@@ -1267,21 +1268,23 @@ export default class MasFragmentEditor extends LitElement {
                         ? this.displayRegionalVarationInfo('preview-header')
                         : nothing}
                     <div class="preview-content columns mas-fragment">
-                        <merch-card
-                            variant=${attrs.variant || nothing}
-                            size=${attrs.size || nothing}
-                            name=${attrs.name || nothing}
-                            border-color=${borderAttrs.borderColor || nothing}
-                            background-image=${attrs.backgroundImage || nothing}
-                            stock-offer-osis=${attrs.stockOfferOsis || nothing}
-                            checkbox-label=${attrs.checkboxLabel || nothing}
-                            storage=${attrs.storage || nothing}
-                            daa-lh=${attrs.analyticsId || nothing}
-                            ?gradient-border=${borderAttrs.gradientBorder}
-                            style=${cssProps || nothing}
-                        >
-                            <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
-                        </merch-card>
+                        <sp-theme color="light" scale="medium" system="${getSpectrumVersion(this.fragment?.variant)}">
+                            <merch-card
+                                variant=${attrs.variant || nothing}
+                                size=${attrs.size || nothing}
+                                name=${attrs.name || nothing}
+                                border-color=${borderAttrs.borderColor || nothing}
+                                background-image=${attrs.backgroundImage || nothing}
+                                stock-offer-osis=${attrs.stockOfferOsis || nothing}
+                                checkbox-label=${attrs.checkboxLabel || nothing}
+                                storage=${attrs.storage || nothing}
+                                daa-lh=${attrs.analyticsId || nothing}
+                                ?gradient-border=${borderAttrs.gradientBorder}
+                                style=${cssProps || nothing}
+                            >
+                                <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
+                            </merch-card>
+                        </sp-theme>
                     </div>
                 </div>
                 ${this.relatedVariationsSection}

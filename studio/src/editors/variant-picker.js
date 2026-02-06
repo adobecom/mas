@@ -16,6 +16,7 @@ export const VARIANT_NAMES = {
     FRIES: 'fries',
     MINI: 'mini',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
+    FULL_PRICING_EXPRESS: 'full-pricing-express',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 

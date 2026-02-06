@@ -84,7 +84,7 @@ async function cleanupClonedCards(options = {}) {
 
             let totalFragmentsFound = 0;
             let totalFragmentsDeleted = 0;
-            let allFailedFragments = [];
+            const allFailedFragments = [];
             const processedFragmentIds = new Set();
             // Navigate to studio home first to warm up the session
             if (verbose) {
@@ -287,7 +287,7 @@ async function cleanupClonedCards(options = {}) {
             }
 
             // Print summary
-            console.log('\n' + '='.repeat(42));
+            console.log(`\n${'='.repeat(42)}`);
             console.log('Summary:');
             console.log(`  Total fragments found      : ${totalFragmentsFound}`);
             if (dryRun) {

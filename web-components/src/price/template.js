@@ -79,9 +79,8 @@ export const renderAttributes = (attributes) =>
               )
               .reduce(
                   (html, [key, value]) =>
-                      html +
-                      ` ${key}${
-                          value === true ? '' : '="' + escapeHtml(value) + '"'
+                      `${html} ${key}${
+                          value === true ? '' : `="${escapeHtml(value)}"`
                       }`,
                   '',
               )
@@ -95,7 +94,7 @@ export const renderSpan = (
 ) => {
     return (
         `<span class="${cssClass}${
-            content ? '' : ' ' + cssClassNames.disabled
+            content ? '' : ` ${cssClassNames.disabled}`
         }"${renderAttributes(attributes)}>` +
         `${
             convertSpaces
@@ -368,19 +367,19 @@ const createPriceTemplate =
 
         let cssClass = cssClassNames.container;
         if (displayOptical) {
-            cssClass += ' ' + cssClassNames.containerOptical;
+            cssClass += ` ${cssClassNames.containerOptical}`;
         }
         if (displayStrikethrough) {
-            cssClass += ' ' + cssClassNames.containerStrikethrough;
+            cssClass += ` ${cssClassNames.containerStrikethrough}`;
         }
         if (displayPromoStrikethrough) {
-            cssClass += ' ' + cssClassNames.containerPromoStrikethrough;
+            cssClass += ` ${cssClassNames.containerPromoStrikethrough}`;
         }
         if (isAlternativePrice) {
-            cssClass += ' ' + cssClassNames.containerAlternative;
+            cssClass += ` ${cssClassNames.containerAlternative}`;
         }
         if (displayAnnual) {
-            cssClass += ' ' + cssClassNames.containerAnnual;
+            cssClass += ` ${cssClassNames.containerAnnual}`;
         }
 
         if (toBoolean(displayFormatted)) {
@@ -450,9 +449,9 @@ const createPromoPriceTemplate = () => (context, value, attributes) => {
         (!value.promotion || isPromoApplied);
     return `${
         shouldDisplayOldPrice
-            ? createPriceTemplate({
+            ? `${createPriceTemplate({
                   displayStrikethrough: true,
-              })({ isPromoApplied, ...context }, value, attributes) + '&nbsp;'
+              })({ isPromoApplied, ...context }, value, attributes)}&nbsp;`
             : ''
     }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}`;
 };
@@ -514,9 +513,9 @@ const createPromoPriceWithAnnualTemplate =
             value.priceWithoutDiscount != value.price;
         return `${
             shouldDisplayOldPrice
-                ? createPriceTemplate({
+                ? `${createPriceTemplate({
                       displayStrikethrough: true,
-                  })(ctxStAnnual, value, attributes) + '&nbsp;'
+                  })(ctxStAnnual, value, attributes)}&nbsp;`
                 : ''
         }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, '&nbsp;(')}${createPriceTemplate(
             {

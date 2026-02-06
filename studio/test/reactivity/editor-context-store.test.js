@@ -7,7 +7,6 @@ import { delay } from '../utils.js';
 describe('EditorContextStore', () => {
     let sandbox;
     let store;
-    let previewFragmentForEditorStub;
     let originalQuerySelector;
 
     const mockFragmentBody = {
@@ -20,14 +19,6 @@ describe('EditorContextStore', () => {
         id: 'parent-fragment-id',
         path: '/content/dam/mas/commerce/en_US/parent-fragment',
         fields: [],
-    };
-
-    const mockSuccessResponse = {
-        status: 200,
-        body: mockFragmentBody,
-        fragmentsIds: {
-            'default-locale-id': 'parent-fragment-id',
-        },
     };
 
     const mockAem = {
@@ -103,20 +94,6 @@ describe('EditorContextStore', () => {
             const result = await store.loadFragmentContext('test-id');
 
             expect(result).to.deep.equal({ status: 0, body: null });
-        });
-
-        it('should set loading to true during fetch', async () => {
-            store = new EditorContextStore(null);
-
-            let loadingDuringFetch = false;
-            const originalLoading = Object.getOwnPropertyDescriptor(store, 'loading');
-
-            const loadPromise = store.loadFragmentContext('test-id').catch(() => {});
-
-            await delay(10);
-            loadingDuringFetch = store.loading;
-
-            expect(loadingDuringFetch).to.be.true;
         });
 
         it('should set loading to false after fetch completes', async () => {

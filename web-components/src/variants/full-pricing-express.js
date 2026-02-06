@@ -33,6 +33,11 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
         maxCount: 3000,
         withSuffix: false,
     },
+    callout: {
+        tag: 'div',
+        slot: 'callout-content',
+        editorLabel: 'Price description',
+    },
     prices: {
         tag: 'div',
         slot: 'price',
@@ -93,25 +98,14 @@ export class FullPricingExpress extends VariantLayout {
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
 
-        const shortDescriptionSlot = this.card.querySelector(
-            '[slot="short-description"]',
-        );
-        if (shortDescriptionSlot) {
+        ['short-description', 'cta'].forEach((slot) =>
             this.updateCardElementMinHeight(
-                shortDescriptionSlot,
-                'short-description',
-            );
-        }
+                this.card.querySelector(`[slot="${slot}"]`),
+                slot,
+            ),
+        );
 
-        const priceSlot = this.card.querySelector('[slot="price"]');
-        if (priceSlot) {
-            this.updateCardElementMinHeight(priceSlot, 'price');
-        }
-
-        const ctaSlot = this.card.querySelector('[slot="cta"]');
-        if (ctaSlot) {
-            this.updateCardElementMinHeight(ctaSlot, 'cta');
-        }
+        this.updateCombinedMinHeight(['price', 'callout-content'], 'price');
     }
 
     async postCardUpdateHook() {
@@ -162,6 +156,7 @@ export class FullPricingExpress extends VariantLayout {
                 <div class="price-container">
                     <slot name="trial-badge"></slot>
                     <slot name="price"></slot>
+                    <slot name="callout-content"></slot>
                 </div>
                 <div class="cta">
                     <slot name="cta"></slot>
@@ -197,6 +192,11 @@ export class FullPricingExpress extends VariantLayout {
             --merch-card-full-pricing-express-cta-font-size: 18px;
             --merch-card-full-pricing-express-cta-font-weight: 700;
             --merch-card-full-pricing-express-cta-line-height: 23.4px;
+
+            /* Accent color */
+            --spectrum-express-accent: #5258e4;
+            --spectrum-express-indigo-300: #d3d5ff;
+            --spectrum-express-white: #ffffff;
 
             /* Gradient definitions (reused) */
             --gradient-purple-blue: linear-gradient(
@@ -326,7 +326,7 @@ export class FullPricingExpress extends VariantLayout {
             left: 1px;
             right: 1px;
             bottom: 1px;
-            background: var(--spectrum-gray-50);
+            background: var(--spectrum-express-white, #ffffff);
             border-radius: 7px;
             z-index: 0;
             pointer-events: none;
@@ -420,7 +420,17 @@ export class FullPricingExpress extends VariantLayout {
             overflow: visible;
             margin-bottom: var(--merch-card-full-pricing-express-section-gap);
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
+        }
+
+        :host([variant='full-pricing-express']) [slot='callout-content'] {
+            font-size: 12px;
+            font-weight: 400;
+            font-style: normal;
+            line-height: 18px;
+            color: var(--spectrum-gray-800);
+            text-align: center;
+            background: transparent;
         }
 
         /* CTA styling */

@@ -102,7 +102,7 @@ const legalTemplate = (
     }
 
     let cssClass = cssClassNames.container;
-    cssClass += ' ' + cssClassNames.containerLegal;
+    cssClass += ` ${cssClassNames.containerLegal}`;
 
     return renderContainer(
         cssClass,

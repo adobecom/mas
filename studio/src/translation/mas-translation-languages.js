@@ -9,7 +9,6 @@ class MasTranslationLanguages extends LitElement {
 
     static properties = {
         localesArray: { type: Array, state: true },
-        dialogVersion: { type: Number, state: true },
     };
 
     connectedCallback() {

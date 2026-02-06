@@ -1,4 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
+import { keyed } from 'lit/directives/keyed.js';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -26,10 +27,10 @@ class MasTranslationEditor extends LitElement {
         showSelectedEmptyState: { type: Boolean, state: true },
         isSelectedLangsOpen: { type: Boolean, state: true },
         showLangSelectedEmptyState: { type: Boolean, state: true },
-        languagesDialogVersion: { type: Number, state: true },
-        itemsDialogVersion: { type: Number, state: true },
         ioBaseUrl: { type: String, state: true },
         isProjectReadonly: { type: Boolean, state: true },
+        itemsSelectorKey: { type: Number, state: true },
+        languagesSelectorKey: { type: Number, state: true },
     };
 
     #cardsSnapshot = [];
@@ -57,10 +58,10 @@ class MasTranslationEditor extends LitElement {
         this.showSelectedEmptyState = true;
         this.showLangSelectedEmptyState = true;
         this.isSelectedLangsOpen = false;
-        this.languagesDialogVersion = 0;
-        this.itemsDialogVersion = 0;
         this.ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
         this.isProjectReadonly = false;
+        this.itemsSelectorKey = 0;
+        this.languagesSelectorKey = 0;
     }
 
     async connectedCallback() {
@@ -447,12 +448,12 @@ class MasTranslationEditor extends LitElement {
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
         this.#collectionsSnapshot = Store.translationProjects.selectedCollections.value;
-        this.itemsDialogVersion = (this.itemsDialogVersion || 0) + 1;
+        this.itemsSelectorKey++;
     }
 
     #openAddLanguagesOverlay() {
         this.#targetLocalesSnapshot = Store.translationProjects.targetLocales.value;
-        this.languagesDialogVersion = (this.languagesDialogVersion || 0) + 1;
+        this.languagesSelectorKey++;
     }
 
     #confirmLangSelection = ({ target }) => {
@@ -482,7 +483,7 @@ class MasTranslationEditor extends LitElement {
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
             >
-                <mas-items-selector .dialogVersion=${this.itemsDialogVersion}></mas-items-selector>
+                ${keyed(this.itemsSelectorKey, html`<mas-items-selector></mas-items-selector>`)}
             </sp-dialog-wrapper>
         `;
     }
@@ -500,7 +501,7 @@ class MasTranslationEditor extends LitElement {
                 @confirm=${this.#confirmLangSelection}
                 @cancel=${this.#cancelLangSelection}
             >
-                <mas-translation-languages .dialogVersion=${this.languagesDialogVersion}></mas-translation-languages>
+                ${keyed(this.languagesSelectorKey, html`<mas-translation-languages></mas-translation-languages>`)}
             </sp-dialog-wrapper>
         `;
     }

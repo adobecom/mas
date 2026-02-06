@@ -21,7 +21,6 @@ class MasItemsSelector extends LitElement {
     static properties = {
         itemToRemove: { type: String, state: true },
         viewOnly: { type: Boolean, state: true },
-        dialogVersion: { type: Number, state: true },
     };
 
     constructor() {

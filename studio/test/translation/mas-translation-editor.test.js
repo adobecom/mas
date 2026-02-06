@@ -814,27 +814,27 @@ describe('MasTranslationEditor', () => {
     });
 
     describe('dialog version tracking', () => {
-        it('should increment languagesDialogVersion when opening languages overlay', async () => {
+        it('should increment languagesSelectorKey when opening languages overlay', async () => {
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             el.showLangSelectedEmptyState = true;
             await el.updateComplete;
-            const initialVersion = el.languagesDialogVersion;
+            const initialKey = el.languagesSelectorKey;
             const overlayTrigger = el.shadowRoot.querySelector('#add-languages-overlay');
             overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
             await el.updateComplete;
-            expect(el.languagesDialogVersion).to.equal(initialVersion + 1);
+            expect(el.languagesSelectorKey).to.equal(initialKey + 1);
         });
 
-        it('should increment itemsDialogVersion when opening items overlay', async () => {
+        it('should increment itemsSelectorKey when opening items overlay', async () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             el.showSelectedEmptyState = true;
             await el.updateComplete;
-            const initialVersion = el.itemsDialogVersion;
+            const initialKey = el.itemsSelectorKey;
             const overlayTrigger = el.shadowRoot.querySelector('#add-items-overlay');
             overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
             await el.updateComplete;
-            expect(el.itemsDialogVersion).to.equal(initialVersion + 1);
+            expect(el.itemsSelectorKey).to.equal(initialKey + 1);
         });
     });
 

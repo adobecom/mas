@@ -128,24 +128,32 @@ class MerchCardEditor extends LitElement {
     }
 
     async resetTagsToParent() {
-        const parentTags = this.localeDefaultFragment?.tags || [];
-        this.fragment.tags = [...parentTags];
-        this.fragment.newTags = null;
-        this.fragmentStore.set(this.fragment);
+        const parentTagIds = this.localeDefaultFragment?.tags?.map((t) => t.id) || [];
+        this.fragmentStore.updateField('tags', parentTagIds);
         showToast('Tags restored to parent value', 'positive');
     }
 
+    static MNEMONIC_FIELDS = ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink', 'mnemonicTooltipText', 'mnemonicTooltipPlacement'];
+
+    async resetMnemonicsToParent() {
+        for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        }
+        showToast('Visuals restored to parent value', 'positive');
+    }
+
+    renderMnemonicsStatusIndicator() {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getFieldState('mnemonicIcon') !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetMnemonicsToParent());
+    }
+
     async resetFieldToParent(fieldName) {
-        await this.updateComplete;
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
         const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         if (success) {
             showToast('Field restored to parent value', 'positive');
-            await this.updateComplete;
-            const rteField = this.querySelector(`rte-field[data-field="${fieldName}"]`);
-            if (rteField && parentValues.length > 0) {
-                rteField.updateContent(parentValues[0]);
-            }
         }
         return success;
     }
@@ -749,6 +757,7 @@ class MerchCardEditor extends LitElement {
                     <mas-multifield
                         id="mnemonics"
                         button-label="Add visual"
+                        data-field-state="${this.getFieldState('mnemonicIcon')}"
                         .value="${this.mnemonics}"
                         @change="${this.#updateMnemonics}"
                         @input="${this.#updateMnemonics}"
@@ -757,7 +766,7 @@ class MerchCardEditor extends LitElement {
                             <mas-mnemonic-field></mas-mnemonic-field>
                         </template>
                     </mas-multifield>
-                    ${this.renderFieldStatusIndicator('mnemonicIcon')}
+                    ${this.renderMnemonicsStatusIndicator()}
                 </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="badge">
@@ -818,7 +827,6 @@ class MerchCardEditor extends LitElement {
                         value="${this.whatsIncluded.label}"
                         @input="${this.#updateWhatsIncluded}"
                     ></sp-textfield>
-                    ${this.renderSectionStatusIndicator(['whatsIncluded'])}
                     <mas-multifield
                         button-label="Add bullet"
                         data-field-state="bullet"
@@ -1256,8 +1264,6 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateMnemonics(event) {
-        const fragment = this.fragmentStore.get();
-
         this.lastMnemonicState = {
             timestamp: Date.now(),
             mnemonicIcon: [...this.getEffectiveFieldValues('mnemonicIcon')],
@@ -1272,6 +1278,7 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = [];
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
+
         event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
@@ -1280,15 +1287,25 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
 
-        fragment.updateField('mnemonicIcon', mnemonicIcon);
-        fragment.updateField('mnemonicAlt', mnemonicAlt);
-        fragment.updateField('mnemonicLink', mnemonicLink);
-        fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
-        fragment.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
-        this.fragmentStore.set(fragment);
+        // If all mnemonics removed in a variation, use empty string sentinel [""]
+        // to indicate explicit clear (vs [] which means inherit from parent)
+        if (mnemonicIcon.length === 0 && this.effectiveIsVariation) {
+            this.fragmentStore.updateField('mnemonicIcon', ['']);
+            this.fragmentStore.updateField('mnemonicAlt', ['']);
+            this.fragmentStore.updateField('mnemonicLink', ['']);
+            this.fragmentStore.updateField('mnemonicTooltipText', ['']);
+            this.fragmentStore.updateField('mnemonicTooltipPlacement', ['']);
+        } else {
+            this.fragmentStore.updateField('mnemonicIcon', mnemonicIcon);
+            this.fragmentStore.updateField('mnemonicAlt', mnemonicAlt);
+            this.fragmentStore.updateField('mnemonicLink', mnemonicLink);
+            this.fragmentStore.updateField('mnemonicTooltipText', mnemonicTooltipText);
+            this.fragmentStore.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
+        }
 
-        const previousCount = this.lastMnemonicState.mnemonicIcon.length;
-        const newCount = mnemonicIcon.length;
+        // Only count non-empty mnemonics (those with an icon) for toast notifications
+        const previousCount = this.lastMnemonicState.mnemonicIcon.filter((icon) => icon).length;
+        const newCount = mnemonicIcon.filter((icon) => icon).length;
         const isAdd = newCount > previousCount;
         const isRemove = newCount < previousCount;
 
@@ -1748,11 +1765,11 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    #handleFragmentUpdate = (event) => {
+    #handleFragmentUpdate(event) {
         if (this.updateFragment) {
             this.updateFragment(event);
         }
-    };
+    }
 
     #handleLocReady() {
         const value = !this.fragment.getField('locReady')?.values[0];

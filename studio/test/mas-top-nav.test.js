@@ -104,13 +104,13 @@ describe('MasTopNav', () => {
             expect(folderPicker.hasAttribute('disabled')).to.be.false;
         });
 
-        it('should disable locale picker on fragment editor page', async () => {
+        it('should enable locale picker on fragment editor page', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker).to.exist;
-            expect(localePicker.hasAttribute('disabled')).to.be.true;
+            expect(localePicker.hasAttribute('disabled')).to.be.false;
         });
 
         it('should disable locale picker on translation editor page', async () => {

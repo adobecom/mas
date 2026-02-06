@@ -617,7 +617,11 @@ export default class EditorPanel extends LitElement {
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelectClone);
     }
 
-    showClone() {
+    async showClone() {
+        if (Store.editor.hasChanges) {
+            const confirmed = await this.promptDiscardChanges();
+            if (!confirmed) return;
+        }
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
     }

@@ -1,11 +1,86 @@
 const { Core } = require('@adobe/aio-sdk');
 const logger = Core.Logger('common', { level: 'info' });
 
+async function postToOdinWithRetry(odinEndpoint, URI, authToken, payload, maxRetries = 3) {
+    let lastError = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            await postToOdin(odinEndpoint, URI, authToken, payload);
+            return true;
+        } catch (error) {
+            lastError = error.message || error.toString();
+            logger.warn(`Error POSTing ${URI} (attempt ${attempt}/${maxRetries}): ${lastError}`);
+            if (attempt < maxRetries) {
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+                logger.info(`Waiting ${delay}ms before retry...`);
+                await new Promise((resolve) => setTimeout(resolve, delay));
+                continue;
+            }
+        }
+    }
+    throw new Error(`Failed to POST to ${URI} after ${maxRetries} attempts: ${lastError}`);
+}
+
+function findFieldIndex(fragment, fieldName) {
+    const propertyIndex = fragment.fields.findIndex((field) => field.name === fieldName);
+    if (propertyIndex === -1) {
+        return {};
+    }
+    return {
+        field: fragment.fields[propertyIndex],
+        path: `/fields/${propertyIndex}`,
+    };
+}
+
+/**
+ * @param {*} fragment fragment json representation
+ * @param {*} property property name to find
+ * @returns { path, value}
+ */
+function getValues(fragment, property) {
+    const { field, path } = findFieldIndex(fragment, property);
+    return field ? { values: field.values, path } : null;
+}
+
+/**
+ * @param {*} fragment fragment json representation
+ * @param {*} property property name to find
+ * @returns { path, value}
+ */
+function getValue(fragment, property) {
+    const { field, path } = findFieldIndex(fragment, property);
+    return field ? { value: field.values[0], path } : null;
+}
+
 async function postToOdin(odinEndpoint, URI, authToken, payload) {
     return fetchOdin(odinEndpoint, URI, authToken, {
         method: 'POST',
         body: JSON.stringify(payload),
     });
+}
+
+async function fetchFragmentByPath(odinEndpoint, fragmentPath, authToken) {
+    let response = null;
+    try {
+        response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments?path=${fragmentPath}`, authToken, {
+            ignoreErrors: [404],
+        });
+    } catch (error) {
+        logger.error(`Error fetching fragment by path ${fragmentPath}: ${error.message}`);
+    }
+    if (response.status === 404) {
+        return { fragment: null, status: 404 };
+    }
+    if (response.ok) {
+        if (response.json) {
+            const responseObject = await response.json();
+            if (responseObject.items?.length > 0) {
+                return { fragment: responseObject.items[0], status: 200 };
+            }
+        }
+        return { fragment: null, status: 404 };
+    }
+    return { fragment: null, status: response.status, etag: response.headers.get('ETag') };
 }
 
 /**
@@ -27,8 +102,8 @@ async function fetchOdin(
     authToken,
     { method = 'GET', body = null, contentType = null, etag = null, ignoreErrors = [] } = {},
 ) {
+    const startTime = performance.now();
     const path = `${odinEndpoint}${URI}`;
-    logger.info(`fetching ${path}`);
     const headers = {
         Authorization: `Bearer ${authToken}`,
         'Content-Type': contentType || 'application/json',
@@ -52,7 +127,8 @@ async function fetchOdin(
         logger.error(`Error body: ${JSON.stringify(errorBody, null, 2)}`);
         throw new Error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
     }
-    logger.info(`${URI}: ${response.status} (${response.statusText})`);
+    const duration = (performance.now() - startTime).toFixed(2);
+    logger.info(`${method} ${URI}: ${response.status} (${response.statusText}) - ${duration}ms`);
     return response;
 }
 
@@ -72,7 +148,10 @@ async function processBatchWithConcurrency(items, batchSize, processor) {
 }
 
 module.exports = {
-    postToOdin,
+    fetchFragmentByPath,
     fetchOdin,
+    getValue,
+    getValues,
+    postToOdinWithRetry,
     processBatchWithConcurrency,
 };

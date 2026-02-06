@@ -119,6 +119,7 @@ describe('Translation project-start', () => {
             { name: 'placeholders', values: [] },
             { name: 'targetLocales', values: ['de_DE'] },
             { name: 'submissionDate', values: [] },
+            { name: 'title', values: ['Test Project'] },
         ],
         ...overrides,
     });
@@ -746,8 +747,17 @@ describe('Translation project-start', () => {
 
             const { lastCallOptions, callCounts } = setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': responses.notFound(),
-                '/bin/localeSync': { ok: true },
+                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/fragment1': responses.notFound(),
+                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/fr_FR.+': responses.notFound(),
+                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/it_IT.+': responses.notFound(),
+                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/dictionary/placeholder1': responses.notFound(),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index': responses.ok({
+                    items: [{ id: 'dict-de-id', fields: [{ name: 'entries', values: [] }] }],
+                }),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/fr_FR/dictionary/index': responses.notFound(),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/it_IT/dictionary/index': responses.notFound(),
+                '/adobe/sites/cf/fragments/dict-de-id/versions': responses.ok(),
+                '/adobe/sites/cf/fragments/dict-de-id': responses.ok(),
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
@@ -756,63 +766,19 @@ describe('Translation project-start', () => {
                 surface: 'foo',
             };
 
-            await projectStart.main(params);
-
-            expect(callCounts['/bin/localeSync']).to.equal(1);
-            expect(lastCallOptions['/bin/localeSync'].method).to.equal('POST');
-            const syncBody = JSON.parse(lastCallOptions['/bin/localeSync'].body);
-            expect(syncBody).to.deep.equal({
-                items: [
-                    {
-                        contentPath: '/content/dam/mas/foo/en_US/dictionary/index',
-                        targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
-                    },
-                ],
-            });
+            const results = await projectStart.main(params);
+            expect(results.statusCode).to.equal(200);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index']).to.equal(1);
+            expect(callCounts['/adobe/sites/cf/fragments/dict-de-id']).to.equal(1);
+            expect(lastCallOptions['/adobe/sites/cf/fragments/dict-de-id'].method).to.equal('PATCH');
+            const syncBody = JSON.parse(lastCallOptions['/adobe/sites/cf/fragments/dict-de-id'].body);
+            expect(syncBody).to.be.an('array');
+            expect(syncBody[0]).to.have.property('op', 'replace');
+            expect(syncBody[0]).to.have.property('path', '/fields/0/values');
+            expect(syncBody[0].value).to.be.an('array').with.lengthOf(1);
         });
 
-        it('should retry in case of an issue with the synchronization request', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
-            const mockProjectCF = setProjectFields(createMockProjectCF(), {
-                fragments: [],
-                placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
-                targetLocales: ['de_DE'],
-            });
-
-            const { callCounts, lastCallOptions } = setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': responses.notFound(),
-                // Fail twice, then succeed
-                '/bin/localeSync': [
-                    responses.error(500, 'Internal Server Error'),
-                    responses.error(500, 'Internal Server Error'),
-                    responses.ok(),
-                ],
-                '/bin/sendToLocalisationAsync': { ok: true },
-            });
-
-            const params = {
-                ...baseParams,
-                surface: 'foo',
-            };
-
-            await projectStart.main(params);
-
-            expect(callCounts['/bin/localeSync']).to.equal(3);
-            expect(lastCallOptions['/bin/localeSync'].method).to.equal('POST');
-            const syncBody = JSON.parse(lastCallOptions['/bin/localeSync'].body);
-            expect(syncBody).to.deep.equal({
-                items: [
-                    {
-                        contentPath: '/content/dam/mas/foo/en_US/dictionary/index',
-                        targetLocales: ['de_DE'],
-                    },
-                ],
-            });
-        });
-
-        it('should fail in case of a permanentissue with the synchronization request', async () => {
+        it('should fail in case of a and issue with the synchronization request', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
@@ -822,10 +788,12 @@ describe('Translation project-start', () => {
             });
 
             setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': responses.notFound(),
-                // Fail twice, then succeed
-                '/bin/localeSync': responses.error(500, 'Internal Server Error'),
+                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/dictionary/placeholder1': responses.notFound(),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index': responses.ok({
+                    items: [{ id: 'dict-de-id', fields: [{ name: 'entries', values: [] }] }],
+                }),
+                '/adobe/sites/cf/fragments/dict-de-id/versions': responses.ok(),
+                '/adobe/sites/cf/fragments/dict-de-id': responses.error(500, 'Internal Server Error'),
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
@@ -875,7 +843,7 @@ describe('Translation project-start', () => {
             expect(lastCallOptions['/adobe/sites/cf/fragments/fragment2-fr-id/versions'].method).to.equal('POST');
             const versionBody = JSON.parse(lastCallOptions['/adobe/sites/cf/fragments/fragment2-fr-id/versions'].body);
             expect(versionBody).to.deep.equal({
-                comment: 'Versioning before translation, project test-project-id',
+                comment: 'translation project \"Test Project\" (test-project-id)',
                 label: 'Pre-translation version',
             });
         });

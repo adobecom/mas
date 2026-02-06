@@ -1190,7 +1190,7 @@ class RteField extends LitElement {
                 this.#boundHandlers.updateLength();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
-                const isFirstChange = this.value === null;
+                const isFirstChange = transaction.getMeta('initialize');
                 if (value !== this.value) {
                     this.#isInternalUpdate = true;
                     this.value = value === '<p></p>' ? '' : value;
@@ -1200,9 +1200,6 @@ class RteField extends LitElement {
                         new CustomEvent('change', {
                             bubbles: true,
                             composed: true,
-                            detail: {
-                                initialize: transaction.getMeta('initialize'),
-                            },
                         }),
                     );
                 }

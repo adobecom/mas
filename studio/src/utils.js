@@ -258,23 +258,3 @@ export function extractLocaleFromPath(fragmentPath) {
     const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
     return parts.find((part) => localePattern.test(part)) || null;
 }
-
-/**
- * Copies text to clipboard
- * @param {Event} e - The event object
- * @param {string} text - The text to copy
- */
-export async function copyToClipboard(e, text) {
-    e.stopPropagation();
-    if (!text) {
-        showToast('No text to copy', 'negative');
-        return;
-    }
-    try {
-        await navigator.clipboard.writeText(text);
-        showToast('Copied to clipboard', 'positive');
-    } catch (err) {
-        console.error('Failed to copy:', err);
-        showToast('Failed to copy', 'negative');
-    }
-}

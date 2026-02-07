@@ -284,13 +284,6 @@ export class AemFragment extends HTMLElement {
         Object.assign(this.#fetchInfo, getLogHeaders(response));
     }
 
-    /**
-     * Unwraps content from a single paragraph tag.
-     * AEM rich text fields often wrap content in <p> tags which creates
-     * unwanted margins when used inline.
-     * @param {string} html - The HTML content to unwrap
-     * @returns {string} The unwrapped content
-     */
     #unwrapSingleParagraph(html) {
         if (!html || typeof html !== 'string') return html;
         const trimmed = html.trim();
@@ -303,10 +296,6 @@ export class AemFragment extends HTMLElement {
         return html;
     }
 
-    /**
-     * Renders a specific field's content into the element.
-     * Only renders if 'field' attribute is set.
-     */
     #renderField() {
         if (!this.#field) return;
 
@@ -351,7 +340,6 @@ export class AemFragment extends HTMLElement {
             this.#service.prefillWcsCache(wcs);
         }
 
-        // Render field content if render attribute is set
         this.#renderField();
 
         this.dispatchEvent(

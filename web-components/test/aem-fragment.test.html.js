@@ -533,11 +533,8 @@ runTests(async () => {
                     aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                // Should not be wrapped in <p> tags if it was a single paragraph
                 const trimmed = aemFragment.innerHTML.trim();
-                // Check that single paragraph unwrapping is working
-                // (content should not start with <p> if it was the only paragraph)
-                expect(trimmed.startsWith('<p>') && trimmed.endsWith('</p>') && !trimmed.slice(3, -4).includes('<p>')).to.be.false;
+                expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
             });
         });
     });

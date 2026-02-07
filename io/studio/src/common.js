@@ -123,9 +123,9 @@ async function fetchOdin(
         } catch (e) {
             // Response body is not valid JSON, use empty object
         }
-        logger.error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
-        logger.error(`Error body: ${JSON.stringify(errorBody, null, 2)}`);
-        throw new Error(`Failed to fetch translation project: ${response.status} ${response.statusText}`);
+        const errorMessage = errorBody && Object.keys(errorBody).length > 0 ? ` - ${JSON.stringify(errorBody)}` : '';
+        logger.error(`${method} ${URI}: ${response.status} (${response.statusText}${errorMessage})`);
+        throw new Error(`${method} ${URI} failed with status ${response.status}: ${response.statusText}`);
     }
     const duration = (performance.now() - startTime).toFixed(2);
     logger.info(`${method} ${URI}: ${response.status} (${response.statusText}) - ${duration}ms`);

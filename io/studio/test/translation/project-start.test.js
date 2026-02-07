@@ -244,7 +244,7 @@ describe('Translation project-start', () => {
             const result = await projectStart.main(baseParams);
 
             expect(result.error.statusCode).to.equal(500);
-            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Failed to fetch translation project/));
+            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Error fetching translation project/));
         });
 
         it('should return 400 if translation project is incomplete (no items)', async () => {
@@ -788,6 +788,7 @@ describe('Translation project-start', () => {
             });
 
             setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
                 '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/dictionary/placeholder1': responses.notFound(),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index': responses.ok({
                     items: [{ id: 'dict-de-id', fields: [{ name: 'entries', values: [] }] }],
@@ -828,8 +829,6 @@ describe('Translation project-start', () => {
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/dictionary/placeholder1': responses.notFound(),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/dictionary/collection1': responses.notFound(),
                 '/adobe/sites/cf/fragments/fragment2-fr-id/versions': { ok: true },
-                '/bin/localeSync': { ok: true },
-                '/bin/sendToLocalisationAsync': { ok: true },
             });
 
             const params = {
@@ -846,6 +845,63 @@ describe('Translation project-start', () => {
                 comment: 'translation project \"Test Project\" (test-project-id)',
                 label: 'Pre-translation version',
             });
+        });
+
+        it('should fail if we fail to check target fragment', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+                placeholders: [],
+                collections: [],
+                targetLocales: ['de_DE'],
+            });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/fragment1': responses.error(
+                    500,
+                    'Internal Server Error',
+                ),
+            });
+
+            const params = {
+                ...baseParams,
+                surface: 'foo',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.error.statusCode).to.equal(500);
+        });
+
+        it('should fail if version fails', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+                placeholders: [],
+                collections: [],
+                targetLocales: ['de_DE'],
+            });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/fragment1': responses.ok({
+                    items: [{ id: 'fragment1-de-id' }],
+                }),
+                '/adobe/sites/cf/fragments/fragment1-de-id/versions': responses.error(500, 'Internal Server Error'),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const params = {
+                ...baseParams,
+                surface: 'foo',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.error.statusCode).to.equal(500);
         });
     });
 });

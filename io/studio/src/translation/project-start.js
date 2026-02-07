@@ -183,14 +183,6 @@ async function main(params) {
                     logger.info(`Fragment not found for path ${path}, skipping versioning`);
                     return { success: true, item: path };
                 }
-                if (status !== 200 || !fragment) {
-                    logger.error(`Error fetching fragment for versioning at path ${path}: ${status}`);
-                    return {
-                        success: false,
-                        item: path,
-                        error: `Failed to fetch fragment for versioning, status code: ${status}`,
-                    };
-                }
                 ({ id } = fragment);
             }
             await postToOdinWithRetry(params.odinEndpoint, `/adobe/sites/cf/fragments/${id}/versions`, authToken, {

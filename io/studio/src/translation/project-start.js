@@ -350,4 +350,4 @@ async function main(params) {
     }
 }
 
-module.exports.main = main;
+exports.main = main;

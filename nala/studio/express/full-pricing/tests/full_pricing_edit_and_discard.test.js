@@ -1,9 +1,9 @@
 import { test, expect, studio, editor, fullPricingExpress, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
-import ACOMFullPricingExpressSpec from '../specs/full_pricing_express_edit_and_discard.spec.js';
+import EXPRESSFullPricingSpec from '../specs/full_pricing_edit_and_discard.spec.js';
 
-const { features } = ACOMFullPricingExpressSpec;
+const { features } = EXPRESSFullPricingSpec;
 
-test.describe('M@S Studio ACOM Full Pricing Express card test suite', () => {
+test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
     // @studio-full-pricing-express-edit-discard-title - Validate edit title for full pricing express card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];

@@ -1,9 +1,9 @@
 import { test, expect, studio, fullPricingExpress, webUtil, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
-import ACOMFullPricingExpressCSSSpec from '../specs/full_pricing_express_css.spec.js';
+import EXPRESSFullPricingSpec from '../specs/full_pricing_css.spec.js';
 
-const { features } = ACOMFullPricingExpressCSSSpec;
+const { features } = EXPRESSFullPricingSpec;
 
-test.describe('M@S Studio ACOM Full Pricing Express card CSS test suite', () => {
+test.describe('M@S Studio EXPRESS Full Pricing card CSS test suite', () => {
     // @studio-full-pricing-express-css - Validate all CSS properties for full pricing express card
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];

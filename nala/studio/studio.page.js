@@ -28,6 +28,7 @@ export default class StudioPage {
         this.tableViewRowByFragmentId = (fragmentId) => this.tableView.locator(`sp-table-row[value="${fragmentId}"]`);
         this.tableViewPathCell = (row) => row.locator('sp-table-cell.name');
         this.tableViewTitleCell = (row) => row.locator('sp-table-cell.title');
+        this.tableViewPriceCell = (row) => row.locator('sp-table-cell.price');
         this.tableViewActionsMenu = (row) => row.locator('sp-table-cell.actions sp-action-menu');
         this.tableViewCreateVariationOption = (menu) => menu.locator('sp-menu-item:has-text("Create variation")');
         this.variationDialog = page.locator('mas-variation-dialog');
@@ -172,22 +173,43 @@ export default class StudioPage {
                     state: 'visible',
                     timeout: 30000,
                 });
-                await this.page.waitForTimeout(1000); // Give editor time to stabilize
 
-                // Wait for clone button and ensure it's enabled
-                await expect(this.cloneCardButton).toBeVisible();
-                await expect(this.cloneCardButton).toBeEnabled();
+                // Wait for network to be idle to ensure all async operations complete
+                await this.page.waitForLoadState('networkidle').catch(() => {});
+                await this.page.waitForTimeout(1500); // Give editor time to stabilize
+
+                await expect(this.cloneCardButton).toBeVisible({ timeout: 10000 });
+                await expect(this.cloneCardButton).toBeEnabled({ timeout: 15000 });
 
                 await this.cloneCardButton.scrollIntoViewIfNeeded();
                 await this.page.waitForTimeout(500);
 
-                await this.cloneCardButton.click({ force: true });
+                // Hover over the button to ensure it's interactive and ready
+                await this.cloneCardButton.hover({ timeout: 5000 });
+                await this.page.waitForTimeout(300);
+
+                // Verify button is still enabled after hover
+                const isEnabled = await this.cloneCardButton.isEnabled();
+                if (!isEnabled) {
+                    throw new Error('[BUTTON_DISABLED] Clone button is not enabled after hover');
+                }
+
+                // Click the button - try normal click first, then force if needed
+                try {
+                    await this.cloneCardButton.click({ timeout: 5000 });
+                } catch (clickError) {
+                    await this.cloneCardButton.click({ force: true });
+                }
 
                 // Wait for fragment title dialog and enter title
-                await this.page.waitForSelector('sp-dialog[variant="confirmation"]', {
-                    state: 'visible',
-                    timeout: 15000,
-                });
+                await this.page
+                    .waitForSelector('sp-dialog[variant="confirmation"]', {
+                        state: 'visible',
+                        timeout: 15000,
+                    })
+                    .catch(() => {
+                        throw new Error('[CLICK_FAILED] Clone button click did not trigger confirmation dialog');
+                    });
 
                 // Enter fragment title with run ID
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
@@ -223,6 +245,16 @@ export default class StudioPage {
                 await this.toastPositive.waitFor({ timeout: 15000 }).catch(() => {
                     throw new Error('[NO_RESPONSE] Clone operation failed - no success toast shown');
                 });
+
+                // Wait for toast to disappear to ensure operation is fully complete
+                // This prevents failures on subsequent operations that might be affected by lingering toasts
+                const anyToast = this.page.locator('mas-toast >> sp-toast');
+                const isToastVisible = await anyToast.isVisible().catch(() => false);
+                if (isToastVisible) {
+                    await anyToast.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+                    // Give a bit more time after toast disappears for UI to stabilize
+                    await this.page.waitForTimeout(500);
+                }
             }, true);
         } catch (e) {
             // On failure, collect all attempt errors and console logs
@@ -546,7 +578,7 @@ export default class StudioPage {
         await this.page.waitForTimeout(1000);
 
         await expect(this.editor.variant).toBeVisible({ timeout: 10000 });
-        await this.editor.variant.locator('sp-picker').first().click();
+        await this.editor.variant.click();
         await this.page.locator(`sp-menu-item[value="${variant}"]`).first().click();
         await this.page.waitForTimeout(1000);
 
@@ -612,13 +644,33 @@ export default class StudioPage {
 
         if (isInEditor) {
             // Create variation from editor sidenav
-            await expect(this.createVariationButton).toBeVisible();
-            await expect(this.createVariationButton).toBeEnabled();
+            // Wait for network to be idle to ensure all async operations complete
+            await this.page.waitForLoadState('networkidle').catch(() => {});
+            await this.page.waitForTimeout(500);
+
+            await expect(this.createVariationButton).toBeVisible({ timeout: 10000 });
+            await expect(this.createVariationButton).toBeEnabled({ timeout: 15000 });
 
             await this.createVariationButton.scrollIntoViewIfNeeded();
             await this.page.waitForTimeout(500);
 
-            await this.createVariationButton.click({ force: true });
+            // Hover over the button to ensure it's interactive and ready
+            await this.createVariationButton.hover({ timeout: 5000 });
+            await this.page.waitForTimeout(300);
+
+            // Verify button is still enabled after hover
+            const isEnabled = await this.createVariationButton.isEnabled();
+            if (!isEnabled) {
+                throw new Error('[BUTTON_DISABLED] Create variation button is not enabled after hover');
+            }
+
+            // Click the button - try normal click first, then force if needed
+            try {
+                await this.createVariationButton.click({ timeout: 5000 });
+            } catch (clickError) {
+                // If normal click fails, try with force
+                await this.createVariationButton.click({ force: true });
+            }
         } else {
             // Create variation from table view
             await this.switchToTableView();

@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
 import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
@@ -8,7 +8,8 @@ import COMFries from '../studio/commerce/fries/fries.page.js';
 import AHTryBuyWidgetPage from '../studio/ahome/try-buy-widget/try-buy-widget.page.js';
 import AHPromotedPlansPage from '../studio/ahome/promoted-plans/promoted-plans.page.js';
 import ACOMPlansIndividualsPage from '../studio/acom/plans/individuals/individuals.page.js';
-import ACOMFullPricingExpressPage from '../studio/acom/full-pricing-express/full-pricing-express.page.js';
+import EXPRESSFullPricingPage from '../studio/express/full-pricing/full-pricing.page.js';
+import VersionPage from '../studio/versions/versions.page.js';
 import OSTPage from '../studio/ost.page.js';
 import WebUtil from './webutil.js';
 
@@ -24,6 +25,7 @@ let individuals;
 let fullPricingExpress;
 let ost;
 let webUtil;
+let versionPage;
 let clonedCardID = '';
 let currentTestPage = '';
 
@@ -58,10 +60,10 @@ const masTest = base.extend({
         trybuywidget = new AHTryBuyWidgetPage(page);
         promotedplans = new AHPromotedPlansPage(page);
         individuals = new ACOMPlansIndividualsPage(page);
-        fullPricingExpress = new ACOMFullPricingExpressPage(page);
+        fullPricingExpress = new EXPRESSFullPricingPage(page);
         ost = new OSTPage(page);
         webUtil = new WebUtil(page);
-
+        versionPage = new VersionPage(page);
         // Initialize counter
         await GlobalRequestCounter.init(page);
 
@@ -110,6 +112,7 @@ export {
     fullPricingExpress,
     ost,
     webUtil,
+    versionPage,
     setClonedCardID,
     getClonedCardID,
     setTestPage,

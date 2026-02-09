@@ -39,7 +39,7 @@ async function cleanupClonedCards(options = {}) {
         daysBack = 2,
         dryRun = false,
         verbose = false,
-        user = 'cod23684+masautomation@adobetest.com',
+        user = process.env.IMS_EMAIL || 'cod23684+masautomation@adobetest.com',
     } = options;
 
     console.log('🧹 MAS Studio Fragment Cleanup Utility');
@@ -80,12 +80,14 @@ async function cleanupClonedCards(options = {}) {
             const pathsToCheck = [
                 '#page=content&path=nala', // Default path
                 '#locale=fr_FR&page=content&path=nala', // French locale path
+                '#locale=en_CA&page=content&path=nala', // Canadian locale path
+                '#locale=en_GB&page=content&path=nala', // British locale path
                 '#locale=en_AU&page=content&path=nala', // Australian locale path
             ];
 
             let totalFragmentsFound = 0;
             let totalFragmentsDeleted = 0;
-            let allFailedFragments = [];
+            const allFailedFragments = [];
             const processedFragmentIds = new Set();
             // Navigate to studio home first to warm up the session
             if (verbose) {
@@ -312,7 +314,7 @@ async function cleanupClonedCards(options = {}) {
             }
 
             // Print summary
-            console.log('\n' + '='.repeat(42));
+            console.log(`\n${'='.repeat(42)}`);
             console.log('Summary:');
             console.log(`  Total fragments found      : ${totalFragmentsFound}`);
             if (dryRun) {
@@ -371,7 +373,7 @@ Usage:
 Options:
   --days <number>   Number of days back to clean (default: 2)
   --url <url>       Base URL to clean (default: from env or main--mas--adobecom.aem.live)
-  --user <email>    Target user email (default: cod23684+masautomation@adobetest.com)
+  --user <email>    Target user email (default: IMS_EMAIL env var or cod23684+masautomation@adobetest.com)
   --dry-run         Preview what would be deleted without actually deleting
   --verbose, -v     Show detailed output
   --help, -h        Show this help message

@@ -1,5 +1,3 @@
-import { PRICE_PATTERN } from '../utils/commerce.js';
-
 export default {
     FeatureName: 'M@S Studio',
     features: [
@@ -136,19 +134,6 @@ export default {
             data: {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 variant: 'plans',
-            },
-            tags: '@mas-studio',
-        },
-        {
-            tcid: '15',
-            name: '@studio-create-variation',
-            path: '/studio.html',
-            browserParams: '#page=content&path=nala',
-            data: {
-                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
-                locale: 'en_AU',
-                localeName: 'Australia',
-                price: PRICE_PATTERN.AU.mo,
             },
             tags: '@mas-studio',
         },

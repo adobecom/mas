@@ -169,14 +169,16 @@ async function cleanupClonedCards() {
 
         // Define paths to check for fragments (different locales/views)
         const pathsToCheck = [
-            // '#locale=en_AU&page=content&path=nala', // Australian locale path
             '#page=content&path=nala', // Default path
             '#locale=fr_FR&page=content&path=nala', // French locale path
+            '#locale=en_CA&page=content&path=nala', // Canadian locale path
+            '#locale=en_GB&page=content&path=nala', // British locale path
+            '#locale=en_AU&page=content&path=nala', // Australian locale path
         ];
 
         let totalFragmentsFound = 0;
         let totalFragmentsDeleted = 0;
-        let allFailedFragments = [];
+        const allFailedFragments = [];
         const processedFragmentIds = new Set(); // Track fragments we've already processed
 
         try {

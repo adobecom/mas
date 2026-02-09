@@ -1,22 +1,8 @@
-import { test, expect, miloLibs, setTestPage } from '../libs/mas-test.js';
-import StudioPage from './studio.page.js';
-import EditorPage from './editor.page.js';
-import VersionPageSpec from './version-page.spec.js';
-import VersionPage from './version-page.page.js';
-
+import { test, expect, versionPage, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import VersionPageSpec from '../specs/versions.spec.js';
 const { features } = VersionPageSpec;
 
 test.describe('M@S Studio - Version Page test suite', () => {
-    let studio;
-    let editor;
-    let versionPage;
-
-    test.beforeEach(async ({ page }) => {
-        studio = new StudioPage(page);
-        editor = new EditorPage(page);
-        versionPage = new VersionPage(page);
-    });
-
     // @version-page-load - Validate version page loads correctly
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];

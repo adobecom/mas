@@ -1,6 +1,19 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from 'lit';
+import { html, css } from 'lit';
 import { CSS } from './image.css.js';
+
+export const IMAGE_AEM_FRAGMENT_MAPPING = {
+    cardName: { attribute: 'name' },
+    badge: true,
+    ctas: { slot: 'footer', size: 'm' },
+    description: { tag: 'div', slot: 'body-xs' },
+    mnemonics: { size: 'l' },
+    prices: { tag: 'h3', slot: 'heading-xs' },
+    size: ['wide', 'super-wide'],
+    title: { tag: 'h3', slot: 'heading-xs' },
+    subtitle: { tag: 'p', slot: 'body-xxs' },
+    backgroundImage: { tag: 'div', slot: 'bg-image' },
+};
 
 export class Image extends VariantLayout {
     constructor(card) {
@@ -37,4 +50,11 @@ export class Image extends VariantLayout {
                       ${this.secureLabelFooter}
                   `}`;
     }
+
+    static variantStyle = css`
+        :host([variant='image']) {
+            min-height: 330px;
+            width: var(--consonant-merch-card-image-width);
+        }
+    `;
 }

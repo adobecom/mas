@@ -11,6 +11,7 @@ import {
     EVENT_MAS_ERROR,
     EVENT_MAS_READY,
     EVENT_TYPE_FAILED,
+    EVENT_AEM_LOAD,
 } from '../src/constants.js';
 
 chai.use(chaiAsPromised);
@@ -150,6 +151,66 @@ runTests(async () => {
                     false,
                 );
                 expect(cache.has('ref456')).to.false;
+                cache.clear();
+            });
+
+            it('getOrFetch returns cached data without calling fetchFn', async () => {
+                cache.clear();
+                cache.add({ id: 'cached-test', fields: {} });
+                let fetchCalled = false;
+                const result = await cache.getOrFetch(
+                    'cached-test',
+                    async () => {
+                        fetchCalled = true;
+                    },
+                );
+                expect(fetchCalled).to.be.false;
+                expect(result.id).to.equal('cached-test');
+                cache.clear();
+            });
+
+            it('getOrFetch deduplicates concurrent calls', async () => {
+                cache.clear();
+                let fetchCount = 0;
+                const fetchFn = async () => {
+                    fetchCount++;
+                    await delay(50);
+                    const fragment = { id: 'dedup-test', fields: {} };
+                    cache.add(fragment);
+                    return fragment;
+                };
+                const [result1, result2] = await Promise.all([
+                    cache.getOrFetch('dedup-test', fetchFn),
+                    cache.getOrFetch('dedup-test', fetchFn),
+                ]);
+                expect(fetchCount).to.equal(1);
+                expect(result1).to.equal(result2);
+                expect(cache.has('dedup-test')).to.be.true;
+                cache.clear();
+            });
+
+            it('getOrFetch cleans up on error allowing retry', async () => {
+                cache.clear();
+                let callCount = 0;
+                try {
+                    await cache.getOrFetch('error-test', async () => {
+                        callCount++;
+                        throw new Error('network error');
+                    });
+                } catch (e) {
+                    expect(e.message).to.equal('network error');
+                }
+                const fragment = { id: 'error-test', fields: {} };
+                const result = await cache.getOrFetch(
+                    'error-test',
+                    async () => {
+                        callCount++;
+                        cache.add(fragment);
+                        return fragment;
+                    },
+                );
+                expect(callCount).to.equal(2);
+                expect(result.id).to.equal('error-test');
                 cache.clear();
             });
         });
@@ -350,6 +411,26 @@ runTests(async () => {
                 expect(fragment.fetchInfo['aem-fragment:measure']).to.exist;
             });
 
+            it('deduplicates concurrent fetches for the same fragment ID', async () => {
+                cache.clear();
+                const count = aemMock.count;
+                const fragment1 = addFragment('fragment-cc-all-apps');
+                const fragment2 = addFragment('fragment-cc-all-apps');
+                const fragment3 = addFragment('fragment-cc-all-apps');
+                await Promise.all([
+                    fragment1.updateComplete,
+                    fragment2.updateComplete,
+                    fragment3.updateComplete,
+                ]);
+                expect(aemMock.count).to.equal(count + 1);
+                expect(fragment1.data).to.exist;
+                expect(fragment2.data).to.exist;
+                expect(fragment3.data).to.exist;
+                fragment1.remove();
+                fragment2.remove();
+                fragment3.remove();
+            });
+
             it('populates the fragment cache from references', async () => {
                 const topCollection = addFragment('collection');
                 await oneEvent(topCollection, 'aem:load');
@@ -471,6 +552,69 @@ runTests(async () => {
                 expect(fetch.lastCall.firstArg).to.equal(
                     'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
+            });
+        });
+
+        describe('field attribute', () => {
+            afterEach(() => {
+                document.querySelectorAll('aem-fragment[field]').forEach((el) => el.remove());
+            });
+
+            it('should render field content when field attribute is present', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-render-field');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(aemFragment.textContent).to.include('Get Photoshop');
+                expect(aemFragment.innerHTML).to.include('inline-price');
+            });
+
+            it('should render different fields based on field attribute', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-render-promo');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(aemFragment.textContent).to.include('Save 50%');
+            });
+
+            it('should not render content without field attribute', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-no-field');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(aemFragment.innerHTML).to.equal('');
+            });
+
+            it('should handle missing field gracefully', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-render-missing-field');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                expect(aemFragment.innerHTML).to.equal('');
+            });
+
+            it('should unwrap single paragraph tags', async () => {
+                const [aemFragment] = getTemplateContent('aem-fragment-render-field');
+                spTheme.append(aemFragment);
+
+                await new Promise((resolve) => {
+                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                });
+
+                const trimmed = aemFragment.innerHTML.trim();
+                expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
             });
         });
     });

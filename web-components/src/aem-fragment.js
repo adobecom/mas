@@ -15,6 +15,7 @@ const ATTRIBUTE_AUTHOR = 'author';
 const ATTRIBUTE_PREVIEW = 'preview';
 const ATTRIBUTE_LOADING = 'loading';
 const ATTRIBUTE_TIMEOUT = 'timeout';
+const ATTRIBUTE_FIELD = 'field';
 const AEM_FRAGMENT_TAG_NAME = 'aem-fragment';
 const LOADING_EAGER = 'eager';
 const LOADING_CACHE = 'cache';
@@ -24,11 +25,13 @@ class FragmentCache {
     #fragmentCache = new Map();
     #fetchInfos = new Map();
     #promises = new Map();
+    #inFlight = new Map();
 
     clear() {
         this.#fragmentCache.clear();
         this.#fetchInfos.clear();
         this.#promises.clear();
+        this.#inFlight.clear();
     }
 
     /**
@@ -130,6 +133,19 @@ class FragmentCache {
         this.#fragmentCache.delete(fragmentId);
         this.#fetchInfos.delete(fragmentId);
         this.#promises.delete(fragmentId);
+        this.#inFlight.delete(fragmentId);
+    }
+
+    getOrFetch(key, fetchFn) {
+        const cached = this.#fragmentCache.get(key);
+        if (cached) return Promise.resolve(cached);
+        const inFlight = this.#inFlight.get(key);
+        if (inFlight) return inFlight;
+        const promise = fetchFn().finally(() => {
+            this.#inFlight.delete(key);
+        });
+        this.#inFlight.set(key, promise);
+        return promise;
     }
 }
 
@@ -168,6 +184,8 @@ export class AemFragment extends HTMLElement {
 
     #preview = undefined;
 
+    #field = null;
+
     static get observedAttributes() {
         return [
             ATTRIBUTE_FRAGMENT,
@@ -175,6 +193,7 @@ export class AemFragment extends HTMLElement {
             ATTRIBUTE_TIMEOUT,
             ATTRIBUTE_AUTHOR,
             ATTRIBUTE_PREVIEW,
+            ATTRIBUTE_FIELD,
         ];
     }
 
@@ -194,6 +213,9 @@ export class AemFragment extends HTMLElement {
         }
         if (name === ATTRIBUTE_PREVIEW) {
             this.#preview = newValue;
+        }
+        if (name === ATTRIBUTE_FIELD) {
+            this.#field = newValue;
         }
     }
 
@@ -277,6 +299,30 @@ export class AemFragment extends HTMLElement {
         Object.assign(this.#fetchInfo, getLogHeaders(response));
     }
 
+    // Rich text fields from AEM are wrapped in <p> tags. Strips the wrapper for
+    // single-paragraph content so it renders inline, keeps multiple paragraphs intact.
+    #unwrapSingleParagraph(html) {
+        if (typeof html !== 'string') return html;
+        const trimmed = html.trim();
+        const hasWrapper = trimmed.startsWith('<p>') && trimmed.endsWith('</p>');
+        if (!hasWrapper) return html;
+        const inner = trimmed.slice('<p>'.length, -'</p>'.length);
+        return inner.includes('<p>') ? html : inner;
+    }
+
+    #renderField() {
+        if (!this.#field) return;
+
+        const fieldValue = this.data?.fields?.[this.#field];
+        if (fieldValue === undefined) {
+            this.#log?.warn?.(`Field "${this.#field}" not found in fragment`);
+            return;
+        }
+
+        const content = this.#unwrapSingleParagraph(fieldValue);
+        this.innerHTML = content;
+    }
+
     async refresh(flushCache = true) {
         if (this.#fetchPromise) {
             const ready = await Promise.race([
@@ -307,6 +353,8 @@ export class AemFragment extends HTMLElement {
         if (wcs && !getParameter('mas.disableWcsCache')) {
             this.#service.prefillWcsCache(wcs);
         }
+
+        this.#renderField();
 
         this.dispatchEvent(
             new CustomEvent(EVENT_AEM_LOAD, {
@@ -345,20 +393,20 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(this.#fragmentId);
-        if (fragment) {
-            this.#rawData = fragment;
-            return true;
-        }
         const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
         }
-
-        fragment = await this.#getFragmentById(endpoint);
-        fragment.fields.originalId ??= this.#fragmentId;
-        cache.add(fragment);
+        const fragment = await cache.getOrFetch(
+            this.#fragmentId,
+            async () => {
+                const result = await this.#getFragmentById(endpoint);
+                result.fields.originalId ??= this.#fragmentId;
+                cache.add(result);
+                return result;
+            },
+        );
         this.#rawData = fragment;
         return true;
     }

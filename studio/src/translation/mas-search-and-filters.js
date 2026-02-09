@@ -11,7 +11,6 @@ class MasSearchAndFilters extends LitElement {
 
     static properties = {
         type: { type: String }, // 'cards' | 'collections' | 'placeholders'
-        resultCount: { type: Number },
         searchQuery: { type: String },
         templateFilter: { type: Array, state: true },
         marketSegmentFilter: { type: Array, state: true },
@@ -26,7 +25,6 @@ class MasSearchAndFilters extends LitElement {
 
     constructor() {
         super();
-        this.resultCount = 0;
         this.searchQuery = '';
         this.templateFilter = [];
         this.marketSegmentFilter = [];
@@ -37,38 +35,40 @@ class MasSearchAndFilters extends LitElement {
         this.customerSegmentOptions = [];
         this.productOptions = [];
         this.dataSubscription = null;
-        this.loadingController = new ReactiveController(this, [
-            Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
-        ]);
     }
 
     connectedCallback() {
         super.connectedCallback();
+        this.commonDataController = new ReactiveController(this, [
+            Store.translationProjects[`display${this.typeUppercased}`],
+            Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
+        ]);
+
         switch (this.type) {
             case TABLE_TYPE.CARDS:
-                return Store.translationProjects.allCards.subscribe(() => {
+                this.dataSubscription = Store.translationProjects.allCards.subscribe(() => {
                     if (!this.searchOnly) {
                         this.#extractFilterOptions();
                     }
-                    this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
                     this.requestUpdate();
                 });
+                break;
             case TABLE_TYPE.COLLECTIONS:
-                return Store.translationProjects.allCollections.subscribe(() => {
+                this.dataSubscription = Store.translationProjects.allCollections.subscribe(() => {
                     if (!this.searchOnly) {
                         this.#extractFilterOptions();
                     }
-                    this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
                     this.requestUpdate();
                 });
+                break;
             case TABLE_TYPE.PLACEHOLDERS:
-                return Store.placeholders.list.data.subscribe(() => {
+                this.dataSubscription = Store.placeholders.list.data.subscribe(() => {
                     if (!this.searchOnly) {
                         this.#extractFilterOptions();
                     }
-                    this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
                     this.requestUpdate();
                 });
+                break;
         }
     }
 
@@ -82,6 +82,7 @@ class MasSearchAndFilters extends LitElement {
                 Store.translationProjects.displayCollections.set(Store.translationProjects.allCollections.value);
                 break;
             case TABLE_TYPE.PLACEHOLDERS:
+                Store.translationProjects.displayPlaceholders.set(Store.translationProjects.allPlaceholders.value);
                 break;
         }
         this.dataSubscription?.unsubscribe();
@@ -92,7 +93,16 @@ class MasSearchAndFilters extends LitElement {
     }
 
     get isLoading() {
-        return Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading.get();
+        switch (this.type) {
+            case TABLE_TYPE.CARDS:
+                return Store.fragments.list.loading.get();
+            case TABLE_TYPE.COLLECTIONS:
+                return Store.fragments.list.loading.get();
+            case TABLE_TYPE.PLACEHOLDERS:
+                return Store.placeholders.list.loading.get();
+            default:
+                return false;
+        }
     }
 
     get appliedFilters() {
@@ -121,20 +131,11 @@ class MasSearchAndFilters extends LitElement {
         return filters;
     }
 
-    get allItems() {
-        switch (this.type) {
-            case TABLE_TYPE.CARDS:
-                return Store.translationProjects.allCards.value;
-            case TABLE_TYPE.COLLECTIONS:
-                return Store.translationProjects.allCollections.value;
-        }
-    }
-
     #extractFilterOptions() {
         const marketSegments = new Map();
         const customerSegments = new Map();
         const products = new Map();
-        for (const fragment of this.allItems) {
+        for (const fragment of Store.translationProjects[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
             for (const tag of fragment.tags) {
@@ -263,7 +264,7 @@ class MasSearchAndFilters extends LitElement {
                         `,
                     )}
                 </sp-tags>
-                <a class="clear-all" @click=${this.#clearAllFilters}>Clear all</a>
+                <sp-action-button quiet @click=${this.#clearAllFilters}>Clear all</sp-action-button>
             </div>
         `;
     }
@@ -346,14 +347,14 @@ class MasSearchAndFilters extends LitElement {
         });
 
         Store.translationProjects[`display${this.typeUppercased}`].set(result);
-        this.resultCount = Store.translationProjects[`display${this.typeUppercased}`].value.length;
     }
 
     renderCount() {
         return html`<div class="result-count">
-            ${Store.fragments.list.loading.get()
+            ${this.isLoading
                 ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
-                : html`${this.resultCount} result${this.resultCount !== 1 ? 's' : ''}`}
+                : html`${Store.translationProjects[`display${this.typeUppercased}`].value.length}
+                  result${Store.translationProjects[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
         </div>`;
     }
 
@@ -372,8 +373,9 @@ class MasSearchAndFilters extends LitElement {
             </div>
 
                 ${
-                    !this.searchOnly
-                        ? html`
+                    this.searchOnly
+                        ? nothing
+                        : html`
                               <div class="filters">
                                   ${this.#renderFilterPicker(
                                       'Template',
@@ -403,7 +405,6 @@ class MasSearchAndFilters extends LitElement {
 
                               ${this.#renderAppliedFilters()}
                           `
-                        : nothing
                 }
             </div>
         `;

@@ -751,12 +751,9 @@ describe('Translation project-start', () => {
                 '/adobe/sites/cf/fragments?path/content/dam/mas/foo/fr_FR.+': responses.notFound(),
                 '/adobe/sites/cf/fragments?path/content/dam/mas/foo/it_IT.+': responses.notFound(),
                 '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/dictionary/placeholder1': responses.notFound(),
-                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index': responses.ok(
-                    {
-                        items: [{ id: 'dict-de-id', fields: [{ name: 'entries', values: [] }] }],
-                    },
-                    '"test-de-ph-etag"',
-                ),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index': responses.ok({
+                    items: [{ id: 'dict-de-id', etag: 'test-de-ph-etag', fields: [{ name: 'entries', values: [] }] }],
+                }),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/fr_FR/dictionary/index': responses.notFound(),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/it_IT/dictionary/index': responses.notFound(),
                 '/adobe/sites/cf/fragments/dict-de-id/versions': responses.ok(),
@@ -776,7 +773,7 @@ describe('Translation project-start', () => {
             expect(callCounts['/adobe/sites/cf/fragments/dict-de-id']).to.equal(1);
             expect(lastCallOptions['/adobe/sites/cf/fragments/dict-de-id'].method).to.equal('PATCH');
             expect(lastCallOptions['/adobe/sites/cf/fragments/dict-de-id'].headers).to.deep.include({
-                'If-Match': '"test-de-ph-etag"',
+                'If-Match': 'test-de-ph-etag',
             });
             const syncBody = JSON.parse(lastCallOptions['/adobe/sites/cf/fragments/dict-de-id'].body);
             expect(syncBody).to.be.an('array');

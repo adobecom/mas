@@ -72,11 +72,11 @@ async function fetchFragmentByPath(odinEndpoint, fragmentPath, authToken) {
         return { fragment: null, status: 404 };
     }
     if (response.ok) {
-        const etag = response?.headers?.get('etag');
         if (response.json) {
             const responseObject = await response.json();
             if (responseObject.items?.length > 0) {
                 const fragment = responseObject.items[0];
+                const { etag } = fragment;
                 return { fragment, status: 200, etag };
             }
         }

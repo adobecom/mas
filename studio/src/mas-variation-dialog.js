@@ -132,7 +132,8 @@ export class MasVariationDialog extends LitElement {
     }
 
     get availableTargetLocales() {
-        return getRegionLocales(Store.surface(), this.sourceLocale || 'en_US', false).map((locale) => ({
+        const [sourceLanguage] = (this.sourceLocale || 'en_US').split('_');
+        return getRegionLocales(Store.surface(), sourceLanguage, false).map((locale) => ({
             ...locale,
             disabled: this.existingVariationLocales.includes(getLocaleCode(locale)),
         }));

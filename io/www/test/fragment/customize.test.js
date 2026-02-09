@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
-import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
+import { deepMerge, getCorrespondingLocale, transformer as customize } from '../../src/fragment/transformers/customize.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
@@ -39,6 +39,32 @@ function mockFrenchFragment() {
             }),
         );
 }
+
+describe('customize subfunctions', function () {
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
+    it('getCorrespondingLocale should return correct default locale', function () {
+        expect(getCorrespondingLocale('fr_CA')).to.equal('fr_FR');
+        expect(getCorrespondingLocale('fr_FR')).to.equal('fr_FR');
+        expect(getCorrespondingLocale('fr_CH')).to.equal('fr_FR');
+        expect(getCorrespondingLocale('en_AU')).to.equal('en_US');
+        expect(getCorrespondingLocale('en_US')).to.equal('en_US');
+        expect(getCorrespondingLocale('en_CA')).to.equal('en_US');
+        expect(getCorrespondingLocale('es_MX')).to.equal('es_ES');
+        expect(getCorrespondingLocale('es_ES')).to.equal('es_ES');
+        expect(getCorrespondingLocale('de_DE')).to.equal('de_DE');
+        expect(getCorrespondingLocale('it_IT')).to.equal('it_IT');
+        expect(getCorrespondingLocale('ja_JP')).to.equal('ja_JP');
+        expect(getCorrespondingLocale('zh_CN')).to.equal('zh_CN');
+        expect(getCorrespondingLocale('zh_TW')).to.equal('zh_TW');
+    });
+});
 
 describe('customize collections', function () {
     it('should have a working deep Merge function', function () {
@@ -79,7 +105,7 @@ describe('customize collections', function () {
         const result = await process({
             ...FAKE_CONTEXT,
             fragmentPath: 'another-collection',
-            locale: 'en_KW',
+            locale: 'en_AU',
             id: 'coll-en-us',
             body: FRAGMENT_COLL_RESPONSE_US,
         });
@@ -87,18 +113,18 @@ describe('customize collections', function () {
         expect(result.status).to.equal(200);
 
         expect(result.body.fields.collections[0], 'expecting main fragment collections field to be customized').to.equal(
-            'subcoll-en-kw',
+            'subcoll-en-au',
         );
 
         expect(
             result.body.referencesTree[0].identifier,
             'expecting main fragment reference tree field to be customized as well',
-        ).to.equal('subcoll-en-kw');
+        ).to.equal('subcoll-en-au');
 
         expect(
-            result.body.references['subcoll-en-kw'].value.fields.cards,
+            result.body.references['subcoll-en-au'].value.fields.cards,
             'expecting cards field in references to be customized',
-        ).to.deep.equal(['some-card-en-us', 'some-other-card-en-kw']);
+        ).to.deep.equal(['some-card-en-us', 'some-other-card-en-au']);
 
         expect(
             result.body.referencesTree[0].referencesTree[0].identifier,
@@ -108,12 +134,12 @@ describe('customize collections', function () {
         expect(
             result.body.referencesTree[0].referencesTree[1].identifier,
             'expecting 2nd card to be customized in references tree',
-        ).to.deep.equal('some-other-card-en-kw');
+        ).to.deep.equal('some-other-card-en-au');
 
-        const cardKW = result.body.references['some-other-card-en-kw'].value;
-        expect(cardKW.title).to.equal('Photography Promo KW');
-        expect(cardKW.fields.cardTitle).to.equal('Photography  (1TB)');
-        expect(cardKW.fields.backgroundImage).to.equal('https://www.adobe.com/my/image.jpg');
+        const cardAU = result.body.references['some-other-card-en-au'].value;
+        expect(cardAU.title).to.equal('Photography Promo AU');
+        expect(cardAU.fields.cardTitle).to.equal('Photography  (1TB)');
+        expect(cardAU.fields.backgroundImage).to.equal('https://www.adobe.com/my/image.jpg');
     });
 });
 
@@ -206,7 +232,7 @@ describe('customize typical cases', function () {
         expect(result.message).to.equal('fetch error');
     });
 
-    it('should return swiss fragment with override (us fragment, fr locale, ch country)', async function () {
+    it('should return canadian fragment with override (us fragment, fr locale, ch country)', async function () {
         // french fragment by id
         mockFrenchFragment();
 
@@ -246,43 +272,7 @@ describe('customize typical cases', function () {
         });
     });
 
-    it('should return french fragment if country is not supported (us fragment, fr locale, zz country)', async function () {
-        // french fragment by id
-        mockFrenchFragment();
-
-        const result = await process({
-            ...FAKE_CONTEXT,
-            body: {
-                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
-            },
-            fragmentPath: 'ccd-slice-wide-cc-all-app',
-            locale: 'fr_ZZ',
-            country: 'ZZ',
-        });
-        expect(result.status).to.equal(200);
-        expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
-        });
-    });
-
-    it('should return 400 if language is not supported', async function () {
-        // french fragment by id
-        mockFrenchFragment();
-
-        const result = await process({
-            ...FAKE_CONTEXT,
-            body: {
-                path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
-            },
-            fragmentPath: 'ccd-slice-wide-cc-all-app',
-            locale: 'zz_CH',
-            country: 'CH',
-        });
-        expect(result.status).to.equal(400);
-        expect(result.message).to.equal("Default locale not found for requested locale 'zz_CH'");
-    });
-
-    it('should return en_US fragment (us fragment, en_KW locale)', async function () {
+    it('should return en_US fragment (us fragment, en_AU locale)', async function () {
         const usFragment = structuredClone(FRAGMENT_RESPONSE_FR);
         usFragment.path = '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app';
         usFragment.fields.variations = [''];
@@ -310,7 +300,7 @@ describe('customize typical cases', function () {
                 path: '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app',
             },
             fragmentPath: 'ccd-slice-wide-cc-all-app',
-            locale: 'en_KW',
+            locale: 'en_AU',
         });
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.include({
@@ -472,5 +462,12 @@ describe('customize corner cases', function () {
             path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             some: 'body',
         });
+    });
+});
+
+describe('corresponding local corner case', function () {
+    it('locale with no default should be returned', async function () {
+        const locale = getCorrespondingLocale('zh_TW');
+        expect(locale).to.equal('zh_TW');
     });
 });

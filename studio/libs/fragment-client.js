@@ -10,7 +10,7 @@ import { transformer as corrector } from '../../io/www/src/fragment/transformers
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
 import { getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
 import { transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
-import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
+import { transformer as customize, LOCALE_DEFAULTS } from '../../io/www/src/fragment/transformers/customize.js';
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
@@ -134,4 +134,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewFragmentForEditor, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export { previewFragment, previewFragmentForEditor, previewStudioFragment, customize, settings, replace, getDictionary, corrector, LOCALE_DEFAULTS };

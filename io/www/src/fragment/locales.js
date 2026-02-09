@@ -1,3 +1,9 @@
+const ALL_SURFACES = 'all';
+
+const ACOM_SURFACES = ['acom', 'nala', 'sandbox'];
+
+const ALL_NO_EXPRESS_SURFACES = ['acom', 'ccd', 'commerce', 'adobe-home', 'nala', 'sandbox'];
+
 const COUNTRY_DATA = {
     AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
     AR: { name: 'Argentina', flag: '🇦🇷' },
@@ -65,302 +71,94 @@ const COUNTRY_DATA = {
     ZA: { name: 'South Africa', flag: '🇿🇦' },
 };
 
-const ACOM = [
-    { lang: 'ar', country: 'SA', regions: ['AE', 'EG', 'KW', 'QA'] },
-    { lang: 'bg', country: 'BG' },
-    { lang: 'cs', country: 'CZ' },
-    { lang: 'da', country: 'DK' },
-    { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
-    { lang: 'el', country: 'GR' },
-    {
-        lang: 'en',
-        country: 'US',
-        regions: [
-            'AE',
-            'AR',
-            'BE',
-            'CA',
-            'EG',
-            'GR',
-            'HK',
-            'ID',
-            'IE',
-            'IL',
-            'KW',
-            'LU',
-            'MY',
-            'NG',
-            'NZ',
-            'PH',
-            'QA',
-            'SA',
-            'SG',
-            'TH',
-            'VN',
-            'ZA',
-        ],
-    },
-    { lang: 'en', country: 'GB', regions: ['AU', 'IN'] },
-    { lang: 'et', country: 'EE' },
-    { lang: 'fi', country: 'FI' },
-    { lang: 'fil', country: 'PH' },
-    { lang: 'fr', country: 'FR', regions: ['BE', 'CA', 'CH', 'LU'] },
-    { lang: 'he', country: 'IL' },
-    { lang: 'hi', country: 'IN' },
-    { lang: 'hu', country: 'HU' },
-    { lang: 'id', country: 'ID' },
-    { lang: 'it', country: 'IT', regions: ['CH'] },
-    { lang: 'ja', country: 'JP' },
-    { lang: 'ko', country: 'KR' },
-    { lang: 'lt', country: 'LT' },
-    { lang: 'lv', country: 'LV' },
-    { lang: 'ms', country: 'MY' },
-    { lang: 'nb', country: 'NO' },
-    { lang: 'nl', country: 'NL', regions: ['BE'] },
-    { lang: 'pl', country: 'PL' },
-    { lang: 'pt', country: 'BR' },
-    { lang: 'pt', country: 'PT' },
-    { lang: 'ro', country: 'RO' },
-    { lang: 'ru', country: 'RU' },
-    { lang: 'sk', country: 'SK' },
-    { lang: 'sl', country: 'SI' },
-    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
-    { lang: 'sv', country: 'SE' },
-    { lang: 'th', country: 'TH' },
-    { lang: 'tr', country: 'TR' },
-    { lang: 'uk', country: 'UA' },
-    { lang: 'vi', country: 'VN' },
-    { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'HK' },
-    { lang: 'zh', country: 'TW' },
+const LOCALES = [
+    { lang: 'ar', country: 'AE', region: 'ALL_SURFACES' },
+    { lang: 'ar', country: 'EG', region: ALL_SURFACES },
+    { lang: 'ar', country: 'KW', region: ALL_SURFACES },
+    { lang: 'ar', country: 'QA', region: ALL_SURFACES },
+    { lang: 'ar', country: 'SA', default: ACOM_SURFACES },
+    { lang: 'bg', country: 'BG', default: ACOM_SURFACES },
+    { lang: 'zh', country: 'CN', default: ALL_SURFACES },
+    { lang: 'zh', country: 'HK', default: ACOM_SURFACES },
+    { lang: 'zh', country: 'TW', default: ALL_SURFACES },
+    { lang: 'cs', country: 'CZ', default: ALL_NO_EXPRESS_SURFACES },
+    { lang: 'da', country: 'DK', default: ALL_SURFACES },
+    { lang: 'nl', country: 'NL', default: ALL_SURFACES },
+    { lang: 'de', country: 'AT', region: ALL_SURFACES },
+    { lang: 'de', country: 'CH', region: ALL_SURFACES },
+    { lang: 'en', country: 'AE', region: ALL_SURFACES },
+    { lang: 'en', country: 'AR', region: ALL_SURFACES },
+    { lang: 'en', country: 'AU', region: ALL_SURFACES },
+    { lang: 'en', country: 'BE', region: ALL_SURFACES },
+    { lang: 'en', country: 'CA', region: ALL_SURFACES },
+    { lang: 'en', country: 'EG', region: ALL_SURFACES },
+    { lang: 'en', country: 'GR', region: ALL_SURFACES },
+    { lang: 'en', country: 'HK', region: ALL_SURFACES },
+    { lang: 'en', country: 'ID', region: ALL_SURFACES },
+    { lang: 'en', country: 'IE', region: ALL_SURFACES },
+    { lang: 'en', country: 'IL', region: ALL_SURFACES },
+    { lang: 'en', country: 'IN', region: ALL_SURFACES },
+    { lang: 'en', country: 'KW', region: ALL_SURFACES },
+    { lang: 'en', country: 'LU', region: ALL_SURFACES },
+    { lang: 'en', country: 'MY', region: ALL_SURFACES },
+    { lang: 'en', country: 'NG', region: ALL_SURFACES },
+    { lang: 'en', country: 'NZ', region: ALL_SURFACES },
+    { lang: 'en', country: 'PH', region: ALL_SURFACES },
+    { lang: 'en', country: 'QA', region: ALL_SURFACES },
+    { lang: 'en', country: 'SA', region: ALL_SURFACES },
+    { lang: 'en', country: 'SG', region: ALL_SURFACES },
+    { lang: 'en', country: 'TH', region: ALL_SURFACES },
+    { lang: 'en', country: 'US', default: ALL_SURFACES },
+    { lang: 'en', country: 'VN', region: ALL_SURFACES },
+    { lang: 'en', country: 'ZA', region: ALL_SURFACES },
+    { lang: 'en', country: 'GB', region: ACOM_SURFACES },
+    { lang: 'et', country: 'EE', region: ALL_SURFACES },
+    { lang: 'fi', country: 'FI', default: ALL_SURFACES },
+    { lang: 'fil', country: 'PH', region: ACOM_SURFACES },
+    { lang: 'fr', country: 'FR', default: ALL_SURFACES },
+    { lang: 'fr', country: 'BE', region: ALL_SURFACES },
+    { lang: 'fr', country: 'CA', region: ALL_SURFACES },
+    { lang: 'fr', country: 'CH', region: ALL_SURFACES },
+    { lang: 'de', country: 'DE', default: ALL_SURFACES },
+    { lang: 'de', country: 'LU', region: ALL_SURFACES },
+    { lang: 'el', country: 'GR', default: ACOM_SURFACES },
+    { lang: 'fr', country: 'LU', region: ALL_SURFACES },
+    { lang: 'he', country: 'IL', default: ACOM_SURFACES },
+    { lang: 'hi', country: 'IN', default: ['acom', 'ccd', 'nala', 'sandbox'] },
+    { lang: 'hu', country: 'HU', default: ALL_NO_EXPRESS_SURFACES },
+    { lang: 'id', country: 'ID', default: ALL_SURFACES },
+    { lang: 'it', country: 'CH', region: ALL_SURFACES },
+    { lang: 'it', country: 'IT', default: ALL_SURFACES },
+    { lang: 'ja', country: 'JP', default: ALL_SURFACES },
+    { lang: 'ko', country: 'KR', default: ALL_SURFACES },
+    { lang: 'lt', country: 'LT', default: ACOM_SURFACES },
+    { lang: 'lv', country: 'LV', default: ACOM_SURFACES },
+    { lang: 'ms', country: 'MY', default: ACOM_SURFACES },
+    { lang: 'nb', country: 'NO', default: ALL_SURFACES },
+    { lang: 'nl', country: 'BE', region: ALL_SURFACES },
+    { lang: 'pl', country: 'PL', default: ALL_NO_EXPRESS_SURFACES },
+    { lang: 'pt', country: 'BR', default: ['express', 'ccd', 'adobe-home'], region: ACOM_SURFACES },
+    { lang: 'pt', country: 'PT', default: ACOM_SURFACES },
+    { lang: 'ro', country: 'RO', default: ACOM_SURFACES },
+    { lang: 'ru', country: 'RU', default: ALL_NO_EXPRESS_SURFACES },
+    { lang: 'sk', country: 'SK', default: ACOM_SURFACES },
+    { lang: 'sl', country: 'SI', default: ACOM_SURFACES },
+    { lang: 'es', country: 'AR', region: ALL_SURFACES },
+    { lang: 'es', country: 'CL', region: ALL_SURFACES },
+    { lang: 'es', country: 'CO', region: ALL_SURFACES },
+    { lang: 'es', country: 'CR', region: ALL_SURFACES },
+    { lang: 'es', country: 'EC', region: ALL_SURFACES },
+    { lang: 'es', country: 'ES', default: ALL_SURFACES },
+    { lang: 'es', country: 'GT', region: ALL_SURFACES },
+    { lang: 'es', country: 'MX', region: ALL_SURFACES },
+    { lang: 'es', country: 'PE', region: ALL_SURFACES },
+    { lang: 'es', country: 'PR', region: ALL_SURFACES },
+    { lang: 'sv', country: 'SE', default: ALL_SURFACES },
+    { lang: 'th', country: 'TH', default: ALL_NO_EXPRESS_SURFACES },
+    { lang: 'tr', country: 'TR', default: ALL_NO_EXPRESS_SURFACES },
+    { lang: 'uk', country: 'UA', default: ALL_NO_EXPRESS_SURFACES },
+    { lang: 'vi', country: 'VN', default: ALL_NO_EXPRESS_SURFACES },
 ];
-
-const CCD = [
-    { lang: 'cs', country: 'CZ' },
-    { lang: 'da', country: 'DK' },
-    { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
-    {
-        lang: 'en',
-        country: 'US',
-        regions: [
-            'AE',
-            'AR',
-            'AU',
-            'BE',
-            'CA',
-            'EG',
-            'GR',
-            'HK',
-            'ID',
-            'IE',
-            'IL',
-            'IN',
-            'KW',
-            'LU',
-            'MY',
-            'NG',
-            'NZ',
-            'PH',
-            'QA',
-            'SA',
-            'SG',
-            'TH',
-            'VN',
-            'ZA',
-        ],
-    },
-    { lang: 'fi', country: 'FI' },
-    { lang: 'fr', country: 'FR', regions: ['BE', 'CA', 'CH', 'LU'] },
-    { lang: 'hi', country: 'IN' },
-    { lang: 'hu', country: 'HU' },
-    { lang: 'id', country: 'ID' },
-    { lang: 'it', country: 'IT', regions: ['CH'] },
-    { lang: 'ja', country: 'JP' },
-    { lang: 'ko', country: 'KR' },
-    { lang: 'nb', country: 'NO' },
-    { lang: 'nl', country: 'NL', regions: ['BE'] },
-    { lang: 'pl', country: 'PL' },
-    { lang: 'pt', country: 'BR' },
-    { lang: 'ru', country: 'RU' },
-    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
-    { lang: 'sv', country: 'SE' },
-    { lang: 'th', country: 'TH' },
-    { lang: 'tr', country: 'TR' },
-    { lang: 'uk', country: 'UA' },
-    { lang: 'vi', country: 'VN' },
-    { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
-];
-
-const EXPRESS = [
-    { lang: 'da', country: 'DK' },
-    { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
-    { lang: 'en', country: 'GB', regions: ['IN'] },
-    {
-        lang: 'en',
-        country: 'US',
-        regions: [
-            'AE',
-            'AR',
-            'BE',
-            'CA',
-            'EG',
-            'GR',
-            'HK',
-            'ID',
-            'IE',
-            'IL',
-            'IN',
-            'KW',
-            'LU',
-            'MY',
-            'NG',
-            'NZ',
-            'PH',
-            'QA',
-            'SA',
-            'SG',
-            'TH',
-            'VN',
-            'ZA',
-        ],
-    },
-    { lang: 'fi', country: 'FI' },
-    { lang: 'fr', country: 'FR', regions: ['BE', 'CA', 'CH', 'LU'] },
-    { lang: 'id', country: 'ID' },
-    { lang: 'it', country: 'IT', regions: ['CH'] },
-    { lang: 'ja', country: 'JP' },
-    { lang: 'ko', country: 'KR' },
-    { lang: 'nb', country: 'NO' },
-    { lang: 'nl', country: 'NL', regions: ['BE'] },
-    { lang: 'pt', country: 'PT' },
-    { lang: 'pt', country: 'BR' },
-    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
-    { lang: 'sv', country: 'SE' },
-    { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
-];
-
-const ADOBE_HOME = [
-    { lang: 'cs', country: 'CZ' },
-    { lang: 'da', country: 'DK' },
-    { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
-    {
-        lang: 'en',
-        country: 'US',
-        regions: [
-            'AE',
-            'AR',
-            'AU',
-            'BE',
-            'CA',
-            'EG',
-            'GR',
-            'HK',
-            'ID',
-            'IE',
-            'IL',
-            'IN',
-            'KW',
-            'LU',
-            'MY',
-            'NG',
-            'NZ',
-            'PH',
-            'QA',
-            'SA',
-            'SG',
-            'TH',
-            'VN',
-            'ZA',
-        ],
-    },
-    { lang: 'fi', country: 'FI' },
-    { lang: 'fr', country: 'FR', regions: ['BE', 'CA', 'CH', 'LU'] },
-    { lang: 'hu', country: 'HU' },
-    { lang: 'id', country: 'ID' },
-    { lang: 'it', country: 'IT', regions: ['CH'] },
-    { lang: 'ja', country: 'JP' },
-    { lang: 'ko', country: 'KR' },
-    { lang: 'nb', country: 'NO' },
-    { lang: 'nl', country: 'NL', regions: ['BE'] },
-    { lang: 'pl', country: 'PL' },
-    { lang: 'pt', country: 'BR' },
-    { lang: 'ru', country: 'RU' },
-    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
-    { lang: 'sv', country: 'SE' },
-    { lang: 'th', country: 'TH' },
-    { lang: 'tr', country: 'TR' },
-    { lang: 'uk', country: 'UA' },
-    { lang: 'vi', country: 'VN' },
-    { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
-];
-
-const COMMERCE = [
-    { lang: 'cs', country: 'CZ' },
-    { lang: 'da', country: 'DK' },
-    { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
-    {
-        lang: 'en',
-        country: 'US',
-        regions: [
-            'AE',
-            'AR',
-            'AU',
-            'BE',
-            'CA',
-            'EG',
-            'GR',
-            'HK',
-            'ID',
-            'IE',
-            'IL',
-            'IN',
-            'KW',
-            'LU',
-            'MY',
-            'NG',
-            'NZ',
-            'PH',
-            'QA',
-            'SA',
-            'SG',
-            'TH',
-            'VN',
-            'ZA',
-        ],
-    },
-    { lang: 'fi', country: 'FI' },
-    { lang: 'fr', country: 'FR', regions: ['BE', 'CA', 'CH', 'LU'] },
-    { lang: 'hu', country: 'HU' },
-    { lang: 'id', country: 'ID' },
-    { lang: 'it', country: 'IT', regions: ['CH'] },
-    { lang: 'ja', country: 'JP' },
-    { lang: 'ko', country: 'KR' },
-    { lang: 'nb', country: 'NO' },
-    { lang: 'nl', country: 'NL', regions: ['BE'] },
-    { lang: 'pl', country: 'PL' },
-    { lang: 'ru', country: 'RU' },
-    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
-    { lang: 'sv', country: 'SE' },
-    { lang: 'th', country: 'TH' },
-    { lang: 'tr', country: 'TR' },
-    { lang: 'uk', country: 'UA' },
-    { lang: 'vi', country: 'VN' },
-    { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
-];
-
-const DEFAULT_LOCALES = {
-    acom: ACOM,
-    nala: ACOM,
-    sandbox: ACOM,
-    ccd: CCD,
-    express: EXPRESS,
-    'adobe-home': ADOBE_HOME,
-    commerce: COMMERCE,
-};
 
 const LANG_TO_LANGUAGE = {
     ar: 'Arabic',
@@ -401,15 +199,11 @@ const LANG_TO_LANGUAGE = {
     zh: 'Chinese',
 };
 
+const defaultLocalesCache = {};
 const regionLocalesCache = {};
-
-const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 
 // Helper to generate locale code from lang and country
 export function getLocaleCode(locale) {
-    if (!locale) {
-        return null;
-    }
     return `${locale.lang}_${locale.country}`;
 }
 
@@ -423,63 +217,47 @@ export function getCountryFlag(country) {
     return COUNTRY_DATA[country]?.flag || '🏴';
 }
 
-export function getDefaultLocale(surface, localeCode) {
-    const [language, country] = parseLocaleCode(localeCode);
-    if (!DEFAULT_LOCALES[surface]) {
-        return null;
+export function isDefaultLocale(locale, surface) {
+    if (!locale) {
+        return false;
     }
-    let defaultLocale = DEFAULT_LOCALES[surface].find(
-        (locale) => locale.lang === language && (locale.country === country || locale.regions?.includes(country)),
-    );
-    if (!defaultLocale) {
-        defaultLocale = DEFAULT_LOCALES[surface].find((locale) => locale.lang === language);
-    }
-    return defaultLocale;
+    return locale.default === ALL_SURFACES || locale.default?.indexOf(surface) > -1;
 }
 
-/**
- * get default locale for a given locale code and surface
- * some surfaces (acom) could have 2 default locales with same language but different country (en_US and en_GB)
- * this function will find the best match
- * @param {*} localeCode e.g. 'en_US'
- * @param {*} surface e.g. 'acom'
- * @returns
- */
-export function getDefaultLocaleCode(surface, localeCode) {
-    if (!localeCode || !surface) {
-        return null;
-    }
-    const defaultLocale = getDefaultLocale(surface, localeCode);
-    return defaultLocale ? getLocaleCode(defaultLocale) : null;
+export function getLocaleByCode(code) {
+    const [lang, country] = code.split('_');
+    return LOCALES.find((locale) => locale.lang === lang && locale.country === country);
 }
 
 export function getDefaultLocales(surface) {
-    return DEFAULT_LOCALES[surface] || [];
+    if (!defaultLocalesCache[surface]) {
+        defaultLocalesCache[surface] = LOCALES.filter((locale) => isDefaultLocale(locale, surface));
+    }
+    return defaultLocalesCache[surface];
 }
 
-/**
- * get region locales for a given surface and a given default locale.
- * acom: will return 'en_AU', 'en_IN' for 'en_GB', because for acom 'en_GB' is a default language.
- * ccd: will return 'en_GB', 'en_AU', 'en_IN' for 'en_US', because for ccd 'en_GB' is NOT a default language.
- * @param {*} surface e.g. 'acom'
- * @param {*} defaultLocale e.g. 'en_US'
- * @param {*} includeDefault e.g. true
- * @returns
- */
-export function getRegionLocales(surface, localeCode, includeDefault) {
-    const cacheKey = `${surface}-${localeCode}-${includeDefault}`;
+export function getDefaultLocale(localeCode, surface) {
+    return getDefaultLocales(surface).find((loc) => loc.lang === localeCode.split('_')[0]);
+}
+
+export function isRegionLocale(locale, surface, language, includeDefault = true) {
+    if (!locale) {
+        return false;
+    }
+    return (
+        locale.lang === language &&
+        (locale.region === ALL_SURFACES ||
+            locale.region?.indexOf(surface) > -1 ||
+            (includeDefault && isDefaultLocale(locale, surface)))
+    );
+}
+
+export function getRegionLocales(surface, language, includeDefault) {
+    const cacheKey = `${surface}-${language}-${includeDefault}`;
     if (!regionLocalesCache[cacheKey]) {
-        const [lang, country] = parseLocaleCode(localeCode);
-        const defaultLocale = getDefaultLocale(surface, localeCode);
-        const regionLocales = defaultLocale?.regions
-            ? defaultLocale.regions
-                  .map((region) => ({ lang, country: region }))
-                  .sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)))
-            : [];
-        if (includeDefault && defaultLocale) {
-            regionLocales.push({ lang, country: defaultLocale.country });
-        }
-        regionLocalesCache[cacheKey] = regionLocales;
+        regionLocalesCache[cacheKey] = LOCALES.filter((locale) =>
+            isRegionLocale(locale, surface, language, includeDefault),
+        ).sort((a, b) => getCountryName(a.country).localeCompare(getCountryName(b.country)));
     }
     return regionLocalesCache[cacheKey];
 }

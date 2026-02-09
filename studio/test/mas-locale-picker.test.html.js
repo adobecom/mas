@@ -78,6 +78,8 @@ runTests(async () => {
                 expect(el.mode).to.equal('language');
                 const locales = el.getLocales();
                 expect(locales.length).to.be.greaterThan(0);
+                // All should be default locales
+                expect(locales.every((loc) => loc.default)).to.be.true;
                 //should contain en_US, de_DE, fr_FR, ja_JP
                 const expectedLocales = ['en_US', 'de_DE', 'fr_FR', 'ja_JP'];
                 expectedLocales.forEach((code) => {
@@ -95,7 +97,7 @@ runTests(async () => {
                 // All should be English
                 expect(locales.every((loc) => loc.lang === 'en')).to.be.true;
                 // Should contain en_US, en_GB, en_CA, en_AU
-                const expectedLocales = ['en_US', 'en_KW', 'en_CA', 'en_EG'];
+                const expectedLocales = ['en_US', 'en_GB', 'en_CA', 'en_AU'];
                 expectedLocales.forEach((code) => {
                     expect(locales.some((loc) => getLocaleCode(loc) === code)).to.be.true;
                 });
@@ -130,24 +132,22 @@ runTests(async () => {
             it('should filter by express surface', async function () {
                 const locales = getDefaultLocales('express');
                 expect(locales.map((loc) => getLocaleCode(loc))).to.deep.equal([
+                    'zh_CN',
+                    'zh_TW',
                     'da_DK',
-                    'de_DE',
-                    'en_GB',
+                    'nl_NL',
                     'en_US',
                     'fi_FI',
                     'fr_FR',
+                    'de_DE',
                     'id_ID',
                     'it_IT',
                     'ja_JP',
                     'ko_KR',
                     'nb_NO',
-                    'nl_NL',
-                    'pt_PT',
                     'pt_BR',
                     'es_ES',
                     'sv_SE',
-                    'zh_CN',
-                    'zh_TW',
                 ]);
             });
 

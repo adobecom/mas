@@ -59,4 +59,52 @@ export const styles = `
 #content .expanded-content .nested-fragment sp-table-row:hover {
     background-color: var(--spectrum-blue-400);
 }
+
+/* Grouped variation rows */
+.grouped-variation-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.grouped-variation-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.grouped-variation-tags-cell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.grouped-tags-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--spectrum-gray-600);
+}
+
+.grouped-variation-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.locale-tag-pill {
+    display: inline-block;
+    background: var(--spectrum-gray-200);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: var(--spectrum-gray-800);
+    white-space: nowrap;
+}
+
+.no-tags {
+    font-size: 13px;
+    color: var(--spectrum-gray-500);
+    font-style: italic;
+}
 `;

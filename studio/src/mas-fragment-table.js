@@ -185,6 +185,7 @@ class MasFragmentTable extends LitElement {
                 ? html`<mas-variation-dialog
                       .fragment=${data}
                       .isVariation=${false}
+                      .offerData=${this.offerData}
                       @cancel=${this.handleVariationDialogCancel}
                       @fragment-copied=${this.handleFragmentCopied}
                   ></mas-variation-dialog>`

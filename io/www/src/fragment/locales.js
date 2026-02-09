@@ -71,7 +71,7 @@ const COUNTRY_DATA = {
     ZA: { name: 'South Africa', flag: '🇿🇦' },
 };
 
-const LOCALES = [
+export const LOCALES = [
     { lang: 'ar', country: 'AE', region: 'ALL_SURFACES' },
     { lang: 'ar', country: 'EG', region: ALL_SURFACES },
     { lang: 'ar', country: 'KW', region: ALL_SURFACES },

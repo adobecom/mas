@@ -21,6 +21,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    PZN_FOLDER,
     SURFACES,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
@@ -1348,6 +1349,97 @@ export class MasRepository extends LitElement {
         await this.updateParentVariations(parentFragment, variationFragment.path);
 
         return variationFragment;
+    }
+
+    /**
+     * Generates a slugified fragment name from fragment tags (product first) + random suffix.
+     * @param {Object} fragment - The parent fragment
+     * @returns {string} The generated fragment name
+     */
+    generateGroupedVariationName(fragment) {
+        const parts = [];
+        const product = fragment.getTagTitle('mas:product/');
+        if (product) parts.push(product);
+
+        const customerSegment = fragment.getTagTitle('customer_segment');
+        if (customerSegment) parts.push(customerSegment);
+
+        const marketSegment = fragment.getTagTitle('market_segment');
+        if (marketSegment) parts.push(marketSegment);
+
+        if (parts.length === 0) {
+            parts.push(fragment.title || 'variation');
+        }
+
+        const slug = parts
+            .join('-')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+
+        const suffix = Math.random().toString(36).substring(2, 6);
+        return `${slug}-${suffix}`;
+    }
+
+    /**
+     * Creates a grouped variation fragment under en_US/{productArrangementCode}/pzn/.
+     * @param {string} fragmentId - The parent fragment ID
+     * @param {string[]} localeTags - Array of locale codes (e.g. ['fr_FR', 'fr_CH', 'fr_BE'])
+     * @param {Object} offerData - The resolved WCS offer data containing productArrangementCode
+     * @returns {Promise<Object>} The created variation fragment
+     */
+    async createGroupedVariation(fragmentId, localeTags, offerData) {
+        const parentFragment = await this.aem.sites.cf.fragments.getById(fragmentId);
+        if (!parentFragment) {
+            throw new Error('Failed to fetch parent fragment');
+        }
+
+        const fragment = new Fragment(parentFragment);
+
+        const productArrangementCode = offerData?.productArrangementCode;
+        if (!productArrangementCode) {
+            throw new Error('Product arrangement code not available. The parent fragment must have a resolved offer.');
+        }
+
+        const parentPath = parentFragment.path;
+        const pathMatch = parentPath.match(/\/content\/dam\/mas\/(?<surface>[\w-_]+)\//);
+        if (!pathMatch?.groups?.surface) {
+            throw new Error('Could not determine surface from parent path');
+        }
+
+        const surface = pathMatch.groups.surface;
+        const fragmentName = this.generateGroupedVariationName(fragment);
+        const targetFolder = `${ROOT_PATH}/${surface}/en_US/${productArrangementCode}/${PZN_FOLDER}`;
+
+        await this.aem.sites.cf.fragments.ensureFolderExists(targetFolder);
+
+        const targetPath = `${targetFolder}/${fragmentName}`;
+        const existingFragment = await this.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        if (existingFragment) {
+            throw new Error(`A fragment already exists at ${targetPath}`);
+        }
+
+        const newFragment = await this.aem.sites.cf.fragments.create({
+            title: parentFragment.title,
+            description: parentFragment.description,
+            modelId: parentFragment.model.id,
+            parentPath: targetFolder,
+            name: fragmentName,
+            fields: [],
+        });
+
+        if (parentFragment.tags?.length) {
+            await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, parentFragment.tags);
+        }
+
+        const createdFragment = await this.aem.sites.cf.fragments.pollCreatedFragment(newFragment);
+        if (!createdFragment) {
+            throw new Error('Failed to create grouped variation');
+        }
+
+        await this.updateParentVariations(parentFragment, createdFragment.path);
+
+        return createdFragment;
     }
 
     async createPlaceholder(placeholder) {

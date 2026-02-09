@@ -94,10 +94,31 @@ export class Fragment {
         return variations.length > 0;
     }
 
-    updateField(fieldName, value) {
+    /**
+     * Updates a field's values.
+     * For variations: if values match parent exactly, resets to inherited state.
+     * @param {string} fieldName - The field name to update
+     * @param {Array} value - The new values
+     * @param {Fragment|null} [parentFragment] - The parent fragment (for variations)
+     * @returns {boolean|'reset'} - true if updated, false if no change, 'reset' if reset to parent
+     */
+    updateField(fieldName, value, parentFragment = null) {
         const encodedValues = value.map((v) => (typeof v === 'string' ? v.normalize('NFC') : v));
         const existingField = this.getField(fieldName);
         const isTags = fieldName === 'tags';
+
+        // For variations: if values match parent exactly, reset to inherited state
+        if (parentFragment) {
+            const parentValues = parentFragment.getField(fieldName)?.values || [];
+            const valuesMatchParent =
+                encodedValues.length === parentValues.length && encodedValues.every((v, i) => v === parentValues[i]);
+
+            if (valuesMatchParent) {
+                // Reset field if it exists, or just confirm it should stay inherited
+                this.resetFieldToParent(fieldName);
+                return 'reset';
+            }
+        }
 
         if (existingField) {
             const { values, multiple } = existingField;
@@ -114,11 +135,18 @@ export class Fragment {
             existingField.values = encodedValues;
         } else {
             // Only create new field if there's meaningful content
-            if (!encodedValues.length || !encodedValues.some((v) => v?.trim?.())) {
+            // Exception: [''] is allowed as explicit clear sentinel for multi-value fields
+            const parentField = parentFragment?.getField(fieldName);
+            const isMultiple = parentField?.multiple === true;
+            const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
+            const hasContent = encodedValues.length && encodedValues.some((v) => v?.trim?.());
+            if (!hasContent && !isSingleEmptyString) {
                 if (isTags) this.newTags = value;
                 return false;
             }
-            this.fields.push({ name: fieldName, type: 'text', values: encodedValues });
+            const newField = { name: fieldName, type: 'text', values: encodedValues };
+            if (isMultiple) newField.multiple = true;
+            this.fields.push(newField);
         }
 
         this.hasChanges = true;

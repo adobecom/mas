@@ -77,11 +77,9 @@ class MasTopNav extends LitElement {
                 e.preventDefault();
                 window.adobeIMS.signOut();
             });
-            if (studioContentEl) {
-                studioContentEl.addEventListener('click', () => {
-                    profileBody.classList.remove('show');
-                });
-            }
+            studioContentEl?.addEventListener('click', () => {
+                profileBody.classList.remove('show');
+            });
 
             return profileEl;
         } catch (error) {

@@ -23,6 +23,12 @@ class MasTranslationLanguages extends LitElement {
                 item.locale = `${item.lang}_${item.country}`;
                 return item;
             })
+            .reduce((acc, item) => {
+                const locale = `${item.lang}_${item.country}`;
+                if (locale === 'en_US') return acc;
+                acc.push({ ...item, locale });
+                return acc;
+            }, [])
             .sort((a, b) => {
                 return a.locale > b.locale ? 1 : -1;
             });

@@ -1,4 +1,5 @@
-import { PATH_TOKENS } from '../constants.js';
+import { PATH_TOKENS, TAG_PROMOTION_PREFIX } from '../constants.js';
+
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -13,27 +14,28 @@ export class Fragment {
     /**
      * @param {*} AEM Fragment JSON object
      */
-    constructor({ id, etag, model, path, title, description, status, created, modified, published, fields, tags, references }) {
-        this.id = id;
-        this.model = model;
-        this.etag = etag;
-        this.path = path;
-        this.name = path?.split('/')?.pop();
-        this.title = title;
-        this.description = description;
-        this.status = status;
-        this.created = created;
-        this.modified = modified;
-        this.published = published;
-        this.tags = tags;
-        this.fields = fields;
-        this.references = references;
-        this.tags = tags || [];
-        this.initialValue = structuredClone(this);
+    constructor(fragment) {
+        this.refreshFrom(fragment);
+    }
+
+    getField(fieldName) {
+        return this.fields.find((field) => field.name === fieldName);
+    }
+
+    getFieldValues(fieldName) {
+        return this.getField(fieldName)?.values || [];
+    }
+
+    getFieldValue(fieldName, index = 0) {
+        return this.getFieldValues(fieldName)?.[index];
+    }
+
+    isValueEmpty(values) {
+        return values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
     }
 
     get variant() {
-        return this.fields.find((field) => field.name === 'variant')?.values?.[0];
+        return this.getFieldValue('variant');
     }
 
     get fragmentName() {
@@ -55,6 +57,7 @@ export class Fragment {
     }
 
     refreshFrom(fragmentData) {
+        this.newTags = undefined;
         Object.assign(this, fragmentData);
         this.initialValue = structuredClone(this);
         this.hasChanges = false;
@@ -73,6 +76,7 @@ export class Fragment {
 
     discardChanges() {
         if (!this.hasChanges) return;
+        this.newTags = undefined;
         Object.assign(this, this.initialValue);
         this.initialValue = structuredClone(this);
         this.hasChanges = false;
@@ -83,17 +87,8 @@ export class Fragment {
         this.hasChanges = true;
     }
 
-    getField(fieldName) {
-        return this.fields.find((field) => field.name === fieldName);
-    }
-
-    getFieldValue(fieldName, index = 0) {
-        return this.fields.find((field) => field.name === fieldName)?.values?.[index];
-    }
-
     getVariations() {
-        const variationsField = this.fields.find((field) => field.name === 'variations');
-        return variationsField?.values || [];
+        return this.getFieldValues('variations') || [];
     }
 
     hasVariations() {
@@ -110,9 +105,12 @@ export class Fragment {
             return v;
         });
 
-        const existingField = this.fields.find((field) => field.name === fieldName);
+        const existingField = this.getField(fieldName);
 
         if (existingField) {
+            if (this.isValueEmpty(existingField.values) && this.isValueEmpty(value)) {
+                return change;
+            }
             if (
                 existingField.values.length === encodedValues.length &&
                 existingField.values.every((v, index) => v === encodedValues[index])
@@ -164,19 +162,12 @@ export class Fragment {
         if (!isVariation || !parentFragment) {
             return 'no-parent';
         }
-        const ownField = this.getField(fieldName);
-        const parentField = parentFragment.getField(fieldName);
+        const ownValues = this.getFieldValues(fieldName) || [];
+        const parentValues = parentFragment.getFieldValues(fieldName) || [];
 
-        const ownValues = ownField?.values || [];
-        const parentValues = parentField?.values || [];
+        const ownIsEmpty = this.isValueEmpty(ownValues);
 
-        const isEffectivelyEmpty = (values) =>
-            values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
-
-        const ownIsEmpty = isEffectivelyEmpty(ownValues);
-        const parentIsEmpty = isEffectivelyEmpty(parentValues);
-
-        if (ownIsEmpty && parentIsEmpty) {
+        if (ownIsEmpty && this.isValueEmpty(parentValues)) {
             return 'inherited';
         }
         if (ownIsEmpty) {
@@ -220,6 +211,9 @@ export class Fragment {
      * @returns {Fragment[]}
      */
     listLocaleVariations() {
+        const variationPaths = this.getVariations();
+        if (!this.references?.length || !variationPaths.length) return [];
+
         const currentMatch = this.path.match(PATH_TOKENS);
         if (!currentMatch?.groups) {
             return [];
@@ -227,7 +221,13 @@ export class Fragment {
 
         const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
 
-        return this.references?.filter((reference) => {
+        return this.references.filter((reference) => {
+            if (!variationPaths.includes(reference.path)) return false;
+
+            // Exclude promo variations from locale variations list
+            const isPromo = reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
+            if (isPromo) return false;
+
             const refMatch = reference.path.match(PATH_TOKENS);
             if (!refMatch?.groups) {
                 return false;
@@ -235,5 +235,39 @@ export class Fragment {
             const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
             return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
         });
+    }
+
+    /**
+     * Gets the count of locale variations.
+     * Locale variations are fragments with the same name but different locale paths.
+     * @returns {number}
+     */
+    getLocaleVariationCount() {
+        return this.listLocaleVariations()?.length || 0;
+    }
+
+    /**
+     * Gets the count of promo variations.
+     * Promo variations are identified by promotion tags on references that are also in the variations field.
+     * @returns {number}
+     */
+    getPromoVariationCount() {
+        const variationPaths = this.getVariations();
+        if (!this.references?.length || !variationPaths.length) return 0;
+
+        return this.references.filter((reference) => {
+            return (
+                variationPaths.includes(reference.path) &&
+                reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX))
+            );
+        }).length;
+    }
+
+    /**
+     * Gets the total count of all variations (locale + promo).
+     * @returns {number}
+     */
+    getTotalVariationCount() {
+        return this.getLocaleVariationCount() + this.getPromoVariationCount();
     }
 }

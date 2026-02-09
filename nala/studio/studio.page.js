@@ -33,6 +33,7 @@ export default class StudioPage {
         this.variationDialog = page.locator('mas-variation-dialog');
         this.variationDialogLocalePicker = this.variationDialog.locator('sp-picker[placeholder="Select a locale"]');
         this.variationDialogCreateButton = this.variationDialog.locator('sp-button:has-text("Create variation")');
+        this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('mas-fragment-editor > #fragment-editor #editor-content');
         this.confirmationDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.cancelDialog = page.locator('sp-button:has-text("Cancel")');

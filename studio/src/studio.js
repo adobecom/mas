@@ -8,13 +8,11 @@ import './mas-toolbar.js';
 import './mas-content.js';
 import './mas-promotions.js';
 import './mas-promotions-editor.js';
-import './mas-translation.js';
-import './mas-translation-editor.js';
+import './translation/mas-translation.js';
+import './translation/mas-translation-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
-import './filters/locale-picker.js';
-import './filters/mas-nav-locale-picker.js';
 import './fields/user-picker.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
@@ -26,10 +24,12 @@ import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
+import './version-page.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
+import './utils/price-error-handler.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -83,6 +83,12 @@ class MasStudio extends LitElement {
                 this.renderCommerceService();
             }
         };
+        const regionSubscription = (value, oldValue) => {
+            if (value.region !== oldValue.region) {
+                this.renderCommerceService();
+            }
+        };
+        Store.search.subscribe(regionSubscription);
         Store.filters.subscribe(subscription);
         this.#unsubscribeLocaleObserver = () => Store.filters.unsubscribe(subscription);
     }
@@ -145,29 +151,61 @@ class MasStudio extends LitElement {
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
+    get versionPage() {
+        if (this.page.value !== PAGE_NAMES.VERSION) return nothing;
+        return html`<version-page></version-page>`;
+    }
+
     get fragmentEditor() {
         if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
         return html`<mas-fragment-editor></mas-fragment-editor>`;
     }
 
     get breadcrumbs() {
-        if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
-
-        const editor = document.querySelector('mas-fragment-editor');
-        if (!editor || !editor.fragment || editor.fragmentStore?.loading) {
-            return nothing;
-        }
-
-        const handleBackToBreadcrumb = async () => {
-            Store.viewMode.set('default');
-            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+        // Define navigation handlers
+        const handlers = {
+            content: async () => {
+                Store.viewMode.set('default');
+                await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            },
+            editor: async () => {
+                const fragmentId = Store.version.fragmentId.get();
+                if (fragmentId) {
+                    await router.navigateToFragmentEditor(fragmentId);
+                }
+            },
         };
+
+        // Define breadcrumb configurations for each page
+        const breadcrumbConfig = {
+            [PAGE_NAMES.FRAGMENT_EDITOR]: {
+                condition: () => {
+                    const editor = document.querySelector('mas-fragment-editor');
+                    return editor && editor.fragment && !editor.fragmentStore?.loading;
+                },
+                items: [{ label: 'Fragments table', handler: handlers.content }, { label: 'Editor' }],
+            },
+            [PAGE_NAMES.VERSION]: {
+                items: [
+                    { label: 'Fragments table', handler: handlers.content },
+                    { label: 'Editor', handler: handlers.editor },
+                    { label: 'Version history' },
+                ],
+            },
+        };
+
+        const config = breadcrumbConfig[this.page.value];
+        if (!config) return nothing;
+        if (config.condition && !config.condition()) return nothing;
 
         return html`
             <div class="breadcrumbs-container">
                 <sp-breadcrumbs>
-                    <sp-breadcrumb-item @click="${handleBackToBreadcrumb}">Fragments table</sp-breadcrumb-item>
-                    <sp-breadcrumb-item>Editor</sp-breadcrumb-item>
+                    ${config.items.map(
+                        (item) => html`
+                            <sp-breadcrumb-item @click="${item.handler || nothing}">${item.label}</sp-breadcrumb-item>
+                        `,
+                    )}
                 </sp-breadcrumbs>
             </div>
         `;
@@ -194,8 +232,8 @@ class MasStudio extends LitElement {
     }
 
     renderCommerceService() {
-        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.search.value.path]?.['mas-ff-defaults'] ?? 'on';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.filters.value.locale}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
+        const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {
@@ -238,7 +276,7 @@ class MasStudio extends LitElement {
                 ${this.masJsReady
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
-                          ${this.promotionsEditor} ${this.translation} ${this.translationEditor}
+                          ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
                           <editor-panel></editor-panel>
                       </div>`
                     : nothing}

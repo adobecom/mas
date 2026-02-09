@@ -1,6 +1,6 @@
 import { STATE_FAILED, FF_DEFAULTS } from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
-import { selectOffers, getService } from './utilities.js';
+import { selectOffers, sumOffers, getService } from './utilities.js';
 import { Defaults } from './defaults.js';
 
 const INDIVIDUAL = 'INDIVIDUAL_COM';
@@ -10,10 +10,8 @@ const UNIVERSITY = 'TEAM_EDU';
 
 // countries where tax is displayed for all segments by default
 const DISPLAY_ALL_TAX_COUNTRIES = [
-    'GB_en',
-    'AU_en',
-    'FR_fr',
     'AT_de',
+    'AU_en',
     'BE_en',
     'BE_fr',
     'BE_nl',
@@ -29,40 +27,43 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'EG_en',
     'ES_es',
     'FI_fi',
+    'FR_fr',
+    'GB_en',
     'GR_el',
     'GR_en',
     'HU_hu',
+    'ID_en',
+    'ID_id',
+    'ID_in',
     'IE_en',
+    'IN_en',
+    'IN_hi',
     'IT_it',
+    'JP_ja',
     'LU_de',
     'LU_en',
     'LU_fr',
+    'MY_en',
+    'MY_ms',
+    'MU_en',
     'NL_nl',
     'NO_nb',
+    'NZ_en',
     'PL_pl',
     'PT_pt',
     'RO_ro',
     'SE_sv',
     'SI_sl',
     'SK_sk',
-    'TR_tr',
-    'UA_uk',
-    'ID_en',
-    'ID_in',
-    'IN_en',
-    'IN_hi',
-    'JP_ja',
-    'MY_en',
-    'MY_ms',
-    'NZ_en',
     'TH_en',
     'TH_th',
+    'TR_tr',
+    'UA_uk',
 ];
 
 // countries where tax is displayed for some segments only by default
 const DISPLAY_TAX_MAP = {
     [INDIVIDUAL]: [
-        'MU_en',
         'LT_lt',
         'LV_lv',
         'NG_en',
@@ -70,16 +71,17 @@ const DISPLAY_TAX_MAP = {
         'SA_en',
         'SG_en',
         'KR_ko',
+        'ZA_en',
     ],
-    [BUSINESS]: ['MU_en', 'LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko'],
-    [STUDENT]: ['LT_lt', 'LV_lv', 'SA_en', 'SG_en'],
+    [BUSINESS]: ['LT_lt', 'LV_lv', 'NG_en', 'CO_es', 'KR_ko', 'ZA_en'],
+    [STUDENT]: ['LT_lt', 'LV_lv', 'SA_en', 'SG_en', 'SA_ar'],
     [UNIVERSITY]: ['SG_en', 'KR_ko'],
 };
 
 // For most countries where tax label is displayed the tax is included for Individuals and Students
 // and excluded for Business and Universities. This is the map of TaxExclusive values for other countries
 const TAX_EXCLUDED_MAP = {
-    ['MU_en']: [false, false, false, false],
+    ['MU_en']: [true, true, true, true],
     ['NG_en']: [false, false, false, false],
     ['AU_en']: [false, false, false, false],
     ['JP_ja']: [false, false, false, false],
@@ -89,10 +91,38 @@ const TAX_EXCLUDED_MAP = {
     ['CO_es']: [false, true, false, false],
     ['AT_de']: [false, false, false, true],
     ['SG_en']: [false, false, false, true],
+    ['ZA_en']: [false, false, false, false],
 };
 const TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
 const defaultTaxExcluded = (segment) =>
     [BUSINESS, UNIVERSITY].includes(segment);
+
+/**
+ * It returns the right tax config per locale. If both country and language are provided it will return
+ * the tax config for that locale. If only country code is provided it will return the first tax config it finds
+ * for that country.
+ * @param {Object} map Map with tax configs per locale
+ * @param {string} country country code
+ * @param {string} language language code
+ * @param {boolean} isArray true if map is an array, otherwise it is an object
+ * @returns
+ */
+function getTaxConfigFromMap(map, country, language, isArray) {
+    if (map[country]) return map[country];
+    const locale = `${country}_${language}`;
+    if (map[locale]) return map[locale];
+
+    let result;
+    if (isArray) {
+        result = map.find((item) => item.startsWith(`${country}_`));
+    } else {
+        const resultKey = Object.keys(map).find((key) =>
+            key.startsWith(`${country}_`),
+        );
+        result = resultKey ? map[resultKey] : null;
+    }
+    return result;
+}
 
 /**
  * Resolves the default value for forceTaxExclusive for the provided geo info and segments.
@@ -108,9 +138,8 @@ const resolveTaxExclusive = (
     customerSegment,
     marketSegment,
 ) => {
-    const locale = `${country}_${language}`;
     const segment = `${customerSegment}_${marketSegment}`;
-    const val = TAX_EXCLUDED_MAP[locale];
+    const val = getTaxConfigFromMap(TAX_EXCLUDED_MAP, country, language, false);
     if (val) {
         const index = TAX_EXCLUDED_MAP_INDEX.indexOf(segment);
         return val[index];
@@ -133,13 +162,8 @@ const resolveDisplayTaxForGeoAndSegment = (
     customerSegment,
     marketSegment,
 ) => {
-    const locale = `${country}_${language}`;
-    if (
-        DISPLAY_ALL_TAX_COUNTRIES.includes(country) ||
-        DISPLAY_ALL_TAX_COUNTRIES.includes(locale)
-    ) {
+    if (getTaxConfigFromMap(DISPLAY_ALL_TAX_COUNTRIES, country, language, true))
         return true;
-    }
 
     const segmentConfig =
         DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
@@ -147,7 +171,7 @@ const resolveDisplayTaxForGeoAndSegment = (
         return Defaults.displayTax;
     }
 
-    if (segmentConfig.includes(country) || segmentConfig.includes(locale)) {
+    if (getTaxConfigFromMap(segmentConfig, country, language, true)) {
         return true;
     }
 
@@ -210,7 +234,6 @@ export class InlinePrice extends HTMLSpanElement {
     }
 
     static createInlinePrice(options) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return null;
         const {
@@ -311,7 +334,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     async render(overrides = {}) {
         if (!this.isConnected) return false;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         const priceOptions = service.collectPriceOptions(overrides, this);
@@ -323,10 +345,25 @@ export class InlinePrice extends HTMLSpanElement {
         try {
             const version = this.masElement.togglePending({});
             this.innerHTML = '';
-            const [offerSelectors] =
-                await service.resolveOfferSelectors(options);
-            let offers = selectOffers(await offerSelectors, options);
-            let [offer] = offers;
+            // Resolve all OSI promises - if any fails, Promise.all rejects
+            const offerSelectorPromises =
+                service.resolveOfferSelectors(options);
+            const resolvedOfferArrays = await Promise.all(
+                offerSelectorPromises,
+            );
+            // Select best offer from each OSI, then sum them
+            const selectedOffers = resolvedOfferArrays.map((offerArray) => {
+                const selected = selectOffers(offerArray, options);
+                return selected?.length ? selected[0] : null;
+            });
+            // Check if any offer selection failed
+            if (selectedOffers.some((offer) => !offer)) {
+                throw new Error(
+                    `Failed to select offers for: ${options.wcsOsi}`,
+                );
+            }
+            let offers = selectedOffers;
+            const offer = sumOffers(selectedOffers);
 
             if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
                 if (priceOptions.displayPerUnit === undefined) {
@@ -357,7 +394,11 @@ export class InlinePrice extends HTMLSpanElement {
                             options.forceTaxExclusive;
                     }
                     if (options.forceTaxExclusive) {
-                        offers = selectOffers(offers, options);
+                        // Re-select offers with forceTaxExclusive applied, then re-sum
+                        offers = resolvedOfferArrays.map((offerArray) => {
+                            const selected = selectOffers(offerArray, options);
+                            return selected?.length ? selected[0] : null;
+                        });
                     }
                 }
             } else {
@@ -365,7 +406,9 @@ export class InlinePrice extends HTMLSpanElement {
                     options.displayOldPrice = true;
                 }
             }
-            return this.renderOffers(offers, options, version);
+            // Sum the final offers for rendering
+            const finalOffer = sumOffers(offers);
+            return this.renderOffers([finalOffer], options, version);
         } catch (error) {
             this.innerHTML = '';
             throw error;
@@ -382,7 +425,6 @@ export class InlinePrice extends HTMLSpanElement {
      */
     renderOffers(offers, options, version = undefined) {
         if (!this.isConnected) return;
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const service = getService();
         if (!service) return false;
         version ??= this.masElement.togglePending();

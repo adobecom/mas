@@ -42,7 +42,7 @@ It will also fallback to last successfully loaded offers for the same OSI if ava
 </code></pre>
 <p>To add <code>mas.js</code> to your page or application, include it as shown below:</p>
 <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span>
-    <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/libs/features/mas/dist/mas.js&quot;</span>
+    <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;https://www.adobe.com/mas/libs/mas.js&quot;</span>
     <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span>
 &gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
 </code></pre>
@@ -160,24 +160,7 @@ It will also fallback to last successfully loaded offers for the same OSI if ava
 </tbody>
 </table>
 <h3 id="feature-flags" tabindex="-1">Feature flags <a class="header-anchor" href="#feature-flags" href="#feature-flags" title="Permalink to this heading">#</a></h3>
-<p>Feature flags can be set via a meta tag.</p>
-<p>e.g <code>&lt;meta name=&quot;mas-ff-defaults&quot; content=&quot;on&quot;&gt;</code></p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Description</th>
-<th>Default Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>mas-ff-defaults</code></td>
-<td>Enables good defaults for each locales and segments so that authors don’t have to set them manually.</td>
-<td><code>off</code></td>
-</tr>
-</tbody>
-</table>
+<p>For detailed documentation on all available feature flags, see <a href="feature-flags.html">Feature Flags</a>.</p>
 <h3 id="examples" tabindex="-1">Examples <a class="header-anchor" href="#examples" href="#examples" title="Permalink to this heading">#</a></h3>
 <pre><code class="hljs language-html"><span class="hljs-comment">&lt;!-- for US english production--&gt;</span>
 <span class="hljs-tag">&lt;<span class="hljs-name">mas-commerce-service</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">mas-commerce-service</span>&gt;</span>

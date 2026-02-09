@@ -1,5 +1,6 @@
 import { ReactiveStore } from './reactive-store.js';
-import { previewFragmentForEditor, LOCALE_DEFAULTS } from 'fragment-client';
+import { previewFragmentForEditor } from 'fragment-client';
+import { getDefaultLocale, getLocaleByCode, isDefaultLocale } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 
 export class EditorContextStore extends ReactiveStore {
@@ -18,14 +19,14 @@ export class EditorContextStore extends ReactiveStore {
         if (!fragmentPath) return { isVariation: false, defaultLocale: null };
         const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
         if (!pathMatch) return { isVariation: false, defaultLocale: null };
-        const pathLocale = pathMatch[1];
-        if (LOCALE_DEFAULTS.includes(pathLocale)) {
+        const localCode = pathMatch[1];
+        const locale = getLocaleByCode(localCode);
+        if (isDefaultLocale(locale, Store.surface())) {
             return { isVariation: false, defaultLocale: null };
         }
-        const language = pathLocale.split('_')[0];
-        const expectedDefault = LOCALE_DEFAULTS.find((l) => l.startsWith(`${language}_`));
-        if (expectedDefault && expectedDefault !== pathLocale) {
-            return { isVariation: true, defaultLocale: expectedDefault, pathLocale };
+        const expectedDefault = getDefaultLocale(locale.code, Store.surface())?.code;
+        if (expectedDefault && expectedDefault !== localCode) {
+            return { isVariation: true, defaultLocale: expectedDefault, pathLocale: localCode };
         }
         return { isVariation: false, defaultLocale: null };
     }
@@ -41,7 +42,7 @@ export class EditorContextStore extends ReactiveStore {
         let notified = false;
 
         try {
-            let surface = Store.search.value.path;
+            let surface = Store.surface();
             if (!surface && fragmentPath) {
                 const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/([^/]+)\//);
                 if (pathMatch) {

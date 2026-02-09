@@ -1,5 +1,7 @@
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE } from '../constants.js';
+import { renderSpIcon } from '../constants/icon-library.js';
+import { VARIANT_NAMES } from '../editors/variant-picker.js';
 import '../mas-mnemonic-modal.js';
 
 class IncludedField extends LitElement {
@@ -9,6 +11,7 @@ class IncludedField extends LitElement {
             alt: { type: String, reflect: true },
             link: { type: String, reflect: true },
             modalOpen: { type: Boolean, state: true },
+            iconLibrary: { type: Boolean, reflect: true },
         };
     }
 
@@ -40,6 +43,11 @@ class IncludedField extends LitElement {
             width: 100%;
             height: 100%;
             object-fit: contain;
+        }
+
+        .icon-preview img.bullet-icon {
+            width: 20px;
+            height: 20px;
         }
 
         .icon-placeholder {
@@ -74,6 +82,11 @@ class IncludedField extends LitElement {
         .action-menu {
             margin-left: auto;
         }
+
+        :host([data-field-state='overridden']) .included-preview {
+            border: 2px solid var(--spectrum-blue-400);
+            background-color: var(--spectrum-blue-100);
+        }
     `;
 
     constructor() {
@@ -82,6 +95,8 @@ class IncludedField extends LitElement {
         this.alt = '';
         this.link = '';
         this.modalOpen = false;
+        this.iconLibrary = this.dataset.fieldState === 'bullet';
+        this.variant = this.iconLibrary ? VARIANT_NAMES.PLANS : '';
     }
 
     #handleEditClick() {
@@ -116,6 +131,9 @@ class IncludedField extends LitElement {
     }
 
     #handleModalSave(event) {
+        // ignore save events fired from link editor
+        if (event.detail.href !== undefined) return;
+
         const { icon, alt, link } = event.detail;
         this.icon = icon;
         this.alt = alt;
@@ -146,6 +164,13 @@ class IncludedField extends LitElement {
     #getIconName() {
         if (!this.icon) return 'No icon selected';
 
+        if (this.iconLibrary && this.icon.startsWith('sp-icon-')) {
+            return this.icon
+                .replace('sp-icon-', '')
+                .replace(/-/g, ' ')
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+        }
+
         if (this.icon.includes('/product-icons/svg/')) {
             const match = this.icon.match(/\/([^/]+)\.svg$/);
             if (match) {
@@ -157,16 +182,25 @@ class IncludedField extends LitElement {
         return urlParts[urlParts.length - 1] || this.icon;
     }
 
+    renderIcon() {
+        if (this.iconLibrary && this.icon?.startsWith('sp-icon-')) {
+            return html`${renderSpIcon(this.icon, this.variant)}`;
+        } else {
+            return html`<img
+                src="${this.icon}"
+                class="${this.iconLibrary ? 'bullet-icon' : ''}"
+                alt="${this.alt || 'Icon preview'}"
+                @error=${(e) => (e.target.style.display = 'none')}
+            />`;
+        }
+    }
+
     render() {
         return html`
             <div class="included-preview">
                 <div class="icon-preview">
                     ${this.icon
-                        ? html`<img
-                              src="${this.icon}"
-                              alt="${this.alt || 'Icon preview'}"
-                              @error=${(e) => (e.target.style.display = 'none')}
-                          />`
+                        ? html`${this.renderIcon()}`
                         : html`<div class="icon-placeholder">
                               <sp-icon-image size="m"></sp-icon-image>
                           </div>`}
@@ -196,6 +230,9 @@ class IncludedField extends LitElement {
                 .icon=${this.icon}
                 .alt=${this.alt}
                 .link=${this.link}
+                .iconLibrary="${this.iconLibrary}"
+                .useRte=${this.iconLibrary}
+                .variant=${this.variant}
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>

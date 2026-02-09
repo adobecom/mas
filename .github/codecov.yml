@@ -1,0 +1,43 @@
+# Codecov Configuration
+# Documentation: https://docs.codecov.com/docs/codecov-yaml
+
+# Coverage targets
+coverage:
+    precision: 2
+    round: down
+    range: '70...100'
+
+    status:
+        # Project-level coverage (overall codebase)
+        project:
+            default:
+                target: 80%
+                threshold: 0%
+                informational: true # Non-blocking, informational only
+
+        # Patch-level coverage (changes in PR)
+        patch:
+            default:
+                target: 80%
+                threshold: 0%
+                informational: true # Non-blocking, informational only
+
+# Comment settings for pull requests
+comment:
+    layout: 'reach,diff,flags,tree,footer'
+    behavior: default
+    require_changes: false
+    require_base: false
+    require_head: true
+
+# Ignore patterns (add paths you want to exclude from coverage)
+ignore:
+    - 'test/**/*'
+    - 'tests/**/*'
+    - '**/*.test.js'
+    - '**/*.spec.js'
+    - '**/test/**'
+    - '**/tests/**'
+    - 'node_modules/**/*'
+    - 'dist/**/*'
+    - 'build/**/*'

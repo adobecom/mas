@@ -148,7 +148,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await expect(await editor.size).not.toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).toBeVisible();
@@ -192,7 +192,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-3: Validate fields rendering', async () => {
             // await expect(await editor.authorPath).toBeVisible(); // removed with the new design but might be back
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).not.toBeVisible();
             await expect(await editor.subtitle).not.toBeVisible();
@@ -235,7 +235,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.description).toBeVisible();
@@ -288,7 +288,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'plans');
+            await expect(await editor.variant).toHaveAttribute('value', 'plans');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).toBeVisible();
@@ -329,7 +329,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-promoted-plans');
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-promoted-plans');
             await expect(await editor.title).toBeVisible();
             await expect(await editor.description).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
@@ -493,7 +493,7 @@ test.describe('M@S Studio feature test suite', () => {
             await fragmentRow.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', data.variant);
+            await expect(await editor.variant).toHaveAttribute('value', data.variant);
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
         });

@@ -53,6 +53,7 @@ export class Mini extends VariantLayout {
         const legal = price.cloneNode(true);
         this.legal = legal;
         price.dataset.displayTax = 'false';
+        price.dataset.displayPerUnit = 'false';
         legal.dataset.template = 'legal';
         legal.dataset.displayPlanType =
             this.card?.settings?.displayPlanType ?? true;

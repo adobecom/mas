@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 
 function displayHelp() {
     console.log(`
@@ -85,20 +85,6 @@ function parseArgs(args) {
         }
     });
 
-    // Set the project if not provided
-    if (!parsedParams.project) {
-        parsedParams.project = `mas-live-${parsedParams.browser}`;
-    }
-
-    // Determine SKIP_AUTH
-    if (!process.env.SKIP_AUTH) {
-        if (parsedParams.test.includes('docs/')) {
-            process.env.SKIP_AUTH = 'true';
-        } else {
-            process.env.SKIP_AUTH = 'false';
-        }
-    }
-
     return parsedParams;
 }
 
@@ -122,7 +108,72 @@ function getLocalTestLiveUrl(env, milolibs, repo = 'mas', owner = 'adobecom') {
     return `https://${env}--${repo}--${owner}.aem.live`;
 }
 
+function detectProjectFromTests(parsedParams) {
+    // If project already set, return it
+    if (parsedParams.project) {
+        return parsedParams.project;
+    }
+
+    // Check test file path first (if provided)
+    if (parsedParams.test) {
+        if (parsedParams.test.includes('studio/')) {
+            return 'mas-studio-chromium';
+        } else if (parsedParams.test.includes('docs/')) {
+            return 'mas-docs-chromium';
+        }
+    }
+
+    // Check tags for explicit project indicators
+    if (parsedParams.tag) {
+        if (parsedParams.tag.includes('mas-studio')) {
+            return 'mas-studio-chromium';
+        } else if (parsedParams.tag.includes('mas-docs')) {
+            return 'mas-docs-chromium';
+        }
+    }
+
+    // Use Playwright list to detect from actual test files that would run
+    const tagArg = parsedParams.tag ? parsedParams.tag.replace(/,/g, ' ') : '';
+    const testFile = parsedParams.test || '';
+    let listCmd = 'npx playwright test --config=./playwright.config.js --list --grep-invert nopr';
+    if (tagArg) {
+        listCmd += ` -g "${tagArg}"`;
+    }
+    if (testFile) {
+        listCmd += ` ${testFile}`;
+    }
+
+    try {
+        const result = spawnSync(listCmd, {
+            shell: true,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+            cwd: process.cwd(),
+            timeout: 10000,
+        });
+
+        const listOutput = (result.stdout || '') + (result.stderr || '');
+
+        // Check for project names in brackets or relative paths in output
+        if (listOutput.includes('[mas-studio-chromium]') || listOutput.includes('studio/')) {
+            return 'mas-studio-chromium';
+        } else if (listOutput.includes('[mas-docs-chromium]') || listOutput.includes('docs/')) {
+            return 'mas-docs-chromium';
+        }
+    } catch (error) {
+        // If list fails, fall back to default
+    }
+
+    // Default fallback - uses auth to safely handle any tests
+    return 'mas-live-chromium';
+}
+
 function buildPlaywrightCommand(parsedParams, localTestLiveUrl) {
+    // Detect project if not already set
+    if (!parsedParams.project) {
+        parsedParams.project = detectProjectFromTests(parsedParams);
+    }
+
     const { browser, device, test, tag, mode, config, project } = parsedParams;
 
     const envVariables = {
@@ -131,7 +182,6 @@ function buildPlaywrightCommand(parsedParams, localTestLiveUrl) {
         DEVICE: device,
         HEADLESS: mode === 'headless' || mode === 'headed' ? 'true' : 'false',
         LOCAL_TEST_LIVE_URL: localTestLiveUrl,
-        SKIP_AUTH: process.env.SKIP_AUTH,
     };
 
     const command = 'npx playwright test';

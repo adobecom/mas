@@ -9,7 +9,7 @@ export default class EditorPage {
         this.authorPath = page.locator('#author-path');
         this.localeVariationHeader = page.locator('.locale-variation-header');
         this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
-        this.variant = this.panel.locator('#card-variant');
+        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
         this.style = this.panel.locator('#card-style');
         this.size = this.panel.locator('#card-size');
         this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
@@ -52,7 +52,7 @@ export default class EditorPage {
         this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
-        this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-icon-add');
+        this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');
         this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
@@ -66,6 +66,7 @@ export default class EditorPage {
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');
         this.promoStrikethroughPrice = page.locator('span[is="inline-price"][data-template="price"] > .price-strikethrough');
+        this.legalDisclaimer = page.locator('span[is="inline-price"][data-template="legal"]');
 
         // RTE content
         this.phoneLink = page.locator('a[href^="tel:"]');

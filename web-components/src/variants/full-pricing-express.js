@@ -46,7 +46,7 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
         size: 'XL',
     },
     mnemonics: {
-        size: 'l',
+        size: 'xs',
     },
     borderColor: {
         attribute: 'border-color',
@@ -73,6 +73,21 @@ export class FullPricingExpress extends VariantLayout {
 
     get headingSelector() {
         return '[slot="heading-xs"]';
+    }
+
+    get badgeElement() {
+        return this.card.querySelector('[slot="badge"]');
+    }
+
+    get badge() {
+        return html`
+            <div
+                class="badge-wrapper"
+                style="${this.badgeElement ? '' : 'visibility: hidden'}"
+            >
+                <slot name="badge"></slot>
+            </div>
+        `;
     }
 
     syncHeights() {
@@ -133,13 +148,13 @@ export class FullPricingExpress extends VariantLayout {
 
     renderLayout() {
         return html`
-            <div class="badge-wrapper">
-                <slot name="badge"></slot>
-            </div>
+            ${this.badge}
             <div class="card-content">
                 <div class="header">
                     <slot name="heading-xs"></slot>
-                    <slot name="icons"></slot>
+                    <div class="icons">
+                        <slot name="icons"></slot>
+                    </div>
                 </div>
                 <div class="short-description">
                     <slot name="short-description"></slot>
@@ -222,6 +237,12 @@ export class FullPricingExpress extends VariantLayout {
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        :host([variant='full-pricing-express']) .icons {
+            display: flex;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--spectrum-black);
         }
 
         /* Card content styling */
@@ -368,9 +389,17 @@ export class FullPricingExpress extends VariantLayout {
             flex-shrink: 0;
         }
 
-        :host([variant='full-pricing-express']) [slot='icons'] merch-icon {
-            --img-width: 20px;
-            --img-height: 20px;
+        :host([variant='full-pricing-express']) .icons ::slotted(merch-icon) {
+            --mod-img-width: auto;
+            --mod-img-height: 18px;
+            align-self: flex-end;
+        }
+
+        :host([variant='full-pricing-express'])
+            .icons
+            ::slotted(merch-icon:nth-of-type(2)) {
+            --mod-img-height: 14px;
+            height: 14px;
         }
 
         /* Description sections */

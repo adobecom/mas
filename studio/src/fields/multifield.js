@@ -41,6 +41,7 @@ class MasMultifield extends LitElement {
 
         .add-button-wrapper {
             display: flex;
+            margin-top: 12px;
         }
 
         .add-button-wrapper sp-action-button {
@@ -239,8 +240,14 @@ class MasMultifield extends LitElement {
         // if the element is a wrapper, get the field element
         fieldEl = fieldEl.querySelector('.field') ?? fieldEl;
         Object.keys(field).forEach((key) => {
-            fieldEl.setAttribute(key, field[key]);
+            if (key !== 'fieldState') {
+                fieldEl.setAttribute(key, field[key]);
+            }
         });
+        const fieldState = field.fieldState || this.getAttribute('data-field-state');
+        if (fieldState) {
+            fieldEl.setAttribute('data-field-state', fieldState);
+        }
 
         return html`
             <div

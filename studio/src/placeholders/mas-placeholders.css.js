@@ -34,8 +34,8 @@ export const styles = css`
 
     .placeholders-title {
         display: flex;
-        justify-content: flex-start;
-        align-items: center;
+        flex-direction: column;
+        gap: 4px;
     }
 
     .placeholders-title h2 {
@@ -79,12 +79,6 @@ export const styles = css`
 
     sp-progress-circle.loading-indicator {
         top: -60px;
-    }
-
-    mas-locale-picker {
-        width: 150px;
-        border: 1px solid var(--spectrum-gray-700);
-        border-radius: 4px;
     }
 
     .placeholders-table {
@@ -386,11 +380,6 @@ export const styles = css`
         width: 100%;
         min-width: 0;
         box-sizing: border-box;
-    }
-
-    .form-field mas-locale-picker {
-        border: none;
-        background: none;
     }
 
     .form-field .rte-container {

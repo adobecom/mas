@@ -98,7 +98,7 @@ describe('Router', () => {
             mockEditor.isLoading = false;
             document.body.appendChild(mockEditor);
             const result = router.getActiveEditor();
-            expect(result.hasChanges).to.be.null;
+            expect(result.hasChanges).to.be.false;
             expect(result.shouldCheckUnsavedChanges).to.be.false;
         });
 
@@ -134,7 +134,7 @@ describe('Router', () => {
             document.body.appendChild(mockEditor);
             const result = router.getActiveEditor();
             expect(result.editor).to.equal(mockEditor);
-            expect(result.hasChanges).to.be.null;
+            expect(result.hasChanges).to.be.false;
             expect(result.shouldCheckUnsavedChanges).to.be.false;
         });
 

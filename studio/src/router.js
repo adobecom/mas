@@ -218,17 +218,12 @@ export class Router extends EventTarget {
             Store.search.set((prev) => ({ ...prev, region: null }));
             Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
 
-            // Pass pre-fill data through history state (not URL params)
-            const prefillState = targetLocale || fragmentId ? { targetLocale, fragmentId } : null;
+            // Store pre-fill data for the translation editor to consume
+            if (targetLocale || fragmentId) {
+                Store.translationProjects.prefill.set({ targetLocale, fragmentId });
+            }
 
-            // Update URL and set state before component mounts
-            // Use pushState to create a new history entry (so back button works)
-            this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
-            this.currentParams.set('page', PAGE_NAMES.TRANSLATION_EDITOR);
-            history.pushState(prefillState, '', `#${this.currentParams.toString()}`);
-            this.currentParams = undefined;
-
-            // Now set the store to trigger component mount
+            // Set the page - the store subscription will update the URL
             Store.page.set(PAGE_NAMES.TRANSLATION_EDITOR);
         } finally {
             this.isNavigating = false;

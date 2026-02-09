@@ -67,8 +67,13 @@ class MasTranslationEditor extends LitElement {
     async connectedCallback() {
         super.connectedCallback();
 
-        // Check for pre-fill data from history state (e.g., from missing-variation-panel)
-        const { targetLocale, fragmentId } = history.state || {};
+        // Check for pre-fill data from store (e.g., from missing-variation-panel)
+        const prefill = Store.translationProjects.prefill.get();
+        const { targetLocale, fragmentId } = prefill || {};
+        // Clear prefill state after consumption to prevent stale data
+        if (prefill) {
+            Store.translationProjects.prefill.set(null);
+        }
 
         const translationProjectId = Store.translationProjects.translationProjectId.get();
         if (translationProjectId) {

@@ -113,6 +113,7 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
+        prefill: new ReactiveStore(null),
 
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),

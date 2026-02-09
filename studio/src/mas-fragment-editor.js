@@ -14,7 +14,7 @@ import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
-import { getCountryName } from '../../io/www/src/fragment/locales.js';
+import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -687,6 +687,10 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             Store.editor.resetChanges();
+
+            // Update translated locales store for locale picker
+            await this.updateTranslatedLocalesStore(isVariation);
+
             this.initState = MasFragmentEditor.INIT_STATE.READY;
             this.requestUpdate();
         } catch (error) {

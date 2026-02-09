@@ -567,8 +567,12 @@ export default class MasFragmentEditor extends LitElement {
             Store.editor.resetChanges();
             this.reactiveController.updateStores([this.inEdit, existingStore, existingStore.previewStore, this.operation]);
 
-            this.#updateLocaleIfNeeded(existingStore.get().path);
+            const fragmentPath = existingStore.get().path;
+            this.#updateLocaleIfNeeded(fragmentPath);
             this.localeDefaultFragment = existingStore.parentFragment;
+
+            // Reload context to correctly determine if this fragment is a variation
+            await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
 
             this.initState = MasFragmentEditor.INIT_STATE.READY;
             this.requestUpdate();

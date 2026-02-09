@@ -51,7 +51,7 @@
                 document.querySelector('title').innerText += ` [${envOverride.toUpperCase()}]`;
             }
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
-            const ioStudioEnvParam = params.get('io.studio.env');
+            const ioStudioEnvParam = params.get('io.studio.env') || envOverride;
             const ioStudioEnv = ioStudioEnvParam ? `-${ioStudioEnvParam}` : '';
             const ioBaseUrl = `https://14257-masstudio${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
             document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);

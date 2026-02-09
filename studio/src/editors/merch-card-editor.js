@@ -1287,20 +1287,36 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
 
-        // If all mnemonics removed in a variation, use empty string sentinel [""]
-        // to indicate explicit clear (vs [] which means inherit from parent)
-        if (mnemonicIcon.length === 0 && this.effectiveIsVariation) {
-            this.fragmentStore.updateField('mnemonicIcon', ['']);
-            this.fragmentStore.updateField('mnemonicAlt', ['']);
-            this.fragmentStore.updateField('mnemonicLink', ['']);
-            this.fragmentStore.updateField('mnemonicTooltipText', ['']);
-            this.fragmentStore.updateField('mnemonicTooltipPlacement', ['']);
+        // For variations: use empty string sentinel [""] to explicitly clear (vs [] which inherits)
+        // For non-variations or when values differ from parent: update normally
+        // When values match parent: auto-reset to inherited state
+        const isExplicitClear = mnemonicIcon.length === 0 && this.effectiveIsVariation;
+        const parent = this.effectiveIsVariation ? this.localeDefaultFragment : null;
+
+        const values = {
+            mnemonicIcon: isExplicitClear ? [''] : mnemonicIcon,
+            mnemonicAlt: isExplicitClear ? [''] : mnemonicAlt,
+            mnemonicLink: isExplicitClear ? [''] : mnemonicLink,
+            mnemonicTooltipText: isExplicitClear ? [''] : mnemonicTooltipText,
+            mnemonicTooltipPlacement: isExplicitClear ? [''] : mnemonicTooltipPlacement,
+        };
+
+        // Update primary field first to check if it matches parent
+        const result = this.fragmentStore.updateField('mnemonicIcon', values.mnemonicIcon, parent);
+        if (result === 'reset') {
+            // Icons match parent - reset all mnemonic fields to inherited state
+            for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+                this.fragment.resetFieldToParent(fieldName);
+            }
+            this.fragmentStore.notify();
+            this.fragmentStore.refreshAemFragment();
+            this.requestUpdate();
         } else {
-            this.fragmentStore.updateField('mnemonicIcon', mnemonicIcon);
-            this.fragmentStore.updateField('mnemonicAlt', mnemonicAlt);
-            this.fragmentStore.updateField('mnemonicLink', mnemonicLink);
-            this.fragmentStore.updateField('mnemonicTooltipText', mnemonicTooltipText);
-            this.fragmentStore.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
+            // Update remaining fields
+            this.fragmentStore.updateField('mnemonicAlt', values.mnemonicAlt);
+            this.fragmentStore.updateField('mnemonicLink', values.mnemonicLink);
+            this.fragmentStore.updateField('mnemonicTooltipText', values.mnemonicTooltipText);
+            this.fragmentStore.updateField('mnemonicTooltipPlacement', values.mnemonicTooltipPlacement);
         }
 
         // Only count non-empty mnemonics (those with an icon) for toast notifications

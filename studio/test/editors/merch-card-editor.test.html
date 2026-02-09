@@ -244,6 +244,43 @@
                         expect(editor.mnemonics).to.have.length(1);
                     });
 
+                    it('maintains inherited state after add visual then cancel', async () => {
+                        // This test reproduces the bug where:
+                        // 1. Click "Restore override" on Visuals (resets to inherit from parent)
+                        // 2. Click "Add visual"
+                        // 3. Click "Cancel" on the modal
+                        // Result: inherited visual incorrectly remains marked as overridden
+
+                        await setupTestEnvironment();
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+
+                        // Simulate restore override (already inherited, but ensures clean state)
+                        await editor.resetMnemonicsToParent();
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+
+                        // Simulate add visual - this adds an empty field and opens modal
+                        const multifield = editor.querySelector('mas-multifield#mnemonics');
+                        multifield.addField();
+                        await delay(100);
+                        await editor.updateComplete;
+
+                        // Simulate cancel (delete the empty field that was just added)
+                        // This is what happens when modal closes with no icon selected
+                        const fields = multifield.shadowRoot.querySelectorAll('.field-wrapper');
+                        const lastField = fields[fields.length - 1];
+                        const mnemonicField = lastField.querySelector('mas-mnemonic-field');
+                        mnemonicField.dispatchEvent(new CustomEvent('delete-field', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+                        await delay(100);
+
+                        // After cancel, state should return to inherited (not same-as-parent or overridden)
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+                    });
+
                     const restoreTests = [
                         { name: 'text field (cardName)', field: 'cardName', selector: '#cardName', value: ['Overridden Name'] },
                         {

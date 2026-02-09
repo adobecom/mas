@@ -500,6 +500,12 @@ describe('MasRepository dictionary helpers', () => {
             const path = '/content/dam/mas/sandbox/en_AU/card-name-test';
             expect(repository.parseVariationAlreadyExistsPath(`A variation already exists at ${path}   `)).to.equal(path);
         });
+
+        it('returns null when path after prefix is empty or whitespace only', () => {
+            const repository = createRepository();
+            expect(repository.parseVariationAlreadyExistsPath('A variation already exists at ')).to.be.null;
+            expect(repository.parseVariationAlreadyExistsPath('A variation already exists at    ')).to.be.null;
+        });
     });
 
     describe('createVariation', () => {
@@ -511,6 +517,44 @@ describe('MasRepository dictionary helpers', () => {
         };
         const existingVariationPath = '/content/dam/mas/sandbox/en_AU/card-name-test';
         const existingVariation = { id: 'variation-1', path: existingVariationPath };
+
+        it('creates variation and updates parent when createEmptyVariation succeeds', async () => {
+            const repository = createRepository();
+            const newVariation = { id: 'new-var-1', path: existingVariationPath };
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                },
+            });
+            sandbox.stub(repository, 'createEmptyVariation').resolves(newVariation);
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+
+            const result = await repository.createVariation(parentFragment.id, 'en_AU', false);
+
+            expect(repository.createEmptyVariation.calledOnce).to.be.true;
+            expect(repository.createEmptyVariation.calledWith(parentFragment, 'en_AU')).to.be.true;
+            expect(repository.updateParentVariations.calledOnce).to.be.true;
+            expect(repository.updateParentVariations.calledWith(parentFragment, newVariation.path)).to.be.true;
+            expect(result).to.deep.equal(newVariation);
+        });
+
+        it('throws when createEmptyVariation returns null or undefined', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                },
+            });
+            sandbox.stub(repository, 'createEmptyVariation').resolves(null);
+            sandbox.stub(repository, 'updateParentVariations');
+
+            try {
+                await repository.createVariation(parentFragment.id, 'en_AU', false);
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to create variation');
+            }
+        });
 
         it('repairs parent variations and returns existing fragment when "variation already exists" is thrown', async () => {
             const repository = createRepository();
@@ -550,6 +594,22 @@ describe('MasRepository dictionary helpers', () => {
             } catch (error) {
                 expect(error.message).to.equal('Network error');
                 expect(repository.updateParentVariations.called).to.be.false;
+            }
+        });
+
+        it('throws when getById returns null (parent fragment not found)', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(null),
+                },
+            });
+
+            try {
+                await repository.createVariation(parentFragment.id, 'en_AU', false);
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to fetch parent fragment');
             }
         });
 

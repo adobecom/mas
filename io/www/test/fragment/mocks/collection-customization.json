@@ -4,7 +4,9 @@
     "title": "another collection",
     "id": "coll-en-us",
     "description": "",
-    "model": { "id": "model-id" },
+    "model": {
+        "id": "model-id"
+    },
     "fields": {
         "cards": [],
         "collections": ["subcoll-en-us"],
@@ -19,27 +21,31 @@
                 "title": "NICOCOLL",
                 "id": "subcoll-en-us",
                 "description": "",
-                "model": { "id": "model-id" },
+                "model": {
+                    "id": "model-id"
+                },
                 "fields": {
                     "label": "blah",
                     "cards": ["some-card-en-us", "some-other-card-en-us"],
                     "collections": [],
                     "originalId": "subcoll-en-us",
-                    "variations": ["subcoll-en-au"]
+                    "variations": ["subcoll-en-kw"]
                 }
             }
         },
-        "subcoll-en-au": {
+        "subcoll-en-kw": {
             "type": "content-fragment",
             "value": {
-                "path": "/content/dam/mas/sandbox/en_AU/nicocoll",
+                "path": "/content/dam/mas/sandbox/en_KW/nicocoll",
                 "name": "",
-                "title": "NICOCOLL AU",
-                "id": "subcoll-en-au",
+                "title": "NICOCOLL KW",
+                "id": "subcoll-en-kw",
                 "description": "",
-                "model": { "id": "model-id" },
+                "model": {
+                    "id": "model-id"
+                },
                 "fields": {
-                    "label": "blah au",
+                    "label": "blah kw",
                     "cards": [],
                     "collections": [],
                     "originalId": "subcoll-en-us"
@@ -54,7 +60,9 @@
                 "title": "Acom Plans CC All Apps",
                 "id": "some-card-en-us",
                 "description": "test card for plans",
-                "model": { "id": "card-model-id" },
+                "model": {
+                    "id": "card-model-id"
+                },
                 "fields": {
                     "variant": "plans",
                     "osi": "Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ",
@@ -66,7 +74,9 @@
                         "value": "<merch-badge background-color=\"spectrum-green-900-plans\" color=\"#fff\" border-color=\"spectrum-yellow-300-plans\" variant=\"plans\">badge</merch-badge>",
                         "mimeType": "text/html"
                     },
-                    "trialBadge": { "mimeType": "text/html" },
+                    "trialBadge": {
+                        "mimeType": "text/html"
+                    },
                     "borderColor": "spectrum-gray-300-plans",
                     "backgroundImage": "https://www.adobe.com/my/images/bg.png",
                     "cardTitle": "Mili Test Cards",
@@ -75,13 +85,18 @@
                         "value": "<span is=\"inline-price\" data-display-per-unit=\"true\" data-display-tax=\"true\" data-promotion-code=\"UMRM2MUSPr501YOC\" data-template=\"price\" data-wcs-osi=\"yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg\"></span>",
                         "mimeType": "text/html"
                     },
-                    "shortDescription": { "mimeType": "text/html" },
+                    "shortDescription": {
+                        "mimeType": "text/html"
+                    },
                     "promoText": "test promo text new July 16th again",
                     "description": {
                         "value": "<p>Body XS/Regular Get 20+ apps for all kinds of creative work, from editing photos and videos to designing logos and more.. <a class=\"secondary-link\" href=\"tel:01234567\" title=\"text\" target=\"_self\">01234567</a></p><p><strong><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\"></span> </strong><span is=\"inline-price\" data-display-tax=\"true\" data-template=\"legal\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\"></span></p><p><a class=\"primary-link\" href=\"https://example.com\" target=\"_self\">Learn more</a></p>",
                         "mimeType": "text/html"
                     },
-                    "callout": { "value": "<p>This is some callout text...</p>", "mimeType": "text/html" },
+                    "callout": {
+                        "value": "<p>This is some callout text...</p>",
+                        "mimeType": "text/html"
+                    },
                     "quantitySelect": "<merch-quantity-select title=\"Select quantity:\" min=\"2\" max=\"10\" step=\"2\"></merch-quantity-select>",
                     "addon": "{{addon-mili-test}}",
                     "ctas": {
@@ -196,7 +211,9 @@
                 "title": "regional CCD Slice Wide CC All Apps",
                 "id": "some-other-card-en-us",
                 "description": "",
-                "model": { "id": "card-model-id" },
+                "model": {
+                    "id": "card-model-id"
+                },
                 "fields": {
                     "variant": "plans",
                     "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
@@ -211,26 +228,32 @@
                         "value": "<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"default\" variant=\"plans\">default badge</merch-badge>",
                         "mimeType": "text/html"
                     },
-                    "trialBadge": { "mimeType": "text/html" },
+                    "trialBadge": {
+                        "mimeType": "text/html"
+                    },
                     "backgroundImage": "https://www.adobe.com/my/images/bg.jpg",
                     "cardTitle": "Photography  (1TB)",
                     "prices": {
                         "value": "<p><span is=\"inline-price\" data-tax-exclusive=\"false\" data-template=\"price\" data-wcs-osi=\"7eMy4KQZ4IYf7QQDBemiRJuGnNLV0ezGROEJLJZZisE\"></span></p>",
                         "mimeType": "text/html"
                     },
-                    "shortDescription": { "mimeType": "text/html" },
+                    "shortDescription": {
+                        "mimeType": "text/html"
+                    },
                     "description": {
                         "value": "<p>Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
                         "mimeType": "text/html"
                     },
-                    "callout": { "mimeType": "text/html" },
+                    "callout": {
+                        "mimeType": "text/html"
+                    },
                     "showSecureLabel": false,
                     "showPlanType": false,
                     "ctas": {
                         "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
                         "mimeType": "text/html"
                     },
-                    "variations": ["some-other-card-en-au", "15891dd8-872f-4643-99a6-492d8917d46b"],
+                    "variations": ["some-other-card-en-kw", "15891dd8-872f-4643-99a6-492d8917d46b"],
                     "tags": [
                         "mas:offer_type/base",
                         "mas:plan_type/abm",
@@ -243,15 +266,17 @@
                 }
             }
         },
-        "some-other-card-en-au": {
+        "some-other-card-en-kw": {
             "type": "content-fragment",
             "value": {
-                "path": "/content/dam/mas/sandbox/en_AU/some/othercard",
+                "path": "/content/dam/mas/sandbox/en_KW/some/othercard",
                 "name": "",
-                "title": "Photography Promo AU",
-                "id": "some-other-card-en-au",
-                "description": "variation built for australia",
-                "model": { "id": "card-model-id" },
+                "title": "Photography Promo KW",
+                "id": "some-other-card-en-kw",
+                "description": "variation built for kuwait",
+                "model": {
+                    "id": "card-model-id"
+                },
                 "fields": {
                     "variant": "plans",
                     "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
@@ -260,16 +285,28 @@
                     "mnemonicAlt": [],
                     "mnemonicLink": [],
                     "badge": {
-                        "value": "<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"default\" variant=\"plans\">Australian card</merch-badge>",
+                        "value": "<merch-badge background-color=\"spectrum-yellow-300\" border-color=\"default\" variant=\"plans\">Kuwait card</merch-badge>",
                         "mimeType": "text/html"
                     },
-                    "trialBadge": { "mimeType": "text/html" },
+                    "trialBadge": {
+                        "mimeType": "text/html"
+                    },
                     "backgroundImage": "https://www.adobe.com/my/image.jpg",
-                    "prices": { "mimeType": "text/html" },
-                    "shortDescription": { "mimeType": "text/html" },
-                    "description": { "mimeType": "text/html" },
-                    "callout": { "mimeType": "text/html" },
-                    "ctas": { "mimeType": "text/html" },
+                    "prices": {
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": {
+                        "mimeType": "text/html"
+                    },
+                    "description": {
+                        "mimeType": "text/html"
+                    },
+                    "callout": {
+                        "mimeType": "text/html"
+                    },
+                    "ctas": {
+                        "mimeType": "text/html"
+                    },
                     "variations": [],
                     "tags": [],
                     "originalId": "some-other-card-en-us",
@@ -285,7 +322,9 @@
                 "title": "Photography Promo",
                 "id": "some-other-card-en-in",
                 "description": "",
-                "model": { "id": "card-model-id" },
+                "model": {
+                    "id": "card-model-id"
+                },
                 "fields": {
                     "variant": "plans",
                     "osi": "BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c",
@@ -296,20 +335,28 @@
                     ],
                     "mnemonicAlt": ["Lightroom", "Illustrator"],
                     "mnemonicLink": ["https://www.adobe.com/products/catalog.html", "https://www.adobe.com"],
-                    "badge": { "mimeType": "text/html" },
-                    "trialBadge": { "mimeType": "text/html" },
+                    "badge": {
+                        "mimeType": "text/html"
+                    },
+                    "trialBadge": {
+                        "mimeType": "text/html"
+                    },
                     "backgroundImage": "https://www.adobe.com/my/image.jpg",
                     "cardTitle": "Photography  (1TB)",
                     "prices": {
                         "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"K79yhO4-kgnn85ghM8NwRIACiaH_LucDbaIKajqpYk8\"></span>",
                         "mimeType": "text/html"
                     },
-                    "shortDescription": { "mimeType": "text/html" },
+                    "shortDescription": {
+                        "mimeType": "text/html"
+                    },
                     "description": {
                         "value": "<p>Edit this is the {{demo-sunil}} organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\">See terms.</a> {{how-is-nico}}<a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\">See all plans &amp; pricing details</a></p>",
                         "mimeType": "text/html"
                     },
-                    "callout": { "mimeType": "text/html" },
+                    "callout": {
+                        "mimeType": "text/html"
+                    },
                     "ctas": {
                         "value": "<p><b><a data-checkout-workflow=\"UCv3\" data-checkout-workflow-step=\"email\" data-quantity=\"1\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\">Buy now</a></b></p>\n",
                         "mimeType": "text/html"
@@ -349,13 +396,41 @@
                     "fieldName": "cards",
                     "identifier": "some-card-en-us",
                     "referencesTree": [
-                        { "fieldName": "tags", "identifier": "mas:product_family", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:commitment/access_pass", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:promotion/back-to-school", "referencesTree": [] }
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product_family",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/base",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:commitment/access_pass",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:plan_type/abm",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:customer_segment/individual",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:promotion/back-to-school",
+                            "referencesTree": []
+                        }
                     ]
                 },
                 {
@@ -364,25 +439,65 @@
                     "referencesTree": [
                         {
                             "fieldName": "variations",
-                            "identifier": "some-other-card-en-au",
+                            "identifier": "some-other-card-en-kw",
                             "referencesTree": []
                         },
                         {
                             "fieldName": "variations",
                             "identifier": "15891dd8-872f-4643-99a6-492d8917d46b",
                             "referencesTree": [
-                                { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
-                                { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
-                                { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
-                                { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
-                                { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+                                {
+                                    "fieldName": "tags",
+                                    "identifier": "mas:offer_type/base",
+                                    "referencesTree": []
+                                },
+                                {
+                                    "fieldName": "tags",
+                                    "identifier": "mas:plan_type/abm",
+                                    "referencesTree": []
+                                },
+                                {
+                                    "fieldName": "tags",
+                                    "identifier": "mas:customer_segment/individual",
+                                    "referencesTree": []
+                                },
+                                {
+                                    "fieldName": "tags",
+                                    "identifier": "mas:product_code/phlt",
+                                    "referencesTree": []
+                                },
+                                {
+                                    "fieldName": "tags",
+                                    "identifier": "mas:market_segments/com",
+                                    "referencesTree": []
+                                }
                             ]
                         },
-                        { "fieldName": "tags", "identifier": "mas:offer_type/base", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:plan_type/abm", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:customer_segment/individual", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:product_code/phlt", "referencesTree": [] },
-                        { "fieldName": "tags", "identifier": "mas:market_segments/com", "referencesTree": [] }
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/base",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:plan_type/abm",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:customer_segment/individual",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product_code/phlt",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        }
                     ]
                 }
             ]
@@ -394,16 +509,36 @@
             "path": "/conf/mas/settings/dam/cfm/models/collection",
             "title": "Collection",
             "fields": {
-                "label": { "type": "text" },
-                "navigationLabel": { "type": "text" },
-                "queryLabel": { "type": "text" },
-                "icon": { "type": "text" },
-                "iconLight": { "type": "text" },
-                "cards": { "type": "content-fragment" },
-                "collections": { "type": "content-fragment" },
-                "originalId": { "type": "text" },
-                "defaultchild": { "type": "text" },
-                "locReady": { "type": "boolean" }
+                "label": {
+                    "type": "text"
+                },
+                "navigationLabel": {
+                    "type": "text"
+                },
+                "queryLabel": {
+                    "type": "text"
+                },
+                "icon": {
+                    "type": "text"
+                },
+                "iconLight": {
+                    "type": "text"
+                },
+                "cards": {
+                    "type": "content-fragment"
+                },
+                "collections": {
+                    "type": "content-fragment"
+                },
+                "originalId": {
+                    "type": "text"
+                },
+                "defaultchild": {
+                    "type": "text"
+                },
+                "locReady": {
+                    "type": "boolean"
+                }
             }
         },
         "card-model-id": {
@@ -411,41 +546,111 @@
             "path": "/conf/mas/settings/dam/cfm/models/card",
             "title": "Card",
             "fields": {
-                "variant": { "type": "text" },
-                "osi": { "type": "text" },
-                "size": { "type": "text" },
-                "mnemonicIcon": { "type": "text" },
-                "mnemonicAlt": { "type": "text" },
-                "mnemonicLink": { "type": "text" },
-                "badge": { "type": "long-text" },
-                "trialBadge": { "type": "long-text" },
-                "backgroundColor": { "type": "text" },
-                "borderColor": { "type": "text" },
-                "backgroundImage": { "type": "text" },
-                "backgroundImageAltText": { "type": "text" },
-                "cardTitle": { "type": "text" },
-                "cardName": { "type": "text" },
-                "cardTitleLink": { "type": "text" },
-                "subtitle": { "type": "text" },
-                "prices": { "type": "long-text" },
-                "shortDescription": { "type": "long-text" },
-                "promoText": { "type": "text" },
-                "promoCode": { "type": "text" },
-                "description": { "type": "long-text" },
-                "callout": { "type": "long-text" },
-                "showSecureLabel": { "type": "boolean" },
-                "showPlanType": { "type": "boolean" },
-                "quantitySelect": { "type": "text" },
-                "addon": { "type": "text" },
-                "addonConfirmation": { "type": "text" },
-                "ctas": { "type": "long-text" },
-                "variations": { "type": "content-fragment" },
-                "product": { "type": "content-reference" },
-                "whatsIncluded": { "type": "text" },
-                "tags": { "type": "tag" },
-                "perUnitLabel": { "type": "text" },
-                "originalId": { "type": "text" },
-                "locReady": { "type": "boolean" }
+                "variant": {
+                    "type": "text"
+                },
+                "osi": {
+                    "type": "text"
+                },
+                "size": {
+                    "type": "text"
+                },
+                "mnemonicIcon": {
+                    "type": "text"
+                },
+                "mnemonicAlt": {
+                    "type": "text"
+                },
+                "mnemonicLink": {
+                    "type": "text"
+                },
+                "badge": {
+                    "type": "long-text"
+                },
+                "trialBadge": {
+                    "type": "long-text"
+                },
+                "backgroundColor": {
+                    "type": "text"
+                },
+                "borderColor": {
+                    "type": "text"
+                },
+                "backgroundImage": {
+                    "type": "text"
+                },
+                "backgroundImageAltText": {
+                    "type": "text"
+                },
+                "cardTitle": {
+                    "type": "text"
+                },
+                "cardName": {
+                    "type": "text"
+                },
+                "cardTitleLink": {
+                    "type": "text"
+                },
+                "subtitle": {
+                    "type": "text"
+                },
+                "prices": {
+                    "type": "long-text"
+                },
+                "shortDescription": {
+                    "type": "long-text"
+                },
+                "promoText": {
+                    "type": "text"
+                },
+                "promoCode": {
+                    "type": "text"
+                },
+                "description": {
+                    "type": "long-text"
+                },
+                "callout": {
+                    "type": "long-text"
+                },
+                "showSecureLabel": {
+                    "type": "boolean"
+                },
+                "showPlanType": {
+                    "type": "boolean"
+                },
+                "quantitySelect": {
+                    "type": "text"
+                },
+                "addon": {
+                    "type": "text"
+                },
+                "addonConfirmation": {
+                    "type": "text"
+                },
+                "ctas": {
+                    "type": "long-text"
+                },
+                "variations": {
+                    "type": "content-fragment"
+                },
+                "product": {
+                    "type": "content-reference"
+                },
+                "whatsIncluded": {
+                    "type": "text"
+                },
+                "tags": {
+                    "type": "tag"
+                },
+                "perUnitLabel": {
+                    "type": "text"
+                },
+                "originalId": {
+                    "type": "text"
+                },
+                "locReady": {
+                    "type": "boolean"
+                }
             }
         }
     }

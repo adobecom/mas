@@ -93,7 +93,19 @@ export class VersionRepository {
             const normalizedFields = normalizeFields(versionData);
 
             // Convert back to AEM array format for saving
-            const fieldsArray = denormalizeFields(normalizedFields, currentFragment);
+            let fieldsArray = denormalizeFields(normalizedFields, currentFragment);
+
+            // Preserve the current fragment's variations field so restored versions don't wipe
+            // locale variation links. Otherwise variations disappear from mas-fragment-variations,
+            // and the user can attempt to create a duplicate until the server reports "already exists".
+            const currentVariationsField = currentFragment.fields?.find((f) => f.name === 'variations');
+            if (currentVariationsField) {
+                const withoutVariations = fieldsArray.filter((f) => f.name !== 'variations');
+                fieldsArray = [
+                    ...withoutVariations,
+                    { ...currentVariationsField, values: currentVariationsField.values || [] },
+                ];
+            }
 
             // Extract fragment title and description from normalized fields
             const { fragmentTitle, fragmentDescription } = normalizedFields;

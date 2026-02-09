@@ -140,6 +140,8 @@ async function main(params) {
                 if (status === 200 && fragment) {
                     const { value: existingEntries = [], path: existingEntriesPath } = getValues(fragment, 'entries');
                     if (existingEntriesPath) {
+                        const newValues = [...existingEntries, ...targetPlaceholders];
+                        logger.info(`Adding ${path} (etag: ${etag}) to sync with entries=${newValues}`);
                         items.push({
                             id: fragment.id,
                             etag,
@@ -147,7 +149,7 @@ async function main(params) {
                             update: {
                                 name: 'entries',
                                 path: `${existingEntriesPath}/values`,
-                                value: [...existingEntries, ...targetPlaceholders],
+                                value: newValues,
                             },
                         });
                     }
@@ -262,7 +264,7 @@ async function main(params) {
             await response.json();
             return { success: true };
         } catch (error) {
-            logger.error(`Error updating translation project submission date: ${error}`);
+            logger.error(`Error syncing element: ${error}`);
             return { success: false, path, error: error.message || error.toString() };
         }
     }

@@ -68,19 +68,21 @@ async function fetchFragmentByPath(odinEndpoint, fragmentPath, authToken) {
     } catch (error) {
         logger.error(`Error fetching fragment by path ${fragmentPath}: ${error.message}`);
     }
-    if (response.status === 404) {
+    if (response?.status === 404) {
         return { fragment: null, status: 404 };
     }
     if (response.ok) {
+        const etag = response?.headers?.get('etag');
         if (response.json) {
             const responseObject = await response.json();
             if (responseObject.items?.length > 0) {
-                return { fragment: responseObject.items[0], status: 200 };
+                const fragment = responseObject.items[0];
+                return { fragment, status: 200, etag };
             }
         }
         return { fragment: null, status: 404 };
     }
-    return { fragment: null, status: response.status, etag: response.headers.get('ETag') };
+    return { fragment: null, status: response.status };
 }
 
 /**
@@ -128,7 +130,9 @@ async function fetchOdin(
         throw new Error(`${method} ${URI} failed with status ${response.status}: ${response.statusText}`);
     }
     const duration = (performance.now() - startTime).toFixed(2);
-    logger.info(`${method} ${URI}: ${response.status} (${response.statusText}) - ${duration}ms`);
+    logger.info(
+        `${method} ${URI}: ${response.status} (${response.statusText}) (etag: ${response?.headers?.get('etag')}) - ${duration}ms`,
+    );
     return response;
 }
 

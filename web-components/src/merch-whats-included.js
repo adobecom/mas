@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, nothing } from 'lit';
 
 export class MerchWhatsIncluded extends LitElement {
     static styles = css`
@@ -11,6 +11,11 @@ export class MerchWhatsIncluded extends LitElement {
             row-gap: 10px;
         }
 
+        :host([has-bullets]) {
+            flex-direction: column;
+            align-items: start;
+        }
+
         ::slotted([slot='heading']) {
             font-size: 14px;
             font-weight: 700;
@@ -19,6 +24,13 @@ export class MerchWhatsIncluded extends LitElement {
 
         ::slotted([slot='content']) {
             display: contents;
+        }
+
+        ::slotted([slot='contentBullets']) {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 5px 0;
         }
 
         .hidden {
@@ -71,12 +83,17 @@ export class MerchWhatsIncluded extends LitElement {
 
     render() {
         return html`<slot name="heading"></slot>
-            <slot name="content"></slot>
-            ${this.isMobile && this.rows.length > this.mobileRows
+            <slot name="contentBullets"></slot>
+            ${!this.isMobile || !this.bulletsAdded
+                ? html`<slot name="content"></slot>`
+                : nothing}
+            ${this.isMobile &&
+            this.rows.length > this.mobileRows &&
+            !this.bulletsAdded
                 ? html`<div @click=${this.toggle} class="see-more">
                       ${this.showAll ? '- See less' : '+ See more'}
                   </div>`
-                : html``}`;
+                : nothing}`;
     }
 
     get isMobile() {
@@ -84,7 +101,13 @@ export class MerchWhatsIncluded extends LitElement {
     }
 
     get rows() {
-        return this.querySelectorAll('merch-mnemonic-list');
+        return this.querySelectorAll('[slot="content"] merch-mnemonic-list');
+    }
+
+    get bulletsAdded() {
+        return !!this.querySelector(
+            '[slot="contentBullets"] merch-mnemonic-list',
+        );
     }
 }
 

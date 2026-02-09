@@ -68,7 +68,6 @@
                     ]
                 },
                 "settings": {
-                    "secureLabel": "Secure transaction",
                     "displayPlanType": true
                 }
             }
@@ -167,7 +166,6 @@
                     ]
                 },
                 "settings": {
-                    "secureLabel": "Secure transaction",
                     "displayPlanType": true
                 }
             }

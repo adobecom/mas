@@ -1,10 +1,10 @@
-const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+import { odinUrl, odinReferences } from '../utils/paths.js';
+import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { logDebug } from '../utils/log.js';
 
-/**
- * Plan type label will be enabled by default for the following locales.
- * Plan type literal has the format {planType, select, ABM {Annual, billed monthly} M2M {Monthly} PUF {Annual, prepaid} other {}}
- * and different labels are displayed for different customer/market segments.
- */
+const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+const SETTINGS_FRAGMENT_PATH = 'settings/card-settings';
+
 const PLAN_TYPE_LOCALES = [
     'en_US',
     'en_AU',
@@ -30,16 +30,50 @@ const PLAN_TYPE_LOCALES = [
     'de_LU',
 ];
 
-function applyCollectionSettings(context) {
+async function init(initContext) {
+    const { surface, parsedLocale } = await getRequestInfos(initContext);
+    const { preview } = initContext;
+
+    if (!surface || !parsedLocale) {
+        logDebug(() => 'Settings init: missing surface or locale', initContext);
+        return { localeSettings: null };
+    }
+
+    const settingsUrl = odinUrl(surface, parsedLocale, SETTINGS_FRAGMENT_PATH, preview);
+    const { id, status } = await getFragmentId(initContext, settingsUrl, 'settings-id');
+
+    if (status !== 200) {
+        logDebug(() => `Settings fragment not found for ${surface}/${parsedLocale}`, initContext);
+        return { localeSettings: null };
+    }
+
+    const response = await fetch(odinReferences(id, false, preview), initContext, 'settings-fragment');
+
+    if (response.status !== 200) {
+        logDebug(() => 'Failed to fetch settings fragment', initContext);
+        return { localeSettings: null };
+    }
+
+    const fields = response.body?.fields || {};
+    const localeSettings = {
+        showSecureLabel: fields.showSecureLabel ?? false,
+        checkoutWorkflow: fields.checkoutWorkflow ?? '',
+    };
+
+    logDebug(() => `Loaded locale settings: ${JSON.stringify(localeSettings)}`, initContext);
+    return { localeSettings };
+}
+
+function applyCollectionSettings(context, localeSettings) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
             if (ref && ref.type === 'content-fragment') {
                 const variant = ref.value?.fields?.variant;
                 if (variant?.startsWith('plans')) {
-                    applyPlansSettings(ref.value, context);
+                    applyPlansSettings(ref.value, context, localeSettings);
                 }
                 if (variant === 'mini') {
-                    applyMiniSettings(ref.value, context);
+                    applyMiniSettings(ref.value, context, localeSettings);
                 }
             }
         });
@@ -82,11 +116,16 @@ function applyCollectionSettings(context) {
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 
-function applyPlansSettings(fragment, context) {
+function applyPlansSettings(fragment, context, localeSettings) {
     const { locale } = context;
-    fragment.settings = {};
-    if (fragment?.fields?.showSecureLabel !== false) {
+    fragment.settings = fragment.settings || {};
+
+    if (localeSettings?.showSecureLabel) {
         fragment.settings.secureLabel = '{{secure-label}}';
+    }
+
+    if (localeSettings?.checkoutWorkflow) {
+        fragment.settings.checkoutWorkflow = localeSettings.checkoutWorkflow;
     }
     if (fragment?.fields?.showPlanType != null) {
         fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
@@ -100,13 +139,21 @@ function applyPlansSettings(fragment, context) {
     }
 }
 
-function applyMiniSettings(fragment, context) {
+function applyMiniSettings(fragment, context, localeSettings) {
     const { locale } = context;
+    fragment.settings = fragment.settings || {};
+
+    if (localeSettings?.showSecureLabel) {
+        fragment.settings.secureLabel = '{{secure-label}}';
+    }
+
+    if (localeSettings?.checkoutWorkflow) {
+        fragment.settings.checkoutWorkflow = localeSettings.checkoutWorkflow;
+    }
+
     if (locale === 'en_AU') {
-        fragment.settings = {
-            displayPlanType: true,
-            displayAnnual: true,
-        };
+        fragment.settings.displayPlanType = true;
+        fragment.settings.displayAnnual = true;
     }
 }
 
@@ -131,16 +178,19 @@ function applyPriceLiterals(fragment) {
 async function settings(context) {
     applyPriceLiterals(context.body);
 
+    const settingsResult = await context.promises?.settings;
+    const localeSettings = settingsResult?.localeSettings || null;
+
     if (context.body?.fields?.variant?.startsWith('plans')) {
-        applyPlansSettings(context.body, context);
+        applyPlansSettings(context.body, context, localeSettings);
     }
 
     if (context.body?.fields?.variant === 'mini') {
-        applyMiniSettings(context.body, context);
+        applyMiniSettings(context.body, context, localeSettings);
     }
 
     if (context.body?.model?.id === COLLECTION_MODEL_ID) {
-        applyCollectionSettings(context);
+        applyCollectionSettings(context, localeSettings);
     }
 
     return context;
@@ -148,6 +198,7 @@ async function settings(context) {
 
 export const transformer = {
     name: 'settings',
+    init,
     process: settings,
 };
 export { applyCollectionSettings, PLAN_TYPE_LOCALES };

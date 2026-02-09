@@ -169,6 +169,7 @@ function pageValidator(value) {
         PAGE_NAMES.PROMOTIONS_EDITOR,
         PAGE_NAMES.TRANSLATIONS,
         PAGE_NAMES.TRANSLATION_EDITOR,
+        PAGE_NAMES.SETTINGS,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

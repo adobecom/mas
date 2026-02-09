@@ -1,5 +1,209 @@
 import { expect } from 'chai';
 import { transformer as settings, PLAN_TYPE_LOCALES } from '../../src/fragment/transformers/settings.js';
+import sinon from 'sinon';
+import { createResponse } from './mocks/MockFetch.js';
+
+describe('settings transformer init', () => {
+    let fetchStub;
+
+    beforeEach(() => {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should return null localeSettings when surface is missing', async () => {
+        const result = await settings.init({ parsedLocale: 'en_US' });
+        expect(result).to.deep.equal({ localeSettings: null });
+    });
+
+    it('should return null localeSettings when parsedLocale is missing', async () => {
+        const result = await settings.init({ surface: 'sandbox' });
+        expect(result).to.deep.equal({ localeSettings: null });
+    });
+
+    it('should return null localeSettings when fragment not found', async () => {
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .returns(createResponse(200, { items: [] }));
+
+        const result = await settings.init({
+            surface: 'sandbox',
+            parsedLocale: 'fr_FR',
+        });
+        expect(result).to.deep.equal({ localeSettings: null });
+    });
+
+    it('should return null localeSettings when fetch fails', async () => {
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
+
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
+            .returns(createResponse(500, null, 'Internal Server Error'));
+
+        const result = await settings.init({
+            surface: 'sandbox',
+            parsedLocale: 'fr_FR',
+        });
+        expect(result).to.deep.equal({ localeSettings: null });
+    });
+
+    it('should parse fields object correctly with showSecureLabel true', async () => {
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
+
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
+            .returns(createResponse(200, {
+                fields: {
+                    showSecureLabel: true,
+                    checkoutWorkflow: 'UCv3',
+                },
+            }));
+
+        const result = await settings.init({
+            surface: 'sandbox',
+            parsedLocale: 'fr_FR',
+        });
+        expect(result.localeSettings).to.deep.equal({
+            showSecureLabel: true,
+            checkoutWorkflow: 'UCv3',
+        });
+    });
+
+    it('should parse fields object correctly with showSecureLabel false', async () => {
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
+
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
+            .returns(createResponse(200, {
+                fields: {
+                    showSecureLabel: false,
+                    checkoutWorkflow: 'test workflow',
+                },
+            }));
+
+        const result = await settings.init({
+            surface: 'sandbox',
+            parsedLocale: 'fr_FR',
+        });
+        expect(result.localeSettings).to.deep.equal({
+            showSecureLabel: false,
+            checkoutWorkflow: 'test workflow',
+        });
+    });
+
+    it('should default to false and empty string when fields are missing', async () => {
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
+
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
+            .returns(createResponse(200, {
+                fields: {},
+            }));
+
+        const result = await settings.init({
+            surface: 'sandbox',
+            parsedLocale: 'fr_FR',
+        });
+        expect(result.localeSettings).to.deep.equal({
+            showSecureLabel: false,
+            checkoutWorkflow: '',
+        });
+    });
+
+    it('should handle undefined fields gracefully', async () => {
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
+
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
+            .returns(createResponse(200, {}));
+
+        const result = await settings.init({
+            surface: 'sandbox',
+            parsedLocale: 'fr_FR',
+        });
+        expect(result.localeSettings).to.deep.equal({
+            showSecureLabel: false,
+            checkoutWorkflow: '',
+        });
+    });
+});
+
+describe('settings transformer process with localeSettings', () => {
+    it('should apply secureLabel from localeSettings when showSecureLabel is true', async () => {
+        const context = {
+            locale: 'fr_FR',
+            body: {
+                fields: { variant: 'plans' },
+            },
+            promises: {
+                settings: Promise.resolve({
+                    localeSettings: {
+                        showSecureLabel: true,
+                        checkoutWorkflow: '',
+                    },
+                }),
+            },
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.settings.secureLabel).to.equal('{{secure-label}}');
+    });
+
+    it('should apply checkoutWorkflow from localeSettings', async () => {
+        const context = {
+            locale: 'fr_FR',
+            body: {
+                fields: { variant: 'plans' },
+            },
+            promises: {
+                settings: Promise.resolve({
+                    localeSettings: {
+                        showSecureLabel: false,
+                        checkoutWorkflow: 'UCv3',
+                    },
+                }),
+            },
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.settings.checkoutWorkflow).to.equal('UCv3');
+        expect(result.body.settings.secureLabel).to.be.undefined;
+    });
+
+    it('should apply localeSettings to mini variant', async () => {
+        const context = {
+            locale: 'en_AU',
+            body: {
+                fields: { variant: 'mini' },
+            },
+            promises: {
+                settings: Promise.resolve({
+                    localeSettings: {
+                        showSecureLabel: true,
+                        checkoutWorkflow: 'custom-workflow',
+                    },
+                }),
+            },
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.settings.secureLabel).to.equal('{{secure-label}}');
+        expect(result.body.settings.checkoutWorkflow).to.equal('custom-workflow');
+    });
+});
 
 describe('settings transformer', () => {
     let context;
@@ -13,12 +217,11 @@ describe('settings transformer', () => {
         };
     });
 
-    it('should add secure label and stock settings when variant is plans and showSecureLabel is undefined', async () => {
+    it('should add displayPlanType when variant is plans and locale is in PLAN_TYPE_LOCALES', async () => {
         context.body.fields.variant = 'plans';
 
         const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
     });
@@ -52,35 +255,9 @@ describe('settings transformer', () => {
 
         const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
         expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
-    });
-
-    it('should add secure label when variant is plans and showSecureLabel is true', async () => {
-        context.body.fields = {
-            variant: 'plans',
-            showSecureLabel: true,
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: true,
-        });
-    });
-
-    it('should not add secure label when variant is plans and showSecureLabel is false', async () => {
-        context.body.fields = {
-            variant: 'plans',
-            showSecureLabel: false,
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            displayPlanType: true,
-        });
     });
 
     it('should handle references with plans variant', async () => {
@@ -94,7 +271,6 @@ describe('settings transformer', () => {
                     value: {
                         fields: {
                             variant: 'plans',
-                            showSecureLabel: true,
                         },
                     },
                 },
@@ -103,7 +279,6 @@ describe('settings transformer', () => {
 
         const result = await settings.process(context);
         expect(result.body.references.ref1.value.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
     });
@@ -135,20 +310,17 @@ describe('settings transformer', () => {
 
         const result = await settings.process(context);
         expect(result.body.references.ref1.value.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
         expect(result.body.references.ref2.value.settings).to.be.undefined;
     });
 
-    it('should not add displayPlanType when locale is not en_US', async () => {
+    it('should not add displayPlanType when locale is not in PLAN_TYPE_LOCALES', async () => {
         context.locale = 'fr_FR';
         context.body.fields.variant = 'plans';
 
         const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-        });
+        expect(result.body.settings).to.deep.equal({});
     });
 
     it('should add displayPlanType when locale is APAC', async () => {
@@ -157,7 +329,6 @@ describe('settings transformer', () => {
             context.locale = loc;
             const result = await settings.process(context);
             expect(result.body.settings).to.deep.equal({
-                secureLabel: '{{secure-label}}',
                 displayPlanType: true,
             });
         });
@@ -223,7 +394,6 @@ describe('settings transformer', () => {
 
         const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
             displayPlanType: false,
         });
     });
@@ -233,7 +403,7 @@ describe('settings transformer', () => {
             variant: 'mini',
         };
         const result = await settings.process(context);
-        expect(result.body.settings).to.be.undefined;
+        expect(result.body.settings).to.deep.equal({});
     });
 
     it('should add plan type when variant is mini and locale is en_AU', async () => {
@@ -281,7 +451,6 @@ describe('settings transformer', () => {
 
         const result = await settings.process(context);
         expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
             displayPlanType: true,
         });
         expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');

@@ -64,6 +64,11 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
     fetchStub
         .withArgs(`${odinDomain}${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
         .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
+
+    // Settings fragment - default to not found
+fetchStub
+    .withArgs(sinon.match(/\/settings\/card-settings/))
+    .returns(createResponse(200, { items: [] }));
 }
 
 const EXPECTED_BODY = {
@@ -71,7 +76,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 //EXPECTED BODY SHA256 hash
-const EXPECTED_BODY_HASH = 'e40a8c822bb0e6fd5ef462ee327d1e9240aa74219ec67d8da63ca15aa7250de9';
+const EXPECTED_BODY_HASH = '6a70bca66c547d28f843c03ca9d22ec7d20ed033cc7092824ac397f3a93b2907';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -263,6 +268,71 @@ describe('pipeline full use case', () => {
         );
         expect(result.body.fields.ctas.value).to.not.include('\\"actionId\\"');
     });
+
+it('should apply localeSettings from settings fragment to plans card', async () => {
+    setupFragmentMocks(fetchStub, {
+        id: 'some-en-us-fragment',
+        path: 'someFragment',
+    });
+
+    // Override the default settings mock - settings fragment found
+    fetchStub
+        .withArgs(sinon.match(/\/settings\/card-settings/))
+        .returns(createResponse(200, { items: [{ id: 'settings-fragment-id' }] }));
+
+    // Mock the settings fragment content fetch
+    fetchStub
+        .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-fragment-id')
+        .returns(createResponse(200, {
+            fields: {
+                showSecureLabel: true,
+                checkoutWorkflow: 'UCv3',
+            },
+        }));
+
+    // Need a fragment with plans variant - create a modified response
+    const plansFragment = {
+        ...FRAGMENT_RESPONSE_FR,
+        fields: {
+            ...FRAGMENT_RESPONSE_FR.fields,
+            variant: 'plans',
+        },
+    };
+
+    fetchStub
+        .withArgs('https://odin.adobe.com/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated')
+        .returns(createResponse(200, plansFragment));
+
+    const state = new MockState();
+    const result = await getFragment({
+        id: 'some-en-us-fragment',
+        state: state,
+        locale: 'fr_FR',
+    });
+
+    expect(result.statusCode).to.equal(200);
+    expect(result.body.settings?.secureLabel).to.equal('secure-label');
+    expect(result.body.settings?.checkoutWorkflow).to.equal('UCv3');
+});
+
+it('should gracefully handle missing settings fragment', async () => {
+    setupFragmentMocks(fetchStub, {
+        id: 'some-en-us-fragment',
+        path: 'someFragment',
+    });
+    // settingsFragment is null by default, so settings won't be found
+
+    const state = new MockState();
+    const result = await getFragment({
+        id: 'some-en-us-fragment',
+        state: state,
+        locale: 'fr_FR',
+    });
+
+    expect(result.statusCode).to.equal(200);
+    // Settings should still work, just without localeSettings applied
+    expect(result.body).to.exist;
+});
 });
 
 describe('collection placeholders', () => {
@@ -309,7 +379,7 @@ describe('pipeline corner cases', () => {
     });
 
     afterEach(() => {
-        fetchStub.restore();
+        sinon.restore();
     });
 
     it('action should be defined', () => {
@@ -516,7 +586,7 @@ describe('configuration caching', () => {
     });
 
     afterEach(() => {
-        fetchStub.restore();
+        sinon.restore();
     });
 
     it('should cache configuration and reuse it on subsequent requests', async () => {
@@ -580,6 +650,8 @@ describe('configuration caching', () => {
     });
 
     it('should use stale cache when configuration refresh times out', async () => {
+        const performanceStub = sinon.stub(performance, 'now');
+        performanceStub.returns(0);
         setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
@@ -606,7 +678,6 @@ describe('configuration caching', () => {
         let configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
         expect(configCalls).to.have.length(1);
 
-        const performanceStub = sinon.stub(performance, 'now');
         performanceStub.returns(5 * 60 * 1000 + 1000);
 
         setupFragmentMocks(fetchStub, {

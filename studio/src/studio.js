@@ -30,6 +30,7 @@ import Store from './store.js';
 import router from './router.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
+import './settings/mas-settings.js';
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -144,6 +145,11 @@ class MasStudio extends LitElement {
     get placeholders() {
         if (this.page.value !== PAGE_NAMES.PLACEHOLDERS) return nothing;
         return html` <mas-placeholders></mas-placeholders> `;
+    }
+
+    get settings() {
+        if (this.page.value !== PAGE_NAMES.SETTINGS) return nothing;
+        return html`<mas-settings></mas-settings>`;
     }
 
     get splashScreen() {
@@ -277,6 +283,7 @@ class MasStudio extends LitElement {
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
+                          ${this.settings}
                           <editor-panel></editor-panel>
                       </div>`
                     : nothing}

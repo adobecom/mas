@@ -1219,3 +1219,34 @@ merch-card:has(.placeholder-failed) {
 .price-error-icon {
     color: var(--merch-color-error, #d73220);
 }
+
+mas-settings {
+    display: block;
+    padding: 32px;
+}
+
+mas-settings .settings-header {
+    margin-bottom: 24px;
+}
+
+mas-settings .settings-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+mas-settings .settings-subtitle {
+    font-size: 14px;
+    color: var(--spectrum-global-color-gray-700);
+}
+
+mas-settings .settings-content {
+    background: var(--spectrum-global-color-gray-50);
+    border: 1px solid var(--spectrum-global-color-gray-300);
+    border-radius: 8px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 600px;
+}

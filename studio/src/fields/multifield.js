@@ -136,19 +136,14 @@ class MasMultifield extends LitElement {
         }
     }
 
-    addField() {
+    async addField() {
         this.value = [...this.value, {}];
-        this.#dispatchEvent();
-        requestAnimationFrame(() => {
-            const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
-            const lastField = fields[fields.length - 1];
-            if (lastField) {
-                const field = lastField.firstElementChild;
-                if (field?.openModal) {
-                    field.openModal();
-                }
-            }
-        });
+        await this.updateComplete;
+        const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
+        const newItem = fields[fields.length - 1]?.firstElementChild;
+        if (newItem?.openModal) {
+            newItem.openModal();
+        }
     }
 
     getFieldIndex(element) {

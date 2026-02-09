@@ -6,7 +6,9 @@
     "private": true,
     "workspaces": [
         "studio",
-        "web-components"
+        "web-components",
+        "io/www",
+        "io/studio"
     ],
     "scripts": {
         "lint": "eslint --fix",

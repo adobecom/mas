@@ -479,9 +479,7 @@ describe('MasRepository dictionary helpers', () => {
         it('returns path when message is "A variation already exists at /path/to/fragment"', () => {
             const repository = createRepository();
             const path = '/content/dam/mas/sandbox/en_AU/card-name-test';
-            expect(repository.parseVariationAlreadyExistsPath(`A variation already exists at ${path}`)).to.equal(
-                path,
-            );
+            expect(repository.parseVariationAlreadyExistsPath(`A variation already exists at ${path}`)).to.equal(path);
         });
 
         it('returns null when message does not start with the expected prefix', () => {
@@ -500,9 +498,7 @@ describe('MasRepository dictionary helpers', () => {
         it('returns trimmed path when message has trailing whitespace', () => {
             const repository = createRepository();
             const path = '/content/dam/mas/sandbox/en_AU/card-name-test';
-            expect(
-                repository.parseVariationAlreadyExistsPath(`A variation already exists at ${path}   `),
-            ).to.equal(path);
+            expect(repository.parseVariationAlreadyExistsPath(`A variation already exists at ${path}   `)).to.equal(path);
         });
     });
 
@@ -524,7 +520,9 @@ describe('MasRepository dictionary helpers', () => {
                     getByPath: sandbox.stub().resolves(existingVariation),
                 },
             });
-            sandbox.stub(repository, 'createEmptyVariation').rejects(new Error(`A variation already exists at ${existingVariationPath}`));
+            sandbox
+                .stub(repository, 'createEmptyVariation')
+                .rejects(new Error(`A variation already exists at ${existingVariationPath}`));
             sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
 
             const result = await repository.createVariation(parentFragment.id, 'en_AU', false);

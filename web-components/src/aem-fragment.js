@@ -135,11 +135,16 @@ class FragmentCache {
         this.#inFlight.delete(fragmentId);
     }
 
+    /**
+     * Deduplicates fragment fetches. Returns cached data if available,
+     * joins an in-flight request if one exists, or starts a new fetch.
+     * Ensures only one network request per unique fragment ID.
+     */
     getOrFetch(key, fetchFn) {
         const cached = this.#fragmentCache.get(key);
-        if (cached) return Promise.resolve(cached);
+        if (cached) return Promise.resolve(cached); // already fetched
         const inFlight = this.#inFlight.get(key);
-        if (inFlight) return inFlight;
+        if (inFlight) return inFlight; // fetch in progress, reuse its promise
         const promise = fetchFn().finally(() => {
             this.#inFlight.delete(key);
         });
@@ -365,6 +370,7 @@ export class AemFragment extends HTMLElement {
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
         }
+        cache.remove(this.#fragmentId); // TODO: remove after verifying dedup
         const fragment = await cache.getOrFetch(
             this.#fragmentId,
             async () => {

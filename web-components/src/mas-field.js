@@ -2,6 +2,13 @@ import { EVENT_AEM_LOAD } from './constants.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 
+/**
+ * Renders a single field from an AEM fragment inline on the page.
+ * Wraps <aem-fragment> and listens for its aem:load event to extract
+ * and display the specified field content.
+ *
+ * Usage: <mas-field field="prices"><aem-fragment fragment="id"></aem-fragment></mas-field>
+ */
 class MasField extends HTMLElement {
     #field = null;
 
@@ -9,20 +16,24 @@ class MasField extends HTMLElement {
         return ['field'];
     }
 
+    /** Stores the field name from the 'field' attribute. */
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === 'field') {
             this.#field = newValue;
         }
     }
 
+    /** Starts listening for aem:load events bubbling from child aem-fragment. */
     connectedCallback() {
         this.addEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
     }
 
+    /** Cleans up the event listener when removed from the DOM. */
     disconnectedCallback() {
         this.removeEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
     }
 
+    /** Resolves when the fragment data has loaded. Used by the autoblock timeout race. */
     checkReady() {
         return new Promise((resolve) => {
             this.addEventListener(EVENT_AEM_LOAD, () => resolve(true), {
@@ -31,14 +42,14 @@ class MasField extends HTMLElement {
         });
     }
 
+    /** Extracts the target field from the fragment data and renders it as innerHTML. */
     #onFragmentLoad = (event) => {
         const fieldValue = event.detail?.fields?.[this.#field];
         if (fieldValue === undefined) return;
         this.innerHTML = this.#unwrapSingleParagraph(fieldValue);
     };
 
-    // Rich text fields from AEM are wrapped in <p> tags. Strips the wrapper for
-    // single-paragraph content so it renders inline, keeps multiple paragraphs intact.
+    /** Strips <p> wrapper from single-paragraph AEM rich text so it renders inline. */
     #unwrapSingleParagraph(html) {
         if (typeof html !== 'string') return html;
         const trimmed = html.trim();

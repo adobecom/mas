@@ -110,21 +110,17 @@
             </merch-card>
         </template>
 
-        <!-- Templates for field attribute tests -->
-        <template id="aem-fragment-render-field">
-            <aem-fragment fragment="fragment-text-faq" field="description"></aem-fragment>
+        <!-- Templates for mas-field wrapper tests -->
+        <template id="mas-field-render-field">
+            <mas-field field="description"><aem-fragment fragment="fragment-text-faq"></aem-fragment></mas-field>
         </template>
 
-        <template id="aem-fragment-render-promo">
-            <aem-fragment fragment="fragment-text-faq" field="promoText"></aem-fragment>
+        <template id="mas-field-render-promo">
+            <mas-field field="promoText"><aem-fragment fragment="fragment-text-faq"></aem-fragment></mas-field>
         </template>
 
-        <template id="aem-fragment-render-missing-field">
-            <aem-fragment fragment="fragment-text-faq" field="nonexistent"></aem-fragment>
-        </template>
-
-        <template id="aem-fragment-no-field">
-            <aem-fragment fragment="fragment-text-faq"></aem-fragment>
+        <template id="mas-field-render-missing-field">
+            <mas-field field="nonexistent"><aem-fragment fragment="fragment-text-faq"></aem-fragment></mas-field>
         </template>
     </body>
 </html>

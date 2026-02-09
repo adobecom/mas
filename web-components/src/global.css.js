@@ -676,7 +676,7 @@ aem-fragment {
   display: contents;
 }
 
-aem-fragment[field] {
+mas-field {
   display: inline;
 }
 

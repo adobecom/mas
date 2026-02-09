@@ -7,6 +7,7 @@ import { withWcs } from './mocks/wcs.js';
 import { withAem } from './mocks/aem.js';
 import { delay, getTemplateContent, oneEvent } from './utils.js';
 import '../src/mas.js';
+import '../src/mas-field.js';
 import {
     EVENT_MAS_ERROR,
     EVENT_MAS_READY,
@@ -555,65 +556,55 @@ runTests(async () => {
             });
         });
 
-        describe('field attribute', () => {
+        describe('mas-field wrapper', () => {
             afterEach(() => {
-                document.querySelectorAll('aem-fragment[field]').forEach((el) => el.remove());
+                document.querySelectorAll('mas-field').forEach((el) => el.remove());
             });
 
-            it('should render field content when field attribute is present', async () => {
-                const [aemFragment] = getTemplateContent('aem-fragment-render-field');
-                spTheme.append(aemFragment);
+            it('renders field content via mas-field wrapper', async () => {
+                const [masField] = getTemplateContent('mas-field-render-field');
+                spTheme.append(masField);
 
                 await new Promise((resolve) => {
-                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(aemFragment.textContent).to.include('Get Photoshop');
-                expect(aemFragment.innerHTML).to.include('inline-price');
+                expect(masField.textContent).to.include('Get Photoshop');
+                expect(masField.innerHTML).to.include('inline-price');
             });
 
-            it('should render different fields based on field attribute', async () => {
-                const [aemFragment] = getTemplateContent('aem-fragment-render-promo');
-                spTheme.append(aemFragment);
+            it('renders different fields based on field attribute', async () => {
+                const [masField] = getTemplateContent('mas-field-render-promo');
+                spTheme.append(masField);
 
                 await new Promise((resolve) => {
-                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(aemFragment.textContent).to.include('Save 50%');
+                expect(masField.textContent).to.include('Save 50%');
             });
 
-            it('should not render content without field attribute', async () => {
-                const [aemFragment] = getTemplateContent('aem-fragment-no-field');
-                spTheme.append(aemFragment);
+            it('handles missing field gracefully', async () => {
+                const [masField] = getTemplateContent('mas-field-render-missing-field');
+                spTheme.append(masField);
 
                 await new Promise((resolve) => {
-                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(aemFragment.innerHTML).to.equal('');
+                // mas-field should still contain the aem-fragment child (field value was undefined)
+                expect(masField.querySelector('aem-fragment')).to.exist;
             });
 
-            it('should handle missing field gracefully', async () => {
-                const [aemFragment] = getTemplateContent('aem-fragment-render-missing-field');
-                spTheme.append(aemFragment);
+            it('unwraps single paragraph tags', async () => {
+                const [masField] = getTemplateContent('mas-field-render-field');
+                spTheme.append(masField);
 
                 await new Promise((resolve) => {
-                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    masField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(aemFragment.innerHTML).to.equal('');
-            });
-
-            it('should unwrap single paragraph tags', async () => {
-                const [aemFragment] = getTemplateContent('aem-fragment-render-field');
-                spTheme.append(aemFragment);
-
-                await new Promise((resolve) => {
-                    aemFragment.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
-                });
-
-                const trimmed = aemFragment.innerHTML.trim();
+                const trimmed = masField.innerHTML.trim();
                 expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
             });
         });

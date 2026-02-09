@@ -15,7 +15,6 @@ const ATTRIBUTE_AUTHOR = 'author';
 const ATTRIBUTE_PREVIEW = 'preview';
 const ATTRIBUTE_LOADING = 'loading';
 const ATTRIBUTE_TIMEOUT = 'timeout';
-const ATTRIBUTE_FIELD = 'field';
 const AEM_FRAGMENT_TAG_NAME = 'aem-fragment';
 const LOADING_EAGER = 'eager';
 const LOADING_CACHE = 'cache';
@@ -184,8 +183,6 @@ export class AemFragment extends HTMLElement {
 
     #preview = undefined;
 
-    #field = null;
-
     static get observedAttributes() {
         return [
             ATTRIBUTE_FRAGMENT,
@@ -193,7 +190,6 @@ export class AemFragment extends HTMLElement {
             ATTRIBUTE_TIMEOUT,
             ATTRIBUTE_AUTHOR,
             ATTRIBUTE_PREVIEW,
-            ATTRIBUTE_FIELD,
         ];
     }
 
@@ -213,9 +209,6 @@ export class AemFragment extends HTMLElement {
         }
         if (name === ATTRIBUTE_PREVIEW) {
             this.#preview = newValue;
-        }
-        if (name === ATTRIBUTE_FIELD) {
-            this.#field = newValue;
         }
     }
 
@@ -299,30 +292,6 @@ export class AemFragment extends HTMLElement {
         Object.assign(this.#fetchInfo, getLogHeaders(response));
     }
 
-    // Rich text fields from AEM are wrapped in <p> tags. Strips the wrapper for
-    // single-paragraph content so it renders inline, keeps multiple paragraphs intact.
-    #unwrapSingleParagraph(html) {
-        if (typeof html !== 'string') return html;
-        const trimmed = html.trim();
-        const hasWrapper = trimmed.startsWith('<p>') && trimmed.endsWith('</p>');
-        if (!hasWrapper) return html;
-        const inner = trimmed.slice('<p>'.length, -'</p>'.length);
-        return inner.includes('<p>') ? html : inner;
-    }
-
-    #renderField() {
-        if (!this.#field) return;
-
-        const fieldValue = this.data?.fields?.[this.#field];
-        if (fieldValue === undefined) {
-            this.#log?.warn?.(`Field "${this.#field}" not found in fragment`);
-            return;
-        }
-
-        const content = this.#unwrapSingleParagraph(fieldValue);
-        this.innerHTML = content;
-    }
-
     async refresh(flushCache = true) {
         if (this.#fetchPromise) {
             const ready = await Promise.race([
@@ -353,8 +322,6 @@ export class AemFragment extends HTMLElement {
         if (wcs && !getParameter('mas.disableWcsCache')) {
             this.#service.prefillWcsCache(wcs);
         }
-
-        this.#renderField();
 
         this.dispatchEvent(
             new CustomEvent(EVENT_AEM_LOAD, {

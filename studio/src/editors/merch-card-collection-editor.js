@@ -426,9 +426,7 @@ class MerchCardCollectionEditor extends LitElement {
                                     ${iconPaths.length > 0
                                         ? html`
                                               <div class="item-icons">
-                                                  ${iconPaths.map(
-                                                      (iconPath) => html`${this.#renderIcon(iconPath, label)}`,
-                                                  )}
+                                                  ${iconPaths.map((iconPath) => html`${this.#renderIcon(iconPath, label)}`)}
                                               </div>
                                           `
                                         : nothing}

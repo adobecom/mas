@@ -9,10 +9,11 @@ import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFI
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
+import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
-import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { getCountryName } from '../../io/www/src/fragment/locales.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -1075,10 +1076,11 @@ export default class MasFragmentEditor extends LitElement {
 
     displayRegionalVarationInfo(clazz) {
         const localeCode = this.extractLocaleFromPath(this.fragment.path);
-        const locale = localeCode ? getLocaleByCode(localeCode) : null;
-        if (!locale) return nothing;
+        if (!localeCode) return nothing;
+        const [lang, country] = localeCode.split('_');
+        if (!lang || !country) return nothing;
         return html`<div class="${clazz}">
-            <span>Regional variation: <strong>${getCountryName(locale.country)} (${locale.lang.toUpperCase()})</strong></span>
+            <span>Regional variation: <strong>${getCountryName(country)} (${lang.toUpperCase()})</strong></span>
         </div>`;
     }
 
@@ -1267,21 +1269,23 @@ export default class MasFragmentEditor extends LitElement {
                         ? this.displayRegionalVarationInfo('preview-header')
                         : nothing}
                     <div class="preview-content columns mas-fragment">
-                        <merch-card
-                            variant=${attrs.variant || nothing}
-                            size=${attrs.size || nothing}
-                            name=${attrs.name || nothing}
-                            border-color=${borderAttrs.borderColor || nothing}
-                            background-image=${attrs.backgroundImage || nothing}
-                            stock-offer-osis=${attrs.stockOfferOsis || nothing}
-                            checkbox-label=${attrs.checkboxLabel || nothing}
-                            storage=${attrs.storage || nothing}
-                            daa-lh=${attrs.analyticsId || nothing}
-                            ?gradient-border=${borderAttrs.gradientBorder}
-                            style=${cssProps || nothing}
-                        >
-                            <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
-                        </merch-card>
+                        <sp-theme color="light" scale="medium" system="${getSpectrumVersion(this.fragment?.variant)}">
+                            <merch-card
+                                variant=${attrs.variant || nothing}
+                                size=${attrs.size || nothing}
+                                name=${attrs.name || nothing}
+                                border-color=${borderAttrs.borderColor || nothing}
+                                background-image=${attrs.backgroundImage || nothing}
+                                stock-offer-osis=${attrs.stockOfferOsis || nothing}
+                                checkbox-label=${attrs.checkboxLabel || nothing}
+                                storage=${attrs.storage || nothing}
+                                daa-lh=${attrs.analyticsId || nothing}
+                                ?gradient-border=${borderAttrs.gradientBorder}
+                                style=${cssProps || nothing}
+                            >
+                                <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
+                            </merch-card>
+                        </sp-theme>
                     </div>
                 </div>
                 ${this.relatedVariationsSection}

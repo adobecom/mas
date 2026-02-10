@@ -38,7 +38,7 @@ export class Router extends EventTarget {
                 return {
                     editor,
                     hasChanges: editor && Store.editor.hasChanges,
-                    shouldCheckUnsavedChanges: editor && !editor.isLoading && Store.editor.hasChanges,
+                    shouldCheckUnsavedChanges: editor && Store.editor.hasChanges,
                 };
             }
             case PAGE_NAMES.TRANSLATION_EDITOR: {

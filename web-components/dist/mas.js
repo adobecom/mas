@@ -4044,36 +4044,43 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
         }
     `);M();var yc=`
 :root {
-  --consonant-merch-card-special-offers-width: 378px;
+  --consonant-merch-card-special-offers-width: 302px;
 }
 
+merch-card[variant="special-offers"] span[is="inline-price"][data-template="promo-strikethrough"],
 merch-card[variant="special-offers"] span[is="inline-price"][data-template="strikethrough"] {
   font-size: var(--consonant-merch-card-body-xs-font-size);
+	font-weight: 400;
 }
+
+merch-card[variant="special-offers"] span[is="inline-price"][data-template="price"] {
+  font-weight: 700;
+}
+
 
 /* grid style for special-offers */
 .one-merch-card.special-offers,
 .two-merch-cards.special-offers,
 .three-merch-cards.special-offers,
 .four-merch-cards.special-offers {
-  grid-template-columns: minmax(300px, var(--consonant-merch-card-special-offers-width));
+  grid-template-columns: minmax(302px, var(--consonant-merch-card-special-offers-width));
 }
 
 @media screen and ${G} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
-} 
-  
+}
+
 @media screen and ${q} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
-    
+
   .two-merch-cards.special-offers,
   .three-merch-cards.special-offers,
   .four-merch-cards.special-offers {
-      grid-template-columns: repeat(2, minmax(300px, var(--consonant-merch-card-special-offers-width)));
+      grid-template-columns: repeat(2, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
 
@@ -4081,19 +4088,20 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
 @media screen and ${N} {
   .three-merch-cards.special-offers,
   .four-merch-cards.special-offers {
-    grid-template-columns: repeat(3, minmax(300px, var(--consonant-merch-card-special-offers-width)));
+    grid-template-columns: repeat(3, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
 
 @media screen and ${se} {
   .four-merch-cards.special-offers {
-    grid-template-columns: repeat(4, minmax(300px, var(--consonant-merch-card-special-offers-width)));
+    grid-template-columns: repeat(4, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
-`;var Ec={name:{tag:"h4",slot:"detail-m"},title:{tag:"h4",slot:"detail-m"},backgroundImage:{tag:"div",slot:"bg-image"},prices:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"}},jt=class extends C{constructor(t){super(t)}getGlobalCSS(){return yc}get headingSelector(){return'[slot="detail-m"]'}renderLayout(){return f`${this.cardImage}
+`;var Ec={cardName:{attribute:"name"},backgroundImage:{tag:"div",slot:"bg-image"},subtitle:{tag:"p",slot:"detail-m"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs-price"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"}},jt=class extends C{constructor(t){super(t)}get headingSelector(){return'[slot="detail-m"]'}getGlobalCSS(){return yc}renderLayout(){return f`${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
+                <slot name="heading-xs-price"></slot>
                 <slot name="body-xs"></slot>
             </div>
             ${this.evergreen?f`

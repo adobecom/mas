@@ -3,10 +3,11 @@ import { VariantLayout } from './variant-layout';
 import { CSS } from './special-offer.css.js';
 
 export const SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING = {
-    name: { tag: 'h4', slot: 'detail-m' },
-    title: { tag: 'h4', slot: 'detail-m' },
+    cardName: { attribute: 'name' },
     backgroundImage: { tag: 'div', slot: 'bg-image' },
-    prices: { tag: 'h3', slot: 'heading-xs' },
+    subtitle: { tag: 'p', slot: 'detail-m' },
+    title: { tag: 'h3', slot: 'heading-xs' },
+    prices: { tag: 'p', slot: 'heading-xs-price' },
     description: { tag: 'div', slot: 'body-xs' },
     ctas: { slot: 'footer', size: 'l' },
 };
@@ -16,12 +17,12 @@ export class SpecialOffer extends VariantLayout {
         super(card);
     }
 
-    getGlobalCSS() {
-        return CSS;
-    }
-
     get headingSelector() {
         return '[slot="detail-m"]';
+    }
+
+    getGlobalCSS() {
+        return CSS;
     }
 
     renderLayout() {
@@ -29,6 +30,7 @@ export class SpecialOffer extends VariantLayout {
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
+                <slot name="heading-xs-price"></slot>
                 <slot name="body-xs"></slot>
             </div>
             ${this.evergreen

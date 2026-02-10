@@ -7,6 +7,7 @@ import { MODEL_WEB_COMPONENT_MAPPING, getFragmentPartsToUse } from '../editor-pa
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS, TABLE_TYPE } from '../constants.js';
 import { getService } from '../utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import { Fragment } from '../aem/fragment.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -17,6 +18,7 @@ class MasSelectItemsTable extends LitElement {
         itemToRemove: { type: String, state: true },
         tableKey: { type: Number, state: true },
         viewOnly: { type: Boolean },
+        viewOnlyLoading: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -27,6 +29,7 @@ class MasSelectItemsTable extends LitElement {
         this.OFFER_DATA_CONCURRENCY_LIMIT = 5;
         this.processAbortController = null;
         this.isProcessingCards = false;
+        this.viewOnlyLoading = false;
         this.displayCardsStoreController = null;
         this.displayCollectionsStoreController = null;
         this.displayPlaceholdersStoreController = null;
@@ -37,7 +40,11 @@ class MasSelectItemsTable extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.type === TABLE_TYPE.PLACEHOLDERS ? this.#getPlaceholdersData() : this.#getFragmentsData();
+        if (this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
+            this.#fetchSelectedFragments();
+        } else {
+            this.type === TABLE_TYPE.PLACEHOLDERS ? this.#getPlaceholdersData() : this.#getFragmentsData();
+        }
         this.#initStoreControllers();
     }
 
@@ -54,13 +61,18 @@ class MasSelectItemsTable extends LitElement {
         this.processAbortController = null;
     }
 
+    /** @type {MasRepository} */
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
     get typeUppercased() {
         return this.type.charAt(0).toUpperCase() + this.type.slice(1);
     }
 
     get isLoading() {
         if (this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.COLLECTIONS) {
-            if (this.viewOnly) return Store.fragments.list.loading.get();
+            if (this.viewOnly) return this.viewOnlyLoading;
             return Store.fragments.list.firstPageLoaded.get() === false;
         }
         if (this.type === TABLE_TYPE.PLACEHOLDERS) {
@@ -125,6 +137,68 @@ class MasSelectItemsTable extends LitElement {
                 ? await this.#processCardsData(allCards)
                 : this.#processCollectionsData(allCollections);
         });
+    }
+
+    async #fetchSelectedFragments() {
+        if (!this.repository) return;
+        const selectedPaths = Store.translationProjects[`selected${this.typeUppercased}`].value || [];
+        if (!selectedPaths.length) return;
+        this.viewOnlyLoading = true;
+        try {
+            const fragments = await this.processConcurrently(
+                selectedPaths,
+                async (path) => {
+                    try {
+                        const fragmentData = await this.repository.aem.getFragmentByPath(path);
+                        const fragment = new Fragment(fragmentData);
+                        return {
+                            ...fragmentData,
+                            studioPath: this.getFragmentName(fragment),
+                        };
+                    } catch (err) {
+                        console.warn(`Failed to fetch fragment at ${path}:`, err.message);
+                        return null;
+                    }
+                },
+                this.OFFER_DATA_CONCURRENCY_LIMIT,
+            );
+
+            const validFragments = fragments.filter(Boolean);
+
+            if (this.type === TABLE_TYPE.CARDS) {
+                await this.#processCardsDataForViewOnly(validFragments);
+            } else {
+                const byPathsMap = new Map(validFragments.map((f) => [f.path, f]));
+                Store.translationProjects[`${this.type}ByPaths`].set(byPathsMap);
+            }
+        } finally {
+            this.viewOnlyLoading = false;
+        }
+    }
+
+    /**
+     * Process cards data for view-only mode (enriches cardsByPaths with offer data)
+     * @param {Array<Object>} cards - Array of card objects to enrich with offer data
+     */
+    async #processCardsDataForViewOnly(cards) {
+        this.processAbortController = new AbortController();
+        const { signal } = this.processAbortController;
+
+        const offerDataResults = await this.processConcurrently(
+            cards,
+            (card) => this.loadOfferData(card, signal),
+            this.OFFER_DATA_CONCURRENCY_LIMIT,
+        );
+
+        if (signal.aborted) return;
+
+        const enrichedCards = cards.map((card, i) => ({
+            ...card,
+            offerData: offerDataResults[i] ?? null,
+        }));
+
+        const cardsByPaths = new Map(enrichedCards.map((card) => [card.path, card]));
+        Store.translationProjects.cardsByPaths.set(cardsByPaths);
     }
 
     /**
@@ -218,7 +292,12 @@ class MasSelectItemsTable extends LitElement {
     }
 
     #initStoreControllers() {
-        if (!this.viewOnly) {
+        if (this.viewOnly) {
+            this[`selected${this.typeUppercased}StoreController`] = new ReactiveController(this, [
+                Store.placeholders.list.loading,
+                Store.translationProjects[`selected${this.typeUppercased}`],
+            ]);
+        } else {
             this[`display${this.typeUppercased}StoreController`] = new ReactiveController(
                 this,
                 [Store.translationProjects[`display${this.typeUppercased}`]],
@@ -227,12 +306,12 @@ class MasSelectItemsTable extends LitElement {
                     this.#preselectItems();
                 },
             );
+            this[`selected${this.typeUppercased}StoreController`] = new ReactiveController(this, [
+                Store.fragments.list.loading,
+                Store.placeholders.list.loading,
+                Store.translationProjects[`selected${this.typeUppercased}`],
+            ]);
         }
-        this[`selected${this.typeUppercased}StoreController`] = new ReactiveController(this, [
-            Store.fragments.list.loading,
-            Store.placeholders.list.loading,
-            Store.translationProjects[`selected${this.typeUppercased}`],
-        ]);
     }
 
     async loadOfferData(fragment, signal) {

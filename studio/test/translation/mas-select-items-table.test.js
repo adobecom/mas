@@ -210,6 +210,28 @@ describe('MasSelectItemsTable', () => {
             const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
             expect(el.isLoading).to.be.false;
         });
+
+        it('should return viewOnlyLoading for cards when viewOnly is true', async () => {
+            const card = createMockCard('/path/card1', 'Card 1');
+            setupCardsInStore([card]);
+            Store.translationProjects.selectedCards.set(['/path/card1']);
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            el.viewOnlyLoading = true;
+            expect(el.isLoading).to.be.true;
+            el.viewOnlyLoading = false;
+            expect(el.isLoading).to.be.false;
+        });
+
+        it('should return viewOnlyLoading for collections when viewOnly is true', async () => {
+            const collection = createMockCollection('/path/collection1', 'Collection 1');
+            setupCollectionsInStore([collection]);
+            Store.translationProjects.selectedCollections.set(['/path/collection1']);
+            const el = await fixture(
+                html`<mas-select-items-table type="collections" .viewOnly=${true}></mas-select-items-table>`,
+            );
+            el.viewOnlyLoading = true;
+            expect(el.isLoading).to.be.true;
+        });
     });
 
     describe('columnsToShow getter', () => {
@@ -905,6 +927,26 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
+    describe('data subscription and processing', () => {
+        it('should create subscription and process placeholders when store is empty', async () => {
+            Store.translationProjects.allPlaceholders.set([]);
+            const mockPlaceholder = {
+                value: {
+                    path: '/path/placeholder1',
+                    key: 'test-key',
+                    value: 'test-value',
+                    status: FRAGMENT_STATUS.PUBLISHED,
+                },
+            };
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            Store.placeholders.list.data.set([mockPlaceholder]);
+            await el.updateComplete;
+            expect(el.dataSubscription).to.not.be.null;
+            expect(Store.translationProjects.allPlaceholders.get()).to.have.lengthOf(1);
+            expect(Store.translationProjects.displayPlaceholders.get()).to.have.lengthOf(1);
+        });
+    });
+
     describe('preselection edge cases', () => {
         it('should handle preselection when selectedInTable equals visible selections', async () => {
             const cards = [createMockCard('/path/card1', 'Card 1')];
@@ -1468,6 +1510,30 @@ describe('MasSelectItemsTable', () => {
             const result = await el.loadOfferData(fragment, abortController.signal);
             expect(result).to.be.null;
         });
+
+        it('should handle fragment with undefined fields', async () => {
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            const fragment = { fields: undefined };
+            const result = await el.loadOfferData(fragment);
+            expect(result).to.be.null;
+        });
+
+        it('should handle fragment with null fields', async () => {
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            const fragment = { fields: null };
+            const result = await el.loadOfferData(fragment);
+            expect(result).to.be.null;
+        });
+
+        it('should handle osi field with undefined values', async () => {
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            const fragment = { fields: [{ name: 'osi', values: undefined }] };
+            const result = await el.loadOfferData(fragment);
+            expect(result).to.be.null;
+        });
     });
 
     describe('getFragmentName', () => {
@@ -1513,6 +1579,54 @@ describe('MasSelectItemsTable', () => {
             };
             const result = el.getFragmentName(mockFragment);
             expect(result).to.include('undefined:');
+        });
+    });
+
+    describe('repository getter', () => {
+        it('should return null when mas-repository does not exist', async () => {
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            expect(el.repository).to.be.null;
+        });
+    });
+
+    describe('fetchSelectedFragments early returns', () => {
+        it('should return early when repository is not available', async () => {
+            const card = createMockCard('/path/card1', 'Card 1');
+            setupCardsInStore([card]);
+            Store.translationProjects.selectedCards.set(['/path/card1']);
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
+            // Since repository is null, it returns early and viewOnlyLoading stays false
+            expect(el.viewOnlyLoading).to.be.false;
+        });
+
+        it('should not fetch for placeholders in viewOnly mode', async () => {
+            const placeholder = createMockPlaceholder('/path/placeholder1', 'key1', 'value1');
+            setupPlaceholdersInStore([placeholder]);
+            Store.translationProjects.selectedPlaceholders.set(['/path/placeholder1']);
+            const el = await fixture(
+                html`<mas-select-items-table type="placeholders" .viewOnly=${true}></mas-select-items-table>`,
+            );
+            await el.updateComplete;
+            // Placeholders don't trigger fetchSelectedFragments
+            expect(el.viewOnlyLoading).to.be.false;
+        });
+    });
+
+    describe('viewOnlyLoading property', () => {
+        it('should initialize viewOnlyLoading to false', async () => {
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            expect(el.viewOnlyLoading).to.be.false;
+        });
+
+        it('should affect isLoading in viewOnly mode', async () => {
+            const card = createMockCard('/path/card1', 'Card 1');
+            setupCardsInStore([card]);
+            Store.translationProjects.selectedCards.set(['/path/card1']);
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            expect(el.isLoading).to.equal(el.viewOnlyLoading);
         });
     });
 });

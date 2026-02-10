@@ -46,15 +46,15 @@ class MasSettings extends LitElement {
         return this.repository?.aem;
     }
 
-get settingsFragmentPath() {
-    if (!this.surface || !this.locale) return null;
-    return `${ROOT_PATH}/${this.surface}/${this.locale}/settings`;
-}
+    get settingsFragmentPath() {
+        if (!this.surface || !this.locale) return null;
+        return `${ROOT_PATH}/${this.surface}/${this.locale}/settings`;
+    }
 
-get settingsFolderPath() {
-    if (!this.surface || !this.locale) return null;
-    return `${ROOT_PATH}/${this.surface}/${this.locale}`;
-}
+    get settingsFolderPath() {
+        if (!this.surface || !this.locale) return null;
+        return `${ROOT_PATH}/${this.surface}/${this.locale}`;
+    }
 
     async connectedCallback() {
         super.connectedCallback();

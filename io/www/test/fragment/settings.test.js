@@ -57,14 +57,14 @@ describe('settings transformer init', () => {
             .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
-            .returns(createResponse(200, {
+        fetchStub.withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id').returns(
+            createResponse(200, {
                 fields: {
                     showSecureLabel: true,
                     checkoutWorkflow: 'UCv3',
                 },
-            }));
+            }),
+        );
 
         const result = await settings.init({
             surface: 'sandbox',
@@ -81,14 +81,14 @@ describe('settings transformer init', () => {
             .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
-            .returns(createResponse(200, {
+        fetchStub.withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id').returns(
+            createResponse(200, {
                 fields: {
                     showSecureLabel: false,
                     checkoutWorkflow: 'test workflow',
                 },
-            }));
+            }),
+        );
 
         const result = await settings.init({
             surface: 'sandbox',
@@ -105,11 +105,11 @@ describe('settings transformer init', () => {
             .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
-            .returns(createResponse(200, {
+        fetchStub.withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id').returns(
+            createResponse(200, {
                 fields: {},
-            }));
+            }),
+        );
 
         const result = await settings.init({
             surface: 'sandbox',
@@ -126,9 +126,7 @@ describe('settings transformer init', () => {
             .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id')
-            .returns(createResponse(200, {}));
+        fetchStub.withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-id').returns(createResponse(200, {}));
 
         const result = await settings.init({
             surface: 'sandbox',

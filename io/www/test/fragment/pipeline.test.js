@@ -66,9 +66,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
         .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
 
     // Settings fragment - default to not found
-fetchStub
-    .withArgs(sinon.match(/\/settings$/))
-    .returns(createResponse(200, { items: [] }));
+    fetchStub.withArgs(sinon.match(/\/settings$/)).returns(createResponse(200, { items: [] }));
 }
 
 const EXPECTED_BODY = {
@@ -269,70 +267,70 @@ describe('pipeline full use case', () => {
         expect(result.body.fields.ctas.value).to.not.include('\\"actionId\\"');
     });
 
-it('should apply localeSettings from settings fragment to plans card', async () => {
-    setupFragmentMocks(fetchStub, {
-        id: 'some-en-us-fragment',
-        path: 'someFragment',
-    });
+    it('should apply localeSettings from settings fragment to plans card', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
 
-    // Override the default settings mock - settings fragment found
-    fetchStub
-        .withArgs(sinon.match(/\/settings$/))
-        .returns(createResponse(200, { items: [{ id: 'settings-fragment-id' }] }));
+        // Override the default settings mock - settings fragment found
+        fetchStub
+            .withArgs(sinon.match(/\/settings$/))
+            .returns(createResponse(200, { items: [{ id: 'settings-fragment-id' }] }));
 
-    // Mock the settings fragment content fetch
-    fetchStub
-        .withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-fragment-id')
-        .returns(createResponse(200, {
+        // Mock the settings fragment content fetch
+        fetchStub.withArgs('https://odin.adobe.com/adobe/sites/fragments/settings-fragment-id').returns(
+            createResponse(200, {
+                fields: {
+                    showSecureLabel: true,
+                    checkoutWorkflow: 'UCv3',
+                },
+            }),
+        );
+
+        // Need a fragment with plans variant - create a modified response
+        const plansFragment = {
+            ...FRAGMENT_RESPONSE_FR,
             fields: {
-                showSecureLabel: true,
-                checkoutWorkflow: 'UCv3',
+                ...FRAGMENT_RESPONSE_FR.fields,
+                variant: 'plans',
             },
-        }));
+        };
 
-    // Need a fragment with plans variant - create a modified response
-    const plansFragment = {
-        ...FRAGMENT_RESPONSE_FR,
-        fields: {
-            ...FRAGMENT_RESPONSE_FR.fields,
-            variant: 'plans',
-        },
-    };
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated')
+            .returns(createResponse(200, plansFragment));
 
-    fetchStub
-        .withArgs('https://odin.adobe.com/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated')
-        .returns(createResponse(200, plansFragment));
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+        });
 
-    const state = new MockState();
-    const result = await getFragment({
-        id: 'some-en-us-fragment',
-        state: state,
-        locale: 'fr_FR',
+        expect(result.statusCode).to.equal(200);
+        expect(result.body.settings?.secureLabel).to.equal('secure-label');
+        expect(result.body.settings?.checkoutWorkflow).to.equal('UCv3');
     });
 
-    expect(result.statusCode).to.equal(200);
-    expect(result.body.settings?.secureLabel).to.equal('secure-label');
-    expect(result.body.settings?.checkoutWorkflow).to.equal('UCv3');
-});
+    it('should gracefully handle missing settings fragment', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        // settingsFragment is null by default, so settings won't be found
 
-it('should gracefully handle missing settings fragment', async () => {
-    setupFragmentMocks(fetchStub, {
-        id: 'some-en-us-fragment',
-        path: 'someFragment',
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+        });
+
+        expect(result.statusCode).to.equal(200);
+        // Settings should still work, just without localeSettings applied
+        expect(result.body).to.exist;
     });
-    // settingsFragment is null by default, so settings won't be found
-
-    const state = new MockState();
-    const result = await getFragment({
-        id: 'some-en-us-fragment',
-        state: state,
-        locale: 'fr_FR',
-    });
-
-    expect(result.statusCode).to.equal(200);
-    // Settings should still work, just without localeSettings applied
-    expect(result.body).to.exist;
-});
 });
 
 describe('collection placeholders', () => {

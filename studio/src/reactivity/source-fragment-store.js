@@ -25,8 +25,8 @@ export class SourceFragmentStore extends FragmentStore {
         this.previewStore.set(value);
     }
 
-    updateField(name, value, parentFragment = null) {
-        const result = this.value.updateField(name, value, parentFragment);
+    updateField(name, value) {
+        const result = this.value.updateField(name, value, this.parentFragment);
         if (result) {
             this.notify();
             this.previewStore.updateField(name, value);

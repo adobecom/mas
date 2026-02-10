@@ -79,16 +79,17 @@ describe('Router', () => {
             expect(result.shouldCheckUnsavedChanges).to.be.true;
         });
 
-        it('should return shouldCheckUnsavedChanges false when fragment editor is loading', () => {
+        it('should return shouldCheckUnsavedChanges true when fragment editor has changes even while loading', () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.fragments.inEdit.set(createMockFragment(true));
+            Store.fragmentEditor.loading.set(true);
             const mockEditor = document.createElement('mas-fragment-editor');
-            mockEditor.isLoading = true;
             document.body.appendChild(mockEditor);
             const result = router.getActiveEditor();
             expect(result.editor).to.equal(mockEditor);
             expect(result.hasChanges).to.be.true;
-            expect(result.shouldCheckUnsavedChanges).to.be.false;
+            expect(result.shouldCheckUnsavedChanges).to.be.true;
+            Store.fragmentEditor.loading.set(false);
         });
 
         it('should return translation editor when on translation editor page', () => {
@@ -224,17 +225,18 @@ describe('Router', () => {
             expect(Store.page.value).to.equal(PAGE_NAMES.TRANSLATION_EDITOR);
         });
 
-        it('should skip unsaved changes check when editor is loading', async () => {
+        it('should prompt for unsaved changes even when editor is loading', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.fragments.inEdit.set(createMockFragment(true));
+            Store.fragmentEditor.loading.set(true);
             const mockEditor = {
-                isLoading: true,
-                promptDiscardChanges: sandbox.stub().resolves(false),
+                promptDiscardChanges: sandbox.stub().resolves(true),
             };
             sandbox.stub(document, 'querySelector').withArgs('mas-fragment-editor').returns(mockEditor);
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
-            expect(mockEditor.promptDiscardChanges.called).to.be.false;
+            expect(mockEditor.promptDiscardChanges.calledOnce).to.be.true;
             expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
+            Store.fragmentEditor.loading.set(false);
         });
 
         it('should clear fragmentId when leaving fragment editor', async () => {

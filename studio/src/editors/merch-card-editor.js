@@ -1315,10 +1315,22 @@ class MerchCardEditor extends LitElement {
 
         // For variations: check if ALL mnemonic values match parent before resetting
         if (parent) {
+            // Compare against effective parent values (what would be inherited)
+            // For fields that don't exist on parent, treat default values as matching
             const allMatchParent = MerchCardEditor.MNEMONIC_FIELDS.every((fieldName) => {
                 const newValues = values[fieldName] || [];
-                const parentValues = parent.getField(fieldName)?.values || [];
-                return newValues.length === parentValues.length && newValues.every((v, i) => v === parentValues[i]);
+                const parentField = parent.getField(fieldName);
+                const parentValues = parentField?.values || [];
+
+                // If parent has the field, compare directly
+                if (parentField && parentValues.length > 0) {
+                    return newValues.length === parentValues.length && newValues.every((v, i) => v === parentValues[i]);
+                }
+
+                // If parent doesn't have the field, check if new values are default/empty
+                // Default values: empty string for text fields, 'top' for placement
+                const isDefaultValue = newValues.every((v) => v === '' || v === 'top');
+                return isDefaultValue;
             });
 
             if (allMatchParent) {

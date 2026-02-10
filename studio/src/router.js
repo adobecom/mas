@@ -35,10 +35,11 @@ export class Router extends EventTarget {
         switch (currentPage) {
             case PAGE_NAMES.FRAGMENT_EDITOR: {
                 const editor = document.querySelector('mas-fragment-editor');
+                const isLoading = Store.fragmentEditor.loading.get();
                 return {
                     editor,
                     hasChanges: editor && Store.editor.hasChanges,
-                    shouldCheckUnsavedChanges: editor && Store.editor.hasChanges,
+                    shouldCheckUnsavedChanges: editor && !isLoading && Store.editor.hasChanges,
                 };
             }
             case PAGE_NAMES.TRANSLATION_EDITOR: {

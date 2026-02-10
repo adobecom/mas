@@ -124,14 +124,22 @@ export class VariantLayout {
     }
 
     async adjustTitleWidth() {
-        const cardWidth = this.card.getBoundingClientRect().width;
-        const badgeWidth =
-            this.card.badgeElement?.getBoundingClientRect().width || 0;
-        if (cardWidth === 0 || badgeWidth === 0) return;
-        this.card.style.setProperty(
-            '--consonant-merch-card-heading-xs-max-width',
-            `${Math.round(cardWidth - badgeWidth - 16)}px`, // consonant-merch-spacing-xs
-        );
+        const intersectionObs = new IntersectionObserver(([entry]) => {
+            if (entry.boundingClientRect.width === 0) return;
+
+            const cardWidth = this.card.getBoundingClientRect().width;
+            const badgeEl = this.card.querySelector('[slot="badge"]');
+            const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
+
+            if (cardWidth === 0 || badgeWidth === 0) return;
+            this.card.style.setProperty(
+                '--consonant-merch-card-heading-xs-max-width',
+                `${Math.round(cardWidth - badgeWidth - 16)}px`, // consonant-merch-spacing-xs
+            );
+
+            intersectionObs.disconnect();
+        });
+        intersectionObs.observe(this.card);
     }
 
     async postCardUpdateHook() {

@@ -67,10 +67,13 @@ export class Segment extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        this.adjustTitleWidth();
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
+    }
+
+    connectedCallbackHook() {
+        this.adjustTitleWidth();
     }
 
     async adjustLegal() {

@@ -26,7 +26,7 @@ describe('settings transformer init', () => {
 
     it('should return null localeSettings when fragment not found', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FRcard-settings')
             .returns(createResponse(200, { items: [] }));
 
         const result = await settings.init({
@@ -38,7 +38,7 @@ describe('settings transformer init', () => {
 
     it('should return null localeSettings when fetch fails', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
         fetchStub
@@ -54,7 +54,7 @@ describe('settings transformer init', () => {
 
     it('should parse fields object correctly with showSecureLabel true', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
         fetchStub
@@ -78,7 +78,7 @@ describe('settings transformer init', () => {
 
     it('should parse fields object correctly with showSecureLabel false', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
         fetchStub
@@ -102,7 +102,7 @@ describe('settings transformer init', () => {
 
     it('should default to false and empty string when fields are missing', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
         fetchStub
@@ -123,7 +123,7 @@ describe('settings transformer init', () => {
 
     it('should handle undefined fields gracefully', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings/card-settings')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/settings')
             .returns(createResponse(200, { items: [{ id: 'settings-id' }] }));
 
         fetchStub

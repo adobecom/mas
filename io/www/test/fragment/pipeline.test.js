@@ -67,7 +67,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // Settings fragment - default to not found
 fetchStub
-    .withArgs(sinon.match(/\/settings\/card-settings/))
+    .withArgs(sinon.match(/\/settings$/))
     .returns(createResponse(200, { items: [] }));
 }
 
@@ -277,7 +277,7 @@ it('should apply localeSettings from settings fragment to plans card', async () 
 
     // Override the default settings mock - settings fragment found
     fetchStub
-        .withArgs(sinon.match(/\/settings\/card-settings/))
+        .withArgs(sinon.match(/\/settings$/))
         .returns(createResponse(200, { items: [{ id: 'settings-fragment-id' }] }));
 
     // Mock the settings fragment content fetch

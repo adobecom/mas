@@ -9,7 +9,7 @@ class MasSettings extends LitElement {
     createRenderRoot() {
         return this;
     }
-    
+
     static properties = {
         loading: { type: Boolean, state: true },
         settingsFragment: { type: Object, state: true },
@@ -46,15 +46,15 @@ class MasSettings extends LitElement {
         return this.repository?.aem;
     }
 
-    get settingsFragmentPath() {
-        if (!this.surface || !this.locale) return null;
-        return `${ROOT_PATH}/${this.surface}/${this.locale}/settings/card-settings`;
-    }
+get settingsFragmentPath() {
+    if (!this.surface || !this.locale) return null;
+    return `${ROOT_PATH}/${this.surface}/${this.locale}/settings`;
+}
 
-    get settingsFolderPath() {
-        if (!this.surface || !this.locale) return null;
-        return `${ROOT_PATH}/${this.surface}/${this.locale}/settings`;
-    }
+get settingsFolderPath() {
+    if (!this.surface || !this.locale) return null;
+    return `${ROOT_PATH}/${this.surface}/${this.locale}`;
+}
 
     async connectedCallback() {
         super.connectedCallback();
@@ -104,13 +104,11 @@ class MasSettings extends LitElement {
         this.loading = true;
 
         try {
-            // Ensure folder exists
             await this.aem.ensureFolderExists(this.settingsFolderPath);
 
-            // Create the fragment
             const newFragment = await this.aem.sites.cf.fragments.create({
-                title: 'Card Settings',
-                name: 'card-settings',
+                title: 'Settings',
+                name: 'settings',
                 parentPath: this.settingsFolderPath,
                 modelId: SETTINGS_MODEL_ID,
                 fields: [

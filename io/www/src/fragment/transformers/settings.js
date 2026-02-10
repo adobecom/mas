@@ -3,7 +3,7 @@ import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
-const SETTINGS_FRAGMENT_PATH = 'settings/card-settings';
+const SETTINGS_FRAGMENT_PATH = 'settings';
 
 const PLAN_TYPE_LOCALES = [
     'en_US',
@@ -31,6 +31,7 @@ const PLAN_TYPE_LOCALES = [
 ];
 
 async function init(initContext) {
+    console.log('[SETTINGS-INIT] PATH:', SETTINGS_FRAGMENT_PATH);
     const { surface, parsedLocale } = await getRequestInfos(initContext);
     const { preview } = initContext;
 

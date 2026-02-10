@@ -31,7 +31,6 @@ const PLAN_TYPE_LOCALES = [
 ];
 
 async function init(initContext) {
-    console.log('[SETTINGS-INIT] PATH:', SETTINGS_FRAGMENT_PATH);
     const { surface, parsedLocale } = await getRequestInfos(initContext);
     const { preview } = initContext;
 

@@ -5,12 +5,12 @@
 - [fragment pipeline service](./src/fragment/README.md)
 - [healthcheck service](./src/fragment/README.md)
 
-## Setup / First Steps
+## Setup / Local
 
 - install aio cli running `npm install -g @adobe/aio-cli`
 - Request access to I/O Runtime in Adobe Corp org (you can do that on #milo-dev)
 - navigate to Developer Console https://developer.adobe.com/console
-- in 'Merch at Scale' project, create a workspace with your ldap
+- in 'Merch at Scale' project, create a workspace with your github username
 - in your workspace click on 'Download all' and copy the auth .json in root of this project
 - run `aio app use <filename>`
 - this should populate the `.env` and the `.aio` file in the project root
@@ -26,8 +26,16 @@ aio where
 You are currently in:
 1. Org: Adobe Corp
 2. Project: MerchAtScale
-3. Workspace: your ldap
+3. Workspace: your github username
 ```
+
+## Setup / PR auto deploy
+
+every time you push to your feature branch, CI/CD can deploy it to your workspace.
+For that, add 2 Repository secrets in github settings:
+AIO_AUTH_GITHUBUSERNAME=
+AIO_NS_GITHUBUSERNAME=
+GITHUBUSERNAME should match your workspace name and be in capital case.
 
 ## Local Dev
 

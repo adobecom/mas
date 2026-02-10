@@ -249,7 +249,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
     vertical-align: baseline;
     margin-inline-end: 8px;
     overflow: visible;
-    padding-top: 16px;
+    padding-top: 0;
     --mas-mnemonic-tooltip-padding: 4px 8px;
 }
 

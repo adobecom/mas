@@ -4363,7 +4363,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
     vertical-align: baseline;
     margin-inline-end: 8px;
     overflow: visible;
-    padding-top: 16px;
+    padding-top: 0;
     --mas-mnemonic-tooltip-padding: 4px 8px;
 }
 
@@ -4675,7 +4675,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
             .badge-wrapper {
             border: none;
             margin-bottom: -6px;
-            padding-bottom: 6px;
+            padding-bottom: 10px;
         }
 
         :host([variant='simplified-pricing-express'][gradient-border='true'])

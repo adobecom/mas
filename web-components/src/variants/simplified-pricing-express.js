@@ -370,7 +370,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
             .badge-wrapper {
             border: none;
             margin-bottom: -6px;
-            padding-bottom: 6px;
+            padding-bottom: 10px;
         }
 
         :host([variant='simplified-pricing-express'][gradient-border='true'])

@@ -40,4 +40,4 @@ jobs:
               continue-on-error: true
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
-                  files: studio/coverage/lcov.info,web-components/coverage/lcov.info,io/studio/coverage/lcov.info,io/www/coverage/lcov.info
+                  files: studio/coverage/lcov.info,web-components/coverage/lcov.info,io/studio/coverage/lcov.info

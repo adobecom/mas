@@ -1066,14 +1066,17 @@ export class MasRepository extends LitElement {
      * @param {object} options
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async deleteFragment(fragment, { startToast = true, endToast = true } = {}) {
+    async deleteFragment(fragment, { startToast = true, endToast = true, force = false } = {}) {
         try {
             this.operation.set(OPERATIONS.DELETE);
             if (startToast) showToast('Deleting fragment...');
 
-            const fragmentWithEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
-
-            if (fragmentWithEtag) await this.aem.sites.cf.fragments.delete(fragmentWithEtag);
+            if (force) {
+                await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
+            } else {
+                const fragmentWithEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
+                if (fragmentWithEtag) await this.aem.sites.cf.fragments.delete(fragmentWithEtag);
+            }
 
             if (endToast) showToast('Fragment successfully deleted.', 'positive');
 

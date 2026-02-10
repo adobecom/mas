@@ -123,39 +123,128 @@ describe('Fragment', () => {
     });
 
     describe('updateField', () => {
-        it('marks changes for multiple:true field going from [] to [""] (explicit clear)', () => {
-            const fragment = new Fragment(
-                createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: [], multiple: true }] }),
-            );
+        describe('existing field updates', () => {
+            it('marks changes for multiple:true field going from [] to [""] (explicit clear)', () => {
+                const fragment = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: [], multiple: true }] }),
+                );
 
-            // For multiple:true fields, [''] is an explicit "clear" sentinel
-            expect(fragment.updateField('mnemonicIcon', [''])).to.be.true;
-            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
-            expect(fragment.hasChanges).to.be.true;
+                expect(fragment.updateField('mnemonicIcon', [''])).to.be.true;
+                expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
+                expect(fragment.hasChanges).to.be.true;
 
-            expect(fragment.updateField('mnemonicIcon', [])).to.be.true;
-            expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal([]);
+                expect(fragment.updateField('mnemonicIcon', [])).to.be.true;
+                expect(fragment.getFieldValues('mnemonicIcon')).to.deep.equal([]);
+            });
+
+            it('does not mark changes for single-value field going from [] to [""]', () => {
+                const fragment = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+                );
+
+                // For single-value fields, [] -> [''] is RTE initialization, not a real change
+                expect(fragment.updateField('description', [''])).to.be.false;
+                expect(fragment.getFieldValues('description')).to.deep.equal([]);
+                expect(fragment.hasChanges).to.be.false;
+            });
+
+            it('marks changes for actual value updates', () => {
+                const fragment = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+                );
+
+                expect(fragment.updateField('description', ['<p>Content</p>'])).to.be.true;
+                expect(fragment.getFieldValues('description')).to.deep.equal(['<p>Content</p>']);
+                expect(fragment.hasChanges).to.be.true;
+            });
+
+            it('returns false when values are identical', () => {
+                const fragment = new Fragment(createFragmentConfig({ fields: [{ name: 'title', values: ['Hello'] }] }));
+
+                expect(fragment.updateField('title', ['Hello'])).to.be.false;
+                expect(fragment.hasChanges).to.be.false;
+            });
         });
 
-        it('does not mark changes for single-value field going from [] to [""]', () => {
-            const fragment = new Fragment(
-                createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+        describe('with parent fragment (variations)', () => {
+            const parent = new Fragment(
+                createFragmentConfig({
+                    fields: [
+                        { name: 'mnemonicIcon', values: ['parent-icon.svg'], multiple: true },
+                        { name: 'title', values: ['Parent Title'], multiple: false },
+                    ],
+                }),
             );
 
-            // For single-value fields, [] -> [''] is RTE initialization, not a real change
-            expect(fragment.updateField('description', [''])).to.be.false;
-            expect(fragment.getFieldValues('description')).to.deep.equal([]);
-            expect(fragment.hasChanges).to.be.false;
+            it('returns "reset" when values match parent exactly', () => {
+                const variation = new Fragment(createFragmentConfig({ fields: [{ name: 'title', values: ['custom'] }] }));
+
+                expect(variation.updateField('title', ['Parent Title'], parent)).to.equal('reset');
+                expect(variation.getFieldValues('title')).to.deep.equal([]);
+            });
+
+            it('inherits multiple:true from parent field when updating existing field', () => {
+                const variation = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: ['old.svg'] }] }),
+                );
+
+                // Field doesn't have multiple:true initially
+                expect(variation.getField('mnemonicIcon').multiple).to.be.undefined;
+
+                variation.updateField('mnemonicIcon', ['new.svg'], parent);
+
+                // After update with parent, should inherit multiple:true
+                expect(variation.getField('mnemonicIcon').multiple).to.be.true;
+            });
+
+            it('allows [""] as explicit clear when parent field is multiple:true', () => {
+                const variation = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }] }),
+                );
+
+                expect(variation.updateField('mnemonicIcon', [''], parent)).to.be.true;
+                expect(variation.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
+                expect(variation.getField('mnemonicIcon').multiple).to.be.true;
+            });
         });
 
-        it('marks changes for actual value updates', () => {
-            const fragment = new Fragment(
-                createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
-            );
+        describe('new field creation', () => {
+            it('creates new field with content', () => {
+                const fragment = new Fragment(createFragmentConfig({ fields: [] }));
 
-            expect(fragment.updateField('description', ['<p>Content</p>'])).to.be.true;
-            expect(fragment.getFieldValues('description')).to.deep.equal(['<p>Content</p>']);
-            expect(fragment.hasChanges).to.be.true;
+                expect(fragment.updateField('newField', ['content'])).to.be.true;
+                expect(fragment.getFieldValues('newField')).to.deep.equal(['content']);
+                expect(fragment.hasChanges).to.be.true;
+            });
+
+            it('does not create field for empty values without parent', () => {
+                const fragment = new Fragment(createFragmentConfig({ fields: [] }));
+
+                expect(fragment.updateField('newField', [''])).to.be.false;
+                expect(fragment.getField('newField')).to.be.undefined;
+            });
+
+            it('creates field with [""] when parent field is multiple:true', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: ['icon.svg'], multiple: true }] }),
+                );
+                const variation = new Fragment(createFragmentConfig({ fields: [] }));
+
+                expect(variation.updateField('mnemonicIcon', [''], parent)).to.be.true;
+                expect(variation.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
+                expect(variation.getField('mnemonicIcon').multiple).to.be.true;
+            });
+
+            it('inherits multiple:true from parent when creating new field', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'icons', values: ['a.svg', 'b.svg'], multiple: true }] }),
+                );
+                const variation = new Fragment(createFragmentConfig({ fields: [] }));
+
+                variation.updateField('icons', ['new.svg'], parent);
+
+                expect(variation.getField('icons').multiple).to.be.true;
+            });
         });
     });
 
@@ -267,18 +356,26 @@ describe('Fragment', () => {
     });
 
     describe('isolation and store', () => {
-        it('replaceFrom and refreshFrom maintain isolation', () => {
+        it('replaceFrom maintains data isolation between fragments', () => {
             const f1 = new Fragment(createFragmentConfig({ fields: [{ name: 'desc', values: ['v1'] }] }));
             const f2 = new Fragment(createFragmentConfig({ fields: [] }));
 
             f2.replaceFrom(f1);
             f2.getField('desc').values = ['v2'];
+            // Modifying f2 should not affect f1
             expect(f1.getFieldValues('desc')).to.deep.equal(['v1']);
+        });
 
-            f2.updateField('desc', ['v3']);
-            f2.discardChanges();
-            expect(f2.getFieldValues('desc')).to.deep.equal(['v1']); // restored to initial from replaceFrom? No, replaceFrom doesn't update initialValue.
-            // Wait, replaceFrom doesn't update initialValue as per tests.
+        it('discardChanges restores to initial value', () => {
+            const fragment = new Fragment(createFragmentConfig({ fields: [{ name: 'desc', values: ['initial'] }] }));
+
+            fragment.updateField('desc', ['modified']);
+            expect(fragment.getFieldValues('desc')).to.deep.equal(['modified']);
+            expect(fragment.hasChanges).to.be.true;
+
+            fragment.discardChanges();
+            expect(fragment.getFieldValues('desc')).to.deep.equal(['initial']);
+            expect(fragment.hasChanges).to.be.false;
         });
 
         it('generateFragmentStore maintains source/preview isolation', () => {
@@ -289,8 +386,49 @@ describe('Fragment', () => {
             expect(store.value.getFieldValues('desc')).to.deep.equal([]);
             expect(store.previewStore.value.getFieldValues('desc')).to.deep.equal(['parent']);
 
+            // Modifying preview should not affect source
             store.previewStore.value.getField('desc').values = ['modified'];
             expect(store.value.getFieldValues('desc')).to.deep.equal([]);
+        });
+
+        it('SourceFragmentStore.updateField uses stored parentFragment automatically', () => {
+            const fragment = new Fragment(createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }] }));
+            const parent = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: ['parent.svg'], multiple: true }] }),
+            );
+            const store = generateFragmentStore(fragment, parent);
+
+            // Field doesn't have multiple:true initially
+            expect(store.value.getField('mnemonicIcon').multiple).to.be.undefined;
+
+            // updateField should use parentFragment automatically (no need to pass it)
+            store.updateField('mnemonicIcon', ['new.svg']);
+
+            // Should inherit multiple:true from parent
+            expect(store.value.getField('mnemonicIcon').multiple).to.be.true;
+        });
+
+        it('SourceFragmentStore.updateField allows [""] clear sentinel for multi-value fields', () => {
+            const fragment = new Fragment(createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: ['icon.svg'] }] }));
+            const parent = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'mnemonicIcon', values: ['parent.svg'], multiple: true }] }),
+            );
+            const store = generateFragmentStore(fragment, parent);
+
+            // Clear the field with [""] sentinel
+            expect(store.updateField('mnemonicIcon', [''])).to.be.true;
+            expect(store.value.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
+            expect(store.value.getField('mnemonicIcon').multiple).to.be.true;
+        });
+
+        it('SourceFragmentStore.updateField returns "reset" when values match parent', () => {
+            const fragment = new Fragment(createFragmentConfig({ fields: [{ name: 'title', values: ['custom'] }] }));
+            const parent = new Fragment(createFragmentConfig({ fields: [{ name: 'title', values: ['Parent Title'] }] }));
+            const store = generateFragmentStore(fragment, parent);
+
+            // Update to match parent - should reset
+            expect(store.updateField('title', ['Parent Title'])).to.equal('reset');
+            expect(store.value.getFieldValues('title')).to.deep.equal([]);
         });
     });
 });

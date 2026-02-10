@@ -45,7 +45,7 @@ class MasSideNav extends LitElement {
 
     reactiveController = new ReactiveController(
         this,
-        [Store.page, Store.search, Store.viewMode, Store.fragmentEditor.editorContext],
+        [Store.page, Store.search, Store.viewMode, Store.fragmentEditor.editorContext, Store.fragmentEditor.loading],
         this.handleStoreChanges,
     );
 
@@ -60,7 +60,13 @@ class MasSideNav extends LitElement {
     }
 
     #handleFragmentInEditChange = (fragmentStore) => {
-        const stores = [Store.page, Store.search, Store.viewMode, Store.fragmentEditor.editorContext];
+        const stores = [
+            Store.page,
+            Store.search,
+            Store.viewMode,
+            Store.fragmentEditor.editorContext,
+            Store.fragmentEditor.loading,
+        ];
         if (fragmentStore) {
             stores.push(fragmentStore);
         }
@@ -72,10 +78,6 @@ class MasSideNav extends LitElement {
         if (!this.isTranslationEnabled && [PAGE_NAMES.TRANSLATIONS, PAGE_NAMES.TRANSLATION_EDITOR].includes(Store.page.get())) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
-    }
-
-    get loading() {
-        return Store.fragmentEditor.editorContext.loading;
     }
 
     get fragmentEditor() {
@@ -188,7 +190,7 @@ class MasSideNav extends LitElement {
     get editNavigation() {
         const fragmentId = this.fragmentEditor?.fragment?.id;
         const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
-        const loading = this.variationDataLoading;
+        const loading = Store.fragmentEditor.loading.get();
         return html`
             <mas-side-nav-item label="Save" ?disabled=${!Store.editor.hasChanges || loading} @nav-click="${this.saveFragment}">
                 <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>

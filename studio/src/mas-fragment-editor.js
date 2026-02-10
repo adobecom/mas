@@ -395,10 +395,6 @@ export default class MasFragmentEditor extends LitElement {
         </style>`;
     }
 
-    get isLoading() {
-        return this.initState !== MasFragmentEditor.INIT_STATE.READY;
-    }
-
     connectedCallback() {
         super.connectedCallback();
         this.handleFragmentIdChange = this.handleFragmentIdChange.bind(this);
@@ -597,6 +593,7 @@ export default class MasFragmentEditor extends LitElement {
         this.fragmentId = fragmentId;
         this.previewResolved = false;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
+        Store.fragmentEditor.loading.set(true);
 
         // Check for existing store first
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
@@ -628,6 +625,7 @@ export default class MasFragmentEditor extends LitElement {
             await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
 
             this.initState = MasFragmentEditor.INIT_STATE.READY;
+            Store.fragmentEditor.loading.set(false);
             this.requestUpdate();
             return;
         }
@@ -668,7 +666,10 @@ export default class MasFragmentEditor extends LitElement {
 
             // Create fragment store with parent (if variation)
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
-            Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            // Only add to main list if not a variation (variations appear under parent's variations panel)
+            if (!isVariation) {
+                Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            }
             this.inEdit.set(fragmentStore);
             this.reactiveController.updateStores([
                 this.inEdit,
@@ -696,11 +697,13 @@ export default class MasFragmentEditor extends LitElement {
             await this.updateTranslatedLocalesStore(isVariation);
 
             this.initState = MasFragmentEditor.INIT_STATE.READY;
+            Store.fragmentEditor.loading.set(false);
             this.requestUpdate();
         } catch (error) {
             console.error('Failed to fetch fragment:', error);
             showToast(`Failed to load fragment: ${error.message}`, 'negative');
             this.initState = MasFragmentEditor.INIT_STATE.IDLE;
+            Store.fragmentEditor.loading.set(false);
         }
     }
 

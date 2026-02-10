@@ -135,6 +135,18 @@ class MerchCardEditor extends LitElement {
 
     static MNEMONIC_FIELDS = ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink', 'mnemonicTooltipText', 'mnemonicTooltipPlacement'];
 
+    /**
+     * Gets the combined field state for all mnemonic fields.
+     * Returns 'overridden' if ANY mnemonic field is overridden.
+     */
+    getMnemonicsFieldState() {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        const isAnyOverridden = MerchCardEditor.MNEMONIC_FIELDS.some(
+            (fieldName) => this.getFieldState(fieldName) === 'overridden',
+        );
+        return isAnyOverridden ? 'overridden' : 'inherited';
+    }
+
     async resetMnemonicsToParent() {
         for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
             const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
@@ -145,7 +157,7 @@ class MerchCardEditor extends LitElement {
 
     renderMnemonicsStatusIndicator() {
         if (!this.effectiveIsVariation) return nothing;
-        if (this.getFieldState('mnemonicIcon') !== 'overridden') return nothing;
+        if (this.getMnemonicsFieldState() !== 'overridden') return nothing;
         return this.#renderOverrideIndicatorLink(() => this.resetMnemonicsToParent());
     }
 
@@ -757,7 +769,7 @@ class MerchCardEditor extends LitElement {
                     <mas-multifield
                         id="mnemonics"
                         button-label="Add visual"
-                        data-field-state="${this.getFieldState('mnemonicIcon')}"
+                        data-field-state="${this.getMnemonicsFieldState()}"
                         .value="${this.mnemonics}"
                         @change="${this.#updateMnemonics}"
                         @input="${this.#updateMnemonics}"
@@ -1301,18 +1313,45 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipPlacement: isExplicitClear ? [''] : mnemonicTooltipPlacement,
         };
 
-        // Update primary field first to check if it matches parent
-        const result = this.fragmentStore.updateField('mnemonicIcon', values.mnemonicIcon, parent);
-        if (result === 'reset') {
-            // Icons match parent - reset all mnemonic fields to inherited state
-            for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
-                this.fragment.resetFieldToParent(fieldName);
+        // For variations: check if ALL mnemonic values match parent before resetting
+        if (parent) {
+            // Compare against effective parent values (what would be inherited)
+            // For fields that don't exist on parent, treat default values as matching
+            const allMatchParent = MerchCardEditor.MNEMONIC_FIELDS.every((fieldName) => {
+                const newValues = values[fieldName] || [];
+                const parentField = parent.getField(fieldName);
+                const parentValues = parentField?.values || [];
+
+                // If parent has the field, compare directly
+                if (parentField && parentValues.length > 0) {
+                    return newValues.length === parentValues.length && newValues.every((v, i) => v === parentValues[i]);
+                }
+
+                // If parent doesn't have the field, check if new values are default/empty
+                // Default values: empty string for text fields, 'top' for placement
+                const isDefaultValue = newValues.every((v) => v === '' || v === 'top');
+                return isDefaultValue;
+            });
+
+            if (allMatchParent) {
+                // All values match parent - reset all mnemonic fields to inherited state
+                for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+                    this.fragment.resetFieldToParent(fieldName);
+                }
+                this.fragmentStore.notify();
+                this.fragmentStore.refreshAemFragment();
+                this.requestUpdate();
+            } else {
+                // At least one field differs from parent - update all fields
+                this.fragmentStore.updateField('mnemonicIcon', values.mnemonicIcon);
+                this.fragmentStore.updateField('mnemonicAlt', values.mnemonicAlt);
+                this.fragmentStore.updateField('mnemonicLink', values.mnemonicLink);
+                this.fragmentStore.updateField('mnemonicTooltipText', values.mnemonicTooltipText);
+                this.fragmentStore.updateField('mnemonicTooltipPlacement', values.mnemonicTooltipPlacement);
             }
-            this.fragmentStore.notify();
-            this.fragmentStore.refreshAemFragment();
-            this.requestUpdate();
         } else {
-            // Update remaining fields
+            // Non-variation: update all fields normally
+            this.fragmentStore.updateField('mnemonicIcon', values.mnemonicIcon);
             this.fragmentStore.updateField('mnemonicAlt', values.mnemonicAlt);
             this.fragmentStore.updateField('mnemonicLink', values.mnemonicLink);
             this.fragmentStore.updateField('mnemonicTooltipText', values.mnemonicTooltipText);

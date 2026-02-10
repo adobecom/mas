@@ -25,8 +25,8 @@ export class SourceFragmentStore extends FragmentStore {
         this.previewStore.set(value);
     }
 
-    updateField(name, value, parentFragment = null) {
-        const result = this.value.updateField(name, value, parentFragment);
+    updateField(name, value) {
+        const result = this.value.updateField(name, value, this.parentFragment);
         if (result) {
             this.notify();
             this.previewStore.updateField(name, value);
@@ -111,7 +111,7 @@ export default function generateFragmentStore(fragment, parentFragment = null) {
  * @param {Fragment} parentFragment
  * @returns {object}
  */
-function createPreviewDataWithParent(sourceFragment, parentFragment) {
+export function createPreviewDataWithParent(sourceFragment, parentFragment) {
     const previewData = structuredClone(sourceFragment);
 
     parentFragment.fields?.forEach((parentField) => {

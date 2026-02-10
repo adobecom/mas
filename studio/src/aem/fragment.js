@@ -106,10 +106,17 @@ export class Fragment {
         const encodedValues = value.map((v) => (typeof v === 'string' ? v.normalize('NFC') : v));
         const existingField = this.getField(fieldName);
         const isTags = fieldName === 'tags';
+        const parentField = parentFragment?.getField(fieldName);
+
+        // [''] is the explicit clear sentinel for multi-value fields
+        const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
+
+        // Determine if this is a multi-value field based on the .multiple property
+        const isMultiple = parentField?.multiple === true || existingField?.multiple === true;
 
         // For variations: if values match parent exactly, reset to inherited state
         if (parentFragment) {
-            const parentValues = parentFragment.getField(fieldName)?.values || [];
+            const parentValues = parentField?.values || [];
             const valuesMatchParent =
                 encodedValues.length === parentValues.length && encodedValues.every((v, i) => v === parentValues[i]);
 
@@ -121,10 +128,10 @@ export class Fragment {
         }
 
         if (existingField) {
-            const { values, multiple } = existingField;
+            const { values } = existingField;
             // Skip [] to [''] on single-value fields (RTE initialization sends [''] for empty fields).
             // For multiple:true fields, [''] is an explicit "clear" sentinel.
-            if (values.length === 0 && encodedValues.length === 1 && encodedValues[0] === '' && !multiple) {
+            if (values.length === 0 && isSingleEmptyString && !isMultiple) {
                 return false;
             }
             // No change if values are identical
@@ -133,19 +140,21 @@ export class Fragment {
                 return false;
             }
             existingField.values = encodedValues;
+            // Inherit multiple from parent field if not already set
+            if (parentField?.multiple && !existingField.multiple) {
+                existingField.multiple = true;
+            }
         } else {
             // Only create new field if there's meaningful content
             // Exception: [''] is allowed as explicit clear sentinel for multi-value fields
-            const parentField = parentFragment?.getField(fieldName);
-            const isMultiple = parentField?.multiple === true;
-            const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
             const hasContent = encodedValues.length && encodedValues.some((v) => v?.trim?.());
-            if (!hasContent && !isSingleEmptyString) {
+            if (!hasContent && !(isSingleEmptyString && isMultiple)) {
                 if (isTags) this.newTags = value;
                 return false;
             }
             const newField = { name: fieldName, type: 'text', values: encodedValues };
-            if (isMultiple) newField.multiple = true;
+            // Inherit multiple from parent field
+            if (parentField?.multiple) newField.multiple = true;
             this.fields.push(newField);
         }
 
@@ -258,9 +267,8 @@ export class Fragment {
     prepareVariationForSave(parentFragment) {
         if (!parentFragment) return this;
 
-        // Create a new Fragment instance from a deep clone of this fragment's data
-        const clonedData = JSON.parse(JSON.stringify(this));
-        const prepared = new Fragment(clonedData);
+        // Create a new Fragment instance from this fragment's data (constructor handles cloning)
+        const prepared = new Fragment(this);
 
         // Fields that should never be reset (they're fragment-specific, not inherited)
         const excludeFields = ['variations', 'tags', 'originalId', 'locReady'];

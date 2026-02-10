@@ -916,19 +916,19 @@ export class MasRepository extends LitElement {
         const fragment = fragmentStore.get();
         const parentFragment = fragmentStore.parentFragment;
 
+        // For variations, prepare the fragment by stripping inherited values before save
+        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : fragment;
+
         // Card-specific validation
         const tags = fragment.getField('tags')?.values || [];
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
         const osi = fragment.getFieldValue('osi') || parentFragment?.getFieldValue('osi');
 
-        if (!osi && !hasOfferlessTag) {
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !osi && !hasOfferlessTag) {
             if (withToast) showToast('Please select offer', 'negative');
             this.operation.set(null);
             return false;
         }
-
-        // For variations, prepare the fragment by stripping inherited values before save
-        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : fragment;
 
         try {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
@@ -1346,6 +1346,12 @@ export class MasRepository extends LitElement {
         }
 
         await this.updateParentVariations(parentFragment, variationFragment.path);
+
+        // Refresh the parent FragmentStore to include the new variation in references
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
 
         return variationFragment;
     }

@@ -172,6 +172,7 @@ export const TEMPLATE_PRICE_ANNUAL = 'annual';
 export const TEMPLATE_PRICE_LEGAL = 'legal';
 
 export const FF_DEFAULTS = 'mas-ff-defaults';
+export const FF_ANNUAL_PRICE = 'mas-ff-annual-price';
 
 export const SORT_ORDER = {
     alphabetical: 'alphabetical',

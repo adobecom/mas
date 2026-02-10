@@ -35,7 +35,7 @@ function findFieldIndex(fragment, fieldName) {
 /**
  * @param {*} fragment fragment json representation
  * @param {*} property property name to find
- * @returns { path, value}
+ * @returns { path, values}
  */
 function getValues(fragment, property) {
     const { field, path } = findFieldIndex(fragment, property);
@@ -71,7 +71,7 @@ async function fetchFragmentByPath(odinEndpoint, fragmentPath, authToken) {
     if (response?.status === 404) {
         return { fragment: null, status: 404 };
     }
-    if (response.ok) {
+    if (response?.ok) {
         if (response.json) {
             const responseObject = await response.json();
             if (responseObject.items?.length > 0) {
@@ -82,7 +82,7 @@ async function fetchFragmentByPath(odinEndpoint, fragmentPath, authToken) {
         }
         return { fragment: null, status: 404 };
     }
-    return { fragment: null, status: response.status };
+    return { fragment: null, status: response?.status || 500 };
 }
 
 /**
@@ -108,10 +108,12 @@ async function fetchOdin(
     const path = `${odinEndpoint}${URI}`;
     const headers = {
         Authorization: `Bearer ${authToken}`,
-        'Content-Type': contentType || 'application/json',
     };
     if (etag) {
         headers['If-Match'] = etag;
+    }
+    if (method !== 'GET' && body) {
+        headers['Content-Type'] = contentType || 'application/json';
     }
     const response = await fetch(path, {
         headers,

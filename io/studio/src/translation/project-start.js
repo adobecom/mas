@@ -138,7 +138,7 @@ async function main(params) {
                 const path = ODIN_PATH(surface, locale, 'dictionary/index');
                 const { fragment, status, etag } = await fetchFragmentByPath(params.odinEndpoint, path, authToken);
                 if (status === 200 && fragment) {
-                    const { value: existingEntries = [], path: existingEntriesPath } = getValues(fragment, 'entries');
+                    const { values: existingEntries = [], path: existingEntriesPath } = getValues(fragment, 'entries');
                     if (existingEntriesPath) {
                         const newValues = [...existingEntries, ...targetPlaceholders];
                         logger.info(`Adding ${path} (etag: ${etag}) to sync with entries=${newValues}`);
@@ -200,16 +200,12 @@ async function main(params) {
 
     async function versionTargetFragments(translationData, authToken) {
         const { itemsToTranslate, itemsToSync, locales, title } = translationData;
-        const itemsToVersion = itemsToTranslate.reduce((acc, item) => {
-            const match = item.match(PATH_TOKENS);
-            const { surface, fragmentPath } = match?.groups || {};
-            locales.forEach((locale) => {
-                acc.push({
-                    path: `/content/dam/mas/${surface}/${locale}/${fragmentPath}`,
-                });
-            });
-            return acc;
-        }, []);
+        const itemsToVersion = itemsToTranslate.flatMap((item) => {
+            const { surface, fragmentPath } = item.match(PATH_TOKENS)?.groups || {};
+            return locales.map((locale) => ({
+                path: `/content/dam/mas/${surface}/${locale}/${fragmentPath}`,
+            }));
+        });
         itemsToVersion.push(...itemsToSync);
         logger.info(`Versioning target items for ${itemsToVersion.length} items`);
         const config = {
@@ -279,7 +275,7 @@ async function main(params) {
         const failures = results.filter((result) => !result.success);
         if (failures.length > 0) {
             logger.error(`${failures.length} request(s) failed: ${failures.map((failure) => failure.item).join(', ')}`);
-            return false;
+            return { success: false };
         }
 
         logger.info(`Successfully sent ${results.length} sync requests`);

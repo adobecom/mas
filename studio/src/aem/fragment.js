@@ -258,9 +258,8 @@ export class Fragment {
     prepareVariationForSave(parentFragment) {
         if (!parentFragment) return this;
 
-        // Create a new Fragment instance from a deep clone of this fragment's data
-        const clonedData = JSON.parse(JSON.stringify(this));
-        const prepared = new Fragment(clonedData);
+        // Create a new Fragment instance from this fragment's data (constructor handles cloning)
+        const prepared = new Fragment(this);
 
         // Fields that should never be reset (they're fragment-specific, not inherited)
         const excludeFields = ['variations', 'tags', 'originalId', 'locReady'];

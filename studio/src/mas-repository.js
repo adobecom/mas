@@ -921,7 +921,7 @@ export class MasRepository extends LitElement {
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
         const osi = fragment.getFieldValue('osi') || parentFragment?.getFieldValue('osi');
 
-        if (!osi && !hasOfferlessTag) {
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !osi && !hasOfferlessTag) {
             if (withToast) showToast('Please select offer', 'negative');
             this.operation.set(null);
             return false;

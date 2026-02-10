@@ -278,3 +278,7 @@ export async function copyToClipboard(e, text) {
         showToast('Failed to copy', 'negative');
     }
 }
+
+export function deepEquals(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+}

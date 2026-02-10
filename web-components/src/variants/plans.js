@@ -225,6 +225,7 @@ export class Plans extends VariantLayout {
 
     async postCardUpdateHook() {
         this.adaptForMedia();
+        this.adjustTitleWidth();
         this.adjustAddon();
         this.adjustCallout();
         if (!this.legalAdjusted) {
@@ -316,7 +317,6 @@ export class Plans extends VariantLayout {
     connectedCallbackHook() {
         Media.matchMobile.addEventListener('change', this.adaptForMedia);
         Media.matchDesktopOrUp.addEventListener('change', this.adaptForMedia);
-        this.adjustTitleWidth();
     }
 
     disconnectedCallbackHook() {

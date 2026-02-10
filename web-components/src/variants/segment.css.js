@@ -55,6 +55,7 @@ merch-card[variant="segment"] [slot="callout-content"] > p {
     position: relative;
     padding: 2px 10px 3px;
     background: #D9D9D9;
+    color: var(--text-color);
 }
 
 merch-card[variant="segment"] [slot="callout-content"] > p:has(> .icon-button) {
@@ -80,6 +81,17 @@ merch-card[variant="segment"] span[data-template="legal"] {
 
 merch-card[variant="segment"] .price-unit-type:not(.disabled)::before {
     content: "";
+}
+
+merch-card[variant="segment"] [slot="footer"] a.con-button.primary {
+    border: 2px solid var(--text-color);
+    color: var(--text-color);
+}
+
+merch-card[variant="segment"] [slot="footer"] a.con-button.primary:hover {
+    background-color: var(--color-black);
+    border-color: var(--color-black);
+    color: var(--color-white);
 }
 
 merch-card-collection.segment merch-card {

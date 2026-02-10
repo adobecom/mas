@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import { VARIATION_TYPES } from './constants.js';
+import { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
 import router from './router.js';
 import { getLocaleCode } from '../../io/www/src/fragment/locales.js';
@@ -94,7 +95,8 @@ class MasFragmentVariations extends LitElement {
             <sp-table size="m">
                 <sp-table-body>
                     ${this.localeVariations.map((variationFragment) => {
-                        const fragmentStore = new FragmentStore(new Fragment(variationFragment));
+                        const mergedData = createPreviewDataWithParent(variationFragment, this.fragment);
+                        const fragmentStore = new FragmentStore(new Fragment(mergedData));
                         return html`
                             <mas-fragment-table
                                 class="mas-fragment nested-fragment"

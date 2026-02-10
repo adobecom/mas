@@ -9,6 +9,7 @@ class MasMultifield extends LitElement {
             value: { type: Array, attribute: false },
             draggingIndex: { type: Number, state: true },
             buttonLabel: { type: String, attribute: 'button-label' },
+            fieldState: { type: String, attribute: 'data-field-state', reflect: true },
         };
     }
 
@@ -81,6 +82,8 @@ class MasMultifield extends LitElement {
     shouldUpdate(changedProperties) {
         // Always allow render until fully initialized
         if (!this.#initialized) return true;
+        // Always re-render when field state changes (to update child field styling)
+        if (changedProperties.has('fieldState')) return true;
         if (changedProperties.has('value')) {
             const oldValue = changedProperties.get('value');
             const newValue = this.value;
@@ -133,19 +136,14 @@ class MasMultifield extends LitElement {
         }
     }
 
-    addField() {
+    async addField() {
         this.value = [...this.value, {}];
-        this.#dispatchEvent();
-        requestAnimationFrame(() => {
-            const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
-            const lastField = fields[fields.length - 1];
-            if (lastField) {
-                const field = lastField.firstElementChild;
-                if (field?.openModal) {
-                    field.openModal();
-                }
-            }
-        });
+        await this.updateComplete;
+        const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
+        const newItem = fields[fields.length - 1]?.firstElementChild;
+        if (newItem?.openModal) {
+            newItem.openModal();
+        }
     }
 
     getFieldIndex(element) {
@@ -260,9 +258,11 @@ class MasMultifield extends LitElement {
                 fieldEl.setAttribute(key, field[key]);
             }
         });
-        const fieldState = field.fieldState || this.getAttribute('data-field-state');
+        const fieldState = field.fieldState || this.fieldState;
         if (fieldState) {
             fieldEl.setAttribute('data-field-state', fieldState);
+        } else {
+            fieldEl.removeAttribute('data-field-state');
         }
 
         return html`

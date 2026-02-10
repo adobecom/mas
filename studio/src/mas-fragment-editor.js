@@ -395,10 +395,6 @@ export default class MasFragmentEditor extends LitElement {
         </style>`;
     }
 
-    get isLoading() {
-        return this.initState !== MasFragmentEditor.INIT_STATE.READY;
-    }
-
     connectedCallback() {
         super.connectedCallback();
         this.handleFragmentIdChange = this.handleFragmentIdChange.bind(this);
@@ -597,6 +593,7 @@ export default class MasFragmentEditor extends LitElement {
         this.fragmentId = fragmentId;
         this.previewResolved = false;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
+        Store.fragmentEditor.loading.set(true);
 
         // Check for existing store first
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
@@ -620,10 +617,15 @@ export default class MasFragmentEditor extends LitElement {
                 Store.filters,
             ]);
 
-            this.#updateLocaleIfNeeded(existingStore.get().path);
+            const fragmentPath = existingStore.get().path;
+            this.#updateLocaleIfNeeded(fragmentPath);
             this.localeDefaultFragment = existingStore.parentFragment;
 
+            // Reload context to correctly determine if this fragment is a variation
+            await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
+
             this.initState = MasFragmentEditor.INIT_STATE.READY;
+            Store.fragmentEditor.loading.set(false);
             this.requestUpdate();
             return;
         }
@@ -664,7 +666,10 @@ export default class MasFragmentEditor extends LitElement {
 
             // Create fragment store with parent (if variation)
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
-            Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            // Only add to main list if not a variation (variations appear under parent's variations panel)
+            if (!isVariation) {
+                Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            }
             this.inEdit.set(fragmentStore);
             this.reactiveController.updateStores([
                 this.inEdit,
@@ -687,12 +692,18 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             Store.editor.resetChanges();
+
+            // Update translated locales store for locale picker
+            await this.updateTranslatedLocalesStore(isVariation);
+
             this.initState = MasFragmentEditor.INIT_STATE.READY;
+            Store.fragmentEditor.loading.set(false);
             this.requestUpdate();
         } catch (error) {
             console.error('Failed to fetch fragment:', error);
             showToast(`Failed to load fragment: ${error.message}`, 'negative');
             this.initState = MasFragmentEditor.INIT_STATE.IDLE;
+            Store.fragmentEditor.loading.set(false);
         }
     }
 
@@ -1114,10 +1125,11 @@ export default class MasFragmentEditor extends LitElement {
 
     displayRegionalVarationInfo(clazz) {
         const localeCode = this.extractLocaleFromPath(this.fragment.path);
-        const locale = localeCode ? getLocaleByCode(localeCode) : null;
-        if (!locale) return nothing;
+        if (!localeCode) return nothing;
+        const [lang, country] = localeCode.split('_');
+        if (!lang || !country) return nothing;
         return html`<div class="${clazz}">
-            <span>Regional variation: <strong>${getCountryName(locale.country)} (${locale.lang.toUpperCase()})</strong></span>
+            <span>Regional variation: <strong>${getCountryName(country)} (${lang.toUpperCase()})</strong></span>
         </div>`;
     }
 

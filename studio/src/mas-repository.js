@@ -26,7 +26,7 @@ import {
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-import { getDefaultLocale, getLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
@@ -746,7 +746,7 @@ export class MasRepository extends LitElement {
         const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
 
         let parentReference = null;
-        const fallbackLocale = getLocaleCode(getDefaultLocale(locale, surfaceRoot));
+        const fallbackLocale = getDefaultLocaleCode(surfaceRoot, locale);
         const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
         const acomFallbackLocale = fallbackLocale ?? locale;
 
@@ -917,19 +917,19 @@ export class MasRepository extends LitElement {
         const fragment = fragmentStore.get();
         const parentFragment = fragmentStore.parentFragment;
 
+        // For variations, prepare the fragment by stripping inherited values before save
+        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : fragment;
+
         // Card-specific validation
         const tags = fragment.getField('tags')?.values || [];
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
         const osi = fragment.getFieldValue('osi') || parentFragment?.getFieldValue('osi');
 
-        if (!osi && !hasOfferlessTag) {
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !osi && !hasOfferlessTag) {
             if (withToast) showToast('Please select offer', 'negative');
             this.operation.set(null);
             return false;
         }
-
-        // For variations, prepare the fragment by stripping inherited values before save
-        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : fragment;
 
         try {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
@@ -1347,6 +1347,12 @@ export class MasRepository extends LitElement {
         }
 
         await this.updateParentVariations(parentFragment, variationFragment.path);
+
+        // Refresh the parent FragmentStore to include the new variation in references
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
 
         return variationFragment;
     }

@@ -38,7 +38,7 @@ export class Router extends EventTarget {
                 return {
                     editor,
                     hasChanges: editor && Store.editor.hasChanges,
-                    shouldCheckUnsavedChanges: editor && !editor.isLoading && Store.editor.hasChanges,
+                    shouldCheckUnsavedChanges: editor && Store.editor.hasChanges,
                 };
             }
             case PAGE_NAMES.TRANSLATION_EDITOR: {
@@ -77,6 +77,7 @@ export class Router extends EventTarget {
                         value !== PAGE_NAMES.VERSION
                     ) {
                         Store.fragmentEditor.fragmentId.set(null);
+                        Store.fragmentEditor.loading.set(false);
                         Store.version.fragmentId.set(null);
                     }
                     if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && value !== PAGE_NAMES.TRANSLATION_EDITOR) {
@@ -125,6 +126,7 @@ export class Router extends EventTarget {
 
             // Clear fragment editor state
             Store.fragmentEditor.fragmentId.set(null);
+            Store.fragmentEditor.loading.set(false);
             Store.fragments.inEdit.set();
 
             // Navigate to content page in table view
@@ -218,17 +220,12 @@ export class Router extends EventTarget {
             Store.search.set((prev) => ({ ...prev, region: null }));
             Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
 
-            // Pass pre-fill data through history state (not URL params)
-            const prefillState = targetLocale || fragmentId ? { targetLocale, fragmentId } : null;
+            // Store pre-fill data for the translation editor to consume
+            if (targetLocale || fragmentId) {
+                Store.translationProjects.prefill.set({ targetLocale, fragmentId });
+            }
 
-            // Update URL and set state before component mounts
-            // Use pushState to create a new history entry (so back button works)
-            this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
-            this.currentParams.set('page', PAGE_NAMES.TRANSLATION_EDITOR);
-            history.pushState(prefillState, '', `#${this.currentParams.toString()}`);
-            this.currentParams = undefined;
-
-            // Now set the store to trigger component mount
+            // Set the page - the store subscription will update the URL
             Store.page.set(PAGE_NAMES.TRANSLATION_EDITOR);
         } finally {
             this.isNavigating = false;
@@ -421,8 +418,11 @@ export class Router extends EventTarget {
                     Store.search.set((prev) => ({ ...prev, query: undefined }));
                     this.updateHistory();
                 }
-            } else if (Store.viewMode.value === 'editing') {
-                Store.viewMode.set('default');
+            } else {
+                Store.fragmentEditor.loading.set(false);
+                if (Store.viewMode.value === 'editing') {
+                    Store.viewMode.set('default');
+                }
             }
 
             Store.removeRegionOverride();

@@ -10,6 +10,7 @@ export class EditorContextStore extends ReactiveStore {
     parentFetchPromise = null;
     isVariationByPath = false;
     expectedDefaultLocale = null;
+    cachedDictionary = null;
 
     constructor(initialValue, validator) {
         super(initialValue, validator);
@@ -54,11 +55,14 @@ export class EditorContextStore extends ReactiveStore {
             const options = {
                 locale: Store.filters.value.locale,
                 surface,
+                dictionary: this.cachedDictionary,
+                hasExternalDictionary: Boolean(this.cachedDictionary),
             };
             const result = await previewFragmentForEditor(fragmentId, options);
 
             if (result.status === 200) {
                 this.set(result.body);
+                this.cachedDictionary = result.dictionary;
 
                 this.defaultLocaleId = result.fragmentsIds?.['default-locale-id'];
                 if (this.defaultLocaleId && this.defaultLocaleId !== fragmentId) {
@@ -163,6 +167,7 @@ export class EditorContextStore extends ReactiveStore {
         this.parentFetchPromise = null;
         this.isVariationByPath = false;
         this.expectedDefaultLocale = null;
+        this.cachedDictionary = null;
         this.set(null);
     }
 }

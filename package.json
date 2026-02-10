@@ -7,7 +7,6 @@
     "workspaces": [
         "studio",
         "web-components",
-        "io/www",
         "io/studio"
     ],
     "scripts": {

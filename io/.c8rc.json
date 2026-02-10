@@ -1,14 +1,5 @@
 {
-    "reporter": [
-        "lcov",
-        "text",
-        "html"
-    ],
-    "include": [
-        "src/**/*"
-    ],
-    "exclude": [
-        "test/**/*",
-        "node_modules/**/*"
-    ]
+    "reporter": ["lcov", "text", "html"],
+    "include": ["src/**/*"],
+    "exclude": ["test/**/*", "node_modules/**/*"]
 }

@@ -180,6 +180,19 @@ class MasSettings extends LitElement {
         this.disabledActions = new Set([QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD]);
     }
 
+    async #publishSettings() {
+    if (!this.settingsFragment) return;
+    
+    showToast('Publishing settings...');
+    try {
+        await this.aem.sites.cf.fragments.publish(this.settingsFragment);
+        showToast('Settings published!', 'positive');
+    } catch (error) {
+        console.error('Publish failed:', error);
+        showToast('Failed to publish settings.', 'negative');
+    }
+}
+
     get createDialog() {
         if (!this.showCreateDialog) return nothing;
         return html`
@@ -246,9 +259,10 @@ class MasSettings extends LitElement {
             </div>
 
             <mas-quick-actions
-                .actions=${[QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD]}
+                .actions=${[QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH, QUICK_ACTION.DISCARD]}
                 .disabled=${this.disabledActions}
                 @save=${this.#saveSettings}
+                @publish=${this.#publishSettings}
                 @discard=${this.#discardChanges}
             ></mas-quick-actions>
         `;

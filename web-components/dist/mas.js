@@ -5291,12 +5291,12 @@ merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template
 
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough {
-    color: var(--express-custom-gray-500);
+    color: #8F8F8F;
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"],
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template='strikethrough'] ~ strong {
-    color: var(--spectrum-gray-900);
+    color: #222222;
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] p .heading-xs,
@@ -5550,6 +5550,7 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
             --merch-card-full-pricing-express-section-gap: 24px;
             --express-custom-gray-500: #8f8f8f;
             --express-custom-gray-400: #d5d5d5;
+            --express-custom-price-border: #e0e2ff;
 
             /* Price container specific */
             --merch-card-full-pricing-express-price-bg: #f8f8f8;
@@ -5777,7 +5778,7 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
             background: var(--merch-card-full-pricing-express-price-bg);
             padding: 24px 16px;
             border-radius: var(--merch-card-full-pricing-express-price-radius);
-            border: 1px solid var(--express-custom-gray-400);
+            border: 1px solid var(--express-custom-price-border);
             display: flex;
             flex-direction: column;
             position: relative;

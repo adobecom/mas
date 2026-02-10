@@ -21,7 +21,7 @@ export const CSS = `
 
 @media screen and ${DESKTOP_UP} {
   :root {
-    --consonant-merch-card-image-width: 276px;
+    --consonant-merch-card-image-width: 378px;
     --consonant-merch-card-image-width-4clm: 276px;
   }
     

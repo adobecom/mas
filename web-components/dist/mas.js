@@ -1285,7 +1285,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
 
 @media screen and ${N} {
   :root {
-    --consonant-merch-card-image-width: 276px;
+    --consonant-merch-card-image-width: 378px;
     --consonant-merch-card-image-width-4clm: 276px;
   }
     

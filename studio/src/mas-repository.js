@@ -904,24 +904,36 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Unified method to save a fragment (regular or dictionary)
-     * @param {FragmentStore} fragmentStore - The fragment to save
+     * Generic method to save any fragment with card-specific validation and variation handling
+     * @param {FragmentStore} fragmentStore - The fragment store to save
      * @param {boolean} withToast - Whether to show toast notifications
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore, withToast = true) {
         if (withToast) showToast('Saving fragment...');
-        const fragmentToSave = fragmentStore.get();
-        const tags = fragmentToSave.getField('tags')?.values || [];
+        this.operation.set(OPERATIONS.SAVE);
+
+        const fragment = fragmentStore.get();
+        const parentFragment = fragmentStore.parentFragment;
+
+        // For variations, prepare the fragment by stripping inherited values before save
+        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : fragment;
+
+        // Card-specific validation
+        const tags = fragment.getField('tags')?.values || [];
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
-        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi') && !hasOfferlessTag) {
+        const osi = fragment.getFieldValue('osi') || parentFragment?.getFieldValue('osi');
+
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !osi && !hasOfferlessTag) {
             if (withToast) showToast('Please select offer', 'negative');
+            this.operation.set(null);
             return false;
         }
-        this.operation.set(OPERATIONS.SAVE);
+
         try {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
+
             fragmentStore.refreshFrom(savedFragment);
             fragmentCache.remove(savedFragment.id);
             fragmentCache.add(new Fragment(savedFragment));
@@ -969,6 +981,10 @@ export class MasRepository extends LitElement {
             sourceStore.get().hasChanges = false;
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
             this.skipVariationDetection = true;
+
+            // Reset changes on the current fragment to prevent discard prompt during navigation
+            Store.editor.resetChanges();
+
             await router.navigateToFragmentEditor(newFragment.id);
 
             this.operation.set();
@@ -1330,6 +1346,12 @@ export class MasRepository extends LitElement {
         }
 
         await this.updateParentVariations(parentFragment, variationFragment.path);
+
+        // Refresh the parent FragmentStore to include the new variation in references
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
 
         return variationFragment;
     }

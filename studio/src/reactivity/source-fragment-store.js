@@ -111,7 +111,7 @@ export default function generateFragmentStore(fragment, parentFragment = null) {
  * @param {Fragment} parentFragment
  * @returns {object}
  */
-function createPreviewDataWithParent(sourceFragment, parentFragment) {
+export function createPreviewDataWithParent(sourceFragment, parentFragment) {
     const previewData = structuredClone(sourceFragment);
 
     parentFragment.fields?.forEach((parentField) => {

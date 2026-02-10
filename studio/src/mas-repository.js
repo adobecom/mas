@@ -1347,6 +1347,12 @@ export class MasRepository extends LitElement {
 
         await this.updateParentVariations(parentFragment, variationFragment.path);
 
+        // Refresh the parent FragmentStore to include the new variation in references
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
+
         return variationFragment;
     }
 

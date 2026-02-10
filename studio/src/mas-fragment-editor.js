@@ -613,7 +613,10 @@ export default class MasFragmentEditor extends LitElement {
 
             // Create fragment store with parent (if variation)
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
-            Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            // Only add to main list if not a variation (variations appear under parent's variations panel)
+            if (!isVariation) {
+                Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            }
             this.inEdit.set(fragmentStore);
             this.reactiveController.updateStores([this.inEdit, fragmentStore, fragmentStore.previewStore, this.operation]);
             this.dispatchFragmentLoaded();

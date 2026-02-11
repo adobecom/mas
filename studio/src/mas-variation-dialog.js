@@ -2,12 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_KEYDOWN, VARIATION_TYPES } from './constants.js';
 import { showToast, extractLocaleFromPath } from './utils.js';
 import Store from './store.js';
-import {
-    getCountryName,
-    getLocaleCode,
-    getRegionLocales,
-    LOCALES,
-} from '../../io/www/src/fragment/locales.js';
+import { getCountryName, getLocaleCode, getRegionLocales, getDefaultLocales } from '../../io/www/src/fragment/locales.js';
 
 export class MasVariationDialog extends LitElement {
     static properties = {
@@ -252,7 +247,7 @@ export class MasVariationDialog extends LitElement {
     }
 
     get allLocales() {
-        return LOCALES.map((locale) => ({
+        return getDefaultLocales(Store.surface()).map((locale) => ({
             ...locale,
             code: getLocaleCode(locale),
         }));
@@ -415,8 +410,7 @@ export class MasVariationDialog extends LitElement {
                     ${localeOptions.map(
                         (locale) => html`
                             <sp-menu-item value="${getLocaleCode(locale)}" ?disabled=${locale.disabled}>
-                                ${getCountryName(locale.country)}
-                                (${locale.country})${locale.disabled ? ' (exists)' : ''}
+                                ${getCountryName(locale.country)} (${locale.country})${locale.disabled ? ' (exists)' : ''}
                             </sp-menu-item>
                         `,
                     )}
@@ -444,10 +438,7 @@ export class MasVariationDialog extends LitElement {
                               <div class="locale-dropdown">
                                   ${this.filteredLocales.map(
                                       (locale) => html`
-                                          <div
-                                              class="locale-option"
-                                              @click=${() => this.addLocaleTag(locale.code)}
-                                          >
+                                          <div class="locale-option" @click=${() => this.addLocaleTag(locale.code)}>
                                               ${locale.code}
                                           </div>
                                       `,
@@ -499,7 +490,6 @@ export class MasVariationDialog extends LitElement {
                     </div>
 
                     ${this.isGrouped ? this.renderGroupedFields() : this.renderRegionalFields()}
-
                     ${this.error ? html`<div class="error-message">${this.error}</div>` : ''}
 
                     <div class="dialog-footer">

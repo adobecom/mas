@@ -16,6 +16,8 @@ import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
+import { Fragment } from '../aem/fragment.js';
+import { getDefaultLocales, getLocaleCode, getCountryName, getCountryFlag } from '../../../io/www/src/fragment/locales.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -36,6 +38,7 @@ class MerchCardEditor extends LitElement {
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
         fieldsReady: { type: Boolean, state: true },
+        localeSearch: { type: String, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -64,6 +67,7 @@ class MerchCardEditor extends LitElement {
         this.isVariation = false;
         this.lastMnemonicState = null;
         this.fieldsReady = false;
+        this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
     }
 
@@ -73,6 +77,122 @@ class MerchCardEditor extends LitElement {
 
     get effectiveIsVariation() {
         return this.isVariation && this.localeDefaultFragment !== null;
+    }
+
+    get isGroupedVariation() {
+        return Fragment.isGroupedVariationPath(this.fragment?.path);
+    }
+
+    get groupedVariationLocaleTags() {
+        const tags = this.fragment.newTags || this.fragment.tags.map((tag) => tag.id);
+        return tags
+            .filter((tag) => tag.startsWith('mas:locale/'))
+            .map((tag) => tag.replace('mas:locale/', ''));
+    }
+
+    get surfaceLocales() {
+        const surface = Store.surface();
+        const allLocales = [];
+        for (const defaultLocale of getDefaultLocales(surface)) {
+            // Add the default locale
+            allLocales.push({
+                lang: defaultLocale.lang,
+                country: defaultLocale.country,
+                code: getLocaleCode(defaultLocale),
+            });
+            // Add all region locales
+            if (defaultLocale.regions) {
+                for (const region of defaultLocale.regions) {
+                    allLocales.push({
+                        lang: defaultLocale.lang,
+                        country: region,
+                        code: `${defaultLocale.lang}_${region}`,
+                    });
+                }
+            }
+        }
+        // Sort by locale code
+        return allLocales.sort((a, b) => a.code.localeCompare(b.code));
+    }
+
+    get filteredSurfaceLocales() {
+        const selectedLocales = this.groupedVariationLocaleTags;
+        const search = (this.localeSearch || '').toLowerCase();
+        return this.surfaceLocales.filter((locale) => {
+            if (selectedLocales.includes(locale.code)) return false;
+            if (!search) return true;
+            const countryName = getCountryName(locale.country).toLowerCase();
+            return locale.code.toLowerCase().includes(search) || countryName.includes(search);
+        });
+    }
+
+    #handleLocaleTagAdd(localeCode) {
+        const currentTags = this.fragment.newTags || this.fragment.tags.map((tag) => tag.id);
+        const newTag = `mas:locale/${localeCode}`;
+        if (!currentTags.includes(newTag)) {
+            this.fragmentStore.updateField('tags', [...currentTags, newTag]);
+        }
+        this.localeSearch = '';
+        this.showLocaleDropdown = false;
+    }
+
+    #handleLocaleTagRemove(localeCode) {
+        const currentTags = this.fragment.newTags || this.fragment.tags.map((tag) => tag.id);
+        const tagToRemove = `mas:locale/${localeCode}`;
+        const updatedTags = currentTags.filter((tag) => tag !== tagToRemove);
+        this.fragmentStore.updateField('tags', updatedTags);
+    }
+
+    #handleLocaleSearchInput = (e) => {
+        this.localeSearch = e.target.value;
+    };
+
+    get groupedVariationTagsTemplate() {
+        if (!this.isGroupedVariation) return nothing;
+        return html`
+            <sp-field-group id="grouped-variation-tags">
+                <sp-field-label>Grouped variation tags</sp-field-label>
+                <sp-tags class="locale-tags-picker">
+                    <overlay-trigger placement="bottom-start">
+                        <sp-action-button slot="trigger" size="s">
+                            Add locale
+                            <sp-icon-add slot="icon"></sp-icon-add>
+                        </sp-action-button>
+                        <sp-popover slot="click-content" tip>
+                            <div class="locale-picker-popover">
+                                <input
+                                    class="locale-search"
+                                    type="text"
+                                    placeholder="Search locales..."
+                                    .value=${this.localeSearch}
+                                    @input=${this.#handleLocaleSearchInput}
+                                />
+                                <div class="locale-options">
+                                    ${this.filteredSurfaceLocales.map(
+                                        (locale) => html`
+                                            <div
+                                                class="locale-option"
+                                                @click=${() => this.#handleLocaleTagAdd(locale.code)}
+                                            >
+                                                ${getCountryFlag(locale.country)} ${locale.code}
+                                            </div>
+                                        `,
+                                    )}
+                                </div>
+                            </div>
+                        </sp-popover>
+                    </overlay-trigger>
+                    ${this.groupedVariationLocaleTags.map((localeCode) => {
+                        const country = localeCode.split('_')[1];
+                        return html`
+                            <sp-tag deletable @delete=${() => this.#handleLocaleTagRemove(localeCode)}>
+                                ${getCountryFlag(country)} ${localeCode}
+                            </sp-tag>
+                        `;
+                    })}
+                </sp-tags>
+            </sp-field-group>
+        `;
     }
 
     getEffectiveFieldValue(fieldName, index = 0) {
@@ -603,6 +723,50 @@ class MerchCardEditor extends LitElement {
                     margin: 0;
                 }
 
+                sp-tags.locale-tags-picker {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    align-items: center;
+                }
+
+                .locale-picker-popover {
+                    padding: 12px;
+                    min-width: 200px;
+                }
+
+                .locale-picker-popover .locale-search {
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 8px 12px;
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 4px;
+                    font-size: 14px;
+                    outline: none;
+                    margin-bottom: 8px;
+                }
+
+                .locale-picker-popover .locale-search:focus {
+                    border-color: var(--spectrum-blue-500);
+                }
+
+                .locale-picker-popover .locale-options {
+                    max-height: 200px;
+                    overflow-y: auto;
+                }
+
+                .locale-picker-popover .locale-option {
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    color: var(--spectrum-gray-800);
+                    border-radius: 4px;
+                }
+
+                .locale-picker-popover .locale-option:hover {
+                    background: var(--spectrum-gray-100);
+                }
+
                 .full-width {
                     width: 100%;
                 }
@@ -764,6 +928,7 @@ class MerchCardEditor extends LitElement {
                     ></aem-tag-picker-field>
                     ${this.renderTagsStatusIndicator()}
                 </sp-field-group>
+                ${this.groupedVariationTagsTemplate}
                 <div class="section-title">Visuals</div>
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield

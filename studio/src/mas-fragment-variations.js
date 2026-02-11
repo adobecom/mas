@@ -15,12 +15,14 @@ class MasFragmentVariations extends LitElement {
     static properties = {
         fragment: { type: Object, attribute: false },
         loading: { type: Boolean, attribute: false },
+        expandedGroupedVariations: { type: Object, state: true },
     };
 
     constructor() {
         super();
         this.fragment = null;
         this.loading = false;
+        this.expandedGroupedVariations = new Set();
     }
 
     createRenderRoot() {
@@ -77,7 +79,40 @@ class MasFragmentVariations extends LitElement {
         return localeTags || [];
     }
 
-    renderLocaleVariations() {
+    /**
+     * Extracts promo code from a fragment's fields.
+     * @param {Object} variationFragment
+     * @returns {string}
+     */
+    getPromoCode(variationFragment) {
+        const promoCodeField = variationFragment.fields?.find((field) => field.name === 'promoCode');
+        return promoCodeField?.values?.[0] || '';
+    }
+
+    /**
+     * Toggles the expanded state of a grouped variation.
+     * @param {string} fragmentId
+     */
+    toggleGroupedVariation(fragmentId) {
+        const newSet = new Set(this.expandedGroupedVariations);
+        if (newSet.has(fragmentId)) {
+            newSet.delete(fragmentId);
+        } else {
+            newSet.add(fragmentId);
+        }
+        this.expandedGroupedVariations = newSet;
+    }
+
+    /**
+     * Checks if a grouped variation is expanded.
+     * @param {string} fragmentId
+     * @returns {boolean}
+     */
+    isGroupedVariationExpanded(fragmentId) {
+        return this.expandedGroupedVariations.has(fragmentId);
+    }
+
+    get localeVariationsTemplate() {
         if (this.loading) {
             return html`
                 <div class="loading-container">
@@ -112,7 +147,7 @@ class MasFragmentVariations extends LitElement {
         `;
     }
 
-    renderGroupedVariations() {
+    get groupedVariationsTemplate() {
         if (this.loading) {
             return html`
                 <div class="loading-container">
@@ -132,28 +167,36 @@ class MasFragmentVariations extends LitElement {
                     ${this.groupedVariations.map((variationFragment) => {
                         const fragmentStore = new FragmentStore(new Fragment(variationFragment));
                         const localeTags = this.getGroupedVariationLocaleTags(variationFragment);
+                        const promoCode = this.getPromoCode(variationFragment);
+                        const isExpanded = this.isGroupedVariationExpanded(variationFragment.id);
                         return html`
-                            <sp-table-row class="grouped-variation-row">
-                                <sp-table-cell class="grouped-variation-info">
-                                    <mas-fragment-table
-                                        class="mas-fragment nested-fragment"
-                                        data-id="${variationFragment.id}"
-                                        .fragmentStore=${fragmentStore}
-                                        .nested=${true}
-                                        @dblclick=${() => this.handleEdit(fragmentStore)}
-                                    ></mas-fragment-table>
-                                </sp-table-cell>
-                                <sp-table-cell class="grouped-variation-tags-cell">
-                                    <span class="grouped-tags-label">Grouped variation tags</span>
-                                    <div class="grouped-variation-tags">
-                                        ${localeTags.length > 0
-                                            ? localeTags.map(
-                                                  (tag) => html`<span class="locale-tag-pill">${tag}</span>`,
-                                              )
-                                            : html`<span class="no-tags">No locale tags</span>`}
-                                    </div>
-                                </sp-table-cell>
-                            </sp-table-row>
+                            <mas-fragment-table
+                                class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''}"
+                                data-id="${variationFragment.id}"
+                                .fragmentStore=${fragmentStore}
+                                .nested=${false}
+                                .expanded=${isExpanded}
+                                .toggleExpand=${() => this.toggleGroupedVariation(variationFragment.id)}
+                                @dblclick=${() => this.handleEdit(fragmentStore)}
+                            ></mas-fragment-table>
+                            ${isExpanded
+                                ? html`
+                                      <div class="grouped-variation-expanded">
+                                          <div class="promo-code-field">
+                                              <span class="field-label">Promo code</span>
+                                              <span class="field-value">${promoCode}</span>
+                                          </div>
+                                          <div class="tags-group">
+                                              <span class="field-label">Grouped variation tags</span>
+                                              <sp-tags>
+                                                  ${localeTags.length > 0
+                                                      ? localeTags.map((tag) => html`<sp-tag size="m" readonly>${tag}</sp-tag>`)
+                                                      : html`<span class="no-tags">No locale tags</span>`}
+                                              </sp-tags>
+                                          </div>
+                                      </div>
+                                  `
+                                : nothing}
                         `;
                     })}
                 </sp-table-body>
@@ -176,16 +219,14 @@ class MasFragmentVariations extends LitElement {
                 <sp-tabs selected="locale" quiet>
                     <sp-tab value="locale" label="Locale">Locale</sp-tab>
                     <sp-tab value="promotion" label="Promotion">Promotion</sp-tab>
-                    <sp-tab value="grouped" label="${VARIATION_TYPES.GROUPED}"
-                        >${VARIATION_TYPES.GROUPED}</sp-tab
-                    >
-                    <sp-tab-panel value="locale"> ${this.renderLocaleVariations()} </sp-tab-panel>
+                    <sp-tab value="grouped" label="${VARIATION_TYPES.GROUPED}">${VARIATION_TYPES.GROUPED}</sp-tab>
+                    <sp-tab-panel value="locale">${this.localeVariationsTemplate}</sp-tab-panel>
                     <sp-tab-panel value="promotion">
                         <div class="tab-content-placeholder">
                             <p>Promotion content will be displayed here</p>
                         </div>
                     </sp-tab-panel>
-                    <sp-tab-panel value="grouped"> ${this.renderGroupedVariations()} </sp-tab-panel>
+                    <sp-tab-panel value="grouped">${this.groupedVariationsTemplate}</sp-tab-panel>
                 </sp-tabs>
             </div>
         `;

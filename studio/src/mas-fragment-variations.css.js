@@ -60,50 +60,59 @@ export const styles = `
     background-color: var(--spectrum-blue-400);
 }
 
-/* Grouped variation rows */
-.grouped-variation-row {
+/* Grouped variation expanded section */
+.grouped-variation-expanded {
     display: flex;
+    gap: 40px;
     align-items: flex-start;
-    gap: 24px;
+    background-color: var(--spectrum-gray-100);
+    border-left: 1px solid var(--spectrum-gray-400);
+    border-bottom: 1px solid var(--spectrum-gray-400);
+    padding: 12px 20px 20px 81px;
 }
 
-.grouped-variation-info {
+.promo-code-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 224px;
+    max-width: 224px;
+    min-height: 32px;
+}
+
+.tags-group {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-width: 0;
 }
 
-.grouped-variation-tags-cell {
-    flex: 1;
+.field-label {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 18px;
+    color: var(--spectrum-gray-700);
+    padding-top: 7px;
+    padding-bottom: 7px;
+}
+
+.field-value {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 18px;
+    color: var(--spectrum-gray-800);
+    min-height: 32px;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 0;
+    align-items: center;
 }
 
-.grouped-tags-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--spectrum-gray-600);
-}
-
-.grouped-variation-tags {
+.tags-group sp-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-}
-
-.locale-tag-pill {
-    display: inline-block;
-    background: var(--spectrum-gray-200);
-    border-radius: 4px;
-    padding: 4px 10px;
-    font-size: 13px;
-    color: var(--spectrum-gray-800);
-    white-space: nowrap;
+    gap: 12px;
 }
 
 .no-tags {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--spectrum-gray-500);
     font-style: italic;
 }

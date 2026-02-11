@@ -22,6 +22,7 @@ const Store = {
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
+        loading: new ReactiveStore(false),
         get editorContext() {
             if (!editorContextInstance) {
                 editorContextInstance = new EditorContextStore(null);

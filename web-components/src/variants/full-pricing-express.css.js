@@ -18,17 +18,45 @@ merch-card-collection.full-pricing-express {
 /* Mobile - 1 column */
 merch-card-collection.full-pricing-express {
     grid-template-columns: 1fr;
-    max-width: var(--merch-card-full-pricing-express-mobile-width);
+    max-width: 100%;
     margin: 0 auto;
     padding: 0 16px;
+    box-sizing: border-box;
+}
+
+/* Mobile - override Milo .content max-width for full-width cards */
+@media screen and (max-width: 767px) {
+    .section:has(.collection-container.full-pricing-express) .content {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .collection-container.full-pricing-express {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+    }
 }
 
 /* Tablet - 2 columns (768px-1199px) */
 @media screen and (min-width: 768px) and (max-width: 1199px) {
     merch-card-collection.full-pricing-express {
         grid-template-columns: repeat(2, 1fr);
-        max-width: calc(2 * var(--merch-card-full-pricing-express-width) + 16px);
-        padding: 0 32px;
+        justify-items: stretch;
+        max-width: 100%;
+        padding: 0 16px;
+    }
+
+    /* Override Milo .content max-width for full-width cards */
+    .section:has(.collection-container.full-pricing-express) .content {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .collection-container.full-pricing-express {
+        display: block;
+        width: 100%;
+        max-width: 100%;
     }
 }
 
@@ -61,6 +89,14 @@ merch-card[variant="full-pricing-express"] [slot="heading-xs"] {
     line-height: 26px;
     color: var(--spectrum-gray-800);
     margin-bottom: 8px;
+}
+
+/* Title font size on mobile and tablet */
+@media (max-width: 1199px) {
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] {
+        font-size: 18px;
+        line-height: 23.4px;
+    }
 }
 
 /* Inline mnemonics inside heading */
@@ -140,6 +176,7 @@ merch-card[variant="full-pricing-express"] [slot="body-s"] {
 merch-card[variant="full-pricing-express"] [slot="body-s"] hr {
     margin-top: 16px;
     margin-bottom: 24px;
+    background-color: #E9E9E9;
 }
 
 merch-card[variant="full-pricing-express"] [slot="shortDescription"] {
@@ -198,6 +235,7 @@ merch-card[variant="full-pricing-express"] [slot="body-s"] p:last-child a {
     border: none;
     margin: 0;
     font-size: 16px;
+    padding-top: 0;
 }
 
 merch-card[variant="full-pricing-express"] [slot="body-s"] p:last-child a:hover {
@@ -209,6 +247,13 @@ merch-card[variant="full-pricing-express"] [slot="body-s"] p:last-child a:hover 
 merch-card[variant="full-pricing-express"] [slot="price"] {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    justify-content: center;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] p strong {
+    display: inline-flex;
+    justify-content: center;
     width: 100%;
 }
 
@@ -249,8 +294,9 @@ merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"] .price-recurrence,
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"] .price-unit-type {
     font-size: 12px;
-    font-weight: 700;
+    font-weight: bold;
     line-height: 15.6px;
+    color: #222;
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] p {
@@ -272,13 +318,14 @@ merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) 
     margin-right: 0;
 }
 
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-integer,
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals-delimiter,
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals,
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-currency-symbol,
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-recurrence {
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-currency-symbol,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-integer,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-decimals-delimiter,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-decimals,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-recurrence,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-unit-type {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: normal;
     line-height: 15.6px;
 }
 
@@ -297,17 +344,17 @@ merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template
     text-decoration: none;
     font-size: 12px;
     line-height: 15.6px;
-    font-weight: bold;
+    font-weight: 700;
 }
 
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough {
-    color: var(--spectrum-gray-500);
+    color: #8F8F8F;
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"],
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template='strikethrough'] ~ strong {
-    color: var(--spectrum-gray-900);
+    color: #222222;
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] p .heading-xs,
@@ -407,7 +454,8 @@ merch-card[variant="full-pricing-express"] merch-badge {
     }
 
     merch-card[variant="full-pricing-express"] {
-        max-width: 365px;
+        width: 100%;
+        max-width: 100%;
     }
 
     /* Price font size on mobile */
@@ -461,6 +509,31 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
     margin-right: 8px;
     overflow: visible;
     padding-top: 16px;
+}
+
+/* mas-mnemonic inline styles for full-pricing-express */
+merch-card[variant="full-pricing-express"] mas-mnemonic {
+    display: inline-block;
+    align-items: center;
+    vertical-align: baseline;
+    margin-right: 8px;
+    overflow: visible;
+    --mas-mnemonic-tooltip-padding: 4px 8px;
+}
+
+/* Desktop - fixed heights for alignment */
+@media (min-width: 1025px) {
+    merch-card[variant="full-pricing-express"] [slot="short-description"] {
+        min-height: var(--consonant-merch-card-full-pricing-express-short-description-height);
+    }
+
+    merch-card[variant="full-pricing-express"] [slot="price"] {
+        min-height: var(--consonant-merch-card-full-pricing-express-price-height);
+    }
+
+    merch-card[variant="full-pricing-express"] [slot="cta"] {
+        min-height: var(--consonant-merch-card-full-pricing-express-cta-height);
+    }
 }
 
 /* Responsive rules for tablet and desktop (768px+) */

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { transformer as replace } from '../../src/fragment/transformers/replace.js';
+import { transformer as replace, clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_ACOM_FR_FR from './mocks/dictionary-acom-fr-fr.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_CCD_FR_FR from './mocks/dictionary-ccd-fr-fr.json' with { type: 'json' };
@@ -53,12 +53,15 @@ const mockDictionaryBySurfaceLocale = (
     );
 };
 
-const mockDictionary = (preview = false, stub = fetchStub) => {
+const mockDictionary = (preview = false, stub = fetchStub, cleanCache = true) => {
+    if (cleanCache) {
+        clearDictionaryCache();
+    }
     mockDictionaryBySurfaceLocale(preview, DEFAULT_SURFACE, DEFAULT_LOCALE, DICTIONARY_RESPONSE, stub);
 };
 
-const getResponse = async (description, cta, surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => {
-    mockDictionary(false, fetchStub);
+const getResponse = async (description, cta, surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE, cleanCache = true) => {
+    mockDictionary(false, fetchStub, cleanCache);
     const context = { surface, locale, loggedTransformer: 'replace', requestId: 'mas-replace-ut' };
     context.promises = {};
     context.promises.replace = replace.init(context);
@@ -94,6 +97,7 @@ describe('replace', () => {
 
     afterEach(() => {
         fetchStub.restore();
+        clearDictionaryCache();
     });
 
     it('returns 200 & no placeholders', async () => {
@@ -200,6 +204,30 @@ describe('replace', () => {
             const context = await replace.process(FAKE_CONTEXT);
             const dictionaryId = dictionaryIdFor();
             expect(context).to.deep.include({ ...EXPECTED, fragmentsIds: { 'dictionary-id': dictionaryId } });
+        });
+    });
+
+    describe('dictionary caching', () => {
+        const dictionaryContentUrl =
+            'https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated';
+
+        const contentFetchCalls = () => fetchStub.getCalls().filter((c) => c.args[0]?.includes('references=all-hydrated'));
+
+        it('uses cached dictionary on second request (no extra fetch)', async () => {
+            const response1 = await getResponse('please {{view-account}}', '{{buy-now}}', DEFAULT_SURFACE, DEFAULT_LOCALE, true);
+            expect(response1.body.fields.cta).to.equal('Buy now');
+            const response2 = await getResponse('please {{view-account}}', '{{buy-now}}', DEFAULT_SURFACE, DEFAULT_LOCALE, false);
+            expect(response2.body.fields.cta).to.equal('Buy now');
+            expect(contentFetchCalls()).to.have.length(1);
+        });
+
+        it('caches dictionary with 200 and reuses it within TTL', async () => {
+            const response = await getResponse('{{view-account}}', '{{buy-now}}', DEFAULT_SURFACE, DEFAULT_LOCALE, true);
+            expect(response.body.fields.description).to.equal('View account');
+            expect(contentFetchCalls()).to.have.length(1);
+            const response2 = await getResponse('{{view-account}}', '{{buy-now}}', DEFAULT_SURFACE, DEFAULT_LOCALE, false);
+            expect(response2.body.fields.description).to.equal('View account');
+            expect(contentFetchCalls()).to.have.length(1);
         });
     });
 

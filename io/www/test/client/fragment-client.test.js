@@ -34,7 +34,7 @@ describe('FragmentClient', () => {
         // Stub window.localStorage
         globalThis.window = globalThis.window || { localStorage: {} };
         sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
-
+        globalThis.localStorage = localStorageStub;
         fetchStub = sinon.stub(globalThis, 'fetch');
         fetchStub
             .withArgs(`${baseUrl}/${mockCardFragment.id}?references=all-hydrated`)
@@ -59,6 +59,7 @@ describe('FragmentClient', () => {
 
     after(() => {
         fetchStub.restore();
+        delete globalThis.localStorage;
         if (globalThis.window?.localStorage) {
             sinon.restore();
         }

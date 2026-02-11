@@ -641,6 +641,9 @@ export default class MasFragmentEditor extends LitElement {
             // Load context to determine if this is a variation
             await this.editorContextStore.loadFragmentContext(fragmentId, fragment.path);
 
+            // Re-check isVariation after loadFragmentContext (may detect grouped variations by path)
+            const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
+
             const skipVariation = this.repository?.skipVariationDetection;
             if (this.repository?.skipVariationDetection) {
                 this.repository.skipVariationDetection = false;
@@ -649,7 +652,7 @@ export default class MasFragmentEditor extends LitElement {
             let parentFragment = null;
 
             // For variations, fetch parent fragment BEFORE creating stores
-            if (isVariation && !skipVariation) {
+            if (isVariationAfterContext && !skipVariation) {
                 const parentData = await this.editorContextStore.getLocaleDefaultFragmentAsync();
                 if (parentData) {
                     parentFragment = new Fragment(parentData);
@@ -663,7 +666,7 @@ export default class MasFragmentEditor extends LitElement {
             // Create fragment store with parent (if variation)
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
             // Only add to main list if not a variation (variations appear under parent's variations panel)
-            if (!isVariation) {
+            if (!isVariationAfterContext) {
                 Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
             }
             this.inEdit.set(fragmentStore);
@@ -679,7 +682,7 @@ export default class MasFragmentEditor extends LitElement {
             this.dispatchFragmentLoaded();
 
             // Handle locale-specific placeholder reload for variations
-            if (isVariation) {
+            if (isVariationAfterContext) {
                 const fragmentLocale = this.extractLocaleFromPath(fragment.path);
                 if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
                     Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));

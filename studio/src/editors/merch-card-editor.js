@@ -76,7 +76,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get effectiveIsVariation() {
-        return this.isVariation && this.localeDefaultFragment !== null;
+        return (this.isVariation || this.isGroupedVariation) && this.localeDefaultFragment !== null;
     }
 
     get isGroupedVariation() {
@@ -84,10 +84,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get groupedVariationLocaleTags() {
-        const tags = this.fragment.newTags || this.fragment.tags.map((tag) => tag.id);
-        return tags
-            .filter((tag) => tag.startsWith('mas:locale/'))
-            .map((tag) => tag.replace('mas:locale/', ''));
+        return this.fragment.getFieldValues('pznTags') || [];
     }
 
     get surfaceLocales() {
@@ -127,20 +124,18 @@ class MerchCardEditor extends LitElement {
     }
 
     #handleLocaleTagAdd(localeCode) {
-        const currentTags = this.fragment.newTags || this.fragment.tags.map((tag) => tag.id);
-        const newTag = `mas:locale/${localeCode}`;
-        if (!currentTags.includes(newTag)) {
-            this.fragmentStore.updateField('tags', [...currentTags, newTag]);
+        const currentPznTags = this.fragment.getFieldValues('pznTags') || [];
+        if (!currentPznTags.includes(localeCode)) {
+            this.fragmentStore.updateField('pznTags', [...currentPznTags, localeCode]);
         }
         this.localeSearch = '';
         this.showLocaleDropdown = false;
     }
 
     #handleLocaleTagRemove(localeCode) {
-        const currentTags = this.fragment.newTags || this.fragment.tags.map((tag) => tag.id);
-        const tagToRemove = `mas:locale/${localeCode}`;
-        const updatedTags = currentTags.filter((tag) => tag !== tagToRemove);
-        this.fragmentStore.updateField('tags', updatedTags);
+        const currentPznTags = this.fragment.getFieldValues('pznTags') || [];
+        const updatedPznTags = currentPznTags.filter((tag) => tag !== localeCode);
+        this.fragmentStore.updateField('pznTags', updatedPznTags);
     }
 
     #handleLocaleSearchInput = (e) => {
@@ -170,10 +165,7 @@ class MerchCardEditor extends LitElement {
                                 <div class="locale-options">
                                     ${this.filteredSurfaceLocales.map(
                                         (locale) => html`
-                                            <div
-                                                class="locale-option"
-                                                @click=${() => this.#handleLocaleTagAdd(locale.code)}
-                                            >
+                                            <div class="locale-option" @click=${() => this.#handleLocaleTagAdd(locale.code)}>
                                                 ${getCountryFlag(locale.country)} ${locale.code}
                                             </div>
                                         `,

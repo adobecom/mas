@@ -66,17 +66,13 @@ class MasFragmentVariations extends LitElement {
     }
 
     /**
-     * Extracts locale tags from a grouped variation fragment's tags.
-     * Returns locale codes derived from the fragment's locale-related tags.
+     * Returns locale codes from the fragment's pznTags field.
      * @param {Object} variationFragment
      * @returns {string[]}
      */
     getGroupedVariationLocaleTags(variationFragment) {
-        // Grouped variation tags are stored as tags with the mas:locale/ prefix
-        const localeTags = variationFragment.tags
-            ?.filter((tag) => tag.id?.startsWith('mas:locale/'))
-            .map((tag) => tag.id.replace('mas:locale/', ''));
-        return localeTags || [];
+        const pznTagsField = variationFragment.fields?.find((field) => field.name === 'pznTags');
+        return pznTagsField?.values || [];
     }
 
     /**

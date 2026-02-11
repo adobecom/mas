@@ -85,7 +85,7 @@ function applyCollectionSettings(context) {
 function applyPlansSettings(fragment, context) {
     const { locale } = context;
     fragment.settings = {};
-    if (fragment?.fields?.showSecureLabel !== false) {
+    if (fragment?.fields?.showSecureLabel !== false && fragment?.fields?.showSecureLabel !== 'false') {
         fragment.settings.secureLabel = '{{secure-label}}';
     }
     if (fragment?.fields?.showPlanType != null) {

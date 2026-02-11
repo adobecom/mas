@@ -47,33 +47,19 @@ export class PlanTypeField extends LitElement {
 
     updated(changedProperties) {
         if (changedProperties.has('value')) {
-            if (!this.value) {
-                this.isEditable = false;
-                this.showPlanType = true;
-            } else {
-                this.isEditable = true;
-                this.showPlanType = this.value !== 'false';
-            }
+            this.showPlanType = this.value !== 'false';
+            this.isEditable = false;
         }
     }
 
     #handleToggle(e) {
         this.isEditable = e.target.checked;
-        if (this.isEditable) {
-            this.value = this.showPlanType ? '' : 'false';
-            this.dispatchInputEvent(this.value);
-        } else {
-            this.value = '';
-            this.dispatchInputEvent(this.value);
-        }
     }
 
     #handleCheckbox(e) {
         this.showPlanType = e.target.checked;
-        if (this.isEditable) {
-            this.value = e.target.checked ? '' : 'false';
-            this.dispatchInputEvent(this.value);
-        }
+        this.value = e.target.checked ? 'true' : 'false';
+        this.dispatchInputEvent(this.value);
     }
 
     dispatchInputEvent() {

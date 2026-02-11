@@ -1,7 +1,5 @@
 import Sinon from 'sinon';
 
-import '/__wds-outside-root__/1/node_modules/@adobecom/milo/libs/utils/lana.js';
-
 import { FF_DEFAULTS } from '../src/constants.js';
 import { Defaults } from '../src/defaults.js';
 import { TAG_NAME_SERVICE } from '../src/mas-commerce-service.js';
@@ -16,20 +14,9 @@ import {
 } from './utilities.js';
 import { withWcs } from './mocks/wcs.js';
 
-const calls = [];
-class MockXMLHttpRequest {
-    constructor() {
-        calls.push(this);
-    }
-
-    send() {}
-
-    open = Sinon.mock();
-}
-
 describe('commerce service', () => {
-    window.XMLHttpRequest = MockXMLHttpRequest;
     before(async () => {
+        window.lana = { log: Sinon.spy() };
         window.lana.localhost = false;
         await mockFetch(withWcs);
     });
@@ -185,12 +172,18 @@ describe('commerce service', () => {
                     env: 'stage',
                 });
                 el.log.error('test error');
-                const [, url] = calls[0].open.lastCall.args;
-                expect(
-                    /https\:\/\/www.stage.adobe.com\/lana\/ll\?m=test%20error.*c=merch-at-scale&s=100&t=e&tags=ccd/.test(
-                        url,
-                    ),
-                ).to.true;
+                const [msg, options] = window.lana.log.lastCall.args;
+                expect(msg).to.match(/test error¶page=.*$/);
+                expect(options).to.deep.equal({
+                    clientId: 'merch-at-scale',
+                    delimiter: '¶',
+                    ignoredProperties: ['analytics', 'literals', 'element'],
+                    serializableTypes: ['Array', 'Object'],
+                    sampleRate: 100,
+                    severity: 'e',
+                    tags: 'ccd',
+                    isProdDomain: false,
+                });
             });
         });
 

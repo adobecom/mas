@@ -1,4 +1,4 @@
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, LOCALE_DEFAULTS } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 
@@ -192,7 +192,7 @@ export function getFragmentPartsToUse(fragment, path) {
                 marketSegment: fragment?.getTagTitle('market_segment'),
                 customerSegment: fragment?.getTagTitle('customer_segment'),
                 product: fragment?.getTagTitle('mas:product/'),
-                promotion: fragment?.getTagTitle('mas:promotion/'),
+                promotion: fragment?.getTagTitle(TAG_PROMOTION_PREFIX),
             };
 
             VARIANTS.forEach((variant) => {
@@ -260,22 +260,25 @@ export function extractLocaleFromPath(fragmentPath) {
 }
 
 /**
- * Checks if a locale is a default locale (can be used as source for variations)
- * @param {string} locale - The locale code to check
- * @returns {boolean} - True if the locale is in LOCALE_DEFAULTS
+ * Copies text to clipboard
+ * @param {Event} e - The event object
+ * @param {string} text - The text to copy
  */
-export function isDefaultLocale(locale) {
-    if (!locale) return false;
-    return LOCALE_DEFAULTS.includes(locale);
+export async function copyToClipboard(e, text) {
+    e.stopPropagation();
+    if (!text) {
+        showToast('No text to copy', 'negative');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard', 'positive');
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        showToast('Failed to copy', 'negative');
+    }
 }
 
-/**
- * Gets the default locale for a given language
- * @param {string} locale - Any locale code (e.g., 'en_GB', 'en_AU')
- * @returns {string | null} - The default locale for that language (e.g., 'en_US') or null
- */
-export function getDefaultLocaleForLanguage(locale) {
-    if (!locale) return null;
-    const [language] = locale.split('_');
-    return LOCALE_DEFAULTS.find((def) => def.startsWith(`${language}_`)) || null;
+export function deepEquals(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
 }

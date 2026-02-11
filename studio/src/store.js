@@ -18,9 +18,11 @@ const Store = {
             limit: new ReactiveStore(6),
         },
         inEdit: new ReactiveStore(null),
+        expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
+        loading: new ReactiveStore(false),
         get editorContext() {
             if (!editorContextInstance) {
                 editorContextInstance = new EditorContextStore(null);
@@ -30,6 +32,12 @@ const Store = {
     },
     operation: new ReactiveStore(),
     editor: {
+        resetChanges() {
+            const fragmentData = Store.fragments.inEdit.get()?.get();
+            if (fragmentData) {
+                fragmentData.hasChanges = false;
+            }
+        },
         get hasChanges() {
             return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
         },
@@ -46,7 +54,6 @@ const Store = {
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
-    viewMode: new ReactiveStore('default'),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
     placeholders: {
         search: new ReactiveStore(''),
@@ -69,6 +76,9 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    version: {
+        fragmentId: new ReactiveStore(null),
+    },
     promotions: {
         list: {
             loading: new ReactiveStore(true),
@@ -84,6 +94,43 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
+    },
+    localeOrRegion: function () {
+        return Store.search.value.region || Store.filters.value.locale || 'en_US';
+    },
+    removeRegionOverride: function () {
+        if (Store.search.value.region) {
+            Store.search.set((prev) => ({ ...prev, region: null }));
+        }
+    },
+    surface: function () {
+        return Store.search.value.path;
+    },
+    translationProjects: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+        inEdit: new ReactiveStore(null),
+        translationProjectId: new ReactiveStore(null),
+
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+
+        targetLocales: new ReactiveStore([]),
+        showSelected: new ReactiveStore(false),
     },
 };
 
@@ -117,9 +164,12 @@ function pageValidator(value) {
         PAGE_NAMES.WELCOME,
         PAGE_NAMES.CONTENT,
         PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.VERSION,
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,
+        PAGE_NAMES.TRANSLATIONS,
+        PAGE_NAMES.TRANSLATION_EDITOR,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
@@ -209,5 +259,20 @@ Store.placeholders.preview.subscribe(() => {
         if (fragmentStore) {
             fragmentStore.resolvePreviewFragment();
         }
+    }
+});
+
+Store.filters.subscribe(() => {
+    const regionLocale = Store.search.value.region;
+    if (!regionLocale) return;
+    const currentLocale = Store.filters.value.locale;
+    const main = currentLocale.split('_')[0];
+    const region = regionLocale.split('_')[0];
+    if (region !== main) {
+        // If region language doesn't match filter language, reset filter language
+        Store.search.set((prev) => ({
+            ...prev,
+            region: undefined,
+        }));
     }
 });

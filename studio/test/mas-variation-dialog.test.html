@@ -38,6 +38,7 @@
             import '../src/mas-variation-dialog.js';
             import { EVENT_KEYDOWN } from '../src/constants.js';
             import { delay, oneEvent } from './utils.js';
+            import Store from '../src/store.js';
 
             const mockFragment = {
                 id: 'test-fragment-id',
@@ -65,6 +66,7 @@
                         mockRepository = {
                             createVariation: stub().resolves(mockCreatedVariation),
                         };
+                        Store.search.value = { path: 'acom' };
 
                         dialog = document.querySelector('mas-variation-dialog');
                         dialog.fragment = { ...mockFragment };
@@ -116,7 +118,7 @@
                             await dialog.updateComplete;
 
                             const availableLocales = dialog.availableTargetLocales;
-                            const allEnglish = availableLocales.every((l) => l.code.startsWith('en_'));
+                            const allEnglish = availableLocales.every((l) => l.lang === 'en');
                             expect(allEnglish).to.be.true;
                         });
 
@@ -125,17 +127,18 @@
                             await dialog.updateComplete;
 
                             const availableLocales = dialog.availableTargetLocales;
-                            const hasSourceLocale = availableLocales.some((l) => l.code === 'en_US');
+                            const hasSourceLocale = availableLocales.some((l) => l.lang === 'en' && l.country === 'US');
                             expect(hasSourceLocale).to.be.false;
                         });
 
                         it('should disable existing variation locales', async () => {
-                            dialog.existingVariationLocales = ['en_AU'];
+                            dialog.existingVariationLocales = ['en_KW'];
                             await dialog.updateComplete;
 
                             const availableLocales = dialog.availableTargetLocales;
-                            const enAU = availableLocales.find((l) => l.code === 'en_AU');
-                            expect(enAU?.disabled).to.be.true;
+                            expect(availableLocales.length).to.be.equal(22);
+                            const enKW = availableLocales.find((l) => l.lang === 'en' && l.country === 'KW');
+                            expect(enKW?.disabled).to.be.true;
                         });
 
                         it('should return first available locale', async () => {

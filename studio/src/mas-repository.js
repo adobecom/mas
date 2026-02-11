@@ -21,15 +21,15 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
-    COLLECTION_MODEL_PATH,
+    SURFACES,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
-
-import { SURFACES } from './constants.js';
-import { getDictionary, LOCALE_DEFAULTS } from '../libs/fragment-client.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
+import { TranslationProject } from './translation/translation-project.js';
 
 let fragmentCache;
 
@@ -67,15 +67,8 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
         return field;
     });
 
-    const cacheData = {
-        id: previewFragment.id,
-        fields: normalizedFields,
-        tags: previewFragment.tags || [],
-        settings: previewFragment.settings || {},
-        priceLiterals: previewFragment.priceLiterals || {},
-        dictionary: previewFragment.dictionary || {},
-        placeholders: previewFragment.placeholders || {},
-    };
+    const cacheData = new Fragment(previewFragment);
+    cacheData.fields = normalizedFields;
 
     fragmentCache.add(cacheData);
 }
@@ -103,6 +96,7 @@ export class MasRepository extends LitElement {
             recentlyUpdated: null,
             placeholders: null,
             promotions: null,
+            translations: null,
         };
         this.dictionaryCache = new Map();
         this.inflightDictionaryRequest = null;
@@ -182,13 +176,16 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.PROMOTIONS:
                 this.loadPromotions();
                 break;
+            case PAGE_NAMES.TRANSLATIONS:
+                this.loadTranslationProjects();
+                break;
         }
     }
 
     async loadFolders() {
         try {
             const { children } = await this.aem.folders.list(ROOT_PATH);
-            const ignore = window.localStorage.getItem('ignore_folders') || ['images'];
+            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions'];
             const folders = children.map((folder) => folder.name).filter((child) => !ignore.includes(child));
 
             Store.folders.loaded.set(true);
@@ -237,7 +234,7 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        if (this.page.value !== PAGE_NAMES.CONTENT) return;
+        if (!(this.page.value === PAGE_NAMES.CONTENT || this.page.value === PAGE_NAMES.TRANSLATION_EDITOR)) return;
         if (!Store.profile.value) return;
 
         const path = this.search.value.path;
@@ -289,7 +286,7 @@ export class MasRepository extends LitElement {
             modelIds,
             path: `${damPath}/${this.filters.value.locale}`,
             tags,
-            createdBy,
+            ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
 
@@ -519,6 +516,11 @@ export class MasRepository extends LitElement {
             },
             locale: this.filters.value.locale,
             surface: this.search.value.path,
+            networkConfig: {
+                mainTimeout: 15000,
+                fetchTimeout: 10000,
+                retries: 3,
+            },
         };
 
         // Pass abort signal if available (fragment-client may support it)
@@ -555,8 +557,12 @@ export class MasRepository extends LitElement {
         }
     }
 
+    getPromotionsPath() {
+        return `${ROOT_PATH}/promotions`;
+    }
+
     getDictionaryPath() {
-        return `${ROOT_PATH}/${this.search.value.path}/${this.filters.value.locale}/dictionary`;
+        return `${ROOT_PATH}/${Store.surface()}/${Store.localeOrRegion()}/dictionary`;
     }
 
     parseDictionaryPath(dictionaryPath) {
@@ -582,14 +588,6 @@ export class MasRepository extends LitElement {
         const trimmedSurface = surfacePath?.replace(/^\/+|\/+$/g, '') ?? '';
         const prefix = trimmedSurface ? `${ROOT_PATH}/${trimmedSurface}` : ROOT_PATH;
         return `${prefix}/${locale}/dictionary`;
-    }
-
-    getFallbackLocale(locale) {
-        if (!locale) return null;
-        const [languageCode] = locale.split('_');
-        const match = LOCALE_DEFAULTS.find((defaultLocale) => defaultLocale.startsWith(`${languageCode}_`));
-        if (!match || match === locale) return null;
-        return match;
     }
 
     async ensureDictionaryFolder(dictionaryPath) {
@@ -747,8 +745,7 @@ export class MasRepository extends LitElement {
         const currentParent = indexFragment?.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
 
         let parentReference = null;
-
-        const fallbackLocale = this.getFallbackLocale(locale);
+        const fallbackLocale = getDefaultLocaleCode(surfaceRoot, locale);
         const surfaceFallbackLocale = fallbackLocale && fallbackLocale !== locale ? fallbackLocale : null;
         const acomFallbackLocale = fallbackLocale ?? locale;
 
@@ -798,10 +795,31 @@ export class MasRepository extends LitElement {
         return indexFragment;
     }
 
-    getPromotionsPath() {
-        return `${ROOT_PATH}/promotions`;
+    getTranslationsPath() {
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        return surface ? `${ROOT_PATH}/${surface}/translations` : null;
     }
 
+    async loadTranslationProjects() {
+        try {
+            const translationsPath = this.getTranslationsPath();
+            if (!translationsPath) return;
+            if (this.#abortControllers.translations) this.#abortControllers.translations.abort();
+            this.#abortControllers.translations = new AbortController();
+            Store.translationProjects.list.loading.set(true);
+            const fragments = await this.searchFragmentList(
+                { path: translationsPath },
+                50,
+                this.#abortControllers.translations,
+            );
+            const translationProjects = fragments.map((fragment) => new FragmentStore(new TranslationProject(fragment)));
+            Store.translationProjects.list.data.set(translationProjects);
+        } catch (error) {
+            this.processError(error, 'Could not load translation projects.');
+        } finally {
+            Store.translationProjects.list.loading.set(false);
+        }
+    }
     /**
      * Helper method to create fragment fields from data object
      * @param {Object} data - The data object containing field values
@@ -886,25 +904,39 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Unified method to save a fragment (regular or dictionary)
-     * @param {FragmentStore} fragmentStore - The fragment to save
+     * Generic method to save any fragment with card-specific validation and variation handling
+     * @param {FragmentStore} fragmentStore - The fragment store to save
      * @param {boolean} withToast - Whether to show toast notifications
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore, withToast = true) {
         if (withToast) showToast('Saving fragment...');
-        const fragmentToSave = fragmentStore.get();
-        const tags = fragmentToSave.getField('tags')?.values || [];
+        this.operation.set(OPERATIONS.SAVE);
+
+        const fragment = fragmentStore.get();
+        const parentFragment = fragmentStore.parentFragment;
+
+        // For variations, prepare the fragment by stripping inherited values before save
+        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : fragment;
+
+        // Card-specific validation
+        const tags = fragment.getField('tags')?.values || [];
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
-        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi') && !hasOfferlessTag) {
+        const osi = fragment.getFieldValue('osi') || parentFragment?.getFieldValue('osi');
+
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !osi && !hasOfferlessTag) {
             if (withToast) showToast('Please select offer', 'negative');
+            this.operation.set(null);
             return false;
         }
-        this.operation.set(OPERATIONS.SAVE);
+
         try {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
+
             fragmentStore.refreshFrom(savedFragment);
+            fragmentCache.remove(savedFragment.id);
+            fragmentCache.add(new Fragment(savedFragment));
             if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {
@@ -949,6 +981,10 @@ export class MasRepository extends LitElement {
             sourceStore.get().hasChanges = false;
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
             this.skipVariationDetection = true;
+
+            // Reset changes on the current fragment to prevent discard prompt during navigation
+            Store.editor.resetChanges();
+
             await router.navigateToFragmentEditor(newFragment.id);
 
             this.operation.set();
@@ -1084,13 +1120,8 @@ export class MasRepository extends LitElement {
      * @returns {Promise<{success: boolean, failedVariations: string[]}>}
      */
     async deleteFragmentWithVariations(fragment) {
-        let variations = fragment.getVariations();
+        const variations = fragment.getVariations();
         const failedVariations = [];
-
-        if (variations.length === 0) {
-            const foundVariations = await this.aem.sites.cf.fragments.findVariationsByName(fragment);
-            variations = foundVariations.map((v) => v.path);
-        }
 
         if (variations.length > 0) {
             showToast(`Deleting fragment and ${variations.length} variation(s)...`);
@@ -1315,6 +1346,12 @@ export class MasRepository extends LitElement {
         }
 
         await this.updateParentVariations(parentFragment, variationFragment.path);
+
+        // Refresh the parent FragmentStore to include the new variation in references
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
 
         return variationFragment;
     }

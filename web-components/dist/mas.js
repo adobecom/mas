@@ -11,8 +11,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {لكل ترخيص} other {}}",
             "freeLabel": "مجانًا",
             "freeAriaLabel": "مجانًا",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {باستثناء ضريبة} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {بالضريبة} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "أو بدلاً من ذلك بقيمة {alternativePrice}",
             "strikethroughAriaLabel": "بشكل منتظم بقيمة {strikethroughPrice}"
         },
@@ -24,8 +24,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {на лиценз} other {}}",
             "freeLabel": "Безплатно",
             "freeAriaLabel": "Безплатно",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {без ДДС} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {вкл. ДДС} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Алтернативно на {alternativePrice}",
             "strikethroughAriaLabel": "Редовно на {strikethroughPrice}"
         },
@@ -63,8 +63,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {pro Lizenz} other {}}",
             "freeLabel": "Kostenlos",
             "freeAriaLabel": "Kostenlos",
-            "taxExclusiveLabel": "{taxTerm, select, GST {zzgl. GST} VAT {zzgl. MwSt.} TAX {zzgl. Steuern} IVA {zzgl. IVA} SST {zzgl. SST} KDV {zzgl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. MwSt.} TAX {inkl. Steuern} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {zzgl. GST} VAT {exkl. MwSt} TAX {zzgl. Steuern} IVA {zzgl. IVA} SST {zzgl. SST} KDV {zzgl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. MwSt} TAX {inkl. Steuern} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
             "alternativePriceAriaLabel": "Alternativ: {alternativePrice}",
             "strikethroughAriaLabel": "Regulär: {strikethroughPrice}"
         },
@@ -89,8 +89,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {litsentsi kohta} other {}}",
             "freeLabel": "Tasuta",
             "freeAriaLabel": "Tasuta",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {käibemaksuta} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {käibemaksuga} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Teise võimalusena hinnaga {alternativePrice}",
             "strikethroughAriaLabel": "Tavahind {strikethroughPrice}"
         },
@@ -115,8 +115,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {par licence} other {}}",
             "freeLabel": "Gratuit",
             "freeAriaLabel": "Gratuit",
-            "taxExclusiveLabel": "{taxTerm, select, GST {hors TPS} VAT {hors TVA} TAX {hors taxes} IVA {hors IVA} SST {hors SST} KDV {hors KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {TPS comprise} VAT {TVA comprise} TAX {taxes comprises} IVA {IVA comprise} SST {SST comprise} KDV {KDV comprise} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {hors TPS} VAT {HT} TAX {hors taxes} IVA {hors IVA} SST {hors SST} KDV {hors KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {TPS comprise} VAT {TTC} TAX {taxes comprises} IVA {IVA comprise} SST {SST comprise} KDV {KDV comprise} other {}}",
             "alternativePriceAriaLabel": "Autre prix {alternativePrice}",
             "strikethroughAriaLabel": "Prix habituel {strikethroughPrice}"
         },
@@ -141,8 +141,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {licencenként} other {}}",
             "freeLabel": "Ingyenes",
             "freeAriaLabel": "Ingyenes",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {áfa nélkül} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {áfával} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Másik lehetőség: {alternativePrice}",
             "strikethroughAriaLabel": "Általában {strikethroughPrice} áron"
         },
@@ -180,10 +180,10 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {라이선스당} other {}}",
             "freeLabel": "무료",
             "freeAriaLabel": "무료",
-            "taxExclusiveLabel": "{taxTerm, select, GST {GST 제외} VAT {VAT 제외} TAX {세금 제외} IVA {IVA 제외} SST {SST 제외} KDV {KDV 제외} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {GST 포함} VAT {VAT 포함} TAX {세금 포함} IVA {IVA 포함} SST {SST 포함} KDV {KDV 포함} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {GST 제외} VAT {부가세 별도} TAX {세금 제외} IVA {IVA 제외} SST {SST 제외} KDV {KDV 제외} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {GST 포함} VAT {부가세 포함} TAX {세금 포함} IVA {IVA 포함} SST {SST 포함} KDV {KDV 포함} other {}}",
             "alternativePriceAriaLabel": "또는 {alternativePrice}에",
-            "strikethroughAriaLabel": "또는 {alternativePrice}에"
+            "strikethroughAriaLabel": "정가 {strikethroughPrice}"
         },
         {
             "lang": "lt",
@@ -193,8 +193,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {už licenciją} other {}}",
             "freeLabel": "Nemokamai",
             "freeAriaLabel": "Nemokamai",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {be PVM} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {su PVM} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Arba už {alternativePrice}",
             "strikethroughAriaLabel": "Normaliai už {strikethroughPrice}"
         },
@@ -206,8 +206,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {vienai licencei} other {}}",
             "freeLabel": "Bezmaksas",
             "freeAriaLabel": "Bezmaksas",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {bez PVN} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {ar PVN} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Alternatīvi par {alternativePrice}",
             "strikethroughAriaLabel": "Regulāri par {strikethroughPrice}"
         },
@@ -219,8 +219,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {per lisens} other {}}",
             "freeLabel": "Fri",
             "freeAriaLabel": "Fri",
-            "taxExclusiveLabel": "{taxTerm, select, GST {ekskl. GST} VAT {ekskl. moms} TAX {ekskl. avgift} IVA {ekskl. IVA} SST {ekskl. SST} KDV {ekskl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. moms} TAX {inkl. avgift} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {ekskl. GST} VAT {ekskl. mva} TAX {ekskl. avgift} IVA {ekskl. IVA} SST {ekskl. SST} KDV {ekskl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. mva} TAX {inkl. avgift} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
             "alternativePriceAriaLabel": "Alternativt til {alternativePrice}",
             "strikethroughAriaLabel": "Regelmessig til {strikethroughPrice}"
         },
@@ -246,7 +246,7 @@ window.masPriceLiterals = {
             "freeLabel": "Bezpłatne",
             "freeAriaLabel": "Bezpłatne",
             "taxExclusiveLabel": "{taxTerm, select, GST {bez GST} VAT {bez VAT} TAX {netto} IVA {bez IVA} SST {bez SST} KDV {bez KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {z GST} VAT {z VAT} TAX {brutto} IVA {z IVA} SST {z SST} KDV {z KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {z GST} VAT {w tym VAT} TAX {brutto} IVA {z IVA} SST {z SST} KDV {z KDV} other {}}",
             "alternativePriceAriaLabel": "Lub za {alternativePrice}",
             "strikethroughAriaLabel": "Cena zwykła: {strikethroughPrice}"
         },
@@ -271,8 +271,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {pe licență} other {}}",
             "freeLabel": "Gratuit",
             "freeAriaLabel": "Gratuit",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {fără TVA} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {cu TVA} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Alternativ, la {alternativePrice}",
             "strikethroughAriaLabel": "În mod normal, la {strikethroughPrice}"
         },
@@ -297,8 +297,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {za licenciu} other {}}",
             "freeLabel": "Zadarmo",
             "freeAriaLabel": "Zadarmo",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {bez DPH} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {vrátane DPH} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Prípadne za {alternativePrice}",
             "strikethroughAriaLabel": "Pravidelne za {strikethroughPrice}"
         },
@@ -310,8 +310,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {na licenco} other {}}",
             "freeLabel": "Brezplačno",
             "freeAriaLabel": "Brezplačno",
-            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {excl. GST} VAT {brez DDV-ja} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {incl. GST} VAT {z DDV-jem} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",
             "alternativePriceAriaLabel": "Druga možnost je: {alternativePrice}",
             "strikethroughAriaLabel": "Redno po {strikethroughPrice}"
         },
@@ -349,8 +349,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {за ліцензію} other {}}",
             "freeLabel": "Безкоштовно",
             "freeAriaLabel": "Безкоштовно",
-            "taxExclusiveLabel": "{taxTerm, select, GST {без GST} VAT {без ПДВ} TAX {без податку} IVA {без IVA} SST {без SST} KDV {без KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {разом із GST} VAT {разом із ПДВ} TAX {разом із податком} IVA {разом з IVA} SST {разом із SST} KDV {разом із KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {без GST} VAT {без урахування ПДВ} TAX {без податку} IVA {без IVA} SST {без SST} KDV {без KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {разом із GST} VAT {з ПДВ} TAX {разом із податком} IVA {разом з IVA} SST {разом із SST} KDV {разом із KDV} other {}}",
             "alternativePriceAriaLabel": "Або за {alternativePrice}",
             "strikethroughAriaLabel": "Звичайна ціна {strikethroughPrice}"
         },
@@ -388,7 +388,7 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {por licencia} other {}}",
             "freeLabel": "Gratuito",
             "freeAriaLabel": "Gratuito",
-            "taxExclusiveLabel": "{taxTerm, select, GST {GST no incluido} VAT {IVA no incluido} TAX {Impuestos no incluidos} IVA {IVA no incluido} SST {SST no incluido} KDV {KDV no incluido} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {GST no incluido} VAT {sin IVA} TAX {Impuestos no incluidos} IVA {IVA no incluido} SST {SST no incluido} KDV {KDV no incluido} other {}}",
             "taxInclusiveLabel": "{taxTerm, select, GST {GST incluido} VAT {IVA incluido} TAX {Impuestos incluidos} IVA {IVA incluido} SST {SST incluido} KDV {KDV incluido} other {}}",
             "alternativePriceAriaLabel": "Alternativamente por {alternativePrice}",
             "strikethroughAriaLabel": "Normalmente a {strikethroughPrice}"
@@ -401,7 +401,7 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {per lisensi} other {}}",
             "freeLabel": "Gratis",
             "freeAriaLabel": "Gratis",
-            "taxExclusiveLabel": "{taxTerm, select, GST {tidak termasuk PBJ} VAT {tidak termasuk PPN} TAX {tidak termasuk pajak} IVA {tidak termasuk IVA} SST {tidak termasuk SST} KDV {tidak termasuk KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {tidak termasuk PBJ} VAT {sebelum PPN} TAX {tidak termasuk pajak} IVA {tidak termasuk IVA} SST {tidak termasuk SST} KDV {tidak termasuk KDV} other {}}",
             "taxInclusiveLabel": "{taxTerm, select, GST {termasuk PBJ} VAT {termasuk PPN} TAX {termasuk pajak} IVA {termasuk IVA} SST {termasuk SST} KDV {termasuk KDV} other {}}",
             "alternativePriceAriaLabel": "Atau seharga {alternativePrice}",
             "strikethroughAriaLabel": "Normalnya seharga {strikethroughPrice}"
@@ -440,8 +440,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {ανά άδεια χρήσης} other {}}",
             "freeLabel": "Δωρεάν",
             "freeAriaLabel": "Δωρεάν",
-            "taxExclusiveLabel": "{taxTerm, select, GST {(μη συμπεριλαμβανομένου GST)} VAT {(μη συμπεριλαμβανομένου ΦΠΑ)} TAX {(μη συμπεριλαμβανομένου φόρο)} IVA {(μη συμπεριλαμβανομένου IVA)} SST {(μη συμπεριλαμβανομένου SST)} KDV {(μη συμπεριλαμβανομένου KDV)} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {(συμπεριλαμβανομένου του GST)} VAT {(συμπεριλαμβανομένου ΦΠΑ)} TAX {(συμπεριλαμβανομένου του φόρου)} IVA {(συμπεριλαμβανομένου του IVA)} SST {(συμπεριλαμβανομένου του SST)} KDV {(συμπεριλαμβανομένου του KDV)} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {(μη συμπεριλαμβανομένου GST)} VAT {εξαιρ. ΦΠΑ} TAX {(μη συμπεριλαμβανομένου φόρο)} IVA {(μη συμπεριλαμβανομένου IVA)} SST {(μη συμπεριλαμβανομένου SST)} KDV {(μη συμπεριλαμβανομένου KDV)} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {(συμπεριλαμβανομένου του GST)} VAT {συμπερ. ΦΠΑ} TAX {(συμπεριλαμβανομένου του φόρου)} IVA {(συμπεριλαμβανομένου του IVA)} SST {(συμπεριλαμβανομένου του SST)} KDV {(συμπεριλαμβανομένου του KDV)} other {}}",
             "alternativePriceAriaLabel": "Διαφορετικά, {alternativePrice}",
             "strikethroughAriaLabel": "Κανονική τιμή {strikethroughPrice}"
         },
@@ -466,7 +466,7 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {setiap lesen} other {}}",
             "freeLabel": "Percuma",
             "freeAriaLabel": "Percuma",
-            "taxExclusiveLabel": "{taxTerm, select, GST {kecuali GST} VAT {kecuali VAT} TAX {kecuali Cukai} IVA {kecuali IVA} SST {kecuali SST} KDV {kecuali KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {kecuali GST} VAT {kecuali VAT} TAX {kecuali Cukai} IVA {kecuali IVA} SST {SST dikecualikan} KDV {kecuali KDV} other {}}",
             "taxInclusiveLabel": "{taxTerm, select, GST {termasuk GST} VAT {termasuk VAT} TAX {termasuk Cukai} IVA {termasuk IVA} SST {termasuk SST} KDV {termasuk KDV} other {}}",
             "alternativePriceAriaLabel": "Secara alternatif pada {alternativePrice}",
             "strikethroughAriaLabel": "Biasanya pada {strikethroughPrice}"
@@ -501,13 +501,16 @@ window.masPriceLiterals = {
     ":type": "sheet"
 }
 .data;
-var Da=Object.defineProperty;var za=e=>{throw TypeError(e)};var el=(e,t,r)=>t in e?Da(e,t,{enumerable:!0,configurable:!0,writable:!0,value:r}):e[t]=r;var Qe=(e,t)=>()=>(e&&(t=e(e=0)),t);var $a=(e,t)=>{for(var r in t)Da(e,r,{get:t[r],enumerable:!0})};var m=(e,t,r)=>el(e,typeof t!="symbol"?t+"":t,r),Vi=(e,t,r)=>t.has(e)||za("Cannot "+r);var h=(e,t,r)=>(Vi(e,t,"read from private field"),r?r.call(e):t.get(e)),E=(e,t,r)=>t.has(e)?za("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,r),y=(e,t,r,i)=>(Vi(e,t,"write to private field"),i?i.call(e,r):t.set(e,r),r),te=(e,t,r)=>(Vi(e,t,"access private method"),r);var Ha=(e,t,r,i)=>({set _(n){y(e,t,n,r)},get _(){return h(e,t,i)}});var Si,_i,Jn,Ls,Lr,Ae,b,ea,Ti,ta=Qe(()=>{Si=window,_i=Si.ShadowRoot&&(Si.ShadyCSS===void 0||Si.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,Jn=Symbol(),Ls=new WeakMap,Lr=class{constructor(t,r,i){if(this._$cssResult$=!0,i!==Jn)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=r}get styleSheet(){let t=this.o,r=this.t;if(_i&&t===void 0){let i=r!==void 0&&r.length===1;i&&(t=Ls.get(r)),t===void 0&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&Ls.set(r,t))}return t}toString(){return this.cssText}},Ae=e=>new Lr(typeof e=="string"?e:e+"",void 0,Jn),b=(e,...t)=>{let r=e.length===1?e[0]:t.reduce((i,n,a)=>i+(o=>{if(o._$cssResult$===!0)return o.cssText;if(typeof o=="number")return o;throw Error("Value passed to 'css' function must be a 'css' function result: "+o+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(n)+e[a+1],e[0]);return new Lr(r,e,Jn)},ea=(e,t)=>{_i?e.adoptedStyleSheets=t.map(r=>r instanceof CSSStyleSheet?r:r.styleSheet):t.forEach(r=>{let i=document.createElement("style"),n=Si.litNonce;n!==void 0&&i.setAttribute("nonce",n),i.textContent=r.cssText,e.appendChild(i)})},Ti=_i?e=>e:e=>e instanceof CSSStyleSheet?(t=>{let r="";for(let i of t.cssRules)r+=i.cssText;return Ae(r)})(e):e});var ra,Ci,Rs,lh,Ms,na,Os,ia,aa,$e,ki=Qe(()=>{ta();ta();Ci=window,Rs=Ci.trustedTypes,lh=Rs?Rs.emptyScript:"",Ms=Ci.reactiveElementPolyfillSupport,na={toAttribute(e,t){switch(t){case Boolean:e=e?lh:null;break;case Object:case Array:e=e==null?e:JSON.stringify(e)}return e},fromAttribute(e,t){let r=e;switch(t){case Boolean:r=e!==null;break;case Number:r=e===null?null:Number(e);break;case Object:case Array:try{r=JSON.parse(e)}catch{r=null}}return r}},Os=(e,t)=>t!==e&&(t==t||e==e),ia={attribute:!0,type:String,converter:na,reflect:!1,hasChanged:Os},aa="finalized",$e=class extends HTMLElement{constructor(){super(),this._$Ei=new Map,this.isUpdatePending=!1,this.hasUpdated=!1,this._$El=null,this._$Eu()}static addInitializer(t){var r;this.finalize(),((r=this.h)!==null&&r!==void 0?r:this.h=[]).push(t)}static get observedAttributes(){this.finalize();let t=[];return this.elementProperties.forEach((r,i)=>{let n=this._$Ep(i,r);n!==void 0&&(this._$Ev.set(n,i),t.push(n))}),t}static createProperty(t,r=ia){if(r.state&&(r.attribute=!1),this.finalize(),this.elementProperties.set(t,r),!r.noAccessor&&!this.prototype.hasOwnProperty(t)){let i=typeof t=="symbol"?Symbol():"__"+t,n=this.getPropertyDescriptor(t,i,r);n!==void 0&&Object.defineProperty(this.prototype,t,n)}}static getPropertyDescriptor(t,r,i){return{get(){return this[r]},set(n){let a=this[t];this[r]=n,this.requestUpdate(t,a,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)||ia}static finalize(){if(this.hasOwnProperty(aa))return!1;this[aa]=!0;let t=Object.getPrototypeOf(this);if(t.finalize(),t.h!==void 0&&(this.h=[...t.h]),this.elementProperties=new Map(t.elementProperties),this._$Ev=new Map,this.hasOwnProperty("properties")){let r=this.properties,i=[...Object.getOwnPropertyNames(r),...Object.getOwnPropertySymbols(r)];for(let n of i)this.createProperty(n,r[n])}return this.elementStyles=this.finalizeStyles(this.styles),!0}static finalizeStyles(t){let r=[];if(Array.isArray(t)){let i=new Set(t.flat(1/0).reverse());for(let n of i)r.unshift(Ti(n))}else t!==void 0&&r.push(Ti(t));return r}static _$Ep(t,r){let i=r.attribute;return i===!1?void 0:typeof i=="string"?i:typeof t=="string"?t.toLowerCase():void 0}_$Eu(){var t;this._$E_=new Promise(r=>this.enableUpdating=r),this._$AL=new Map,this._$Eg(),this.requestUpdate(),(t=this.constructor.h)===null||t===void 0||t.forEach(r=>r(this))}addController(t){var r,i;((r=this._$ES)!==null&&r!==void 0?r:this._$ES=[]).push(t),this.renderRoot!==void 0&&this.isConnected&&((i=t.hostConnected)===null||i===void 0||i.call(t))}removeController(t){var r;(r=this._$ES)===null||r===void 0||r.splice(this._$ES.indexOf(t)>>>0,1)}_$Eg(){this.constructor.elementProperties.forEach((t,r)=>{this.hasOwnProperty(r)&&(this._$Ei.set(r,this[r]),delete this[r])})}createRenderRoot(){var t;let r=(t=this.shadowRoot)!==null&&t!==void 0?t:this.attachShadow(this.constructor.shadowRootOptions);return ea(r,this.constructor.elementStyles),r}connectedCallback(){var t;this.renderRoot===void 0&&(this.renderRoot=this.createRenderRoot()),this.enableUpdating(!0),(t=this._$ES)===null||t===void 0||t.forEach(r=>{var i;return(i=r.hostConnected)===null||i===void 0?void 0:i.call(r)})}enableUpdating(t){}disconnectedCallback(){var t;(t=this._$ES)===null||t===void 0||t.forEach(r=>{var i;return(i=r.hostDisconnected)===null||i===void 0?void 0:i.call(r)})}attributeChangedCallback(t,r,i){this._$AK(t,i)}_$EO(t,r,i=ia){var n;let a=this.constructor._$Ep(t,i);if(a!==void 0&&i.reflect===!0){let o=(((n=i.converter)===null||n===void 0?void 0:n.toAttribute)!==void 0?i.converter:na).toAttribute(r,i.type);this._$El=t,o==null?this.removeAttribute(a):this.setAttribute(a,o),this._$El=null}}_$AK(t,r){var i;let n=this.constructor,a=n._$Ev.get(t);if(a!==void 0&&this._$El!==a){let o=n.getPropertyOptions(a),s=typeof o.converter=="function"?{fromAttribute:o.converter}:((i=o.converter)===null||i===void 0?void 0:i.fromAttribute)!==void 0?o.converter:na;this._$El=a,this[a]=s.fromAttribute(r,o.type),this._$El=null}}requestUpdate(t,r,i){let n=!0;t!==void 0&&(((i=i||this.constructor.getPropertyOptions(t)).hasChanged||Os)(this[t],r)?(this._$AL.has(t)||this._$AL.set(t,r),i.reflect===!0&&this._$El!==t&&(this._$EC===void 0&&(this._$EC=new Map),this._$EC.set(t,i))):n=!1),!this.isUpdatePending&&n&&(this._$E_=this._$Ej())}async _$Ej(){this.isUpdatePending=!0;try{await this._$E_}catch(r){Promise.reject(r)}let t=this.scheduleUpdate();return t!=null&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){var t;if(!this.isUpdatePending)return;this.hasUpdated,this._$Ei&&(this._$Ei.forEach((n,a)=>this[a]=n),this._$Ei=void 0);let r=!1,i=this._$AL;try{r=this.shouldUpdate(i),r?(this.willUpdate(i),(t=this._$ES)===null||t===void 0||t.forEach(n=>{var a;return(a=n.hostUpdate)===null||a===void 0?void 0:a.call(n)}),this.update(i)):this._$Ek()}catch(n){throw r=!1,this._$Ek(),n}r&&this._$AE(i)}willUpdate(t){}_$AE(t){var r;(r=this._$ES)===null||r===void 0||r.forEach(i=>{var n;return(n=i.hostUpdated)===null||n===void 0?void 0:n.call(i)}),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$Ek(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$E_}shouldUpdate(t){return!0}update(t){this._$EC!==void 0&&(this._$EC.forEach((r,i)=>this._$EO(i,this[i],r)),this._$EC=void 0),this._$Ek()}updated(t){}firstUpdated(t){}};$e[aa]=!0,$e.elementProperties=new Map,$e.elementStyles=[],$e.shadowRootOptions={mode:"open"},Ms?.({ReactiveElement:$e}),((ra=Ci.reactiveElementVersions)!==null&&ra!==void 0?ra:Ci.reactiveElementVersions=[]).push("1.6.3")});function Vs(e,t){if(!Array.isArray(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return Ns!==void 0?Ns.createHTML(t):t}function It(e,t,r=e,i){var n,a,o,s;if(t===ft)return t;let c=i!==void 0?(n=r._$Co)===null||n===void 0?void 0:n[i]:r._$Cl,l=Or(t)?void 0:t._$litDirective$;return c?.constructor!==l&&((a=c?._$AO)===null||a===void 0||a.call(c,!1),l===void 0?c=void 0:(c=new l(e),c._$AT(e,r,i)),i!==void 0?((o=(s=r)._$Co)!==null&&o!==void 0?o:s._$Co=[])[i]=c:r._$Cl=c),c!==void 0&&(t=It(e,c._$AS(e,t.values),c,i)),t}var oa,Pi,Nt,Ns,ca,We,Us,dh,gt,Mr,Or,Fs,hh,sa,Rr,Is,Ds,mt,zs,$s,Gs,qs,f,Sg,ft,L,Hs,ut,ph,Nr,la,Ir,Dt,da,mh,ha,pa,ma,Bs,js,Li=Qe(()=>{Pi=window,Nt=Pi.trustedTypes,Ns=Nt?Nt.createPolicy("lit-html",{createHTML:e=>e}):void 0,ca="$lit$",We=`lit$${(Math.random()+"").slice(9)}$`,Us="?"+We,dh=`<${Us}>`,gt=document,Mr=()=>gt.createComment(""),Or=e=>e===null||typeof e!="object"&&typeof e!="function",Fs=Array.isArray,hh=e=>Fs(e)||typeof e?.[Symbol.iterator]=="function",sa=`[ 	
-\f\r]`,Rr=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,Is=/-->/g,Ds=/>/g,mt=RegExp(`>|${sa}(?:([^\\s"'>=/]+)(${sa}*=${sa}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`,"g"),zs=/'/g,$s=/"/g,Gs=/^(?:script|style|textarea|title)$/i,qs=e=>(t,...r)=>({_$litType$:e,strings:t,values:r}),f=qs(1),Sg=qs(2),ft=Symbol.for("lit-noChange"),L=Symbol.for("lit-nothing"),Hs=new WeakMap,ut=gt.createTreeWalker(gt,129,null,!1);ph=(e,t)=>{let r=e.length-1,i=[],n,a=t===2?"<svg>":"",o=Rr;for(let s=0;s<r;s++){let c=e[s],l,d,p=-1,u=0;for(;u<c.length&&(o.lastIndex=u,d=o.exec(c),d!==null);)u=o.lastIndex,o===Rr?d[1]==="!--"?o=Is:d[1]!==void 0?o=Ds:d[2]!==void 0?(Gs.test(d[2])&&(n=RegExp("</"+d[2],"g")),o=mt):d[3]!==void 0&&(o=mt):o===mt?d[0]===">"?(o=n??Rr,p=-1):d[1]===void 0?p=-2:(p=o.lastIndex-d[2].length,l=d[1],o=d[3]===void 0?mt:d[3]==='"'?$s:zs):o===$s||o===zs?o=mt:o===Is||o===Ds?o=Rr:(o=mt,n=void 0);let g=o===mt&&e[s+1].startsWith("/>")?" ":"";a+=o===Rr?c+dh:p>=0?(i.push(l),c.slice(0,p)+ca+c.slice(p)+We+g):c+We+(p===-2?(i.push(void 0),s):g)}return[Vs(e,a+(e[r]||"<?>")+(t===2?"</svg>":"")),i]},Nr=class e{constructor({strings:t,_$litType$:r},i){let n;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,d]=ph(t,r);if(this.el=e.createElement(l,i),ut.currentNode=this.el.content,r===2){let p=this.el.content,u=p.firstChild;u.remove(),p.append(...u.childNodes)}for(;(n=ut.nextNode())!==null&&c.length<s;){if(n.nodeType===1){if(n.hasAttributes()){let p=[];for(let u of n.getAttributeNames())if(u.endsWith(ca)||u.startsWith(We)){let g=d[o++];if(p.push(u),g!==void 0){let x=n.getAttribute(g.toLowerCase()+ca).split(We),v=/([.?@])?(.*)/.exec(g);c.push({type:1,index:a,name:v[2],strings:x,ctor:v[1]==="."?da:v[1]==="?"?ha:v[1]==="@"?pa:Dt})}else c.push({type:6,index:a})}for(let u of p)n.removeAttribute(u)}if(Gs.test(n.tagName)){let p=n.textContent.split(We),u=p.length-1;if(u>0){n.textContent=Nt?Nt.emptyScript:"";for(let g=0;g<u;g++)n.append(p[g],Mr()),ut.nextNode(),c.push({type:2,index:++a});n.append(p[u],Mr())}}}else if(n.nodeType===8)if(n.data===Us)c.push({type:2,index:a});else{let p=-1;for(;(p=n.data.indexOf(We,p+1))!==-1;)c.push({type:7,index:a}),p+=We.length-1}a++}}static createElement(t,r){let i=gt.createElement("template");return i.innerHTML=t,i}};la=class{constructor(t,r){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=r}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){var r;let{el:{content:i},parts:n}=this._$AD,a=((r=t?.creationScope)!==null&&r!==void 0?r:gt).importNode(i,!0);ut.currentNode=a;let o=ut.nextNode(),s=0,c=0,l=n[0];for(;l!==void 0;){if(s===l.index){let d;l.type===2?d=new Ir(o,o.nextSibling,this,t):l.type===1?d=new l.ctor(o,l.name,l.strings,this,t):l.type===6&&(d=new ma(o,this,t)),this._$AV.push(d),l=n[++c]}s!==l?.index&&(o=ut.nextNode(),s++)}return ut.currentNode=gt,a}v(t){let r=0;for(let i of this._$AV)i!==void 0&&(i.strings!==void 0?(i._$AI(t,i,r),r+=i.strings.length-2):i._$AI(t[r])),r++}},Ir=class e{constructor(t,r,i,n){var a;this.type=2,this._$AH=L,this._$AN=void 0,this._$AA=t,this._$AB=r,this._$AM=i,this.options=n,this._$Cp=(a=n?.isConnected)===null||a===void 0||a}get _$AU(){var t,r;return(r=(t=this._$AM)===null||t===void 0?void 0:t._$AU)!==null&&r!==void 0?r:this._$Cp}get parentNode(){let t=this._$AA.parentNode,r=this._$AM;return r!==void 0&&t?.nodeType===11&&(t=r.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,r=this){t=It(this,t,r),Or(t)?t===L||t==null||t===""?(this._$AH!==L&&this._$AR(),this._$AH=L):t!==this._$AH&&t!==ft&&this._(t):t._$litType$!==void 0?this.g(t):t.nodeType!==void 0?this.$(t):hh(t)?this.T(t):this._(t)}k(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}$(t){this._$AH!==t&&(this._$AR(),this._$AH=this.k(t))}_(t){this._$AH!==L&&Or(this._$AH)?this._$AA.nextSibling.data=t:this.$(gt.createTextNode(t)),this._$AH=t}g(t){var r;let{values:i,_$litType$:n}=t,a=typeof n=="number"?this._$AC(t):(n.el===void 0&&(n.el=Nr.createElement(Vs(n.h,n.h[0]),this.options)),n);if(((r=this._$AH)===null||r===void 0?void 0:r._$AD)===a)this._$AH.v(i);else{let o=new la(a,this),s=o.u(this.options);o.v(i),this.$(s),this._$AH=o}}_$AC(t){let r=Hs.get(t.strings);return r===void 0&&Hs.set(t.strings,r=new Nr(t)),r}T(t){Fs(this._$AH)||(this._$AH=[],this._$AR());let r=this._$AH,i,n=0;for(let a of t)n===r.length?r.push(i=new e(this.k(Mr()),this.k(Mr()),this,this.options)):i=r[n],i._$AI(a),n++;n<r.length&&(this._$AR(i&&i._$AB.nextSibling,n),r.length=n)}_$AR(t=this._$AA.nextSibling,r){var i;for((i=this._$AP)===null||i===void 0||i.call(this,!1,!0,r);t&&t!==this._$AB;){let n=t.nextSibling;t.remove(),t=n}}setConnected(t){var r;this._$AM===void 0&&(this._$Cp=t,(r=this._$AP)===null||r===void 0||r.call(this,t))}},Dt=class{constructor(t,r,i,n,a){this.type=1,this._$AH=L,this._$AN=void 0,this.element=t,this.name=r,this._$AM=n,this.options=a,i.length>2||i[0]!==""||i[1]!==""?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=L}get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}_$AI(t,r=this,i,n){let a=this.strings,o=!1;if(a===void 0)t=It(this,t,r,0),o=!Or(t)||t!==this._$AH&&t!==ft,o&&(this._$AH=t);else{let s=t,c,l;for(t=a[0],c=0;c<a.length-1;c++)l=It(this,s[i+c],r,c),l===ft&&(l=this._$AH[c]),o||(o=!Or(l)||l!==this._$AH[c]),l===L?t=L:t!==L&&(t+=(l??"")+a[c+1]),this._$AH[c]=l}o&&!n&&this.j(t)}j(t){t===L?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}},da=class extends Dt{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===L?void 0:t}},mh=Nt?Nt.emptyScript:"",ha=class extends Dt{constructor(){super(...arguments),this.type=4}j(t){t&&t!==L?this.element.setAttribute(this.name,mh):this.element.removeAttribute(this.name)}},pa=class extends Dt{constructor(t,r,i,n,a){super(t,r,i,n,a),this.type=5}_$AI(t,r=this){var i;if((t=(i=It(this,t,r,0))!==null&&i!==void 0?i:L)===ft)return;let n=this._$AH,a=t===L&&n!==L||t.capture!==n.capture||t.once!==n.once||t.passive!==n.passive,o=t!==L&&(n===L||a);a&&this.element.removeEventListener(this.name,this,n),o&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){var r,i;typeof this._$AH=="function"?this._$AH.call((i=(r=this.options)===null||r===void 0?void 0:r.host)!==null&&i!==void 0?i:this.element,t):this._$AH.handleEvent(t)}},ma=class{constructor(t,r,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=r,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){It(this,t)}},Bs=Pi.litHtmlPolyfillSupport;Bs?.(Nr,Ir),((oa=Pi.litHtmlVersions)!==null&&oa!==void 0?oa:Pi.litHtmlVersions=[]).push("2.8.0");js=(e,t,r)=>{var i,n;let a=(i=r?.renderBefore)!==null&&i!==void 0?i:t,o=a._$litPart$;if(o===void 0){let s=(n=r?.renderBefore)!==null&&n!==void 0?n:null;a._$litPart$=o=new Ir(t.insertBefore(Mr(),s),s,void 0,r??{})}return o._$AI(e),o}});var ua,ga,$,Ws,Ys=Qe(()=>{ki();ki();Li();Li();$=class extends $e{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){var t,r;let i=super.createRenderRoot();return(t=(r=this.renderOptions).renderBefore)!==null&&t!==void 0||(r.renderBefore=i.firstChild),i}update(t){let r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=js(r,this.renderRoot,this.renderOptions)}connectedCallback(){var t;super.connectedCallback(),(t=this._$Do)===null||t===void 0||t.setConnected(!0)}disconnectedCallback(){var t;super.disconnectedCallback(),(t=this._$Do)===null||t===void 0||t.setConnected(!1)}render(){return ft}};$.finalized=!0,$._$litElement$=!0,(ua=globalThis.litElementHydrateSupport)===null||ua===void 0||ua.call(globalThis,{LitElement:$});Ws=globalThis.litElementPolyfillSupport;Ws?.({LitElement:$});((ga=globalThis.litElementVersions)!==null&&ga!==void 0?ga:globalThis.litElementVersions=[]).push("3.3.3")});var Xs=Qe(()=>{});var R=Qe(()=>{ki();Li();Ys();Xs()});var fa={};$a(fa,{default:()=>xt});function uh(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var xt,Ri=Qe(()=>{R();xt=class extends ${constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs"}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?f`<merch-icon
+var ja=Object.defineProperty;var Wa=e=>{throw TypeError(e)};var ml=(e,t,r)=>t in e?ja(e,t,{enumerable:!0,configurable:!0,writable:!0,value:r}):e[t]=r;var Je=(e,t)=>()=>(e&&(t=e(e=0)),t);var Ya=(e,t)=>{for(var r in t)ja(e,r,{get:t[r],enumerable:!0})};var m=(e,t,r)=>ml(e,typeof t!="symbol"?t+"":t,r),Ki=(e,t,r)=>t.has(e)||Wa("Cannot "+r);var h=(e,t,r)=>(Ki(e,t,"read from private field"),r?r.call(e):t.get(e)),E=(e,t,r)=>t.has(e)?Wa("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,r),y=(e,t,r,i)=>(Ki(e,t,"write to private field"),i?i.call(e,r):t.set(e,r),r),Z=(e,t,r)=>(Ki(e,t,"access private method"),r);var Xa=(e,t,r,i)=>({set _(n){y(e,t,n,r)},get _(){return h(e,t,i)}});var Pi,Li,sa,Hs,Rr,Te,b,ca,Ri,la=Je(()=>{Pi=window,Li=Pi.ShadowRoot&&(Pi.ShadyCSS===void 0||Pi.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,sa=Symbol(),Hs=new WeakMap,Rr=class{constructor(t,r,i){if(this._$cssResult$=!0,i!==sa)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=r}get styleSheet(){let t=this.o,r=this.t;if(Li&&t===void 0){let i=r!==void 0&&r.length===1;i&&(t=Hs.get(r)),t===void 0&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&Hs.set(r,t))}return t}toString(){return this.cssText}},Te=e=>new Rr(typeof e=="string"?e:e+"",void 0,sa),b=(e,...t)=>{let r=e.length===1?e[0]:t.reduce((i,n,a)=>i+(o=>{if(o._$cssResult$===!0)return o.cssText;if(typeof o=="number")return o;throw Error("Value passed to 'css' function must be a 'css' function result: "+o+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(n)+e[a+1],e[0]);return new Rr(r,e,sa)},ca=(e,t)=>{Li?e.adoptedStyleSheets=t.map(r=>r instanceof CSSStyleSheet?r:r.styleSheet):t.forEach(r=>{let i=document.createElement("style"),n=Pi.litNonce;n!==void 0&&i.setAttribute("nonce",n),i.textContent=r.cssText,e.appendChild(i)})},Ri=Li?e=>e:e=>e instanceof CSSStyleSheet?(t=>{let r="";for(let i of t.cssRules)r+=i.cssText;return Te(r)})(e):e});var da,Mi,Bs,Sh,Us,pa,Fs,ha,ma,He,Oi=Je(()=>{la();la();Mi=window,Bs=Mi.trustedTypes,Sh=Bs?Bs.emptyScript:"",Us=Mi.reactiveElementPolyfillSupport,pa={toAttribute(e,t){switch(t){case Boolean:e=e?Sh:null;break;case Object:case Array:e=e==null?e:JSON.stringify(e)}return e},fromAttribute(e,t){let r=e;switch(t){case Boolean:r=e!==null;break;case Number:r=e===null?null:Number(e);break;case Object:case Array:try{r=JSON.parse(e)}catch{r=null}}return r}},Fs=(e,t)=>t!==e&&(t==t||e==e),ha={attribute:!0,type:String,converter:pa,reflect:!1,hasChanged:Fs},ma="finalized",He=class extends HTMLElement{constructor(){super(),this._$Ei=new Map,this.isUpdatePending=!1,this.hasUpdated=!1,this._$El=null,this._$Eu()}static addInitializer(t){var r;this.finalize(),((r=this.h)!==null&&r!==void 0?r:this.h=[]).push(t)}static get observedAttributes(){this.finalize();let t=[];return this.elementProperties.forEach((r,i)=>{let n=this._$Ep(i,r);n!==void 0&&(this._$Ev.set(n,i),t.push(n))}),t}static createProperty(t,r=ha){if(r.state&&(r.attribute=!1),this.finalize(),this.elementProperties.set(t,r),!r.noAccessor&&!this.prototype.hasOwnProperty(t)){let i=typeof t=="symbol"?Symbol():"__"+t,n=this.getPropertyDescriptor(t,i,r);n!==void 0&&Object.defineProperty(this.prototype,t,n)}}static getPropertyDescriptor(t,r,i){return{get(){return this[r]},set(n){let a=this[t];this[r]=n,this.requestUpdate(t,a,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)||ha}static finalize(){if(this.hasOwnProperty(ma))return!1;this[ma]=!0;let t=Object.getPrototypeOf(this);if(t.finalize(),t.h!==void 0&&(this.h=[...t.h]),this.elementProperties=new Map(t.elementProperties),this._$Ev=new Map,this.hasOwnProperty("properties")){let r=this.properties,i=[...Object.getOwnPropertyNames(r),...Object.getOwnPropertySymbols(r)];for(let n of i)this.createProperty(n,r[n])}return this.elementStyles=this.finalizeStyles(this.styles),!0}static finalizeStyles(t){let r=[];if(Array.isArray(t)){let i=new Set(t.flat(1/0).reverse());for(let n of i)r.unshift(Ri(n))}else t!==void 0&&r.push(Ri(t));return r}static _$Ep(t,r){let i=r.attribute;return i===!1?void 0:typeof i=="string"?i:typeof t=="string"?t.toLowerCase():void 0}_$Eu(){var t;this._$E_=new Promise(r=>this.enableUpdating=r),this._$AL=new Map,this._$Eg(),this.requestUpdate(),(t=this.constructor.h)===null||t===void 0||t.forEach(r=>r(this))}addController(t){var r,i;((r=this._$ES)!==null&&r!==void 0?r:this._$ES=[]).push(t),this.renderRoot!==void 0&&this.isConnected&&((i=t.hostConnected)===null||i===void 0||i.call(t))}removeController(t){var r;(r=this._$ES)===null||r===void 0||r.splice(this._$ES.indexOf(t)>>>0,1)}_$Eg(){this.constructor.elementProperties.forEach((t,r)=>{this.hasOwnProperty(r)&&(this._$Ei.set(r,this[r]),delete this[r])})}createRenderRoot(){var t;let r=(t=this.shadowRoot)!==null&&t!==void 0?t:this.attachShadow(this.constructor.shadowRootOptions);return ca(r,this.constructor.elementStyles),r}connectedCallback(){var t;this.renderRoot===void 0&&(this.renderRoot=this.createRenderRoot()),this.enableUpdating(!0),(t=this._$ES)===null||t===void 0||t.forEach(r=>{var i;return(i=r.hostConnected)===null||i===void 0?void 0:i.call(r)})}enableUpdating(t){}disconnectedCallback(){var t;(t=this._$ES)===null||t===void 0||t.forEach(r=>{var i;return(i=r.hostDisconnected)===null||i===void 0?void 0:i.call(r)})}attributeChangedCallback(t,r,i){this._$AK(t,i)}_$EO(t,r,i=ha){var n;let a=this.constructor._$Ep(t,i);if(a!==void 0&&i.reflect===!0){let o=(((n=i.converter)===null||n===void 0?void 0:n.toAttribute)!==void 0?i.converter:pa).toAttribute(r,i.type);this._$El=t,o==null?this.removeAttribute(a):this.setAttribute(a,o),this._$El=null}}_$AK(t,r){var i;let n=this.constructor,a=n._$Ev.get(t);if(a!==void 0&&this._$El!==a){let o=n.getPropertyOptions(a),s=typeof o.converter=="function"?{fromAttribute:o.converter}:((i=o.converter)===null||i===void 0?void 0:i.fromAttribute)!==void 0?o.converter:pa;this._$El=a,this[a]=s.fromAttribute(r,o.type),this._$El=null}}requestUpdate(t,r,i){let n=!0;t!==void 0&&(((i=i||this.constructor.getPropertyOptions(t)).hasChanged||Fs)(this[t],r)?(this._$AL.has(t)||this._$AL.set(t,r),i.reflect===!0&&this._$El!==t&&(this._$EC===void 0&&(this._$EC=new Map),this._$EC.set(t,i))):n=!1),!this.isUpdatePending&&n&&(this._$E_=this._$Ej())}async _$Ej(){this.isUpdatePending=!0;try{await this._$E_}catch(r){Promise.reject(r)}let t=this.scheduleUpdate();return t!=null&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){var t;if(!this.isUpdatePending)return;this.hasUpdated,this._$Ei&&(this._$Ei.forEach((n,a)=>this[a]=n),this._$Ei=void 0);let r=!1,i=this._$AL;try{r=this.shouldUpdate(i),r?(this.willUpdate(i),(t=this._$ES)===null||t===void 0||t.forEach(n=>{var a;return(a=n.hostUpdate)===null||a===void 0?void 0:a.call(n)}),this.update(i)):this._$Ek()}catch(n){throw r=!1,this._$Ek(),n}r&&this._$AE(i)}willUpdate(t){}_$AE(t){var r;(r=this._$ES)===null||r===void 0||r.forEach(i=>{var n;return(n=i.hostUpdated)===null||n===void 0?void 0:n.call(i)}),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$Ek(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$E_}shouldUpdate(t){return!0}update(t){this._$EC!==void 0&&(this._$EC.forEach((r,i)=>this._$EO(i,this[i],r)),this._$EC=void 0),this._$Ek()}updated(t){}firstUpdated(t){}};He[ma]=!0,He.elementProperties=new Map,He.elementStyles=[],He.shadowRootOptions={mode:"open"},Us?.({ReactiveElement:He}),((da=Mi.reactiveElementVersions)!==null&&da!==void 0?da:Mi.reactiveElementVersions=[]).push("1.6.3")});function ec(e,t){if(!Array.isArray(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return Gs!==void 0?Gs.createHTML(t):t}function Dt(e,t,r=e,i){var n,a,o,s;if(t===Be)return t;let c=i!==void 0?(n=r._$Co)===null||n===void 0?void 0:n[i]:r._$Cl,l=Nr(t)?void 0:t._$litDirective$;return c?.constructor!==l&&((a=c?._$AO)===null||a===void 0||a.call(c,!1),l===void 0?c=void 0:(c=new l(e),c._$AT(e,r,i)),i!==void 0?((o=(s=r)._$Co)!==null&&o!==void 0?o:s._$Co=[])[i]=c:r._$Cl=c),c!==void 0&&(t=Dt(e,c._$AS(e,t.values),c,i)),t}var ua,Ni,It,Gs,fa,Ye,Ks,Th,vt,Or,Nr,Qs,_h,ga,Mr,qs,Vs,ft,js,Ws,Zs,Js,f,Gg,Be,w,Ys,xt,Ch,Ir,xa,Dr,$t,va,kh,ba,ya,Ea,Xs,tc,$r=Je(()=>{Ni=window,It=Ni.trustedTypes,Gs=It?It.createPolicy("lit-html",{createHTML:e=>e}):void 0,fa="$lit$",Ye=`lit$${(Math.random()+"").slice(9)}$`,Ks="?"+Ye,Th=`<${Ks}>`,vt=document,Or=()=>vt.createComment(""),Nr=e=>e===null||typeof e!="object"&&typeof e!="function",Qs=Array.isArray,_h=e=>Qs(e)||typeof e?.[Symbol.iterator]=="function",ga=`[ 	
+\f\r]`,Mr=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,qs=/-->/g,Vs=/>/g,ft=RegExp(`>|${ga}(?:([^\\s"'>=/]+)(${ga}*=${ga}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`,"g"),js=/'/g,Ws=/"/g,Zs=/^(?:script|style|textarea|title)$/i,Js=e=>(t,...r)=>({_$litType$:e,strings:t,values:r}),f=Js(1),Gg=Js(2),Be=Symbol.for("lit-noChange"),w=Symbol.for("lit-nothing"),Ys=new WeakMap,xt=vt.createTreeWalker(vt,129,null,!1);Ch=(e,t)=>{let r=e.length-1,i=[],n,a=t===2?"<svg>":"",o=Mr;for(let s=0;s<r;s++){let c=e[s],l,d,p=-1,u=0;for(;u<c.length&&(o.lastIndex=u,d=o.exec(c),d!==null);)u=o.lastIndex,o===Mr?d[1]==="!--"?o=qs:d[1]!==void 0?o=Vs:d[2]!==void 0?(Zs.test(d[2])&&(n=RegExp("</"+d[2],"g")),o=ft):d[3]!==void 0&&(o=ft):o===ft?d[0]===">"?(o=n??Mr,p=-1):d[1]===void 0?p=-2:(p=o.lastIndex-d[2].length,l=d[1],o=d[3]===void 0?ft:d[3]==='"'?Ws:js):o===Ws||o===js?o=ft:o===qs||o===Vs?o=Mr:(o=ft,n=void 0);let g=o===ft&&e[s+1].startsWith("/>")?" ":"";a+=o===Mr?c+Th:p>=0?(i.push(l),c.slice(0,p)+fa+c.slice(p)+Ye+g):c+Ye+(p===-2?(i.push(void 0),s):g)}return[ec(e,a+(e[r]||"<?>")+(t===2?"</svg>":"")),i]},Ir=class e{constructor({strings:t,_$litType$:r},i){let n;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,d]=Ch(t,r);if(this.el=e.createElement(l,i),xt.currentNode=this.el.content,r===2){let p=this.el.content,u=p.firstChild;u.remove(),p.append(...u.childNodes)}for(;(n=xt.nextNode())!==null&&c.length<s;){if(n.nodeType===1){if(n.hasAttributes()){let p=[];for(let u of n.getAttributeNames())if(u.endsWith(fa)||u.startsWith(Ye)){let g=d[o++];if(p.push(u),g!==void 0){let x=n.getAttribute(g.toLowerCase()+fa).split(Ye),v=/([.?@])?(.*)/.exec(g);c.push({type:1,index:a,name:v[2],strings:x,ctor:v[1]==="."?va:v[1]==="?"?ba:v[1]==="@"?ya:$t})}else c.push({type:6,index:a})}for(let u of p)n.removeAttribute(u)}if(Zs.test(n.tagName)){let p=n.textContent.split(Ye),u=p.length-1;if(u>0){n.textContent=It?It.emptyScript:"";for(let g=0;g<u;g++)n.append(p[g],Or()),xt.nextNode(),c.push({type:2,index:++a});n.append(p[u],Or())}}}else if(n.nodeType===8)if(n.data===Ks)c.push({type:2,index:a});else{let p=-1;for(;(p=n.data.indexOf(Ye,p+1))!==-1;)c.push({type:7,index:a}),p+=Ye.length-1}a++}}static createElement(t,r){let i=vt.createElement("template");return i.innerHTML=t,i}};xa=class{constructor(t,r){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=r}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){var r;let{el:{content:i},parts:n}=this._$AD,a=((r=t?.creationScope)!==null&&r!==void 0?r:vt).importNode(i,!0);xt.currentNode=a;let o=xt.nextNode(),s=0,c=0,l=n[0];for(;l!==void 0;){if(s===l.index){let d;l.type===2?d=new Dr(o,o.nextSibling,this,t):l.type===1?d=new l.ctor(o,l.name,l.strings,this,t):l.type===6&&(d=new Ea(o,this,t)),this._$AV.push(d),l=n[++c]}s!==l?.index&&(o=xt.nextNode(),s++)}return xt.currentNode=vt,a}v(t){let r=0;for(let i of this._$AV)i!==void 0&&(i.strings!==void 0?(i._$AI(t,i,r),r+=i.strings.length-2):i._$AI(t[r])),r++}},Dr=class e{constructor(t,r,i,n){var a;this.type=2,this._$AH=w,this._$AN=void 0,this._$AA=t,this._$AB=r,this._$AM=i,this.options=n,this._$Cp=(a=n?.isConnected)===null||a===void 0||a}get _$AU(){var t,r;return(r=(t=this._$AM)===null||t===void 0?void 0:t._$AU)!==null&&r!==void 0?r:this._$Cp}get parentNode(){let t=this._$AA.parentNode,r=this._$AM;return r!==void 0&&t?.nodeType===11&&(t=r.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,r=this){t=Dt(this,t,r),Nr(t)?t===w||t==null||t===""?(this._$AH!==w&&this._$AR(),this._$AH=w):t!==this._$AH&&t!==Be&&this._(t):t._$litType$!==void 0?this.g(t):t.nodeType!==void 0?this.$(t):_h(t)?this.T(t):this._(t)}k(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}$(t){this._$AH!==t&&(this._$AR(),this._$AH=this.k(t))}_(t){this._$AH!==w&&Nr(this._$AH)?this._$AA.nextSibling.data=t:this.$(vt.createTextNode(t)),this._$AH=t}g(t){var r;let{values:i,_$litType$:n}=t,a=typeof n=="number"?this._$AC(t):(n.el===void 0&&(n.el=Ir.createElement(ec(n.h,n.h[0]),this.options)),n);if(((r=this._$AH)===null||r===void 0?void 0:r._$AD)===a)this._$AH.v(i);else{let o=new xa(a,this),s=o.u(this.options);o.v(i),this.$(s),this._$AH=o}}_$AC(t){let r=Ys.get(t.strings);return r===void 0&&Ys.set(t.strings,r=new Ir(t)),r}T(t){Qs(this._$AH)||(this._$AH=[],this._$AR());let r=this._$AH,i,n=0;for(let a of t)n===r.length?r.push(i=new e(this.k(Or()),this.k(Or()),this,this.options)):i=r[n],i._$AI(a),n++;n<r.length&&(this._$AR(i&&i._$AB.nextSibling,n),r.length=n)}_$AR(t=this._$AA.nextSibling,r){var i;for((i=this._$AP)===null||i===void 0||i.call(this,!1,!0,r);t&&t!==this._$AB;){let n=t.nextSibling;t.remove(),t=n}}setConnected(t){var r;this._$AM===void 0&&(this._$Cp=t,(r=this._$AP)===null||r===void 0||r.call(this,t))}},$t=class{constructor(t,r,i,n,a){this.type=1,this._$AH=w,this._$AN=void 0,this.element=t,this.name=r,this._$AM=n,this.options=a,i.length>2||i[0]!==""||i[1]!==""?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=w}get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}_$AI(t,r=this,i,n){let a=this.strings,o=!1;if(a===void 0)t=Dt(this,t,r,0),o=!Nr(t)||t!==this._$AH&&t!==Be,o&&(this._$AH=t);else{let s=t,c,l;for(t=a[0],c=0;c<a.length-1;c++)l=Dt(this,s[i+c],r,c),l===Be&&(l=this._$AH[c]),o||(o=!Nr(l)||l!==this._$AH[c]),l===w?t=w:t!==w&&(t+=(l??"")+a[c+1]),this._$AH[c]=l}o&&!n&&this.j(t)}j(t){t===w?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}},va=class extends $t{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===w?void 0:t}},kh=It?It.emptyScript:"",ba=class extends $t{constructor(){super(...arguments),this.type=4}j(t){t&&t!==w?this.element.setAttribute(this.name,kh):this.element.removeAttribute(this.name)}},ya=class extends $t{constructor(t,r,i,n,a){super(t,r,i,n,a),this.type=5}_$AI(t,r=this){var i;if((t=(i=Dt(this,t,r,0))!==null&&i!==void 0?i:w)===Be)return;let n=this._$AH,a=t===w&&n!==w||t.capture!==n.capture||t.once!==n.once||t.passive!==n.passive,o=t!==w&&(n===w||a);a&&this.element.removeEventListener(this.name,this,n),o&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){var r,i;typeof this._$AH=="function"?this._$AH.call((i=(r=this.options)===null||r===void 0?void 0:r.host)!==null&&i!==void 0?i:this.element,t):this._$AH.handleEvent(t)}},Ea=class{constructor(t,r,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=r,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){Dt(this,t)}},Xs=Ni.litHtmlPolyfillSupport;Xs?.(Ir,Dr),((ua=Ni.litHtmlVersions)!==null&&ua!==void 0?ua:Ni.litHtmlVersions=[]).push("2.8.0");tc=(e,t,r)=>{var i,n;let a=(i=r?.renderBefore)!==null&&i!==void 0?i:t,o=a._$litPart$;if(o===void 0){let s=(n=r?.renderBefore)!==null&&n!==void 0?n:null;a._$litPart$=o=new Dr(t.insertBefore(Or(),s),s,void 0,r??{})}return o._$AI(e),o}});var wa,Aa,z,rc,ic=Je(()=>{Oi();Oi();$r();$r();z=class extends He{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){var t,r;let i=super.createRenderRoot();return(t=(r=this.renderOptions).renderBefore)!==null&&t!==void 0||(r.renderBefore=i.firstChild),i}update(t){let r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=tc(r,this.renderRoot,this.renderOptions)}connectedCallback(){var t;super.connectedCallback(),(t=this._$Do)===null||t===void 0||t.setConnected(!0)}disconnectedCallback(){var t;super.disconnectedCallback(),(t=this._$Do)===null||t===void 0||t.setConnected(!1)}render(){return Be}};z.finalized=!0,z._$litElement$=!0,(wa=globalThis.litElementHydrateSupport)===null||wa===void 0||wa.call(globalThis,{LitElement:z});rc=globalThis.litElementPolyfillSupport;rc?.({LitElement:z});((Aa=globalThis.litElementVersions)!==null&&Aa!==void 0?Aa:globalThis.litElementVersions=[]).push("3.3.3")});var nc=Je(()=>{});var M=Je(()=>{Oi();$r();ic();nc()});var Sa={};Ya(Sa,{default:()=>zr});function Ph(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var pe,zr,Di=Je(()=>{M();pe=class pe extends z{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let r=t.composedPath();pe.activeTooltip===this&&!r.includes(this)&&this.hideTooltip()}showTooltip(){pe.activeTooltip&&pe.activeTooltip!==this&&(pe.activeTooltip.closeOverlay(),pe.activeTooltip.tooltipVisible=!1,pe.activeTooltip.requestUpdate()),pe.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){pe.activeTooltip===this&&(pe.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?f`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:f`<slot></slot>`}render(){let t=this.effectiveContent,r=this.effectivePlacement;return t?uh()?f`
-                <overlay-trigger placement="${r}">
+        ></merch-icon>`:f`<slot></slot>`}render(){let t=this.effectiveContent,r=this.effectivePlacement;return t?Ph()?f`
+                <overlay-trigger
+                    placement="${r}"
+                    @sp-opened=${()=>this.showTooltip()}
+                >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
                         placement="${r}"
@@ -518,15 +521,19 @@ var Da=Object.defineProperty;var za=e=>{throw TypeError(e)};var el=(e,t,r)=>t in
                 </overlay-trigger>
             `:f`
                 <span
-                    class="css-tooltip ${r}"
+                    class="css-tooltip ${r} ${this.tooltipVisible?"tooltip-visible":""}"
                     data-tooltip="${t}"
                     tabindex="0"
                     role="img"
                     aria-label="${t}"
+                    @pointerdown=${n=>{this.lastPointerType=n.pointerType}}
+                    @pointerenter=${n=>n.pointerType!=="touch"&&this.showTooltip()}
+                    @pointerleave=${n=>n.pointerType!=="touch"&&this.hideTooltip()}
+                    @click=${n=>{this.lastPointerType==="touch"&&this.handleTap(n),this.lastPointerType=null}}
                 >
                     ${this.renderIcon()}
                 </span>
-            `:this.renderIcon()}};m(xt,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"}}),m(xt,"styles",b`
+            `:this.renderIcon()}};m(pe,"activeTooltip",null),m(pe,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),m(pe,"styles",b`
         :host {
             display: contents;
             overflow: visible;
@@ -545,13 +552,17 @@ var Da=Object.defineProperty;var za=e=>{throw TypeError(e)};var el=(e,t,r)=>t in
             z-index: 999;
             background: var(--spectrum-gray-800, #323232);
             color: #fff;
-            padding: 8px 12px;
+            padding: var(--mas-mnemonic-tooltip-padding, 8px 12px);
             border-radius: 4px;
             white-space: normal;
             width: max-content;
+            max-width: 60px;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.2s ease,
+                visibility 0.2s ease;
             font-size: 12px;
             line-height: 1.4;
             text-align: center;
@@ -565,15 +576,19 @@ var Da=Object.defineProperty;var za=e=>{throw TypeError(e)};var el=(e,t,r)=>t in
             height: 0;
             border: 6px solid transparent;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s;
+            transition:
+                opacity 0.1s ease,
+                visibility 0.1s ease;
         }
 
-        .css-tooltip:hover[data-tooltip]::before,
-        .css-tooltip:hover[data-tooltip]::after,
-        .css-tooltip:focus[data-tooltip]::before,
-        .css-tooltip:focus[data-tooltip]::after {
+        .css-tooltip.tooltip-visible[data-tooltip]::before,
+        .css-tooltip.tooltip-visible[data-tooltip]::after,
+        .css-tooltip:focus-visible[data-tooltip]::before,
+        .css-tooltip:focus-visible[data-tooltip]::after {
             opacity: 1;
+            visibility: visible;
         }
 
         /* Position variants */
@@ -612,6 +627,7 @@ var Da=Object.defineProperty;var za=e=>{throw TypeError(e)};var el=(e,t,r)=>t in
             top: 50%;
             transform: translateY(-50%);
             margin-right: 10px;
+            left: var(--tooltip-left-offset, auto);
         }
 
         .css-tooltip.left[data-tooltip]::after {
@@ -636,10 +652,10 @@ var Da=Object.defineProperty;var za=e=>{throw TypeError(e)};var el=(e,t,r)=>t in
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);customElements.define("mas-mnemonic",xt)});var Ze={clientId:"merch-at-scale",delimiter:"\xB6",ignoredProperties:["analytics","literals","element"],serializableTypes:["Array","Object"],sampleRate:1,tags:"acom",isProdDomain:!1},Ba=1e3;function tl(e){return e instanceof Error||typeof e?.originatingRequest=="string"}function Ua(e){if(e==null)return;let t=typeof e;if(t==="function")return e.name?`function ${e.name}`:"function";if(t==="object"){if(e instanceof Error)return e.message;if(typeof e.originatingRequest=="string"){let{message:i,originatingRequest:n,status:a}=e;return[i,a,n].filter(Boolean).join(" ")}let r=e[Symbol.toStringTag]??Object.getPrototypeOf(e).constructor.name;if(!Ze.serializableTypes.includes(r))return r}return e}function rl(e,t){if(!Ze.ignoredProperties.includes(e))return Ua(t)}var ji={append(e){if(e.level!=="error")return;let{message:t,params:r}=e,i=[],n=[],a=t;r.forEach(l=>{l!=null&&(tl(l)?i:n).push(l)}),i.length&&(a+=" "+i.map(Ua).join(" "));let{pathname:o,search:s}=window.location,c=`${Ze.delimiter}page=${o}${s}`;c.length>Ba&&(c=`${c.slice(0,Ba)}<trunc>`),a+=c,n.length&&(a+=`${Ze.delimiter}facts=`,a+=JSON.stringify(n,rl)),window.lana?.log(a,Ze)}};function Qr(e){Object.assign(Ze,Object.fromEntries(Object.entries(e).filter(([t,r])=>t in Ze&&r!==""&&r!==null&&r!==void 0&&!Number.isNaN(r))))}var pn={};$a(pn,{CLASS_NAME_FAILED:()=>Qi,CLASS_NAME_HIDDEN:()=>nl,CLASS_NAME_PENDING:()=>Zi,CLASS_NAME_RESOLVED:()=>Ji,CheckoutWorkflow:()=>Ga,CheckoutWorkflowStep:()=>oe,Commitment:()=>Je,ERROR_MESSAGE_BAD_REQUEST:()=>en,ERROR_MESSAGE_MISSING_LITERALS_URL:()=>ul,ERROR_MESSAGE_OFFER_NOT_FOUND:()=>tn,EVENT_AEM_ERROR:()=>rt,EVENT_AEM_LOAD:()=>tt,EVENT_MAS_ERROR:()=>Ki,EVENT_MAS_READY:()=>Xi,EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE:()=>Jr,EVENT_MERCH_CARD_ACTION_MENU_TOGGLE:()=>Wi,EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED:()=>et,EVENT_MERCH_CARD_COLLECTION_SHOWMORE:()=>pl,EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED:()=>hl,EVENT_MERCH_CARD_COLLECTION_SORT:()=>dl,EVENT_MERCH_CARD_QUANTITY_CHANGE:()=>Tt,EVENT_MERCH_OFFER_READY:()=>_t,EVENT_MERCH_OFFER_SELECT_READY:()=>lr,EVENT_MERCH_QUANTITY_SELECTOR_CHANGE:()=>ae,EVENT_MERCH_SEARCH_CHANGE:()=>ll,EVENT_MERCH_SIDENAV_SELECT:()=>ml,EVENT_MERCH_STOCK_CHANGE:()=>sl,EVENT_MERCH_STORAGE_CHANGE:()=>cl,EVENT_OFFER_SELECTED:()=>Yi,EVENT_TYPE_FAILED:()=>rn,EVENT_TYPE_READY:()=>Zr,EVENT_TYPE_RESOLVED:()=>Ct,Env:()=>Pe,FF_DEFAULTS:()=>we,HEADER_X_REQUEST_ID:()=>dr,LOG_NAMESPACE:()=>nn,Landscape:()=>Ge,MARK_DURATION_SUFFIX:()=>at,MARK_START_SUFFIX:()=>nt,MODAL_TYPE_3_IN_1:()=>it,NAMESPACE:()=>il,PARAM_AOS_API_KEY:()=>gl,PARAM_ENV:()=>on,PARAM_LANDSCAPE:()=>sn,PARAM_MAS_PREVIEW:()=>an,PARAM_WCS_API_KEY:()=>fl,PROVIDER_ENVIRONMENT:()=>dn,SELECTOR_MAS_CHECKOUT_LINK:()=>ye,SELECTOR_MAS_ELEMENT:()=>cr,SELECTOR_MAS_INLINE_PRICE:()=>H,SELECTOR_MAS_SP_BUTTON:()=>ol,SELECTOR_MAS_UPT_LINK:()=>Fa,SORT_ORDER:()=>yl,STATE_FAILED:()=>Ee,STATE_PENDING:()=>Fe,STATE_RESOLVED:()=>Oe,SUPPORTED_COUNTRIES:()=>hn,TAG_NAME_SERVICE:()=>al,TEMPLATE_PRICE:()=>xl,TEMPLATE_PRICE_ANNUAL:()=>bl,TEMPLATE_PRICE_LEGAL:()=>hr,TEMPLATE_PRICE_STRIKETHROUGH:()=>vl,Term:()=>fe,WCS_PROD_URL:()=>cn,WCS_STAGE_URL:()=>ln});var Je=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),fe=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"}),il="merch",nl="hidden",Zr="wcms:commerce:ready",al="mas-commerce-service",H='span[is="inline-price"][data-wcs-osi]',ye='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]',ol="sp-button[data-wcs-osi]",Fa='a[is="upt-link"]',cr=`${H},${ye},${Fa}`,_t="merch-offer:ready",lr="merch-offer-select:ready",Wi="merch-card:action-menu-toggle",Yi="merch-offer:selected",sl="merch-stock:change",cl="merch-storage:change",ae="merch-quantity-selector:change",Tt="merch-card-quantity:change",Jr="merch-modal:addon-and-quantity-update",ll="merch-search:change",dl="merch-card-collection:sort",et="merch-card-collection:literals-changed",hl="merch-card-collection:sidenav-attached",pl="merch-card-collection:showmore",ml="merch-sidenav:select",tt="aem:load",rt="aem:error",Xi="mas:ready",Ki="mas:error",Qi="placeholder-failed",Zi="placeholder-pending",Ji="placeholder-resolved",en="Bad WCS request",tn="Commerce offer not found",ul="Literals URL not provided",rn="mas:failed",Ct="mas:resolved",nn="mas/commerce",an="mas.preview",on="commerce.env",sn="commerce.landscape",gl="commerce.aosKey",fl="commerce.wcsKey",cn="https://www.adobe.com/web_commerce_artifact",ln="https://www.stage.adobe.com/web_commerce_artifact_stage",Ee="failed",Fe="pending",Oe="resolved",Ge={DRAFT:"DRAFT",PUBLISHED:"PUBLISHED"},dr="X-Request-Id",oe=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"}),Ga="UCv3",Pe=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"}),dn={PRODUCTION:"PRODUCTION"},it={TWP:"twp",D2P:"d2p",CRM:"crm"},nt=":start",at=":duration",xl="price",vl="price-strikethrough",bl="annual",hr="legal",we="mas-ff-defaults",yl={alphabetical:"alphabetical",authored:"authored"},hn=["AE","AM","AR","AT","AU","AZ","BB","BD","BE","BG","BH","BO","BR","BS","BY","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GB","GE","GH","GR","GT","HK","HN","HR","HU","ID","IE","IL","IN","IQ","IS","IT","JM","JO","JP","KE","KG","KR","KW","KZ","LA","LB","LK","LT","LU","LV","MA","MD","MO","MT","MU","MX","MY","NG","NI","NL","NO","NP","NZ","OM","PA","PE","PH","PK","PL","PR","PT","PY","QA","RO","RS","RU","SA","SE","SG","SI","SK","SV","TH","TJ","TM","TN","TR","TT","TW","TZ","UA","US","UY","UZ","VE","VN","YE","ZA"];var qa="tacocat.js";var mn=(e,t)=>String(e??"").toLowerCase()==String(t??"").toLowerCase(),Va=e=>`${e??""}`.replace(/[&<>'"]/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[t]??t)??"";function B(e,t={},{metadata:r=!0,search:i=!0,storage:n=!0}={}){let a;if(i&&a==null){let o=new URLSearchParams(window.location.search),s=kt(i)?i:e;a=o.get(s)}if(n&&a==null){let o=kt(n)?n:e;a=window.sessionStorage.getItem(o)??window.localStorage.getItem(o)}if(r&&a==null){let o=wl(kt(r)?r:e);a=document.documentElement.querySelector(`meta[name="${o}"]`)?.content}return a??t[e]}var El=e=>typeof e=="boolean",ei=e=>typeof e=="function",ti=e=>typeof e=="number",ja=e=>e!=null&&typeof e=="object";var kt=e=>typeof e=="string",Wa=e=>kt(e)&&e,pr=e=>ti(e)&&Number.isFinite(e)&&e>0;function ri(e,t=r=>r==null||r===""){return e!=null&&Object.entries(e).forEach(([r,i])=>{t(i)&&delete e[r]}),e}function _(e,t){if(El(e))return e;let r=String(e);return r==="1"||r==="true"?!0:r==="0"||r==="false"?!1:t}function mr(e,t,r){let i=Object.values(t);return i.find(n=>mn(n,e))??r??i[0]}function wl(e=""){return String(e).replace(/(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,(t,r,i)=>`${r}-${i}`).replace(/\W+/gu,"-").toLowerCase()}function Ya(e,t=1){return ti(e)||(e=Number.parseInt(e,10)),!Number.isNaN(e)&&e>0&&Number.isFinite(e)?e:t}var Al=Date.now(),un=()=>`(+${Date.now()-Al}ms)`,ii=new Set,Sl=_(B("tacocat.debug",{},{metadata:!1}),!1);function Xa(e){let t=`[${qa}/${e}]`,r=(o,s,...c)=>o?!0:(n(s,...c),!1),i=Sl?(o,...s)=>{console.debug(`${t} ${o}`,...s,un())}:()=>{},n=(o,...s)=>{let c=`${t} ${o}`;ii.forEach(([l])=>l(c,...s))};return{assert:r,debug:i,error:n,warn:(o,...s)=>{let c=`${t} ${o}`;ii.forEach(([,l])=>l(c,...s))}}}function _l(e,t){let r=[e,t];return ii.add(r),()=>{ii.delete(r)}}_l((e,...t)=>{console.error(e,...t,un())},(e,...t)=>{console.warn(e,...t,un())});var Tl="no promo",Ka="promo-tag",Cl="yellow",kl="neutral",Pl=(e,t,r)=>{let i=a=>a||Tl,n=r?` (was "${i(t)}")`:"";return`${i(e)}${n}`},Ll="cancel-context",ni=(e,t)=>{let r=e===Ll,i=!r&&e?.length>0,n=(i||r)&&(t&&t!=e||!t&&!r),a=n&&i||!n&&!!t,o=a?e||t:void 0;return{effectivePromoCode:o,overridenPromoCode:e,className:a?Ka:`${Ka} no-promo`,text:Pl(o,t,n),variant:a?Cl:kl,isOverriden:n}};var gn;(function(e){e.BASE="BASE",e.TRIAL="TRIAL",e.PROMOTION="PROMOTION"})(gn||(gn={}));var me;(function(e){e.MONTH="MONTH",e.YEAR="YEAR",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.PERPETUAL="PERPETUAL",e.TERM_LICENSE="TERM_LICENSE",e.ACCESS_PASS="ACCESS_PASS",e.THREE_MONTHS="THREE_MONTHS",e.SIX_MONTHS="SIX_MONTHS"})(me||(me={}));var xe;(function(e){e.ANNUAL="ANNUAL",e.MONTHLY="MONTHLY",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.P1D="P1D",e.P1Y="P1Y",e.P3Y="P3Y",e.P10Y="P10Y",e.P15Y="P15Y",e.P3D="P3D",e.P7D="P7D",e.P30D="P30D",e.HALF_YEARLY="HALF_YEARLY",e.QUARTERLY="QUARTERLY"})(xe||(xe={}));var fn;(function(e){e.INDIVIDUAL="INDIVIDUAL",e.TEAM="TEAM",e.ENTERPRISE="ENTERPRISE"})(fn||(fn={}));var xn;(function(e){e.COM="COM",e.EDU="EDU",e.GOV="GOV"})(xn||(xn={}));var vn;(function(e){e.DIRECT="DIRECT",e.INDIRECT="INDIRECT"})(vn||(vn={}));var bn;(function(e){e.ENTERPRISE_PRODUCT="ENTERPRISE_PRODUCT",e.ETLA="ETLA",e.RETAIL="RETAIL",e.VIP="VIP",e.VIPMP="VIPMP",e.FREE="FREE"})(bn||(bn={}));var yn="ABM",En="PUF",wn="M2M",An="PERPETUAL",Sn="P3Y",Rl="TAX_INCLUSIVE_DETAILS",Ml="TAX_EXCLUSIVE",Qa={ABM:yn,PUF:En,M2M:wn,PERPETUAL:An,P3Y:Sn},dp={[yn]:{commitment:me.YEAR,term:xe.MONTHLY},[En]:{commitment:me.YEAR,term:xe.ANNUAL},[wn]:{commitment:me.MONTH,term:xe.MONTHLY},[An]:{commitment:me.PERPETUAL,term:void 0},[Sn]:{commitment:me.THREE_MONTHS,term:xe.P3Y}},Za="Value is not an offer",ur=e=>{if(typeof e!="object")return Za;let{commitment:t,term:r}=e,i=Ol(t,r);return{...e,planType:i}};var Ol=(e,t)=>{switch(e){case void 0:return Za;case"":return"";case me.YEAR:return t===xe.MONTHLY?yn:t===xe.ANNUAL?En:"";case me.MONTH:return t===xe.MONTHLY?wn:"";case me.PERPETUAL:return An;case me.TERM_LICENSE:return t===xe.P3Y?Sn:"";default:return""}};function Ja(e){let{priceDetails:t}=e,{price:r,priceWithoutDiscount:i,priceWithoutTax:n,priceWithoutDiscountAndTax:a,taxDisplay:o}=t;if(o!==Rl)return e;let s={...e,priceDetails:{...t,price:n??r,priceWithoutDiscount:a??i,taxDisplay:Ml}};return s.offerType==="TRIAL"&&s.priceDetails.price===0&&(s.priceDetails.price=s.priceDetails.priceWithoutDiscount),s}var Nl="mas-commerce-service",Il={requestId:dr,etag:"Etag",lastModified:"Last-Modified",serverTiming:"server-timing"};function gr(e,{country:t,forceTaxExclusive:r}){let i;if(e.length<2)i=e;else{let n=t==="GB"?"EN":"MULT";e.sort((a,o)=>a.language===n?-1:o.language===n?1:0),e.sort((a,o)=>!a.term&&o.term?-1:a.term&&!o.term?1:0),i=[e[0]]}return r&&(i=i.map(Ja)),i}var ai=e=>window.setTimeout(e);function Pt(e,t=1){if(e==null)return[t];let r=(Array.isArray(e)?e:String(e).split(",")).map(Ya).filter(pr);return r.length||(r=[t]),r}function oi(e){return e==null?[]:(Array.isArray(e)?e:String(e).split(",")).filter(Wa)}function le(){return document.getElementsByTagName(Nl)?.[0]}function si(e){let t={};if(!e?.headers)return t;let r=e.headers;for(let[i,n]of Object.entries(Il)){let a=r.get(n);a&&(a=a.replace(/[,;]/g,"|"),a=a.replace(/[| ]+/g,"|"),t[i]=a)}return t}var eo={LOCAL:"local",PROD:"prod",STAGE:"stage"},_n={DEBUG:"debug",ERROR:"error",INFO:"info",WARN:"warn"},Tn=new Set,Cn=new Set,to=new Map,ro={append({level:e,message:t,params:r,timestamp:i,source:n}){console[e](`${i}ms [${n}] %c${t}`,"font-weight: bold;",...r)}},io={filter:({level:e})=>e!==_n.DEBUG},Dl={filter:()=>!1};function zl(e,t,r,i,n){return{level:e,message:t,namespace:r,get params(){return i.length===1&&ei(i[0])&&(i=i[0](),Array.isArray(i)||(i=[i])),i},source:n,timestamp:performance.now().toFixed(3)}}function $l(e){[...Cn].every(t=>t(e))&&Tn.forEach(t=>t(e))}function no(e){let t=(to.get(e)??0)+1;to.set(e,t);let r=`${e} #${t}`,i={id:r,namespace:e,module:n=>no(`${i.namespace}/${n}`),updateConfig:Qr};return Object.values(_n).forEach(n=>{i[n]=(a,...o)=>$l(zl(n,a,e,o,r))}),Object.seal(i)}function ci(...e){e.forEach(t=>{let{append:r,filter:i}=t;ei(i)&&Cn.add(i),ei(r)&&Tn.add(r)})}function Hl(e={}){let{name:t}=e,r=_(B("commerce.debug",{search:!0,storage:!0}),t===eo.LOCAL);return ci(r?ro:io),t===eo.PROD&&ci(ji),ue}function Bl(){Tn.clear(),Cn.clear()}var ue={...no(nn),Level:_n,Plugins:{consoleAppender:ro,debugFilter:io,quietFilter:Dl,lanaAppender:ji},init:Hl,reset:Bl,use:ci};var Ne=class e extends Error{constructor(t,r,i){if(super(t,{cause:i}),this.name="MasError",r.response){let n=r.response.headers?.get(dr);n&&(r.requestId=n),r.response.status&&(r.status=r.response.status,r.statusText=r.response.statusText),r.response.url&&(r.url=r.response.url)}delete r.response,this.context=r,Error.captureStackTrace&&Error.captureStackTrace(this,e)}toString(){let t=Object.entries(this.context||{}).map(([i,n])=>`${i}: ${JSON.stringify(n)}`).join(", "),r=`${this.name}: ${this.message}`;return t&&(r+=` (${t})`),this.cause&&(r+=`
-Caused by: ${this.cause}`),r}};var Ul={[Ee]:Qi,[Fe]:Zi,[Oe]:Ji},Fl={[Ee]:rn,[Oe]:Ct},fr,qe=class{constructor(t){E(this,fr);m(this,"changes",new Map);m(this,"connected",!1);m(this,"error");m(this,"log");m(this,"options");m(this,"promises",[]);m(this,"state",Fe);m(this,"timer",null);m(this,"value");m(this,"version",0);m(this,"wrapperElement");this.wrapperElement=t,this.log=ue.module("mas-element")}update(){[Ee,Fe,Oe].forEach(t=>{this.wrapperElement.classList.toggle(Ul[t],t===this.state)})}notify(){(this.state===Oe||this.state===Ee)&&(this.state===Oe?this.promises.forEach(({resolve:r})=>r(this.wrapperElement)):this.state===Ee&&this.promises.forEach(({reject:r})=>r(this.error)),this.promises=[]);let t=this.error;this.error instanceof Ne&&(t={message:this.error.message,...this.error.context}),this.wrapperElement.dispatchEvent(new CustomEvent(Fl[this.state],{bubbles:!0,detail:t}))}attributeChangedCallback(t,r,i){this.changes.set(t,i),this.requestUpdate()}connectedCallback(){y(this,fr,le()),this.requestUpdate(!0)}disconnectedCallback(){this.connected&&(this.connected=!1,this.log?.debug("Disconnected:",{element:this.wrapperElement}))}onceSettled(){let{error:t,promises:r,state:i}=this;return Oe===i?Promise.resolve(this.wrapperElement):Ee===i?Promise.reject(t):new Promise((n,a)=>{r.push({resolve:n,reject:a})})}toggleResolved(t,r,i){return t!==this.version?!1:(i!==void 0&&(this.options=i),this.state=Oe,this.value=r,this.update(),this.log?.debug("Resolved:",{element:this.wrapperElement,value:r}),ai(()=>this.notify()),!0)}toggleFailed(t,r,i){if(t!==this.version)return!1;i!==void 0&&(this.options=i),this.error=r,this.state=Ee,this.update();let n=this.wrapperElement.getAttribute("is");return this.log?.error(`${n}: Failed to render: ${r.message}`,{element:this.wrapperElement,...r.context,...h(this,fr)?.duration}),ai(()=>this.notify()),!0}togglePending(t){return this.version++,t&&(this.options=t),this.state=Fe,this.update(),this.log?.debug("Pending:",{osi:this.wrapperElement?.options?.wcsOsi}),this.version}requestUpdate(t=!1){if(!this.wrapperElement.isConnected||!le()||this.timer)return;let{error:r,options:i,state:n,value:a,version:o}=this;this.state=Fe,this.timer=ai(async()=>{this.timer=null;let s=null;if(this.changes.size&&(s=Object.fromEntries(this.changes.entries()),this.changes.clear()),this.connected?this.log?.debug("Updated:",{element:this.wrapperElement,changes:s}):(this.connected=!0,this.log?.debug("Connected:",{element:this.wrapperElement,changes:s})),s||t)try{await this.wrapperElement.render?.()===!1&&this.state===Fe&&this.version===o&&(this.state=n,this.error=r,this.value=a,this.update(),this.notify())}catch(c){this.toggleFailed(this.version,c,i)}})}};fr=new WeakMap;function ao(e={}){return Object.entries(e).forEach(([t,r])=>{(r==null||r===""||r?.length===0)&&delete e[t]}),e}function li(e,t={}){let{tag:r,is:i}=e,n=document.createElement(r,{is:i});return n.setAttribute("is",i),Object.assign(n.dataset,ao(t)),n}function oo(e,t={}){return e instanceof HTMLElement?(Object.assign(e.dataset,ao(t)),e):null}var Gl=/[0-9\-+#]/,ql=/[^\d\-+#]/g;function so(e){return e.search(Gl)}function Vl(e="#.##"){let t={},r=e.length,i=so(e);t.prefix=i>0?e.substring(0,i):"";let n=so(e.split("").reverse().join("")),a=r-n,o=e.substring(a,a+1),s=a+(o==="."||o===","?1:0);t.suffix=n>0?e.substring(s,r):"",t.mask=e.substring(i,s),t.maskHasNegativeSign=t.mask.charAt(0)==="-",t.maskHasPositiveSign=t.mask.charAt(0)==="+";let c=t.mask.match(ql);return t.decimal=c&&c[c.length-1]||".",t.separator=c&&c[1]&&c[0]||",",c=t.mask.split(t.decimal),t.integer=c[0],t.fraction=c[1],t}function jl(e,t,r){let i=!1,n={value:e};e<0&&(i=!0,n.value=-n.value),n.sign=i?"-":"",n.value=Number(n.value).toFixed(t.fraction&&t.fraction.length),n.value=Number(n.value).toString();let a=t.fraction&&t.fraction.lastIndexOf("0"),[o="0",s=""]=n.value.split(".");return(!s||s&&s.length<=a)&&(s=a<0?"":(+("0."+s)).toFixed(a+1).replace("0.","")),n.integer=o,n.fraction=s,Wl(n,t),(n.result==="0"||n.result==="")&&(i=!1,n.sign=""),!i&&t.maskHasPositiveSign?n.sign="+":i&&t.maskHasPositiveSign?n.sign="-":i&&(n.sign=r&&r.enforceMaskSign&&!t.maskHasNegativeSign?"":"-"),n}function Wl(e,t){e.result="";let r=t.integer.split(t.separator),i=r.join(""),n=i&&i.indexOf("0");if(n>-1)for(;e.integer.length<i.length-n;)e.integer="0"+e.integer;else Number(e.integer)===0&&(e.integer="");let a=r[1]&&r[r.length-1].length;if(a){let o=e.integer.length,s=o%a;for(let c=0;c<o;c++)e.result+=e.integer.charAt(c),!((c-s+1)%a)&&c<o-a&&(e.result+=t.separator)}else e.result=e.integer;return e.result+=t.fraction&&e.fraction?t.decimal+e.fraction:"",e}function Yl(e,t,r={}){if(!e||isNaN(Number(t)))return t;let i=Vl(e),n=jl(t,i,r);return i.prefix+n.sign+n.result+i.suffix}var co=Yl;var lo=".",Xl=",",po=/^\s+/,mo=/\s+$/,ho="&nbsp;",kn=e=>e*12,st=(e,t,r=1)=>{if(!e)return!1;let{start:i,end:n,displaySummary:{amount:a,duration:o,minProductQuantity:s=1,outcomeType:c}={}}=e;if(!(a&&o&&c)||r<s)return!1;let l=t?new Date(t):new Date;if(!i||!n)return!1;let d=new Date(i),p=new Date(n);return l>=d&&l<=p},ot={MONTH:"MONTH",YEAR:"YEAR"},Kl={[fe.ANNUAL]:12,[fe.MONTHLY]:1,[fe.THREE_YEARS]:36,[fe.TWO_YEARS]:24},Pn=(e,t)=>({accept:e,round:t}),Ql=[Pn(({divisor:e,price:t})=>t%e==0,({divisor:e,price:t})=>t/e),Pn(({usePrecision:e})=>e,({divisor:e,price:t})=>Math.round(t/e*100)/100),Pn(()=>!0,({divisor:e,price:t})=>Math.ceil(Math.floor(t*100/e)/100))],Ln={[Je.YEAR]:{[fe.MONTHLY]:ot.MONTH,[fe.ANNUAL]:ot.YEAR},[Je.MONTH]:{[fe.MONTHLY]:ot.MONTH}},Zl=(e,t)=>e.indexOf(`'${t}'`)===0,Jl=(e,t=!0)=>{let r=e.replace(/'.*?'/,"").trim(),i=go(r);return!!i?t||(r=r.replace(/[,\.]0+/,i)):r=r.replace(/\s?(#.*0)(?!\s)?/,"$&"+td(e)),r},ed=e=>{let t=rd(e),r=Zl(e,t),i=e.replace(/'.*?'/,""),n=po.test(i)||mo.test(i);return{currencySymbol:t,isCurrencyFirst:r,hasCurrencySpace:n}},uo=e=>e.replace(po,ho).replace(mo,ho),td=e=>e.match(/#(.?)#/)?.[1]===lo?Xl:lo,rd=e=>e.match(/'(.*?)'/)?.[1]??"",go=e=>e.match(/0(.?)0/)?.[1]??"";function Lt({formatString:e,price:t,usePrecision:r,isIndianPrice:i=!1},n,a=o=>o){let{currencySymbol:o,isCurrencyFirst:s,hasCurrencySpace:c}=ed(e),l=r?go(e):"",d=Jl(e,r),p=r?2:0,u=a(t,{currencySymbol:o}),g=i?u.toLocaleString("hi-IN",{minimumFractionDigits:p,maximumFractionDigits:p}):co(d,u),x=r?g.lastIndexOf(l):g.length,v=g.substring(0,x),A=g.substring(x+1);return{accessiblePrice:e.replace(/'.*?'/,"SYMBOL").replace(/#.*0/,g).replace(/SYMBOL/,o),currencySymbol:o,decimals:A,decimalsDelimiter:l,hasCurrencySpace:c,integer:v,isCurrencyFirst:s,recurrenceTerm:n}}var fo=e=>{let{commitment:t,term:r,usePrecision:i}=e,n=Kl[r]??1;return Lt(e,n>1?ot.MONTH:Ln[t]?.[r],a=>{let o={divisor:n,price:a,usePrecision:i},{round:s}=Ql.find(({accept:c})=>c(o));if(!s)throw new Error(`Missing rounding rule for: ${JSON.stringify(o)}`);return s(o)})},xo=({commitment:e,term:t,...r})=>Lt(r,Ln[e]?.[t]),vo=e=>{let{commitment:t,instant:r,price:i,originalPrice:n,priceWithoutDiscount:a,promotion:o,quantity:s=1,term:c}=e;if(t===Je.YEAR&&c===fe.MONTHLY){if(!o)return Lt(e,ot.YEAR,kn);let{displaySummary:{outcomeType:l,duration:d}={}}=o;switch(l){case"PERCENTAGE_DISCOUNT":if(st(o,r,s)){let p=parseInt(d.replace("P","").replace("M",""));if(isNaN(p))return kn(i);let u=n*p,g=a*(12-p),x=Math.round((u+g)*100)/100;return Lt({...e,price:x},ot.YEAR)}default:return Lt(e,ot.YEAR,()=>kn(a??i))}}return Lt(e,Ln[t]?.[c])};var bo="download",yo="upgrade",Eo={e:"EDU",t:"TEAM"};function di(e,t={},r=""){let i=le();if(!i)return null;let{checkoutMarketSegment:n,checkoutWorkflow:a,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:p,quantity:u,wcsOsi:g,extraOptions:x,analyticsId:v}=i.collectCheckoutOptions(t),A=li(e,{checkoutMarketSegment:n,checkoutWorkflow:a,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:p,quantity:u,wcsOsi:g,extraOptions:x,analyticsId:v});return r&&(A.innerHTML=`<span style="pointer-events: none;">${r}</span>`),A}function hi(e){return class extends e{constructor(){super(...arguments);m(this,"checkoutActionHandler");m(this,"masElement",new qe(this))}attributeChangedCallback(i,n,a){this.masElement.attributeChangedCallback(i,n,a)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.clickHandler)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.clickHandler)}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get marketSegment(){let i=this.options?.ms??this.value?.[0].marketSegments?.[0];return Eo[i]??i}get customerSegment(){let i=this.options?.cs??this.value?.[0]?.customerSegment;return Eo[i]??i}get is3in1Modal(){return Object.values(it).includes(this.getAttribute("data-modal"))}get isOpen3in1Modal(){let i=document.querySelector("meta[name=mas-ff-3in1]");return this.is3in1Modal&&(!i||i.content!=="off")}requestUpdate(i=!1){return this.masElement.requestUpdate(i)}static get observedAttributes(){return["data-checkout-workflow","data-checkout-workflow-step","data-extra-options","data-ims-country","data-perpetual","data-promotion-code","data-quantity","data-template","data-wcs-osi","data-entitlement","data-upgrade","data-modal"]}async render(i={}){let n=le();if(!n)return!1;this.dataset.imsCountry||n.imsCountryPromise.then(g=>{g&&(this.dataset.imsCountry=g)}),i.imsCountry=null;let a=n.collectCheckoutOptions(i,this);if(!a.wcsOsi.length)return!1;let o;try{o=JSON.parse(a.extraOptions??"{}")}catch(g){this.masElement.log?.error("cannot parse exta checkout options",g)}let s=this.masElement.togglePending(a);this.setCheckoutUrl("");let c=n.resolveOfferSelectors(a),l=await Promise.all(c);l=l.map(g=>gr(g,a));let d=l.flat().find(g=>g.promotion);!st(d?.promotion,d?.promotion?.displaySummary?.instant,a.quantity[0])&&a.promotionCode&&delete a.promotionCode,a.country=this.dataset.imsCountry||a.country;let u=await n.buildCheckoutAction?.(l.flat(),{...o,...a},this);return this.renderOffers(l.flat(),a,{},u,s)}renderOffers(i,n,a={},o=void 0,s=void 0){let c=le();if(!c)return!1;if(n={...JSON.parse(this.dataset.extraOptions??"{}"),...n,...a},s??(s=this.masElement.togglePending(n)),this.checkoutActionHandler&&(this.checkoutActionHandler=void 0),o){this.classList.remove(bo,yo),this.masElement.toggleResolved(s,i,n);let{url:d,text:p,className:u,handler:g}=o;d&&this.setCheckoutUrl(d),p&&(this.firstElementChild.innerHTML=p),u&&this.classList.add(...u.split(" ")),g&&(this.setCheckoutUrl("#"),this.checkoutActionHandler=g.bind(this))}if(i.length){if(this.masElement.toggleResolved(s,i,n)){if(!this.classList.contains(bo)&&!this.classList.contains(yo)){let d=c.buildCheckoutURL(i,n);this.setCheckoutUrl(n.modal==="true"?"#":d)}return!0}}else{let d=new Error(`Not provided: ${n?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(s,d,n))return this.setCheckoutUrl("#"),!0}}setCheckoutUrl(){}clickHandler(i){}updateOptions(i={}){let n=le();if(!n)return!1;let{checkoutMarketSegment:a,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:p,promotionCode:u,quantity:g,wcsOsi:x}=n.collectCheckoutOptions(i);return oo(this,{checkoutMarketSegment:a,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:p,promotionCode:u,quantity:g,wcsOsi:x}),!0}}}var xr=class xr extends hi(HTMLAnchorElement){static createCheckoutLink(t={},r=""){return di(xr,t,r)}setCheckoutUrl(t){this.setAttribute("href",t)}get isCheckoutLink(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}}};m(xr,"is","checkout-link"),m(xr,"tag","a");var Ie=xr;window.customElements.get(Ie.is)||window.customElements.define(Ie.is,Ie,{extends:Ie.tag});var id="p_draft_landscape",nd="/store/",ad=new Map([["countrySpecific","cs"],["customerSegment","cs"],["quantity","q"],["authCode","code"],["checkoutPromoCode","apc"],["rurl","rUrl"],["curl","cUrl"],["ctxrturl","ctxRtUrl"],["country","co"],["language","lang"],["clientId","cli"],["context","ctx"],["productArrangementCode","pa"],["addonProductArrangementCode","ao"],["offerType","ot"],["marketSegment","ms"]]),Rn=new Set(["af","ai","ao","apc","appctxid","cli","co","cs","csm","ctx","ctxRtUrl","DCWATC","dp","fr","gsp","ijt","lang","lo","mal","ms","mv","mv2","nglwfdata","ot","otac","pa","pcid","promoid","q","rf","sc","scl","sdid","sid","spint","svar","th","thm","trackingid","usid","workflowid","context.guid","so.ca","so.su","so.tr","so.va"]),od=["env","workflowStep","clientId","country"],wo=new Set(["gid","gtoken","notifauditid","cohortid","productname","sdid","attimer","gcsrc","gcprog","gcprogcat","gcpagetype"]),Ao=e=>ad.get(e)??e;function pi(e,t,r){for(let[i,n]of Object.entries(e)){let a=Ao(i);n!=null&&r.has(a)&&t.set(a,n)}}function sd(e){switch(e){case dn.PRODUCTION:return"https://commerce.adobe.com";default:return"https://commerce-stg.adobe.com"}}function cd(e,t){for(let r in e){let i=e[r];for(let[n,a]of Object.entries(i)){if(a==null)continue;let o=Ao(n);t.set(`items[${r}][${o}]`,a)}}}function ld({url:e,modal:t,is3in1:r}){if(!r||!e?.searchParams)return e;e.searchParams.set("rtc","t"),e.searchParams.set("lo","sl");let i=e.searchParams.get("af");return e.searchParams.set("af",[i,"uc_new_user_iframe","uc_new_system_close"].filter(Boolean).join(",")),e.searchParams.get("cli")!=="doc_cloud"&&e.searchParams.set("cli",t===it.CRM?"creative":"mini_plans"),e}function dd(e){let t=new URLSearchParams(window.location.search),r={};wo.forEach(i=>{let n=t.get(i);n!==null&&(r[i]=n)}),Object.keys(r).length>0&&pi(r,e.searchParams,wo)}function So(e){hd(e);let{env:t,items:r,workflowStep:i,marketSegment:n,customerSegment:a,offerType:o,productArrangementCode:s,landscape:c,modal:l,is3in1:d,preselectPlan:p,...u}=e,g=new URL(sd(t));if(g.pathname=`${nd}${i}`,i!==oe.SEGMENTATION&&i!==oe.CHANGE_PLAN_TEAM_PLANS&&cd(r,g.searchParams),pi({...u},g.searchParams,Rn),dd(g),c===Ge.DRAFT&&pi({af:id},g.searchParams,Rn),i===oe.SEGMENTATION){let x={marketSegment:n,offerType:o,customerSegment:a,productArrangementCode:s,quantity:r?.[0]?.quantity,addonProductArrangementCode:s?r?.find(v=>v.productArrangementCode!==s)?.productArrangementCode:r?.[1]?.productArrangementCode};p?.toLowerCase()==="edu"?g.searchParams.set("ms","EDU"):p?.toLowerCase()==="team"&&g.searchParams.set("cs","TEAM"),pi(x,g.searchParams,Rn),g.searchParams.get("ot")==="PROMOTION"&&g.searchParams.delete("ot"),g=ld({url:g,modal:l,is3in1:d})}return g.toString()}function hd(e){for(let t of od)if(!e[t])throw new Error(`Argument "checkoutData" is not valid, missing: ${t}`);if(e.workflowStep!==oe.SEGMENTATION&&e.workflowStep!==oe.CHANGE_PLAN_TEAM_PLANS&&!e.items)throw new Error('Argument "checkoutData" is not valid, missing: items');return!0}var P=Object.freeze({checkoutClientId:"adobe_com",checkoutWorkflowStep:oe.EMAIL,country:"US",displayOldPrice:!1,displayPerUnit:!1,displayRecurrence:!0,displayTax:!1,displayPlanType:!1,env:Pe.PRODUCTION,forceTaxExclusive:!1,language:"en",entitlement:!1,extraOptions:{},modal:!1,promotionCode:"",quantity:1,alternativePrice:!1,wcsApiKey:"wcms-commerce-ims-ro-user-milo",wcsURL:"https://www.adobe.com/web_commerce_artifact",landscape:Ge.PUBLISHED});function _o({settings:e,providers:t}){function r(a,o){let{checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:p,quantity:u,preselectPlan:g,env:x}=e,v={checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:p,quantity:u,preselectPlan:g,env:x};if(o)for(let Ue of t.checkout)Ue(o,v);let{checkoutMarketSegment:A,checkoutWorkflowStep:N=c,imsCountry:M,country:w=M??l,language:I=d,quantity:j=u,entitlement:G,upgrade:X,modal:Z,perpetual:ce,promotionCode:K=p,wcsOsi:W,extraOptions:z,...ge}=Object.assign(v,o?.dataset??{},a??{}),ke=mr(N,oe,P.checkoutWorkflowStep);return v=ri({...ge,extraOptions:z,checkoutClientId:s,checkoutMarketSegment:A,country:w,quantity:Pt(j,P.quantity),checkoutWorkflowStep:ke,language:I,entitlement:_(G),upgrade:_(X),modal:Z,perpetual:_(ce),promotionCode:ni(K).effectivePromoCode,wcsOsi:oi(W),preselectPlan:g}),v}function i(a,o){if(!Array.isArray(a)||!a.length||!o)return"";let{env:s,landscape:c}=e,{checkoutClientId:l,checkoutMarketSegment:d,checkoutWorkflowStep:p,country:u,promotionCode:g,quantity:x,preselectPlan:v,ms:A,cs:N,...M}=r(o),w=document.querySelector("meta[name=mas-ff-3in1]"),I=Object.values(it).includes(o.modal)&&(!w||w.content!=="off"),j=window.frameElement||I?"if":"fp",[{productArrangementCode:G,marketSegments:[X],customerSegment:Z,offerType:ce}]=a,K=A??X??d,W=N??Z;v?.toLowerCase()==="edu"?K="EDU":v?.toLowerCase()==="team"&&(W="TEAM");let z={is3in1:I,checkoutPromoCode:g,clientId:l,context:j,country:u,env:s,items:[],marketSegment:K,customerSegment:W,offerType:ce,productArrangementCode:G,workflowStep:p,landscape:c,...M},ge=x[0]>1?x[0]:void 0;if(a.length===1){let{offerId:ke}=a[0];z.items.push({id:ke,quantity:ge})}else z.items.push(...a.map(({offerId:ke,productArrangementCode:Ue})=>({id:ke,quantity:ge,...I?{productArrangementCode:Ue}:{}})));return So(z)}let{createCheckoutLink:n}=Ie;return{CheckoutLink:Ie,CheckoutWorkflowStep:oe,buildCheckoutURL:i,collectCheckoutOptions:r,createCheckoutLink:n}}function pd({interval:e=200,maxAttempts:t=25}={}){let r=ue.module("ims");return new Promise(i=>{r.debug("Waing for IMS to be ready");let n=0;function a(){window.adobeIMS?.initialized?i():++n>t?(r.debug("Timeout"),i()):setTimeout(a,e)}a()})}function md(e){return e.then(()=>window.adobeIMS?.isSignedInUser()??!1)}function ud(e){let t=ue.module("ims");return e.then(r=>r?window.adobeIMS.getProfile().then(({countryCode:i})=>(t.debug("Got user country:",i),i),i=>{t.error("Unable to get user country:",i)}):null)}function To({}){let e=pd(),t=md(e),r=ud(t);return{imsReadyPromise:e,imsSignedInPromise:t,imsCountryPromise:r}}var Co=window.masPriceLiterals;function ko(e){if(Array.isArray(Co)){let t=i=>Co.find(n=>mn(n.lang,i)),r=t(e.language)??t(P.language);if(r)return Object.freeze(r)}return{}}var Mn=function(e,t){return Mn=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(r,i){r.__proto__=i}||function(r,i){for(var n in i)Object.prototype.hasOwnProperty.call(i,n)&&(r[n]=i[n])},Mn(e,t)};function vr(e,t){if(typeof t!="function"&&t!==null)throw new TypeError("Class extends value "+String(t)+" is not a constructor or null");Mn(e,t);function r(){this.constructor=e}e.prototype=t===null?Object.create(t):(r.prototype=t.prototype,new r)}var C=function(){return C=Object.assign||function(t){for(var r,i=1,n=arguments.length;i<n;i++){r=arguments[i];for(var a in r)Object.prototype.hasOwnProperty.call(r,a)&&(t[a]=r[a])}return t},C.apply(this,arguments)};function mi(e,t,r){if(r||arguments.length===2)for(var i=0,n=t.length,a;i<n;i++)(a||!(i in t))&&(a||(a=Array.prototype.slice.call(t,0,i)),a[i]=t[i]);return e.concat(a||Array.prototype.slice.call(t))}var S;(function(e){e[e.EXPECT_ARGUMENT_CLOSING_BRACE=1]="EXPECT_ARGUMENT_CLOSING_BRACE",e[e.EMPTY_ARGUMENT=2]="EMPTY_ARGUMENT",e[e.MALFORMED_ARGUMENT=3]="MALFORMED_ARGUMENT",e[e.EXPECT_ARGUMENT_TYPE=4]="EXPECT_ARGUMENT_TYPE",e[e.INVALID_ARGUMENT_TYPE=5]="INVALID_ARGUMENT_TYPE",e[e.EXPECT_ARGUMENT_STYLE=6]="EXPECT_ARGUMENT_STYLE",e[e.INVALID_NUMBER_SKELETON=7]="INVALID_NUMBER_SKELETON",e[e.INVALID_DATE_TIME_SKELETON=8]="INVALID_DATE_TIME_SKELETON",e[e.EXPECT_NUMBER_SKELETON=9]="EXPECT_NUMBER_SKELETON",e[e.EXPECT_DATE_TIME_SKELETON=10]="EXPECT_DATE_TIME_SKELETON",e[e.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE=11]="UNCLOSED_QUOTE_IN_ARGUMENT_STYLE",e[e.EXPECT_SELECT_ARGUMENT_OPTIONS=12]="EXPECT_SELECT_ARGUMENT_OPTIONS",e[e.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE=13]="EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE=14]="INVALID_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR=15]="EXPECT_SELECT_ARGUMENT_SELECTOR",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR=16]="EXPECT_PLURAL_ARGUMENT_SELECTOR",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT=17]="EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT=18]="EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT",e[e.INVALID_PLURAL_ARGUMENT_SELECTOR=19]="INVALID_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_PLURAL_ARGUMENT_SELECTOR=20]="DUPLICATE_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_SELECT_ARGUMENT_SELECTOR=21]="DUPLICATE_SELECT_ARGUMENT_SELECTOR",e[e.MISSING_OTHER_CLAUSE=22]="MISSING_OTHER_CLAUSE",e[e.INVALID_TAG=23]="INVALID_TAG",e[e.INVALID_TAG_NAME=25]="INVALID_TAG_NAME",e[e.UNMATCHED_CLOSING_TAG=26]="UNMATCHED_CLOSING_TAG",e[e.UNCLOSED_TAG=27]="UNCLOSED_TAG"})(S||(S={}));var U;(function(e){e[e.literal=0]="literal",e[e.argument=1]="argument",e[e.number=2]="number",e[e.date=3]="date",e[e.time=4]="time",e[e.select=5]="select",e[e.plural=6]="plural",e[e.pound=7]="pound",e[e.tag=8]="tag"})(U||(U={}));var ct;(function(e){e[e.number=0]="number",e[e.dateTime=1]="dateTime"})(ct||(ct={}));function On(e){return e.type===U.literal}function Po(e){return e.type===U.argument}function ui(e){return e.type===U.number}function gi(e){return e.type===U.date}function fi(e){return e.type===U.time}function xi(e){return e.type===U.select}function vi(e){return e.type===U.plural}function Lo(e){return e.type===U.pound}function bi(e){return e.type===U.tag}function yi(e){return!!(e&&typeof e=="object"&&e.type===ct.number)}function br(e){return!!(e&&typeof e=="object"&&e.type===ct.dateTime)}var Nn=/[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;var gd=/(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;function Ro(e){var t={};return e.replace(gd,function(r){var i=r.length;switch(r[0]){case"G":t.era=i===4?"long":i===5?"narrow":"short";break;case"y":t.year=i===2?"2-digit":"numeric";break;case"Y":case"u":case"U":case"r":throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");case"q":case"Q":throw new RangeError("`q/Q` (quarter) patterns are not supported");case"M":case"L":t.month=["numeric","2-digit","short","long","narrow"][i-1];break;case"w":case"W":throw new RangeError("`w/W` (week) patterns are not supported");case"d":t.day=["numeric","2-digit"][i-1];break;case"D":case"F":case"g":throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");case"E":t.weekday=i===4?"short":i===5?"narrow":"short";break;case"e":if(i<4)throw new RangeError("`e..eee` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"c":if(i<4)throw new RangeError("`c..ccc` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"a":t.hour12=!0;break;case"b":case"B":throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");case"h":t.hourCycle="h12",t.hour=["numeric","2-digit"][i-1];break;case"H":t.hourCycle="h23",t.hour=["numeric","2-digit"][i-1];break;case"K":t.hourCycle="h11",t.hour=["numeric","2-digit"][i-1];break;case"k":t.hourCycle="h24",t.hour=["numeric","2-digit"][i-1];break;case"j":case"J":case"C":throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");case"m":t.minute=["numeric","2-digit"][i-1];break;case"s":t.second=["numeric","2-digit"][i-1];break;case"S":case"A":throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");case"z":t.timeZoneName=i<4?"short":"long";break;case"Z":case"O":case"v":case"V":case"X":case"x":throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead")}return""}),t}var Mo=/[\t-\r \x85\u200E\u200F\u2028\u2029]/i;function Do(e){if(e.length===0)throw new Error("Number skeleton cannot be empty");for(var t=e.split(Mo).filter(function(u){return u.length>0}),r=[],i=0,n=t;i<n.length;i++){var a=n[i],o=a.split("/");if(o.length===0)throw new Error("Invalid number skeleton");for(var s=o[0],c=o.slice(1),l=0,d=c;l<d.length;l++){var p=d[l];if(p.length===0)throw new Error("Invalid number skeleton")}r.push({stem:s,options:c})}return r}function fd(e){return e.replace(/^(.*?)-/,"")}var Oo=/^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,zo=/^(@+)?(\+|#+)?[rs]?$/g,xd=/(\*)(0+)|(#+)(0+)|(0+)/g,$o=/^(0+)$/;function No(e){var t={};return e[e.length-1]==="r"?t.roundingPriority="morePrecision":e[e.length-1]==="s"&&(t.roundingPriority="lessPrecision"),e.replace(zo,function(r,i,n){return typeof n!="string"?(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length):n==="+"?t.minimumSignificantDigits=i.length:i[0]==="#"?t.maximumSignificantDigits=i.length:(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length+(typeof n=="string"?n.length:0)),""}),t}function Ho(e){switch(e){case"sign-auto":return{signDisplay:"auto"};case"sign-accounting":case"()":return{currencySign:"accounting"};case"sign-always":case"+!":return{signDisplay:"always"};case"sign-accounting-always":case"()!":return{signDisplay:"always",currencySign:"accounting"};case"sign-except-zero":case"+?":return{signDisplay:"exceptZero"};case"sign-accounting-except-zero":case"()?":return{signDisplay:"exceptZero",currencySign:"accounting"};case"sign-never":case"+_":return{signDisplay:"never"}}}function vd(e){var t;if(e[0]==="E"&&e[1]==="E"?(t={notation:"engineering"},e=e.slice(2)):e[0]==="E"&&(t={notation:"scientific"},e=e.slice(1)),t){var r=e.slice(0,2);if(r==="+!"?(t.signDisplay="always",e=e.slice(2)):r==="+?"&&(t.signDisplay="exceptZero",e=e.slice(2)),!$o.test(e))throw new Error("Malformed concise eng/scientific notation");t.minimumIntegerDigits=e.length}return t}function Io(e){var t={},r=Ho(e);return r||t}function Bo(e){for(var t={},r=0,i=e;r<i.length;r++){var n=i[r];switch(n.stem){case"percent":case"%":t.style="percent";continue;case"%x100":t.style="percent",t.scale=100;continue;case"currency":t.style="currency",t.currency=n.options[0];continue;case"group-off":case",_":t.useGrouping=!1;continue;case"precision-integer":case".":t.maximumFractionDigits=0;continue;case"measure-unit":case"unit":t.style="unit",t.unit=fd(n.options[0]);continue;case"compact-short":case"K":t.notation="compact",t.compactDisplay="short";continue;case"compact-long":case"KK":t.notation="compact",t.compactDisplay="long";continue;case"scientific":t=C(C(C({},t),{notation:"scientific"}),n.options.reduce(function(c,l){return C(C({},c),Io(l))},{}));continue;case"engineering":t=C(C(C({},t),{notation:"engineering"}),n.options.reduce(function(c,l){return C(C({},c),Io(l))},{}));continue;case"notation-simple":t.notation="standard";continue;case"unit-width-narrow":t.currencyDisplay="narrowSymbol",t.unitDisplay="narrow";continue;case"unit-width-short":t.currencyDisplay="code",t.unitDisplay="short";continue;case"unit-width-full-name":t.currencyDisplay="name",t.unitDisplay="long";continue;case"unit-width-iso-code":t.currencyDisplay="symbol";continue;case"scale":t.scale=parseFloat(n.options[0]);continue;case"integer-width":if(n.options.length>1)throw new RangeError("integer-width stems only accept a single optional option");n.options[0].replace(xd,function(c,l,d,p,u,g){if(l)t.minimumIntegerDigits=d.length;else{if(p&&u)throw new Error("We currently do not support maximum integer digits");if(g)throw new Error("We currently do not support exact integer digits")}return""});continue}if($o.test(n.stem)){t.minimumIntegerDigits=n.stem.length;continue}if(Oo.test(n.stem)){if(n.options.length>1)throw new RangeError("Fraction-precision stems only accept a single optional option");n.stem.replace(Oo,function(c,l,d,p,u,g){return d==="*"?t.minimumFractionDigits=l.length:p&&p[0]==="#"?t.maximumFractionDigits=p.length:u&&g?(t.minimumFractionDigits=u.length,t.maximumFractionDigits=u.length+g.length):(t.minimumFractionDigits=l.length,t.maximumFractionDigits=l.length),""});var a=n.options[0];a==="w"?t=C(C({},t),{trailingZeroDisplay:"stripIfInteger"}):a&&(t=C(C({},t),No(a)));continue}if(zo.test(n.stem)){t=C(C({},t),No(n.stem));continue}var o=Ho(n.stem);o&&(t=C(C({},t),o));var s=vd(n.stem);s&&(t=C(C({},t),s))}return t}var yr={AX:["H"],BQ:["H"],CP:["H"],CZ:["H"],DK:["H"],FI:["H"],ID:["H"],IS:["H"],ML:["H"],NE:["H"],RU:["H"],SE:["H"],SJ:["H"],SK:["H"],AS:["h","H"],BT:["h","H"],DJ:["h","H"],ER:["h","H"],GH:["h","H"],IN:["h","H"],LS:["h","H"],PG:["h","H"],PW:["h","H"],SO:["h","H"],TO:["h","H"],VU:["h","H"],WS:["h","H"],"001":["H","h"],AL:["h","H","hB"],TD:["h","H","hB"],"ca-ES":["H","h","hB"],CF:["H","h","hB"],CM:["H","h","hB"],"fr-CA":["H","h","hB"],"gl-ES":["H","h","hB"],"it-CH":["H","h","hB"],"it-IT":["H","h","hB"],LU:["H","h","hB"],NP:["H","h","hB"],PF:["H","h","hB"],SC:["H","h","hB"],SM:["H","h","hB"],SN:["H","h","hB"],TF:["H","h","hB"],VA:["H","h","hB"],CY:["h","H","hb","hB"],GR:["h","H","hb","hB"],CO:["h","H","hB","hb"],DO:["h","H","hB","hb"],KP:["h","H","hB","hb"],KR:["h","H","hB","hb"],NA:["h","H","hB","hb"],PA:["h","H","hB","hb"],PR:["h","H","hB","hb"],VE:["h","H","hB","hb"],AC:["H","h","hb","hB"],AI:["H","h","hb","hB"],BW:["H","h","hb","hB"],BZ:["H","h","hb","hB"],CC:["H","h","hb","hB"],CK:["H","h","hb","hB"],CX:["H","h","hb","hB"],DG:["H","h","hb","hB"],FK:["H","h","hb","hB"],GB:["H","h","hb","hB"],GG:["H","h","hb","hB"],GI:["H","h","hb","hB"],IE:["H","h","hb","hB"],IM:["H","h","hb","hB"],IO:["H","h","hb","hB"],JE:["H","h","hb","hB"],LT:["H","h","hb","hB"],MK:["H","h","hb","hB"],MN:["H","h","hb","hB"],MS:["H","h","hb","hB"],NF:["H","h","hb","hB"],NG:["H","h","hb","hB"],NR:["H","h","hb","hB"],NU:["H","h","hb","hB"],PN:["H","h","hb","hB"],SH:["H","h","hb","hB"],SX:["H","h","hb","hB"],TA:["H","h","hb","hB"],ZA:["H","h","hb","hB"],"af-ZA":["H","h","hB","hb"],AR:["H","h","hB","hb"],CL:["H","h","hB","hb"],CR:["H","h","hB","hb"],CU:["H","h","hB","hb"],EA:["H","h","hB","hb"],"es-BO":["H","h","hB","hb"],"es-BR":["H","h","hB","hb"],"es-EC":["H","h","hB","hb"],"es-ES":["H","h","hB","hb"],"es-GQ":["H","h","hB","hb"],"es-PE":["H","h","hB","hb"],GT:["H","h","hB","hb"],HN:["H","h","hB","hb"],IC:["H","h","hB","hb"],KG:["H","h","hB","hb"],KM:["H","h","hB","hb"],LK:["H","h","hB","hb"],MA:["H","h","hB","hb"],MX:["H","h","hB","hb"],NI:["H","h","hB","hb"],PY:["H","h","hB","hb"],SV:["H","h","hB","hb"],UY:["H","h","hB","hb"],JP:["H","h","K"],AD:["H","hB"],AM:["H","hB"],AO:["H","hB"],AT:["H","hB"],AW:["H","hB"],BE:["H","hB"],BF:["H","hB"],BJ:["H","hB"],BL:["H","hB"],BR:["H","hB"],CG:["H","hB"],CI:["H","hB"],CV:["H","hB"],DE:["H","hB"],EE:["H","hB"],FR:["H","hB"],GA:["H","hB"],GF:["H","hB"],GN:["H","hB"],GP:["H","hB"],GW:["H","hB"],HR:["H","hB"],IL:["H","hB"],IT:["H","hB"],KZ:["H","hB"],MC:["H","hB"],MD:["H","hB"],MF:["H","hB"],MQ:["H","hB"],MZ:["H","hB"],NC:["H","hB"],NL:["H","hB"],PM:["H","hB"],PT:["H","hB"],RE:["H","hB"],RO:["H","hB"],SI:["H","hB"],SR:["H","hB"],ST:["H","hB"],TG:["H","hB"],TR:["H","hB"],WF:["H","hB"],YT:["H","hB"],BD:["h","hB","H"],PK:["h","hB","H"],AZ:["H","hB","h"],BA:["H","hB","h"],BG:["H","hB","h"],CH:["H","hB","h"],GE:["H","hB","h"],LI:["H","hB","h"],ME:["H","hB","h"],RS:["H","hB","h"],UA:["H","hB","h"],UZ:["H","hB","h"],XK:["H","hB","h"],AG:["h","hb","H","hB"],AU:["h","hb","H","hB"],BB:["h","hb","H","hB"],BM:["h","hb","H","hB"],BS:["h","hb","H","hB"],CA:["h","hb","H","hB"],DM:["h","hb","H","hB"],"en-001":["h","hb","H","hB"],FJ:["h","hb","H","hB"],FM:["h","hb","H","hB"],GD:["h","hb","H","hB"],GM:["h","hb","H","hB"],GU:["h","hb","H","hB"],GY:["h","hb","H","hB"],JM:["h","hb","H","hB"],KI:["h","hb","H","hB"],KN:["h","hb","H","hB"],KY:["h","hb","H","hB"],LC:["h","hb","H","hB"],LR:["h","hb","H","hB"],MH:["h","hb","H","hB"],MP:["h","hb","H","hB"],MW:["h","hb","H","hB"],NZ:["h","hb","H","hB"],SB:["h","hb","H","hB"],SG:["h","hb","H","hB"],SL:["h","hb","H","hB"],SS:["h","hb","H","hB"],SZ:["h","hb","H","hB"],TC:["h","hb","H","hB"],TT:["h","hb","H","hB"],UM:["h","hb","H","hB"],US:["h","hb","H","hB"],VC:["h","hb","H","hB"],VG:["h","hb","H","hB"],VI:["h","hb","H","hB"],ZM:["h","hb","H","hB"],BO:["H","hB","h","hb"],EC:["H","hB","h","hb"],ES:["H","hB","h","hb"],GQ:["H","hB","h","hb"],PE:["H","hB","h","hb"],AE:["h","hB","hb","H"],"ar-001":["h","hB","hb","H"],BH:["h","hB","hb","H"],DZ:["h","hB","hb","H"],EG:["h","hB","hb","H"],EH:["h","hB","hb","H"],HK:["h","hB","hb","H"],IQ:["h","hB","hb","H"],JO:["h","hB","hb","H"],KW:["h","hB","hb","H"],LB:["h","hB","hb","H"],LY:["h","hB","hb","H"],MO:["h","hB","hb","H"],MR:["h","hB","hb","H"],OM:["h","hB","hb","H"],PH:["h","hB","hb","H"],PS:["h","hB","hb","H"],QA:["h","hB","hb","H"],SA:["h","hB","hb","H"],SD:["h","hB","hb","H"],SY:["h","hB","hb","H"],TN:["h","hB","hb","H"],YE:["h","hB","hb","H"],AF:["H","hb","hB","h"],LA:["H","hb","hB","h"],CN:["H","hB","hb","h"],LV:["H","hB","hb","h"],TL:["H","hB","hb","h"],"zu-ZA":["H","hB","hb","h"],CD:["hB","H"],IR:["hB","H"],"hi-IN":["hB","h","H"],"kn-IN":["hB","h","H"],"ml-IN":["hB","h","H"],"te-IN":["hB","h","H"],KH:["hB","h","H","hb"],"ta-IN":["hB","h","hb","H"],BN:["hb","hB","h","H"],MY:["hb","hB","h","H"],ET:["hB","hb","h","H"],"gu-IN":["hB","hb","h","H"],"mr-IN":["hB","hb","h","H"],"pa-IN":["hB","hb","h","H"],TW:["hB","hb","h","H"],KE:["hB","hb","H","h"],MM:["hB","hb","H","h"],TZ:["hB","hb","H","h"],UG:["hB","hb","H","h"]};function Uo(e,t){for(var r="",i=0;i<e.length;i++){var n=e.charAt(i);if(n==="j"){for(var a=0;i+1<e.length&&e.charAt(i+1)===n;)a++,i++;var o=1+(a&1),s=a<2?1:3+(a>>1),c="a",l=bd(t);for((l=="H"||l=="k")&&(s=0);s-- >0;)r+=c;for(;o-- >0;)r=l+r}else n==="J"?r+="H":r+=n}return r}function bd(e){var t=e.hourCycle;if(t===void 0&&e.hourCycles&&e.hourCycles.length&&(t=e.hourCycles[0]),t)switch(t){case"h24":return"k";case"h23":return"H";case"h12":return"h";case"h11":return"K";default:throw new Error("Invalid hourCycle")}var r=e.language,i;r!=="root"&&(i=e.maximize().region);var n=yr[i||""]||yr[r||""]||yr["".concat(r,"-001")]||yr["001"];return n[0]}var In,yd=new RegExp("^".concat(Nn.source,"*")),Ed=new RegExp("".concat(Nn.source,"*$"));function k(e,t){return{start:e,end:t}}var wd=!!String.prototype.startsWith,Ad=!!String.fromCodePoint,Sd=!!Object.fromEntries,_d=!!String.prototype.codePointAt,Td=!!String.prototype.trimStart,Cd=!!String.prototype.trimEnd,kd=!!Number.isSafeInteger,Pd=kd?Number.isSafeInteger:function(e){return typeof e=="number"&&isFinite(e)&&Math.floor(e)===e&&Math.abs(e)<=9007199254740991},zn=!0;try{Fo=jo("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),zn=((In=Fo.exec("a"))===null||In===void 0?void 0:In[0])==="a"}catch{zn=!1}var Fo,Go=wd?function(t,r,i){return t.startsWith(r,i)}:function(t,r,i){return t.slice(i,i+r.length)===r},$n=Ad?String.fromCodePoint:function(){for(var t=[],r=0;r<arguments.length;r++)t[r]=arguments[r];for(var i="",n=t.length,a=0,o;n>a;){if(o=t[a++],o>1114111)throw RangeError(o+" is not a valid code point");i+=o<65536?String.fromCharCode(o):String.fromCharCode(((o-=65536)>>10)+55296,o%1024+56320)}return i},qo=Sd?Object.fromEntries:function(t){for(var r={},i=0,n=t;i<n.length;i++){var a=n[i],o=a[0],s=a[1];r[o]=s}return r},Vo=_d?function(t,r){return t.codePointAt(r)}:function(t,r){var i=t.length;if(!(r<0||r>=i)){var n=t.charCodeAt(r),a;return n<55296||n>56319||r+1===i||(a=t.charCodeAt(r+1))<56320||a>57343?n:(n-55296<<10)+(a-56320)+65536}},Ld=Td?function(t){return t.trimStart()}:function(t){return t.replace(yd,"")},Rd=Cd?function(t){return t.trimEnd()}:function(t){return t.replace(Ed,"")};function jo(e,t){return new RegExp(e,t)}var Hn;zn?(Dn=jo("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),Hn=function(t,r){var i;Dn.lastIndex=r;var n=Dn.exec(t);return(i=n[1])!==null&&i!==void 0?i:""}):Hn=function(t,r){for(var i=[];;){var n=Vo(t,r);if(n===void 0||Yo(n)||Nd(n))break;i.push(n),r+=n>=65536?2:1}return $n.apply(void 0,i)};var Dn,Wo=function(){function e(t,r){r===void 0&&(r={}),this.message=t,this.position={offset:0,line:1,column:1},this.ignoreTag=!!r.ignoreTag,this.locale=r.locale,this.requiresOtherClause=!!r.requiresOtherClause,this.shouldParseSkeletons=!!r.shouldParseSkeletons}return e.prototype.parse=function(){if(this.offset()!==0)throw Error("parser can only be used once");return this.parseMessage(0,"",!1)},e.prototype.parseMessage=function(t,r,i){for(var n=[];!this.isEOF();){var a=this.char();if(a===123){var o=this.parseArgument(t,i);if(o.err)return o;n.push(o.val)}else{if(a===125&&t>0)break;if(a===35&&(r==="plural"||r==="selectordinal")){var s=this.clonePosition();this.bump(),n.push({type:U.pound,location:k(s,this.clonePosition())})}else if(a===60&&!this.ignoreTag&&this.peek()===47){if(i)break;return this.error(S.UNMATCHED_CLOSING_TAG,k(this.clonePosition(),this.clonePosition()))}else if(a===60&&!this.ignoreTag&&Bn(this.peek()||0)){var o=this.parseTag(t,r);if(o.err)return o;n.push(o.val)}else{var o=this.parseLiteral(t,r);if(o.err)return o;n.push(o.val)}}}return{val:n,err:null}},e.prototype.parseTag=function(t,r){var i=this.clonePosition();this.bump();var n=this.parseTagName();if(this.bumpSpace(),this.bumpIf("/>"))return{val:{type:U.literal,value:"<".concat(n,"/>"),location:k(i,this.clonePosition())},err:null};if(this.bumpIf(">")){var a=this.parseMessage(t+1,r,!0);if(a.err)return a;var o=a.val,s=this.clonePosition();if(this.bumpIf("</")){if(this.isEOF()||!Bn(this.char()))return this.error(S.INVALID_TAG,k(s,this.clonePosition()));var c=this.clonePosition(),l=this.parseTagName();return n!==l?this.error(S.UNMATCHED_CLOSING_TAG,k(c,this.clonePosition())):(this.bumpSpace(),this.bumpIf(">")?{val:{type:U.tag,value:n,children:o,location:k(i,this.clonePosition())},err:null}:this.error(S.INVALID_TAG,k(s,this.clonePosition())))}else return this.error(S.UNCLOSED_TAG,k(i,this.clonePosition()))}else return this.error(S.INVALID_TAG,k(i,this.clonePosition()))},e.prototype.parseTagName=function(){var t=this.offset();for(this.bump();!this.isEOF()&&Od(this.char());)this.bump();return this.message.slice(t,this.offset())},e.prototype.parseLiteral=function(t,r){for(var i=this.clonePosition(),n="";;){var a=this.tryParseQuote(r);if(a){n+=a;continue}var o=this.tryParseUnquoted(t,r);if(o){n+=o;continue}var s=this.tryParseLeftAngleBracket();if(s){n+=s;continue}break}var c=k(i,this.clonePosition());return{val:{type:U.literal,value:n,location:c},err:null}},e.prototype.tryParseLeftAngleBracket=function(){return!this.isEOF()&&this.char()===60&&(this.ignoreTag||!Md(this.peek()||0))?(this.bump(),"<"):null},e.prototype.tryParseQuote=function(t){if(this.isEOF()||this.char()!==39)return null;switch(this.peek()){case 39:return this.bump(),this.bump(),"'";case 123:case 60:case 62:case 125:break;case 35:if(t==="plural"||t==="selectordinal")break;return null;default:return null}this.bump();var r=[this.char()];for(this.bump();!this.isEOF();){var i=this.char();if(i===39)if(this.peek()===39)r.push(39),this.bump();else{this.bump();break}else r.push(i);this.bump()}return $n.apply(void 0,r)},e.prototype.tryParseUnquoted=function(t,r){if(this.isEOF())return null;var i=this.char();return i===60||i===123||i===35&&(r==="plural"||r==="selectordinal")||i===125&&t>0?null:(this.bump(),$n(i))},e.prototype.parseArgument=function(t,r){var i=this.clonePosition();if(this.bump(),this.bumpSpace(),this.isEOF())return this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition()));if(this.char()===125)return this.bump(),this.error(S.EMPTY_ARGUMENT,k(i,this.clonePosition()));var n=this.parseIdentifierIfPossible().value;if(!n)return this.error(S.MALFORMED_ARGUMENT,k(i,this.clonePosition()));if(this.bumpSpace(),this.isEOF())return this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition()));switch(this.char()){case 125:return this.bump(),{val:{type:U.argument,value:n,location:k(i,this.clonePosition())},err:null};case 44:return this.bump(),this.bumpSpace(),this.isEOF()?this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(i,this.clonePosition())):this.parseArgumentOptions(t,r,n,i);default:return this.error(S.MALFORMED_ARGUMENT,k(i,this.clonePosition()))}},e.prototype.parseIdentifierIfPossible=function(){var t=this.clonePosition(),r=this.offset(),i=Hn(this.message,r),n=r+i.length;this.bumpTo(n);var a=this.clonePosition(),o=k(t,a);return{value:i,location:o}},e.prototype.parseArgumentOptions=function(t,r,i,n){var a,o=this.clonePosition(),s=this.parseIdentifierIfPossible().value,c=this.clonePosition();switch(s){case"":return this.error(S.EXPECT_ARGUMENT_TYPE,k(o,c));case"number":case"date":case"time":{this.bumpSpace();var l=null;if(this.bumpIf(",")){this.bumpSpace();var d=this.clonePosition(),p=this.parseSimpleArgStyleIfPossible();if(p.err)return p;var u=Rd(p.val);if(u.length===0)return this.error(S.EXPECT_ARGUMENT_STYLE,k(this.clonePosition(),this.clonePosition()));var g=k(d,this.clonePosition());l={style:u,styleLocation:g}}var x=this.tryParseArgumentClose(n);if(x.err)return x;var v=k(n,this.clonePosition());if(l&&Go(l?.style,"::",0)){var A=Ld(l.style.slice(2));if(s==="number"){var p=this.parseNumberSkeletonFromString(A,l.styleLocation);return p.err?p:{val:{type:U.number,value:i,location:v,style:p.val},err:null}}else{if(A.length===0)return this.error(S.EXPECT_DATE_TIME_SKELETON,v);var N=A;this.locale&&(N=Uo(A,this.locale));var u={type:ct.dateTime,pattern:N,location:l.styleLocation,parsedOptions:this.shouldParseSkeletons?Ro(N):{}},M=s==="date"?U.date:U.time;return{val:{type:M,value:i,location:v,style:u},err:null}}}return{val:{type:s==="number"?U.number:s==="date"?U.date:U.time,value:i,location:v,style:(a=l?.style)!==null&&a!==void 0?a:null},err:null}}case"plural":case"selectordinal":case"select":{var w=this.clonePosition();if(this.bumpSpace(),!this.bumpIf(","))return this.error(S.EXPECT_SELECT_ARGUMENT_OPTIONS,k(w,C({},w)));this.bumpSpace();var I=this.parseIdentifierIfPossible(),j=0;if(s!=="select"&&I.value==="offset"){if(!this.bumpIf(":"))return this.error(S.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,k(this.clonePosition(),this.clonePosition()));this.bumpSpace();var p=this.tryParseDecimalInteger(S.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,S.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);if(p.err)return p;this.bumpSpace(),I=this.parseIdentifierIfPossible(),j=p.val}var G=this.tryParsePluralOrSelectOptions(t,s,r,I);if(G.err)return G;var x=this.tryParseArgumentClose(n);if(x.err)return x;var X=k(n,this.clonePosition());return s==="select"?{val:{type:U.select,value:i,options:qo(G.val),location:X},err:null}:{val:{type:U.plural,value:i,options:qo(G.val),offset:j,pluralType:s==="plural"?"cardinal":"ordinal",location:X},err:null}}default:return this.error(S.INVALID_ARGUMENT_TYPE,k(o,c))}},e.prototype.tryParseArgumentClose=function(t){return this.isEOF()||this.char()!==125?this.error(S.EXPECT_ARGUMENT_CLOSING_BRACE,k(t,this.clonePosition())):(this.bump(),{val:!0,err:null})},e.prototype.parseSimpleArgStyleIfPossible=function(){for(var t=0,r=this.clonePosition();!this.isEOF();){var i=this.char();switch(i){case 39:{this.bump();var n=this.clonePosition();if(!this.bumpUntil("'"))return this.error(S.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE,k(n,this.clonePosition()));this.bump();break}case 123:{t+=1,this.bump();break}case 125:{if(t>0)t-=1;else return{val:this.message.slice(r.offset,this.offset()),err:null};break}default:this.bump();break}}return{val:this.message.slice(r.offset,this.offset()),err:null}},e.prototype.parseNumberSkeletonFromString=function(t,r){var i=[];try{i=Do(t)}catch{return this.error(S.INVALID_NUMBER_SKELETON,r)}return{val:{type:ct.number,tokens:i,location:r,parsedOptions:this.shouldParseSkeletons?Bo(i):{}},err:null}},e.prototype.tryParsePluralOrSelectOptions=function(t,r,i,n){for(var a,o=!1,s=[],c=new Set,l=n.value,d=n.location;;){if(l.length===0){var p=this.clonePosition();if(r!=="select"&&this.bumpIf("=")){var u=this.tryParseDecimalInteger(S.EXPECT_PLURAL_ARGUMENT_SELECTOR,S.INVALID_PLURAL_ARGUMENT_SELECTOR);if(u.err)return u;d=k(p,this.clonePosition()),l=this.message.slice(p.offset,this.offset())}else break}if(c.has(l))return this.error(r==="select"?S.DUPLICATE_SELECT_ARGUMENT_SELECTOR:S.DUPLICATE_PLURAL_ARGUMENT_SELECTOR,d);l==="other"&&(o=!0),this.bumpSpace();var g=this.clonePosition();if(!this.bumpIf("{"))return this.error(r==="select"?S.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT:S.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT,k(this.clonePosition(),this.clonePosition()));var x=this.parseMessage(t+1,r,i);if(x.err)return x;var v=this.tryParseArgumentClose(g);if(v.err)return v;s.push([l,{value:x.val,location:k(g,this.clonePosition())}]),c.add(l),this.bumpSpace(),a=this.parseIdentifierIfPossible(),l=a.value,d=a.location}return s.length===0?this.error(r==="select"?S.EXPECT_SELECT_ARGUMENT_SELECTOR:S.EXPECT_PLURAL_ARGUMENT_SELECTOR,k(this.clonePosition(),this.clonePosition())):this.requiresOtherClause&&!o?this.error(S.MISSING_OTHER_CLAUSE,k(this.clonePosition(),this.clonePosition())):{val:s,err:null}},e.prototype.tryParseDecimalInteger=function(t,r){var i=1,n=this.clonePosition();this.bumpIf("+")||this.bumpIf("-")&&(i=-1);for(var a=!1,o=0;!this.isEOF();){var s=this.char();if(s>=48&&s<=57)a=!0,o=o*10+(s-48),this.bump();else break}var c=k(n,this.clonePosition());return a?(o*=i,Pd(o)?{val:o,err:null}:this.error(r,c)):this.error(t,c)},e.prototype.offset=function(){return this.position.offset},e.prototype.isEOF=function(){return this.offset()===this.message.length},e.prototype.clonePosition=function(){return{offset:this.position.offset,line:this.position.line,column:this.position.column}},e.prototype.char=function(){var t=this.position.offset;if(t>=this.message.length)throw Error("out of bound");var r=Vo(this.message,t);if(r===void 0)throw Error("Offset ".concat(t," is at invalid UTF-16 code unit boundary"));return r},e.prototype.error=function(t,r){return{val:null,err:{kind:t,message:this.message,location:r}}},e.prototype.bump=function(){if(!this.isEOF()){var t=this.char();t===10?(this.position.line+=1,this.position.column=1,this.position.offset+=1):(this.position.column+=1,this.position.offset+=t<65536?1:2)}},e.prototype.bumpIf=function(t){if(Go(this.message,t,this.offset())){for(var r=0;r<t.length;r++)this.bump();return!0}return!1},e.prototype.bumpUntil=function(t){var r=this.offset(),i=this.message.indexOf(t,r);return i>=0?(this.bumpTo(i),!0):(this.bumpTo(this.message.length),!1)},e.prototype.bumpTo=function(t){if(this.offset()>t)throw Error("targetOffset ".concat(t," must be greater than or equal to the current offset ").concat(this.offset()));for(t=Math.min(t,this.message.length);;){var r=this.offset();if(r===t)break;if(r>t)throw Error("targetOffset ".concat(t," is at invalid UTF-16 code unit boundary"));if(this.bump(),this.isEOF())break}},e.prototype.bumpSpace=function(){for(;!this.isEOF()&&Yo(this.char());)this.bump()},e.prototype.peek=function(){if(this.isEOF())return null;var t=this.char(),r=this.offset(),i=this.message.charCodeAt(r+(t>=65536?2:1));return i??null},e}();function Bn(e){return e>=97&&e<=122||e>=65&&e<=90}function Md(e){return Bn(e)||e===47}function Od(e){return e===45||e===46||e>=48&&e<=57||e===95||e>=97&&e<=122||e>=65&&e<=90||e==183||e>=192&&e<=214||e>=216&&e<=246||e>=248&&e<=893||e>=895&&e<=8191||e>=8204&&e<=8205||e>=8255&&e<=8256||e>=8304&&e<=8591||e>=11264&&e<=12271||e>=12289&&e<=55295||e>=63744&&e<=64975||e>=65008&&e<=65533||e>=65536&&e<=983039}function Yo(e){return e>=9&&e<=13||e===32||e===133||e>=8206&&e<=8207||e===8232||e===8233}function Nd(e){return e>=33&&e<=35||e===36||e>=37&&e<=39||e===40||e===41||e===42||e===43||e===44||e===45||e>=46&&e<=47||e>=58&&e<=59||e>=60&&e<=62||e>=63&&e<=64||e===91||e===92||e===93||e===94||e===96||e===123||e===124||e===125||e===126||e===161||e>=162&&e<=165||e===166||e===167||e===169||e===171||e===172||e===174||e===176||e===177||e===182||e===187||e===191||e===215||e===247||e>=8208&&e<=8213||e>=8214&&e<=8215||e===8216||e===8217||e===8218||e>=8219&&e<=8220||e===8221||e===8222||e===8223||e>=8224&&e<=8231||e>=8240&&e<=8248||e===8249||e===8250||e>=8251&&e<=8254||e>=8257&&e<=8259||e===8260||e===8261||e===8262||e>=8263&&e<=8273||e===8274||e===8275||e>=8277&&e<=8286||e>=8592&&e<=8596||e>=8597&&e<=8601||e>=8602&&e<=8603||e>=8604&&e<=8607||e===8608||e>=8609&&e<=8610||e===8611||e>=8612&&e<=8613||e===8614||e>=8615&&e<=8621||e===8622||e>=8623&&e<=8653||e>=8654&&e<=8655||e>=8656&&e<=8657||e===8658||e===8659||e===8660||e>=8661&&e<=8691||e>=8692&&e<=8959||e>=8960&&e<=8967||e===8968||e===8969||e===8970||e===8971||e>=8972&&e<=8991||e>=8992&&e<=8993||e>=8994&&e<=9e3||e===9001||e===9002||e>=9003&&e<=9083||e===9084||e>=9085&&e<=9114||e>=9115&&e<=9139||e>=9140&&e<=9179||e>=9180&&e<=9185||e>=9186&&e<=9254||e>=9255&&e<=9279||e>=9280&&e<=9290||e>=9291&&e<=9311||e>=9472&&e<=9654||e===9655||e>=9656&&e<=9664||e===9665||e>=9666&&e<=9719||e>=9720&&e<=9727||e>=9728&&e<=9838||e===9839||e>=9840&&e<=10087||e===10088||e===10089||e===10090||e===10091||e===10092||e===10093||e===10094||e===10095||e===10096||e===10097||e===10098||e===10099||e===10100||e===10101||e>=10132&&e<=10175||e>=10176&&e<=10180||e===10181||e===10182||e>=10183&&e<=10213||e===10214||e===10215||e===10216||e===10217||e===10218||e===10219||e===10220||e===10221||e===10222||e===10223||e>=10224&&e<=10239||e>=10240&&e<=10495||e>=10496&&e<=10626||e===10627||e===10628||e===10629||e===10630||e===10631||e===10632||e===10633||e===10634||e===10635||e===10636||e===10637||e===10638||e===10639||e===10640||e===10641||e===10642||e===10643||e===10644||e===10645||e===10646||e===10647||e===10648||e>=10649&&e<=10711||e===10712||e===10713||e===10714||e===10715||e>=10716&&e<=10747||e===10748||e===10749||e>=10750&&e<=11007||e>=11008&&e<=11055||e>=11056&&e<=11076||e>=11077&&e<=11078||e>=11079&&e<=11084||e>=11085&&e<=11123||e>=11124&&e<=11125||e>=11126&&e<=11157||e===11158||e>=11159&&e<=11263||e>=11776&&e<=11777||e===11778||e===11779||e===11780||e===11781||e>=11782&&e<=11784||e===11785||e===11786||e===11787||e===11788||e===11789||e>=11790&&e<=11798||e===11799||e>=11800&&e<=11801||e===11802||e===11803||e===11804||e===11805||e>=11806&&e<=11807||e===11808||e===11809||e===11810||e===11811||e===11812||e===11813||e===11814||e===11815||e===11816||e===11817||e>=11818&&e<=11822||e===11823||e>=11824&&e<=11833||e>=11834&&e<=11835||e>=11836&&e<=11839||e===11840||e===11841||e===11842||e>=11843&&e<=11855||e>=11856&&e<=11857||e===11858||e>=11859&&e<=11903||e>=12289&&e<=12291||e===12296||e===12297||e===12298||e===12299||e===12300||e===12301||e===12302||e===12303||e===12304||e===12305||e>=12306&&e<=12307||e===12308||e===12309||e===12310||e===12311||e===12312||e===12313||e===12314||e===12315||e===12316||e===12317||e>=12318&&e<=12319||e===12320||e===12336||e===64830||e===64831||e>=65093&&e<=65094}function Un(e){e.forEach(function(t){if(delete t.location,xi(t)||vi(t))for(var r in t.options)delete t.options[r].location,Un(t.options[r].value);else ui(t)&&yi(t.style)||(gi(t)||fi(t))&&br(t.style)?delete t.style.location:bi(t)&&Un(t.children)})}function Xo(e,t){t===void 0&&(t={}),t=C({shouldParseSkeletons:!0,requiresOtherClause:!0},t);var r=new Wo(e,t).parse();if(r.err){var i=SyntaxError(S[r.err.kind]);throw i.location=r.err.location,i.originalMessage=r.err.message,i}return t?.captureLocation||Un(r.val),r.val}function Er(e,t){var r=t&&t.cache?t.cache:Bd,i=t&&t.serializer?t.serializer:Hd,n=t&&t.strategy?t.strategy:Dd;return n(e,{cache:r,serializer:i})}function Id(e){return e==null||typeof e=="number"||typeof e=="boolean"}function Ko(e,t,r,i){var n=Id(i)?i:r(i),a=t.get(n);return typeof a>"u"&&(a=e.call(this,i),t.set(n,a)),a}function Qo(e,t,r){var i=Array.prototype.slice.call(arguments,3),n=r(i),a=t.get(n);return typeof a>"u"&&(a=e.apply(this,i),t.set(n,a)),a}function Fn(e,t,r,i,n){return r.bind(t,e,i,n)}function Dd(e,t){var r=e.length===1?Ko:Qo;return Fn(e,this,r,t.cache.create(),t.serializer)}function zd(e,t){return Fn(e,this,Qo,t.cache.create(),t.serializer)}function $d(e,t){return Fn(e,this,Ko,t.cache.create(),t.serializer)}var Hd=function(){return JSON.stringify(arguments)};function Gn(){this.cache=Object.create(null)}Gn.prototype.get=function(e){return this.cache[e]};Gn.prototype.set=function(e,t){this.cache[e]=t};var Bd={create:function(){return new Gn}},Ei={variadic:zd,monadic:$d};var lt;(function(e){e.MISSING_VALUE="MISSING_VALUE",e.INVALID_VALUE="INVALID_VALUE",e.MISSING_INTL_API="MISSING_INTL_API"})(lt||(lt={}));var wr=function(e){vr(t,e);function t(r,i,n){var a=e.call(this,r)||this;return a.code=i,a.originalMessage=n,a}return t.prototype.toString=function(){return"[formatjs Error: ".concat(this.code,"] ").concat(this.message)},t}(Error);var qn=function(e){vr(t,e);function t(r,i,n,a){return e.call(this,'Invalid values for "'.concat(r,'": "').concat(i,'". Options are "').concat(Object.keys(n).join('", "'),'"'),lt.INVALID_VALUE,a)||this}return t}(wr);var Zo=function(e){vr(t,e);function t(r,i,n){return e.call(this,'Value for "'.concat(r,'" must be of type ').concat(i),lt.INVALID_VALUE,n)||this}return t}(wr);var Jo=function(e){vr(t,e);function t(r,i){return e.call(this,'The intl string context variable "'.concat(r,'" was not provided to the string "').concat(i,'"'),lt.MISSING_VALUE,i)||this}return t}(wr);var re;(function(e){e[e.literal=0]="literal",e[e.object=1]="object"})(re||(re={}));function Ud(e){return e.length<2?e:e.reduce(function(t,r){var i=t[t.length-1];return!i||i.type!==re.literal||r.type!==re.literal?t.push(r):i.value+=r.value,t},[])}function Fd(e){return typeof e=="function"}function Ar(e,t,r,i,n,a,o){if(e.length===1&&On(e[0]))return[{type:re.literal,value:e[0].value}];for(var s=[],c=0,l=e;c<l.length;c++){var d=l[c];if(On(d)){s.push({type:re.literal,value:d.value});continue}if(Lo(d)){typeof a=="number"&&s.push({type:re.literal,value:r.getNumberFormat(t).format(a)});continue}var p=d.value;if(!(n&&p in n))throw new Jo(p,o);var u=n[p];if(Po(d)){(!u||typeof u=="string"||typeof u=="number")&&(u=typeof u=="string"||typeof u=="number"?String(u):""),s.push({type:typeof u=="string"?re.literal:re.object,value:u});continue}if(gi(d)){var g=typeof d.style=="string"?i.date[d.style]:br(d.style)?d.style.parsedOptions:void 0;s.push({type:re.literal,value:r.getDateTimeFormat(t,g).format(u)});continue}if(fi(d)){var g=typeof d.style=="string"?i.time[d.style]:br(d.style)?d.style.parsedOptions:i.time.medium;s.push({type:re.literal,value:r.getDateTimeFormat(t,g).format(u)});continue}if(ui(d)){var g=typeof d.style=="string"?i.number[d.style]:yi(d.style)?d.style.parsedOptions:void 0;g&&g.scale&&(u=u*(g.scale||1)),s.push({type:re.literal,value:r.getNumberFormat(t,g).format(u)});continue}if(bi(d)){var x=d.children,v=d.value,A=n[v];if(!Fd(A))throw new Zo(v,"function",o);var N=Ar(x,t,r,i,n,a),M=A(N.map(function(j){return j.value}));Array.isArray(M)||(M=[M]),s.push.apply(s,M.map(function(j){return{type:typeof j=="string"?re.literal:re.object,value:j}}))}if(xi(d)){var w=d.options[u]||d.options.other;if(!w)throw new qn(d.value,u,Object.keys(d.options),o);s.push.apply(s,Ar(w.value,t,r,i,n));continue}if(vi(d)){var w=d.options["=".concat(u)];if(!w){if(!Intl.PluralRules)throw new wr(`Intl.PluralRules is not available in this environment.
+    `);zr=pe;customElements.define("mas-mnemonic",zr)});var et={clientId:"merch-at-scale",delimiter:"\xB6",ignoredProperties:["analytics","literals","element"],serializableTypes:["Array","Object"],sampleRate:1,severity:"e",tags:"acom",isProdDomain:!1},Ka=1e3;function ul(e){return e instanceof Error||typeof e?.originatingRequest=="string"}function Qa(e){if(e==null)return;let t=typeof e;if(t==="function")return e.name?`function ${e.name}`:"function";if(t==="object"){if(e instanceof Error)return e.message;if(typeof e.originatingRequest=="string"){let{message:i,originatingRequest:n,status:a}=e;return[i,a,n].filter(Boolean).join(" ")}let r=e[Symbol.toStringTag]??Object.getPrototypeOf(e).constructor.name;if(!et.serializableTypes.includes(r))return r}return e}function gl(e,t){if(!et.ignoredProperties.includes(e))return Qa(t)}var Qi={append(e){if(e.level!=="error")return;let{message:t,params:r}=e,i=[],n=[],a=t;r.forEach(l=>{l!=null&&(ul(l)?i:n).push(l)}),i.length&&(a+=" "+i.map(Qa).join(" "));let{pathname:o,search:s}=window.location,c=`${et.delimiter}page=${o}${s}`;c.length>Ka&&(c=`${c.slice(0,Ka)}<trunc>`),a+=c,n.length&&(a+=`${et.delimiter}facts=`,a+=JSON.stringify(n,gl)),window.lana?.log(a,et)}};function ti(e){Object.assign(et,Object.fromEntries(Object.entries(e).filter(([t,r])=>t in et&&r!==""&&r!==null&&r!==void 0&&!Number.isNaN(r))))}var xn={};Ya(xn,{CLASS_NAME_FAILED:()=>rn,CLASS_NAME_HIDDEN:()=>xl,CLASS_NAME_PENDING:()=>nn,CLASS_NAME_RESOLVED:()=>an,CheckoutWorkflow:()=>Ja,CheckoutWorkflowStep:()=>ae,Commitment:()=>tt,ERROR_MESSAGE_BAD_REQUEST:()=>on,ERROR_MESSAGE_MISSING_LITERALS_URL:()=>Cl,ERROR_MESSAGE_OFFER_NOT_FOUND:()=>sn,EVENT_AEM_ERROR:()=>nt,EVENT_AEM_LOAD:()=>it,EVENT_MAS_ERROR:()=>tn,EVENT_MAS_READY:()=>en,EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE:()=>ii,EVENT_MERCH_CARD_ACTION_MENU_TOGGLE:()=>Zi,EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED:()=>rt,EVENT_MERCH_CARD_COLLECTION_SHOWMORE:()=>Tl,EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED:()=>Sl,EVENT_MERCH_CARD_COLLECTION_SORT:()=>Al,EVENT_MERCH_CARD_QUANTITY_CHANGE:()=>Ct,EVENT_MERCH_OFFER_READY:()=>_t,EVENT_MERCH_OFFER_SELECT_READY:()=>dr,EVENT_MERCH_QUANTITY_SELECTOR_CHANGE:()=>ne,EVENT_MERCH_SEARCH_CHANGE:()=>wl,EVENT_MERCH_SIDENAV_SELECT:()=>_l,EVENT_MERCH_STOCK_CHANGE:()=>yl,EVENT_MERCH_STORAGE_CHANGE:()=>El,EVENT_OFFER_SELECTED:()=>Ji,EVENT_TYPE_FAILED:()=>cn,EVENT_TYPE_READY:()=>ri,EVENT_TYPE_RESOLVED:()=>kt,Env:()=>Le,FF_ANNUAL_PRICE:()=>Pt,FF_DEFAULTS:()=>Se,HEADER_X_REQUEST_ID:()=>hr,LOG_NAMESPACE:()=>ln,Landscape:()=>qe,MARK_DURATION_SUFFIX:()=>st,MARK_START_SUFFIX:()=>ot,MODAL_TYPE_3_IN_1:()=>at,NAMESPACE:()=>fl,PARAM_AOS_API_KEY:()=>kl,PARAM_ENV:()=>hn,PARAM_LANDSCAPE:()=>pn,PARAM_MAS_PREVIEW:()=>dn,PARAM_WCS_API_KEY:()=>Pl,PROVIDER_ENVIRONMENT:()=>gn,SELECTOR_MAS_CHECKOUT_LINK:()=>we,SELECTOR_MAS_ELEMENT:()=>lr,SELECTOR_MAS_INLINE_PRICE:()=>B,SELECTOR_MAS_SP_BUTTON:()=>bl,SELECTOR_MAS_UPT_LINK:()=>Za,SORT_ORDER:()=>Ol,STATE_FAILED:()=>Ae,STATE_PENDING:()=>Ge,STATE_RESOLVED:()=>Ne,SUPPORTED_COUNTRIES:()=>fn,TAG_NAME_SERVICE:()=>vl,TEMPLATE_PRICE:()=>Ll,TEMPLATE_PRICE_ANNUAL:()=>Ml,TEMPLATE_PRICE_LEGAL:()=>pr,TEMPLATE_PRICE_STRIKETHROUGH:()=>Rl,Term:()=>xe,WCS_PROD_URL:()=>mn,WCS_STAGE_URL:()=>un});var tt=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),xe=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"}),fl="merch",xl="hidden",ri="wcms:commerce:ready",vl="mas-commerce-service",B='span[is="inline-price"][data-wcs-osi]',we='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]',bl="sp-button[data-wcs-osi]",Za='a[is="upt-link"]',lr=`${B},${we},${Za}`,_t="merch-offer:ready",dr="merch-offer-select:ready",Zi="merch-card:action-menu-toggle",Ji="merch-offer:selected",yl="merch-stock:change",El="merch-storage:change",ne="merch-quantity-selector:change",Ct="merch-card-quantity:change",ii="merch-modal:addon-and-quantity-update",wl="merch-search:change",Al="merch-card-collection:sort",rt="merch-card-collection:literals-changed",Sl="merch-card-collection:sidenav-attached",Tl="merch-card-collection:showmore",_l="merch-sidenav:select",it="aem:load",nt="aem:error",en="mas:ready",tn="mas:error",rn="placeholder-failed",nn="placeholder-pending",an="placeholder-resolved",on="Bad WCS request",sn="Commerce offer not found",Cl="Literals URL not provided",cn="mas:failed",kt="mas:resolved",ln="mas/commerce",dn="mas.preview",hn="commerce.env",pn="commerce.landscape",kl="commerce.aosKey",Pl="commerce.wcsKey",mn="https://www.adobe.com/web_commerce_artifact",un="https://www.stage.adobe.com/web_commerce_artifact_stage",Ae="failed",Ge="pending",Ne="resolved",qe={DRAFT:"DRAFT",PUBLISHED:"PUBLISHED"},hr="X-Request-Id",ae=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"}),Ja="UCv3",Le=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"}),gn={PRODUCTION:"PRODUCTION"},at={TWP:"twp",D2P:"d2p",CRM:"crm"},ot=":start",st=":duration",Ll="price",Rl="price-strikethrough",Ml="annual",pr="legal",Se="mas-ff-defaults",Pt="mas-ff-annual-price",Ol={alphabetical:"alphabetical",authored:"authored"},fn=["AE","AM","AR","AT","AU","AZ","BB","BD","BE","BG","BH","BO","BR","BS","BY","CA","CH","CL","CN","CO","CR","CY","CZ","DE","DK","DO","DZ","EC","EE","EG","ES","FI","FR","GB","GE","GH","GR","GT","HK","HN","HR","HU","ID","IE","IL","IN","IQ","IS","IT","JM","JO","JP","KE","KG","KR","KW","KZ","LA","LB","LK","LT","LU","LV","MA","MD","MO","MT","MU","MX","MY","NG","NI","NL","NO","NP","NZ","OM","PA","PE","PH","PK","PL","PR","PT","PY","QA","RO","RS","RU","SA","SE","SG","SI","SK","SV","TH","TJ","TM","TN","TR","TT","TW","TZ","UA","US","UY","UZ","VE","VN","YE","ZA"];var eo="tacocat.js";var vn=(e,t)=>String(e??"").toLowerCase()==String(t??"").toLowerCase(),to=e=>`${e??""}`.replace(/[&<>'"]/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[t]??t)??"";function U(e,t={},{metadata:r=!0,search:i=!0,storage:n=!0}={}){let a;if(i&&a==null){let o=new URLSearchParams(window.location.search),s=Lt(i)?i:e;a=o.get(s)}if(n&&a==null){let o=Lt(n)?n:e;a=window.sessionStorage.getItem(o)??window.localStorage.getItem(o)}if(r&&a==null){let o=Il(Lt(r)?r:e);a=document.documentElement.querySelector(`meta[name="${o}"]`)?.content}return a??t[e]}var Nl=e=>typeof e=="boolean",ni=e=>typeof e=="function",ai=e=>typeof e=="number",ro=e=>e!=null&&typeof e=="object";var Lt=e=>typeof e=="string",io=e=>Lt(e)&&e,mr=e=>ai(e)&&Number.isFinite(e)&&e>0;function oi(e,t=r=>r==null||r===""){return e!=null&&Object.entries(e).forEach(([r,i])=>{t(i)&&delete e[r]}),e}function _(e,t){if(Nl(e))return e;let r=String(e);return r==="1"||r==="true"?!0:r==="0"||r==="false"?!1:t}function ur(e,t,r){let i=Object.values(t);return i.find(n=>vn(n,e))??r??i[0]}function Il(e=""){return String(e).replace(/(\p{Lowercase_Letter})(\p{Uppercase_Letter})/gu,(t,r,i)=>`${r}-${i}`).replace(/\W+/gu,"-").toLowerCase()}function no(e,t=1){return ai(e)||(e=Number.parseInt(e,10)),!Number.isNaN(e)&&e>0&&Number.isFinite(e)?e:t}var Dl=Date.now(),bn=()=>`(+${Date.now()-Dl}ms)`,si=new Set,$l=_(U("tacocat.debug",{},{metadata:!1}),!1);function ao(e){let t=`[${eo}/${e}]`,r=(o,s,...c)=>o?!0:(n(s,...c),!1),i=$l?(o,...s)=>{console.debug(`${t} ${o}`,...s,bn())}:()=>{},n=(o,...s)=>{let c=`${t} ${o}`;si.forEach(([l])=>l(c,...s))};return{assert:r,debug:i,error:n,warn:(o,...s)=>{let c=`${t} ${o}`;si.forEach(([,l])=>l(c,...s))}}}function zl(e,t){let r=[e,t];return si.add(r),()=>{si.delete(r)}}zl((e,...t)=>{console.error(e,...t,bn())},(e,...t)=>{console.warn(e,...t,bn())});var Hl="no promo",oo="promo-tag",Bl="yellow",Ul="neutral",Fl=(e,t,r)=>{let i=a=>a||Hl,n=r?` (was "${i(t)}")`:"";return`${i(e)}${n}`},Gl="cancel-context",ci=(e,t)=>{let r=e===Gl,i=!r&&e?.length>0,n=(i||r)&&(t&&t!=e||!t&&!r),a=n&&i||!n&&!!t,o=a?e||t:void 0;return{effectivePromoCode:o,overridenPromoCode:e,className:a?oo:`${oo} no-promo`,text:Fl(o,t,n),variant:a?Bl:Ul,isOverriden:n}};var yn;(function(e){e.BASE="BASE",e.TRIAL="TRIAL",e.PROMOTION="PROMOTION"})(yn||(yn={}));var ge;(function(e){e.MONTH="MONTH",e.YEAR="YEAR",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.PERPETUAL="PERPETUAL",e.TERM_LICENSE="TERM_LICENSE",e.ACCESS_PASS="ACCESS_PASS",e.THREE_MONTHS="THREE_MONTHS",e.SIX_MONTHS="SIX_MONTHS"})(ge||(ge={}));var ve;(function(e){e.ANNUAL="ANNUAL",e.MONTHLY="MONTHLY",e.TWO_YEARS="TWO_YEARS",e.THREE_YEARS="THREE_YEARS",e.P1D="P1D",e.P1Y="P1Y",e.P3Y="P3Y",e.P10Y="P10Y",e.P15Y="P15Y",e.P3D="P3D",e.P7D="P7D",e.P30D="P30D",e.HALF_YEARLY="HALF_YEARLY",e.QUARTERLY="QUARTERLY"})(ve||(ve={}));var En;(function(e){e.INDIVIDUAL="INDIVIDUAL",e.TEAM="TEAM",e.ENTERPRISE="ENTERPRISE"})(En||(En={}));var wn;(function(e){e.COM="COM",e.EDU="EDU",e.GOV="GOV"})(wn||(wn={}));var An;(function(e){e.DIRECT="DIRECT",e.INDIRECT="INDIRECT"})(An||(An={}));var Sn;(function(e){e.ENTERPRISE_PRODUCT="ENTERPRISE_PRODUCT",e.ETLA="ETLA",e.RETAIL="RETAIL",e.VIP="VIP",e.VIPMP="VIPMP",e.FREE="FREE"})(Sn||(Sn={}));var Tn="ABM",_n="PUF",Cn="M2M",kn="PERPETUAL",Pn="P3Y",ql="TAX_INCLUSIVE_DETAILS",Vl="TAX_EXCLUSIVE",so={ABM:Tn,PUF:_n,M2M:Cn,PERPETUAL:kn,P3Y:Pn},Cp={[Tn]:{commitment:ge.YEAR,term:ve.MONTHLY},[_n]:{commitment:ge.YEAR,term:ve.ANNUAL},[Cn]:{commitment:ge.MONTH,term:ve.MONTHLY},[kn]:{commitment:ge.PERPETUAL,term:void 0},[Pn]:{commitment:ge.THREE_MONTHS,term:ve.P3Y}},co="Value is not an offer",gr=e=>{if(typeof e!="object")return co;let{commitment:t,term:r}=e,i=jl(t,r);return{...e,planType:i}};var jl=(e,t)=>{switch(e){case void 0:return co;case"":return"";case ge.YEAR:return t===ve.MONTHLY?Tn:t===ve.ANNUAL?_n:"";case ge.MONTH:return t===ve.MONTHLY?Cn:"";case ge.PERPETUAL:return kn;case ge.TERM_LICENSE:return t===ve.P3Y?Pn:"";default:return""}};function lo(e){let{priceDetails:t}=e,{price:r,priceWithoutDiscount:i,priceWithoutTax:n,priceWithoutDiscountAndTax:a,taxDisplay:o}=t;if(o!==ql)return e;let s={...e,priceDetails:{...t,price:n??r,priceWithoutDiscount:a??i,taxDisplay:Vl}};return s.offerType==="TRIAL"&&s.priceDetails.price===0&&(s.priceDetails.price=s.priceDetails.priceWithoutDiscount),s}var ho={LOCAL:"local",PROD:"prod",STAGE:"stage"},Ln={DEBUG:"debug",ERROR:"error",INFO:"info",WARN:"warn"},Rn=new Set,Mn=new Set,po=new Map,mo={append({level:e,message:t,params:r,timestamp:i,source:n}){console[e](`${i}ms [${n}] %c${t}`,"font-weight: bold;",...r)}},uo={filter:({level:e})=>e!==Ln.DEBUG},Wl={filter:()=>!1};function Yl(e,t,r,i,n){return{level:e,message:t,namespace:r,get params(){return i.length===1&&ni(i[0])&&(i=i[0](),Array.isArray(i)||(i=[i])),i},source:n,timestamp:performance.now().toFixed(3)}}function Xl(e){[...Mn].every(t=>t(e))&&Rn.forEach(t=>t(e))}function go(e){let t=(po.get(e)??0)+1;po.set(e,t);let r=`${e} #${t}`,i={id:r,namespace:e,module:n=>go(`${i.namespace}/${n}`),updateConfig:ti};return Object.values(Ln).forEach(n=>{i[n]=(a,...o)=>Xl(Yl(n,a,e,o,r))}),Object.seal(i)}function li(...e){e.forEach(t=>{let{append:r,filter:i}=t;ni(i)&&Mn.add(i),ni(r)&&Rn.add(r)})}function Kl(e={}){let{name:t}=e,r=_(U("commerce.debug",{search:!0,storage:!0}),t===ho.LOCAL);return li(r?mo:uo),t===ho.PROD&&li(Qi),oe}function Ql(){Rn.clear(),Mn.clear()}var oe={...go(ln),Level:Ln,Plugins:{consoleAppender:mo,debugFilter:uo,quietFilter:Wl,lanaAppender:Qi},init:Kl,reset:Ql,use:li};var Zl="mas-commerce-service",Jl=oe.module("utilities"),ed={requestId:hr,etag:"Etag",lastModified:"Last-Modified",serverTiming:"server-timing"};function fr(e,{country:t,forceTaxExclusive:r}){let i;if(e.length<2)i=e;else{let n=t==="GB"?"EN":"MULT";e.sort((a,o)=>a.language===n?-1:o.language===n?1:0),e.sort((a,o)=>!a.term&&o.term?-1:a.term&&!o.term?1:0),i=[e[0]]}return r&&(i=i.map(lo)),i}var fo=(e,t)=>{let r=e.reduce((i,n)=>i+(t(n)||0),0);return r>0?Math.round(r*100)/100:void 0};function On(e){if(!e||e.length===0)return null;if(e.length===1)return e[0];let[t,...r]=e;for(let s of r){let c=[["commitment","commitment types"],["term","terms"],["priceDetails.formatString","currency formats"]];for(let[l,d]of c){let p=l.includes(".")?t.priceDetails?.formatString:t[l],u=l.includes(".")?s.priceDetails?.formatString:s[l];u!==p&&Jl.warn(`Offers have different ${d}, summing may produce unexpected results`,{expected:p,actual:u})}}let i=[["price",s=>s.priceDetails?.price],["priceWithoutDiscount",s=>s.priceDetails?.priceWithoutDiscount],["priceWithoutTax",s=>s.priceDetails?.priceWithoutTax],["priceWithoutDiscountAndTax",s=>s.priceDetails?.priceWithoutDiscountAndTax]],n={};for(let[s,c]of i){let l=fo(e,c);l!==void 0&&(n[s]=l)}let a=e.some(s=>s.priceDetails?.annualized),o;if(a){let s=[["annualizedPrice",c=>c.priceDetails?.annualized?.annualizedPrice],["annualizedPriceWithoutTax",c=>c.priceDetails?.annualized?.annualizedPriceWithoutTax],["annualizedPriceWithoutDiscount",c=>c.priceDetails?.annualized?.annualizedPriceWithoutDiscount],["annualizedPriceWithoutDiscountAndTax",c=>c.priceDetails?.annualized?.annualizedPriceWithoutDiscountAndTax]];o={};for(let[c,l]of s){let d=fo(e,l);d!==void 0&&(o[c]=d)}}return{...t,offerSelectorIds:e.flatMap(s=>s.offerSelectorIds||[]),priceDetails:{...t.priceDetails,...n,...o&&{annualized:o}}}}var di=e=>window.setTimeout(e);function Rt(e,t=1){if(e==null)return[t];let r=(Array.isArray(e)?e:String(e).split(",")).map(no).filter(mr);return r.length||(r=[t]),r}function hi(e){return e==null?[]:(Array.isArray(e)?e:String(e).split(",")).filter(io)}function de(){return document.getElementsByTagName(Zl)?.[0]}function pi(e){let t={};if(!e?.headers)return t;let r=e.headers;for(let[i,n]of Object.entries(ed)){let a=r.get(n);a&&(a=a.replace(/[,;]/g,"|"),a=a.replace(/[| ]+/g,"|"),t[i]=a)}return t}var Ie=class e extends Error{constructor(t,r,i){if(super(t,{cause:i}),this.name="MasError",r.response){let n=r.response.headers?.get(hr);n&&(r.requestId=n),r.response.status&&(r.status=r.response.status,r.statusText=r.response.statusText),r.response.url&&(r.url=r.response.url)}delete r.response,this.context=r,Error.captureStackTrace&&Error.captureStackTrace(this,e)}toString(){let t=Object.entries(this.context||{}).map(([i,n])=>`${i}: ${JSON.stringify(n)}`).join(", "),r=`${this.name}: ${this.message}`;return t&&(r+=` (${t})`),this.cause&&(r+=`
+Caused by: ${this.cause}`),r}};var td={[Ae]:rn,[Ge]:nn,[Ne]:an},rd={[Ae]:cn,[Ne]:kt},xr,Ve=class{constructor(t){E(this,xr);m(this,"changes",new Map);m(this,"connected",!1);m(this,"error");m(this,"log");m(this,"options");m(this,"promises",[]);m(this,"state",Ge);m(this,"timer",null);m(this,"value");m(this,"version",0);m(this,"wrapperElement");this.wrapperElement=t,this.log=oe.module("mas-element")}update(){[Ae,Ge,Ne].forEach(t=>{this.wrapperElement.classList.toggle(td[t],t===this.state)})}notify(){(this.state===Ne||this.state===Ae)&&(this.state===Ne?this.promises.forEach(({resolve:r})=>r(this.wrapperElement)):this.state===Ae&&this.promises.forEach(({reject:r})=>r(this.error)),this.promises=[]);let t=this.error;this.error instanceof Ie&&(t={message:this.error.message,...this.error.context}),this.wrapperElement.dispatchEvent(new CustomEvent(rd[this.state],{bubbles:!0,composed:!0,detail:t}))}attributeChangedCallback(t,r,i){this.changes.set(t,i),this.requestUpdate()}connectedCallback(){y(this,xr,de()),this.requestUpdate(!0)}disconnectedCallback(){this.connected&&(this.connected=!1,this.log?.debug("Disconnected:",{element:this.wrapperElement}))}onceSettled(){let{error:t,promises:r,state:i}=this;return Ne===i?Promise.resolve(this.wrapperElement):Ae===i?Promise.reject(t):new Promise((n,a)=>{r.push({resolve:n,reject:a})})}toggleResolved(t,r,i){return t!==this.version?!1:(i!==void 0&&(this.options=i),this.state=Ne,this.value=r,this.update(),this.log?.debug("Resolved:",{element:this.wrapperElement,value:r}),di(()=>this.notify()),!0)}toggleFailed(t,r,i){if(t!==this.version)return!1;i!==void 0&&(this.options=i),this.error=r,this.state=Ae,this.update();let n=this.wrapperElement.getAttribute("is");return this.log?.error(`${n}: Failed to render: ${r.message}`,{element:this.wrapperElement,...r.context,...h(this,xr)?.duration}),di(()=>this.notify()),!0}togglePending(t){return this.version++,t&&(this.options=t),this.state=Ge,this.update(),this.log?.debug("Pending:",{osi:this.wrapperElement?.options?.wcsOsi}),this.version}requestUpdate(t=!1){if(!this.wrapperElement.isConnected||!de()||this.timer)return;let{error:r,options:i,state:n,value:a,version:o}=this;this.state=Ge,this.timer=di(async()=>{this.timer=null;let s=null;if(this.changes.size&&(s=Object.fromEntries(this.changes.entries()),this.changes.clear()),this.connected?this.log?.debug("Updated:",{element:this.wrapperElement,changes:s}):(this.connected=!0,this.log?.debug("Connected:",{element:this.wrapperElement,changes:s})),s||t)try{await this.wrapperElement.render?.()===!1&&this.state===Ge&&this.version===o&&(this.state=n,this.error=r,this.value=a,this.update(),this.notify())}catch(c){this.toggleFailed(this.version,c,i)}})}};xr=new WeakMap;function xo(e={}){return Object.entries(e).forEach(([t,r])=>{(r==null||r===""||r?.length===0)&&delete e[t]}),e}function mi(e,t={}){let{tag:r,is:i}=e,n=document.createElement(r,{is:i});return n.setAttribute("is",i),Object.assign(n.dataset,xo(t)),n}function vo(e,t={}){return e instanceof HTMLElement?(Object.assign(e.dataset,xo(t)),e):null}var id=/[0-9\-+#]/,nd=/[^\d\-+#]/g;function bo(e){return e.search(id)}function ad(e="#.##"){let t={},r=e.length,i=bo(e);t.prefix=i>0?e.substring(0,i):"";let n=bo(e.split("").reverse().join("")),a=r-n,o=e.substring(a,a+1),s=a+(o==="."||o===","?1:0);t.suffix=n>0?e.substring(s,r):"",t.mask=e.substring(i,s),t.maskHasNegativeSign=t.mask.charAt(0)==="-",t.maskHasPositiveSign=t.mask.charAt(0)==="+";let c=t.mask.match(nd);return t.decimal=c&&c[c.length-1]||".",t.separator=c&&c[1]&&c[0]||",",c=t.mask.split(t.decimal),t.integer=c[0],t.fraction=c[1],t}function od(e,t,r){let i=!1,n={value:e};e<0&&(i=!0,n.value=-n.value),n.sign=i?"-":"",n.value=Number(n.value).toFixed(t.fraction&&t.fraction.length),n.value=Number(n.value).toString();let a=t.fraction&&t.fraction.lastIndexOf("0"),[o="0",s=""]=n.value.split(".");return(!s||s&&s.length<=a)&&(s=a<0?"":(+("0."+s)).toFixed(a+1).replace("0.","")),n.integer=o,n.fraction=s,sd(n,t),(n.result==="0"||n.result==="")&&(i=!1,n.sign=""),!i&&t.maskHasPositiveSign?n.sign="+":i&&t.maskHasPositiveSign?n.sign="-":i&&(n.sign=r&&r.enforceMaskSign&&!t.maskHasNegativeSign?"":"-"),n}function sd(e,t){e.result="";let r=t.integer.split(t.separator),i=r.join(""),n=i&&i.indexOf("0");if(n>-1)for(;e.integer.length<i.length-n;)e.integer="0"+e.integer;else Number(e.integer)===0&&(e.integer="");let a=r[1]&&r[r.length-1].length;if(a){let o=e.integer.length,s=o%a;for(let c=0;c<o;c++)e.result+=e.integer.charAt(c),!((c-s+1)%a)&&c<o-a&&(e.result+=t.separator)}else e.result=e.integer;return e.result+=t.fraction&&e.fraction?t.decimal+e.fraction:"",e}function cd(e,t,r={}){if(!e||isNaN(Number(t)))return t;let i=ad(e),n=od(t,i,r);return i.prefix+n.sign+n.result+i.suffix}var yo=cd;var Eo=".",ld=",",Ao=/^\s+/,So=/\s+$/,wo="&nbsp;",Nn=e=>e*12,lt=(e,t,r=1)=>{if(!e)return!1;let{start:i,end:n,displaySummary:{amount:a,duration:o,minProductQuantity:s=1,outcomeType:c}={}}=e;if(!(a&&o&&c)||r<s)return!1;let l=t?new Date(t):new Date;if(!i||!n)return!1;let d=new Date(i),p=new Date(n);return l>=d&&l<=p},ct={MONTH:"MONTH",YEAR:"YEAR"},dd={[xe.ANNUAL]:12,[xe.MONTHLY]:1,[xe.THREE_YEARS]:36,[xe.TWO_YEARS]:24},In=(e,t)=>({accept:e,round:t}),hd=[In(({divisor:e,price:t})=>t%e==0,({divisor:e,price:t})=>t/e),In(({usePrecision:e})=>e,({divisor:e,price:t})=>Math.round(t/e*100)/100),In(()=>!0,({divisor:e,price:t})=>Math.ceil(Math.floor(t*100/e)/100))],Dn={[tt.YEAR]:{[xe.MONTHLY]:ct.MONTH,[xe.ANNUAL]:ct.YEAR},[tt.MONTH]:{[xe.MONTHLY]:ct.MONTH}},pd=(e,t)=>e.indexOf(`'${t}'`)===0,md=(e,t=!0)=>{let r=e.replace(/'.*?'/,"").trim(),i=_o(r);return!!i?t||(r=r.replace(/[,\.]0+/,i)):r=r.replace(/\s?(#.*0)(?!\s)?/,"$&"+gd(e)),r},ud=e=>{let t=fd(e),r=pd(e,t),i=e.replace(/'.*?'/,""),n=Ao.test(i)||So.test(i);return{currencySymbol:t,isCurrencyFirst:r,hasCurrencySpace:n}},To=e=>e.replace(Ao,wo).replace(So,wo),gd=e=>e.match(/#(.?)#/)?.[1]===Eo?ld:Eo,fd=e=>e.match(/'(.*?)'/)?.[1]??"",_o=e=>e.match(/0(.?)0/)?.[1]??"";function Mt({formatString:e,price:t,usePrecision:r,isIndianPrice:i=!1},n,a=o=>o){let{currencySymbol:o,isCurrencyFirst:s,hasCurrencySpace:c}=ud(e),l=r?_o(e):"",d=md(e,r),p=r?2:0,u=a(t,{currencySymbol:o}),g=i?u.toLocaleString("hi-IN",{minimumFractionDigits:p,maximumFractionDigits:p}):yo(d,u),x=r?g.lastIndexOf(l):g.length,v=g.substring(0,x),A=g.substring(x+1);return{accessiblePrice:e.replace(/'.*?'/,"SYMBOL").replace(/#.*0/,g).replace(/SYMBOL/,o),currencySymbol:o,decimals:A,decimalsDelimiter:l,hasCurrencySpace:c,integer:v,isCurrencyFirst:s,recurrenceTerm:n}}var Co=e=>{let{commitment:t,term:r,usePrecision:i}=e,n=dd[r]??1;return Mt(e,n>1?ct.MONTH:Dn[t]?.[r],a=>{let o={divisor:n,price:a,usePrecision:i},{round:s}=hd.find(({accept:c})=>c(o));if(!s)throw new Error(`Missing rounding rule for: ${JSON.stringify(o)}`);return s(o)})},ko=({commitment:e,term:t,...r})=>Mt(r,Dn[e]?.[t]),Po=e=>{let{commitment:t,instant:r,price:i,originalPrice:n,priceWithoutDiscount:a,promotion:o,quantity:s=1,term:c}=e;if(t===tt.YEAR&&c===xe.MONTHLY){if(!o)return Mt(e,ct.YEAR,Nn);let{displaySummary:{outcomeType:l,duration:d}={}}=o;switch(l){case"PERCENTAGE_DISCOUNT":if(lt(o,r,s)){let p=parseInt(d.replace("P","").replace("M",""));if(isNaN(p))return Nn(i);let u=n*p,g=a*(12-p),x=Math.round((u+g)*100)/100;return Mt({...e,price:x},ct.YEAR)}default:return Mt(e,ct.YEAR,()=>Nn(a??i))}}return Mt(e,Dn[t]?.[c])};var Lo="download",Ro="upgrade",Mo={e:"EDU",t:"TEAM"};function ui(e,t={},r=""){let i=de();if(!i)return null;let{checkoutMarketSegment:n,checkoutWorkflow:a,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:p,quantity:u,wcsOsi:g,extraOptions:x,analyticsId:v}=i.collectCheckoutOptions(t),A=mi(e,{checkoutMarketSegment:n,checkoutWorkflow:a,checkoutWorkflowStep:o,entitlement:s,upgrade:c,modal:l,perpetual:d,promotionCode:p,quantity:u,wcsOsi:g,extraOptions:x,analyticsId:v});return r&&(A.innerHTML=`<span style="pointer-events: none;">${r}</span>`),A}function gi(e){return class extends e{constructor(){super(...arguments);m(this,"checkoutActionHandler");m(this,"masElement",new Ve(this))}attributeChangedCallback(i,n,a){this.masElement.attributeChangedCallback(i,n,a)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.clickHandler)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.clickHandler)}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get marketSegment(){let i=this.options?.ms??this.value?.[0].marketSegments?.[0];return Mo[i]??i}get customerSegment(){let i=this.options?.cs??this.value?.[0]?.customerSegment;return Mo[i]??i}get is3in1Modal(){return Object.values(at).includes(this.getAttribute("data-modal"))}get isOpen3in1Modal(){let i=document.querySelector("meta[name=mas-ff-3in1]");return this.is3in1Modal&&(!i||i.content!=="off")}requestUpdate(i=!1){return this.masElement.requestUpdate(i)}static get observedAttributes(){return["data-checkout-workflow","data-checkout-workflow-step","data-extra-options","data-ims-country","data-perpetual","data-promotion-code","data-quantity","data-template","data-wcs-osi","data-entitlement","data-upgrade","data-modal"]}async render(i={}){let n=de();if(!n)return!1;this.dataset.imsCountry||n.imsCountryPromise.then(g=>{g&&(this.dataset.imsCountry=g)}),i.imsCountry=null;let a=n.collectCheckoutOptions(i,this);if(!a.wcsOsi.length)return!1;let o;try{o=JSON.parse(a.extraOptions??"{}")}catch(g){this.masElement.log?.error("cannot parse exta checkout options",g)}let s=this.masElement.togglePending(a);this.setCheckoutUrl("");let c=n.resolveOfferSelectors(a),l=await Promise.all(c);l=l.map(g=>fr(g,a));let d=l.flat().find(g=>g.promotion);!lt(d?.promotion,d?.promotion?.displaySummary?.instant,a.quantity[0])&&a.promotionCode&&delete a.promotionCode,a.country=this.dataset.imsCountry||a.country;let u=await n.buildCheckoutAction?.(l.flat(),{...o,...a},this);return this.renderOffers(l.flat(),a,{},u,s)}renderOffers(i,n,a={},o=void 0,s=void 0){let c=de();if(!c)return!1;if(n={...JSON.parse(this.dataset.extraOptions??"{}"),...n,...a},s??(s=this.masElement.togglePending(n)),this.checkoutActionHandler&&(this.checkoutActionHandler=void 0),o){this.classList.remove(Lo,Ro),this.masElement.toggleResolved(s,i,n);let{url:d,text:p,className:u,handler:g}=o;d&&this.setCheckoutUrl(d),p&&(this.firstElementChild.innerHTML=p),u&&this.classList.add(...u.split(" ")),g&&(this.setCheckoutUrl("#"),this.checkoutActionHandler=g.bind(this))}if(i.length){if(this.masElement.toggleResolved(s,i,n)){if(!this.classList.contains(Lo)&&!this.classList.contains(Ro)){let d=c.buildCheckoutURL(i,n);this.setCheckoutUrl(n.modal==="true"?"#":d)}return!0}}else{let d=new Error(`Not provided: ${n?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(s,d,n))return this.setCheckoutUrl("#"),!0}}setCheckoutUrl(){}clickHandler(i){}updateOptions(i={}){let n=de();if(!n)return!1;let{checkoutMarketSegment:a,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:p,promotionCode:u,quantity:g,wcsOsi:x}=n.collectCheckoutOptions(i);return vo(this,{checkoutMarketSegment:a,checkoutWorkflow:o,checkoutWorkflowStep:s,entitlement:c,upgrade:l,modal:d,perpetual:p,promotionCode:u,quantity:g,wcsOsi:x}),!0}}}var vr=class vr extends gi(HTMLAnchorElement){static createCheckoutLink(t={},r=""){return ui(vr,t,r)}setCheckoutUrl(t){this.setAttribute("href",t)}get isCheckoutLink(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}}};m(vr,"is","checkout-link"),m(vr,"tag","a");var De=vr;window.customElements.get(De.is)||window.customElements.define(De.is,De,{extends:De.tag});var xd="p_draft_landscape",vd="/store/",bd=new Map([["countrySpecific","cs"],["customerSegment","cs"],["quantity","q"],["authCode","code"],["checkoutPromoCode","apc"],["rurl","rUrl"],["curl","cUrl"],["ctxrturl","ctxRtUrl"],["country","co"],["language","lang"],["clientId","cli"],["context","ctx"],["productArrangementCode","pa"],["addonProductArrangementCode","ao"],["offerType","ot"],["marketSegment","ms"]]),$n=new Set(["af","ai","ao","apc","appctxid","cli","co","cs","csm","ctx","ctxRtUrl","DCWATC","dp","fr","gsp","ijt","lang","lo","mal","ms","mv","mv2","nglwfdata","ot","otac","pa","pcid","promoid","q","rf","sc","scl","sdid","sid","spint","svar","th","thm","trackingid","usid","workflowid","context.guid","so.ca","so.su","so.tr","so.va"]),yd=["env","workflowStep","clientId","country"],Oo=new Set(["gid","gtoken","notifauditid","cohortid","productname","sdid","attimer","gcsrc","gcprog","gcprogcat","gcpagetype","mv","mv2"]),No=e=>bd.get(e)??e;function fi(e,t,r){for(let[i,n]of Object.entries(e)){let a=No(i);n!=null&&r.has(a)&&t.set(a,n)}}function Ed(e){switch(e){case gn.PRODUCTION:return"https://commerce.adobe.com";default:return"https://commerce-stg.adobe.com"}}function wd(e,t){for(let r in e){let i=e[r];for(let[n,a]of Object.entries(i)){if(a==null)continue;let o=No(n);t.set(`items[${r}][${o}]`,a)}}}function Ad({url:e,modal:t,is3in1:r}){if(!r||!e?.searchParams)return e;e.searchParams.set("rtc","t"),e.searchParams.set("lo","sl");let i=e.searchParams.get("af");return e.searchParams.set("af",[i,"uc_new_user_iframe","uc_new_system_close"].filter(Boolean).join(",")),e.searchParams.get("cli")!=="doc_cloud"&&e.searchParams.set("cli",t===at.CRM?"creative":"mini_plans"),e}function Sd(e){let t=new URLSearchParams(window.location.search),r={};Oo.forEach(i=>{let n=t.get(i);n!==null&&(r[i]=n)}),Object.keys(r).length>0&&fi(r,e.searchParams,Oo)}function Io(e){Td(e);let{env:t,items:r,workflowStep:i,marketSegment:n,customerSegment:a,offerType:o,productArrangementCode:s,landscape:c,modal:l,is3in1:d,preselectPlan:p,...u}=e,g=new URL(Ed(t));if(g.pathname=`${vd}${i}`,i!==ae.SEGMENTATION&&i!==ae.CHANGE_PLAN_TEAM_PLANS&&wd(r,g.searchParams),fi({...u},g.searchParams,$n),Sd(g),c===qe.DRAFT&&fi({af:xd},g.searchParams,$n),i===ae.SEGMENTATION){let x={marketSegment:n,offerType:o,customerSegment:a,productArrangementCode:s,quantity:r?.[0]?.quantity,addonProductArrangementCode:s?r?.find(v=>v.productArrangementCode!==s)?.productArrangementCode:r?.[1]?.productArrangementCode};p?.toLowerCase()==="edu"?g.searchParams.set("ms","EDU"):p?.toLowerCase()==="team"&&g.searchParams.set("cs","TEAM"),fi(x,g.searchParams,$n),g.searchParams.get("ot")==="PROMOTION"&&g.searchParams.delete("ot"),g=Ad({url:g,modal:l,is3in1:d})}return g.toString()}function Td(e){for(let t of yd)if(!e[t])throw new Error(`Argument "checkoutData" is not valid, missing: ${t}`);if(e.workflowStep!==ae.SEGMENTATION&&e.workflowStep!==ae.CHANGE_PLAN_TEAM_PLANS&&!e.items)throw new Error('Argument "checkoutData" is not valid, missing: items');return!0}var R=Object.freeze({checkoutClientId:"adobe_com",checkoutWorkflowStep:ae.EMAIL,country:"US",displayOldPrice:!1,displayPerUnit:!1,displayRecurrence:!0,displayTax:!1,displayPlanType:!1,env:Le.PRODUCTION,forceTaxExclusive:!1,language:"en",entitlement:!1,extraOptions:{},modal:!1,promotionCode:"",quantity:1,alternativePrice:!1,wcsApiKey:"wcms-commerce-ims-ro-user-milo",wcsURL:"https://www.adobe.com/web_commerce_artifact",landscape:qe.PUBLISHED});function Do({settings:e,providers:t}){function r(a,o){let{checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:p,quantity:u,preselectPlan:g,env:x}=e,v={checkoutClientId:s,checkoutWorkflowStep:c,country:l,language:d,promotionCode:p,quantity:u,preselectPlan:g,env:x};if(o)for(let St of t.checkout)St(o,v);let{checkoutMarketSegment:A,checkoutWorkflowStep:I=c,imsCountry:O,country:S=O??l,language:L=d,quantity:K=u,entitlement:H,upgrade:Q,modal:ee,perpetual:ce,promotionCode:te=p,wcsOsi:W,extraOptions:$,...le}=Object.assign(v,o?.dataset??{},a??{}),fe=ur(I,ae,R.checkoutWorkflowStep);return v=oi({...le,extraOptions:$,checkoutClientId:s,checkoutMarketSegment:A,country:S,quantity:Rt(K,R.quantity),checkoutWorkflowStep:fe,language:L,entitlement:_(H),upgrade:_(Q),modal:ee,perpetual:_(ce),promotionCode:ci(te).effectivePromoCode,wcsOsi:hi(W),preselectPlan:g}),v}function i(a,o){if(!Array.isArray(a)||!a.length||!o)return"";let{env:s,landscape:c}=e,{checkoutClientId:l,checkoutMarketSegment:d,checkoutWorkflowStep:p,country:u,promotionCode:g,quantity:x,preselectPlan:v,ms:A,cs:I,...O}=r(o),S=document.querySelector("meta[name=mas-ff-3in1]"),L=Object.values(at).includes(o.modal)&&(!S||S.content!=="off"),K=window.frameElement||L?"if":"fp",[{productArrangementCode:H,marketSegments:[Q],customerSegment:ee,offerType:ce}]=a,te=A??Q??d,W=I??ee;v?.toLowerCase()==="edu"?te="EDU":v?.toLowerCase()==="team"&&(W="TEAM");let $={is3in1:L,checkoutPromoCode:g,clientId:l,context:K,country:u,env:s,items:[],marketSegment:te,customerSegment:W,offerType:ce,productArrangementCode:H,workflowStep:p,landscape:c,...O},le=x[0]>1?x[0]:void 0;if(a.length===1){let{offerId:fe}=a[0];$.items.push({id:fe,quantity:le})}else $.items.push(...a.map(({offerId:fe,productArrangementCode:St})=>({id:fe,quantity:le,...L?{productArrangementCode:St}:{}})));return Io($)}let{createCheckoutLink:n}=De;return{CheckoutLink:De,CheckoutWorkflowStep:ae,buildCheckoutURL:i,collectCheckoutOptions:r,createCheckoutLink:n}}function _d({interval:e=200,maxAttempts:t=25}={}){let r=oe.module("ims");return new Promise(i=>{r.debug("Waing for IMS to be ready");let n=0;function a(){window.adobeIMS?.initialized?i():++n>t?(r.debug("Timeout"),i()):setTimeout(a,e)}a()})}function Cd(e){return e.then(()=>window.adobeIMS?.isSignedInUser()??!1)}function kd(e){let t=oe.module("ims");return e.then(r=>r?window.adobeIMS.getProfile().then(({countryCode:i})=>(t.debug("Got user country:",i),i),i=>{t.error("Unable to get user country:",i)}):null)}function $o({}){let e=_d(),t=Cd(e),r=kd(t);return{imsReadyPromise:e,imsSignedInPromise:t,imsCountryPromise:r}}var zo=window.masPriceLiterals;function Ho(e){if(Array.isArray(zo)){let t=e.locale==="id_ID"?"in":e.language,r=n=>zo.find(a=>vn(a.lang,n)),i=r(t)??r(R.language);if(i)return Object.freeze(i)}return{}}var zn=function(e,t){return zn=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(r,i){r.__proto__=i}||function(r,i){for(var n in i)Object.prototype.hasOwnProperty.call(i,n)&&(r[n]=i[n])},zn(e,t)};function br(e,t){if(typeof t!="function"&&t!==null)throw new TypeError("Class extends value "+String(t)+" is not a constructor or null");zn(e,t);function r(){this.constructor=e}e.prototype=t===null?Object.create(t):(r.prototype=t.prototype,new r)}var k=function(){return k=Object.assign||function(t){for(var r,i=1,n=arguments.length;i<n;i++){r=arguments[i];for(var a in r)Object.prototype.hasOwnProperty.call(r,a)&&(t[a]=r[a])}return t},k.apply(this,arguments)};function xi(e,t,r){if(r||arguments.length===2)for(var i=0,n=t.length,a;i<n;i++)(a||!(i in t))&&(a||(a=Array.prototype.slice.call(t,0,i)),a[i]=t[i]);return e.concat(a||Array.prototype.slice.call(t))}var T;(function(e){e[e.EXPECT_ARGUMENT_CLOSING_BRACE=1]="EXPECT_ARGUMENT_CLOSING_BRACE",e[e.EMPTY_ARGUMENT=2]="EMPTY_ARGUMENT",e[e.MALFORMED_ARGUMENT=3]="MALFORMED_ARGUMENT",e[e.EXPECT_ARGUMENT_TYPE=4]="EXPECT_ARGUMENT_TYPE",e[e.INVALID_ARGUMENT_TYPE=5]="INVALID_ARGUMENT_TYPE",e[e.EXPECT_ARGUMENT_STYLE=6]="EXPECT_ARGUMENT_STYLE",e[e.INVALID_NUMBER_SKELETON=7]="INVALID_NUMBER_SKELETON",e[e.INVALID_DATE_TIME_SKELETON=8]="INVALID_DATE_TIME_SKELETON",e[e.EXPECT_NUMBER_SKELETON=9]="EXPECT_NUMBER_SKELETON",e[e.EXPECT_DATE_TIME_SKELETON=10]="EXPECT_DATE_TIME_SKELETON",e[e.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE=11]="UNCLOSED_QUOTE_IN_ARGUMENT_STYLE",e[e.EXPECT_SELECT_ARGUMENT_OPTIONS=12]="EXPECT_SELECT_ARGUMENT_OPTIONS",e[e.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE=13]="EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE=14]="INVALID_PLURAL_ARGUMENT_OFFSET_VALUE",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR=15]="EXPECT_SELECT_ARGUMENT_SELECTOR",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR=16]="EXPECT_PLURAL_ARGUMENT_SELECTOR",e[e.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT=17]="EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT",e[e.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT=18]="EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT",e[e.INVALID_PLURAL_ARGUMENT_SELECTOR=19]="INVALID_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_PLURAL_ARGUMENT_SELECTOR=20]="DUPLICATE_PLURAL_ARGUMENT_SELECTOR",e[e.DUPLICATE_SELECT_ARGUMENT_SELECTOR=21]="DUPLICATE_SELECT_ARGUMENT_SELECTOR",e[e.MISSING_OTHER_CLAUSE=22]="MISSING_OTHER_CLAUSE",e[e.INVALID_TAG=23]="INVALID_TAG",e[e.INVALID_TAG_NAME=25]="INVALID_TAG_NAME",e[e.UNMATCHED_CLOSING_TAG=26]="UNMATCHED_CLOSING_TAG",e[e.UNCLOSED_TAG=27]="UNCLOSED_TAG"})(T||(T={}));var F;(function(e){e[e.literal=0]="literal",e[e.argument=1]="argument",e[e.number=2]="number",e[e.date=3]="date",e[e.time=4]="time",e[e.select=5]="select",e[e.plural=6]="plural",e[e.pound=7]="pound",e[e.tag=8]="tag"})(F||(F={}));var dt;(function(e){e[e.number=0]="number",e[e.dateTime=1]="dateTime"})(dt||(dt={}));function Hn(e){return e.type===F.literal}function Bo(e){return e.type===F.argument}function vi(e){return e.type===F.number}function bi(e){return e.type===F.date}function yi(e){return e.type===F.time}function Ei(e){return e.type===F.select}function wi(e){return e.type===F.plural}function Uo(e){return e.type===F.pound}function Ai(e){return e.type===F.tag}function Si(e){return!!(e&&typeof e=="object"&&e.type===dt.number)}function yr(e){return!!(e&&typeof e=="object"&&e.type===dt.dateTime)}var Bn=/[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/;var Pd=/(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;function Fo(e){var t={};return e.replace(Pd,function(r){var i=r.length;switch(r[0]){case"G":t.era=i===4?"long":i===5?"narrow":"short";break;case"y":t.year=i===2?"2-digit":"numeric";break;case"Y":case"u":case"U":case"r":throw new RangeError("`Y/u/U/r` (year) patterns are not supported, use `y` instead");case"q":case"Q":throw new RangeError("`q/Q` (quarter) patterns are not supported");case"M":case"L":t.month=["numeric","2-digit","short","long","narrow"][i-1];break;case"w":case"W":throw new RangeError("`w/W` (week) patterns are not supported");case"d":t.day=["numeric","2-digit"][i-1];break;case"D":case"F":case"g":throw new RangeError("`D/F/g` (day) patterns are not supported, use `d` instead");case"E":t.weekday=i===4?"short":i===5?"narrow":"short";break;case"e":if(i<4)throw new RangeError("`e..eee` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"c":if(i<4)throw new RangeError("`c..ccc` (weekday) patterns are not supported");t.weekday=["short","long","narrow","short"][i-4];break;case"a":t.hour12=!0;break;case"b":case"B":throw new RangeError("`b/B` (period) patterns are not supported, use `a` instead");case"h":t.hourCycle="h12",t.hour=["numeric","2-digit"][i-1];break;case"H":t.hourCycle="h23",t.hour=["numeric","2-digit"][i-1];break;case"K":t.hourCycle="h11",t.hour=["numeric","2-digit"][i-1];break;case"k":t.hourCycle="h24",t.hour=["numeric","2-digit"][i-1];break;case"j":case"J":case"C":throw new RangeError("`j/J/C` (hour) patterns are not supported, use `h/H/K/k` instead");case"m":t.minute=["numeric","2-digit"][i-1];break;case"s":t.second=["numeric","2-digit"][i-1];break;case"S":case"A":throw new RangeError("`S/A` (second) patterns are not supported, use `s` instead");case"z":t.timeZoneName=i<4?"short":"long";break;case"Z":case"O":case"v":case"V":case"X":case"x":throw new RangeError("`Z/O/v/V/X/x` (timeZone) patterns are not supported, use `z` instead")}return""}),t}var Go=/[\t-\r \x85\u200E\u200F\u2028\u2029]/i;function Wo(e){if(e.length===0)throw new Error("Number skeleton cannot be empty");for(var t=e.split(Go).filter(function(u){return u.length>0}),r=[],i=0,n=t;i<n.length;i++){var a=n[i],o=a.split("/");if(o.length===0)throw new Error("Invalid number skeleton");for(var s=o[0],c=o.slice(1),l=0,d=c;l<d.length;l++){var p=d[l];if(p.length===0)throw new Error("Invalid number skeleton")}r.push({stem:s,options:c})}return r}function Ld(e){return e.replace(/^(.*?)-/,"")}var qo=/^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,Yo=/^(@+)?(\+|#+)?[rs]?$/g,Rd=/(\*)(0+)|(#+)(0+)|(0+)/g,Xo=/^(0+)$/;function Vo(e){var t={};return e[e.length-1]==="r"?t.roundingPriority="morePrecision":e[e.length-1]==="s"&&(t.roundingPriority="lessPrecision"),e.replace(Yo,function(r,i,n){return typeof n!="string"?(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length):n==="+"?t.minimumSignificantDigits=i.length:i[0]==="#"?t.maximumSignificantDigits=i.length:(t.minimumSignificantDigits=i.length,t.maximumSignificantDigits=i.length+(typeof n=="string"?n.length:0)),""}),t}function Ko(e){switch(e){case"sign-auto":return{signDisplay:"auto"};case"sign-accounting":case"()":return{currencySign:"accounting"};case"sign-always":case"+!":return{signDisplay:"always"};case"sign-accounting-always":case"()!":return{signDisplay:"always",currencySign:"accounting"};case"sign-except-zero":case"+?":return{signDisplay:"exceptZero"};case"sign-accounting-except-zero":case"()?":return{signDisplay:"exceptZero",currencySign:"accounting"};case"sign-never":case"+_":return{signDisplay:"never"}}}function Md(e){var t;if(e[0]==="E"&&e[1]==="E"?(t={notation:"engineering"},e=e.slice(2)):e[0]==="E"&&(t={notation:"scientific"},e=e.slice(1)),t){var r=e.slice(0,2);if(r==="+!"?(t.signDisplay="always",e=e.slice(2)):r==="+?"&&(t.signDisplay="exceptZero",e=e.slice(2)),!Xo.test(e))throw new Error("Malformed concise eng/scientific notation");t.minimumIntegerDigits=e.length}return t}function jo(e){var t={},r=Ko(e);return r||t}function Qo(e){for(var t={},r=0,i=e;r<i.length;r++){var n=i[r];switch(n.stem){case"percent":case"%":t.style="percent";continue;case"%x100":t.style="percent",t.scale=100;continue;case"currency":t.style="currency",t.currency=n.options[0];continue;case"group-off":case",_":t.useGrouping=!1;continue;case"precision-integer":case".":t.maximumFractionDigits=0;continue;case"measure-unit":case"unit":t.style="unit",t.unit=Ld(n.options[0]);continue;case"compact-short":case"K":t.notation="compact",t.compactDisplay="short";continue;case"compact-long":case"KK":t.notation="compact",t.compactDisplay="long";continue;case"scientific":t=k(k(k({},t),{notation:"scientific"}),n.options.reduce(function(c,l){return k(k({},c),jo(l))},{}));continue;case"engineering":t=k(k(k({},t),{notation:"engineering"}),n.options.reduce(function(c,l){return k(k({},c),jo(l))},{}));continue;case"notation-simple":t.notation="standard";continue;case"unit-width-narrow":t.currencyDisplay="narrowSymbol",t.unitDisplay="narrow";continue;case"unit-width-short":t.currencyDisplay="code",t.unitDisplay="short";continue;case"unit-width-full-name":t.currencyDisplay="name",t.unitDisplay="long";continue;case"unit-width-iso-code":t.currencyDisplay="symbol";continue;case"scale":t.scale=parseFloat(n.options[0]);continue;case"integer-width":if(n.options.length>1)throw new RangeError("integer-width stems only accept a single optional option");n.options[0].replace(Rd,function(c,l,d,p,u,g){if(l)t.minimumIntegerDigits=d.length;else{if(p&&u)throw new Error("We currently do not support maximum integer digits");if(g)throw new Error("We currently do not support exact integer digits")}return""});continue}if(Xo.test(n.stem)){t.minimumIntegerDigits=n.stem.length;continue}if(qo.test(n.stem)){if(n.options.length>1)throw new RangeError("Fraction-precision stems only accept a single optional option");n.stem.replace(qo,function(c,l,d,p,u,g){return d==="*"?t.minimumFractionDigits=l.length:p&&p[0]==="#"?t.maximumFractionDigits=p.length:u&&g?(t.minimumFractionDigits=u.length,t.maximumFractionDigits=u.length+g.length):(t.minimumFractionDigits=l.length,t.maximumFractionDigits=l.length),""});var a=n.options[0];a==="w"?t=k(k({},t),{trailingZeroDisplay:"stripIfInteger"}):a&&(t=k(k({},t),Vo(a)));continue}if(Yo.test(n.stem)){t=k(k({},t),Vo(n.stem));continue}var o=Ko(n.stem);o&&(t=k(k({},t),o));var s=Md(n.stem);s&&(t=k(k({},t),s))}return t}var Er={AX:["H"],BQ:["H"],CP:["H"],CZ:["H"],DK:["H"],FI:["H"],ID:["H"],IS:["H"],ML:["H"],NE:["H"],RU:["H"],SE:["H"],SJ:["H"],SK:["H"],AS:["h","H"],BT:["h","H"],DJ:["h","H"],ER:["h","H"],GH:["h","H"],IN:["h","H"],LS:["h","H"],PG:["h","H"],PW:["h","H"],SO:["h","H"],TO:["h","H"],VU:["h","H"],WS:["h","H"],"001":["H","h"],AL:["h","H","hB"],TD:["h","H","hB"],"ca-ES":["H","h","hB"],CF:["H","h","hB"],CM:["H","h","hB"],"fr-CA":["H","h","hB"],"gl-ES":["H","h","hB"],"it-CH":["H","h","hB"],"it-IT":["H","h","hB"],LU:["H","h","hB"],NP:["H","h","hB"],PF:["H","h","hB"],SC:["H","h","hB"],SM:["H","h","hB"],SN:["H","h","hB"],TF:["H","h","hB"],VA:["H","h","hB"],CY:["h","H","hb","hB"],GR:["h","H","hb","hB"],CO:["h","H","hB","hb"],DO:["h","H","hB","hb"],KP:["h","H","hB","hb"],KR:["h","H","hB","hb"],NA:["h","H","hB","hb"],PA:["h","H","hB","hb"],PR:["h","H","hB","hb"],VE:["h","H","hB","hb"],AC:["H","h","hb","hB"],AI:["H","h","hb","hB"],BW:["H","h","hb","hB"],BZ:["H","h","hb","hB"],CC:["H","h","hb","hB"],CK:["H","h","hb","hB"],CX:["H","h","hb","hB"],DG:["H","h","hb","hB"],FK:["H","h","hb","hB"],GB:["H","h","hb","hB"],GG:["H","h","hb","hB"],GI:["H","h","hb","hB"],IE:["H","h","hb","hB"],IM:["H","h","hb","hB"],IO:["H","h","hb","hB"],JE:["H","h","hb","hB"],LT:["H","h","hb","hB"],MK:["H","h","hb","hB"],MN:["H","h","hb","hB"],MS:["H","h","hb","hB"],NF:["H","h","hb","hB"],NG:["H","h","hb","hB"],NR:["H","h","hb","hB"],NU:["H","h","hb","hB"],PN:["H","h","hb","hB"],SH:["H","h","hb","hB"],SX:["H","h","hb","hB"],TA:["H","h","hb","hB"],ZA:["H","h","hb","hB"],"af-ZA":["H","h","hB","hb"],AR:["H","h","hB","hb"],CL:["H","h","hB","hb"],CR:["H","h","hB","hb"],CU:["H","h","hB","hb"],EA:["H","h","hB","hb"],"es-BO":["H","h","hB","hb"],"es-BR":["H","h","hB","hb"],"es-EC":["H","h","hB","hb"],"es-ES":["H","h","hB","hb"],"es-GQ":["H","h","hB","hb"],"es-PE":["H","h","hB","hb"],GT:["H","h","hB","hb"],HN:["H","h","hB","hb"],IC:["H","h","hB","hb"],KG:["H","h","hB","hb"],KM:["H","h","hB","hb"],LK:["H","h","hB","hb"],MA:["H","h","hB","hb"],MX:["H","h","hB","hb"],NI:["H","h","hB","hb"],PY:["H","h","hB","hb"],SV:["H","h","hB","hb"],UY:["H","h","hB","hb"],JP:["H","h","K"],AD:["H","hB"],AM:["H","hB"],AO:["H","hB"],AT:["H","hB"],AW:["H","hB"],BE:["H","hB"],BF:["H","hB"],BJ:["H","hB"],BL:["H","hB"],BR:["H","hB"],CG:["H","hB"],CI:["H","hB"],CV:["H","hB"],DE:["H","hB"],EE:["H","hB"],FR:["H","hB"],GA:["H","hB"],GF:["H","hB"],GN:["H","hB"],GP:["H","hB"],GW:["H","hB"],HR:["H","hB"],IL:["H","hB"],IT:["H","hB"],KZ:["H","hB"],MC:["H","hB"],MD:["H","hB"],MF:["H","hB"],MQ:["H","hB"],MZ:["H","hB"],NC:["H","hB"],NL:["H","hB"],PM:["H","hB"],PT:["H","hB"],RE:["H","hB"],RO:["H","hB"],SI:["H","hB"],SR:["H","hB"],ST:["H","hB"],TG:["H","hB"],TR:["H","hB"],WF:["H","hB"],YT:["H","hB"],BD:["h","hB","H"],PK:["h","hB","H"],AZ:["H","hB","h"],BA:["H","hB","h"],BG:["H","hB","h"],CH:["H","hB","h"],GE:["H","hB","h"],LI:["H","hB","h"],ME:["H","hB","h"],RS:["H","hB","h"],UA:["H","hB","h"],UZ:["H","hB","h"],XK:["H","hB","h"],AG:["h","hb","H","hB"],AU:["h","hb","H","hB"],BB:["h","hb","H","hB"],BM:["h","hb","H","hB"],BS:["h","hb","H","hB"],CA:["h","hb","H","hB"],DM:["h","hb","H","hB"],"en-001":["h","hb","H","hB"],FJ:["h","hb","H","hB"],FM:["h","hb","H","hB"],GD:["h","hb","H","hB"],GM:["h","hb","H","hB"],GU:["h","hb","H","hB"],GY:["h","hb","H","hB"],JM:["h","hb","H","hB"],KI:["h","hb","H","hB"],KN:["h","hb","H","hB"],KY:["h","hb","H","hB"],LC:["h","hb","H","hB"],LR:["h","hb","H","hB"],MH:["h","hb","H","hB"],MP:["h","hb","H","hB"],MW:["h","hb","H","hB"],NZ:["h","hb","H","hB"],SB:["h","hb","H","hB"],SG:["h","hb","H","hB"],SL:["h","hb","H","hB"],SS:["h","hb","H","hB"],SZ:["h","hb","H","hB"],TC:["h","hb","H","hB"],TT:["h","hb","H","hB"],UM:["h","hb","H","hB"],US:["h","hb","H","hB"],VC:["h","hb","H","hB"],VG:["h","hb","H","hB"],VI:["h","hb","H","hB"],ZM:["h","hb","H","hB"],BO:["H","hB","h","hb"],EC:["H","hB","h","hb"],ES:["H","hB","h","hb"],GQ:["H","hB","h","hb"],PE:["H","hB","h","hb"],AE:["h","hB","hb","H"],"ar-001":["h","hB","hb","H"],BH:["h","hB","hb","H"],DZ:["h","hB","hb","H"],EG:["h","hB","hb","H"],EH:["h","hB","hb","H"],HK:["h","hB","hb","H"],IQ:["h","hB","hb","H"],JO:["h","hB","hb","H"],KW:["h","hB","hb","H"],LB:["h","hB","hb","H"],LY:["h","hB","hb","H"],MO:["h","hB","hb","H"],MR:["h","hB","hb","H"],OM:["h","hB","hb","H"],PH:["h","hB","hb","H"],PS:["h","hB","hb","H"],QA:["h","hB","hb","H"],SA:["h","hB","hb","H"],SD:["h","hB","hb","H"],SY:["h","hB","hb","H"],TN:["h","hB","hb","H"],YE:["h","hB","hb","H"],AF:["H","hb","hB","h"],LA:["H","hb","hB","h"],CN:["H","hB","hb","h"],LV:["H","hB","hb","h"],TL:["H","hB","hb","h"],"zu-ZA":["H","hB","hb","h"],CD:["hB","H"],IR:["hB","H"],"hi-IN":["hB","h","H"],"kn-IN":["hB","h","H"],"ml-IN":["hB","h","H"],"te-IN":["hB","h","H"],KH:["hB","h","H","hb"],"ta-IN":["hB","h","hb","H"],BN:["hb","hB","h","H"],MY:["hb","hB","h","H"],ET:["hB","hb","h","H"],"gu-IN":["hB","hb","h","H"],"mr-IN":["hB","hb","h","H"],"pa-IN":["hB","hb","h","H"],TW:["hB","hb","h","H"],KE:["hB","hb","H","h"],MM:["hB","hb","H","h"],TZ:["hB","hb","H","h"],UG:["hB","hb","H","h"]};function Zo(e,t){for(var r="",i=0;i<e.length;i++){var n=e.charAt(i);if(n==="j"){for(var a=0;i+1<e.length&&e.charAt(i+1)===n;)a++,i++;var o=1+(a&1),s=a<2?1:3+(a>>1),c="a",l=Od(t);for((l=="H"||l=="k")&&(s=0);s-- >0;)r+=c;for(;o-- >0;)r=l+r}else n==="J"?r+="H":r+=n}return r}function Od(e){var t=e.hourCycle;if(t===void 0&&e.hourCycles&&e.hourCycles.length&&(t=e.hourCycles[0]),t)switch(t){case"h24":return"k";case"h23":return"H";case"h12":return"h";case"h11":return"K";default:throw new Error("Invalid hourCycle")}var r=e.language,i;r!=="root"&&(i=e.maximize().region);var n=Er[i||""]||Er[r||""]||Er["".concat(r,"-001")]||Er["001"];return n[0]}var Un,Nd=new RegExp("^".concat(Bn.source,"*")),Id=new RegExp("".concat(Bn.source,"*$"));function P(e,t){return{start:e,end:t}}var Dd=!!String.prototype.startsWith,$d=!!String.fromCodePoint,zd=!!Object.fromEntries,Hd=!!String.prototype.codePointAt,Bd=!!String.prototype.trimStart,Ud=!!String.prototype.trimEnd,Fd=!!Number.isSafeInteger,Gd=Fd?Number.isSafeInteger:function(e){return typeof e=="number"&&isFinite(e)&&Math.floor(e)===e&&Math.abs(e)<=9007199254740991},Gn=!0;try{Jo=is("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),Gn=((Un=Jo.exec("a"))===null||Un===void 0?void 0:Un[0])==="a"}catch{Gn=!1}var Jo,es=Dd?function(t,r,i){return t.startsWith(r,i)}:function(t,r,i){return t.slice(i,i+r.length)===r},qn=$d?String.fromCodePoint:function(){for(var t=[],r=0;r<arguments.length;r++)t[r]=arguments[r];for(var i="",n=t.length,a=0,o;n>a;){if(o=t[a++],o>1114111)throw RangeError(o+" is not a valid code point");i+=o<65536?String.fromCharCode(o):String.fromCharCode(((o-=65536)>>10)+55296,o%1024+56320)}return i},ts=zd?Object.fromEntries:function(t){for(var r={},i=0,n=t;i<n.length;i++){var a=n[i],o=a[0],s=a[1];r[o]=s}return r},rs=Hd?function(t,r){return t.codePointAt(r)}:function(t,r){var i=t.length;if(!(r<0||r>=i)){var n=t.charCodeAt(r),a;return n<55296||n>56319||r+1===i||(a=t.charCodeAt(r+1))<56320||a>57343?n:(n-55296<<10)+(a-56320)+65536}},qd=Bd?function(t){return t.trimStart()}:function(t){return t.replace(Nd,"")},Vd=Ud?function(t){return t.trimEnd()}:function(t){return t.replace(Id,"")};function is(e,t){return new RegExp(e,t)}var Vn;Gn?(Fn=is("([^\\p{White_Space}\\p{Pattern_Syntax}]*)","yu"),Vn=function(t,r){var i;Fn.lastIndex=r;var n=Fn.exec(t);return(i=n[1])!==null&&i!==void 0?i:""}):Vn=function(t,r){for(var i=[];;){var n=rs(t,r);if(n===void 0||as(n)||Yd(n))break;i.push(n),r+=n>=65536?2:1}return qn.apply(void 0,i)};var Fn,ns=function(){function e(t,r){r===void 0&&(r={}),this.message=t,this.position={offset:0,line:1,column:1},this.ignoreTag=!!r.ignoreTag,this.locale=r.locale,this.requiresOtherClause=!!r.requiresOtherClause,this.shouldParseSkeletons=!!r.shouldParseSkeletons}return e.prototype.parse=function(){if(this.offset()!==0)throw Error("parser can only be used once");return this.parseMessage(0,"",!1)},e.prototype.parseMessage=function(t,r,i){for(var n=[];!this.isEOF();){var a=this.char();if(a===123){var o=this.parseArgument(t,i);if(o.err)return o;n.push(o.val)}else{if(a===125&&t>0)break;if(a===35&&(r==="plural"||r==="selectordinal")){var s=this.clonePosition();this.bump(),n.push({type:F.pound,location:P(s,this.clonePosition())})}else if(a===60&&!this.ignoreTag&&this.peek()===47){if(i)break;return this.error(T.UNMATCHED_CLOSING_TAG,P(this.clonePosition(),this.clonePosition()))}else if(a===60&&!this.ignoreTag&&jn(this.peek()||0)){var o=this.parseTag(t,r);if(o.err)return o;n.push(o.val)}else{var o=this.parseLiteral(t,r);if(o.err)return o;n.push(o.val)}}}return{val:n,err:null}},e.prototype.parseTag=function(t,r){var i=this.clonePosition();this.bump();var n=this.parseTagName();if(this.bumpSpace(),this.bumpIf("/>"))return{val:{type:F.literal,value:"<".concat(n,"/>"),location:P(i,this.clonePosition())},err:null};if(this.bumpIf(">")){var a=this.parseMessage(t+1,r,!0);if(a.err)return a;var o=a.val,s=this.clonePosition();if(this.bumpIf("</")){if(this.isEOF()||!jn(this.char()))return this.error(T.INVALID_TAG,P(s,this.clonePosition()));var c=this.clonePosition(),l=this.parseTagName();return n!==l?this.error(T.UNMATCHED_CLOSING_TAG,P(c,this.clonePosition())):(this.bumpSpace(),this.bumpIf(">")?{val:{type:F.tag,value:n,children:o,location:P(i,this.clonePosition())},err:null}:this.error(T.INVALID_TAG,P(s,this.clonePosition())))}else return this.error(T.UNCLOSED_TAG,P(i,this.clonePosition()))}else return this.error(T.INVALID_TAG,P(i,this.clonePosition()))},e.prototype.parseTagName=function(){var t=this.offset();for(this.bump();!this.isEOF()&&Wd(this.char());)this.bump();return this.message.slice(t,this.offset())},e.prototype.parseLiteral=function(t,r){for(var i=this.clonePosition(),n="";;){var a=this.tryParseQuote(r);if(a){n+=a;continue}var o=this.tryParseUnquoted(t,r);if(o){n+=o;continue}var s=this.tryParseLeftAngleBracket();if(s){n+=s;continue}break}var c=P(i,this.clonePosition());return{val:{type:F.literal,value:n,location:c},err:null}},e.prototype.tryParseLeftAngleBracket=function(){return!this.isEOF()&&this.char()===60&&(this.ignoreTag||!jd(this.peek()||0))?(this.bump(),"<"):null},e.prototype.tryParseQuote=function(t){if(this.isEOF()||this.char()!==39)return null;switch(this.peek()){case 39:return this.bump(),this.bump(),"'";case 123:case 60:case 62:case 125:break;case 35:if(t==="plural"||t==="selectordinal")break;return null;default:return null}this.bump();var r=[this.char()];for(this.bump();!this.isEOF();){var i=this.char();if(i===39)if(this.peek()===39)r.push(39),this.bump();else{this.bump();break}else r.push(i);this.bump()}return qn.apply(void 0,r)},e.prototype.tryParseUnquoted=function(t,r){if(this.isEOF())return null;var i=this.char();return i===60||i===123||i===35&&(r==="plural"||r==="selectordinal")||i===125&&t>0?null:(this.bump(),qn(i))},e.prototype.parseArgument=function(t,r){var i=this.clonePosition();if(this.bump(),this.bumpSpace(),this.isEOF())return this.error(T.EXPECT_ARGUMENT_CLOSING_BRACE,P(i,this.clonePosition()));if(this.char()===125)return this.bump(),this.error(T.EMPTY_ARGUMENT,P(i,this.clonePosition()));var n=this.parseIdentifierIfPossible().value;if(!n)return this.error(T.MALFORMED_ARGUMENT,P(i,this.clonePosition()));if(this.bumpSpace(),this.isEOF())return this.error(T.EXPECT_ARGUMENT_CLOSING_BRACE,P(i,this.clonePosition()));switch(this.char()){case 125:return this.bump(),{val:{type:F.argument,value:n,location:P(i,this.clonePosition())},err:null};case 44:return this.bump(),this.bumpSpace(),this.isEOF()?this.error(T.EXPECT_ARGUMENT_CLOSING_BRACE,P(i,this.clonePosition())):this.parseArgumentOptions(t,r,n,i);default:return this.error(T.MALFORMED_ARGUMENT,P(i,this.clonePosition()))}},e.prototype.parseIdentifierIfPossible=function(){var t=this.clonePosition(),r=this.offset(),i=Vn(this.message,r),n=r+i.length;this.bumpTo(n);var a=this.clonePosition(),o=P(t,a);return{value:i,location:o}},e.prototype.parseArgumentOptions=function(t,r,i,n){var a,o=this.clonePosition(),s=this.parseIdentifierIfPossible().value,c=this.clonePosition();switch(s){case"":return this.error(T.EXPECT_ARGUMENT_TYPE,P(o,c));case"number":case"date":case"time":{this.bumpSpace();var l=null;if(this.bumpIf(",")){this.bumpSpace();var d=this.clonePosition(),p=this.parseSimpleArgStyleIfPossible();if(p.err)return p;var u=Vd(p.val);if(u.length===0)return this.error(T.EXPECT_ARGUMENT_STYLE,P(this.clonePosition(),this.clonePosition()));var g=P(d,this.clonePosition());l={style:u,styleLocation:g}}var x=this.tryParseArgumentClose(n);if(x.err)return x;var v=P(n,this.clonePosition());if(l&&es(l?.style,"::",0)){var A=qd(l.style.slice(2));if(s==="number"){var p=this.parseNumberSkeletonFromString(A,l.styleLocation);return p.err?p:{val:{type:F.number,value:i,location:v,style:p.val},err:null}}else{if(A.length===0)return this.error(T.EXPECT_DATE_TIME_SKELETON,v);var I=A;this.locale&&(I=Zo(A,this.locale));var u={type:dt.dateTime,pattern:I,location:l.styleLocation,parsedOptions:this.shouldParseSkeletons?Fo(I):{}},O=s==="date"?F.date:F.time;return{val:{type:O,value:i,location:v,style:u},err:null}}}return{val:{type:s==="number"?F.number:s==="date"?F.date:F.time,value:i,location:v,style:(a=l?.style)!==null&&a!==void 0?a:null},err:null}}case"plural":case"selectordinal":case"select":{var S=this.clonePosition();if(this.bumpSpace(),!this.bumpIf(","))return this.error(T.EXPECT_SELECT_ARGUMENT_OPTIONS,P(S,k({},S)));this.bumpSpace();var L=this.parseIdentifierIfPossible(),K=0;if(s!=="select"&&L.value==="offset"){if(!this.bumpIf(":"))return this.error(T.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,P(this.clonePosition(),this.clonePosition()));this.bumpSpace();var p=this.tryParseDecimalInteger(T.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE,T.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE);if(p.err)return p;this.bumpSpace(),L=this.parseIdentifierIfPossible(),K=p.val}var H=this.tryParsePluralOrSelectOptions(t,s,r,L);if(H.err)return H;var x=this.tryParseArgumentClose(n);if(x.err)return x;var Q=P(n,this.clonePosition());return s==="select"?{val:{type:F.select,value:i,options:ts(H.val),location:Q},err:null}:{val:{type:F.plural,value:i,options:ts(H.val),offset:K,pluralType:s==="plural"?"cardinal":"ordinal",location:Q},err:null}}default:return this.error(T.INVALID_ARGUMENT_TYPE,P(o,c))}},e.prototype.tryParseArgumentClose=function(t){return this.isEOF()||this.char()!==125?this.error(T.EXPECT_ARGUMENT_CLOSING_BRACE,P(t,this.clonePosition())):(this.bump(),{val:!0,err:null})},e.prototype.parseSimpleArgStyleIfPossible=function(){for(var t=0,r=this.clonePosition();!this.isEOF();){var i=this.char();switch(i){case 39:{this.bump();var n=this.clonePosition();if(!this.bumpUntil("'"))return this.error(T.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE,P(n,this.clonePosition()));this.bump();break}case 123:{t+=1,this.bump();break}case 125:{if(t>0)t-=1;else return{val:this.message.slice(r.offset,this.offset()),err:null};break}default:this.bump();break}}return{val:this.message.slice(r.offset,this.offset()),err:null}},e.prototype.parseNumberSkeletonFromString=function(t,r){var i=[];try{i=Wo(t)}catch{return this.error(T.INVALID_NUMBER_SKELETON,r)}return{val:{type:dt.number,tokens:i,location:r,parsedOptions:this.shouldParseSkeletons?Qo(i):{}},err:null}},e.prototype.tryParsePluralOrSelectOptions=function(t,r,i,n){for(var a,o=!1,s=[],c=new Set,l=n.value,d=n.location;;){if(l.length===0){var p=this.clonePosition();if(r!=="select"&&this.bumpIf("=")){var u=this.tryParseDecimalInteger(T.EXPECT_PLURAL_ARGUMENT_SELECTOR,T.INVALID_PLURAL_ARGUMENT_SELECTOR);if(u.err)return u;d=P(p,this.clonePosition()),l=this.message.slice(p.offset,this.offset())}else break}if(c.has(l))return this.error(r==="select"?T.DUPLICATE_SELECT_ARGUMENT_SELECTOR:T.DUPLICATE_PLURAL_ARGUMENT_SELECTOR,d);l==="other"&&(o=!0),this.bumpSpace();var g=this.clonePosition();if(!this.bumpIf("{"))return this.error(r==="select"?T.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT:T.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT,P(this.clonePosition(),this.clonePosition()));var x=this.parseMessage(t+1,r,i);if(x.err)return x;var v=this.tryParseArgumentClose(g);if(v.err)return v;s.push([l,{value:x.val,location:P(g,this.clonePosition())}]),c.add(l),this.bumpSpace(),a=this.parseIdentifierIfPossible(),l=a.value,d=a.location}return s.length===0?this.error(r==="select"?T.EXPECT_SELECT_ARGUMENT_SELECTOR:T.EXPECT_PLURAL_ARGUMENT_SELECTOR,P(this.clonePosition(),this.clonePosition())):this.requiresOtherClause&&!o?this.error(T.MISSING_OTHER_CLAUSE,P(this.clonePosition(),this.clonePosition())):{val:s,err:null}},e.prototype.tryParseDecimalInteger=function(t,r){var i=1,n=this.clonePosition();this.bumpIf("+")||this.bumpIf("-")&&(i=-1);for(var a=!1,o=0;!this.isEOF();){var s=this.char();if(s>=48&&s<=57)a=!0,o=o*10+(s-48),this.bump();else break}var c=P(n,this.clonePosition());return a?(o*=i,Gd(o)?{val:o,err:null}:this.error(r,c)):this.error(t,c)},e.prototype.offset=function(){return this.position.offset},e.prototype.isEOF=function(){return this.offset()===this.message.length},e.prototype.clonePosition=function(){return{offset:this.position.offset,line:this.position.line,column:this.position.column}},e.prototype.char=function(){var t=this.position.offset;if(t>=this.message.length)throw Error("out of bound");var r=rs(this.message,t);if(r===void 0)throw Error("Offset ".concat(t," is at invalid UTF-16 code unit boundary"));return r},e.prototype.error=function(t,r){return{val:null,err:{kind:t,message:this.message,location:r}}},e.prototype.bump=function(){if(!this.isEOF()){var t=this.char();t===10?(this.position.line+=1,this.position.column=1,this.position.offset+=1):(this.position.column+=1,this.position.offset+=t<65536?1:2)}},e.prototype.bumpIf=function(t){if(es(this.message,t,this.offset())){for(var r=0;r<t.length;r++)this.bump();return!0}return!1},e.prototype.bumpUntil=function(t){var r=this.offset(),i=this.message.indexOf(t,r);return i>=0?(this.bumpTo(i),!0):(this.bumpTo(this.message.length),!1)},e.prototype.bumpTo=function(t){if(this.offset()>t)throw Error("targetOffset ".concat(t," must be greater than or equal to the current offset ").concat(this.offset()));for(t=Math.min(t,this.message.length);;){var r=this.offset();if(r===t)break;if(r>t)throw Error("targetOffset ".concat(t," is at invalid UTF-16 code unit boundary"));if(this.bump(),this.isEOF())break}},e.prototype.bumpSpace=function(){for(;!this.isEOF()&&as(this.char());)this.bump()},e.prototype.peek=function(){if(this.isEOF())return null;var t=this.char(),r=this.offset(),i=this.message.charCodeAt(r+(t>=65536?2:1));return i??null},e}();function jn(e){return e>=97&&e<=122||e>=65&&e<=90}function jd(e){return jn(e)||e===47}function Wd(e){return e===45||e===46||e>=48&&e<=57||e===95||e>=97&&e<=122||e>=65&&e<=90||e==183||e>=192&&e<=214||e>=216&&e<=246||e>=248&&e<=893||e>=895&&e<=8191||e>=8204&&e<=8205||e>=8255&&e<=8256||e>=8304&&e<=8591||e>=11264&&e<=12271||e>=12289&&e<=55295||e>=63744&&e<=64975||e>=65008&&e<=65533||e>=65536&&e<=983039}function as(e){return e>=9&&e<=13||e===32||e===133||e>=8206&&e<=8207||e===8232||e===8233}function Yd(e){return e>=33&&e<=35||e===36||e>=37&&e<=39||e===40||e===41||e===42||e===43||e===44||e===45||e>=46&&e<=47||e>=58&&e<=59||e>=60&&e<=62||e>=63&&e<=64||e===91||e===92||e===93||e===94||e===96||e===123||e===124||e===125||e===126||e===161||e>=162&&e<=165||e===166||e===167||e===169||e===171||e===172||e===174||e===176||e===177||e===182||e===187||e===191||e===215||e===247||e>=8208&&e<=8213||e>=8214&&e<=8215||e===8216||e===8217||e===8218||e>=8219&&e<=8220||e===8221||e===8222||e===8223||e>=8224&&e<=8231||e>=8240&&e<=8248||e===8249||e===8250||e>=8251&&e<=8254||e>=8257&&e<=8259||e===8260||e===8261||e===8262||e>=8263&&e<=8273||e===8274||e===8275||e>=8277&&e<=8286||e>=8592&&e<=8596||e>=8597&&e<=8601||e>=8602&&e<=8603||e>=8604&&e<=8607||e===8608||e>=8609&&e<=8610||e===8611||e>=8612&&e<=8613||e===8614||e>=8615&&e<=8621||e===8622||e>=8623&&e<=8653||e>=8654&&e<=8655||e>=8656&&e<=8657||e===8658||e===8659||e===8660||e>=8661&&e<=8691||e>=8692&&e<=8959||e>=8960&&e<=8967||e===8968||e===8969||e===8970||e===8971||e>=8972&&e<=8991||e>=8992&&e<=8993||e>=8994&&e<=9e3||e===9001||e===9002||e>=9003&&e<=9083||e===9084||e>=9085&&e<=9114||e>=9115&&e<=9139||e>=9140&&e<=9179||e>=9180&&e<=9185||e>=9186&&e<=9254||e>=9255&&e<=9279||e>=9280&&e<=9290||e>=9291&&e<=9311||e>=9472&&e<=9654||e===9655||e>=9656&&e<=9664||e===9665||e>=9666&&e<=9719||e>=9720&&e<=9727||e>=9728&&e<=9838||e===9839||e>=9840&&e<=10087||e===10088||e===10089||e===10090||e===10091||e===10092||e===10093||e===10094||e===10095||e===10096||e===10097||e===10098||e===10099||e===10100||e===10101||e>=10132&&e<=10175||e>=10176&&e<=10180||e===10181||e===10182||e>=10183&&e<=10213||e===10214||e===10215||e===10216||e===10217||e===10218||e===10219||e===10220||e===10221||e===10222||e===10223||e>=10224&&e<=10239||e>=10240&&e<=10495||e>=10496&&e<=10626||e===10627||e===10628||e===10629||e===10630||e===10631||e===10632||e===10633||e===10634||e===10635||e===10636||e===10637||e===10638||e===10639||e===10640||e===10641||e===10642||e===10643||e===10644||e===10645||e===10646||e===10647||e===10648||e>=10649&&e<=10711||e===10712||e===10713||e===10714||e===10715||e>=10716&&e<=10747||e===10748||e===10749||e>=10750&&e<=11007||e>=11008&&e<=11055||e>=11056&&e<=11076||e>=11077&&e<=11078||e>=11079&&e<=11084||e>=11085&&e<=11123||e>=11124&&e<=11125||e>=11126&&e<=11157||e===11158||e>=11159&&e<=11263||e>=11776&&e<=11777||e===11778||e===11779||e===11780||e===11781||e>=11782&&e<=11784||e===11785||e===11786||e===11787||e===11788||e===11789||e>=11790&&e<=11798||e===11799||e>=11800&&e<=11801||e===11802||e===11803||e===11804||e===11805||e>=11806&&e<=11807||e===11808||e===11809||e===11810||e===11811||e===11812||e===11813||e===11814||e===11815||e===11816||e===11817||e>=11818&&e<=11822||e===11823||e>=11824&&e<=11833||e>=11834&&e<=11835||e>=11836&&e<=11839||e===11840||e===11841||e===11842||e>=11843&&e<=11855||e>=11856&&e<=11857||e===11858||e>=11859&&e<=11903||e>=12289&&e<=12291||e===12296||e===12297||e===12298||e===12299||e===12300||e===12301||e===12302||e===12303||e===12304||e===12305||e>=12306&&e<=12307||e===12308||e===12309||e===12310||e===12311||e===12312||e===12313||e===12314||e===12315||e===12316||e===12317||e>=12318&&e<=12319||e===12320||e===12336||e===64830||e===64831||e>=65093&&e<=65094}function Wn(e){e.forEach(function(t){if(delete t.location,Ei(t)||wi(t))for(var r in t.options)delete t.options[r].location,Wn(t.options[r].value);else vi(t)&&Si(t.style)||(bi(t)||yi(t))&&yr(t.style)?delete t.style.location:Ai(t)&&Wn(t.children)})}function os(e,t){t===void 0&&(t={}),t=k({shouldParseSkeletons:!0,requiresOtherClause:!0},t);var r=new ns(e,t).parse();if(r.err){var i=SyntaxError(T[r.err.kind]);throw i.location=r.err.location,i.originalMessage=r.err.message,i}return t?.captureLocation||Wn(r.val),r.val}function wr(e,t){var r=t&&t.cache?t.cache:eh,i=t&&t.serializer?t.serializer:Jd,n=t&&t.strategy?t.strategy:Kd;return n(e,{cache:r,serializer:i})}function Xd(e){return e==null||typeof e=="number"||typeof e=="boolean"}function ss(e,t,r,i){var n=Xd(i)?i:r(i),a=t.get(n);return typeof a>"u"&&(a=e.call(this,i),t.set(n,a)),a}function cs(e,t,r){var i=Array.prototype.slice.call(arguments,3),n=r(i),a=t.get(n);return typeof a>"u"&&(a=e.apply(this,i),t.set(n,a)),a}function Yn(e,t,r,i,n){return r.bind(t,e,i,n)}function Kd(e,t){var r=e.length===1?ss:cs;return Yn(e,this,r,t.cache.create(),t.serializer)}function Qd(e,t){return Yn(e,this,cs,t.cache.create(),t.serializer)}function Zd(e,t){return Yn(e,this,ss,t.cache.create(),t.serializer)}var Jd=function(){return JSON.stringify(arguments)};function Xn(){this.cache=Object.create(null)}Xn.prototype.get=function(e){return this.cache[e]};Xn.prototype.set=function(e,t){this.cache[e]=t};var eh={create:function(){return new Xn}},Ti={variadic:Qd,monadic:Zd};var ht;(function(e){e.MISSING_VALUE="MISSING_VALUE",e.INVALID_VALUE="INVALID_VALUE",e.MISSING_INTL_API="MISSING_INTL_API"})(ht||(ht={}));var Ar=function(e){br(t,e);function t(r,i,n){var a=e.call(this,r)||this;return a.code=i,a.originalMessage=n,a}return t.prototype.toString=function(){return"[formatjs Error: ".concat(this.code,"] ").concat(this.message)},t}(Error);var Kn=function(e){br(t,e);function t(r,i,n,a){return e.call(this,'Invalid values for "'.concat(r,'": "').concat(i,'". Options are "').concat(Object.keys(n).join('", "'),'"'),ht.INVALID_VALUE,a)||this}return t}(Ar);var ls=function(e){br(t,e);function t(r,i,n){return e.call(this,'Value for "'.concat(r,'" must be of type ').concat(i),ht.INVALID_VALUE,n)||this}return t}(Ar);var ds=function(e){br(t,e);function t(r,i){return e.call(this,'The intl string context variable "'.concat(r,'" was not provided to the string "').concat(i,'"'),ht.MISSING_VALUE,i)||this}return t}(Ar);var ie;(function(e){e[e.literal=0]="literal",e[e.object=1]="object"})(ie||(ie={}));function th(e){return e.length<2?e:e.reduce(function(t,r){var i=t[t.length-1];return!i||i.type!==ie.literal||r.type!==ie.literal?t.push(r):i.value+=r.value,t},[])}function rh(e){return typeof e=="function"}function Sr(e,t,r,i,n,a,o){if(e.length===1&&Hn(e[0]))return[{type:ie.literal,value:e[0].value}];for(var s=[],c=0,l=e;c<l.length;c++){var d=l[c];if(Hn(d)){s.push({type:ie.literal,value:d.value});continue}if(Uo(d)){typeof a=="number"&&s.push({type:ie.literal,value:r.getNumberFormat(t).format(a)});continue}var p=d.value;if(!(n&&p in n))throw new ds(p,o);var u=n[p];if(Bo(d)){(!u||typeof u=="string"||typeof u=="number")&&(u=typeof u=="string"||typeof u=="number"?String(u):""),s.push({type:typeof u=="string"?ie.literal:ie.object,value:u});continue}if(bi(d)){var g=typeof d.style=="string"?i.date[d.style]:yr(d.style)?d.style.parsedOptions:void 0;s.push({type:ie.literal,value:r.getDateTimeFormat(t,g).format(u)});continue}if(yi(d)){var g=typeof d.style=="string"?i.time[d.style]:yr(d.style)?d.style.parsedOptions:i.time.medium;s.push({type:ie.literal,value:r.getDateTimeFormat(t,g).format(u)});continue}if(vi(d)){var g=typeof d.style=="string"?i.number[d.style]:Si(d.style)?d.style.parsedOptions:void 0;g&&g.scale&&(u=u*(g.scale||1)),s.push({type:ie.literal,value:r.getNumberFormat(t,g).format(u)});continue}if(Ai(d)){var x=d.children,v=d.value,A=n[v];if(!rh(A))throw new ls(v,"function",o);var I=Sr(x,t,r,i,n,a),O=A(I.map(function(K){return K.value}));Array.isArray(O)||(O=[O]),s.push.apply(s,O.map(function(K){return{type:typeof K=="string"?ie.literal:ie.object,value:K}}))}if(Ei(d)){var S=d.options[u]||d.options.other;if(!S)throw new Kn(d.value,u,Object.keys(d.options),o);s.push.apply(s,Sr(S.value,t,r,i,n));continue}if(wi(d)){var S=d.options["=".concat(u)];if(!S){if(!Intl.PluralRules)throw new Ar(`Intl.PluralRules is not available in this environment.
 Try polyfilling it using "@formatjs/intl-pluralrules"
-`,lt.MISSING_INTL_API,o);var I=r.getPluralRules(t,{type:d.pluralType}).select(u-(d.offset||0));w=d.options[I]||d.options.other}if(!w)throw new qn(d.value,u,Object.keys(d.options),o);s.push.apply(s,Ar(w.value,t,r,i,n,u-(d.offset||0)));continue}}return Ud(s)}function Gd(e,t){return t?C(C(C({},e||{}),t||{}),Object.keys(e).reduce(function(r,i){return r[i]=C(C({},e[i]),t[i]||{}),r},{})):e}function qd(e,t){return t?Object.keys(e).reduce(function(r,i){return r[i]=Gd(e[i],t[i]),r},C({},e)):e}function Vn(e){return{create:function(){return{get:function(t){return e[t]},set:function(t,r){e[t]=r}}}}}function Vd(e){return e===void 0&&(e={number:{},dateTime:{},pluralRules:{}}),{getNumberFormat:Er(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.NumberFormat).bind.apply(t,mi([void 0],r,!1)))},{cache:Vn(e.number),strategy:Ei.variadic}),getDateTimeFormat:Er(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.DateTimeFormat).bind.apply(t,mi([void 0],r,!1)))},{cache:Vn(e.dateTime),strategy:Ei.variadic}),getPluralRules:Er(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.PluralRules).bind.apply(t,mi([void 0],r,!1)))},{cache:Vn(e.pluralRules),strategy:Ei.variadic})}}var es=function(){function e(t,r,i,n){var a=this;if(r===void 0&&(r=e.defaultLocale),this.formatterCache={number:{},dateTime:{},pluralRules:{}},this.format=function(o){var s=a.formatToParts(o);if(s.length===1)return s[0].value;var c=s.reduce(function(l,d){return!l.length||d.type!==re.literal||typeof l[l.length-1]!="string"?l.push(d.value):l[l.length-1]+=d.value,l},[]);return c.length<=1?c[0]||"":c},this.formatToParts=function(o){return Ar(a.ast,a.locales,a.formatters,a.formats,o,void 0,a.message)},this.resolvedOptions=function(){return{locale:a.resolvedLocale.toString()}},this.getAst=function(){return a.ast},this.locales=r,this.resolvedLocale=e.resolveLocale(r),typeof t=="string"){if(this.message=t,!e.__parse)throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");this.ast=e.__parse(t,{ignoreTag:n?.ignoreTag,locale:this.resolvedLocale})}else this.ast=t;if(!Array.isArray(this.ast))throw new TypeError("A message must be provided as a String or AST.");this.formats=qd(e.formats,i),this.formatters=n&&n.formatters||Vd(this.formatterCache)}return Object.defineProperty(e,"defaultLocale",{get:function(){return e.memoizedDefaultLocale||(e.memoizedDefaultLocale=new Intl.NumberFormat().resolvedOptions().locale),e.memoizedDefaultLocale},enumerable:!1,configurable:!0}),e.memoizedDefaultLocale=null,e.resolveLocale=function(t){var r=Intl.NumberFormat.supportedLocalesOf(t);return r.length>0?new Intl.Locale(r[0]):new Intl.Locale(typeof t=="string"?t:t[0])},e.__parse=Xo,e.formats={number:{integer:{maximumFractionDigits:0},currency:{style:"currency"},percent:{style:"percent"}},date:{short:{month:"numeric",day:"numeric",year:"2-digit"},medium:{month:"short",day:"numeric",year:"numeric"},long:{month:"long",day:"numeric",year:"numeric"},full:{weekday:"long",month:"long",day:"numeric",year:"numeric"}},time:{short:{hour:"numeric",minute:"numeric"},medium:{hour:"numeric",minute:"numeric",second:"numeric"},long:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"},full:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"}}},e}();var ts=es;var jn={recurrenceLabel:"{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",recurrenceAriaLabel:"{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",perUnitLabel:"{perUnit, select, LICENSE {per license} other {}}",perUnitAriaLabel:"{perUnit, select, LICENSE {per license} other {}}",freeLabel:"Free",freeAriaLabel:"Free",taxExclusiveLabel:"{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",taxInclusiveLabel:"{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",alternativePriceAriaLabel:"Alternatively at",strikethroughAriaLabel:"Regularly at",planTypeLabel:"{planType, select, ABM {Annual, billed monthly} other {}}"},jd=Xa("ConsonantTemplates/price"),Wd=/<\/?[^>]+(>|$)/g,q={container:"price",containerOptical:"price-optical",containerStrikethrough:"price-strikethrough",containerAlternative:"price-alternative",containerAnnual:"price-annual",containerAnnualPrefix:"price-annual-prefix",containerAnnualSuffix:"price-annual-suffix",disabled:"disabled",currencySpace:"price-currency-space",currencySymbol:"price-currency-symbol",decimals:"price-decimals",decimalsDelimiter:"price-decimals-delimiter",integer:"price-integer",recurrence:"price-recurrence",taxInclusivity:"price-tax-inclusivity",unitType:"price-unit-type"},Ve={perUnitLabel:"perUnitLabel",perUnitAriaLabel:"perUnitAriaLabel",recurrenceLabel:"recurrenceLabel",recurrenceAriaLabel:"recurrenceAriaLabel",taxExclusiveLabel:"taxExclusiveLabel",taxInclusiveLabel:"taxInclusiveLabel",strikethroughAriaLabel:"strikethroughAriaLabel",alternativePriceAriaLabel:"alternativePriceAriaLabel"},Wn="TAX_EXCLUSIVE",Yd=e=>ja(e)?Object.entries(e).filter(([,t])=>kt(t)||ti(t)||t===!0).reduce((t,[r,i])=>t+` ${r}${i===!0?"":'="'+Va(i)+'"'}`,""):"",Y=(e,t,r,i=!1)=>`<span class="${e}${t?"":" "+q.disabled}"${Yd(r)}>${i?uo(t):t??""}</span>`;function Xd(e){e=e.replaceAll("</a>","&lt;/a&gt;");let t=/<a [^>]+(>|$)/g;return e.match(t)?.forEach(i=>{let n=i.replace("<a ","&lt;a ").replace(">","&gt;");e=e.replaceAll(i,n)}),e}function Kd(e){e=e.replaceAll("&lt;/a&gt;","</a>");let t=/&lt;a (?!&gt;)(.*?)(&gt;|$)/g;return e.match(t)?.forEach(i=>{let n=i.replace("&lt;a ","<a ").replace("&gt;",">");e=e.replaceAll(i,n)}),e}function De(e,t,r,i){let n=e[r];if(n==null)return"";let a=n.includes("<"),o=n.includes("<a ");try{n=o?Xd(n):n,n=a?n.replace(Wd,""):n;let s=new ts(n,t).format(i);return o?Kd(s):s}catch{return jd.error("Failed to format literal:",n),""}}function Qd(e,{accessibleLabel:t,altAccessibleLabel:r,currencySymbol:i,decimals:n,decimalsDelimiter:a,hasCurrencySpace:o,integer:s,isCurrencyFirst:c,recurrenceLabel:l,perUnitLabel:d,taxInclusivityLabel:p},u={}){let g=Y(q.currencySymbol,i),x=Y(q.currencySpace,o?"&nbsp;":""),v="";return t?v=`<sr-only class="strikethrough-aria-label">${t}</sr-only>`:r&&(v=`<sr-only class="alt-aria-label">${r}</sr-only>`),c&&(v+=g+x),v+=Y(q.integer,s),v+=Y(q.decimalsDelimiter,a),v+=Y(q.decimals,n),c||(v+=x+g),v+=Y(q.recurrence,l,null,!0),v+=Y(q.unitType,d,null,!0),v+=Y(q.taxInclusivity,p,!0),Y(e,v,{...u})}var ie=({isAlternativePrice:e=!1,displayOptical:t=!1,displayStrikethrough:r=!1,displayAnnual:i=!1,instant:n=void 0}={})=>({country:a,displayFormatted:o=!0,displayRecurrence:s=!0,displayPerUnit:c=!1,displayTax:l=!1,language:d,literals:p={},quantity:u=1,space:g=!1,isPromoApplied:x=!1}={},{commitment:v,offerSelectorIds:A,formatString:N,price:M,priceWithoutDiscount:w,taxDisplay:I,taxTerm:j,term:G,usePrecision:X,promotion:Z}={},ce={})=>{Object.entries({country:a,formatString:N,language:d,price:M}).forEach(([Zc,Jc])=>{if(Jc==null)throw new Error(`Argument "${Zc}" is missing for osi ${A?.toString()}, country ${a}, language ${d}`)});let K={...jn,...p},W=`${d.toLowerCase()}-${a.toUpperCase()}`,z;Z&&!x&&w?z=e?M:w:r&&w?z=w:z=M;let ge=t?fo:xo;i&&(ge=vo);let{accessiblePrice:ke,recurrenceTerm:Ue,...Oa}=ge({commitment:v,formatString:N,instant:n,isIndianPrice:a==="IN",originalPrice:M,priceWithoutDiscount:w,price:t?M:z,promotion:Z,quantity:u,term:G,usePrecision:X}),Fi="",Gi="",qi="";_(s)&&Ue&&(qi=De(K,W,Ve.recurrenceLabel,{recurrenceTerm:Ue}));let Xr="";_(c)&&(g&&(Xr+=" "),Xr+=De(K,W,Ve.perUnitLabel,{perUnit:"LICENSE"}));let Kr="";_(l)&&j&&(g&&(Kr+=" "),Kr+=De(K,W,I===Wn?Ve.taxExclusiveLabel:Ve.taxInclusiveLabel,{taxTerm:j})),r&&(Fi=De(K,W,Ve.strikethroughAriaLabel,{strikethroughPrice:Fi})),e&&(Gi=De(K,W,Ve.alternativePriceAriaLabel,{alternativePrice:Gi}));let At=q.container;if(t&&(At+=" "+q.containerOptical),r&&(At+=" "+q.containerStrikethrough),e&&(At+=" "+q.containerAlternative),i&&(At+=" "+q.containerAnnual),_(o))return Qd(At,{...Oa,accessibleLabel:Fi,altAccessibleLabel:Gi,recurrenceLabel:qi,perUnitLabel:Xr,taxInclusivityLabel:Kr},ce);let{currencySymbol:Na,decimals:Wc,decimalsDelimiter:Yc,hasCurrencySpace:Ia,integer:Xc,isCurrencyFirst:Kc}=Oa,St=[Xc,Yc,Wc];Kc?(St.unshift(Ia?"\xA0":""),St.unshift(Na)):(St.push(Ia?"\xA0":""),St.push(Na)),St.push(qi,Xr,Kr);let Qc=St.join("");return Y(At,Qc,ce)},rs=()=>(e,t,r)=>{let i=st(t.promotion,t.promotion?.displaySummary?.instant,Array.isArray(e.quantity)?e.quantity[0]:e.quantity),a=(e.displayOldPrice===void 0||_(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price&&(!t.promotion||i);return`${a?ie({displayStrikethrough:!0})({isPromoApplied:i,...e},t,r)+"&nbsp;":""}${ie({isAlternativePrice:a})({isPromoApplied:i,...e},t,r)}`},is=()=>(e,t,r)=>{let{instant:i}=e;try{i||(i=new URLSearchParams(document.location.search).get("instant")),i&&(i=new Date(i))}catch{i=void 0}let n=st(t.promotion,i,Array.isArray(e.quantity)?e.quantity[0]:e.quantity),a={...e,displayTax:!1,displayPerUnit:!1,isPromoApplied:n};if(!n)return ie()(e,{...t,price:t.priceWithoutDiscount},r)+Y(q.containerAnnualPrefix,"&nbsp;(")+ie({displayAnnual:!0,instant:i})(a,{...t,price:t.priceWithoutDiscount},r)+Y(q.containerAnnualSuffix,")");let s=(e.displayOldPrice===void 0||_(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price;return`${s?ie({displayStrikethrough:!0})(a,t,r)+"&nbsp;":""}${ie({isAlternativePrice:s})({isPromoApplied:n,...e},t,r)}${Y(q.containerAnnualPrefix,"&nbsp;(")}${ie({displayAnnual:!0,instant:i})(a,t,r)}${Y(q.containerAnnualSuffix,")")}`},ns=()=>(e,t,r)=>{let i={...e,displayTax:!1,displayPerUnit:!1};return`${ie({isAlternativePrice:e.displayOldPrice})(e,t,r)}${Y(q.containerAnnualPrefix,"&nbsp;(")}${ie({displayAnnual:!0})(i,t,r)}${Y(q.containerAnnualSuffix,")")}`};var Sr={...q,containerLegal:"price-legal",planType:"price-plan-type"},wi={...Ve,planTypeLabel:"planTypeLabel"};function Zd(e,{perUnitLabel:t,taxInclusivityLabel:r,planTypeLabel:i},n={}){let a="";return a+=Y(Sr.unitType,t,null,!0),r&&i&&(r+=". "),a+=Y(Sr.taxInclusivity,r,!0),a+=Y(Sr.planType,i,null),Y(e,a,{...n})}var as=({country:e,displayPerUnit:t=!1,displayTax:r=!1,displayPlanType:i=!1,language:n,literals:a={}}={},{taxDisplay:o,taxTerm:s,planType:c}={},l={})=>{let d={...jn,...a},p=`${n.toLowerCase()}-${e.toUpperCase()}`,u="";_(t)&&(u=De(d,p,wi.perUnitLabel,{perUnit:"LICENSE"}));let g="";e==="US"&&n==="en"&&(r=!1),_(r)&&s&&(g=De(d,p,o===Wn?wi.taxExclusiveLabel:wi.taxInclusiveLabel,{taxTerm:s}));let x="";_(i)&&c&&(x=De(d,p,wi.planTypeLabel,{planType:c}));let v=Sr.container;return v+=" "+Sr.containerLegal,Zd(v,{perUnitLabel:u,taxInclusivityLabel:g,planTypeLabel:x},l)};var os=ie(),ss=rs(),cs=ie({displayOptical:!0}),ls=ie({displayStrikethrough:!0}),ds=ie({displayAnnual:!0}),hs=ie({displayOptical:!0,isAlternativePrice:!0}),ps=ie({isAlternativePrice:!0}),ms=ns(),us=is(),gs=as;var Jd=(e,t)=>{if(!(!pr(e)||!pr(t)))return Math.floor((t-e)/t*100)},fs=()=>(e,t)=>{let{price:r,priceWithoutDiscount:i}=t,n=Jd(r,i);return n===void 0?'<span class="no-discount"></span>':`<span class="discount">${n}%</span>`};var xs=fs();var bs="INDIVIDUAL_COM",Yn="TEAM_COM",ys="INDIVIDUAL_EDU",Xn="TEAM_EDU",vs=["GB_en","AU_en","FR_fr","AT_de","BE_en","BE_fr","BE_nl","BG_bg","CH_de","CH_fr","CH_it","CZ_cs","DE_de","DK_da","EE_et","EG_ar","EG_en","ES_es","FI_fi","GR_el","GR_en","HU_hu","IE_en","IT_it","LU_de","LU_en","LU_fr","NL_nl","NO_nb","PL_pl","PT_pt","RO_ro","SE_sv","SI_sl","SK_sk","TR_tr","UA_uk","ID_en","ID_in","IN_en","IN_hi","JP_ja","MY_en","MY_ms","NZ_en","TH_en","TH_th"],eh={[bs]:["MU_en","LT_lt","LV_lv","NG_en","SA_ar","SA_en","SG_en","KR_ko"],[Yn]:["MU_en","LT_lt","LV_lv","NG_en","CO_es","KR_ko"],[ys]:["LT_lt","LV_lv","SA_en","SG_en"],[Xn]:["SG_en","KR_ko"]},th={MU_en:[!1,!1,!1,!1],NG_en:[!1,!1,!1,!1],AU_en:[!1,!1,!1,!1],JP_ja:[!1,!1,!1,!1],NZ_en:[!1,!1,!1,!1],TH_en:[!1,!1,!1,!1],TH_th:[!1,!1,!1,!1],CO_es:[!1,!0,!1,!1],AT_de:[!1,!1,!1,!0],SG_en:[!1,!1,!1,!0]},rh=[bs,Yn,ys,Xn],ih=e=>[Yn,Xn].includes(e),nh=(e,t,r,i)=>{let n=`${e}_${t}`,a=`${r}_${i}`,o=th[n];if(o){let s=rh.indexOf(a);return o[s]}return ih(a)},ah=(e,t,r,i)=>{let n=`${e}_${t}`;if(vs.includes(e)||vs.includes(n))return!0;let a=eh[`${r}_${i}`];return a?a.includes(e)||a.includes(n)?!0:P.displayTax:P.displayTax},Es=async(e,t,r,i)=>{let n=ah(e,t,r,i);return{displayTax:n,forceTaxExclusive:n?nh(e,t,r,i):P.forceTaxExclusive}},_r=class _r extends HTMLSpanElement{constructor(){super();m(this,"masElement",new qe(this));this.handleClick=this.handleClick.bind(this)}static get observedAttributes(){return["data-display-old-price","data-display-per-unit","data-display-recurrence","data-display-tax","data-display-plan-type","data-display-annual","data-perpetual","data-promotion-code","data-force-tax-exclusive","data-template","data-wcs-osi","data-quantity"]}static createInlinePrice(r){let i=le();if(!i)return null;let{displayOldPrice:n,displayPerUnit:a,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:p,promotionCode:u,quantity:g,alternativePrice:x,template:v,wcsOsi:A}=i.collectPriceOptions(r);return li(_r,{displayOldPrice:n,displayPerUnit:a,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:p,promotionCode:u,quantity:g,alternativePrice:x,template:v,wcsOsi:A})}get isInlinePrice(){return!0}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.handleClick)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.handleClick)}handleClick(r){r.target!==this&&(r.stopImmediatePropagation(),this.dispatchEvent(new MouseEvent("click",{bubbles:!0,cancelable:!0,view:window})))}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get isFailed(){return this.masElement.state===Ee}requestUpdate(r=!1){return this.masElement.requestUpdate(r)}async render(r={}){if(!this.isConnected)return!1;let i=le();if(!i)return!1;let n=i.collectPriceOptions(r,this),a={...i.settings,...n};if(!a.wcsOsi.length)return!1;try{let o=this.masElement.togglePending({});this.innerHTML="";let[s]=await i.resolveOfferSelectors(a),c=gr(await s,a),[l]=c;if(i.featureFlags[we]||a[we]){if(n.displayPerUnit===void 0&&(a.displayPerUnit=l.customerSegment!=="INDIVIDUAL"),n.displayTax===void 0||n.forceTaxExclusive===void 0){let{country:d,language:p}=a,[u=""]=l.marketSegments,g=await Es(d,p,l.customerSegment,u);n.displayTax===void 0&&(a.displayTax=g?.displayTax||a.displayTax),n.forceTaxExclusive===void 0&&(a.forceTaxExclusive=g?.forceTaxExclusive||a.forceTaxExclusive),a.forceTaxExclusive&&(c=gr(c,a))}}else n.displayOldPrice===void 0&&(a.displayOldPrice=!0);return this.renderOffers(c,a,o)}catch(o){throw this.innerHTML="",o}}renderOffers(r,i,n=void 0){if(!this.isConnected)return;let a=le();if(!a)return!1;if(n??(n=this.masElement.togglePending()),r.length){if(this.masElement.toggleResolved(n,r,i)){this.innerHTML=a.buildPriceHTML(r,this.options);let o=this.closest("p, h3, div");if(!o||!o.querySelector('span[data-template="strikethrough"]')||o.querySelector(".alt-aria-label"))return!0;let s=o?.querySelectorAll('span[is="inline-price"]');return s.length>1&&s.length===o.querySelectorAll('span[data-template="strikethrough"]').length*2&&s.forEach(c=>{c.dataset.template!=="strikethrough"&&c.options&&!c.options.alternativePrice&&!c.isFailed&&(c.options.alternativePrice=!0,c.innerHTML=a.buildPriceHTML(r,c.options))}),!0}}else{let o=new Error(`Not provided: ${this.options?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(n,o,this.options))return this.innerHTML="",!0}return!1}};m(_r,"is","inline-price"),m(_r,"tag","span");var ze=_r;window.customElements.get(ze.is)||window.customElements.define(ze.is,ze,{extends:ze.tag});function ws({literals:e,providers:t,settings:r}){function i(o,s=null){let c={country:r.country,language:r.language,locale:r.locale,literals:{...e.price}};if(s&&t?.price)for(let G of t.price)G(s,c);let{displayOldPrice:l,displayPerUnit:d,displayRecurrence:p,displayTax:u,displayPlanType:g,forceTaxExclusive:x,perpetual:v,displayAnnual:A,promotionCode:N,quantity:M,alternativePrice:w,wcsOsi:I,...j}=Object.assign(c,s?.dataset??{},o??{});return c=ri(Object.assign({...c,...j,displayOldPrice:_(l),displayPerUnit:_(d),displayRecurrence:_(p),displayTax:_(u),displayPlanType:_(g),forceTaxExclusive:_(x),perpetual:_(v),displayAnnual:_(A),promotionCode:ni(N).effectivePromoCode,quantity:Pt(M,P.quantity),alternativePrice:_(w),wcsOsi:oi(I)})),c}function n(o,s){if(!Array.isArray(o)||!o.length||!s)return"";let{template:c}=s,l;switch(c){case"discount":l=xs;break;case"strikethrough":l=ls;break;case"annual":l=ds;break;case"legal":l=gs;break;default:s.template==="optical"&&s.alternativePrice?l=hs:s.template==="optical"?l=cs:s.displayAnnual&&o[0].planType==="ABM"?l=s.promotionCode?us:ms:s.alternativePrice?l=ps:l=s.promotionCode?ss:os}let[d]=o;return d={...d,...d.priceDetails},l({...r,...s},d)}let a=ze.createInlinePrice;return{InlinePrice:ze,buildPriceHTML:n,collectPriceOptions:i,createInlinePrice:a}}function oh({locale:e=void 0,country:t=void 0,language:r=void 0}={}){return r??(r=e?.split("_")?.[0]||P.language),t??(t=e?.split("_")?.[1]||P.country),e??(e=`${r}_${t}`),{locale:e,country:t,language:r}}function As(e={},t){let r=t.featureFlags[we],{commerce:i={}}=e,n=Pe.PRODUCTION,a=cn,o=B("checkoutClientId",i)??P.checkoutClientId,s=mr(B("checkoutWorkflowStep",i),oe,P.checkoutWorkflowStep),c=P.displayOldPrice,l=P.displayPerUnit,d=_(B("displayRecurrence",i),P.displayRecurrence),p=_(B("displayTax",i),P.displayTax),u=_(B("displayPlanType",i),P.displayPlanType),g=_(B("entitlement",i),P.entitlement),x=_(B("modal",i),P.modal),v=_(B("forceTaxExclusive",i),P.forceTaxExclusive),A=B("promotionCode",i)??P.promotionCode,N=Pt(B("quantity",i)),M=B("wcsApiKey",i)??P.wcsApiKey,w=i?.env==="stage",I=Ge.PUBLISHED;["true",""].includes(i.allowOverride)&&(w=(B(on,i,{metadata:!1})?.toLowerCase()??i?.env)==="stage",I=mr(B(sn,i),Ge,I)),w&&(n=Pe.STAGE,a=ln);let G=B(an)??e.preview,X=typeof G<"u"&&G!=="off"&&G!=="false",Z={};X&&(Z={preview:X});let ce=B("mas-io-url")??e.masIOUrl??`https://www${n===Pe.STAGE?".stage":""}.adobe.com/mas/io`,K=B("preselect-plan")??void 0;return{...oh(e),...Z,displayOldPrice:c,checkoutClientId:o,checkoutWorkflowStep:s,displayPerUnit:l,displayRecurrence:d,displayTax:p,displayPlanType:u,entitlement:g,extraOptions:P.extraOptions,modal:x,env:n,forceTaxExclusive:v,promotionCode:A,quantity:N,alternativePrice:P.alternativePrice,wcsApiKey:M,wcsURL:a,landscape:I,masIOUrl:ce,...K&&{preselectPlan:K}}}async function Ai(e,t={},r=2,i=100){let n;for(let a=0;a<=r;a++)try{let o=await fetch(e,t);return o.retryCount=a,o}catch(o){if(n=o,n.retryCount=a,a>r)break;await new Promise(s=>setTimeout(s,i*(a+1)))}throw n}var sh="mas-commerce-service";function Tr(e,t){let r;return function(){let i=this,n=arguments;clearTimeout(r),r=setTimeout(()=>e.apply(i,n),t)}}function de(e,t={},r=null,i=null){let n=i?document.createElement(e,{is:i}):document.createElement(e);r instanceof HTMLElement?n.appendChild(r):n.innerHTML=r;for(let[a,o]of Object.entries(t))n.setAttribute(a,o);return n}function Le(e){return`startTime:${e.startTime.toFixed(2)}|duration:${e.duration.toFixed(2)}`}function Kn(){return window.matchMedia("(max-width: 1024px)").matches}function dt(){return document.getElementsByTagName(sh)?.[0]}function Cr(e){let t=window.getComputedStyle(e);return e.offsetHeight+parseFloat(t.marginTop)+parseFloat(t.marginBottom)}var Qn="wcs";function Ss({settings:e}){let t=ue.module(Qn),{env:r,wcsApiKey:i}=e,n=new Map,a=new Map,o,s=new Map;async function c(x,v,A=!0){let N=le(),M=tn;t.debug("Fetching:",x);let w="",I;if(x.offerSelectorIds.length>1)throw new Error("Multiple OSIs are not supported anymore");let j=new Map(v),[G]=x.offerSelectorIds,X=Date.now()+Math.random().toString(36).substring(2,7),Z=`${Qn}:${G}:${X}${nt}`,ce=`${Qn}:${G}:${X}${at}`,K;try{if(performance.mark(Z),w=new URL(e.wcsURL),w.searchParams.set("offer_selector_ids",G),w.searchParams.set("country",x.country),w.searchParams.set("locale",x.locale),w.searchParams.set("landscape",r===Pe.STAGE?"ALL":e.landscape),w.searchParams.set("api_key",i),x.language&&w.searchParams.set("language",x.language),x.promotionCode&&w.searchParams.set("promotion_code",x.promotionCode),x.currency&&w.searchParams.set("currency",x.currency),I=await Ai(w.toString(),{credentials:"omit"}),I.ok){let W=[];try{let z=await I.json();t.debug("Fetched:",x,z),W=z.resolvedOffers??[]}catch(z){t.error(`Error parsing JSON: ${z.message}`,{...z.context,...N?.duration})}W=W.map(ur),v.forEach(({resolve:z},ge)=>{let ke=W.filter(({offerSelectorIds:Ue})=>Ue.includes(ge)).flat();ke.length&&(j.delete(ge),v.delete(ge),z(ke))})}else M=en}catch(W){M=`Network error: ${W.message}`}finally{K=performance.measure(ce,Z),performance.clearMarks(Z),performance.clearMeasures(ce)}if(A&&v.size){t.debug("Missing:",{offerSelectorIds:[...v.keys()]});let W=si(I);v.forEach(z=>{z.reject(new Ne(M,{...x,...W,response:I,measure:Le(K),...N?.duration}))})}}function l(){clearTimeout(o);let x=[...a.values()];a.clear(),x.forEach(({options:v,promises:A})=>c(v,A))}function d(x){if(!x||typeof x!="object")throw new TypeError("Cache must be a Map or similar object");let v=r===Pe.STAGE?"stage":"prod",A=x[v];if(!A||typeof A!="object"){t.warn(`No cache found for environment: ${r}`);return}for(let[N,M]of Object.entries(A))n.set(N,Promise.resolve(M.map(ur)));t.debug(`Prefilled WCS cache with ${A.size} entries`)}function p(){let x=n.size;s=new Map(n),n.clear(),t.debug(`Moved ${x} cache entries to stale cache`)}function u(x,v,A){let N=x!=="GB"&&!A?"MULT":"en",M=hn.includes(x)?x:P.country;return{validCountry:M,validLanguage:N,locale:`${v}_${M}`}}function g({country:x,language:v,perpetual:A=!1,promotionCode:N="",wcsOsi:M=[]}){let{validCountry:w,validLanguage:I,locale:j}=u(x,v,A),G=[w,I,N].filter(X=>X).join("-").toLowerCase();return M.map(X=>{let Z=`${X}-${G}`;if(n.has(Z))return n.get(Z);let ce=new Promise((K,W)=>{let z=a.get(G);z||(z={options:{country:w,locale:j,...I==="MULT"&&{language:I},offerSelectorIds:[]},promises:new Map},a.set(G,z)),N&&(z.options.promotionCode=N),z.options.offerSelectorIds.push(X),z.promises.set(X,{resolve:K,reject:W}),l()}).catch(K=>{if(s.has(Z))return s.get(Z);throw K});return n.set(Z,ce),ce})}return{Commitment:Je,PlanType:Qa,Term:fe,applyPlanType:ur,resolveOfferSelectors:g,flushWcsCacheInternal:p,prefillWcsCache:d,normalizeCountryLanguageAndLocale:u}}var _s="mas-commerce-service",Ts="mas-commerce-service:start",Cs="mas-commerce-service:ready",kr,Rt,Mt,ks,Ps,Zn=class extends HTMLElement{constructor(){super(...arguments);E(this,Mt);E(this,kr);E(this,Rt);m(this,"lastLoggingTime",0)}async registerCheckoutAction(r){typeof r=="function"&&(this.buildCheckoutAction=async(i,n,a)=>{let o=await r?.(i,n,this.imsSignedInPromise,a);return o||null})}get featureFlags(){return h(this,Rt)||y(this,Rt,{[we]:te(this,Mt,Ps).call(this,we)}),h(this,Rt)}activate(){let r=h(this,Mt,ks),i=As(r,this);Qr(r.lana);let n=ue.init(r.hostEnv).module("service");n.debug("Activating:",r);let o={price:ko(i)},s={checkout:new Set,price:new Set},c={literals:o,providers:s,settings:i};Object.defineProperties(this,Object.getOwnPropertyDescriptors({..._o(c),...To(c),...ws(c),...Ss(c),...pn,Log:ue,get defaults(){return P},get log(){return ue},get providers(){return{checkout(d){return s.checkout.add(d),()=>s.checkout.delete(d)},price(d){return s.price.add(d),()=>s.price.delete(d)},has:d=>s.price.has(d)||s.checkout.has(d)}},get settings(){return i}})),n.debug("Activated:",{literals:o,settings:i});let l=new CustomEvent(Zr,{bubbles:!0,cancelable:!1,detail:this});performance.mark(Cs),y(this,kr,performance.measure(Cs,Ts)),this.dispatchEvent(l),setTimeout(()=>{this.logFailedRequests()},1e4)}connectedCallback(){performance.mark(Ts),this.activate()}flushWcsCache(){this.flushWcsCacheInternal(),this.log.debug("Flushed WCS cache")}refreshOffers(){this.flushWcsCacheInternal(),document.querySelectorAll(cr).forEach(r=>r.requestUpdate(!0)),this.log.debug("Refreshed WCS offers"),this.logFailedRequests()}refreshFragments(){this.flushWcsCacheInternal(),customElements.get("aem-fragment")?.cache.clear(),document.querySelectorAll("aem-fragment").forEach(r=>r.refresh(!1)),this.log.debug("Refreshed AEM fragments"),this.logFailedRequests()}get duration(){return{"mas-commerce-service:measure":Le(h(this,kr))}}logFailedRequests(){let r=[...performance.getEntriesByType("resource")].filter(({startTime:n})=>n>this.lastLoggingTime).filter(({transferSize:n,duration:a,responseStatus:o})=>n===0&&a===0&&o<200||o>=400),i=Array.from(new Map(r.map(n=>[n.name,n])).values());if(i.some(({name:n})=>/(\/fragment\?|web_commerce_artifact)/.test(n))){let n=i.map(({name:a})=>a);this.log.error("Failed requests:",{failedUrls:n,...this.duration})}this.lastLoggingTime=performance.now().toFixed(3)}};kr=new WeakMap,Rt=new WeakMap,Mt=new WeakSet,ks=function(){let r=this.getAttribute("env")??"prod",i={commerce:{env:r},hostEnv:{name:r},lana:{tags:this.getAttribute("lana-tags"),sampleRate:parseInt(this.getAttribute("lana-sample-rate")??1,10),isProdDomain:r==="prod"},masIOUrl:this.getAttribute("mas-io-url")};return["locale","country","language","preview"].forEach(n=>{let a=this.getAttribute(n);a&&(i[n]=a)}),["checkout-workflow-step","force-tax-exclusive","checkout-client-id","allow-override","wcs-api-key"].forEach(n=>{let a=this.getAttribute(n);if(a!=null){let o=n.replace(/-([a-z])/g,s=>s[1].toUpperCase());i.commerce[o]=a}}),i},Ps=function(r){return["on","true",!0].includes(this.getAttribute(`data-${r}`)||B(r))};window.customElements.get(_s)||window.customElements.define(_s,Zn);var Pr=class Pr extends hi(HTMLButtonElement){static createCheckoutButton(t={},r=""){return di(Pr,t,r)}setCheckoutUrl(t){this.setAttribute("data-href",t)}get href(){return this.getAttribute("data-href")}get isCheckoutButton(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}this.href&&(window.location.href=this.href)}};m(Pr,"is","checkout-button"),m(Pr,"tag","button");var Ot=Pr;window.customElements.get(Ot.is)||window.customElements.define(Ot.is,Ot,{extends:Ot.tag});function ch(e){return`https://${e==="PRODUCTION"?"www.adobe.com":"www.stage.adobe.com"}/offers/promo-terms.html`}var pt,ht=class ht extends HTMLAnchorElement{constructor(){super();m(this,"masElement",new qe(this));E(this,pt);this.setAttribute("is",ht.is)}get isUptLink(){return!0}initializeWcsData(r,i){this.setAttribute("data-wcs-osi",r),i&&this.setAttribute("data-promotion-code",i)}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),y(this,pt,dt()),h(this,pt)&&(this.log=h(this,pt).log.module("upt-link"))}disconnectedCallback(){this.masElement.disconnectedCallback(),y(this,pt,void 0)}requestUpdate(r=!1){this.masElement.requestUpdate(r)}onceSettled(){return this.masElement.onceSettled()}async render(){let r=dt();if(!r)return!1;this.dataset.imsCountry||r.imsCountryPromise.then(o=>{o&&(this.dataset.imsCountry=o)});let i=r.collectCheckoutOptions({},this);if(!i.wcsOsi)return this.log.error("Missing 'data-wcs-osi' attribute on upt-link."),!1;let n=this.masElement.togglePending(i),a=r.resolveOfferSelectors(i);try{let[[o]]=await Promise.all(a),{country:s,language:c,env:l}=i,d=`locale=${c}_${s}&country=${s}&offer_id=${o.offerId}`,p=this.getAttribute("data-promotion-code");p&&(d+=`&promotion_code=${encodeURIComponent(p)}`),this.href=`${ch(l)}?${d}`,this.masElement.toggleResolved(n,o,i)}catch(o){let s=new Error(`Could not resolve offer selectors for id: ${i.wcsOsi}.`,o.message);return this.masElement.toggleFailed(n,s,i),!1}}static createFrom(r){let i=new ht;for(let n of r.attributes)n.name!=="is"&&(n.name==="class"&&n.value.includes("upt-link")?i.setAttribute("class",n.value.replace("upt-link","").trim()):i.setAttribute(n.name,n.value));return i.innerHTML=r.innerHTML,i.setAttribute("tabindex",0),i}};pt=new WeakMap,m(ht,"is","upt-link"),m(ht,"tag","a"),m(ht,"observedAttributes",["data-wcs-osi","data-promotion-code","data-ims-country"]);var je=ht;window.customElements.get(je.is)||window.customElements.define(je.is,je,{extends:je.tag});R();R();var Q="(max-width: 767px)",ne="(max-width: 1199px)",F="(min-width: 768px)",O="(min-width: 1200px)",se="(min-width: 1600px)",Ks={matchMobile:window.matchMedia(Q),matchDesktop:window.matchMedia(`${O} and (not ${se})`),matchDesktopOrUp:window.matchMedia(O),matchLargeDesktop:window.matchMedia(se),get isMobile(){return this.matchMobile.matches},get isDesktop(){return this.matchDesktop.matches},get isDesktopOrUp(){return this.matchDesktopOrUp.matches}},D=Ks;function Dr(){return Ks.isDesktop}var Qs=b`
+`,ht.MISSING_INTL_API,o);var L=r.getPluralRules(t,{type:d.pluralType}).select(u-(d.offset||0));S=d.options[L]||d.options.other}if(!S)throw new Kn(d.value,u,Object.keys(d.options),o);s.push.apply(s,Sr(S.value,t,r,i,n,u-(d.offset||0)));continue}}return th(s)}function ih(e,t){return t?k(k(k({},e||{}),t||{}),Object.keys(e).reduce(function(r,i){return r[i]=k(k({},e[i]),t[i]||{}),r},{})):e}function nh(e,t){return t?Object.keys(e).reduce(function(r,i){return r[i]=ih(e[i],t[i]),r},k({},e)):e}function Qn(e){return{create:function(){return{get:function(t){return e[t]},set:function(t,r){e[t]=r}}}}}function ah(e){return e===void 0&&(e={number:{},dateTime:{},pluralRules:{}}),{getNumberFormat:wr(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.NumberFormat).bind.apply(t,xi([void 0],r,!1)))},{cache:Qn(e.number),strategy:Ti.variadic}),getDateTimeFormat:wr(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.DateTimeFormat).bind.apply(t,xi([void 0],r,!1)))},{cache:Qn(e.dateTime),strategy:Ti.variadic}),getPluralRules:wr(function(){for(var t,r=[],i=0;i<arguments.length;i++)r[i]=arguments[i];return new((t=Intl.PluralRules).bind.apply(t,xi([void 0],r,!1)))},{cache:Qn(e.pluralRules),strategy:Ti.variadic})}}var hs=function(){function e(t,r,i,n){var a=this;if(r===void 0&&(r=e.defaultLocale),this.formatterCache={number:{},dateTime:{},pluralRules:{}},this.format=function(o){var s=a.formatToParts(o);if(s.length===1)return s[0].value;var c=s.reduce(function(l,d){return!l.length||d.type!==ie.literal||typeof l[l.length-1]!="string"?l.push(d.value):l[l.length-1]+=d.value,l},[]);return c.length<=1?c[0]||"":c},this.formatToParts=function(o){return Sr(a.ast,a.locales,a.formatters,a.formats,o,void 0,a.message)},this.resolvedOptions=function(){return{locale:a.resolvedLocale.toString()}},this.getAst=function(){return a.ast},this.locales=r,this.resolvedLocale=e.resolveLocale(r),typeof t=="string"){if(this.message=t,!e.__parse)throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");this.ast=e.__parse(t,{ignoreTag:n?.ignoreTag,locale:this.resolvedLocale})}else this.ast=t;if(!Array.isArray(this.ast))throw new TypeError("A message must be provided as a String or AST.");this.formats=nh(e.formats,i),this.formatters=n&&n.formatters||ah(this.formatterCache)}return Object.defineProperty(e,"defaultLocale",{get:function(){return e.memoizedDefaultLocale||(e.memoizedDefaultLocale=new Intl.NumberFormat().resolvedOptions().locale),e.memoizedDefaultLocale},enumerable:!1,configurable:!0}),e.memoizedDefaultLocale=null,e.resolveLocale=function(t){var r=Intl.NumberFormat.supportedLocalesOf(t);return r.length>0?new Intl.Locale(r[0]):new Intl.Locale(typeof t=="string"?t:t[0])},e.__parse=os,e.formats={number:{integer:{maximumFractionDigits:0},currency:{style:"currency"},percent:{style:"percent"}},date:{short:{month:"numeric",day:"numeric",year:"2-digit"},medium:{month:"short",day:"numeric",year:"numeric"},long:{month:"long",day:"numeric",year:"numeric"},full:{weekday:"long",month:"long",day:"numeric",year:"numeric"}},time:{short:{hour:"numeric",minute:"numeric"},medium:{hour:"numeric",minute:"numeric",second:"numeric"},long:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"},full:{hour:"numeric",minute:"numeric",second:"numeric",timeZoneName:"short"}}},e}();var ps=hs;var Zn={recurrenceLabel:"{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}",recurrenceAriaLabel:"{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}",perUnitLabel:"{perUnit, select, LICENSE {per license} other {}}",perUnitAriaLabel:"{perUnit, select, LICENSE {per license} other {}}",freeLabel:"Free",freeAriaLabel:"Free",taxExclusiveLabel:"{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}",taxInclusiveLabel:"{taxTerm, select, GST {incl. GST} VAT {incl. VAT} TAX {incl. tax} IVA {incl. IVA} SST {incl. SST} KDV {incl. KDV} other {}}",alternativePriceAriaLabel:"Alternatively at",strikethroughAriaLabel:"Regularly at",planTypeLabel:"{planType, select, ABM {Annual, billed monthly} other {}}"},oh=ao("ConsonantTemplates/price"),sh=/<\/?[^>]+(>|$)/g,V={container:"price",containerOptical:"price-optical",containerStrikethrough:"price-strikethrough",containerPromoStrikethrough:"price-promo-strikethrough",containerAlternative:"price-alternative",containerAnnual:"price-annual",containerAnnualPrefix:"price-annual-prefix",containerAnnualSuffix:"price-annual-suffix",disabled:"disabled",currencySpace:"price-currency-space",currencySymbol:"price-currency-symbol",decimals:"price-decimals",decimalsDelimiter:"price-decimals-delimiter",integer:"price-integer",recurrence:"price-recurrence",taxInclusivity:"price-tax-inclusivity",unitType:"price-unit-type"},je={perUnitLabel:"perUnitLabel",perUnitAriaLabel:"perUnitAriaLabel",recurrenceLabel:"recurrenceLabel",recurrenceAriaLabel:"recurrenceAriaLabel",taxExclusiveLabel:"taxExclusiveLabel",taxInclusiveLabel:"taxInclusiveLabel",strikethroughAriaLabel:"strikethroughAriaLabel",alternativePriceAriaLabel:"alternativePriceAriaLabel"},Jn="TAX_EXCLUSIVE",ch=e=>ro(e)?Object.entries(e).filter(([,t])=>Lt(t)||ai(t)||t===!0).reduce((t,[r,i])=>t+` ${r}${i===!0?"":'="'+to(i)+'"'}`,""):"",Y=(e,t,r,i=!1)=>`<span class="${e}${t?"":" "+V.disabled}"${ch(r)}>${i?To(t):t??""}</span>`;function lh(e){e=e.replaceAll("</a>","&lt;/a&gt;");let t=/<a [^>]+(>|$)/g;return e.match(t)?.forEach(i=>{let n=i.replace("<a ","&lt;a ").replace(">","&gt;");e=e.replaceAll(i,n)}),e}function dh(e){e=e.replaceAll("&lt;/a&gt;","</a>");let t=/&lt;a (?!&gt;)(.*?)(&gt;|$)/g;return e.match(t)?.forEach(i=>{let n=i.replace("&lt;a ","<a ").replace("&gt;",">");e=e.replaceAll(i,n)}),e}function $e(e,t,r,i){let n=e[r];if(n==null)return"";let a=n.includes("<"),o=n.includes("<a ");try{n=o?lh(n):n,n=a?n.replace(sh,""):n;let s=new ps(n,t).format(i);return o?dh(s):s}catch{return oh.error("Failed to format literal:",n),""}}function hh(e,{accessibleLabel:t,altAccessibleLabel:r,currencySymbol:i,decimals:n,decimalsDelimiter:a,hasCurrencySpace:o,integer:s,isCurrencyFirst:c,recurrenceLabel:l,perUnitLabel:d,taxInclusivityLabel:p},u={}){let g=Y(V.currencySymbol,i),x=Y(V.currencySpace,o?"&nbsp;":""),v="";return t?v=`<sr-only class="strikethrough-aria-label">${t}</sr-only>`:r&&(v=`<sr-only class="alt-aria-label">${r}</sr-only>`),c&&(v+=g+x),v+=Y(V.integer,s),v+=Y(V.decimalsDelimiter,a),v+=Y(V.decimals,n),c||(v+=x+g),v+=Y(V.recurrence,l,null,!0),v+=Y(V.unitType,d,null,!0),v+=Y(V.taxInclusivity,p,!0),Y(e,v,{...u})}var re=({isAlternativePrice:e=!1,displayOptical:t=!1,displayStrikethrough:r=!1,displayPromoStrikethrough:i=!1,displayAnnual:n=!1,instant:a=void 0}={})=>({country:o,displayFormatted:s=!0,displayRecurrence:c=!0,displayPerUnit:l=!1,displayTax:d=!1,language:p,literals:u={},quantity:g=1,space:x=!1,isPromoApplied:v=!1}={},{commitment:A,offerSelectorIds:I,formatString:O,price:S,priceWithoutDiscount:L,taxDisplay:K,taxTerm:H,term:Q,usePrecision:ee,promotion:ce}={},te={})=>{Object.entries({country:o,formatString:O,language:p,price:S}).forEach(([hl,pl])=>{if(pl==null)throw new Error(`Argument "${hl}" is missing for osi ${I?.toString()}, country ${o}, language ${p}`)});let W={...Zn,...u},$=`${p.toLowerCase()}-${o.toUpperCase()}`,le;ce&&!v&&L?le=e||i?S:L:r&&L?le=L:le=S;let fe=t?Co:ko;n&&(fe=Po);let{accessiblePrice:St,recurrenceTerm:Fa,...Ga}=fe({commitment:A,formatString:O,instant:a,isIndianPrice:o==="IN",originalPrice:S,priceWithoutDiscount:L,price:t?S:le,promotion:ce,quantity:g,term:Q,usePrecision:ee}),Wi="",Yi="",Xi="";_(c)&&Fa&&(Xi=$e(W,$,je.recurrenceLabel,{recurrenceTerm:Fa}));let Jr="";_(l)&&(x&&(Jr+=" "),Jr+=$e(W,$,je.perUnitLabel,{perUnit:"LICENSE"}));let ei="";_(d)&&H&&(x&&(ei+=" "),ei+=$e(W,$,K===Jn?je.taxExclusiveLabel:je.taxInclusiveLabel,{taxTerm:H})),r&&(Wi=$e(W,$,je.strikethroughAriaLabel,{strikethroughPrice:Wi})),e&&(Yi=$e(W,$,je.alternativePriceAriaLabel,{alternativePrice:Yi}));let Ze=V.container;if(t&&(Ze+=" "+V.containerOptical),r&&(Ze+=" "+V.containerStrikethrough),i&&(Ze+=" "+V.containerPromoStrikethrough),e&&(Ze+=" "+V.containerAlternative),n&&(Ze+=" "+V.containerAnnual),_(s))return hh(Ze,{...Ga,accessibleLabel:Wi,altAccessibleLabel:Yi,recurrenceLabel:Xi,perUnitLabel:Jr,taxInclusivityLabel:ei},te);let{currencySymbol:qa,decimals:ol,decimalsDelimiter:sl,hasCurrencySpace:Va,integer:cl,isCurrencyFirst:ll}=Ga,Tt=[cl,sl,ol];ll?(Tt.unshift(Va?"\xA0":""),Tt.unshift(qa)):(Tt.push(Va?"\xA0":""),Tt.push(qa)),Tt.push(Xi,Jr,ei);let dl=Tt.join("");return Y(Ze,dl,te)},ms=()=>(e,t,r)=>{let i=lt(t.promotion,t.promotion?.displaySummary?.instant,Array.isArray(e.quantity)?e.quantity[0]:e.quantity),a=(e.displayOldPrice===void 0||_(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price&&(!t.promotion||i);return`${a?re({displayStrikethrough:!0})({isPromoApplied:i,...e},t,r)+"&nbsp;":""}${re({isAlternativePrice:a})({isPromoApplied:i,...e},t,r)}`},us=()=>(e,t,r)=>{let{instant:i}=e;try{i||(i=new URLSearchParams(document.location.search).get("instant")),i&&(i=new Date(i))}catch{i=void 0}let n=lt(t.promotion,i,Array.isArray(e.quantity)?e.quantity[0]:e.quantity),a={...e,displayTax:!1,displayPerUnit:!1,isPromoApplied:n};if(!n)return re()(e,{...t,price:t.priceWithoutDiscount},r)+Y(V.containerAnnualPrefix,"&nbsp;(")+re({displayAnnual:!0,instant:i})(a,{...t,price:t.priceWithoutDiscount},r)+Y(V.containerAnnualSuffix,")");let s=(e.displayOldPrice===void 0||_(e.displayOldPrice))&&t.priceWithoutDiscount&&t.priceWithoutDiscount!=t.price;return`${s?re({displayStrikethrough:!0})(a,t,r)+"&nbsp;":""}${re({isAlternativePrice:s})({isPromoApplied:n,...e},t,r)}${Y(V.containerAnnualPrefix,"&nbsp;(")}${re({displayAnnual:!0,instant:i})(a,t,r)}${Y(V.containerAnnualSuffix,")")}`},gs=()=>(e,t,r)=>{let i={...e,displayTax:!1,displayPerUnit:!1};return`${re({isAlternativePrice:e.displayOldPrice})(e,t,r)}${Y(V.containerAnnualPrefix,"&nbsp;(")}${re({displayAnnual:!0})(i,t,r)}${Y(V.containerAnnualSuffix,")")}`};var Tr={...V,containerLegal:"price-legal",planType:"price-plan-type"},_i={...je,planTypeLabel:"planTypeLabel"};function ph(e,{perUnitLabel:t,taxInclusivityLabel:r,planTypeLabel:i},n={}){let a="";return a+=Y(Tr.unitType,t,null,!0),r&&i&&(r+=". "),a+=Y(Tr.taxInclusivity,r,!0),a+=Y(Tr.planType,i,null),Y(e,a,{...n})}var fs=({country:e,displayPerUnit:t=!1,displayTax:r=!1,displayPlanType:i=!1,language:n,literals:a={}}={},{taxDisplay:o,taxTerm:s,planType:c}={},l={})=>{let d={...Zn,...a},p=`${n.toLowerCase()}-${e.toUpperCase()}`,u="";_(t)&&(u=$e(d,p,_i.perUnitLabel,{perUnit:"LICENSE"}));let g="";e==="US"&&n==="en"&&(r=!1),_(r)&&s&&(g=$e(d,p,o===Jn?_i.taxExclusiveLabel:_i.taxInclusiveLabel,{taxTerm:s}));let x="";_(i)&&c&&(x=$e(d,p,_i.planTypeLabel,{planType:c}));let v=Tr.container;return v+=" "+Tr.containerLegal,ph(v,{perUnitLabel:u,taxInclusivityLabel:g,planTypeLabel:x},l)};var xs=re(),vs=ms(),bs=re({displayOptical:!0}),ys=re({displayStrikethrough:!0}),Es=re({displayPromoStrikethrough:!0}),ws=re({displayAnnual:!0}),As=re({displayOptical:!0,isAlternativePrice:!0}),Ss=re({isAlternativePrice:!0}),Ts=gs(),_s=us(),Cs=fs;var mh=(e,t)=>{if(!(!mr(e)||!mr(t)))return Math.floor((t-e)/t*100)},ks=()=>(e,t)=>{let{price:r,priceWithoutDiscount:i}=t,n=mh(r,i);return n===void 0?'<span class="no-discount"></span>':`<span class="discount">${n}%</span>`};var Ps=ks();var Ls="INDIVIDUAL_COM",ta="TEAM_COM",Rs="INDIVIDUAL_EDU",ra="TEAM_EDU",uh=["AT_de","AU_en","BE_en","BE_fr","BE_nl","BG_bg","CH_de","CH_fr","CH_it","CZ_cs","DE_de","DK_da","EE_et","EG_ar","EG_en","ES_es","FI_fi","FR_fr","GB_en","GR_el","GR_en","HU_hu","ID_en","ID_id","ID_in","IE_en","IN_en","IN_hi","IT_it","JP_ja","LU_de","LU_en","LU_fr","MY_en","MY_ms","MU_en","NL_nl","NO_nb","NZ_en","PL_pl","PT_pt","RO_ro","SE_sv","SI_sl","SK_sk","TH_en","TH_th","TR_tr","UA_uk"],gh={[Ls]:["LT_lt","LV_lv","NG_en","SA_ar","SA_en","SG_en","KR_ko","ZA_en"],[ta]:["LT_lt","LV_lv","NG_en","CO_es","KR_ko","ZA_en"],[Rs]:["LT_lt","LV_lv","SA_en","SG_en","SA_ar"],[ra]:["SG_en","KR_ko"]},fh={MU_en:[!0,!0,!0,!0],NG_en:[!1,!1,!1,!1],AU_en:[!1,!1,!1,!1],JP_ja:[!1,!1,!1,!1],NZ_en:[!1,!1,!1,!1],TH_en:[!1,!1,!1,!1],TH_th:[!1,!1,!1,!1],CO_es:[!1,!0,!1,!1],AT_de:[!1,!1,!1,!0],SG_en:[!1,!1,!1,!0],ZA_en:[!1,!1,!1,!1]},xh=[Ls,ta,Rs,ra],vh=e=>[ta,ra].includes(e);function ea(e,t,r,i){if(e[t])return e[t];let n=`${t}_${r}`;if(e[n])return e[n];let a;if(i)a=e.find(o=>o.startsWith(`${t}_`));else{let o=Object.keys(e).find(s=>s.startsWith(`${t}_`));a=o?e[o]:null}return a}var bh=(e,t,r,i)=>{let n=`${r}_${i}`,a=ea(fh,e,t,!1);if(a){let o=xh.indexOf(n);return a[o]}return vh(n)},yh=(e,t,r,i)=>{if(ea(uh,e,t,!0))return!0;let n=gh[`${r}_${i}`];return n?ea(n,e,t,!0)?!0:R.displayTax:R.displayTax},Ci=async(e,t,r,i)=>{let n=yh(e,t,r,i);return{displayTax:n,forceTaxExclusive:n?bh(e,t,r,i):R.forceTaxExclusive}},_r=class _r extends HTMLSpanElement{constructor(){super();m(this,"masElement",new Ve(this));this.handleClick=this.handleClick.bind(this)}static get observedAttributes(){return["data-display-old-price","data-display-per-unit","data-display-recurrence","data-display-tax","data-display-plan-type","data-display-annual","data-perpetual","data-promotion-code","data-force-tax-exclusive","data-template","data-wcs-osi","data-quantity"]}static createInlinePrice(r){let i=de();if(!i)return null;let{displayOldPrice:n,displayPerUnit:a,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:p,promotionCode:u,quantity:g,alternativePrice:x,template:v,wcsOsi:A}=i.collectPriceOptions(r);return mi(_r,{displayOldPrice:n,displayPerUnit:a,displayRecurrence:o,displayTax:s,displayPlanType:c,displayAnnual:l,forceTaxExclusive:d,perpetual:p,promotionCode:u,quantity:g,alternativePrice:x,template:v,wcsOsi:A})}get isInlinePrice(){return!0}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),this.addEventListener("click",this.handleClick)}disconnectedCallback(){this.masElement.disconnectedCallback(),this.removeEventListener("click",this.handleClick)}handleClick(r){r.target!==this&&(r.stopImmediatePropagation(),this.dispatchEvent(new MouseEvent("click",{bubbles:!0,cancelable:!0,view:window})))}onceSettled(){return this.masElement.onceSettled()}get value(){return this.masElement.value}get options(){return this.masElement.options}get isFailed(){return this.masElement.state===Ae}requestUpdate(r=!1){return this.masElement.requestUpdate(r)}async render(r={}){if(!this.isConnected)return!1;let i=de();if(!i)return!1;let n=i.collectPriceOptions(r,this),a={...i.settings,...n};if(!a.wcsOsi.length)return!1;try{let o=this.masElement.togglePending({});this.innerHTML="";let s=i.resolveOfferSelectors(a),c=await Promise.all(s),l=c.map(g=>{let x=fr(g,a);return x?.length?x[0]:null});if(l.some(g=>!g))throw new Error(`Failed to select offers for: ${a.wcsOsi}`);let d=l,p=On(l);if(i.featureFlags[Se]||a[Se]){if(n.displayPerUnit===void 0&&(a.displayPerUnit=p.customerSegment!=="INDIVIDUAL"),n.displayTax===void 0||n.forceTaxExclusive===void 0){let{country:g,language:x}=a,[v=""]=p.marketSegments,A=await Ci(g,x,p.customerSegment,v);n.displayTax===void 0&&(a.displayTax=A?.displayTax||a.displayTax),n.forceTaxExclusive===void 0&&(a.forceTaxExclusive=A?.forceTaxExclusive||a.forceTaxExclusive),a.forceTaxExclusive&&(d=c.map(I=>{let O=fr(I,a);return O?.length?O[0]:null}))}}else n.displayOldPrice===void 0&&(a.displayOldPrice=!0);i.featureFlags[Pt]&&a.displayAnnual!==!1&&(a.displayAnnual=!0);let u=On(d);return this.renderOffers([u],a,o)}catch(o){throw this.innerHTML="",o}}renderOffers(r,i,n=void 0){if(!this.isConnected)return;let a=de();if(!a)return!1;if(n??(n=this.masElement.togglePending()),r.length){if(this.masElement.toggleResolved(n,r,i)){this.innerHTML=a.buildPriceHTML(r,this.options);let o=this.closest("p, h3, div");if(!o||!o.querySelector('span[data-template="strikethrough"]')||o.querySelector(".alt-aria-label"))return!0;let s=o?.querySelectorAll('span[is="inline-price"]');return s.length>1&&s.length===o.querySelectorAll('span[data-template="strikethrough"]').length*2&&s.forEach(c=>{c.dataset.template!=="strikethrough"&&c.options&&!c.options.alternativePrice&&!c.isFailed&&(c.options.alternativePrice=!0,c.innerHTML=a.buildPriceHTML(r,c.options))}),!0}}else{let o=new Error(`Not provided: ${this.options?.wcsOsi??"-"}`);if(this.masElement.toggleFailed(n,o,this.options))return this.innerHTML="",!0}return!1}};m(_r,"is","inline-price"),m(_r,"tag","span");var ze=_r;window.customElements.get(ze.is)||window.customElements.define(ze.is,ze,{extends:ze.tag});function Ms({literals:e,providers:t,settings:r}){function i(o,s=null){let c={country:r.country,language:r.language,locale:r.locale,literals:{...e.price}};if(s&&t?.price)for(let H of t.price)H(s,c);let{displayOldPrice:l,displayPerUnit:d,displayRecurrence:p,displayTax:u,displayPlanType:g,forceTaxExclusive:x,perpetual:v,displayAnnual:A,promotionCode:I,quantity:O,alternativePrice:S,wcsOsi:L,...K}=Object.assign(c,s?.dataset??{},o??{});return c=oi(Object.assign({...c,...K,displayOldPrice:_(l),displayPerUnit:_(d),displayRecurrence:_(p),displayTax:_(u),displayPlanType:_(g),forceTaxExclusive:_(x),perpetual:_(v),displayAnnual:_(A),promotionCode:ci(I).effectivePromoCode,quantity:Rt(O,R.quantity),alternativePrice:_(S),wcsOsi:hi(L)})),c}function n(o,s){if(!Array.isArray(o)||!o.length||!s)return"";let{template:c}=s,l;switch(c){case"discount":l=Ps;break;case"strikethrough":l=ys;break;case"promo-strikethrough":l=Es;break;case"annual":l=ws;break;case"legal":l=Cs;break;default:s.template==="optical"&&s.alternativePrice?l=As:s.template==="optical"?l=bs:s.displayAnnual&&o[0].planType==="ABM"?l=s.promotionCode?_s:Ts:s.alternativePrice?l=Ss:l=s.promotionCode?vs:xs}let[d]=o;return d={...d,...d.priceDetails},l({...r,...s},d)}let a=ze.createInlinePrice;return{InlinePrice:ze,buildPriceHTML:n,collectPriceOptions:i,createInlinePrice:a}}function Eh({locale:e=void 0,country:t=void 0,language:r=void 0}={}){return r??(r=e?.split("_")?.[0]||R.language),t??(t=e?.split("_")?.[1]||R.country),e??(e=`${r}_${t}`),{locale:e,country:t,language:r}}function Os(e={},t){let r=t.featureFlags[Se],{commerce:i={}}=e,n=Le.PRODUCTION,a=mn,o=U("checkoutClientId",i)??R.checkoutClientId,s=ur(U("checkoutWorkflowStep",i),ae,R.checkoutWorkflowStep),c=R.displayOldPrice,l=R.displayPerUnit,d=_(U("displayRecurrence",i),R.displayRecurrence),p=_(U("displayTax",i),R.displayTax),u=_(U("displayPlanType",i),R.displayPlanType),g=_(U("entitlement",i),R.entitlement),x=_(U("modal",i),R.modal),v=_(U("forceTaxExclusive",i),R.forceTaxExclusive),A=U("promotionCode",i)??R.promotionCode,I=Rt(U("quantity",i)),O=U("wcsApiKey",i)??R.wcsApiKey,S=i?.env==="stage",L=qe.PUBLISHED;["true",""].includes(i.allowOverride)&&(S=(U(hn,i,{metadata:!1})?.toLowerCase()??i?.env)==="stage",L=ur(U(pn,i),qe,L)),S&&(n=Le.STAGE,a=un);let H=U(dn)??e.preview,Q=typeof H<"u"&&H!=="off"&&H!=="false",ee={};Q&&(ee={preview:Q});let ce=U("mas-io-url")??e.masIOUrl??`https://www${n===Le.STAGE?".stage":""}.adobe.com/mas/io`,te=U("preselect-plan")??void 0;return{...Eh(e),...ee,displayOldPrice:c,checkoutClientId:o,checkoutWorkflowStep:s,displayPerUnit:l,displayRecurrence:d,displayTax:p,displayPlanType:u,entitlement:g,extraOptions:R.extraOptions,modal:x,env:n,forceTaxExclusive:v,promotionCode:A,quantity:I,alternativePrice:R.alternativePrice,wcsApiKey:O,wcsURL:a,landscape:L,masIOUrl:ce,...te&&{preselectPlan:te}}}async function ki(e,t={},r=2,i=100){let n;for(let a=0;a<=r;a++)try{let o=await fetch(e,t);return o.retryCount=a,o}catch(o){if(n=o,n.retryCount=a,a>r)break;await new Promise(s=>setTimeout(s,i*(a+1)))}throw n}var wh="mas-commerce-service";function Cr(e,t){let r;return function(){let i=this,n=arguments;clearTimeout(r),r=setTimeout(()=>e.apply(i,n),t)}}function he(e,t={},r=null,i=null){let n=i?document.createElement(e,{is:i}):document.createElement(e);r instanceof HTMLElement?n.appendChild(r):n.innerHTML=r;for(let[a,o]of Object.entries(t))n.setAttribute(a,o);return n}function Re(e){return`startTime:${e.startTime.toFixed(2)}|duration:${e.duration.toFixed(2)}`}function ia(){return window.matchMedia("(max-width: 1024px)").matches}function pt(){return document.getElementsByTagName(wh)?.[0]}function kr(e){let t=window.getComputedStyle(e);return e.offsetHeight+parseFloat(t.marginTop)+parseFloat(t.marginBottom)}var na="wcs";function Ns({settings:e}){let t=oe.module(na),{env:r,wcsApiKey:i}=e,n=new Map,a=new Map,o,s=new Map;async function c(x,v,A=!0){let I=de(),O=sn;t.debug("Fetching:",x);let S="",L;if(x.offerSelectorIds.length>1)throw new Error("Multiple OSIs are not supported anymore");let K=new Map(v),[H]=x.offerSelectorIds,Q=Date.now()+Math.random().toString(36).substring(2,7),ee=`${na}:${H}:${Q}${ot}`,ce=`${na}:${H}:${Q}${st}`,te;try{if(performance.mark(ee),S=new URL(e.wcsURL),S.searchParams.set("offer_selector_ids",H),S.searchParams.set("country",x.country),S.searchParams.set("locale",x.locale),S.searchParams.set("landscape",r===Le.STAGE?"ALL":e.landscape),S.searchParams.set("api_key",i),x.language&&S.searchParams.set("language",x.language),x.promotionCode&&S.searchParams.set("promotion_code",x.promotionCode),x.currency&&S.searchParams.set("currency",x.currency),L=await ki(S.toString(),{credentials:"omit"}),L.ok){let W=[];try{let $=await L.json();t.debug("Fetched:",x,$),W=$.resolvedOffers??[]}catch($){t.error(`Error parsing JSON: ${$.message}`,{...$.context,...I?.duration})}W=W.map(gr),v.forEach(({resolve:$},le)=>{let fe=W.filter(({offerSelectorIds:St})=>St.includes(le)).flat();fe.length&&(K.delete(le),v.delete(le),$(fe))})}else O=on}catch(W){O=`Network error: ${W.message}`}finally{te=performance.measure(ce,ee),performance.clearMarks(ee),performance.clearMeasures(ce)}if(A&&v.size){t.debug("Missing:",{offerSelectorIds:[...v.keys()]});let W=pi(L);v.forEach($=>{$.reject(new Ie(O,{...x,...W,response:L,measure:Re(te),...I?.duration}))})}}function l(){clearTimeout(o);let x=[...a.values()];a.clear(),x.forEach(({options:v,promises:A})=>c(v,A))}function d(x){if(!x||typeof x!="object")throw new TypeError("Cache must be a Map or similar object");let v=r===Le.STAGE?"stage":"prod",A=x[v];if(!A||typeof A!="object"){t.warn(`No cache found for environment: ${r}`);return}for(let[I,O]of Object.entries(A))n.set(I,Promise.resolve(O.map(gr)));t.debug(`Prefilled WCS cache with ${A.size} entries`)}function p(){let x=n.size;s=new Map(n),n.clear(),t.debug(`Moved ${x} cache entries to stale cache`)}function u(x,v,A){let I=x!=="GB"&&!A?"MULT":"en",O=fn.includes(x)?x:R.country;return{validCountry:O,validLanguage:I,locale:`${v}_${O}`}}function g({country:x,language:v,perpetual:A=!1,promotionCode:I="",wcsOsi:O=[]}){let{validCountry:S,validLanguage:L,locale:K}=u(x,v,A),H=[S,L,I].filter(Q=>Q).join("-").toLowerCase();return O.map(Q=>{let ee=`${Q}-${H}`;if(n.has(ee))return n.get(ee);let ce=new Promise((te,W)=>{let $=a.get(H);$||($={options:{country:S,locale:K,...L==="MULT"&&{language:L},offerSelectorIds:[]},promises:new Map},a.set(H,$)),I&&($.options.promotionCode=I),$.options.offerSelectorIds.push(Q),$.promises.set(Q,{resolve:te,reject:W}),l()}).catch(te=>{if(s.has(ee))return s.get(ee);throw te});return n.set(ee,ce),ce})}return{Commitment:tt,PlanType:so,Term:xe,applyPlanType:gr,resolveOfferSelectors:g,flushWcsCacheInternal:p,prefillWcsCache:d,normalizeCountryLanguageAndLocale:u}}var Is="mas-commerce-service",Ds="mas-commerce-service:start",$s="mas-commerce-service:ready",Pr,Ot,mt,zs,oa,aa=class extends HTMLElement{constructor(){super(...arguments);E(this,mt);E(this,Pr);E(this,Ot);m(this,"lastLoggingTime",0)}async registerCheckoutAction(r){typeof r=="function"&&(this.buildCheckoutAction=async(i,n,a)=>{let o=await r?.(i,n,this.imsSignedInPromise,a);return o||null})}get featureFlags(){return h(this,Ot)||y(this,Ot,{[Se]:Z(this,mt,oa).call(this,Se),[Pt]:Z(this,mt,oa).call(this,Pt)}),h(this,Ot)}activate(){let r=h(this,mt,zs),i=Os(r,this);ti(r.lana);let n=oe.init(r.hostEnv).module("service");n.debug("Activating:",r);let o={price:Ho(i)},s={checkout:new Set,price:new Set},c={literals:o,providers:s,settings:i};Object.defineProperties(this,Object.getOwnPropertyDescriptors({...Do(c),...$o(c),...Ms(c),...Ns(c),...xn,Log:oe,resolvePriceTaxFlags:Ci,get defaults(){return R},get log(){return oe},get providers(){return{checkout(d){return s.checkout.add(d),()=>s.checkout.delete(d)},price(d){return s.price.add(d),()=>s.price.delete(d)},has:d=>s.price.has(d)||s.checkout.has(d)}},get settings(){return i}})),n.debug("Activated:",{literals:o,settings:i});let l=new CustomEvent(ri,{bubbles:!0,cancelable:!1,detail:this});performance.mark($s),y(this,Pr,performance.measure($s,Ds)),this.dispatchEvent(l),setTimeout(()=>{this.logFailedRequests()},1e4)}connectedCallback(){performance.mark(Ds),this.activate()}flushWcsCache(){this.flushWcsCacheInternal(),this.log.debug("Flushed WCS cache")}refreshOffers(){this.flushWcsCacheInternal(),document.querySelectorAll(lr).forEach(r=>r.requestUpdate(!0)),this.log.debug("Refreshed WCS offers"),this.logFailedRequests()}refreshFragments(){this.flushWcsCacheInternal(),customElements.get("aem-fragment")?.cache.clear(),document.querySelectorAll("aem-fragment").forEach(r=>r.refresh(!1)),this.log.debug("Refreshed AEM fragments"),this.logFailedRequests()}get duration(){return{"mas-commerce-service:measure":Re(h(this,Pr))}}logFailedRequests(){let r=[...performance.getEntriesByType("resource")].filter(({startTime:n})=>n>this.lastLoggingTime).filter(({transferSize:n,duration:a,responseStatus:o})=>n===0&&a===0&&o<200||o>=400),i=Array.from(new Map(r.map(n=>[n.name,n])).values());if(i.some(({name:n})=>/(\/fragment\?|web_commerce_artifact)/.test(n))){let n=i.map(({name:a})=>a);this.log.error("Failed requests:",{failedUrls:n,...this.duration})}this.lastLoggingTime=performance.now().toFixed(3)}};Pr=new WeakMap,Ot=new WeakMap,mt=new WeakSet,zs=function(){let r=this.getAttribute("env")??"prod",i={commerce:{env:r},hostEnv:{name:r},lana:{tags:this.getAttribute("lana-tags"),sampleRate:parseInt(this.getAttribute("lana-sample-rate")??1,10),isProdDomain:r==="prod"},masIOUrl:this.getAttribute("mas-io-url")};return["locale","country","language","preview"].forEach(n=>{let a=this.getAttribute(n);a&&(i[n]=a)}),["checkout-workflow-step","force-tax-exclusive","checkout-client-id","allow-override","wcs-api-key"].forEach(n=>{let a=this.getAttribute(n);if(a!=null){let o=n.replace(/-([a-z])/g,s=>s[1].toUpperCase());i.commerce[o]=a}}),i},oa=function(r){return["on","true",!0].includes(this.getAttribute(`data-${r}`)||U(r))};window.customElements.get(Is)||window.customElements.define(Is,aa);var Lr=class Lr extends gi(HTMLButtonElement){static createCheckoutButton(t={},r=""){return ui(Lr,t,r)}setCheckoutUrl(t){this.setAttribute("data-href",t)}get href(){return this.getAttribute("data-href")}get isCheckoutButton(){return!0}clickHandler(t){if(this.checkoutActionHandler){this.checkoutActionHandler?.(t);return}this.href&&(window.location.href=this.href)}};m(Lr,"is","checkout-button"),m(Lr,"tag","button");var Nt=Lr;window.customElements.get(Nt.is)||window.customElements.define(Nt.is,Nt,{extends:Nt.tag});function Ah(e){return`https://${e==="PRODUCTION"?"www.adobe.com":"www.stage.adobe.com"}/offers/promo-terms.html`}var gt,ut=class ut extends HTMLAnchorElement{constructor(){super();m(this,"masElement",new Ve(this));E(this,gt);this.setAttribute("is",ut.is)}get isUptLink(){return!0}initializeWcsData(r,i){this.setAttribute("data-wcs-osi",r),i&&this.setAttribute("data-promotion-code",i)}attributeChangedCallback(r,i,n){this.masElement.attributeChangedCallback(r,i,n)}connectedCallback(){this.masElement.connectedCallback(),y(this,gt,pt()),h(this,gt)&&(this.log=h(this,gt).log.module("upt-link"))}disconnectedCallback(){this.masElement.disconnectedCallback(),y(this,gt,void 0)}requestUpdate(r=!1){this.masElement.requestUpdate(r)}onceSettled(){return this.masElement.onceSettled()}async render(){let r=pt();if(!r)return!1;this.dataset.imsCountry||r.imsCountryPromise.then(o=>{o&&(this.dataset.imsCountry=o)});let i=r.collectCheckoutOptions({},this);if(!i.wcsOsi)return this.log.error("Missing 'data-wcs-osi' attribute on upt-link."),!1;let n=this.masElement.togglePending(i),a=r.resolveOfferSelectors(i);try{let[[o]]=await Promise.all(a),{country:s,language:c,env:l}=i,d=`locale=${c}_${s}&country=${s}&offer_id=${o.offerId}`,p=this.getAttribute("data-promotion-code");p&&(d+=`&promotion_code=${encodeURIComponent(p)}`),this.href=`${Ah(l)}?${d}`,this.masElement.toggleResolved(n,o,i)}catch(o){let s=new Error(`Could not resolve offer selectors for id: ${i.wcsOsi}.`,o.message);return this.masElement.toggleFailed(n,s,i),!1}}static createFrom(r){let i=new ut;for(let n of r.attributes)n.name!=="is"&&(n.name==="class"&&n.value.includes("upt-link")?i.setAttribute("class",n.value.replace("upt-link","").trim()):i.setAttribute(n.name,n.value));return i.innerHTML=r.innerHTML,i.setAttribute("tabindex",0),i}};gt=new WeakMap,m(ut,"is","upt-link"),m(ut,"tag","a"),m(ut,"observedAttributes",["data-wcs-osi","data-promotion-code","data-ims-country"]);var We=ut;window.customElements.get(We.is)||window.customElements.define(We.is,We,{extends:We.tag});M();M();var G="(max-width: 767px)",be="(max-width: 1199px)",q="(min-width: 768px)",N="(min-width: 1200px)",se="(min-width: 1600px)",ac={matchMobile:window.matchMedia(G),matchDesktop:window.matchMedia(`${N} and (not ${se})`),matchDesktopOrUp:window.matchMedia(N),matchLargeDesktop:window.matchMedia(se),get isMobile(){return this.matchMobile.matches},get isDesktop(){return this.matchDesktop.matches},get isDesktopOrUp(){return this.matchDesktopOrUp.matches}},D=ac;function Ii(){return ac.isDesktop}var oc=b`
     :host {
         --consonant-merch-card-background-color: #fff;
         --consonant-merch-card-border: 1px solid
@@ -778,13 +794,19 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         height: 32px;
         position: absolute;
         top: 16px;
-        right: 16px;
+        inset-inline-end: 16px;
         background-color: #f6f6f6;
         background-repeat: no-repeat;
         background-position: center;
         background-size: 16px 16px;
         font-size: 0;
     }
+
+    .action-menu:dir(rtl) {
+        right: initial;
+        left: 16px;
+    }
+
     .hidden {
         visibility: hidden;
     }
@@ -877,9 +899,9 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
     ::slotted([slot='price']) {
         color: var(--consonant-merch-card-price-color);
     }
-`,Zs=()=>[b`
+`,sc=()=>[b`
             /* Tablet */
-            @media screen and ${Ae(F)} {
+            @media screen and ${Te(q)} {
                 :host([size='wide']),
                 :host([size='super-wide']) {
                     width: 100%;
@@ -888,12 +910,12 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
             }
 
             /* Laptop */
-            @media screen and ${Ae(O)} {
+            @media screen and ${Te(N)} {
                 :host([size='wide']) {
                     grid-column: span 2;
                 }
             }
-        `];R();function gh(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var zt=class extends ${constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(gh())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(r=>{let i="",n="top";if(r.tagName==="SP-TOOLTIP")i=r.textContent,n=r.getAttribute("placement")||"top";else if(r.tagName==="OVERLAY-TRIGGER"){let a=r.querySelector("sp-tooltip");a&&(i=a.textContent,n=a.getAttribute("placement")||r.getAttribute("placement")||"top")}if(i){let a=document.createElement("mas-mnemonic");a.setAttribute("content",i),a.setAttribute("placement",n);let o=this.querySelector("img"),s=this.querySelector("a");s&&s.contains(o)?a.appendChild(s):o&&a.appendChild(o),this.innerHTML="",this.appendChild(a),Promise.resolve().then(()=>Ri())}r.remove()})}render(){let{href:t}=this;return t?f`<a href="${t}">
+        `];M();function Lh(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var zt=class extends z{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(Lh())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(r=>{let i="",n="top";if(r.tagName==="SP-TOOLTIP")i=r.textContent,n=r.getAttribute("placement")||"top";else if(r.tagName==="OVERLAY-TRIGGER"){let a=r.querySelector("sp-tooltip");a&&(i=a.textContent,n=a.getAttribute("placement")||r.getAttribute("placement")||"top")}if(i){let a=document.createElement("mas-mnemonic");a.setAttribute("content",i),a.setAttribute("placement",n);let o=this.querySelector("img"),s=this.querySelector("a");s&&s.contains(o)?a.appendChild(s):o&&a.appendChild(o),this.innerHTML="",this.appendChild(a),Promise.resolve().then(()=>Di())}r.remove()})}render(){let{href:t}=this;return t?f`<a href="${t}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
@@ -941,7 +963,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `);customElements.define("merch-icon",zt);var zr,vt,$r,Hr,$t,Mi=class extends HTMLElement{constructor(){super();E(this,zr,"");E(this,vt);E(this,$r,[]);E(this,Hr,[]);E(this,$t);y(this,$t,Tr(()=>{this.isConnected&&(this.parentElement.style.background=this.value,h(this,vt)?this.parentElement.style.borderRadius=h(this,vt):h(this,vt)===""&&(this.parentElement.style.borderRadius=""))},1))}static get observedAttributes(){return["colors","positions","angle","border-radius"]}get value(){let r=h(this,$r).map((i,n)=>{let a=h(this,Hr)[n]||"";return`${i} ${a}`}).join(", ");return`linear-gradient(${h(this,zr)}, ${r})`}connectedCallback(){h(this,$t).call(this)}attributeChangedCallback(r,i,n){r==="border-radius"&&y(this,vt,n?.trim()),r==="colors"&&n?y(this,$r,n?.split(",").map(a=>a.trim())??[]):r==="positions"&&n?y(this,Hr,n?.split(",").map(a=>a.trim())??[]):r==="angle"&&y(this,zr,n?.trim()??""),h(this,$t).call(this)}};zr=new WeakMap,vt=new WeakMap,$r=new WeakMap,Hr=new WeakMap,$t=new WeakMap;customElements.define("merch-gradient",Mi);R();var Ht=class extends ${constructor(){super(),this.planType=void 0,this.checked=!1,this.updatePlanType=this.updatePlanType.bind(this),this.handleChange=this.handleChange.bind(this),this.handleCustomClick=this.handleCustomClick.bind(this)}getOsi(t,r){let a=({TRIAL:["TRIAL"],BASE:["BASE","PROMOTION","TRIAL"],PROMOTION:["PROMOTION","BASE","TRIAL"]}[r]||[r]).map(s=>`p[data-plan-type="${t}"] ${H}[data-offer-type="${s}"]`).join(", ");return this.querySelector(a)?.dataset?.wcsOsi}connectedCallback(){super.connectedCallback(),this.addEventListener(Ct,this.updatePlanType)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(Ct,this.updatePlanType)}updatePlanType(t){if(t.target.tagName!=="SPAN")return;let r=t.target,i=r?.value?.[0];i&&(r.setAttribute("data-offer-type",i.offerType),r.closest("p").setAttribute("data-plan-type",i.planType))}handleChange(t){this.checked=t.target.checked,this.dispatchEvent(new CustomEvent("change",{detail:{checked:this.checked},bubbles:!0,composed:!0}))}handleCustomClick(){this.shadowRoot.querySelector("input").click()}handleKeyDown(t){t.key===" "&&(t.preventDefault(),this.handleCustomClick())}render(){return f` <input
+    `);customElements.define("merch-icon",zt);var Hr,bt,Br,Ur,Ht,$i=class extends HTMLElement{constructor(){super();E(this,Hr,"");E(this,bt);E(this,Br,[]);E(this,Ur,[]);E(this,Ht);y(this,Ht,Cr(()=>{this.isConnected&&(this.parentElement.style.background=this.value,h(this,bt)?this.parentElement.style.borderRadius=h(this,bt):h(this,bt)===""&&(this.parentElement.style.borderRadius=""))},1))}static get observedAttributes(){return["colors","positions","angle","border-radius"]}get value(){let r=h(this,Br).map((i,n)=>{let a=h(this,Ur)[n]||"";return`${i} ${a}`}).join(", ");return`linear-gradient(${h(this,Hr)}, ${r})`}connectedCallback(){h(this,Ht).call(this)}attributeChangedCallback(r,i,n){r==="border-radius"&&y(this,bt,n?.trim()),r==="colors"&&n?y(this,Br,n?.split(",").map(a=>a.trim())??[]):r==="positions"&&n?y(this,Ur,n?.split(",").map(a=>a.trim())??[]):r==="angle"&&y(this,Hr,n?.trim()??""),h(this,Ht).call(this)}};Hr=new WeakMap,bt=new WeakMap,Br=new WeakMap,Ur=new WeakMap,Ht=new WeakMap;customElements.define("merch-gradient",$i);M();var Bt=class extends z{constructor(){super(),this.planType=void 0,this.checked=!1,this.updatePlanType=this.updatePlanType.bind(this),this.handleChange=this.handleChange.bind(this),this.handleCustomClick=this.handleCustomClick.bind(this)}getOsi(t,r){let a=({TRIAL:["TRIAL"],BASE:["BASE","PROMOTION","TRIAL"],PROMOTION:["PROMOTION","BASE","TRIAL"]}[r]||[r]).map(s=>`p[data-plan-type="${t}"] ${B}[data-offer-type="${s}"]`).join(", ");return this.querySelector(a)?.dataset?.wcsOsi}connectedCallback(){super.connectedCallback(),this.addEventListener(kt,this.updatePlanType)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(kt,this.updatePlanType)}updatePlanType(t){if(t.target.tagName!=="SPAN")return;let r=t.target,i=r?.value?.[0];i&&(r.setAttribute("data-offer-type",i.offerType),r.closest("p").setAttribute("data-plan-type",i.planType))}handleChange(t){this.checked=t.target.checked,this.dispatchEvent(new CustomEvent("change",{detail:{checked:this.checked},bubbles:!0,composed:!0}))}handleCustomClick(){this.shadowRoot.querySelector("input").click()}handleKeyDown(t){t.key===" "&&(t.preventDefault(),this.handleCustomClick())}render(){return f` <input
                 type="checkbox"
                 id="addon-checkbox"
                 .checked=${this.checked}
@@ -959,7 +981,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
             </span>
             <label id="custom-checkbox-label" for="addon-checkbox">
                 <slot></slot>
-            </label>`}};m(Ht,"properties",{planType:{type:String,attribute:"plan-type",reflect:!0},checked:{type:Boolean,reflect:!0},customCheckbox:{type:Boolean,attribute:"custom-checkbox",reflect:!0}}),m(Ht,"styles",b`
+            </label>`}};m(Bt,"properties",{planType:{type:String,attribute:"plan-type",reflect:!0},checked:{type:Boolean,reflect:!0},customCheckbox:{type:Boolean,attribute:"custom-checkbox",reflect:!0}}),m(Bt,"styles",b`
         :host {
             --merch-addon-gap: 9px;
             --merch-addon-align: start;
@@ -1024,7 +1046,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `);customElements.define("merch-addon",Ht);R();var Bt,Br=class Br{constructor(t){m(this,"card");E(this,Bt);this.card=t,this.insertVariantStyle()}getContainer(){return y(this,Bt,h(this,Bt)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),h(this,Bt)}insertVariantStyle(){if(!Br.styleMap[this.card.variant]){Br.styleMap[this.card.variant]=!0;let t=document.createElement("style");t.innerHTML=this.getGlobalCSS(),document.head.appendChild(t)}}updateCardElementMinHeight(t,r){if(!t)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),a=parseInt(this.getContainer().style.getPropertyValue(i))||0;n>a&&this.getContainer().style.setProperty(i,`${n}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
+    `);customElements.define("merch-addon",Bt);M();var Ut,Fr=class Fr{constructor(t){m(this,"card");E(this,Ut);this.card=t,this.insertVariantStyle()}getContainer(){return y(this,Ut,h(this,Ut)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),h(this,Ut)}insertVariantStyle(){let t=this.constructor.name;if(!Fr.styleMap[t]){Fr.styleMap[t]=!0;let r=document.createElement("style");r.innerHTML=this.getGlobalCSS(),document.head.appendChild(r)}}updateCardElementMinHeight(t,r){if(!t)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),a=parseInt(this.getContainer().style.getPropertyValue(i))||0;n>a&&this.getContainer().style.setProperty(i,`${n}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
@@ -1039,9 +1061,9 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
             ${this.badge}
         </div>`}getGlobalCSS(){return""}get theme(){return document.querySelector("sp-theme")}get evergreen(){return this.card.classList.contains("intro-pricing")}get promoBottom(){return this.card.classList.contains("promo-bottom")}get headingSelector(){return'[slot="heading-xs"]'}get secureLabel(){return this.card.secureLabel?f`<span class="secure-transaction-label"
                   >${this.card.secureLabel}</span
-              >`:L}get secureLabelFooter(){return f`<footer>
+              >`:w}get secureLabelFooter(){return f`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return Oi(this.card.variant)}};Bt=new WeakMap,m(Br,"styleMap",{});var T=Br;R();var Js=`
+        </footer>`}async adjustTitleWidth(){let t=this.card.getBoundingClientRect().width,r=this.card.badgeElement?.getBoundingClientRect().width||0;t===0||r===0||this.card.style.setProperty("--consonant-merch-card-heading-xs-max-width",`${Math.round(t-r-16)}px`)}async postCardUpdateHook(){}connectedCallbackHook(){}disconnectedCallbackHook(){}syncHeights(){}renderLayout(){}get aemFragmentMapping(){return zi(this.card.variant)}};Ut=new WeakMap,m(Fr,"styleMap",{});var C=Fr;M();var cc=`
 :root {
     --consonant-merch-card-catalog-width: 302px;
     --consonant-merch-card-catalog-icon-size: 40px;
@@ -1097,19 +1119,19 @@ merch-card-collection-header.catalog {
     --merch-card-collection-header-search-max-width: 244px;
 }
 
-@media screen and ${Q} {
+@media screen and ${G} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-columns: min-content auto;
     }
 }
 
-@media screen and ${F} {
+@media screen and ${q} {
     merch-card-collection-header.catalog {
         --merch-card-collection-header-column-gap: 16px;
     }
 }
 
-@media screen and ${O} {
+@media screen and ${N} {
     :root {
         --consonant-merch-card-catalog-width: 276px;
     }
@@ -1132,6 +1154,11 @@ merch-card[variant="catalog"] [slot="action-menu-content"] {
   line-height: var(--consonant-merch-card-body-line-height);
 }
 
+[dir="rtl"] merch-card[variant="catalog"] [slot="action-menu-content"] {
+  right: initial;
+  left: 15px;
+}
+
 merch-card[variant="catalog"] [slot="action-menu-content"] ul {
   padding-left: 0;
   padding-bottom: var(--consonant-merch-spacing-xss);
@@ -1139,6 +1166,11 @@ merch-card[variant="catalog"] [slot="action-menu-content"] ul {
   margin-bottom: 0;
   list-style-position: inside;
   list-style-type: '\u2022 ';
+}
+
+[dir="rtl"] merch-card[variant="catalog"] [slot="action-menu-content"] ul {
+  padding-right: 0;
+  padding-left: unset;
 }
 
 merch-card[variant="catalog"] [slot="action-menu-content"] ul li {
@@ -1174,18 +1206,19 @@ merch-card[variant="catalog"] .payment-details {
 merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   font-size: 15px;
   font-weight: 700;
-}`;var ec={cardName:{attribute:"name"},badge:!0,ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},shortDescription:{tag:"div",slot:"action-menu-content",attributes:{tabindex:"0"}},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"}},Ut=class extends T{constructor(r){super(r);m(this,"dispatchActionMenuToggle",()=>{this.card.dispatchEvent(new CustomEvent(Wi,{bubbles:!0,composed:!0,detail:{card:this.card.name,type:"action-menu"}}))});m(this,"toggleActionMenu",r=>{!this.actionMenuContentSlot||!r||r.type!=="click"&&r.code!=="Space"&&r.code!=="Enter"||(r.preventDefault(),r.stopPropagation(),this.setMenuVisibility(!this.isMenuOpen()))});m(this,"toggleActionMenuFromCard",r=>{let i=r?.type==="mouseleave"?!0:void 0;this.card.blur(),this.setIconVisibility(!1),this.actionMenuContentSlot&&r?.type==="mouseleave"&&this.setMenuVisibility(!1)});m(this,"showActionMenuOnHover",()=>{this.actionMenu&&this.setIconVisibility(!0)});m(this,"hideActionMenu",()=>{this.setMenuVisibility(!1),this.setIconVisibility(!1)});m(this,"hideActionMenuOnBlur",r=>{r.relatedTarget===this.actionMenu||this.actionMenu?.contains(r.relatedTarget)||this.slottedContent?.contains(r.relatedTarget)||(this.isMenuOpen()&&this.setMenuVisibility(!1),this.card.contains(r.relatedTarget)||this.setIconVisibility(!1))});m(this,"handleCardFocusOut",r=>{r.relatedTarget===this.actionMenu||this.actionMenu?.contains(r.relatedTarget)||r.relatedTarget===this.card||(this.slottedContent&&(r.target===this.slottedContent||this.slottedContent.contains(r.target))&&(this.slottedContent.contains(r.relatedTarget)||this.setMenuVisibility(!1)),!this.card.contains(r.relatedTarget)&&!this.isMenuOpen()&&this.setIconVisibility(!1))});m(this,"handleKeyDown",r=>{(r.key==="Escape"||r.key==="Esc")&&(r.preventDefault(),this.hideActionMenu(),this.actionMenu?.focus())})}get actionMenu(){return this.card.shadowRoot.querySelector(".action-menu")}get actionMenuContentSlot(){return this.card.shadowRoot.querySelector('slot[name="action-menu-content"]')}get slottedContent(){return this.card.querySelector('[slot="action-menu-content"]')}setIconVisibility(r){Kn()&&this.card.actionMenu||(this.actionMenu?.classList.toggle("invisible",!r),this.actionMenu?.classList.toggle("always-visible",r))}setMenuVisibility(r){this.actionMenuContentSlot?.classList.toggle("hidden",!r),this.setAriaExpanded(this.actionMenu,r.toString()),r&&(this.dispatchActionMenuToggle(),setTimeout(()=>{let i=this.slottedContent?.querySelector("a");i&&i.focus()},0))}isMenuOpen(){return!this.actionMenuContentSlot?.classList.contains("hidden")}renderLayout(){return f` <div class="body">
+}`;var lc={cardName:{attribute:"name"},badge:!0,ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},shortDescription:{tag:"div",slot:"action-menu-content",attributes:{tabindex:"0"}},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"}},Ft=class extends C{constructor(r){super(r);m(this,"dispatchActionMenuToggle",()=>{this.card.dispatchEvent(new CustomEvent(Zi,{bubbles:!0,composed:!0,detail:{card:this.card.name,type:"action-menu"}}))});m(this,"toggleActionMenu",r=>{!this.actionMenuContentSlot||!r||r.type!=="click"&&r.code!=="Space"&&r.code!=="Enter"||(r.preventDefault(),r.stopPropagation(),this.setMenuVisibility(!this.isMenuOpen()))});m(this,"toggleActionMenuFromCard",r=>{let i=r?.type==="mouseleave"?!0:void 0;this.card.blur(),this.setIconVisibility(!1),this.actionMenuContentSlot&&r?.type==="mouseleave"&&this.setMenuVisibility(!1)});m(this,"showActionMenuOnHover",()=>{this.actionMenu&&this.setIconVisibility(!0)});m(this,"hideActionMenu",()=>{this.setMenuVisibility(!1),this.setIconVisibility(!1)});m(this,"hideActionMenuOnBlur",r=>{r.relatedTarget===this.actionMenu||this.actionMenu?.contains(r.relatedTarget)||this.slottedContent?.contains(r.relatedTarget)||(this.isMenuOpen()&&this.setMenuVisibility(!1),this.card.contains(r.relatedTarget)||this.setIconVisibility(!1))});m(this,"handleCardFocusOut",r=>{r.relatedTarget===this.actionMenu||this.actionMenu?.contains(r.relatedTarget)||r.relatedTarget===this.card||(this.slottedContent&&(r.target===this.slottedContent||this.slottedContent.contains(r.target))&&(this.slottedContent.contains(r.relatedTarget)||this.setMenuVisibility(!1)),!this.card.contains(r.relatedTarget)&&!this.isMenuOpen()&&this.setIconVisibility(!1))});m(this,"handleKeyDown",r=>{(r.key==="Escape"||r.key==="Esc")&&(r.preventDefault(),this.hideActionMenu(),this.actionMenu?.focus())})}get actionMenu(){return this.card.shadowRoot.querySelector(".action-menu")}get actionMenuContentSlot(){return this.card.shadowRoot.querySelector('slot[name="action-menu-content"]')}get slottedContent(){return this.card.querySelector('[slot="action-menu-content"]')}setIconVisibility(r){if(this.slottedContent){if(ia()&&this.card.actionMenu)return;this.actionMenu?.classList.toggle("invisible",!r),this.actionMenu?.classList.toggle("always-visible",r)}}setMenuVisibility(r){this.actionMenuContentSlot?.classList.toggle("hidden",!r),this.setAriaExpanded(this.actionMenu,r.toString()),r&&(this.dispatchActionMenuToggle(),setTimeout(()=>{let i=this.slottedContent?.querySelector("a");i&&i.focus()},0))}isMenuOpen(){return!this.actionMenuContentSlot?.classList.contains("hidden")}renderLayout(){return f` <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot> ${this.badge}
                     <div
                         class="action-menu
-                ${Kn()&&this.card.actionMenu?"always-visible":"invisible"}"
+                ${this.slottedContent?ia()&&this.card.actionMenu?"always-visible":"invisible":"hidden"}"
                         @click="${this.toggleActionMenu}"
                         @keypress="${this.toggleActionMenu}"
                         @focus="${this.showActionMenuOnHover}"
                         @blur="${this.hideActionMenuOnBlur}"
                         tabindex="0"
                         aria-expanded="false"
+                        aria-hidden="false"
                         role="button"
                     >
                         ${this.card.actionMenuLabel} - ${this.card.title}
@@ -1207,7 +1240,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
                           ><slot name="callout-content"></slot>`:""}
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`}getGlobalCSS(){return Js}setAriaExpanded(r,i){r.setAttribute("aria-expanded",i)}connectedCallbackHook(){this.card.addEventListener("mouseenter",this.showActionMenuOnHover),this.card.addEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.addEventListener("focusin",this.showActionMenuOnHover),this.card.addEventListener("focusout",this.handleCardFocusOut),this.card.addEventListener("keydown",this.handleKeyDown)}disconnectedCallbackHook(){this.card.removeEventListener("mouseenter",this.showActionMenuOnHover),this.card.removeEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.removeEventListener("focusin",this.showActionMenuOnHover),this.card.removeEventListener("focusout",this.handleCardFocusOut),this.card.removeEventListener("keydown",this.handleKeyDown)}};m(Ut,"variantStyle",b`
+            <slot></slot>`}getGlobalCSS(){return cc}setAriaExpanded(r,i){r.setAttribute("aria-expanded",i)}connectedCallbackHook(){this.card.addEventListener("mouseenter",this.showActionMenuOnHover),this.card.addEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.addEventListener("focusin",this.showActionMenuOnHover),this.card.addEventListener("focusout",this.handleCardFocusOut),this.card.addEventListener("keydown",this.handleKeyDown)}disconnectedCallbackHook(){this.card.removeEventListener("mouseenter",this.showActionMenuOnHover),this.card.removeEventListener("mouseleave",this.toggleActionMenuFromCard),this.card.removeEventListener("focusin",this.showActionMenuOnHover),this.card.removeEventListener("focusout",this.handleCardFocusOut),this.card.removeEventListener("keydown",this.handleKeyDown)}};m(Ft,"variantStyle",b`
         :host([variant='catalog']) {
             min-height: 330px;
             width: var(--consonant-merch-card-catalog-width);
@@ -1225,7 +1258,12 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
             margin-left: var(--consonant-merch-spacing-xxs);
             box-sizing: border-box;
         }
-    `);R();var tc=`
+
+        :host([variant='catalog']) .action-menu:dir(rtl) {
+            right: initial;
+            left: 16px;
+        }
+    `);M();var dc=`
 :root {
   --consonant-merch-card-image-width: 300px;
 }
@@ -1237,7 +1275,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   grid-template-columns: var(--consonant-merch-card-image-width);
 }
 
-@media screen and ${F} {
+@media screen and ${q} {
   .two-merch-cards.image,
   .three-merch-cards.image,
   .four-merch-cards.image {
@@ -1245,7 +1283,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   }
 }
 
-@media screen and ${O} {
+@media screen and ${N} {
   :root {
     --consonant-merch-card-image-width: 378px;
     --consonant-merch-card-image-width-4clm: 276px;
@@ -1259,7 +1297,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
       grid-template-columns: repeat(4, var(--consonant-merch-card-image-width-4clm));
   }
 }
-`;var Ni=class extends T{constructor(t){super(t)}getGlobalCSS(){return tc}renderLayout(){return f`${this.cardImage}
+`;var Hi=class extends C{constructor(t){super(t)}getGlobalCSS(){return dc}renderLayout(){return f`${this.cardImage}
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
@@ -1278,7 +1316,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
                   `:f`
                       <hr />
                       ${this.secureLabelFooter}
-                  `}`}};R();var rc=`
+                  `}`}};M();var hc=`
 :root {
   --consonant-merch-card-inline-heading-width: 300px;
 }
@@ -1290,7 +1328,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
     grid-template-columns: var(--consonant-merch-card-inline-heading-width);
 }
 
-@media screen and ${F} {
+@media screen and ${q} {
   .two-merch-cards.inline-heading,
   .three-merch-cards.inline-heading,
   .four-merch-cards.inline-heading {
@@ -1298,7 +1336,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   }
 }
 
-@media screen and ${O} {
+@media screen and ${N} {
   :root {
     --consonant-merch-card-inline-heading-width: 378px;
   }
@@ -1314,7 +1352,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
       grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
   }
 }
-`;var Ii=class extends T{constructor(t){super(t)}getGlobalCSS(){return rc}renderLayout(){return f` ${this.badge}
+`;var Bi=class extends C{constructor(t){super(t)}getGlobalCSS(){return hc}renderLayout(){return f` ${this.badge}
             <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot>
@@ -1322,7 +1360,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
                 </div>
                 <slot name="body-xs"></slot>
             </div>
-            ${this.card.customHr?"":f`<hr />`} ${this.secureLabelFooter}`}};R();var ic=`
+            ${this.card.customHr?"":f`<hr />`} ${this.secureLabelFooter}`}};M();var pc=`
   :root {
     --consonant-merch-card-mini-compare-chart-icon-size: 32px;
     --consonant-merch-card-mini-compare-border-color: #E9E9E9;
@@ -1663,7 +1701,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* mini compare mobile */ 
-@media screen and ${Q} {
+@media screen and ${G} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -1706,7 +1744,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   }
 }
 
-@media screen and ${ne} {
+@media screen and ${be} {
   merch-card[variant="mini-compare-chart"] [slot="heading-m"] {
     font-size: var(--consonant-merch-card-body-s-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
@@ -1737,7 +1775,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
     line-height: var(--consonant-merch-card-body-s-line-height);
   }
 }
-@media screen and ${F} {
+@media screen and ${q} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 302px;
     --consonant-merch-card-mini-compare-chart-wide-width: 302px;
@@ -1779,7 +1817,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
 }
 
 /* desktop */
-@media screen and ${O} {
+@media screen and ${N} {
   :root {
     --consonant-merch-card-mini-compare-chart-width: 378px;
     --consonant-merch-card-mini-compare-chart-wide-width: 484px;  
@@ -1841,11 +1879,11 @@ merch-card .footer-row-cell:nth-child(7) {
 merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;var fh=32,Ft=class extends T{constructor(r){super(r);m(this,"getRowMinHeightPropertyName",r=>`--consonant-merch-card-footer-row-${r}-min-height`);m(this,"getMiniCompareFooter",()=>{let r=this.card.secureLabel?f`<slot name="secure-transaction-label">
+`;var Rh=32,Gt=class extends C{constructor(r){super(r);m(this,"getRowMinHeightPropertyName",r=>`--consonant-merch-card-footer-row-${r}-min-height`);m(this,"getMiniCompareFooter",()=>{let r=this.card.secureLabel?f`<slot name="secure-transaction-label">
                   <span class="secure-transaction-label"
                       >${this.card.secureLabel}</span
                   ></slot
-              >`:f`<slot name="secure-transaction-label"></slot>`;return f`<footer>${r}<slot name="footer"></slot></footer>`});this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){this.card.addEventListener(ae,this.updatePriceQuantity)}disconnectedCallbackHook(){this.card.removeEventListener(ae,this.updatePriceQuantity)}updatePriceQuantity({detail:r}){!this.mainPrice||!r?.option||(this.mainPrice.dataset.quantity=r.option)}getGlobalCSS(){return ic}adjustMiniCompareBodySlots(){if(this.card.getBoundingClientRect().width<=2)return;this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(".top-section"),"top-section");let r=["heading-m","body-m","heading-m-price","body-xxs","price-commitment","offers","promo-text","callout-content"];this.card.classList.contains("bullet-list")&&r.push("footer-rows"),r.forEach(n=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${n}"]`),n)),this.updateCardElementMinHeight(this.card.shadowRoot.querySelector("footer"),"footer"),this.card.shadowRoot.querySelector(".mini-compare-chart-badge")?.textContent!==""&&this.getContainer().style.setProperty("--consonant-merch-card-mini-compare-chart-top-section-mobile-height","32px")}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let r=this.card.querySelector('[slot="footer-rows"] ul');!r||!r.children||[...r.children].forEach((i,n)=>{let a=Math.max(fh,parseFloat(window.getComputedStyle(i).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(n+1)))||0;a>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(n+1),`${a}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(i=>{let n=i.querySelector(".footer-row-cell-description");n&&!n.textContent.trim()&&i.remove()})}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${H}[data-template="price"]`)}get headingMPriceSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0]}toggleAddon(r){let i=this.mainPrice,n=this.headingMPriceSlot;if(!i&&n){let a=r?.getAttribute("plan-type"),o=null;if(r&&a&&(o=r.querySelector(`p[data-plan-type="${a}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-m-price"]').forEach(s=>s.remove()),r.checked){if(o){let s=de("p",{class:"addon-heading-m-price-addon",slot:"heading-m-price"},o.innerHTML);this.card.appendChild(s)}}else{let s=de("p",{class:"card-heading",id:"free",slot:"heading-m-price"},"Free");this.card.appendChild(s)}}}async adjustAddon(){await this.card.updateComplete;let r=this.card.addon;if(!r)return;let i=this.mainPrice,n=this.card.planType;if(i&&(await i.onceSettled(),n=i.value?.[0]?.planType),!n)return;r.planType=n,this.card.querySelector("merch-addon[plan-type]")?.updateComplete.then(()=>{this.updateCardElementMinHeight(this.card.shadowRoot.querySelector('slot[name="addon"]'),"addon")})}renderLayout(){return f` <div class="top-section${this.badge?" badge":""}">
+              >`:f`<slot name="secure-transaction-label"></slot>`;return f`<footer>${r}<slot name="footer"></slot></footer>`});this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){this.card.addEventListener(ne,this.updatePriceQuantity)}disconnectedCallbackHook(){this.card.removeEventListener(ne,this.updatePriceQuantity)}updatePriceQuantity({detail:r}){!this.mainPrice||!r?.option||(this.mainPrice.dataset.quantity=r.option)}getGlobalCSS(){return pc}adjustMiniCompareBodySlots(){if(this.card.getBoundingClientRect().width<=2)return;this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(".top-section"),"top-section");let r=["heading-m","body-m","heading-m-price","body-xxs","price-commitment","offers","promo-text","callout-content"];this.card.classList.contains("bullet-list")&&r.push("footer-rows"),r.forEach(n=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${n}"]`),n)),this.updateCardElementMinHeight(this.card.shadowRoot.querySelector("footer"),"footer"),this.card.shadowRoot.querySelector(".mini-compare-chart-badge")?.textContent!==""&&this.getContainer().style.setProperty("--consonant-merch-card-mini-compare-chart-top-section-mobile-height","32px")}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let r=this.card.querySelector('[slot="footer-rows"] ul');!r||!r.children||[...r.children].forEach((i,n)=>{let a=Math.max(Rh,parseFloat(window.getComputedStyle(i).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(n+1)))||0;a>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(n+1),`${a}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(i=>{let n=i.querySelector(".footer-row-cell-description");n&&!n.textContent.trim()&&i.remove()})}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${B}[data-template="price"]`)}get headingMPriceSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-m-price"]')?.assignedElements()[0]}toggleAddon(r){let i=this.mainPrice,n=this.headingMPriceSlot;if(!i&&n){let a=r?.getAttribute("plan-type"),o=null;if(r&&a&&(o=r.querySelector(`p[data-plan-type="${a}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-m-price"]').forEach(s=>s.remove()),r.checked){if(o){let s=he("p",{class:"addon-heading-m-price-addon",slot:"heading-m-price"},o.innerHTML);this.card.appendChild(s)}}else{let s=he("p",{class:"card-heading",id:"free",slot:"heading-m-price"},"Free");this.card.appendChild(s)}}}async adjustAddon(){await this.card.updateComplete;let r=this.card.addon;if(!r)return;let i=this.mainPrice,n=this.card.planType;if(i&&(await i.onceSettled(),n=i.value?.[0]?.planType),!n)return;r.planType=n,this.card.querySelector("merch-addon[plan-type]")?.updateComplete.then(()=>{this.updateCardElementMinHeight(this.card.shadowRoot.querySelector('slot[name="addon"]'),"addon")})}renderLayout(){return f` <div class="top-section${this.badge?" badge":""}">
                 <slot name="icons"></slot> ${this.badge}
             </div>
             <slot name="heading-m"></slot>
@@ -1863,7 +1901,7 @@ merch-card .footer-row-cell:nth-child(8) {
             <slot name="callout-content"></slot>
             <slot name="addon"></slot>
             ${this.getMiniCompareFooter()}
-            <slot name="footer-rows"><slot name="body-s"></slot></slot>`}async postCardUpdateHook(){await Promise.all(this.card.prices.map(r=>r.onceSettled())),await this.adjustAddon(),D.isMobile?this.removeEmptyRows():(this.adjustMiniCompareBodySlots(),this.adjustMiniCompareFooterRows())}};m(Ft,"variantStyle",b`
+            <slot name="footer-rows"><slot name="body-s"></slot></slot>`}async postCardUpdateHook(){await Promise.all(this.card.prices.map(r=>r.onceSettled())),await this.adjustAddon(),D.isMobile?this.removeEmptyRows():(this.adjustMiniCompareBodySlots(),this.adjustMiniCompareFooterRows())}};m(Gt,"variantStyle",b`
         :host([variant='mini-compare-chart']) > slot:not([name='icons']) {
             display: block;
         }
@@ -1922,7 +1960,7 @@ merch-card .footer-row-cell:nth-child(8) {
             color: #505050;
         }
 
-        @media screen and ${Ae(ne)} {
+        @media screen and ${Te(be)} {
             [class*'-merch-cards']
                 :host([variant='mini-compare-chart'])
                 footer {
@@ -1932,7 +1970,7 @@ merch-card .footer-row-cell:nth-child(8) {
             }
         }
 
-        @media screen and ${Ae(O)} {
+        @media screen and ${Te(N)} {
             :host([variant='mini-compare-chart']) footer {
                 padding: var(--consonant-merch-spacing-xs)
                     var(--consonant-merch-spacing-s)
@@ -1997,7 +2035,7 @@ merch-card .footer-row-cell:nth-child(8) {
             slot[name='footer-rows'] {
             justify-content: flex-start;
         }
-    `);R();var nc=`
+    `);M();var mc=`
 :root {
     --consonant-merch-card-plans-width: 302px;
     --consonant-merch-card-plans-students-width: 302px;
@@ -2048,13 +2086,17 @@ merch-card[variant^="plans"] .price-unit-type:not(.disabled)::before {
 merch-card[variant^="plans"] [slot="callout-content"] span.price-unit-type,
 merch-card[variant^="plans"] [slot="addon"] span.price-unit-type,
 merch-card[variant^="plans"] .price.price-strikethrough span.price-unit-type,
+merch-card[variant^="plans"] .price.price-promo-strikethrough span.price-unit-type,
 merch-card[variant^="plans"] span.price-unit-type.disabled {
-  display: inline; 
+  display: inline;
 }
-  
+
 merch-card[variant^="plans"] [slot="heading-xs"] span.price.price-strikethrough,
+merch-card[variant^="plans"] [slot="heading-xs"] span.price.price-promo-strikethrough,
 merch-card[variant^="plans"] [slot="heading-m"] span.price.price-strikethrough,
-merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-strikethrough {
+merch-card[variant^="plans"] [slot="heading-m"] span.price.price-promo-strikethrough,
+merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-strikethrough,
+merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-promo-strikethrough {
     font-size: var(--consonant-merch-card-heading-xxxs-font-size);
     line-height: var(--consonant-merch-card-body-xs-line-height);
     font-weight: 700;
@@ -2062,7 +2104,7 @@ merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-striketh
 
 merch-card[variant^="plans"] [slot='heading-xs'],
 merch-card[variant="plans-education"] span.heading-xs,
-merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-strikethrough) {
+merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough) {
     min-height: var(--merch-card-plans-heading-xs-min-height);
 }
 
@@ -2161,7 +2203,7 @@ merch-card[variant^="plans"] [slot="callout-content"] > p {
 }
 
 merch-card[variant^="plans"] [slot="callout-content"] > p:has(> .icon-button) {
-    padding-right: 36px;
+    padding-inline-end: 36px;
 }
 
 merch-card[variant^="plans"] [slot='callout-content'] > p,
@@ -2251,12 +2293,12 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 
 .columns.checkmark-list ul {
     margin: 0;
-    padding-left: 20px;
+    padding-inline-start: 20px;
     list-style-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -3 18 18" height="18px"><path fill="currentcolor" d="M15.656,3.8625l-.7275-.5665a.5.5,0,0,0-.7.0875L7.411,12.1415,4.0875,8.8355a.5.5,0,0,0-.707,0L2.718,9.5a.5.5,0,0,0,0,.707l4.463,4.45a.5.5,0,0,0,.75-.0465L15.7435,4.564A.5.5,0,0,0,15.656,3.8625Z"></path></svg>');
 }
 
 .columns.checkmark-list ul li {
-    padding-left: 8px;
+    padding-inline-start: 8px;
 }
 
 /* Tabs containers */
@@ -2280,7 +2322,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     justify-content: center;
 }
 
-.plans-team .row-1 {
+.plans-team .columns .row-1 {
     grid-template-columns: repeat(2, calc(var(--consonant-merch-card-plans-width) * 2 + 32px));
     justify-content: center;
 }
@@ -2292,6 +2334,13 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 .plans-team .col-2 h3 {
     font-size: 20px;
     margin: 0 0 16px;
+}
+
+.plans-highlight .columns :is(.col-1, .col-2) :is(h1, h2, h3, h4, h5):first-child {
+	background: rgb(238, 238, 238);
+	padding: var(--spacing-m);
+	font-size: var(--type-heading-s-size);
+    line-height: var(--type-heading-s-lh);
 }
 
 .plans-team .col-2 p {
@@ -2335,7 +2384,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Mobile */
-@media screen and ${Q} {
+@media screen and ${G} {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
@@ -2351,7 +2400,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* Tablet */
-@media screen and ${F} {
+@media screen and ${q} {
     :root {
         --consonant-merch-card-plans-students-width: 486px;
     }
@@ -2361,8 +2410,8 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     }
 }
 
-@media screen and ${ne} {
-    .plans-team .row-1 {
+@media screen and ${be} {
+    .plans-team .columns .row-1 {
         grid-template-columns: min-content;
     }
 
@@ -2379,7 +2428,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 }
 
 /* desktop */
-@media screen and ${O} {
+@media screen and ${N} {
     :root {
         --consonant-merch-card-plans-width: 276px;
         --consonant-merch-card-plans-students-width: 484px;
@@ -2399,12 +2448,17 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     }
 
     .collection-container.plans:has(merch-sidenav) {
+        --translate-direction: -1;
         width: fit-content;
         position: relative;
-        left: 50%;
-        transform: translateX(-50vw);
+        inset-inline-start: 50%;
+        translate: calc(var(--translate-direction) * 50vw) 0;
         justify-content: start;
         padding-inline: 30px;
+    }
+
+    [dir="rtl"] .collection-container.plans:has(merch-sidenav) {
+        --translate-direction: 1;
     }
 
     .plans-individual .content {
@@ -2431,11 +2485,11 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         --merch-sidenav-collection-gap: 54px;
     }
 }
-`;var Di={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},ac={...function(){let{whatsIncluded:e,size:t,...r}=Di;return r}(),title:{tag:"h3",slot:"heading-s"},secureLabel:!1},oc={...function(){let{subtitle:e,whatsIncluded:t,size:r,quantitySelect:i,...n}=Di;return n}()},he=class extends T{constructor(t){super(t),this.adaptForMedia=this.adaptForMedia.bind(this)}priceOptionsProvider(t,r){t.dataset.template===hr&&(r.displayPlanType=this.card?.settings?.displayPlanType??!1)}getGlobalCSS(){return nc}adjustSlotPlacement(t,r,i){let n=this.card.shadowRoot,a=n.querySelector("footer"),o=this.card.getAttribute("size");if(!o)return;let s=n.querySelector(`footer slot[name="${t}"]`),c=n.querySelector(`.body slot[name="${t}"]`),l=n.querySelector(".body");if(o.includes("wide")||(a?.classList.remove("wide-footer"),s&&s.remove()),!!r.includes(o)){if(a?.classList.toggle("wide-footer",D.isDesktopOrUp),!i&&s){if(c)s.remove();else{let d=l.querySelector(`[data-placeholder-for="${t}"]`);d?d.replaceWith(s):l.appendChild(s)}return}if(i&&c){let d=document.createElement("div");if(d.setAttribute("data-placeholder-for",t),d.classList.add("slot-placeholder"),!s){let p=c.cloneNode(!0);a.prepend(p)}c.replaceWith(d)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns")){this.card.removeAttribute("size");return}this.adjustSlotPlacement("addon",["super-wide"],D.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],D.isDesktopOrUp)}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');t&&t.title&&(t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip"),document.addEventListener("touchstart",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.toggle("hide-tooltip")}),document.addEventListener("mouseover",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.remove("hide-tooltip")}))}async adjustEduLists(){if(this.card.variant!=="plans-education"||this.card.querySelector(".spacer"))return;let r=this.card.querySelector('[slot="body-xs"]');if(!r)return;let i=r.querySelector("ul");if(!i)return;let n=i.previousElementSibling,a=document.createElement("div");a.classList.add("spacer"),r.insertBefore(a,n);let o=new IntersectionObserver(([s])=>{if(s.boundingClientRect.height===0)return;let c=0,l=this.card.querySelector('[slot="heading-s"]');l&&(c+=Cr(l));let d=this.card.querySelector('[slot="subtitle"]');d&&(c+=Cr(d));let p=this.card.querySelector('[slot="heading-m"]');p&&(c+=8+Cr(p));for(let g of r.childNodes){if(g.classList.contains("spacer"))break;c+=Cr(g)}let u=this.card.parentElement.style.getPropertyValue("--merch-card-plans-edu-list-max-offset");c>(parseFloat(u)||0)&&this.card.parentElement.style.setProperty("--merch-card-plans-edu-list-max-offset",`${c}px`),this.card.style.setProperty("--merch-card-plans-edu-list-offset",`${c}px`),o.disconnect()});o.observe(this.card)}async postCardUpdateHook(){this.adaptForMedia(),this.adjustTitleWidth(),this.adjustAddon(),this.adjustCallout(),this.legalAdjusted||(await this.adjustLegal(),await this.adjustEduLists())}get headingM(){return this.card.querySelector('[slot="heading-m"]')}get mainPrice(){return this.headingM.querySelector(`${H}[data-template="price"]`)}get divider(){return this.card.variant==="plans-education"?f`<div class="divider"></div>`:L}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=[],r=this.card.querySelector(`[slot="heading-m"] ${H}[data-template="price"]`);r&&t.push(r);let i=t.map(async n=>{let a=n.cloneNode(!0);await n.onceSettled(),n?.options&&(n.options.displayPerUnit&&(n.dataset.displayPerUnit="false"),n.options.displayTax&&(n.dataset.displayTax="false"),n.options.displayPlanType&&(n.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),n.parentNode.insertBefore(a,n.nextSibling),await a.onceSettled())});await Promise.all(i)}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let r=this.mainPrice;if(!r)return;await r.onceSettled();let i=r.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?f`<label id="stock-checkbox">
+`;var Ui={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},uc={...function(){let{whatsIncluded:e,size:t,...r}=Ui;return r}(),title:{tag:"h3",slot:"heading-s"},secureLabel:!1},gc={...function(){let{subtitle:e,whatsIncluded:t,size:r,quantitySelect:i,...n}=Ui;return n}()},me=class extends C{constructor(t){super(t),this.adaptForMedia=this.adaptForMedia.bind(this)}priceOptionsProvider(t,r){t.dataset.template===pr&&(r.displayPlanType=this.card?.settings?.displayPlanType??!1)}getGlobalCSS(){return mc}adjustSlotPlacement(t,r,i){let n=this.card.shadowRoot,a=n.querySelector("footer"),o=this.card.getAttribute("size");if(!o)return;let s=n.querySelector(`footer slot[name="${t}"]`),c=n.querySelector(`.body slot[name="${t}"]`),l=n.querySelector(".body");if(o.includes("wide")||(a?.classList.remove("wide-footer"),s&&s.remove()),!!r.includes(o)){if(a?.classList.toggle("wide-footer",D.isDesktopOrUp),!i&&s){if(c)s.remove();else{let d=l.querySelector(`[data-placeholder-for="${t}"]`);d?d.replaceWith(s):l.appendChild(s)}return}if(i&&c){let d=document.createElement("div");if(d.setAttribute("data-placeholder-for",t),d.classList.add("slot-placeholder"),!s){let p=c.cloneNode(!0);a.prepend(p)}c.replaceWith(d)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards, .columns")){this.card.removeAttribute("size");return}this.adjustSlotPlacement("addon",["super-wide"],D.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],D.isDesktopOrUp)}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');t&&t.title&&(t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip"),document.addEventListener("touchstart",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.toggle("hide-tooltip")}),document.addEventListener("mouseover",r=>{r.preventDefault(),r.target!==t?t.classList.add("hide-tooltip"):r.target.classList.remove("hide-tooltip")}))}async adjustEduLists(){if(this.card.variant!=="plans-education"||this.card.querySelector(".spacer"))return;let r=this.card.querySelector('[slot="body-xs"]');if(!r)return;let i=r.querySelector("ul");if(!i)return;let n=i.previousElementSibling,a=document.createElement("div");a.classList.add("spacer"),r.insertBefore(a,n);let o=new IntersectionObserver(([s])=>{if(s.boundingClientRect.height===0)return;let c=0,l=this.card.querySelector('[slot="heading-s"]');l&&(c+=kr(l));let d=this.card.querySelector('[slot="subtitle"]');d&&(c+=kr(d));let p=this.card.querySelector('[slot="heading-m"]');p&&(c+=8+kr(p));for(let g of r.childNodes){if(g.classList.contains("spacer"))break;c+=kr(g)}let u=this.card.parentElement.style.getPropertyValue("--merch-card-plans-edu-list-max-offset");c>(parseFloat(u)||0)&&this.card.parentElement.style.setProperty("--merch-card-plans-edu-list-max-offset",`${c}px`),this.card.style.setProperty("--merch-card-plans-edu-list-offset",`${c}px`),o.disconnect()});o.observe(this.card)}async postCardUpdateHook(){this.adaptForMedia(),this.adjustTitleWidth(),this.adjustAddon(),this.adjustCallout(),this.legalAdjusted||(await this.adjustLegal(),await this.adjustEduLists())}get headingM(){return this.card.querySelector('[slot="heading-m"]')}get mainPrice(){return this.headingM.querySelector(`${B}[data-template="price"]`)}get divider(){return this.card.variant==="plans-education"?f`<div class="divider"></div>`:w}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=[],r=this.card.querySelector(`[slot="heading-m"] ${B}[data-template="price"]`);r&&t.push(r);let i=t.map(async n=>{let a=n.cloneNode(!0);await n.onceSettled(),n?.options&&(n.options.displayPerUnit&&(n.dataset.displayPerUnit="false"),n.options.displayTax&&(n.dataset.displayTax="false"),n.options.displayPlanType&&(n.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),n.parentNode.insertBefore(a,n.nextSibling),await a.onceSettled())});await Promise.all(i)}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let r=this.mainPrice;if(!r)return;await r.onceSettled();let i=r.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?f`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>`:L}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?L:f`<slot name="icons"></slot>`}connectedCallbackHook(){D.matchMobile.addEventListener("change",this.adaptForMedia),D.matchDesktopOrUp.addEventListener("change",this.adaptForMedia)}disconnectedCallbackHook(){D.matchMobile.removeEventListener("change",this.adaptForMedia),D.matchDesktopOrUp.removeEventListener("change",this.adaptForMedia)}renderLayout(){return f` ${this.badge}
+            </label>`:w}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?w:f`<slot name="icons"></slot>`}connectedCallbackHook(){D.matchMobile.addEventListener("change",this.adaptForMedia),D.matchDesktopOrUp.addEventListener("change",this.adaptForMedia)}disconnectedCallbackHook(){D.matchMobile.removeEventListener("change",this.adaptForMedia),D.matchDesktopOrUp.removeEventListener("change",this.adaptForMedia)}renderLayout(){return f` ${this.badge}
             <div class="body">
                 ${this.icons}
                 <slot name="heading-xs"></slot>
@@ -2456,10 +2510,9 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
                 <slot name="badge"></slot>
             </div>
             ${this.secureLabelFooter}
-            <slot></slot>`}};m(he,"variantStyle",b`
+            <slot></slot>`}};m(me,"variantStyle",b`
         :host([variant^='plans']) {
             min-height: 273px;
-            border: 1px solid var(--consonant-merch-card-border-color, #dadada);
             --merch-card-plans-min-width: 244px;
             --merch-card-plans-padding: 15px;
             --merch-card-plans-subtitle-display: contents;
@@ -2467,6 +2520,10 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
             --merch-color-green-promo: #05834e;
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23505050' viewBox='0 0 12 15'%3E%3Cpath d='M11.5 6H11V5A5 5 0 1 0 1 5v1H.5a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5ZM3 5a3 3 0 1 1 6 0v1H3Zm4 6.111V12.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1.389a1.5 1.5 0 1 1 2 0Z'/%3E%3C/svg%3E");
             font-weight: 400;
+            background:
+                linear-gradient(white, white) padding-box,
+                var(--consonant-merch-card-border-color, #dadada) border-box;
+            border: 1px solid transparent;
         }
 
         :host([variant^='plans']) .slot-placeholder {
@@ -2560,7 +2617,7 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
             line-height: 21px;
             padding: 2px 10px 3px;
         }
-    `),m(he,"collectionOptions",{customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:L,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let r=()=>{let i=t.querySelectorAll("merch-card");for(let a of i)a.hasAttribute("data-size")&&(a.setAttribute("size",a.getAttribute("data-size")),a.removeAttribute("data-size"));if(!D.isDesktop)return;let n=0;for(let a of i){if(a.style.display==="none")continue;let o=a.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&n%3===2&&(a.setAttribute("data-size",o),a.removeAttribute("size"),s=1),n+=s}};D.matchDesktop.addEventListener("change",r),t.addEventListener(et,r),t.onUnmount.push(()=>{D.matchDesktop.removeEventListener("change",r),t.removeEventListener(et,r)})}});R();var sc=`
+    `),m(me,"collectionOptions",{customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:w,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let r=()=>{let i=t.querySelectorAll("merch-card");for(let a of i)a.hasAttribute("data-size")&&(a.setAttribute("size",a.getAttribute("data-size")),a.removeAttribute("data-size"));if(!D.isDesktop)return;let n=0;for(let a of i){if(a.style.display==="none")continue;let o=a.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&n%3===2&&(a.setAttribute("data-size",o),a.removeAttribute("size"),s=1),n+=s}};D.matchDesktop.addEventListener("change",r),t.addEventListener(rt,r),t.onUnmount.push(()=>{D.matchDesktop.removeEventListener("change",r),t.removeEventListener(rt,r)})}});M();var fc=`
 :root {
     --consonant-merch-card-plans-v2-font-family-regular: 'Adobe Clean', 'adobe-clean', sans-serif;
     --consonant-merch-card-plans-v2-font-family: 'Adobe Clean Display', 'adobe-clean-display', 'Adobe Clean', 'adobe-clean', sans-serif;
@@ -2581,12 +2638,13 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
 merch-card[variant="plans-v2"] {
     width: var(--consonant-merch-card-plans-v2-width);
     height: var(--consonant-merch-card-plans-v2-height);
-    border: 1px solid var(--consonant-merch-card-border-color, var(--consonant-merch-card-plans-v2-border-color));
     border-radius: var(--consonant-merch-card-plans-v2-border-radius);
     background-color: var(--spectrum-gray-50, #FFFFFF);
     overflow: visible;
     position: relative;
     z-index: 1;
+    background: linear-gradient(var(--spectrum-gray-50, #FFFFFF), var(--spectrum-gray-50, #FFFFFF)) padding-box, var(--consonant-merch-card-border-color, var(--consonant-merch-card-plans-v2-border-color)) border-box;
+    border: 1px solid transparent;
 }
 
 merch-card[variant="plans-v2"]:has(merch-quantity-select:not([closed])) {
@@ -2756,7 +2814,7 @@ merch-card[variant="plans-v2"] [slot="heading-xs"] {
 }
 
 /* Mobile-specific heading-xs styles */
-@media ${Q} {
+@media ${G} {
     merch-card[variant="plans-v2"] [slot="heading-xs"] {
         font-size: 28px;
         font-weight: 800;
@@ -2795,7 +2853,7 @@ merch-card[variant="plans-v2"] [slot="heading-m"] span.price, merch-card[variant
 }
 
 /* Mobile-specific wide card subtitle styles */
-@media ${Q} {
+@media ${G} {
     merch-card[variant="plans-v2"][size="wide"] [slot="subtitle"] {
         font-size: 28px;
         font-weight: 900;
@@ -2908,7 +2966,7 @@ merch-card[variant="plans-v2"] [slot="quantity-select"] merch-quantity-select {
     --radius: 4px;
     --button-width: 29px;
     --qs-input-width: 59px;
-    --picker-button-border-left: none;
+    --picker-button-border-inline-start: none;
     --label-color: var(--spectrum-gray-700, #4B4B4B);
 }
 
@@ -3008,7 +3066,7 @@ merch-card[variant="plans-v2"] .help-text {
     margin-top: var(--consonant-merch-spacing-xxs);
 }
 
-@media screen and ${Q}, ${ne} {
+@media screen and ${G}, ${be} {
     :root {
         --consonant-merch-card-plans-v2-width: 100%;
     }
@@ -3019,7 +3077,7 @@ merch-card[variant="plans-v2"] .help-text {
     }
 }
 
-@media screen and ${F}, ${O}, ${se} {
+@media screen and ${q}, ${N}, ${se} {
     :root {
         --consonant-merch-card-plans-v2-width: 276px;
     }
@@ -3133,7 +3191,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Mobile */
-@media screen and ${Q} {
+@media screen and ${G} {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
@@ -3153,7 +3211,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Tablet */
-@media screen and ${F} {
+@media screen and ${q} {
     :root {
         --consonant-merch-card-plans-v2-width: 360px;
     }
@@ -3169,7 +3227,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Desktop */
-@media screen and ${O} {
+@media screen and ${N} {
     :root {
         --consonant-merch-card-plans-v2-width: 276px;
     }
@@ -3195,11 +3253,11 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
   }
 
 }
-`;var cc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},shortDescription:{tag:"p",slot:"short-description"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},Ye=class extends T{constructor(t){super(t),this.adaptForMedia=this.adaptForMedia.bind(this),this.toggleShortDescription=this.toggleShortDescription.bind(this),this.shortDescriptionExpanded=!1,this.syncScheduled=!1}priceOptionsProvider(t,r){if(t.dataset.template===hr){r.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(t.dataset.template==="strikethrough"||t.dataset.template==="price")&&(r.displayPerUnit=!1)}getGlobalCSS(){return sc}adjustSlotPlacement(t,r,i){let{shadowRoot:n}=this.card,a=n.querySelector("footer"),o=n.querySelector(".body"),s=this.card.getAttribute("size");if(!s)return;let c=n.querySelector(`footer slot[name="${t}"]`),l=n.querySelector(`.body slot[name="${t}"]`);if(s.includes("wide")||(a?.classList.remove("wide-footer"),c?.remove()),!!r.includes(s)){if(a?.classList.toggle("wide-footer",D.isDesktopOrUp),!i&&c){if(l)c.remove();else{let d=o.querySelector(`[data-placeholder-for="${t}"]`);d?d.replaceWith(c):o.appendChild(c)}return}if(i&&l){let d=document.createElement("div");d.setAttribute("data-placeholder-for",t),d.classList.add("slot-placeholder"),c||a.prepend(l.cloneNode(!0)),l.replaceWith(d)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards,.columns"))return this.card.hasAttribute("size"),void 0;this.adjustSlotPlacement("heading-m",["wide"],!0),this.adjustSlotPlacement("addon",["super-wide"],D.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],D.isDesktopOrUp)}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');if(!t?.title)return;t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip");let r=i=>{i===t?t.classList.toggle("hide-tooltip"):t.classList.add("hide-tooltip")};document.addEventListener("touchstart",i=>{i.preventDefault(),r(i.target)}),document.addEventListener("mouseover",i=>{i.preventDefault(),i.target!==t?t.classList.add("hide-tooltip"):t.classList.remove("hide-tooltip")})}async postCardUpdateHook(){if(this.card.isConnected&&(this.adaptForMedia(),this.adjustTitleWidth(),this.adjustAddon(),this.adjustCallout(),this.updateShortDescriptionVisibility(),this.hasShortDescription?this.card.setAttribute("has-short-description",""):this.card.removeAttribute("has-short-description"),this.legalAdjusted||await this.adjustLegal(),await this.card.updateComplete,this.card.prices?.length>0&&await Promise.all(this.card.prices.map(t=>t.onceSettled?.()||Promise.resolve())),window.matchMedia("(min-width: 768px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-body-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}get mainPrice(){return this.card.querySelector(`[slot="heading-m"] ${H}[data-template="price"]`)}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.shadowRoot?.querySelector(".body");t&&this.updateCardElementMinHeight(t,"body");let r=this.card.shadowRoot?.querySelector("footer");r&&this.updateCardElementMinHeight(r,"footer");let i=this.card.querySelector('[slot="short-description"]');i&&this.updateCardElementMinHeight(i,"short-description")}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t)return;let r=t.cloneNode(!0);if(await t.onceSettled(),!t?.options)return;t.options.displayPerUnit&&(t.dataset.displayPerUnit="false"),t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),r.setAttribute("data-template","legal"),t.parentNode.insertBefore(r,t.nextSibling),await r.onceSettled()}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let r=this.mainPrice;if(!r)return;await r.onceSettled();let i=r.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?f`<label id="stock-checkbox">
+`;var xc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m"},shortDescription:{tag:"p",slot:"short-description"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-red-700-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},Xe=class extends C{constructor(t){super(t),this.adaptForMedia=this.adaptForMedia.bind(this),this.toggleShortDescription=this.toggleShortDescription.bind(this),this.shortDescriptionExpanded=!1,this.syncScheduled=!1}priceOptionsProvider(t,r){if(t.dataset.template===pr){r.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(t.dataset.template==="strikethrough"||t.dataset.template==="price")&&(r.displayPerUnit=!1)}getGlobalCSS(){return fc}adjustSlotPlacement(t,r,i){let{shadowRoot:n}=this.card,a=n.querySelector("footer"),o=n.querySelector(".body"),s=this.card.getAttribute("size");if(!s)return;let c=n.querySelector(`footer slot[name="${t}"]`),l=n.querySelector(`.body slot[name="${t}"]`);if(s.includes("wide")||(a?.classList.remove("wide-footer"),c?.remove()),!!r.includes(s)){if(a?.classList.toggle("wide-footer",D.isDesktopOrUp),!i&&c){if(l)c.remove();else{let d=o.querySelector(`[data-placeholder-for="${t}"]`);d?d.replaceWith(c):o.appendChild(c)}return}if(i&&l){let d=document.createElement("div");d.setAttribute("data-placeholder-for",t),d.classList.add("slot-placeholder"),c||a.prepend(l.cloneNode(!0)),l.replaceWith(d)}}}adaptForMedia(){if(!this.card.closest("merch-card-collection,overlay-trigger,.two-merch-cards,.three-merch-cards,.four-merch-cards,.columns"))return this.card.hasAttribute("size"),void 0;this.adjustSlotPlacement("heading-m",["wide"],!0),this.adjustSlotPlacement("addon",["super-wide"],D.isDesktopOrUp),this.adjustSlotPlacement("callout-content",["super-wide"],D.isDesktopOrUp)}adjustCallout(){let t=this.card.querySelector('[slot="callout-content"] .icon-button');if(!t?.title)return;t.dataset.tooltip=t.title,t.removeAttribute("title"),t.classList.add("hide-tooltip");let r=i=>{i===t?t.classList.toggle("hide-tooltip"):t.classList.add("hide-tooltip")};document.addEventListener("touchstart",i=>{i.preventDefault(),r(i.target)}),document.addEventListener("mouseover",i=>{i.preventDefault(),i.target!==t?t.classList.add("hide-tooltip"):t.classList.remove("hide-tooltip")})}async postCardUpdateHook(){if(this.card.isConnected&&(this.adaptForMedia(),this.adjustTitleWidth(),this.adjustAddon(),this.adjustCallout(),this.updateShortDescriptionVisibility(),this.hasShortDescription?this.card.setAttribute("has-short-description",""):this.card.removeAttribute("has-short-description"),this.legalAdjusted||await this.adjustLegal(),await this.card.updateComplete,this.card.prices?.length>0&&await Promise.all(this.card.prices.map(t=>t.onceSettled?.()||Promise.resolve())),window.matchMedia("(min-width: 768px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-body-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}get mainPrice(){return this.card.querySelector(`[slot="heading-m"] ${B}[data-template="price"]`)}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.shadowRoot?.querySelector(".body");t&&this.updateCardElementMinHeight(t,"body");let r=this.card.shadowRoot?.querySelector("footer");r&&this.updateCardElementMinHeight(r,"footer");let i=this.card.querySelector('[slot="short-description"]');i&&this.updateCardElementMinHeight(i,"short-description")}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t)return;let r=t.cloneNode(!0);if(await t.onceSettled(),!t?.options)return;t.options.displayPerUnit&&(t.dataset.displayPerUnit="false"),t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),r.setAttribute("data-template","legal"),t.parentNode.insertBefore(r,t.nextSibling),await r.onceSettled()}catch{}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;t.setAttribute("custom-checkbox","");let r=this.mainPrice;if(!r)return;await r.onceSettled();let i=r.value?.[0]?.planType;i&&(t.planType=i)}get stockCheckbox(){return this.card.checkboxLabel?f`<label id="stock-checkbox">
                 <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
                 <span></span>
                 ${this.card.checkboxLabel}
-            </label>`:L}get hasShortDescription(){return!!this.card.querySelector('[slot="short-description"]')}get shortDescriptionLabel(){let t=this.card.querySelector('[slot="short-description"]'),r=t.querySelector("strong, b");if(r?.textContent?.trim())return r.textContent.trim();let i=t.querySelector("h1, h2, h3, h4, h5, h6, p");return i?.textContent?.trim()?i.textContent.trim():t.textContent?.trim().split(`
+            </label>`:w}get hasShortDescription(){return!!this.card.querySelector('[slot="short-description"]')}get shortDescriptionLabel(){let t=this.card.querySelector('[slot="short-description"]'),r=t.querySelector("strong, b");if(r?.textContent?.trim())return r.textContent.trim();let i=t.querySelector("h1, h2, h3, h4, h5, h6, p");return i?.textContent?.trim()?i.textContent.trim():t.textContent?.trim().split(`
 `)[0].trim()}updateShortDescriptionVisibility(){let t=this.card.querySelector('[slot="short-description"]');if(!t)return;let r=t.querySelector("strong, b, p");r&&(D.isMobile?r.style.display="none":r.style.display="")}toggleShortDescription(){this.shortDescriptionExpanded=!this.shortDescriptionExpanded,this.card.requestUpdate()}get shortDescriptionToggle(){return this.hasShortDescription?D.isMobile?f`
             <div class="short-description-divider"></div>
             <div
@@ -3220,7 +3278,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
                 <div class="short-description-content desktop">
                     <slot name="short-description"></slot>
                 </div>
-            `:L}get icons(){return this.card.querySelector('[slot="icons"]')||this.card.getAttribute("id")?f`<slot name="icons"></slot>`:L}get secureLabelFooter(){return f`<footer>
+            `:w}get icons(){return this.card.querySelector('[slot="icons"]')||this.card.getAttribute("id")?f`<slot name="icons"></slot>`:w}get secureLabelFooter(){return f`<footer>
             ${this.secureLabel}<slot name="quantity-select"></slot
             ><slot name="footer"></slot>
         </footer>`}connectedCallbackHook(){this.handleMediaChange=()=>{this.adaptForMedia(),this.updateShortDescriptionVisibility(),this.card.requestUpdate(),window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()})},D.matchMobile.addEventListener("change",this.handleMediaChange),D.matchDesktopOrUp.addEventListener("change",this.handleMediaChange),this.visibilityObserver=new IntersectionObserver(([t])=>{t.boundingClientRect.height!==0&&t.isIntersecting&&(window.matchMedia("(min-width: 768px)").matches&&requestAnimationFrame(()=>{this.syncHeights()}),this.visibilityObserver.disconnect())}),this.visibilityObserver.observe(this.card)}disconnectedCallbackHook(){D.matchMobile.removeEventListener("change",this.handleMediaChange),D.matchDesktopOrUp.removeEventListener("change",this.handleMediaChange),this.visibilityObserver?.disconnect()}renderLayout(){let r=this.card.getAttribute("size")==="wide";return f` ${this.badge}
@@ -3253,7 +3311,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
                       `}
             </div>
             ${this.secureLabelFooter} ${this.shortDescriptionToggle}
-            <slot></slot>`}};m(Ye,"variantStyle",b`
+            <slot></slot>`}};m(Xe,"variantStyle",b`
         :host([variant='plans-v2']) {
             display: flex;
             flex-direction: column;
@@ -3742,7 +3800,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
             margin-right: 0;
         }
 
-        @media ${Ae(Q)}, ${Ae(ne)} {
+        @media ${Te(G)}, ${Te(be)} {
             :host([variant='plans-v2']) {
                 --merch-card-plans-v2-padding: 26px 16px;
             }
@@ -3809,7 +3867,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
             .toggle-label {
             color: #292929;
         }
-    `),m(Ye,"collectionOptions",{customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:L,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let r=()=>{let i=t.querySelectorAll("merch-card");if(i.forEach(a=>{a.hasAttribute("data-size")&&(a.setAttribute("size",a.getAttribute("data-size")),a.removeAttribute("data-size"))}),!D.isDesktop)return;let n=0;i.forEach(a=>{if(a.style.display==="none")return;let o=a.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&n%3===2&&(a.setAttribute("data-size",o),a.removeAttribute("size"),s=1),n+=s})};D.matchDesktop.addEventListener("change",r),t.addEventListener(et,r),t.onUnmount.push(()=>{D.matchDesktop.removeEventListener("change",r),t.removeEventListener(et,r)})}});R();var lc=`
+    `),m(Xe,"collectionOptions",{customHeaderArea:t=>t.sidenav?f`<slot name="resultsText"></slot>`:w,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:t=>{let r=()=>{let i=t.querySelectorAll("merch-card");if(i.forEach(a=>{a.hasAttribute("data-size")&&(a.setAttribute("size",a.getAttribute("data-size")),a.removeAttribute("data-size"))}),!D.isDesktop)return;let n=0;i.forEach(a=>{if(a.style.display==="none")return;let o=a.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&n%3===2&&(a.setAttribute("data-size",o),a.removeAttribute("size"),s=1),n+=s})};D.matchDesktop.addEventListener("change",r),t.addEventListener(rt,r),t.onUnmount.push(()=>{D.matchDesktop.removeEventListener("change",r),t.removeEventListener(rt,r)})}});M();var vc=`
 :root {
   --consonant-merch-card-product-width: 300px;
 }
@@ -3852,7 +3910,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Tablet */
-@media screen and ${F} {
+@media screen and ${q} {
     .two-merch-cards.product,
     .three-merch-cards.product,
     .four-merch-cards.product {
@@ -3861,7 +3919,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* desktop */
-@media screen and ${O} {
+@media screen and ${N} {
   :root {
     --consonant-merch-card-product-width: 378px;
     --consonant-merch-card-product-width-4clm: 276px;
@@ -3875,7 +3933,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
       grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
   }
 }
-`;var Gt=class extends T{constructor(t){super(t),this.postCardUpdateHook=this.postCardUpdateHook.bind(this),this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}getGlobalCSS(){return lc}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(r=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${r}"]`),r))}renderLayout(){return f` ${this.badge}
+`;var qt=class extends C{constructor(t){super(t),this.postCardUpdateHook=this.postCardUpdateHook.bind(this),this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}getGlobalCSS(){return vc}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(r=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${r}"]`),r))}renderLayout(){return f` ${this.badge}
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
@@ -3887,7 +3945,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
                 <slot name="addon"></slot>
                 <slot name="body-lower"></slot>
             </div>
-            ${this.secureLabelFooter}`}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook),this.card.addEventListener(ae,this.updatePriceQuantity)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook),this.card.removeEventListener(ae,this.updatePriceQuantity)}postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),D.isMobile||this.adjustProductBodySlots(),this.adjustTitleWidth())}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${H}[data-template="price"]`)}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}toggleAddon(t){let r=this.mainPrice,i=this.headingXSSlot;if(!r&&i){let n=t?.getAttribute("plan-type"),a=null;if(t&&n&&(a=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(o=>o.remove()),t.checked){if(a){let o=de("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},a.innerHTML);this.card.appendChild(o)}}else{let o=de("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(o)}}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let r=this.mainPrice,i=this.card.planType;r&&(await r.onceSettled(),i=r.value?.[0]?.planType),i&&(t.planType=i)}};m(Gt,"variantStyle",b`
+            ${this.secureLabelFooter}`}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook),this.card.addEventListener(ne,this.updatePriceQuantity)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook),this.card.removeEventListener(ne,this.updatePriceQuantity)}postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),D.isMobile||this.adjustProductBodySlots(),this.adjustTitleWidth())}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${B}[data-template="price"]`)}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}toggleAddon(t){let r=this.mainPrice,i=this.headingXSSlot;if(!r&&i){let n=t?.getAttribute("plan-type"),a=null;if(t&&n&&(a=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(o=>o.remove()),t.checked){if(a){let o=he("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},a.innerHTML);this.card.appendChild(o)}}else{let o=he("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(o)}}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let r=this.mainPrice,i=this.card.planType;r&&(await r.onceSettled(),i=r.value?.[0]?.planType),i&&(t.planType=i)}};m(qt,"variantStyle",b`
         :host([variant='product']) > slot:not([name='icons']) {
             display: block;
         }
@@ -3920,7 +3978,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
         :host([variant='product']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `);R();var dc=`
+    `);M();var bc=`
 :root {
   --consonant-merch-card-segment-width: 378px;
 }
@@ -3934,13 +3992,13 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* Mobile */
-@media screen and ${Q} {
+@media screen and ${G} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
 }
 
-@media screen and ${F} {
+@media screen and ${q} {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
@@ -3953,7 +4011,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
 }
 
 /* desktop */
-@media screen and ${O} {
+@media screen and ${N} {
   :root {
     --consonant-merch-card-segment-width: 302px;
   }
@@ -3966,7 +4024,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 }
-`;var qt=class extends T{constructor(t){super(t)}getGlobalCSS(){return dc}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return f` ${this.badge}
+`;var Vt=class extends C{constructor(t){super(t)}getGlobalCSS(){return bc}postCardUpdateHook(){this.adjustTitleWidth()}renderLayout(){return f` ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
@@ -3977,14 +4035,14 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
                           ><slot name="callout-content"></slot>`:""}
             </div>
             <hr />
-            ${this.secureLabelFooter}`}};m(qt,"variantStyle",b`
+            ${this.secureLabelFooter}`}};m(Vt,"variantStyle",b`
         :host([variant='segment']) {
             min-height: 214px;
         }
         :host([variant='segment']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
-    `);R();var hc=`
+    `);M();var yc=`
 :root {
   --consonant-merch-card-special-offers-width: 378px;
 }
@@ -4001,13 +4059,13 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
   grid-template-columns: minmax(300px, var(--consonant-merch-card-special-offers-width));
 }
 
-@media screen and ${Q} {
+@media screen and ${G} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
 } 
   
-@media screen and ${F} {
+@media screen and ${q} {
   :root {
     --consonant-merch-card-special-offers-width: 302px;
   }
@@ -4020,7 +4078,7 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
 }
 
 /* desktop */
-@media screen and ${O} {
+@media screen and ${N} {
   .three-merch-cards.special-offers,
   .four-merch-cards.special-offers {
     grid-template-columns: repeat(3, minmax(300px, var(--consonant-merch-card-special-offers-width)));
@@ -4032,7 +4090,7 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
     grid-template-columns: repeat(4, minmax(300px, var(--consonant-merch-card-special-offers-width)));
   }
 }
-`;var pc={name:{tag:"h4",slot:"detail-m"},title:{tag:"h4",slot:"detail-m"},backgroundImage:{tag:"div",slot:"bg-image"},prices:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"}},Vt=class extends T{constructor(t){super(t)}getGlobalCSS(){return hc}get headingSelector(){return'[slot="detail-m"]'}renderLayout(){return f`${this.cardImage}
+`;var Ec={name:{tag:"h4",slot:"detail-m"},title:{tag:"h4",slot:"detail-m"},backgroundImage:{tag:"div",slot:"bg-image"},prices:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"l"}},jt=class extends C{constructor(t){super(t)}getGlobalCSS(){return yc}get headingSelector(){return'[slot="detail-m"]'}renderLayout(){return f`${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
@@ -4049,7 +4107,7 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
                       <hr />
                       ${this.secureLabelFooter}
                   `}
-            <slot></slot>`}};m(Vt,"variantStyle",b`
+            <slot></slot>`}};m(jt,"variantStyle",b`
         :host([variant='special-offers']) {
             min-height: 439px;
         }
@@ -4061,7 +4119,7 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="stri
         :host([variant='special-offers'].center) {
             text-align: center;
         }
-    `);R();var mc=`
+    `);M();var wc=`
 :root {
     --merch-card-simplified-pricing-express-width: 311px;
 }
@@ -4091,7 +4149,7 @@ merch-card-collection.simplified-pricing-express p {
 }
 
 /* Desktop - 3 columns */
-@media screen and ${O} {
+@media screen and ${N} {
     merch-card-collection.simplified-pricing-express {
         grid-template-columns: repeat(3, 1fr);
         max-width: calc(3 * var(--merch-card-simplified-pricing-express-width) + 32px);
@@ -4109,6 +4167,7 @@ merch-card-collection.simplified-pricing-express p {
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:has(mas-mnemonic) {
         margin-top: auto;
         padding-top: 16px;
+        min-height: var(--consonant-merch-card-simplified-pricing-express-icons-height);
     }
 
     /* Fallback for browsers without :has() support - target last paragraph */
@@ -4146,7 +4205,7 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] {
     font-size: var(--merch-card-simplified-pricing-express-body-xs-font-size, 14px);
     line-height: var(--merch-card-simplified-pricing-express-body-xs-line-height, 18.2px);
     color: var(--spectrum-gray-700);
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     justify-content: space-between;
 }
 
@@ -4165,8 +4224,9 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.button {
     line-height: var(--merch-card-simplified-pricing-express-cta-line-height);
     font-size: var(--merch-card-simplified-pricing-express-cta-font-size);
     margin: 0;
-    padding: 12px 24px 13px 24px;
+    padding: 10px 24px 13px 24px;
     border-radius: 26px;
+    height: 48px;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] {
@@ -4185,14 +4245,16 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child 
   margin: 0;
 }
 
+merch-card[variant="simplified-pricing-express"] [slot="price"] span[is="inline-price"] .price-recurrence {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 15.6px;
+}
+
 merch-card[variant="simplified-pricing-express"] [slot="price"] span[is="inline-price"] {
   font-size: var(--merch-card-simplified-pricing-express-price-p-font-size);
   line-height: var(--merch-card-simplified-pricing-express-price-p-line-height);
-}
-
-merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"] {
-  font-size: var(--merch-card-simplified-pricing-express-price-font-size);
-  line-height: var(--merch-card-simplified-pricing-express-price-line-height);
+  font-weight: bold;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] span[is="inline-price"][data-template="optical"] {
@@ -4223,7 +4285,7 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] .price-currency-
   line-height: var(--merch-card-simplified-pricing-express-price-p-line-height);
 }
 
-merch-card[variant="simplified-pricing-express"] [slot="price"] span[is="inline-price"] .price-recurrence {
+merch-card[variant="simplified-pricing-express"] [slot="price"] span[is="inline-price"] .price-unit-type {
   font-size: var(--merch-card-simplified-pricing-express-price-recurrence-font-size);
   font-weight: var(--merch-card-simplified-pricing-express-price-recurrence-font-weight);
   line-height: var(--merch-card-simplified-pricing-express-price-recurrence-line-height);
@@ -4232,13 +4294,16 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] span[is="inline-
 /* Strikethrough price styling */
 merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
 merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-strikethrough,
-merch-card[variant="simplified-pricing-express"] span.placeholder-resolved[data-template='strikethrough'] {
+merch-card[variant="simplified-pricing-express"] span.placeholder-resolved[data-template='strikethrough'],
+merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough {
   text-decoration: none;
   font-size: var(--merch-card-simplified-pricing-express-price-p-font-size);
   line-height: var(--merch-card-simplified-pricing-express-price-p-line-height);
 }
 
-merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price {
+merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
+merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough,
+merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='legal']  {
   color: var(--spectrum-gray-500);
 }
 
@@ -4252,29 +4317,27 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] p a {
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"] .price-integer,
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"] .price-decimals-delimiter,
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"] .price-decimals {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 36.4px;
+  line-height: 28.6px;
   text-decoration-thickness: 2px;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template='strikethrough'] .price-integer,
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template='strikethrough'] .price-decimals-delimiter,
-merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template='strikethrough'] .price-decimals {
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template='strikethrough'] .price-decimals,
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template='price'] .price-strikethrough .price-integer,
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template='price'] .price-strikethrough .price-decimals-delimiter,
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template='price'] .price-strikethrough .price-decimals {
   text-decoration: line-through;
-}
-
-/* Apply indigo-800 color to optical price when preceded by strikethrough */
-merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"][data-template='optical'],
-merch-card[variant="simplified-pricing-express"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"][data-template='optical'] .price-currency-symbol {
-  color: var(--spectrum-indigo-900);
 }
 
 /* Ensure non-first paragraph prices have normal font weight */
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-integer,
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals-delimiter,
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals,
-merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-recurrence {
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-recurrence,
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-unit-type {
   font-size: var(--merch-card-simplified-pricing-express-price-p-font-size);
   font-weight: var(--merch-card-simplified-pricing-express-price-p-font-weight);
   line-height: var(--merch-card-simplified-pricing-express-price-p-line-height);
@@ -4300,26 +4363,41 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
     vertical-align: baseline;
     margin-inline-end: 8px;
     overflow: visible;
-    padding-top: 16px;
+    padding-top: 0;
+    --mas-mnemonic-tooltip-padding: 4px 8px;
+}
+
+/* Fix leftmost tooltip cutoff on mobile */
+@media screen and ${G} {
+  merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:first-child mas-mnemonic:first-child {
+    --tooltip-left-offset: 0;
+  }
 }
 
 /* Tooltip containers - overflow handled by Shadow DOM */
 
 /* Mobile styles */
-@media screen and ${Q} {
+@media screen and ${G} {
+  .collection-container.simplified-pricing-express {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
   merch-card-collection.simplified-pricing-express {
     gap: 8px;
+    width: 100%;
+    max-width: 100%;
   }
-  
+
   merch-card[variant="simplified-pricing-express"] {
-    width: 311px;
-    max-width: 311px;
+    width: 100%;
+    max-width: none;
+    margin: 0 auto;
   }
 
   /* Badge alignment on mobile */
   merch-card[variant="simplified-pricing-express"] [slot="badge"] {
     font-size: 16px;
-    font-weight: 400;
   }
 
   /* Trial badge alignment on mobile */
@@ -4327,7 +4405,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
     margin-left: 0;
     align-self: flex-start;
   }
-  
+
   merch-card[variant="simplified-pricing-express"] [slot="trial-badge"] merch-badge {
     font-size: 12px;
     line-height: 20.8px;
@@ -4340,29 +4418,40 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
   }
 }
 
-/* Collapse/expand styles for all tablet and mobile viewports */
-@media screen and ${ne} {
-  /* Collapsed state - hide content sections */
+/* Collapse/expand styles for mobile only */
+@media screen and ${G} {
+  /* Base transition for smooth animation */
+  merch-card[variant="simplified-pricing-express"] {
+    transition: max-height 0.5s ease-out;
+  }
+
+  merch-card[variant="simplified-pricing-express"] [slot="body-xs"],
+  merch-card[variant="simplified-pricing-express"] [slot="price"],
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] {
+    transition: opacity 0.5s ease-out, max-height 0.5s ease-out;
+  }
+
+  /* Collapsed state - hide content sections with animation */
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="price"],
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="cta"],
   merch-card[variant="simplified-pricing-express"][data-expanded="false"] [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"][data-expanded="false"] [slot="price"],
   merch-card[variant="simplified-pricing-express"][data-expanded="false"] [slot="cta"] {
-    display: none;
-    visibility: hidden;
-    height: 0;
+    opacity: 0;
+    max-height: 0;
     margin: 0;
     padding: 0;
+    overflow: hidden;
+    pointer-events: none;
   }
 
-  /* Expanded state - explicitly show content */
+  /* Expanded state - show content with animation */
   merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="price"],
   merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="cta"] {
-    display: block;
-    visibility: visible;
-    height: auto;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   /* Collapsed card should have fixed height and padding */
@@ -4370,7 +4459,6 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) {
     max-height: 57px;
     padding: 0;
-    overflow: hidden;
     border-radius: 8px;
   }
 
@@ -4380,18 +4468,26 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
   }
 }
 
-/* Tablet styles - extending mobile styles with specific adjustments */
-@media screen and ${F} and ${ne} {
-  merch-card-collection.simplified-pricing-express {
-    padding: var(--spacing-m) 32px;
-    grid-template-columns: 1fr;
-    gap: 24px;
-    width: var(--merch-card-simplified-pricing-express-tablet-width);
-    margin: 0 auto;
+/* Tablet styles - responsive full width with padding */
+@media screen and ${q} and ${be} {
+  .collection-container.simplified-pricing-express {
+    display: block;
+    width: 100%;
+    padding: 0 32px;
+    box-sizing: border-box;
   }
-  
+
+  merch-card-collection.simplified-pricing-express {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
   merch-card[variant="simplified-pricing-express"] {
-      min-width: var(--merch-card-simplified-pricing-express-tablet-width);
+      width: 100%;
+      min-width: unset;
+      max-width: 100%;
   }
 }
 
@@ -4409,11 +4505,14 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] button.spectrum-Bu
 merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent .spectrum-Button-label {
     color: var(--spectrum-white, #ffffff);
 }
-`;var xa={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},jt=class extends T{getGlobalCSS(){return mc}get aemFragmentMapping(){return xa}get headingSelector(){return'[slot="heading-xs"]'}syncHeights(){if(this.card.getBoundingClientRect().width===0)return;let t=this.card.querySelector('[slot="body-xs"]');t&&this.updateCardElementMinHeight(t,"description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,this.card.prices?.length&&await Promise.all(this.card.prices.map(t=>t.onceSettled?.())),Dr())){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-description-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),this.card?.hasAttribute("data-default-card")&&!Dr()&&this.card.setAttribute("data-expanded","true"))}setupAccordion(){let t=this.card;if(!t)return;let r=()=>{if(Dr())t.removeAttribute("data-expanded");else{let n=t.hasAttribute("data-default-card");t.setAttribute("data-expanded",n?"true":"false")}};r();let i=window.matchMedia(ne);this.mediaQueryListener=()=>{r()},i.addEventListener("change",this.mediaQueryListener)}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(ne).removeEventListener("change",this.mediaQueryListener)}handleChevronClick(t){t.preventDefault(),t.stopPropagation();let r=this.card;if(!r||Dr())return;let a=r.getAttribute("data-expanded")==="true"?"false":"true";r.setAttribute("data-expanded",a)}renderLayout(){return f`
-            <div class="badge-wrapper">
+`;var Ta={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},Wt=class extends C{getGlobalCSS(){return wc}get aemFragmentMapping(){return Ta}get headingSelector(){return'[slot="heading-xs"]'}get badge(){return this.card.querySelector('[slot="badge"]')}syncHeights(){if(this.card.getBoundingClientRect().width===0)return;let t=this.card.querySelector('[slot="body-xs"]');t&&this.updateCardElementMinHeight(t,"description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price");let i=this.card.querySelector('[slot="body-xs"] p:has(mas-mnemonic)');i&&this.updateCardElementMinHeight(i,"icons")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,this.card.prices?.length&&await Promise.all(this.card.prices.map(t=>t.onceSettled?.())),D.isDesktopOrUp)){let t=this.getContainer();if(!t)return;requestAnimationFrame(()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(i=>i.variantLayout?.syncHeights?.())})}}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),this.card?.hasAttribute("data-default-card")&&!Ii()&&this.card.setAttribute("data-expanded","true"))}setupAccordion(){let t=this.card;if(!t)return;let r=()=>{if(Ii())t.removeAttribute("data-expanded");else{let n=t.hasAttribute("data-default-card");t.setAttribute("data-expanded",n?"true":"false")}};r();let i=window.matchMedia(G);this.mediaQueryListener=()=>{r()},i.addEventListener("change",this.mediaQueryListener)}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(G).removeEventListener("change",this.mediaQueryListener)}handleChevronClick(t){t.preventDefault(),t.stopPropagation(),this.toggleExpanded()}handleCardClick(t){t.target.closest('.chevron-button, mas-mnemonic, button, a, [role="button"]')||(t.preventDefault(),this.toggleExpanded())}toggleExpanded(){let t=this.card;if(!t||Ii())return;let n=t.getAttribute("data-expanded")==="true"?"false":"true";t.setAttribute("data-expanded",n)}renderLayout(){return f`
+            <div
+                class="badge-wrapper"
+                style="${this.badge?"":"visibility: hidden"}"
+            >
                 <slot name="badge"></slot>
             </div>
-            <div class="card-content">
+            <div class="card-content" @click=${t=>this.handleCardClick(t)}>
                 <div class="header">
                     <slot name="heading-xs"></slot>
                     <slot name="trial-badge"></slot>
@@ -4447,14 +4546,14 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 </div>
             </div>
             <slot></slot>
-        `}};m(jt,"variantStyle",b`
+        `}};m(Wt,"variantStyle",b`
         :host([variant='simplified-pricing-express']) {
             --merch-card-simplified-pricing-express-width: 365px;
             --merch-card-simplified-pricing-express-padding: 24px;
             --merch-card-simplified-pricing-express-padding-mobile: 16px;
-            --merch-card-simplified-pricing-express-price-font-size: 28px;
+            --merch-card-simplified-pricing-express-price-font-size: 22px;
             --merch-card-simplified-pricing-express-price-font-weight: 700;
-            --merch-card-simplified-pricing-express-price-line-height: 36.4px;
+            --merch-card-simplified-pricing-express-price-line-height: 28.6px;
             --merch-card-simplified-pricing-express-price-currency-font-size: 22px;
             --merch-card-simplified-pricing-express-price-currency-font-weight: 700;
             --merch-card-simplified-pricing-express-price-currency-line-height: 28.6px;
@@ -4498,11 +4597,11 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
         }
 
         :host([variant='simplified-pricing-express']) .badge-wrapper {
-            padding: 4px 12px;
+            padding: 4px 24px;
             border-radius: 8px 8px 0 0;
             text-align: center;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 700;
             line-height: 15.6px;
             color: var(--spectrum-gray-800);
             position: relative;
@@ -4510,15 +4609,6 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        :host(
-                [variant='simplified-pricing-express']:not(
-                        :has([slot='badge']:not(:empty))
-                    )
-            )
-            .badge-wrapper {
-            display: none;
         }
 
         :host([variant='simplified-pricing-express']) .card-content {
@@ -4547,15 +4637,6 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                     --consonant-merch-card-border-color,
                     var(--spectrum-gray-100)
                 );
-        }
-
-        :host(
-                [variant='simplified-pricing-express']:not(
-                        [gradient-border='true']
-                    )[data-expanded='false']
-            )
-            .card-content {
-            overflow: hidden;
         }
 
         :host(
@@ -4594,7 +4675,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
             .badge-wrapper {
             border: none;
             margin-bottom: -6px;
-            padding-bottom: 6px;
+            padding-bottom: 10px;
         }
 
         :host([variant='simplified-pricing-express'][gradient-border='true'])
@@ -4724,14 +4805,14 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
             border: none;
             padding: 0;
             cursor: pointer;
-            transition: transform 0.3s ease;
+            transition: transform 0.5s ease;
         }
 
         :host([variant='simplified-pricing-express']) .chevron-icon {
             width: 24px;
             height: 24px;
             color: var(--spectrum-gray-800);
-            transition: transform 0.3s ease;
+            transition: transform 0.5s ease;
         }
 
         /* Chevron rotation based on parent card's data-expanded attribute */
@@ -4742,20 +4823,52 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
             transform: rotate(180deg);
         }
 
-        /* Mobile and Tablet styles */
-        @media (max-width: 1199px) {
+        /* Tablet styles - full width, no accordion */
+        @media (min-width: 768px) and (max-width: 1199px) {
             :host([variant='simplified-pricing-express']) {
-                width: 311px;
-                max-width: 311px;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            :host(
+                    [variant='simplified-pricing-express'][gradient-border='true']
+                )
+                .card-content,
+            :host(
+                    [variant='simplified-pricing-express']:not(
+                            [gradient-border='true']
+                        )
+                )
+                .card-content {
+                padding: var(
+                    --merch-card-simplified-pricing-express-padding-mobile
+                );
+            }
+
+            /* Hide badge-wrapper on tablet except for gradient borders */
+            :host(
+                    [variant='simplified-pricing-express']:not(
+                            [gradient-border='true']
+                        )
+                )
+                .badge-wrapper {
+                display: none;
+            }
+        }
+
+        /* Mobile only styles - accordion behavior */
+        @media (max-width: 767px) {
+            :host([variant='simplified-pricing-express']) {
+                width: 100%;
+                max-width: 100%;
                 min-height: auto;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: all 0.5s ease;
             }
 
             :host([variant='simplified-pricing-express']) .header {
                 position: relative;
                 justify-content: space-between;
-                align-items: center;
                 gap: 8px;
             }
 
@@ -4781,9 +4894,12 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                         ) +
                         2px
                 );
+                transition:
+                    max-height 0.5s ease-out,
+                    padding 0.5s ease-out;
             }
 
-            /* Hide badge-wrapper on mobile/tablet except for gradient borders */
+            /* Hide badge-wrapper on mobile except for gradient borders */
             :host(
                     [variant='simplified-pricing-express']:not(
                             [gradient-border='true']
@@ -4793,16 +4909,40 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 display: none;
             }
 
+            /* Non-gradient border collapsed state - limit card-content height */
+            :host(
+                    [variant='simplified-pricing-express']:not(
+                            [gradient-border='true']
+                        )[data-expanded='false']
+                )
+                .card-content {
+                max-height: 50px;
+                overflow: hidden;
+                transition:
+                    max-height 0.5s ease-out,
+                    padding 0.5s ease-out;
+            }
+
             /* Gradient border collapsed state - limit badge-wrapper height */
             :host(
                     [variant='simplified-pricing-express'][gradient-border='true'][data-expanded='false']
                 )
                 .card-content {
+                max-height: 50px;
                 overflow: hidden;
                 padding: 16px 16px 35px 16px;
+                transition:
+                    max-height 0.5s ease-out,
+                    padding 0.5s ease-out;
+            }
+
+            /* Expanded state - explicit max-height for animation (CSS can't animate to 'auto') */
+            :host([variant='simplified-pricing-express'][data-expanded='true'])
+                .card-content {
+                max-height: 1000px;
             }
         }
-    `);R();var uc=`
+    `);M();var Ac=`
 :root {
     --merch-card-full-pricing-express-width: 378px;
     --merch-card-full-pricing-express-mobile-width: 365px;
@@ -4820,21 +4960,50 @@ merch-card-collection.full-pricing-express {
 /* Mobile - 1 column */
 merch-card-collection.full-pricing-express {
     grid-template-columns: 1fr;
-    max-width: var(--merch-card-full-pricing-express-mobile-width);
+    max-width: 100%;
     margin: 0 auto;
     padding: 0 16px;
+    box-sizing: border-box;
 }
 
-/* Tablet - 2 columns */
-@media screen and (min-width: 1025px) and (max-width: 1199px) {
+/* Mobile - override Milo .content max-width for full-width cards */
+@media screen and (max-width: 767px) {
+    .section:has(.collection-container.full-pricing-express) .content {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .collection-container.full-pricing-express {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+/* Tablet - 2 columns (768px-1199px) */
+@media screen and (min-width: 768px) and (max-width: 1199px) {
     merch-card-collection.full-pricing-express {
         grid-template-columns: repeat(2, 1fr);
-        max-width: calc(2 * var(--merch-card-full-pricing-express-width) + 16px);
+        justify-items: stretch;
+        max-width: 100%;
+        padding: 0 16px;
+    }
+
+    /* Override Milo .content max-width for full-width cards */
+    .section:has(.collection-container.full-pricing-express) .content {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .collection-container.full-pricing-express {
+        display: block;
+        width: 100%;
+        max-width: 100%;
     }
 }
 
 /* Desktop small - 2 columns */
-@media screen and ${O} and (max-width: 1399px) {
+@media screen and ${N} and (max-width: 1399px) {
     merch-card-collection.full-pricing-express {
         grid-template-columns: repeat(2, 1fr);
         max-width: calc(2 * var(--merch-card-full-pricing-express-width) + 16px);
@@ -4864,19 +5033,28 @@ merch-card[variant="full-pricing-express"] [slot="heading-xs"] {
     margin-bottom: 8px;
 }
 
+/* Title font size on mobile and tablet */
+@media (max-width: 1199px) {
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] {
+        font-size: 18px;
+        line-height: 23.4px;
+    }
+}
+
 /* Inline mnemonics inside heading */
 merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic {
     display: inline-flex;
-    width: 14px;
-    height: 14px;
-    vertical-align: middle;
+    --mod-img-width: 20px;
+    --mod-img-height: 20px;
     margin-right: 8px;
-    align-items: flex-end;
+    align-items: center;
+    vertical-align: middle;
+    padding-bottom: 3px;
 }
 
 merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic img {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     object-fit: contain;
 }
 
@@ -4888,10 +5066,22 @@ merch-card[variant="full-pricing-express"] [slot="icons"] {
     flex-shrink: 0;
 }
 
-merch-card[variant="full-pricing-express"] [slot="icons"] merch-icon {
-    --img-width: 20px;
-    --img-height: 20px;
+/* Premium/crown icon sizing on mobile and tablet (14x14px) */
+@media (max-width: 1199px) {
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] merch-icon,
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic merch-icon,
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic {
+        --mod-img-width: 14px;
+        --mod-img-height: 14px;
+        vertical-align: baseline;
+    }
+
+    merch-card[variant="full-pricing-express"] [slot="heading-xs"] mas-mnemonic img {
+        width: 14px;
+        height: 14px;
+    }
 }
+
 
 merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
     position: absolute;
@@ -4928,6 +5118,7 @@ merch-card[variant="full-pricing-express"] [slot="body-s"] {
 merch-card[variant="full-pricing-express"] [slot="body-s"] hr {
     margin-top: 16px;
     margin-bottom: 24px;
+    background-color: #E9E9E9;
 }
 
 merch-card[variant="full-pricing-express"] [slot="shortDescription"] {
@@ -4958,6 +5149,15 @@ merch-card[variant="full-pricing-express"] [slot="body-s"] p {
 merch-card[variant="full-pricing-express"] [slot="body-s"] p a {
     color: var(--spectrum-indigo-900);
     font-weight: 700;
+    text-decoration: underline;
+}
+
+/* Feature list hyperlinks should be underlined */
+merch-card[variant="full-pricing-express"] [slot="body-s"] ul a,
+merch-card[variant="full-pricing-express"] [slot="body-s"] li a,
+merch-card[variant="full-pricing-express"] [slot="body-xs"] a {
+    color: var(--spectrum-indigo-900);
+    text-decoration: underline;
 }
 
 merch-card[variant="full-pricing-express"] [slot="body-s"] .button-container {
@@ -4977,6 +5177,7 @@ merch-card[variant="full-pricing-express"] [slot="body-s"] p:last-child a {
     border: none;
     margin: 0;
     font-size: 16px;
+    padding-top: 0;
 }
 
 merch-card[variant="full-pricing-express"] [slot="body-s"] p:last-child a:hover {
@@ -4988,6 +5189,13 @@ merch-card[variant="full-pricing-express"] [slot="body-s"] p:last-child a:hover 
 merch-card[variant="full-pricing-express"] [slot="price"] {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    justify-content: center;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] p strong {
+    display: inline-flex;
+    justify-content: center;
     width: 100%;
 }
 
@@ -5025,10 +5233,12 @@ merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol
     line-height: var(--merch-card-full-pricing-express-price-line-height);
 }
 
-merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"] .price-recurrence {
+merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"] .price-recurrence,
+merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"] .price-unit-type {
     font-size: 12px;
-    font-weight: 700;
+    font-weight: bold;
     line-height: 15.6px;
+    color: #222;
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] p {
@@ -5039,11 +5249,7 @@ merch-card[variant="full-pricing-express"] [slot="price"] p {
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] > p span[is="inline-price"]:only-child {
-    color: var(--spectrum-gray-700);
-}
-
-merch-card[variant="full-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"][data-template="strikethrough"] + span[is="inline-price"] {
-    color: var(--spectrum-indigo-900);
+    color: rgb(34,34,34);
 }
 
 /* Target inline prices in paragraphs that are not the first paragraph */
@@ -5054,20 +5260,17 @@ merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) 
     margin-right: 0;
 }
 
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-integer,
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals-delimiter,
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-decimals,
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-currency-symbol,
-merch-card[variant="full-pricing-express"] [slot="price"] > p:not(:first-child) span[is="inline-price"] .price-recurrence {
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-currency-symbol,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-integer,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-decimals-delimiter,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-decimals,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-recurrence,
+merch-card[variant="full-pricing-express"] [slot="price"] > p:nth-child(3) span[is="inline-price"] .price-unit-type {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: normal;
     line-height: 15.6px;
 }
 
-
-merch-card[variant="full-pricing-express"] [slot="price"] strong {
-    color: var(--spectrum-indigo-900);
-}
 merch-card[variant="full-pricing-express"] [slot="price"] p a {
     color: var(--spectrum-indigo-900);
     font-weight: 700;
@@ -5075,16 +5278,25 @@ merch-card[variant="full-pricing-express"] [slot="price"] p a {
 }
 
 /* Strikethrough price styling */
+merch-card[variant="full-pricing-express"] span[is="inline-price"] .price-unit-type,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-strikethrough,
-merch-card[variant="full-pricing-express"] span.placeholder-resolved[data-template='strikethrough'] {
+merch-card[variant="full-pricing-express"] span.placeholder-resolved[data-template='strikethrough'],
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough {
     text-decoration: none;
     font-size: 12px;
     line-height: 15.6px;
+    font-weight: 700;
 }
 
-merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price {
-    color: var(--spectrum-gray-700);
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough {
+    color: #8F8F8F;
+}
+
+merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"],
+merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template='strikethrough'] ~ strong {
+    color: #222222;
 }
 
 merch-card[variant="full-pricing-express"] [slot="price"] p .heading-xs,
@@ -5099,15 +5311,12 @@ merch-card[variant="full-pricing-express"] [slot="price"] p .heading-l {
 
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-integer,
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-decimals-delimiter,
-merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-decimals {
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price-decimals,
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough .price-integer,
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough .price-decimals-delimiter,
+merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='price'] .price-strikethrough .price-decimals {
     text-decoration: line-through;
     text-decoration-thickness: 2px;
-}
-
-/* Apply indigo-800 color to optical price when preceded by strikethrough */
-merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"][data-template='optical'],
-merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] + span[is="inline-price"][data-template='optical'] .price-currency-symbol {
-    color: var(--spectrum-indigo-900);
 }
 
 /* CTA button styling */
@@ -5120,16 +5329,23 @@ merch-card[variant="full-pricing-express"] [slot="cta"] {
 
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="full-pricing-express"] [slot="cta"] button,
-merch-card[variant="full-pricing-express"] [slot="cta"] a.button {
-    display: block;
+merch-card[variant="full-pricing-express"] [slot="cta"] a.button,
+merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button {
+    --mod-button-height: 40px;
+    --mod-button-top-to-text: 9px;
+    --mod-button-bottom-to-text: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     box-sizing: border-box;
     font-weight: 700;
-    font-size: 18px;
-    line-height: 23.4px;
+    font-size: 16px;
+    line-height: 20.8px;
     margin: 0;
-    padding: 12px 24px 13px 24px;
+    padding: 0 24px;
     border-radius: 26px;
+    height: 40px;
 }
 
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button[variant="accent"],
@@ -5156,8 +5372,8 @@ merch-card[variant="full-pricing-express"] merch-badge {
     line-height: 20.8px;
 }
 
-/* Mobile-specific selective display of body-s */
-@media (max-width: 1024px) {
+/* Mobile-specific selective display of body-s (under 768px) */
+@media (max-width: 767px) {
     /* Show body-s container */
     merch-card[variant="full-pricing-express"] [slot="body-s"] {
         display: block;
@@ -5178,11 +5394,12 @@ merch-card[variant="full-pricing-express"] merch-badge {
     merch-card[variant="full-pricing-express"] [slot="body-s"] > p:last-child {
         display: block;
     }
-    
+
     merch-card[variant="full-pricing-express"] {
-        max-width: 365px;
+        width: 100%;
+        max-width: 100%;
     }
-    
+
     /* Price font size on mobile */
     merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol,
     merch-card[variant="full-pricing-express"] [slot="price"] .price-integer,
@@ -5194,19 +5411,19 @@ merch-card[variant="full-pricing-express"] merch-badge {
     merch-card[variant="full-pricing-express"] [slot="price"] .price-tax-inclusivity {
         font-size: 22px;
     }
-    
+
     /* Badge alignment on mobile */
     merch-card[variant="full-pricing-express"] [slot="badge"] {
         font-size: 16px;
         font-weight: 400;
     }
-    
+
     /* Trial badge alignment on mobile */
     merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
         margin-left: 0;
         align-self: flex-start;
     }
-    
+
     merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
         font-size: 12px;
         line-height: 20.8px;
@@ -5236,8 +5453,33 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
     padding-top: 16px;
 }
 
-/* Responsive rules for desktop/tablet */
+/* mas-mnemonic inline styles for full-pricing-express */
+merch-card[variant="full-pricing-express"] mas-mnemonic {
+    display: inline-block;
+    align-items: center;
+    vertical-align: baseline;
+    margin-right: 8px;
+    overflow: visible;
+    --mas-mnemonic-tooltip-padding: 4px 8px;
+}
+
+/* Desktop - fixed heights for alignment */
 @media (min-width: 1025px) {
+    merch-card[variant="full-pricing-express"] [slot="short-description"] {
+        min-height: var(--consonant-merch-card-full-pricing-express-short-description-height);
+    }
+
+    merch-card[variant="full-pricing-express"] [slot="price"] {
+        min-height: var(--consonant-merch-card-full-pricing-express-price-height);
+    }
+
+    merch-card[variant="full-pricing-express"] [slot="cta"] {
+        min-height: var(--consonant-merch-card-full-pricing-express-cta-height);
+    }
+}
+
+/* Responsive rules for tablet and desktop (768px+) */
+@media (min-width: 768px) {
     merch-card[variant="full-pricing-express"] [slot="body-s"] {
         display: flex;
         flex-direction: column;
@@ -5267,14 +5509,21 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
         margin-bottom: 0;
     }
 }
-`;var va={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"l"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:[]},Wt=class extends T{getGlobalCSS(){return uc}get aemFragmentMapping(){return va}get headingSelector(){return'[slot="heading-xs"]'}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.querySelector('[slot="short-description"]');t&&this.updateCardElementMinHeight(t,"short-description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price");let i=this.card.querySelector('[slot="cta"]');i&&this.updateCardElementMinHeight(i,"cta")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,await Promise.all(this.card.prices.map(t=>t.onceSettled())),window.matchMedia("(min-width: 1025px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-price-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}renderLayout(){return f`
-            <div class="badge-wrapper">
+`;var _a={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},shortDescription:{tag:"div",slot:"short-description",maxCount:3e3,withSuffix:!1},prices:{tag:"div",slot:"price"},trialBadge:{tag:"div",slot:"trial-badge"},ctas:{slot:"cta",size:"XL"},mnemonics:{size:"xs"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},multiWhatsIncluded:"true",disabledAttributes:[]},Yt=class extends C{getGlobalCSS(){return Ac}get aemFragmentMapping(){return _a}get headingSelector(){return'[slot="heading-xs"]'}get badgeElement(){return this.card.querySelector('[slot="badge"]')}get badge(){return f`
+            <div
+                class="badge-wrapper"
+                style="${this.badgeElement?"":"visibility: hidden"}"
+            >
                 <slot name="badge"></slot>
             </div>
+        `}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.querySelector('[slot="short-description"]');t&&this.updateCardElementMinHeight(t,"short-description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price");let i=this.card.querySelector('[slot="cta"]');i&&this.updateCardElementMinHeight(i,"cta")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,await Promise.all(this.card.prices.map(t=>t.onceSettled())),window.matchMedia("(min-width: 1025px)").matches)){let t=this.getContainer();if(!t)return;let r=`--consonant-merch-card-${this.card.variant}`,i=t.style.getPropertyValue(`${r}-price-height`);requestAnimationFrame(i?()=>{this.syncHeights()}:()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}renderLayout(){return f`
+            ${this.badge}
             <div class="card-content">
                 <div class="header">
                     <slot name="heading-xs"></slot>
-                    <slot name="icons"></slot>
+                    <div class="icons">
+                        <slot name="icons"></slot>
+                    </div>
                 </div>
                 <div class="short-description">
                     <slot name="short-description"></slot>
@@ -5291,7 +5540,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
                 </div>
             </div>
             <slot></slot>
-        `}};m(Wt,"variantStyle",b`
+        `}};m(Yt,"variantStyle",b`
         :host([variant='full-pricing-express']) {
             /* CSS Variables */
             --merch-card-full-pricing-express-width: 437px;
@@ -5299,6 +5548,9 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             --merch-card-full-pricing-express-padding: 24px;
             --merch-card-full-pricing-express-padding-mobile: 20px;
             --merch-card-full-pricing-express-section-gap: 24px;
+            --express-custom-gray-500: #8f8f8f;
+            --express-custom-gray-400: #d5d5d5;
+            --express-custom-price-border: #e0e2ff;
 
             /* Price container specific */
             --merch-card-full-pricing-express-price-bg: #f8f8f8;
@@ -5356,6 +5608,12 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             justify-content: center;
         }
 
+        :host([variant='full-pricing-express']) .icons {
+            display: flex;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--spectrum-black);
+        }
+
         /* Card content styling */
         :host([variant='full-pricing-express']) .card-content {
             border-radius: 8px;
@@ -5374,11 +5632,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
         :host([variant='full-pricing-express']:not([gradient-border='true']))
             .card-content {
             background: var(--spectrum-gray-50);
-            border: 1px solid
-                var(
-                    --consonant-merch-card-border-color,
-                    var(--spectrum-gray-100)
-                );
+            border: 1px solid #d5d5d5;
         }
 
         /* When badge exists, adjust card content border radius */
@@ -5500,9 +5754,17 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             flex-shrink: 0;
         }
 
-        :host([variant='full-pricing-express']) [slot='icons'] merch-icon {
-            --img-width: 20px;
-            --img-height: 20px;
+        :host([variant='full-pricing-express']) .icons ::slotted(merch-icon) {
+            --mod-img-width: auto;
+            --mod-img-height: 18px;
+            align-self: flex-end;
+        }
+
+        :host([variant='full-pricing-express'])
+            .icons
+            ::slotted(merch-icon:nth-of-type(2)) {
+            --mod-img-height: 14px;
+            height: 14px;
         }
 
         /* Description sections */
@@ -5516,7 +5778,7 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             background: var(--merch-card-full-pricing-express-price-bg);
             padding: 24px 16px;
             border-radius: var(--merch-card-full-pricing-express-price-radius);
-            border: 1px solid #e0e2ff;
+            border: 1px solid var(--express-custom-price-border);
             display: flex;
             flex-direction: column;
             position: relative;
@@ -5533,22 +5795,20 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
             display: block;
         }
 
-        /* Mobile styles */
-        @media (max-width: 1024px) {
+        /* Mobile and tablet styles */
+        @media (max-width: 1199px) {
             :host([variant='full-pricing-express']) {
-                width: var(--merch-card-full-pricing-express-mobile-width);
-                max-width: var(--merch-card-full-pricing-express-mobile-width);
+                width: 100%;
+                max-width: 100%;
             }
 
             :host([variant='full-pricing-express']) .card-content {
-                padding: var(--merch-card-full-pricing-express-padding-mobile);
+                padding: 24px 16px;
             }
 
             :host([variant='full-pricing-express'][gradient-border='true'])
                 .card-content {
-                padding: calc(
-                    var(--merch-card-full-pricing-express-padding-mobile) + 2px
-                );
+                padding: 26px 18px;
             }
 
             :host([variant='full-pricing-express']) .short-description {
@@ -5566,27 +5826,15 @@ merch-card[variant="full-pricing-express"] mas-tooltip {
                 flex: 1;
             }
 
-            :host([variant='full-pricing-express']) .price-container {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-price-height
-                );
-            }
-
             :host([variant='full-pricing-express']) .cta {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-cta-height
-                );
                 margin-bottom: 24px;
             }
 
             :host([variant='full-pricing-express']) .short-description {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-short-description-height
-                );
                 margin-bottom: 24px;
             }
         }
-    `);R();var gc=`
+    `);M();var Sc=`
 merch-card[variant="mini"] {
   color: var(--spectrum-body-color);
   width: 400px;
@@ -5619,7 +5867,7 @@ merch-card[variant="mini"] span.promo-duration-text,
 merch-card[variant="mini"] span.renewal-text {
     display: block;
 }
-`;var fc={title:{tag:"p",slot:"title"},prices:{tag:"p",slot:"prices"},description:{tag:"p",slot:"description"},planType:!0,ctas:{slot:"ctas",size:"S"}},Yt=class extends T{constructor(){super(...arguments);m(this,"legal")}async postCardUpdateHook(){await this.card.updateComplete,this.adjustLegal()}getGlobalCSS(){return gc}get headingSelector(){return'[slot="title"]'}priceOptionsProvider(r,i){i.literals={...i.literals,strikethroughAriaLabel:"",alternativePriceAriaLabel:""},i.space=!0,i.displayAnnual=this.card.settings?.displayAnnual??!1}adjustLegal(){if(this.legal!==void 0)return;let r=this.card.querySelector(`${H}[data-template="price"]`);if(!r)return;let i=r.cloneNode(!0);this.legal=i,r.dataset.displayTax="false",i.dataset.template="legal",i.dataset.displayPlanType=this.card?.settings?.displayPlanType??!0,i.setAttribute("slot","legal"),this.card.appendChild(i)}renderLayout(){return f`
+`;var Tc={title:{tag:"p",slot:"title"},prices:{tag:"p",slot:"prices"},description:{tag:"p",slot:"description"},planType:!0,ctas:{slot:"ctas",size:"S"}},Xt=class extends C{constructor(){super(...arguments);m(this,"legal")}async postCardUpdateHook(){await this.card.updateComplete,this.adjustLegal()}getGlobalCSS(){return Sc}get headingSelector(){return'[slot="title"]'}priceOptionsProvider(r,i){i.literals={...i.literals,strikethroughAriaLabel:"",alternativePriceAriaLabel:""},i.space=!0,i.displayAnnual=this.card.settings?.displayAnnual??!1}adjustLegal(){if(this.legal!==void 0)return;let r=this.card.querySelector(`${B}[data-template="price"]`);if(!r)return;let i=r.cloneNode(!0);this.legal=i,r.dataset.displayTax="false",r.dataset.displayPerUnit="false",i.dataset.template="legal",i.dataset.displayPlanType=this.card?.settings?.displayPlanType??!0,i.setAttribute("slot","legal"),this.card.appendChild(i)}renderLayout(){return f`
             ${this.badge}
             <div class="body">
                 <slot name="title"></slot>
@@ -5628,14 +5876,14 @@ merch-card[variant="mini"] span.renewal-text {
                 <slot name="description"></slot>
                 <slot name="ctas"></slot>
             </div>
-        `}};m(Yt,"variantStyle",b`
+        `}};m(Xt,"variantStyle",b`
         :host([variant='mini']) {
             min-width: 209px;
             min-height: 103px;
             background-color: var(--spectrum-background-base-color);
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
         }
-    `);var zi=new Map,V=(e,t,r=null,i=null,n)=>{zi.set(e,{class:t,fragmentMapping:r,style:i,collectionOptions:n})};V("catalog",Ut,ec,Ut.variantStyle);V("image",Ni);V("inline-heading",Ii);V("mini-compare-chart",Ft,null,Ft.variantStyle);V("plans",he,Di,he.variantStyle,he.collectionOptions);V("plans-students",he,oc,he.variantStyle,he.collectionOptions);V("plans-education",he,ac,he.variantStyle,he.collectionOptions);V("plans-v2",Ye,cc,Ye.variantStyle,Ye.collectionOptions);V("product",Gt,null,Gt.variantStyle);V("segment",qt,null,qt.variantStyle);V("special-offers",Vt,pc,Vt.variantStyle);V("simplified-pricing-express",jt,xa,jt.variantStyle);V("full-pricing-express",Wt,va,Wt.variantStyle);V("mini",Yt,fc,Yt.variantStyle);var ba=e=>{let t=zi.get(e.variant);if(!t)return;let{class:r,style:i}=t;if(i)try{let n=new CSSStyleSheet;n.replaceSync(i.cssText),e.shadowRoot.adoptedStyleSheets.push(n)}catch{let a=document.createElement("style");a.textContent=i.cssText,e.shadowRoot.appendChild(a)}return new r(e)};function Oi(e){return zi.get(e)?.fragmentMapping}function xc(e){return zi.get(e)?.collectionOptions}var vc=document.createElement("style");vc.innerHTML=`
+    `);var Fi=new Map,_c=new WeakMap,Cc=new Map,j=(e,t,r=null,i=null,n)=>{Fi.set(e,{class:t,fragmentMapping:r,style:i,collectionOptions:n})};j("catalog",Ft,lc,Ft.variantStyle);j("image",Hi);j("inline-heading",Bi);j("mini-compare-chart",Gt,null,Gt.variantStyle);j("plans",me,Ui,me.variantStyle,me.collectionOptions);j("plans-students",me,gc,me.variantStyle,me.collectionOptions);j("plans-education",me,uc,me.variantStyle,me.collectionOptions);j("plans-v2",Xe,xc,Xe.variantStyle,Xe.collectionOptions);j("product",qt,null,qt.variantStyle);j("segment",Vt,null,Vt.variantStyle);j("special-offers",jt,Ec,jt.variantStyle);j("simplified-pricing-express",Wt,Ta,Wt.variantStyle);j("full-pricing-express",Yt,_a,Yt.variantStyle);j("mini",Xt,Tc,Xt.variantStyle);var Mh=(e,t,r)=>{try{let i=Cc.get(e.variant);if(i||(i=new CSSStyleSheet,i.replaceSync(t.cssText),Cc.set(e.variant,i)),r?.styleSheet&&r.styleSheet!==i){let n=e.shadowRoot.adoptedStyleSheets.indexOf(r.styleSheet);n!==-1&&e.shadowRoot.adoptedStyleSheets.splice(n,1)}return e.shadowRoot.adoptedStyleSheets.includes(i)||e.shadowRoot.adoptedStyleSheets.push(i),{styleSheet:i}}catch{let n=document.createElement("style");n.textContent=t.cssText,n.setAttribute("data-variant-style",e.variant);let a=r?.styleElement||e.shadowRoot.querySelector("[data-variant-style]");return a&&a.remove(),e.shadowRoot.appendChild(n),{styleElement:n}}},Ca=e=>{let t=Fi.get(e.variant);if(!t)return;let{class:r,style:i}=t,n=_c.get(e);if(n?.appliedVariant===e.variant)return new r(e);let a=i?Mh(e,i,n):{};return _c.set(e,{appliedVariant:e.variant,...a}),new r(e)};function zi(e){return Fi.get(e)?.fragmentMapping}function kc(e){return Fi.get(e)?.collectionOptions}var Pc=document.createElement("style");Pc.innerHTML=`
 :root {
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;
@@ -5723,6 +5971,8 @@ merch-card[variant="mini"] span.renewal-text {
     --merch-color-grey-800: #222222;
     --merch-color-green-promo: #05834E;
     --merch-color-red-promo: #D31510;
+    --merch-color-error: #D73220;
+    --merch-color-error-background: #ffebe8;
     --merch-color-grey-80: #2c2c2c;
     --consonant-merch-card-body-xs-color: var(--spectrum-gray-800, var(--merch-color-grey-80));
     --merch-color-inline-price-strikethrough: initial;
@@ -5749,6 +5999,7 @@ merch-card[variant="mini"] span.renewal-text {
     --spectrum-gray-300-plans: #DADADA;
     --spectrum-gray-700-plans: #505050;
     --spectrum-red-700-plans: #EB1000;
+    --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
 
     /* simplified-pricing-express colors */
     --spectrum-gray-50: #FFFFFF;
@@ -6002,6 +6253,12 @@ merch-card span.heading-l {
     margin: 0;
 }
 
+/* RTL text alignment for all heading slots */
+[dir="rtl"] merch-card [slot^='heading-'],
+[dir="rtl"] merch-card [class^='heading-'] {
+    text-align: right;
+}
+
 merch-card [slot='offers'] {
     padding: var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-s);
 }
@@ -6020,7 +6277,7 @@ merch-card [slot='callout-content'] {
 merch-card[variant^='plans'] [slot='badge'] {
     position: absolute;
     top: 16px;
-    right: 0;
+    inset-inline-end: 0;
     line-height: 16px;
 }
 
@@ -6252,6 +6509,25 @@ merch-sidenav-list sp-sidenav > sp-sidenav-item:last-of-type {
     line-height: var(--mod-sidenav-top-level-line-height)
 }
 
+/* RTL support for sp-sidenav-item */
+[dir="rtl"] sp-sidenav-item {
+    text-align: right;
+}
+
+/* Only apply flex layout when icon with .right class is present */
+[dir="rtl"] sp-sidenav-item:has([slot="icon"].right) {
+    display: flex;
+    flex-direction: row;
+}
+
+[dir="rtl"] sp-sidenav-item [slot="icon"].right {
+    position: relative;
+    right: auto;
+    left: auto;
+    order: 2;
+    margin-inline-start: var(--mod-sidenav-icon-spacing, var(--spectrum-sidenav-icon-spacing));
+}
+
 merch-sidenav-checkbox-group h3 {
     font-size: var(--merch-sidenav-checkbox-group-title-font-size);
     font-weight: var(--merch-sidenav-checkbox-group-title-font-weight);
@@ -6259,6 +6535,10 @@ merch-sidenav-checkbox-group h3 {
     color: var(--merch-sidenav-checkbox-group-title-color);
     padding: var(--merch-sidenav-checkbox-group-title-padding);
     margin: 0;
+}
+
+[dir="rtl"] merch-sidenav-checkbox-group h3 {
+    text-align: right;
 }
 
 sr-only {
@@ -6331,29 +6611,65 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
   display: none;
 }
 
+merch-card merch-whats-included [slot="contentBullets"] [slot="icon"] {
+    margin-right: 10px;
+}
+
+merch-card merch-whats-included[has-bullets] [slot="content"] {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 10px;
+}
+
 merch-badge[background-color="spectrum-red-700-plans"] {
   color: #FFFFFF;
 }
+
+/* Badge border-radius with RTL support */
+merch-badge {
+  --merch-badge-border-radius: 4px 0 0 4px; /* LTR default */
+}
+
+[dir="rtl"] merch-badge {
+  --merch-badge-border-radius: 0 4px 4px 0; /* RTL override */
+}
+
 /* Red border color for merch-cards */
 merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
 }
 
 @media (max-width: 600px) {
-merch-card [slot='callout-content'] .icon-button::before { 
+merch-card [slot='callout-content'] .icon-button::before {
     max-width: 180px;
   }
 }
 
-@media screen and ${F} {
+/* RTL support for collection header - Mobile */
+[dir="rtl"] merch-card-collection-header {
+    --merch-card-collection-header-areas: 'search search' 'sort filter'
+        'result result';
+}
+
+[dir="rtl"] merch-card-collection-header #result {
+    text-align: right;
+}
+
+@media screen and ${q} {
     .two-merch-cards,
     .three-merch-cards,
     .four-merch-cards {
         grid-template-columns: repeat(2, var(--merch-card-collection-card-width));
     }
+
+    /* RTL support for collection header - Tablet */
+    [dir="rtl"] merch-card-collection-header {
+        --merch-card-collection-header-areas: 'sort filter search'
+            'result result result';
+    }
 }
 
-@media screen and ${O} {
+@media screen and ${N} {
     .four-merch-cards {
         grid-template-columns: repeat(4, var(--merch-card-collection-card-width));
     }
@@ -6361,6 +6677,11 @@ merch-card [slot='callout-content'] .icon-button::before {
     .three-merch-cards,
     merch-sidenav ~ .four-merch-cards {
         grid-template-columns: repeat(3, var(--merch-card-collection-card-width));
+    }
+
+    /* RTL support for collection header - Desktop */
+    [dir="rtl"] merch-card-collection-header {
+        --merch-card-collection-header-areas: 'sort result';
     }
 }
 
@@ -6371,10 +6692,12 @@ merch-card [slot='callout-content'] .icon-button::before {
     }
 }
 
-`;document.head.appendChild(vc);var bc="fragment",yc="author",Ec="preview",wc="loading",Ac="timeout",ya="aem-fragment",Sc="eager",_c="cache",xh=[Sc,_c],Re,bt,Se,Ea=class{constructor(){E(this,Re,new Map);E(this,bt,new Map);E(this,Se,new Map)}clear(){h(this,Re).clear(),h(this,bt).clear(),h(this,Se).clear()}add(t,r=!0){if(!this.has(t.id)&&!this.has(t.fields?.originalId)){if(h(this,Re).set(t.id,t),t.fields?.originalId&&h(this,Re).set(t.fields.originalId,t),h(this,Se).has(t.id)){let[,i]=h(this,Se).get(t.id);i()}if(h(this,Se).has(t.fields?.originalId)){let[,i]=h(this,Se).get(t.fields?.originalId);i()}if(!(!r||typeof t.references!="object"||Array.isArray(t.references)))for(let i in t.references){let{type:n,value:a}=t.references[i];n==="content-fragment"&&(a.settings={...t?.settings,...a.settings},a.placeholders={...t?.placeholders,...a.placeholders},a.dictionary={...t?.dictionary,...a.dictionary},a.priceLiterals={...t?.priceLiterals,...a.priceLiterals},this.add(a,t))}}}has(t){return h(this,Re).has(t)}entries(){return h(this,Re).entries()}get(t){return h(this,Re).get(t)}getAsPromise(t){let[r]=h(this,Se).get(t)??[];if(r)return r;let i;return r=new Promise(n=>{i=n,this.has(t)&&n()}),h(this,Se).set(t,[r,i]),r}getFetchInfo(t){let r=h(this,bt).get(t);return r||(r={url:null,retryCount:0,stale:!1,measure:null,status:null},h(this,bt).set(t,r)),r}remove(t){h(this,Re).delete(t),h(this,bt).delete(t),h(this,Se).delete(t)}};Re=new WeakMap,bt=new WeakMap,Se=new WeakMap;var Xe=new Ea,Xt,_e,He,ve,pe,J,Ur,Fr,Te,Gr,qr,Kt,Ce,Tc,Cc,wa,kc,$i=class extends HTMLElement{constructor(){super(...arguments);E(this,Ce);m(this,"cache",Xe);E(this,Xt);E(this,_e,null);E(this,He,null);E(this,ve,null);E(this,pe);E(this,J);E(this,Ur,Sc);E(this,Fr,5e3);E(this,Te);E(this,Gr,!1);E(this,qr,0);E(this,Kt)}static get observedAttributes(){return[bc,wc,Ac,yc,Ec]}attributeChangedCallback(r,i,n){r===bc&&(y(this,pe,n),y(this,J,Xe.getFetchInfo(n))),r===wc&&xh.includes(n)&&y(this,Ur,n),r===Ac&&y(this,Fr,parseInt(n,10)),r===yc&&y(this,Gr,["","true"].includes(n)),r===Ec&&y(this,Kt,n)}connectedCallback(){if(!h(this,Te)){if(h(this,ve)??y(this,ve,dt(this)),y(this,Kt,h(this,ve).settings?.preview),h(this,Xt)??y(this,Xt,h(this,ve).log.module(`${ya}[${h(this,pe)}]`)),!h(this,pe)||h(this,pe)==="#"){h(this,J)??y(this,J,Xe.getFetchInfo("missing-fragment-id")),te(this,Ce,wa).call(this,"Missing fragment id");return}this.refresh(!1)}}get fetchInfo(){return Object.fromEntries(Object.entries(h(this,J)).filter(([r,i])=>i!=null).map(([r,i])=>[`aem-fragment:${r}`,i]))}async refresh(r=!0){if(h(this,Te)&&!await Promise.race([h(this,Te),Promise.resolve(!1)]))return;r&&Xe.remove(h(this,pe)),h(this,Ur)===_c&&await Promise.race([Xe.getAsPromise(h(this,pe)),new Promise(s=>setTimeout(s,h(this,Fr)))]);try{y(this,Te,te(this,Ce,kc).call(this)),await h(this,Te)}catch(s){return te(this,Ce,wa).call(this,s.message),!1}let{references:i,referencesTree:n,placeholders:a,wcs:o}=h(this,_e)||{};return o&&!B("mas.disableWcsCache")&&h(this,ve).prefillWcsCache(o),this.dispatchEvent(new CustomEvent(tt,{detail:{...this.data,references:i,referencesTree:n,placeholders:a,...h(this,J)},bubbles:!0,composed:!0})),h(this,Te)}get updateComplete(){return h(this,Te)??Promise.reject(new Error("AEM fragment cannot be loaded"))}get data(){return h(this,He)?h(this,He):(h(this,Gr)?this.transformAuthorData():this.transformPublishData(),h(this,He))}get rawData(){return h(this,_e)}transformAuthorData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,He,r.reduce((l,{name:d,multiple:p,values:u})=>(l.fields[d]=p?u:u[0],l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}transformPublishData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,_e);y(this,He,Object.entries(r).reduce((l,[d,p])=>(l.fields[d]=p?.mimeType?p.value:p??"",l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}getFragmentClientUrl(){let i=new URLSearchParams(window.location.search).get("maslibs");if(!i||i.trim()==="")return"https://mas.adobe.com/studio/libs/fragment-client.js";let n=i.trim().toLowerCase();if(n==="local")return"http://localhost:3030/studio/libs/fragment-client.js";let{hostname:a}=window.location,o=a.endsWith(".page")?"page":"live";return n.includes("--")?`https://${n}.aem.${o}/studio/libs/fragment-client.js`:`https://${n}--mas--adobecom.aem.${o}/studio/libs/fragment-client.js`}async generatePreview(){let r=this.getFragmentClientUrl(),{previewFragment:i}=await import(r);return await i(h(this,pe),{locale:h(this,ve).settings.locale,apiKey:h(this,ve).settings.wcsApiKey})}};Xt=new WeakMap,_e=new WeakMap,He=new WeakMap,ve=new WeakMap,pe=new WeakMap,J=new WeakMap,Ur=new WeakMap,Fr=new WeakMap,Te=new WeakMap,Gr=new WeakMap,qr=new WeakMap,Kt=new WeakMap,Ce=new WeakSet,Tc=async function(r){Ha(this,qr)._++;let i=`${ya}:${h(this,pe)}:${h(this,qr)}`,n=`${i}${nt}`,a=`${i}${at}`;if(h(this,Kt))return await this.generatePreview();performance.mark(n);let o;try{if(h(this,J).stale=!1,h(this,J).url=r,o=await Ai(r,{cache:"default",credentials:"omit"}),te(this,Ce,Cc).call(this,o),h(this,J).status=o?.status,h(this,J).measure=Le(performance.measure(a,n)),h(this,J).retryCount=o.retryCount,!o?.ok)throw new Ne("Unexpected fragment response",{response:o,...h(this,ve).duration});return await o.json()}catch(s){if(h(this,J).measure=Le(performance.measure(a,n)),h(this,J).retryCount=s.retryCount,h(this,_e))return h(this,J).stale=!0,h(this,Xt).error("Serving stale data",h(this,J)),h(this,_e);let c=s.message??"unknown";throw new Ne(`Failed to fetch fragment: ${c}`,{})}},Cc=function(r){Object.assign(h(this,J),si(r))},wa=function(r){y(this,Te,null),h(this,J).message=r,this.classList.add("error");let i={...h(this,J),...h(this,ve).duration};h(this,Xt).error(r,i),this.dispatchEvent(new CustomEvent(rt,{detail:i,bubbles:!0,composed:!0}))},kc=async function(){var c;this.classList.remove("error"),y(this,He,null);let r=Xe.get(h(this,pe));if(r)return y(this,_e,r),!0;let{masIOUrl:i,wcsApiKey:n,country:a,locale:o}=h(this,ve).settings,s=`${i}/fragment?id=${h(this,pe)}&api_key=${n}&locale=${o}`;return a&&!o.endsWith(`_${a}`)&&(s+=`&country=${a}`),r=await te(this,Ce,Tc).call(this,s),(c=r.fields).originalId??(c.originalId=h(this,pe)),Xe.add(r),y(this,_e,r),!0},m($i,"cache",Xe);customElements.define(ya,$i);R();var Qt=class extends ${constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent}connectedCallback(){this.borderColor&&this.borderColor!=="Transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-border-radius","4px 0 0 4px"),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.textContent="";let t=this.closest("merch-card"),r=t?.getAttribute("size"),i=t?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",i),this.style.setProperty("--merch-badge-with-offset",i?1:0),this.style.setProperty("--merch-badge-card-size",r?2:1),super.connectedCallback()}render(){return f`<div class="badge">${this.text}</div>`}};m(Qt,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"}}),m(Qt,"styles",b`
+`;document.head.appendChild(Pc);var Lc="fragment",Rc="author",Mc="preview",Oc="loading",Nc="timeout",ka="aem-fragment",Ic="eager",Dc="cache",Oh=[Ic,Dc],Me,yt,_e,Pa=class{constructor(){E(this,Me,new Map);E(this,yt,new Map);E(this,_e,new Map)}clear(){h(this,Me).clear(),h(this,yt).clear(),h(this,_e).clear()}add(t,r=!0){if(!this.has(t.id)&&!this.has(t.fields?.originalId)){if(h(this,Me).set(t.id,t),t.fields?.originalId&&h(this,Me).set(t.fields.originalId,t),h(this,_e).has(t.id)){let[,i]=h(this,_e).get(t.id);i()}if(h(this,_e).has(t.fields?.originalId)){let[,i]=h(this,_e).get(t.fields?.originalId);i()}if(!(!r||typeof t.references!="object"||Array.isArray(t.references)))for(let i in t.references){let{type:n,value:a}=t.references[i];n==="content-fragment"&&(a.settings={...t?.settings,...a.settings},a.placeholders={...t?.placeholders,...a.placeholders},a.dictionary={...t?.dictionary,...a.dictionary},a.priceLiterals={...t?.priceLiterals,...a.priceLiterals},this.add(a,t))}}}has(t){return h(this,Me).has(t)}entries(){return h(this,Me).entries()}get(t){return h(this,Me).get(t)}getAsPromise(t){let[r]=h(this,_e).get(t)??[];if(r)return r;let i;return r=new Promise(n=>{i=n,this.has(t)&&n()}),h(this,_e).set(t,[r,i]),r}getFetchInfo(t){let r=h(this,yt).get(t);return r||(r={url:null,retryCount:0,stale:!1,measure:null,status:null},h(this,yt).set(t,r)),r}remove(t){h(this,Me).delete(t),h(this,yt).delete(t),h(this,_e).delete(t)}};Me=new WeakMap,yt=new WeakMap,_e=new WeakMap;var Ke=new Pa,Kt,Ce,Ue,ye,ue,J,Gr,qr,ke,Vr,jr,Qt,Pe,$c,zc,La,Hc,Gi=class extends HTMLElement{constructor(){super(...arguments);E(this,Pe);m(this,"cache",Ke);E(this,Kt);E(this,Ce,null);E(this,Ue,null);E(this,ye,null);E(this,ue);E(this,J);E(this,Gr,Ic);E(this,qr,5e3);E(this,ke);E(this,Vr,!1);E(this,jr,0);E(this,Qt)}static get observedAttributes(){return[Lc,Oc,Nc,Rc,Mc]}attributeChangedCallback(r,i,n){r===Lc&&(y(this,ue,n),y(this,J,Ke.getFetchInfo(n))),r===Oc&&Oh.includes(n)&&y(this,Gr,n),r===Nc&&y(this,qr,parseInt(n,10)),r===Rc&&y(this,Vr,["","true"].includes(n)),r===Mc&&y(this,Qt,n)}connectedCallback(){if(!h(this,ke)){if(h(this,ye)??y(this,ye,pt(this)),y(this,Qt,h(this,ye).settings?.preview),h(this,Kt)??y(this,Kt,h(this,ye).log.module(`${ka}[${h(this,ue)}]`)),!h(this,ue)||h(this,ue)==="#"){h(this,J)??y(this,J,Ke.getFetchInfo("missing-fragment-id")),Z(this,Pe,La).call(this,"Missing fragment id");return}this.refresh(!1)}}get fetchInfo(){return Object.fromEntries(Object.entries(h(this,J)).filter(([r,i])=>i!=null).map(([r,i])=>[`aem-fragment:${r}`,i]))}async refresh(r=!0){if(h(this,ke)&&!await Promise.race([h(this,ke),Promise.resolve(!1)]))return;r&&Ke.remove(h(this,ue)),h(this,Gr)===Dc&&await Promise.race([Ke.getAsPromise(h(this,ue)),new Promise(s=>setTimeout(s,h(this,qr)))]);try{y(this,ke,Z(this,Pe,Hc).call(this)),await h(this,ke)}catch(s){return Z(this,Pe,La).call(this,s.message),!1}let{references:i,referencesTree:n,placeholders:a,wcs:o}=h(this,Ce)||{};return o&&!U("mas.disableWcsCache")&&h(this,ye).prefillWcsCache(o),this.dispatchEvent(new CustomEvent(it,{detail:{...this.data,references:i,referencesTree:n,placeholders:a,...h(this,J)},bubbles:!0,composed:!0})),h(this,ke)}get updateComplete(){return h(this,ke)??Promise.reject(new Error("AEM fragment cannot be loaded"))}get data(){return h(this,Ue)?h(this,Ue):(h(this,Vr)?this.transformAuthorData():this.transformPublishData(),h(this,Ue))}get rawData(){return h(this,Ce)}transformAuthorData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,Ce);y(this,Ue,r.reduce((l,{name:d,multiple:p,values:u})=>(l.fields[d]=p?u:u[0],l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}transformPublishData(){let{fields:r,id:i,tags:n,settings:a={},priceLiterals:o={},dictionary:s={},placeholders:c={}}=h(this,Ce);y(this,Ue,Object.entries(r).reduce((l,[d,p])=>(l.fields[d]=p?.mimeType?p.value:p??"",l),{fields:{},id:i,tags:n,settings:a,priceLiterals:o,dictionary:s,placeholders:c}))}getFragmentClientUrl(){let i=new URLSearchParams(window.location.search).get("maslibs");if(!i||i.trim()==="")return"https://mas.adobe.com/studio/libs/fragment-client.js";let n=i.trim().toLowerCase();if(n==="local")return"http://localhost:3030/studio/libs/fragment-client.js";let{hostname:a}=window.location,o=a.endsWith(".page")?"page":"live";return n.includes("--")?`https://${n}.aem.${o}/studio/libs/fragment-client.js`:`https://${n}--mas--adobecom.aem.${o}/studio/libs/fragment-client.js`}async generatePreview(){let r=this.getFragmentClientUrl(),{previewFragment:i}=await import(r);return await i(h(this,ue),{locale:h(this,ye).settings.locale,apiKey:h(this,ye).settings.wcsApiKey})}};Kt=new WeakMap,Ce=new WeakMap,Ue=new WeakMap,ye=new WeakMap,ue=new WeakMap,J=new WeakMap,Gr=new WeakMap,qr=new WeakMap,ke=new WeakMap,Vr=new WeakMap,jr=new WeakMap,Qt=new WeakMap,Pe=new WeakSet,$c=async function(r){Xa(this,jr)._++;let i=`${ka}:${h(this,ue)}:${h(this,jr)}`,n=`${i}${ot}`,a=`${i}${st}`;if(h(this,Qt))return await this.generatePreview();performance.mark(n);let o;try{if(h(this,J).stale=!1,h(this,J).url=r,o=await ki(r,{cache:"default",credentials:"omit"}),Z(this,Pe,zc).call(this,o),h(this,J).status=o?.status,h(this,J).measure=Re(performance.measure(a,n)),h(this,J).retryCount=o.retryCount,!o?.ok)throw new Ie("Unexpected fragment response",{response:o,...h(this,ye).duration});return await o.json()}catch(s){if(h(this,J).measure=Re(performance.measure(a,n)),h(this,J).retryCount=s.retryCount,h(this,Ce))return h(this,J).stale=!0,h(this,Kt).error("Serving stale data",h(this,J)),h(this,Ce);let c=s.message??"unknown";throw new Ie(`Failed to fetch fragment: ${c}`,{})}},zc=function(r){Object.assign(h(this,J),pi(r))},La=function(r){y(this,ke,null),h(this,J).message=r,this.classList.add("error");let i={...h(this,J),...h(this,ye).duration};h(this,Kt).error(r,i),this.dispatchEvent(new CustomEvent(nt,{detail:i,bubbles:!0,composed:!0}))},Hc=async function(){var c;this.classList.remove("error"),y(this,Ue,null);let r=Ke.get(h(this,ue));if(r)return y(this,Ce,r),!0;let{masIOUrl:i,wcsApiKey:n,country:a,locale:o}=h(this,ye).settings,s=`${i}/fragment?id=${h(this,ue)}&api_key=${n}&locale=${o}`;return a&&!o.endsWith(`_${a}`)&&(s+=`&country=${a}`),r=await Z(this,Pe,$c).call(this,s),(c=r.fields).originalId??(c.originalId=h(this,ue)),Ke.add(r),y(this,Ce,r),!0},m(Gi,"cache",Ke);customElements.define(ka,Gi);M();$r();var Bc={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},Uc=e=>(...t)=>({_$litDirective$:e,values:t}),qi=class{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,r,i){this._$Ct=t,this._$AM=r,this._$Ci=i}_$AS(t,r){return this.update(t,r)}update(t,r){return this.render(...r)}};var Wr=class extends qi{constructor(t){if(super(t),this.et=w,t.type!==Bc.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(t){if(t===w||t==null)return this.ft=void 0,this.et=t;if(t===Be)return t;if(typeof t!="string")throw Error(this.constructor.directiveName+"() called with a non-string value");if(t===this.et)return this.ft;this.et=t;let r=[t];return r.raw=r,this.ft={_$litType$:this.constructor.resultType,strings:r,values:[]}}};Wr.directiveName="unsafeHTML",Wr.resultType=1;var Fc=Uc(Wr);var Nh=e=>e?e.startsWith("sp-icon-")?f`${Fc(`<${e} class="badge-icon"></${e}>`)}`:f`<img src="${e}" class="badge-icon" />`:w,Zt=class extends z{constructor(){super(),this.color="",this.variant="",this.backgroundColor="",this.borderColor="",this.text=this.textContent,this.icon=""}connectedCallback(){this.borderColor&&this.borderColor!=="transparent"?this.style.setProperty("--merch-badge-border",`1px solid var(--${this.borderColor})`):this.backgroundColor.startsWith("gradient-")||this.style.setProperty("--merch-badge-border",`1px solid var(--${this.backgroundColor})`),this.style.setProperty("--merch-badge-background-color",`var(--${this.backgroundColor})`),(!this.borderColor||this.borderColor==="transparent")&&this.backgroundColor.startsWith("gradient-")?this.style.setProperty("--merch-badge-padding","3px 11px 4px 11px"):this.style.setProperty("--merch-badge-padding","2px 10px 3px 10px"),this.style.setProperty("--merch-badge-color",this.color),this.style.setProperty("--merch-badge-font-size","var(--consonant-merch-card-body-xs-font-size)"),this.textContent="";let t=this.closest("merch-card"),r=t?.getAttribute("size"),i=t?.querySelectorAll(":scope > merch-icon").length||0;this.style.setProperty("--merch-badge-offset",i),this.style.setProperty("--merch-badge-with-offset",i?1:0),this.style.setProperty("--merch-badge-card-size",r?2:1),super.connectedCallback()}render(){return f`<div class="badge">
+            ${Nh(this.icon)}${this.text}
+        </div>`}};m(Zt,"properties",{color:{type:String},variant:{type:String},backgroundColor:{type:String,attribute:"background-color"},borderColor:{type:String,attribute:"border-color"},icon:{type:String}}),m(Zt,"styles",b`
         :host {
             display: block;
-            background-color: var(--merch-badge-background-color);
+            background: var(--merch-badge-background-color);
             color: var(--merch-badge-color, #000);
             padding: var(--merch-badge-padding);
             border-radius: var(--merch-badge-border-radius);
@@ -6382,12 +6705,20 @@ merch-card [slot='callout-content'] .icon-button::before {
             line-height: 21px;
             border: var(--merch-badge-border);
             position: relative;
-            left: 1px;
+            inset-inline-start: 1px;
         }
-    `);customElements.define("merch-badge",Qt);R();var Vr=class extends ${constructor(){super()}render(){return f`
+
+        :host .badge-icon {
+            margin-right: 5px;
+            position: relative;
+            top: 3px;
+            height: 18px;
+            width: 18px;
+        }
+    `);customElements.define("merch-badge",Zt);M();var Yr=class extends z{constructor(){super()}render(){return f`
             <slot name="icon"></slot>
             <slot name="description">${this.description}</slot>
-        `}};m(Vr,"styles",b`
+        `}};m(Yr,"styles",b`
         :host {
             display: flex;
             flex-wrap: nowrap;
@@ -6412,11 +6743,12 @@ merch-card [slot='callout-content'] .icon-button::before {
         :host .hidden {
             display: none;
         }
-    `),m(Vr,"properties",{description:{type:String,attribute:!0}});customElements.define("merch-mnemonic-list",Vr);R();var jr=class extends ${updated(){this.hideSeeMoreEls()}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((t,r)=>{r>=5&&(t.style.display=this.showAll?"flex":"none")})}constructor(){super(),this.showAll=!1,this.mobileRows=this.mobileRows===void 0?5:this.mobileRows}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}render(){return f`<slot name="heading"></slot>
-            <slot name="content"></slot>
-            ${this.isMobile&&this.rows.length>this.mobileRows?f`<div @click=${this.toggle} class="see-more">
+    `),m(Yr,"properties",{description:{type:String,attribute:!0}});customElements.define("merch-mnemonic-list",Yr);M();var Xr=class extends z{updated(){this.hideSeeMoreEls()}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((t,r)=>{r>=5&&(t.style.display=this.showAll?"flex":"none")})}constructor(){super(),this.showAll=!1,this.mobileRows=this.mobileRows===void 0?5:this.mobileRows}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}render(){return f`<slot name="heading"></slot>
+            <slot name="contentBullets"></slot>
+            ${!this.isMobile||!this.bulletsAdded?f`<slot name="content"></slot>`:w}
+            ${this.isMobile&&this.rows.length>this.mobileRows&&!this.bulletsAdded?f`<div @click=${this.toggle} class="see-more">
                       ${this.showAll?"- See less":"+ See more"}
-                  </div>`:f``}`}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}get rows(){return this.querySelectorAll("merch-mnemonic-list")}};m(jr,"styles",b`
+                  </div>`:w}`}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}get rows(){return this.querySelectorAll('[slot="content"] merch-mnemonic-list')}get bulletsAdded(){return!!this.querySelector('[slot="contentBullets"] merch-mnemonic-list')}};m(Xr,"styles",b`
         :host {
             display: flex;
             flex-wrap: wrap;
@@ -6424,6 +6756,11 @@ merch-card [slot='callout-content'] .icon-button::before {
             overflow: hidden;
             box-sizing: border-box;
             row-gap: 10px;
+        }
+
+        :host([has-bullets]) {
+            flex-direction: column;
+            align-items: start;
         }
 
         ::slotted([slot='heading']) {
@@ -6436,6 +6773,13 @@ merch-card [slot='callout-content'] .icon-button::before {
             display: contents;
         }
 
+        ::slotted([slot='contentBullets']) {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 5px 0;
+        }
+
         .hidden {
             display: none;
         }
@@ -6445,7 +6789,7 @@ merch-card [slot='callout-content'] .icon-button::before {
             text-decoration: underline;
             color: var(--link-color-dark);
         }
-    `),m(jr,"properties",{heading:{type:String,attribute:!0},mobileRows:{type:Number,attribute:!0}});customElements.define("merch-whats-included",jr);var vh="#000000",Aa="#F8D904",bh="#EAEAEA",yh="#31A547",Eh=/(accent|primary|secondary)(-(outline|link))?/,wh="mas:product_code/",Ah="daa-ll",Hi="daa-lh",Sh=["XL","L","M","S"],Sa="...";function be(e,t,r,i){let n=i[e];if(t[e]&&n){let a={slot:n?.slot,...n?.attributes},o=t[e];if(n.maxCount&&typeof o=="string"){let[c,l]=Uh(o,n.maxCount,n.withSuffix);c!==o&&(a.title=l,o=c)}let s=de(n.tag,a,o);r.append(s)}}function _h(e,t,r){let i=e.mnemonicIcon?.map((a,o)=>({icon:a,alt:e.mnemonicAlt[o]??"",link:e.mnemonicLink[o]??""}));i?.forEach(({icon:a,alt:o,link:s})=>{if(s&&!/^https?:/.test(s))try{s=new URL(`https://${s}`).href.toString()}catch{s="#"}let c={slot:"icons",src:a,loading:t.loading,size:r?.size??"l"};o&&(c.alt=o),s&&(c.href=s);let l=de("merch-icon",c);t.append(l)});let n=t.shadowRoot.querySelector('slot[name="icons"]');n&&(n.style.display=i?.length?null:"none")}function Th(e,t,r){if(r.badge?.slot){if(e.badge?.length&&!e.badge?.startsWith("<merch-badge")){let i=Aa,n=!1;r.allowedBadgeColors?.includes(r.badge?.default)&&(i=r.badge?.default,e.borderColor||(n=!0));let a=e.badgeBackgroundColor||i,o=e.borderColor||"";n&&(o=r.badge?.default,e.borderColor=r.badge?.default),e.badge=`<merch-badge variant="${e.variant}" background-color="${a}" border-color="${o}">${e.badge}</merch-badge>`}be("badge",e,t,r)}else e.badge?(t.setAttribute("badge-text",e.badge),r.disabledAttributes?.includes("badgeColor")||t.setAttribute("badge-color",e.badgeColor||vh),r.disabledAttributes?.includes("badgeBackgroundColor")||t.setAttribute("badge-background-color",e.badgeBackgroundColor||Aa),t.setAttribute("border-color",e.badgeBackgroundColor||Aa)):t.setAttribute("border-color",e.borderColor||bh)}function Ch(e,t,r){if(r.trialBadge&&e.trialBadge){if(!e.trialBadge.startsWith("<merch-badge")){let i=!r.disabledAttributes?.includes("trialBadgeBorderColor")&&e.trialBadgeBorderColor||yh;e.trialBadge=`<merch-badge variant="${e.variant}" border-color="${i}">${e.trialBadge}</merch-badge>`}be("trialBadge",e,t,r)}}function kh(e,t,r){r?.includes(e.size)&&t.setAttribute("size",e.size)}function Ph(e,t){e.cardName&&t.setAttribute("name",e.cardName)}function Lh(e,t,r){e.cardTitle&&(e.cardTitle=Zt(e.cardTitle)),be("cardTitle",e,t,{cardTitle:r})}function Rh(e,t,r){be("subtitle",e,t,r)}function Mh(e,t,r,i){if(!e.backgroundColor||e.backgroundColor.toLowerCase()==="default"){t.style.removeProperty("--merch-card-custom-background-color"),t.removeAttribute("background-color");return}r?.[e.backgroundColor]?(t.style.setProperty("--merch-card-custom-background-color",`var(${r[e.backgroundColor]})`),t.setAttribute("background-color",e.backgroundColor)):i?.attribute&&e.backgroundColor&&(t.setAttribute(i.attribute,e.backgroundColor),t.style.removeProperty("--merch-card-custom-background-color"))}function Oh(e,t,r){let i=r?.borderColor,n="--consonant-merch-card-border-color";if(e.borderColor?.toLowerCase()==="transparent")t.style.setProperty(n,"transparent");else if(e.borderColor&&i){let o=i?.specialValues?.[e.borderColor]?.includes("gradient")||/-gradient/.test(e.borderColor),s=/^spectrum-.*-plans$/.test(e.borderColor);if(o){t.setAttribute("gradient-border","true");let c=e.borderColor;if(i?.specialValues){for(let[l,d]of Object.entries(i.specialValues))if(d===e.borderColor){c=l;break}}t.setAttribute("border-color",c),t.style.removeProperty(n)}else s?(t.setAttribute("border-color",e.borderColor),t.style.setProperty(n,`var(--${e.borderColor})`)):t.style.setProperty(n,`var(--${e.borderColor})`)}}function Nh(e,t,r){if(e.backgroundImage){let i={loading:t.loading??"lazy",src:e.backgroundImage};if(e.backgroundImageAltText?i.alt=e.backgroundImageAltText:i.role="none",!r)return;if(r?.attribute){t.setAttribute(r.attribute,e.backgroundImage);return}t.append(de(r.tag,{slot:r.slot},de("img",i)))}}function Zt(e){return!e||typeof e!="string"||e.includes("<mas-mnemonic")&&Promise.resolve().then(()=>(Ri(),fa)).catch(console.error),e}function Ih(e,t,r){e.prices&&(e.prices=Zt(e.prices)),be("prices",e,t,r)}function Lc(e,t,r){let i=e.hasAttribute("data-wcs-osi")&&!!e.getAttribute("data-wcs-osi"),n=e.className||"",a=Eh.exec(n)?.[0]??"accent",o=a.includes("accent"),s=a.includes("primary"),c=a.includes("secondary"),l=a.includes("-outline"),d=a.includes("-link");e.classList.remove("accent","primary","secondary");let p;if(t.consonant)p=Vh(e,o,i,d,s);else if(d)p=e;else{let u;o?u="accent":s?u="primary":c&&(u="secondary"),p=t.spectrum==="swc"?qh(e,r,l,u,i):Gh(e,r,l,u,i)}return p}function Dh(e,t){let{slot:r}=t?.description,i=e.querySelectorAll(`[slot="${r}"] a[data-wcs-osi]`);i.length&&i.forEach(n=>{let a=Lc(n,e,t);n.replaceWith(a)})}function zh(e,t,r){e.description&&(e.description=Zt(e.description)),e.promoText&&(e.promoText=Zt(e.promoText)),e.shortDescription&&(e.shortDescription=Zt(e.shortDescription)),be("promoText",e,t,r),be("description",e,t,r),be("shortDescription",e,t,r),e.shortDescription&&(t.setAttribute("action-menu","true"),e.actionMenuLabel||t.setAttribute("action-menu-label","More options")),Dh(t,r),be("callout",e,t,r),be("quantitySelect",e,t,r),be("whatsIncluded",e,t,r)}function $h(e,t,r){if(!r.addon)return;let i=e.addon?.replace(/[{}]/g,"");if(!i||/disabled/.test(i))return;let n=de("merch-addon",{slot:"addon"},i);[...n.querySelectorAll(H)].forEach(a=>{let o=a.parentElement;o?.nodeName==="P"&&o.setAttribute("data-plan-type","")}),t.append(n)}function Hh(e,t,r){e.addonConfirmation&&be("addonConfirmation",e,t,r)}function Bh(e,t,r,i){i?.secureLabel&&r?.secureLabel&&t.setAttribute("secure-label",i.secureLabel)}function Uh(e,t,r=!0){try{let i=typeof e!="string"?"":e,n=Pc(i);if(n.length<=t)return[i,n];let a=0,o=!1,s=r?t-Sa.length<1?1:t-Sa.length:t,c=[];for(let p of i){if(a++,p==="<")if(o=!0,i[a]==="/")c.pop();else{let u="";for(let g of i.substring(a)){if(g===" "||g===">")break;u+=g}c.push(u)}if(p==="/"&&i[a]===">"&&c.pop(),p===">"){o=!1;continue}if(!o&&(s--,s===0))break}let l=i.substring(0,a).trim();if(c.length>0){c[0]==="p"&&c.shift();for(let p of c.reverse())l+=`</${p}>`}return[`${l}${r?Sa:""}`,n]}catch{let n=typeof e=="string"?e:"",a=Pc(n);return[n,a]}}function Pc(e){if(!e)return"";let t="",r=!1;for(let i of e){if(i==="<"&&(r=!0),i===">"){r=!1;continue}r||(t+=i)}return t}function Fh(e,t){t.querySelectorAll("a.upt-link").forEach(i=>{let n=je.createFrom(i);i.replaceWith(n),n.initializeWcsData(e.osi,e.promoCode)})}function Gh(e,t,r,i,n){let a=e;n?a=customElements.get("checkout-button").createCheckoutButton({},e.innerHTML):a.innerHTML=`<span>${a.textContent}</span>`,a.setAttribute("tabindex",0);for(let d of e.attributes)["class","is"].includes(d.name)||a.setAttribute(d.name,d.value);a.firstElementChild?.classList.add("spectrum-Button-label");let o=t?.ctas?.size??"M",s=`spectrum-Button--${i}`,c=Sh.includes(o)?`spectrum-Button--size${o}`:"spectrum-Button--sizeM",l=["spectrum-Button",s,c];return r&&l.push("spectrum-Button--outline"),a.classList.add(...l),a}function qh(e,t,r,i,n){let a=e;n&&(a=customElements.get("checkout-button").createCheckoutButton(e.dataset),a.connectedCallback(),a.render());let o="fill";r&&(o="outline");let s=de("sp-button",{treatment:o,variant:i,tabIndex:0,size:t?.ctas?.size??"m",...e.dataset.analyticsId&&{"data-analytics-id":e.dataset.analyticsId}},e.innerHTML);return s.source=a,(n?a.onceSettled():Promise.resolve(a)).then(c=>{s.setAttribute("data-navigation-url",c.href)}),s.addEventListener("click",c=>{c.defaultPrevented||a.click()}),s}function Vh(e,t,r,i,n){let a=e;return r&&(a=customElements.get("checkout-link").createCheckoutLink(e.dataset,e.innerHTML)),i||(a.classList.add("button","con-button"),t&&a.classList.add("blue"),n&&a.classList.add("primary")),a}function jh(e,t,r,i){if(e.ctas){e.ctas=Zt(e.ctas);let{slot:n}=r.ctas,a=de("div",{slot:n},e.ctas),o=[...a.querySelectorAll("a")].map(s=>Lc(s,t,r));a.innerHTML="",a.append(...o),t.append(a)}}function Wh(e,t){let{tags:r}=e,i=r?.find(a=>a.startsWith(wh))?.split("/").pop();if(!i)return;t.setAttribute(Hi,i),[...t.shadowRoot.querySelectorAll("a[data-analytics-id],button[data-analytics-id]"),...t.querySelectorAll("a[data-analytics-id],button[data-analytics-id]")].forEach((a,o)=>{a.setAttribute(Ah,`${a.dataset.analyticsId}-${o+1}`)})}function Yh(e){e.spectrum==="css"&&[["primary-link","primary"],["secondary-link","secondary"]].forEach(([t,r])=>{e.querySelectorAll(`a.${t}`).forEach(i=>{i.classList.remove(t),i.classList.add("spectrum-Link",`spectrum-Link--${r}`)})})}function Xh(e){e.querySelectorAll("[slot]").forEach(i=>{i.remove()}),e.variant=void 0,["checkbox-label","stock-offer-osis","secure-label","background-image","background-color","border-color","badge-background-color","badge-color","badge-text","gradient-border","size",Hi].forEach(i=>e.removeAttribute(i));let r=["wide-strip","thin-strip"];e.classList.remove(...r)}async function Rc(e,t){if(!e){let c=t?.id||"unknown";throw console.error(`hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${c}).`),new Error(`hydrate: Fragment is undefined for card (merchCard id: ${c}).`)}if(!e.fields){let c=e.id||"unknown",l=t?.id||"unknown";throw console.error(`hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'. Cannot hydrate.`),new Error(`hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'.`)}let{id:r,fields:i,settings:n={},priceLiterals:a}=e,{variant:o}=i;if(!o)throw new Error(`hydrate: no variant found in payload ${r}`);Xh(t),t.settings=n,a&&(t.priceLiterals=a),t.id??(t.id=e.id),t.variant=o,await t.updateComplete;let{aemFragmentMapping:s}=t.variantLayout;if(!s)throw new Error(`hydrate: variant mapping not found for ${r}`);s.style==="consonant"&&t.setAttribute("consonant",!0),_h(i,t,s.mnemonics),Th(i,t,s),Ch(i,t,s),kh(i,t,s.size),Ph(i,t),Lh(i,t,s.title),Rh(i,t,s),Ih(i,t,s),Nh(i,t,s.backgroundImage),Mh(i,t,s.allowedColors,s.backgroundColor),Oh(i,t,s),zh(i,t,s),$h(i,t,s),Hh(i,t,s),Bh(i,t,s,n),Fh(i,t),jh(i,t,s,o),Wh(i,t),Yh(t)}var Ta="merch-card",_a=2e4,Mc="merch-card:",Kh=["full-pricing-express","simplified-pricing-express"];function Oc(e,t){let r=e.closest(Ta);if(!r)return t;r.priceLiterals&&(t.literals??(t.literals={}),Object.assign(t.literals,r.priceLiterals)),r.aemFragment&&(t[we]=!0),r.variantLayout?.priceOptionsProvider?.(e,t)}function Qh(e){e.providers.has(Oc)||e.providers.price(Oc)}var Nc=new IntersectionObserver(e=>{e.forEach(t=>{t.target.clientHeight!==0&&(Nc.unobserve(t.target),t.target.requestUpdate())})}),Zh=0,Jt,er,tr,Be,Et,Me,wt,ee,yt,Bi,Ic,Ui,Ke=class extends ${constructor(){super();E(this,ee);E(this,Jt);E(this,er);E(this,tr);E(this,Be);E(this,Et);E(this,Me);E(this,wt,new Promise(r=>{y(this,Me,r)}));m(this,"customerSegment");m(this,"marketSegment");m(this,"variantLayout");this.id=null,this.failed=!1,this.filters={},this.types="",this.selected=!1,this.spectrum="css",this.loading="lazy",this.handleAemFragmentEvents=this.handleAemFragmentEvents.bind(this),this.handleMerchOfferSelectReady=this.handleMerchOfferSelectReady.bind(this)}firstUpdated(){this.variantLayout=ba(this),this.variantLayout?.connectedCallbackHook()}willUpdate(r){(r.has("variant")||!this.variantLayout)&&(this.variantLayout?.disconnectedCallbackHook(),this.variantLayout=ba(this),this.variantLayout?.connectedCallbackHook())}updated(r){(r.has("badgeBackgroundColor")||r.has("borderColor"))&&this.style.setProperty("--consonant-merch-card-border",this.computedBorderStyle),r.has("backgroundColor")&&this.style.setProperty("--merch-card-custom-background-color",this.backgroundColor?`var(--${this.backgroundColor})`:"");try{this.variantLayoutPromise=this.variantLayout?.postCardUpdateHook(r)}catch(i){te(this,ee,yt).call(this,`Error in postCardUpdateHook: ${i.message}`,{},!1)}}get theme(){return this.closest("sp-theme")}get dir(){return this.closest("[dir]")?.getAttribute("dir")??"ltr"}render(){if(!(!this.isConnected||!this.variantLayout||this.style.display==="none"))return this.variantLayout.renderLayout()}get computedBorderStyle(){return["ccd-slice","ccd-suggested","ah-promoted-plans","simplified-pricing-express","full-pricing-express"].includes(this.variant)?"":`1px solid ${this.borderColor?this.borderColor:this.badgeBackgroundColor}`}get badgeElement(){return this.shadowRoot.getElementById("badge")}get headingmMSlot(){return this.shadowRoot.querySelector('slot[name="heading-m"]').assignedElements()[0]}get footerSlot(){return this.shadowRoot.querySelector('slot[name="footer"]')?.assignedElements()[0]}get descriptionSlot(){return this.shadowRoot.querySelector('slot[name="body-xs"')?.assignedElements()[0]}get descriptionSlotCompare(){return this.shadowRoot.querySelector('slot[name="body-m"')?.assignedElements()[0]}get price(){return this.headingmMSlot?.querySelector(H)}get checkoutLinks(){return[...this.footerSlot?.querySelectorAll(ye)??[]]}get checkoutLinksDescription(){return[...this.descriptionSlot?.querySelectorAll(ye)??[]]}get checkoutLinkDescriptionCompare(){return[...this.descriptionSlotCompare?.querySelectorAll(ye)??[]]}get activeDescriptionLinks(){return this.variant==="mini-compare-chart"?this.checkoutLinkDescriptionCompare:this.checkoutLinksDescription}async toggleStockOffer({target:r}){if(!this.stockOfferOsis)return;let i=this.checkoutLinks;if(i.length!==0)for(let n of i){await n.onceSettled();let a=n.value?.[0]?.planType;if(!a)return;let o=this.stockOfferOsis[a];if(!o)return;let s=n.dataset.wcsOsi.split(",").filter(c=>c!==o);r.checked&&s.push(o),n.dataset.wcsOsi=s.join(",")}}changeHandler(r){r.target.tagName==="MERCH-ADDON"&&this.toggleAddon(r.target)}toggleAddon(r){this.variantLayout?.toggleAddon?.(r);let i=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(i.length===0)return;let n=a=>{let{offerType:o,planType:s}=a.value?.[0]??{};if(!o||!s)return;let c=r.getOsi(s,o),l=(a.dataset.wcsOsi||"").split(",").filter(d=>d&&d!==c);r.checked&&l.push(c),a.dataset.wcsOsi=l.join(",")};i.forEach(n)}handleQuantitySelection(r){let i=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(i.length!==0)for(let n of i)n.dataset.quantity=r.detail.option}get titleElement(){return this.querySelector(this.variantLayout?.headingSelector||".card-heading")}get title(){return this.titleElement?.textContent?.trim()}get description(){return this.querySelector('[slot="body-xs"]')?.textContent?.trim()}updateFilters(r){let i={...this.filters};Object.keys(i).forEach(n=>{if(r){i[n].order=Math.min(i[n].order||2,2);return}let a=i[n].order;a===1||isNaN(a)||(i[n].order=Number(a)+1)}),this.filters=i}includes(r){return this.textContent.match(new RegExp(r,"i"))!==null}connectedCallback(){var i;super.connectedCallback(),h(this,er)||y(this,er,Zh++),this.aemFragment||((i=h(this,Me))==null||i.call(this),y(this,Me,void 0)),this.id??(this.id=this.getAttribute("id")??this.aemFragment?.getAttribute("fragment"));let r=this.id??h(this,er);y(this,Et,`${Mc}${r}${nt}`),y(this,Jt,`${Mc}${r}${at}`),performance.mark(h(this,Et)),y(this,Be,dt()),Qh(h(this,Be)),y(this,tr,h(this,Be).Log.module(Ta)),this.addEventListener(ae,this.handleQuantitySelection),this.addEventListener(Jr,this.handleAddonAndQuantityUpdate),this.addEventListener(lr,this.handleMerchOfferSelectReady),this.addEventListener(rt,this.handleAemFragmentEvents),this.addEventListener(tt,this.handleAemFragmentEvents),this.addEventListener("change",this.changeHandler),this.variantLayout&&this.variantLayout.connectedCallbackHook(),this.aemFragment||setTimeout(()=>this.checkReady(),0)}disconnectedCallback(){super.disconnectedCallback(),this.variantLayout?.disconnectedCallbackHook(),this.removeEventListener(ae,this.handleQuantitySelection),this.removeEventListener(rt,this.handleAemFragmentEvents),this.removeEventListener(tt,this.handleAemFragmentEvents),this.removeEventListener("change",this.changeHandler),this.removeEventListener(Jr,this.handleAddonAndQuantityUpdate)}async handleAemFragmentEvents(r){var i;if(this.isConnected&&(r.type===rt&&te(this,ee,yt).call(this,"AEM fragment cannot be loaded"),r.type===tt&&(this.failed=!1,r.target.nodeName==="AEM-FRAGMENT"))){let n=r.detail;try{h(this,Me)||y(this,wt,new Promise(a=>{y(this,Me,a)})),Rc(n,this)}catch(a){te(this,ee,yt).call(this,`hydration has failed: ${a.message}`)}finally{(i=h(this,Me))==null||i.call(this),y(this,Me,void 0)}this.checkReady()}}async checkReady(){if(!this.isConnected)return;h(this,wt)&&(await h(this,wt),Kh.includes(this.variantLayout)&&Nc.observe(this),y(this,wt,void 0)),this.variantLayoutPromise&&(await this.variantLayoutPromise,this.variantLayoutPromise=void 0);let r=new Promise(o=>setTimeout(()=>o("timeout"),_a));if(this.aemFragment){let o=await Promise.race([this.aemFragment.updateComplete,r]);if(o===!1||o==="timeout"){let s=o==="timeout"?`AEM fragment was not resolved within ${_a} timeout`:"AEM fragment cannot be loaded";te(this,ee,yt).call(this,s,{},!1);return}}let i=[...this.querySelectorAll(cr)],n=Promise.all(i.map(o=>o.onceSettled().catch(()=>o))).then(o=>o.every(s=>s.classList.contains("placeholder-resolved"))),a=await Promise.race([n,r]);if(a===!0){this.measure=performance.measure(h(this,Jt),h(this,Et));let o={...this.aemFragment?.fetchInfo,...h(this,Be).duration,measure:Le(this.measure)};return this.dispatchEvent(new CustomEvent(Xi,{bubbles:!0,composed:!0,detail:o})),this}else{this.measure=performance.measure(h(this,Jt),h(this,Et));let o={measure:Le(this.measure),...h(this,Be).duration};a==="timeout"?te(this,ee,yt).call(this,`Contains offers that were not resolved within ${_a} timeout`,o):te(this,ee,yt).call(this,"Contains unresolved offers",o)}}get aemFragment(){return this.querySelector("aem-fragment")}get addon(){return this.querySelector("merch-addon")}get quantitySelect(){return this.querySelector("merch-quantity-select")}get addonCheckbox(){return this.querySelector("merch-addon")}displayFooterElementsInColumn(){if(!this.classList.contains("product"))return;let r=this.shadowRoot.querySelector(".secure-transaction-label");(this.footerSlot?.querySelectorAll(ye)).length===2&&r&&r.parentElement.classList.add("footer-column")}handleMerchOfferSelectReady(){this.offerSelect&&!this.offerSelect.planType||this.displayFooterElementsInColumn()}get dynamicPrice(){return this.querySelector('[slot="price"]')}handleAddonAndQuantityUpdate({detail:{id:r,items:i}}){if(!r||!i?.length||this.closest('[role="tabpanel"][hidden="true"]'))return;let a=this.checkoutLinks.find(d=>d.getAttribute("data-modal-id")===r);if(!a)return;let s=new URL(a.getAttribute("href")).searchParams.get("pa"),c=i.find(d=>d.productArrangementCode===s)?.quantity,l=!!i.find(d=>d.productArrangementCode!==s);if(c&&this.quantitySelect?.dispatchEvent(new CustomEvent(Tt,{detail:{quantity:c},bubbles:!0,composed:!0})),this.addonCheckbox&&this.addonCheckbox.checked!==l){this.toggleStockOffer({target:this.addonCheckbox});let d=new Event("change",{bubbles:!0,cancelable:!0});Object.defineProperty(d,"target",{writable:!1,value:{checked:l}}),this.addonCheckbox.handleChange(d)}}get prices(){return Array.from(this.querySelectorAll(H))}get promoPrice(){if(!this.querySelector("span.price-strikethrough"))return;let r=this.querySelector(".price.price-alternative");if(r||(r=this.querySelector(`${H}[data-template="price"] > span`)),!!r)return r=r.innerText,r}get regularPrice(){return h(this,ee,Bi)?.innerText}get promotionCode(){let r=[...this.querySelectorAll(`${H}[data-promotion-code],${ye}[data-promotion-code]`)].map(n=>n.dataset.promotionCode),i=[...new Set(r)];return i.length>1&&h(this,tr)?.warn(`Multiple different promotion codes found: ${i.join(", ")}`),r[0]}get annualPrice(){return this.querySelector(`${H}[data-template="price"] > .price.price-annual`)?.innerText}get promoText(){}get taxText(){return(h(this,ee,Ic)??h(this,ee,Bi))?.querySelector("span.price-tax-inclusivity")?.textContent?.trim()||void 0}get recurrenceText(){return h(this,ee,Bi)?.querySelector("span.price-recurrence")?.textContent?.trim()}get planTypeText(){return this.querySelector('[is="inline-price"][data-template="legal"] span.price-plan-type')?.textContent?.trim()}get seeTermsInfo(){let r=this.querySelector('a[is="upt-link"]');if(r)return te(this,ee,Ui).call(this,r)}get renewalText(){return this.querySelector("span.renewal-text")?.textContent?.trim()}get promoDurationText(){return this.querySelector("span.promo-duration-text")?.textContent?.trim()}get ctas(){let r=this.querySelector('[slot="ctas"], [slot="footer"]')?.querySelectorAll(`${ye}, a`);return Array.from(r??[])}get primaryCta(){return te(this,ee,Ui).call(this,this.ctas.find(r=>r.variant==="accent"||r.matches(".spectrum-Button--accent,.con-button.blue")))}get secondaryCta(){return te(this,ee,Ui).call(this,this.ctas.find(r=>r.variant!=="accent"&&!r.matches(".spectrum-Button--accent,.con-button.blue")))}};Jt=new WeakMap,er=new WeakMap,tr=new WeakMap,Be=new WeakMap,Et=new WeakMap,Me=new WeakMap,wt=new WeakMap,ee=new WeakSet,yt=function(r,i={},n=!0){if(!this.isConnected)return;let o=this.aemFragment?.getAttribute("fragment");o=`[${o}]`;let s={...this.aemFragment.fetchInfo,...h(this,Be).duration,...i,message:r};h(this,tr).error(`merch-card${o}: ${r}`,s),this.failed=!0,n&&this.dispatchEvent(new CustomEvent(Ki,{bubbles:!0,composed:!0,detail:s}))},Bi=function(){return this.querySelector("span.price-strikethrough")??this.querySelector(`${H}[data-template="price"] > span`)},Ic=function(){return this.querySelector(`${H}[data-template="legal"]`)},Ui=function(r){if(r)return{text:r.innerText.trim(),analyticsId:r.dataset.analyticsId,href:r.getAttribute("href")??r.dataset.href}},m(Ke,"properties",{id:{type:String,attribute:"id",reflect:!0},name:{type:String,attribute:"name",reflect:!0},variant:{type:String,reflect:!0},size:{type:String,attribute:"size",reflect:!0},badgeColor:{type:String,attribute:"badge-color",reflect:!0},borderColor:{type:String,attribute:"border-color",reflect:!0},backgroundColor:{type:String,attribute:"background-color",reflect:!0},badgeBackgroundColor:{type:String,attribute:"badge-background-color",reflect:!0},backgroundImage:{type:String,attribute:"background-image",reflect:!0},badgeText:{type:String,attribute:"badge-text"},actionMenu:{type:Boolean,attribute:"action-menu"},actionMenuLabel:{type:String,attribute:"action-menu-label"},customHr:{type:Boolean,attribute:"custom-hr"},consonant:{type:Boolean,attribute:"consonant"},failed:{type:Boolean,attribute:"failed",reflect:!0},spectrum:{type:String,attribute:"spectrum"},detailBg:{type:String,attribute:"detail-bg"},secureLabel:{type:String,attribute:"secure-label"},checkboxLabel:{type:String,attribute:"checkbox-label"},addonTitle:{type:String,attribute:"addon-title"},addonOffers:{type:Object,attribute:"addon-offers"},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},storageOption:{type:String,attribute:"storage",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},settings:{type:Object,attribute:!1},stockOfferOsis:{type:Object,attribute:"stock-offer-osis",converter:{fromAttribute:r=>{if(!r)return;let[i,n,a]=r.split(",");return{PUF:i,ABM:n,M2M:a}}}},filters:{type:String,reflect:!0,converter:{fromAttribute:r=>Object.fromEntries(r.split(",").map(i=>{let[n,a,o]=i.split(":"),s=Number(a);return[n,{order:isNaN(s)?void 0:s,size:o}]})),toAttribute:r=>Object.entries(r).map(([i,{order:n,size:a}])=>[i,n,a].filter(o=>o!=null).join(":")).join(",")}},types:{type:String,attribute:"types",reflect:!0},merchOffer:{type:Object},analyticsId:{type:String,attribute:Hi,reflect:!0},loading:{type:String},priceLiterals:{type:Object}}),m(Ke,"styles",[Qs,...Zs()]),m(Ke,"registerVariant",V),m(Ke,"getCollectionOptions",xc),m(Ke,"getFragmentMapping",Oi);customElements.define(Ta,Ke);R();var rr,Wr=class extends ${constructor(){super();E(this,rr);this.defaults={},this.variant="plans"}saveContainerDefaultValues(){let r=this.closest(this.getAttribute("container")),i=r?.querySelector('[slot="description"]:not(merch-offer > *)')?.cloneNode(!0),n=r?.badgeText;return{description:i,badgeText:n}}getSlottedElement(r,i){return(i||this.closest(this.getAttribute("container"))).querySelector(`[slot="${r}"]:not(merch-offer > *)`)}updateSlot(r,i){let n=this.getSlottedElement(r,i);if(!n)return;let a=this.selectedOffer.getOptionValue(r)?this.selectedOffer.getOptionValue(r):this.defaults[r];a&&n.replaceWith(a.cloneNode(!0))}handleOfferSelection(r){let i=r.detail;this.selectOffer(i)}handleOfferSelectionByQuantity(r){let i=r.detail.option,n=Number.parseInt(i),a=this.findAppropriateOffer(n);this.selectOffer(a),this.getSlottedElement("cta").setAttribute("data-quantity",n)}selectOffer(r){if(!r)return;let i=this.selectedOffer;i&&(i.selected=!1),r.selected=!0,this.selectedOffer=r,this.planType=r.planType,this.updateContainer(),this.updateComplete.then(()=>{this.dispatchEvent(new CustomEvent(Yi,{detail:this,bubbles:!0}))})}findAppropriateOffer(r){let i=null;return this.offers.find(a=>{let o=Number.parseInt(a.getAttribute("value"));if(o===r)return!0;if(o>r)return!1;i=a})||i}updateBadgeText(r){this.selectedOffer.badgeText===""?r.badgeText=null:this.selectedOffer.badgeText?r.badgeText=this.selectedOffer.badgeText:r.badgeText=this.defaults.badgeText}updateContainer(){let r=this.closest(this.getAttribute("container"));!r||!this.selectedOffer||(this.updateSlot("cta",r),this.updateSlot("secondary-cta",r),this.updateSlot("price",r),!this.manageableMode&&(this.updateSlot("description",r),this.updateBadgeText(r)))}render(){return f`<fieldset><slot class="${this.variant}"></slot></fieldset>`}connectedCallback(){super.connectedCallback(),this.addEventListener("focusin",this.handleFocusin),this.addEventListener("click",this.handleFocusin),this.addEventListener(_t,this.handleOfferSelectReady);let r=this.closest("merch-quantity-select");this.manageableMode=r,this.offers=[...this.querySelectorAll("merch-offer")],y(this,rr,this.handleOfferSelectionByQuantity.bind(this)),this.manageableMode?r.addEventListener(ae,h(this,rr)):this.defaults=this.saveContainerDefaultValues(),this.selectedOffer=this.offers[0],this.planType&&this.updateContainer()}get miniCompareMobileCard(){return this.merchCard?.variant==="mini-compare-chart"&&this.isMobile}get merchCard(){return this.closest("merch-card")}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(ae,h(this,rr)),this.removeEventListener(_t,this.handleOfferSelectReady),this.removeEventListener("focusin",this.handleFocusin),this.removeEventListener("click",this.handleFocusin)}get price(){return this.querySelector('merch-offer[aria-selected] [is="inline-price"]')}get customerSegment(){return this.selectedOffer?.customerSegment}get marketSegment(){return this.selectedOffer?.marketSegment}handleFocusin(r){r.target?.nodeName==="MERCH-OFFER"&&(r.preventDefault(),r.stopImmediatePropagation(),this.selectOffer(r.target))}async handleOfferSelectReady(){this.planType||this.querySelector("merch-offer:not([plan-type])")||(this.planType=this.selectedOffer.planType,await this.updateComplete,this.selectOffer(this.selectedOffer??this.querySelector("merch-offer[aria-selected]")??this.querySelector("merch-offer")),this.dispatchEvent(new CustomEvent(lr,{bubbles:!0})))}};rr=new WeakMap,m(Wr,"styles",b`
+    `),m(Xr,"properties",{heading:{type:String,attribute:!0},mobileRows:{type:Number,attribute:!0}});customElements.define("merch-whats-included",Xr);var Ih="#000000",Ra="#F8D904",Dh="#EAEAEA",$h="#31A547",zh=/(accent|primary|secondary)(-(outline|link))?/,Hh="mas:product_code/",Bh="daa-ll",Vi="daa-lh",Uh=["XL","L","M","S"],Ma="...";function Ee(e,t,r,i){let n=i[e];if(t[e]&&n){let a={slot:n?.slot,...n?.attributes},o=t[e];if(n.maxCount&&typeof o=="string"){let[c,l]=np(o,n.maxCount,n.withSuffix);c!==o&&(a.title=l,o=c)}let s=he(n.tag,a,o);r.append(s)}}function Fh(e,t,r){let n=(e.mnemonicIcon||[]).filter(o=>o).map((o,s)=>({icon:o,alt:e.mnemonicAlt?.[s]??"",link:e.mnemonicLink?.[s]??""}));n?.forEach(({icon:o,alt:s,link:c})=>{if(c&&!/^https?:/.test(c))try{c=new URL(`https://${c}`).href.toString()}catch{c="#"}let l={slot:"icons",src:o,loading:t.loading,size:r?.size??"l"};s&&(l.alt=s),c&&(l.href=c);let d=he("merch-icon",l);t.append(d)});let a=t.shadowRoot.querySelector('slot[name="icons"]');a&&(a.style.display=n?.length?null:"none")}function Gh(e,t,r){if(r.badge?.slot){if(e.badge?.length&&!e.badge?.startsWith("<merch-badge")){let i=Ra,n=!1;r.allowedBadgeColors?.includes(r.badge?.default)&&(i=r.badge?.default,e.borderColor||(n=!0));let a=e.badgeBackgroundColor||i,o=e.borderColor||"";n&&(o=r.badge?.default,e.borderColor=r.badge?.default),e.badge=`<merch-badge variant="${e.variant}" background-color="${a}" border-color="${o}">${e.badge}</merch-badge>`}Ee("badge",e,t,r)}else e.badge?(t.setAttribute("badge-text",e.badge),r.disabledAttributes?.includes("badgeColor")||t.setAttribute("badge-color",e.badgeColor||Ih),r.disabledAttributes?.includes("badgeBackgroundColor")||t.setAttribute("badge-background-color",e.badgeBackgroundColor||Ra),t.setAttribute("border-color",e.badgeBackgroundColor||Ra)):t.setAttribute("border-color",e.borderColor||Dh)}function qh(e,t,r){if(r.trialBadge&&e.trialBadge){if(!e.trialBadge.startsWith("<merch-badge")){let i=!r.disabledAttributes?.includes("trialBadgeBorderColor")&&e.trialBadgeBorderColor||$h;e.trialBadge=`<merch-badge variant="${e.variant}" border-color="${i}">${e.trialBadge}</merch-badge>`}Ee("trialBadge",e,t,r)}}function Vh(e,t,r){r?.includes(e.size)&&t.setAttribute("size",e.size)}function jh(e,t){e.cardName&&t.setAttribute("name",e.cardName)}function Wh(e,t,r){e.cardTitle&&(e.cardTitle=Jt(e.cardTitle)),Ee("cardTitle",e,t,{cardTitle:r})}function Yh(e,t,r){Ee("subtitle",e,t,r)}function Xh(e,t,r,i){if(!e.backgroundColor||e.backgroundColor.toLowerCase()==="default"){t.style.removeProperty("--merch-card-custom-background-color"),t.removeAttribute("background-color");return}r?.[e.backgroundColor]?(t.style.setProperty("--merch-card-custom-background-color",`var(${r[e.backgroundColor]})`),t.setAttribute("background-color",e.backgroundColor)):i?.attribute&&e.backgroundColor&&(t.setAttribute(i.attribute,e.backgroundColor),t.style.removeProperty("--merch-card-custom-background-color"))}function Kh(e,t,r){let i=r?.borderColor,n="--consonant-merch-card-border-color";if(e.borderColor?.toLowerCase()==="transparent")t.style.setProperty(n,"transparent");else if(e.borderColor&&i){let o=i?.specialValues?.[e.borderColor]?.includes("gradient")||/-gradient/.test(e.borderColor),s=/^spectrum-.*-plans$/.test(e.borderColor);if(o){t.setAttribute("gradient-border","true");let c=e.borderColor;if(i?.specialValues){for(let[l,d]of Object.entries(i.specialValues))if(d===e.borderColor){c=l;break}}t.setAttribute("border-color",c),t.style.removeProperty(n)}else s?(t.setAttribute("border-color",e.borderColor),t.style.setProperty(n,`var(--${e.borderColor})`)):t.style.setProperty(n,`var(--${e.borderColor})`)}}function Qh(e,t,r){if(e.backgroundImage){let i={loading:t.loading??"lazy",src:e.backgroundImage};if(e.backgroundImageAltText?i.alt=e.backgroundImageAltText:i.role="none",!r)return;if(r?.attribute){t.setAttribute(r.attribute,e.backgroundImage);return}t.append(he(r.tag,{slot:r.slot},he("img",i)))}}function Jt(e){return!e||typeof e!="string"||e.includes("<mas-mnemonic")&&Promise.resolve().then(()=>(Di(),Sa)).catch(console.error),e}function Zh(e,t,r){e.prices&&(e.prices=Jt(e.prices)),Ee("prices",e,t,r)}function qc(e,t,r){let i=e.hasAttribute("data-wcs-osi")&&!!e.getAttribute("data-wcs-osi"),n=e.className||"",a=zh.exec(n)?.[0]??"accent",o=a.includes("accent"),s=a.includes("primary"),c=a.includes("secondary"),l=a.includes("-outline"),d=a.includes("-link");e.classList.remove("accent","primary","secondary");let p;if(t.consonant)p=cp(e,o,i,d,s,c);else if(d)p=e;else{let u;o?u="accent":s?u="primary":c&&(u="secondary"),p=t.spectrum==="swc"?sp(e,r,l,u,i):op(e,r,l,u,i)}return p}function Jh(e,t){let{slot:r}=t?.description,i=e.querySelectorAll(`[slot="${r}"] a[data-wcs-osi]`);i.length&&i.forEach(n=>{let a=qc(n,e,t);n.replaceWith(a)})}function ep(e,t,r){e.description&&(e.description=Jt(e.description)),e.promoText&&(e.promoText=Jt(e.promoText)),e.shortDescription&&(e.shortDescription=Jt(e.shortDescription)),Ee("promoText",e,t,r),Ee("description",e,t,r),Ee("shortDescription",e,t,r),e.shortDescription&&(t.setAttribute("action-menu","true"),e.actionMenuLabel||t.setAttribute("action-menu-label","More options")),Jh(t,r),Ee("callout",e,t,r),Ee("quantitySelect",e,t,r),Ee("whatsIncluded",e,t,r)}function tp(e,t,r){if(!r.addon)return;let i=e.addon?.replace(/[{}]/g,"");if(!i||/disabled/.test(i))return;let n=he("merch-addon",{slot:"addon"},i);[...n.querySelectorAll(B)].forEach(a=>{let o=a.parentElement;o?.nodeName==="P"&&o.setAttribute("data-plan-type","")}),t.append(n)}function rp(e,t,r){e.addonConfirmation&&Ee("addonConfirmation",e,t,r)}function ip(e,t,r,i){i?.secureLabel&&r?.secureLabel&&t.setAttribute("secure-label",i.secureLabel)}function np(e,t,r=!0){try{let i=typeof e!="string"?"":e,n=Gc(i);if(n.length<=t)return[i,n];let a=0,o=!1,s=r?t-Ma.length<1?1:t-Ma.length:t,c=[];for(let p of i){if(a++,p==="<")if(o=!0,i[a]==="/")c.pop();else{let u="";for(let g of i.substring(a)){if(g===" "||g===">")break;u+=g}c.push(u)}if(p==="/"&&i[a]===">"&&c.pop(),p===">"){o=!1;continue}if(!o&&(s--,s===0))break}let l=i.substring(0,a).trim();if(c.length>0){c[0]==="p"&&c.shift();for(let p of c.reverse())l+=`</${p}>`}return[`${l}${r?Ma:""}`,n]}catch{let n=typeof e=="string"?e:"",a=Gc(n);return[n,a]}}function Gc(e){if(!e)return"";let t="",r=!1;for(let i of e){if(i==="<"&&(r=!0),i===">"){r=!1;continue}r||(t+=i)}return t}function ap(e,t){t.querySelectorAll("a.upt-link").forEach(i=>{let n=We.createFrom(i);i.replaceWith(n),n.initializeWcsData(e.osi,e.promoCode)})}function op(e,t,r,i,n){let a=e;n?a=customElements.get("checkout-button").createCheckoutButton({},e.innerHTML):a.innerHTML=`<span>${a.textContent}</span>`,a.setAttribute("tabindex",0);for(let d of e.attributes)["class","is"].includes(d.name)||a.setAttribute(d.name,d.value);a.firstElementChild?.classList.add("spectrum-Button-label");let o=t?.ctas?.size??"M",s=`spectrum-Button--${i}`,c=Uh.includes(o)?`spectrum-Button--size${o}`:"spectrum-Button--sizeM",l=["spectrum-Button",s,c];return r&&l.push("spectrum-Button--outline"),a.classList.add(...l),a}function sp(e,t,r,i,n){let a=e;n&&(a=customElements.get("checkout-button").createCheckoutButton(e.dataset),a.connectedCallback(),a.render());let o="fill";r&&(o="outline");let s=he("sp-button",{treatment:o,variant:i,tabIndex:0,size:t?.ctas?.size??"m",...e.dataset.analyticsId&&{"data-analytics-id":e.dataset.analyticsId}},e.innerHTML);return s.source=a,(n?a.onceSettled():Promise.resolve(a)).then(c=>{s.setAttribute("data-navigation-url",c.href)}),s.addEventListener("click",c=>{c.defaultPrevented||a.click()}),s}function cp(e,t,r,i,n,a){let o=e;return r&&(o=customElements.get("checkout-link").createCheckoutLink(e.dataset,e.innerHTML)),i||(o.classList.add("button","con-button"),t&&o.classList.add("blue"),n&&o.classList.add("primary"),a&&o.classList.add("secondary")),o}function lp(e,t,r,i){if(e.ctas){e.ctas=Jt(e.ctas);let{slot:n}=r.ctas,a=he("div",{slot:n},e.ctas),o=[...a.querySelectorAll("a")].map(s=>qc(s,t,r));a.innerHTML="",a.append(...o),t.append(a)}}function dp(e,t){let{tags:r}=e,i=r?.find(a=>typeof a=="string"&&a.startsWith(Hh))?.split("/").pop();if(!i)return;t.setAttribute(Vi,i),[...t.shadowRoot.querySelectorAll("a[data-analytics-id],button[data-analytics-id]"),...t.querySelectorAll("a[data-analytics-id],button[data-analytics-id]")].forEach((a,o)=>{a.setAttribute(Bh,`${a.dataset.analyticsId}-${o+1}`)})}function hp(e){e.spectrum==="css"&&[["primary-link","primary"],["secondary-link","secondary"]].forEach(([t,r])=>{e.querySelectorAll(`a.${t}`).forEach(i=>{i.classList.remove(t),i.classList.add("spectrum-Link",`spectrum-Link--${r}`)})})}function pp(e){e.querySelectorAll("[slot]").forEach(i=>{i.remove()}),e.variant=void 0,["checkbox-label","stock-offer-osis","secure-label","background-image","background-color","border-color","badge-background-color","badge-color","badge-text","gradient-border","size",Vi].forEach(i=>e.removeAttribute(i));let r=["wide-strip","thin-strip"];e.classList.remove(...r)}async function Vc(e,t){if(!e){let c=t?.id||"unknown";throw console.error(`hydrate: Fragment is undefined. Cannot hydrate card (merchCard id: ${c}).`),new Error(`hydrate: Fragment is undefined for card (merchCard id: ${c}).`)}if(!e.fields){let c=e.id||"unknown",l=t?.id||"unknown";throw console.error(`hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'. Cannot hydrate.`),new Error(`hydrate: Fragment for card ID '${c}' (merchCard id: ${l}) is missing 'fields'.`)}let{id:r,fields:i,settings:n={},priceLiterals:a}=e,{variant:o}=i;if(!o)throw new Error(`hydrate: no variant found in payload ${r}`);pp(t),t.settings=n,a&&(t.priceLiterals=a),t.id??(t.id=e.id),t.variant=o,await t.updateComplete;let{aemFragmentMapping:s}=t.variantLayout;if(!s)throw new Error(`hydrate: variant mapping not found for ${r}`);s.style==="consonant"&&t.setAttribute("consonant",!0),Fh(i,t,s.mnemonics),Gh(i,t,s),qh(i,t,s),Vh(i,t,s.size),jh(i,t),Wh(i,t,s.title),Yh(i,t,s),Zh(i,t,s),Qh(i,t,s.backgroundImage),Xh(i,t,s.allowedColors,s.backgroundColor),Kh(i,t,s),ep(i,t,s),tp(i,t,s),rp(i,t,s),ip(i,t,s,n),ap(i,t),lp(i,t,s,o),dp(i,t),hp(t)}var Ia="merch-card",Oa=2e4,jc="merch-card:",mp=["full-pricing-express","simplified-pricing-express"];function Wc(e,t){let r=e.closest(Ia);if(!r)return t;r.priceLiterals&&(t.literals??(t.literals={}),Object.assign(t.literals,r.priceLiterals)),r.aemFragment&&(t[Se]=!0),r.variantLayout?.priceOptionsProvider?.(e,t)}function up(e){e.providers.has(Wc)||e.providers.price(Wc)}var Yc=new IntersectionObserver(e=>{e.forEach(t=>{t.target.clientHeight!==0&&(Yc.unobserve(t.target),t.target.requestUpdate())})}),gp=0,er,tr,rr,Fe,wt,Oe,At,X,Et,Kr,Na,ji,Qe=class extends z{constructor(){super();E(this,X);E(this,er);E(this,tr);E(this,rr);E(this,Fe);E(this,wt);E(this,Oe);E(this,At,new Promise(r=>{y(this,Oe,r)}));m(this,"customerSegment");m(this,"marketSegment");m(this,"variantLayout");this.id=null,this.failed=!1,this.filters={},this.types="",this.selected=!1,this.spectrum="css",this.loading="lazy",this.handleAemFragmentEvents=this.handleAemFragmentEvents.bind(this),this.handleMerchOfferSelectReady=this.handleMerchOfferSelectReady.bind(this)}firstUpdated(){this.variantLayout=Ca(this),this.variantLayout?.connectedCallbackHook()}willUpdate(r){(r.has("variant")||!this.variantLayout)&&(this.variantLayout?.disconnectedCallbackHook(),this.variantLayout=Ca(this),this.variantLayout?.connectedCallbackHook())}updated(r){(r.has("badgeBackgroundColor")||r.has("borderColor"))&&this.style.setProperty("--consonant-merch-card-border",this.computedBorderStyle),r.has("backgroundColor")&&this.style.setProperty("--merch-card-custom-background-color",this.backgroundColor?`var(--${this.backgroundColor})`:"");try{this.variantLayoutPromise=this.variantLayout?.postCardUpdateHook(r)}catch(i){Z(this,X,Et).call(this,`Error in postCardUpdateHook: ${i.message}`,{},!1)}}get theme(){return this.closest("sp-theme")}get dir(){return this.closest("[dir]")?.getAttribute("dir")??"ltr"}render(){if(!(!this.isConnected||!this.variantLayout||this.style.display==="none"))return this.variantLayout.renderLayout()}get computedBorderStyle(){return["ccd-slice","ccd-suggested","ah-promoted-plans","simplified-pricing-express","full-pricing-express"].includes(this.variant)?"":`1px solid ${this.borderColor?this.borderColor:this.badgeBackgroundColor}`}get badgeElement(){return this.shadowRoot.getElementById("badge")}get headingmMSlot(){return this.shadowRoot.querySelector('slot[name="heading-m"]').assignedElements()[0]}get footerSlot(){return this.shadowRoot.querySelector('slot[name="footer"]')?.assignedElements()[0]}get descriptionSlot(){return this.shadowRoot.querySelector('slot[name="body-xs"')?.assignedElements()[0]}get descriptionSlotCompare(){return this.shadowRoot.querySelector('slot[name="body-m"')?.assignedElements()[0]}get price(){return this.headingmMSlot?.querySelector(B)}get checkoutLinks(){return[...this.footerSlot?.querySelectorAll(we)??[]]}get checkoutLinksDescription(){return[...this.descriptionSlot?.querySelectorAll(we)??[]]}get checkoutLinkDescriptionCompare(){return[...this.descriptionSlotCompare?.querySelectorAll(we)??[]]}get activeDescriptionLinks(){return this.variant==="mini-compare-chart"?this.checkoutLinkDescriptionCompare:this.checkoutLinksDescription}async toggleStockOffer({target:r}){if(!this.stockOfferOsis)return;let i=this.checkoutLinks;if(i.length!==0)for(let n of i){await n.onceSettled();let a=n.value?.[0]?.planType;if(!a)return;let o=this.stockOfferOsis[a];if(!o)return;let s=n.dataset.wcsOsi.split(",").filter(c=>c!==o);r.checked&&s.push(o),n.dataset.wcsOsi=s.join(",")}}changeHandler(r){r.target.tagName==="MERCH-ADDON"&&this.toggleAddon(r.target)}toggleAddon(r){this.variantLayout?.toggleAddon?.(r);let i=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(i.length===0)return;let n=a=>{let{offerType:o,planType:s}=a.value?.[0]??{};if(!o||!s)return;let c=r.getOsi(s,o),l=(a.dataset.wcsOsi||"").split(",").filter(d=>d&&d!==c);r.checked&&l.push(c),a.dataset.wcsOsi=l.join(",")};i.forEach(n)}handleQuantitySelection(r){let i=[...this.checkoutLinks,...this.activeDescriptionLinks??[]];if(i.length!==0)for(let n of i)n.dataset.quantity=r.detail.option}get titleElement(){return this.querySelector(this.variantLayout?.headingSelector||".card-heading")}get title(){return this.titleElement?.textContent?.trim()}get description(){return this.querySelector('[slot="body-xs"]')?.textContent?.trim()}updateFilters(r){let i={...this.filters};Object.keys(i).forEach(n=>{if(r){i[n].order=Math.min(i[n].order||2,2);return}let a=i[n].order;a===1||isNaN(a)||(i[n].order=Number(a)+1)}),this.filters=i}includes(r){return this.textContent.match(new RegExp(r,"i"))!==null}connectedCallback(){var i;super.connectedCallback(),h(this,tr)||y(this,tr,gp++),this.aemFragment||((i=h(this,Oe))==null||i.call(this),y(this,Oe,void 0)),this.id??(this.id=this.getAttribute("id")??this.aemFragment?.getAttribute("fragment"));let r=this.id??h(this,tr);y(this,wt,`${jc}${r}${ot}`),y(this,er,`${jc}${r}${st}`),performance.mark(h(this,wt)),y(this,Fe,pt()),up(h(this,Fe)),y(this,rr,h(this,Fe).Log.module(Ia)),this.addEventListener(ne,this.handleQuantitySelection),this.addEventListener(ii,this.handleAddonAndQuantityUpdate),this.addEventListener(dr,this.handleMerchOfferSelectReady),this.addEventListener(nt,this.handleAemFragmentEvents),this.addEventListener(it,this.handleAemFragmentEvents),this.addEventListener("change",this.changeHandler),this.variantLayout&&this.variantLayout.connectedCallbackHook(),this.aemFragment||setTimeout(()=>this.checkReady(),0)}disconnectedCallback(){super.disconnectedCallback(),this.variantLayout?.disconnectedCallbackHook(),this.removeEventListener(ne,this.handleQuantitySelection),this.removeEventListener(nt,this.handleAemFragmentEvents),this.removeEventListener(it,this.handleAemFragmentEvents),this.removeEventListener("change",this.changeHandler),this.removeEventListener(ii,this.handleAddonAndQuantityUpdate)}async handleAemFragmentEvents(r){var i;if(this.isConnected&&(r.type===nt&&Z(this,X,Et).call(this,"AEM fragment cannot be loaded"),r.type===it&&(this.failed=!1,r.target.nodeName==="AEM-FRAGMENT"))){let n=r.detail;try{h(this,Oe)||y(this,At,new Promise(a=>{y(this,Oe,a)})),Vc(n,this)}catch(a){Z(this,X,Et).call(this,`hydration has failed: ${a.message}`)}finally{(i=h(this,Oe))==null||i.call(this),y(this,Oe,void 0)}this.checkReady()}}async checkReady(){if(!this.isConnected)return;h(this,At)&&(await h(this,At),mp.includes(this.variant)&&Yc.observe(this),y(this,At,void 0)),this.variantLayoutPromise&&(await this.variantLayoutPromise,this.variantLayoutPromise=void 0);let r=new Promise(o=>setTimeout(()=>o("timeout"),Oa));if(this.aemFragment){let o=await Promise.race([this.aemFragment.updateComplete,r]);if(o===!1||o==="timeout"){let s=o==="timeout"?`AEM fragment was not resolved within ${Oa} timeout`:"AEM fragment cannot be loaded";Z(this,X,Et).call(this,s,{},!1);return}}let i=[...this.querySelectorAll(lr)],n=Promise.all(i.map(o=>o.onceSettled().catch(()=>o))).then(o=>o.every(s=>s.classList.contains("placeholder-resolved"))),a=await Promise.race([n,r]);if(a===!0){this.measure=performance.measure(h(this,er),h(this,wt));let o={...this.aemFragment?.fetchInfo,...h(this,Fe).duration,measure:Re(this.measure)};return this.dispatchEvent(new CustomEvent(en,{bubbles:!0,composed:!0,detail:o})),this}else{this.measure=performance.measure(h(this,er),h(this,wt));let o={measure:Re(this.measure),...h(this,Fe).duration};a==="timeout"?Z(this,X,Et).call(this,`Contains offers that were not resolved within ${Oa} timeout`,o):Z(this,X,Et).call(this,"Contains unresolved offers",o)}}get aemFragment(){return this.querySelector("aem-fragment")}get addon(){return this.querySelector("merch-addon")}get quantitySelect(){return this.querySelector("merch-quantity-select")}get addonCheckbox(){return this.querySelector("merch-addon")}displayFooterElementsInColumn(){if(!this.classList.contains("product"))return;let r=this.shadowRoot.querySelector(".secure-transaction-label");(this.footerSlot?.querySelectorAll(we)).length===2&&r&&r.parentElement.classList.add("footer-column")}handleMerchOfferSelectReady(){this.offerSelect&&!this.offerSelect.planType||this.displayFooterElementsInColumn()}get dynamicPrice(){return this.querySelector('[slot="price"]')}handleAddonAndQuantityUpdate({detail:{id:r,items:i}}){if(!r||!i?.length||this.closest('[role="tabpanel"][hidden="true"]'))return;let a=this.checkoutLinks.find(d=>d.getAttribute("data-modal-id")===r);if(!a)return;let s=new URL(a.getAttribute("href")).searchParams.get("pa"),c=i.find(d=>d.productArrangementCode===s)?.quantity,l=!!i.find(d=>d.productArrangementCode!==s);if(c&&this.quantitySelect?.dispatchEvent(new CustomEvent(Ct,{detail:{quantity:c},bubbles:!0,composed:!0})),this.addonCheckbox&&this.addonCheckbox.checked!==l){this.toggleStockOffer({target:this.addonCheckbox});let d=new Event("change",{bubbles:!0,cancelable:!0});Object.defineProperty(d,"target",{writable:!1,value:{checked:l}}),this.addonCheckbox.handleChange(d)}}get prices(){return Array.from(this.querySelectorAll(B))}get promoPrice(){if(!this.querySelector("span.price-strikethrough"))return;let r=this.querySelector(".price.price-alternative");if(r||(r=this.querySelector(`${B}[data-template="price"] > span`)),!!r)return r=r.innerText,r}get regularPrice(){return h(this,X,Kr)?.innerText}get promotionCode(){let r=[...this.querySelectorAll(`${B}[data-promotion-code],${we}[data-promotion-code]`)].map(n=>n.dataset.promotionCode),i=[...new Set(r)];return i.length>1&&h(this,rr)?.warn(`Multiple different promotion codes found: ${i.join(", ")}`),r[0]}get annualPrice(){return this.querySelector(`${B}[data-template="price"] > .price.price-annual`)?.innerText}get promoText(){}get taxText(){return(h(this,X,Na)??h(this,X,Kr))?.querySelector("span.price-tax-inclusivity")?.textContent?.trim()||void 0}get recurrenceText(){return h(this,X,Kr)?.querySelector("span.price-recurrence")?.textContent?.trim()}get unitText(){let r=".price-unit-type";return h(this,X,Na)?.querySelector(r)?.textContent?.trim()??h(this,X,Kr)?.querySelector(r)?.textContent?.trim()??this.querySelector(r)?.textContent?.trim()??void 0}get planTypeText(){return this.querySelector('[is="inline-price"][data-template="legal"] span.price-plan-type')?.textContent?.trim()}get seeTermsInfo(){let r=this.querySelector('a[is="upt-link"]');if(r)return Z(this,X,ji).call(this,r)}get renewalText(){return this.querySelector("span.renewal-text")?.textContent?.trim()}get promoDurationText(){return this.querySelector("span.promo-duration-text")?.textContent?.trim()}get ctas(){let r=this.querySelector('[slot="ctas"], [slot="footer"]')?.querySelectorAll(`${we}, a`);return Array.from(r??[])}get primaryCta(){return Z(this,X,ji).call(this,this.ctas.find(r=>r.variant==="accent"||r.matches(".spectrum-Button--accent,.con-button.blue")))}get secondaryCta(){return Z(this,X,ji).call(this,this.ctas.find(r=>r.variant!=="accent"&&!r.matches(".spectrum-Button--accent,.con-button.blue")))}};er=new WeakMap,tr=new WeakMap,rr=new WeakMap,Fe=new WeakMap,wt=new WeakMap,Oe=new WeakMap,At=new WeakMap,X=new WeakSet,Et=function(r,i={},n=!0){if(!this.isConnected)return;let o=this.aemFragment?.getAttribute("fragment");o=`[${o}]`;let s={...this.aemFragment.fetchInfo,...h(this,Fe).duration,...i,message:r};h(this,rr).error(`merch-card${o}: ${r}`,s),this.failed=!0,n&&this.dispatchEvent(new CustomEvent(tn,{bubbles:!0,composed:!0,detail:s}))},Kr=function(){return this.querySelector("span.price-strikethrough")??this.querySelector(`${B}[data-template="price"] > span`)},Na=function(){return this.querySelector(`${B}[data-template="legal"]`)},ji=function(r){if(r)return{text:r.innerText.trim(),analyticsId:r.dataset.analyticsId,href:r.getAttribute("href")??r.dataset.href}},m(Qe,"properties",{id:{type:String,attribute:"id",reflect:!0},name:{type:String,attribute:"name",reflect:!0},variant:{type:String,reflect:!0},size:{type:String,attribute:"size",reflect:!0},badgeColor:{type:String,attribute:"badge-color",reflect:!0},borderColor:{type:String,attribute:"border-color",reflect:!0},backgroundColor:{type:String,attribute:"background-color",reflect:!0},badgeBackgroundColor:{type:String,attribute:"badge-background-color",reflect:!0},backgroundImage:{type:String,attribute:"background-image",reflect:!0},badgeText:{type:String,attribute:"badge-text"},actionMenu:{type:Boolean,attribute:"action-menu"},actionMenuLabel:{type:String,attribute:"action-menu-label"},customHr:{type:Boolean,attribute:"custom-hr"},consonant:{type:Boolean,attribute:"consonant"},failed:{type:Boolean,attribute:"failed",reflect:!0},spectrum:{type:String,attribute:"spectrum"},detailBg:{type:String,attribute:"detail-bg"},secureLabel:{type:String,attribute:"secure-label"},checkboxLabel:{type:String,attribute:"checkbox-label"},addonTitle:{type:String,attribute:"addon-title"},addonOffers:{type:Object,attribute:"addon-offers"},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},storageOption:{type:String,attribute:"storage",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},settings:{type:Object,attribute:!1},stockOfferOsis:{type:Object,attribute:"stock-offer-osis",converter:{fromAttribute:r=>{if(!r)return;let[i,n,a]=r.split(",");return{PUF:i,ABM:n,M2M:a}}}},filters:{type:String,reflect:!0,converter:{fromAttribute:r=>Object.fromEntries(r.split(",").map(i=>{let[n,a,o]=i.split(":"),s=Number(a);return[n,{order:isNaN(s)?void 0:s,size:o}]})),toAttribute:r=>Object.entries(r).map(([i,{order:n,size:a}])=>[i,n,a].filter(o=>o!=null).join(":")).join(",")}},types:{type:String,attribute:"types",reflect:!0},merchOffer:{type:Object},analyticsId:{type:String,attribute:Vi,reflect:!0},loading:{type:String},priceLiterals:{type:Object}}),m(Qe,"styles",[oc,...sc()]),m(Qe,"registerVariant",j),m(Qe,"getCollectionOptions",kc),m(Qe,"getFragmentMapping",zi);customElements.define(Ia,Qe);M();var ir,Qr=class extends z{constructor(){super();E(this,ir);this.defaults={},this.variant="plans"}saveContainerDefaultValues(){let r=this.closest(this.getAttribute("container")),i=r?.querySelector('[slot="description"]:not(merch-offer > *)')?.cloneNode(!0),n=r?.badgeText;return{description:i,badgeText:n}}getSlottedElement(r,i){return(i||this.closest(this.getAttribute("container"))).querySelector(`[slot="${r}"]:not(merch-offer > *)`)}updateSlot(r,i){let n=this.getSlottedElement(r,i);if(!n)return;let a=this.selectedOffer.getOptionValue(r)?this.selectedOffer.getOptionValue(r):this.defaults[r];a&&n.replaceWith(a.cloneNode(!0))}handleOfferSelection(r){let i=r.detail;this.selectOffer(i)}handleOfferSelectionByQuantity(r){let i=r.detail.option,n=Number.parseInt(i),a=this.findAppropriateOffer(n);this.selectOffer(a),this.getSlottedElement("cta").setAttribute("data-quantity",n)}selectOffer(r){if(!r)return;let i=this.selectedOffer;i&&(i.selected=!1),r.selected=!0,this.selectedOffer=r,this.planType=r.planType,this.updateContainer(),this.updateComplete.then(()=>{this.dispatchEvent(new CustomEvent(Ji,{detail:this,bubbles:!0}))})}findAppropriateOffer(r){let i=null;return this.offers.find(a=>{let o=Number.parseInt(a.getAttribute("value"));if(o===r)return!0;if(o>r)return!1;i=a})||i}updateBadgeText(r){this.selectedOffer.badgeText===""?r.badgeText=null:this.selectedOffer.badgeText?r.badgeText=this.selectedOffer.badgeText:r.badgeText=this.defaults.badgeText}updateContainer(){let r=this.closest(this.getAttribute("container"));!r||!this.selectedOffer||(this.updateSlot("cta",r),this.updateSlot("secondary-cta",r),this.updateSlot("price",r),!this.manageableMode&&(this.updateSlot("description",r),this.updateBadgeText(r)))}render(){return f`<fieldset><slot class="${this.variant}"></slot></fieldset>`}connectedCallback(){super.connectedCallback(),this.addEventListener("focusin",this.handleFocusin),this.addEventListener("click",this.handleFocusin),this.addEventListener(_t,this.handleOfferSelectReady);let r=this.closest("merch-quantity-select");this.manageableMode=r,this.offers=[...this.querySelectorAll("merch-offer")],y(this,ir,this.handleOfferSelectionByQuantity.bind(this)),this.manageableMode?r.addEventListener(ne,h(this,ir)):this.defaults=this.saveContainerDefaultValues(),this.selectedOffer=this.offers[0],this.planType&&this.updateContainer()}get miniCompareMobileCard(){return this.merchCard?.variant==="mini-compare-chart"&&this.isMobile}get merchCard(){return this.closest("merch-card")}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(ne,h(this,ir)),this.removeEventListener(_t,this.handleOfferSelectReady),this.removeEventListener("focusin",this.handleFocusin),this.removeEventListener("click",this.handleFocusin)}get price(){return this.querySelector('merch-offer[aria-selected] [is="inline-price"]')}get customerSegment(){return this.selectedOffer?.customerSegment}get marketSegment(){return this.selectedOffer?.marketSegment}handleFocusin(r){r.target?.nodeName==="MERCH-OFFER"&&(r.preventDefault(),r.stopImmediatePropagation(),this.selectOffer(r.target))}async handleOfferSelectReady(){this.planType||this.querySelector("merch-offer:not([plan-type])")||(this.planType=this.selectedOffer.planType,await this.updateComplete,this.selectOffer(this.selectedOffer??this.querySelector("merch-offer[aria-selected]")??this.querySelector("merch-offer")),this.dispatchEvent(new CustomEvent(dr,{bubbles:!0})))}};ir=new WeakMap,m(Qr,"styles",b`
         :host {
             display: inline-block;
         }
@@ -6464,7 +6808,7 @@ merch-card [slot='callout-content'] .icon-button::before {
             flex-direction: column;
             gap: var(--consonant-merch-spacing-xs);
         }
-    `),m(Wr,"properties",{offers:{type:Array},selectedOffer:{type:Object},defaults:{type:Object},variant:{type:String,attribute:"variant",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},stock:{type:Boolean,reflect:!0}});customElements.define("merch-offer-select",Wr);R();R();var Dc=b`
+    `),m(Qr,"properties",{offers:{type:Array},selectedOffer:{type:Object},defaults:{type:Object},variant:{type:String,attribute:"variant",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0},stock:{type:Boolean,reflect:!0}});customElements.define("merch-offer-select",Qr);M();M();var Xc=b`
     :host {
         --merch-radio: rgba(82, 88, 228);
         --merch-radio-hover: rgba(64, 70, 202);
@@ -6675,7 +7019,7 @@ merch-card [slot='callout-content'] .icon-button::before {
         position: relative;
         height: 40px;
     }
-`;var Jh="merch-offer",Yr=class extends ${constructor(){super();m(this,"tr");this.type="radio",this.selected=!1}getOptionValue(r){return this.querySelector(`[slot="${r}"]`)}connectedCallback(){super.connectedCallback(),this.initOffer(),this.configuration=this.closest("quantity-selector"),!this.hasAttribute("tabindex")&&!this.configuration&&(this.tabIndex=0),!this.hasAttribute("role")&&!this.configuration&&(this.role="radio")}get asRadioOption(){return f` <div class="merch-Radio">
+`;var fp="merch-offer",Zr=class extends z{constructor(){super();m(this,"tr");this.type="radio",this.selected=!1}getOptionValue(r){return this.querySelector(`[slot="${r}"]`)}connectedCallback(){super.connectedCallback(),this.initOffer(),this.configuration=this.closest("quantity-selector"),!this.hasAttribute("tabindex")&&!this.configuration&&(this.tabIndex=0),!this.hasAttribute("role")&&!this.configuration&&(this.role="radio")}get asRadioOption(){return f` <div class="merch-Radio">
             <input tabindex="-1" type="radio" class="merch-Radio-input" />
             <span class="merch-Radio-button"></span>
             <span class="merch-Radio-label">${this.text}</span>
@@ -6692,7 +7036,7 @@ merch-card [slot='callout-content'] .icon-button::before {
                         ><slot name="condition-tooltip"></slot
                     ></sp-tooltip>
                 </sp-overlay>
-            </div>`}render(){return this.configuration||!this.price?"":this.type==="subscription-option"?this.asSubscriptionOption:this.asRadioOption}get price(){return this.querySelector('span[is="inline-price"]:not([data-template="strikethrough"])')}get cta(){return this.querySelector(ye)}get prices(){return this.querySelectorAll('span[is="inline-price"]')}get customerSegment(){return this.price?.value?.[0].customerSegment}get marketSegment(){return this.price?.value?.[0].marketSegments[0]}async initOffer(){if(!this.price)return;this.prices.forEach(i=>i.setAttribute("slot","price")),await this.updateComplete,await Promise.all([...this.prices].map(i=>i.onceSettled()));let{value:[r]}=this.price;this.planType=r.planType,await this.updateComplete,this.dispatchEvent(new CustomEvent(_t,{bubbles:!0}))}};m(Yr,"properties",{text:{type:String},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},badgeText:{type:String,attribute:"badge-text"},type:{type:String,attribute:"type",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0}}),m(Yr,"styles",[Dc]);customElements.define(Jh,Yr);R();R();var zc=b`
+            </div>`}render(){return this.configuration||!this.price?"":this.type==="subscription-option"?this.asSubscriptionOption:this.asRadioOption}get price(){return this.querySelector('span[is="inline-price"]:not([data-template="strikethrough"])')}get cta(){return this.querySelector(we)}get prices(){return this.querySelectorAll('span[is="inline-price"]')}get customerSegment(){return this.price?.value?.[0].customerSegment}get marketSegment(){return this.price?.value?.[0].marketSegments[0]}async initOffer(){if(!this.price)return;this.prices.forEach(i=>i.setAttribute("slot","price")),await this.updateComplete,await Promise.all([...this.prices].map(i=>i.onceSettled()));let{value:[r]}=this.price;this.planType=r.planType,await this.updateComplete,this.dispatchEvent(new CustomEvent(_t,{bubbles:!0}))}};m(Zr,"properties",{text:{type:String},selected:{type:Boolean,attribute:"aria-selected",reflect:!0},badgeText:{type:String,attribute:"badge-text"},type:{type:String,attribute:"type",reflect:!0},planType:{type:String,attribute:"plan-type",reflect:!0}}),m(Zr,"styles",[Xc]);customElements.define(fp,Zr);M();M();var Kc=b`
     :host {
         box-sizing: border-box;
         --background-color: var(--qs-background-color, #f6f6f6);
@@ -6733,11 +7077,11 @@ merch-card [slot='callout-content'] .icon-button::before {
         height: var(--input-height);
         width: calc(var(--input-width) - var(--button-width));
         border: var(--border-width) solid var(--border-color);
-        border-top-left-radius: var(--radius);
-        border-bottom-left-radius: var(--radius);
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        border-right: none;
+        border-start-start-radius: var(--radius);
+        border-end-start-radius: var(--radius);
+        border-start-end-radius: 0;
+        border-end-end-radius: 0;
+        border-inline-end: none;
         padding-inline-start: 12px;
         box-sizing: border-box;
         -moz-appearance: textfield;
@@ -6761,12 +7105,12 @@ merch-card [slot='callout-content'] .icon-button::before {
         position: absolute;
         inset-inline-end: 0;
         border: var(--border-width) solid var(--border-color);
-        border-left: var(
-            --picker-button-border-left,
+        border-inline-start: var(
+            --picker-button-border-inline-start,
             var(--border-width) solid var(--border-color)
         );
-        border-top-right-radius: var(--radius);
-        border-bottom-right-radius: var(--radius);
+        border-start-end-radius: var(--radius);
+        border-end-end-radius: var(--radius);
         background-color: var(--background-color);
         display: flex;
         align-items: center;
@@ -6792,7 +7136,7 @@ merch-card [slot='callout-content'] .icon-button::before {
 
     .popover {
         position: absolute;
-        left: 0;
+        inset-inline-start: 0;
         width: var(--input-width);
         border-radius: var(--radius);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -6847,7 +7191,11 @@ merch-card [slot='callout-content'] .icon-button::before {
         background-position: right 7px center;
         background-repeat: no-repeat;
     }
-`;var[rb,ib,Ca,ka,$c,Hc]=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter","Tab"];var Pa=class extends ${static get properties(){return{closed:{type:Boolean,reflect:!0},selected:{type:Number},min:{type:Number},max:{type:Number},step:{type:Number},maxInput:{type:Number,attribute:"max-input"},options:{type:Array},highlightedIndex:{type:Number},defaultValue:{type:Number,attribute:"default-value",reflect:!0},title:{type:String}}}static get styles(){return zc}constructor(){super(),this.options=[],this.title="",this.closed=!0,this.min=0,this.max=0,this.step=0,this.maxInput=void 0,this.defaultValue=void 0,this.selectedValue=0,this.highlightedIndex=0,this.toggleMenu=this.toggleMenu.bind(this),this.closeMenu=this.closeMenu.bind(this),this.openMenu=this.openMenu.bind(this),this.handleClickOutside=this.handleClickOutside.bind(this),this.boundKeydownListener=this.handleKeydown.bind(this),this.handleKeyupDebounced=Tr(this.handleKeyup.bind(this),500),this.debouncedQuantityUpdate=Tr(this.handleQuantityUpdate.bind(this),500)}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this.boundKeydownListener),window.addEventListener("mousedown",this.handleClickOutside),this.addEventListener(Tt,this.debouncedQuantityUpdate)}get button(){return this.shadowRoot.querySelector("button")}handleKeyup(t){t.key===ka||t.key===Ca||(this.handleInput(),this.sendEvent())}selectValue(){if(!this.closed){let t=this.options[this.highlightedIndex];if(!t){this.closed=!0;return}this.selectedValue=t,this.handleMenuOption(this.selectedValue),this.closed=!0}}handleKeydown(t){switch(t.key){case" ":this.selectValue();break;case"Escape":this.closed=!0;break;case Hc:this.selectValue();break;case ka:this.closed?this.openMenu():this.highlightedIndex=(this.highlightedIndex+1)%this.options.length,t.preventDefault();break;case Ca:this.closed||(this.highlightedIndex=(this.highlightedIndex-1+this.options.length)%this.options.length),t.preventDefault();break;case $c:this.selectValue(),this.button.classList.contains("focused")&&t.preventDefault();break}t.composedPath().includes(this)&&t.stopPropagation()}adjustInput(t,r){this.selectedValue=r,t.value=r,this.highlightedIndex=this.options.indexOf(r)}handleInput(){let t=this.shadowRoot.querySelector(".text-field-input"),r=t.value.replace(/\D/g,"");t.value=r;let i=parseInt(r);if(!isNaN(i))if(i>0&&i!==this.selectedValue){let n=i;this.maxInput&&i>this.maxInput&&(n=this.maxInput),this.min&&n<this.min&&(n=this.min),this.adjustInput(t,n)}else this.adjustInput(t,this.selectedValue||this.min||1)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside),this.removeEventListener("keydown",this.boundKeydownListener),this.removeEventListener(Tt,this.debouncedQuantityUpdate)}generateOptionsArray(){let t=[];if(this.step>0)for(let r=this.min;r<=this.max;r+=this.step)t.push(r);return t}update(t){(t.has("min")||t.has("max")||t.has("step")||t.has("defaultValue"))&&(this.options=this.generateOptionsArray(),this.highlightedIndex=this.defaultValue?this.options.indexOf(this.defaultValue):0,this.handleMenuOption(this.defaultValue?this.defaultValue:this.options[0])),super.update(t)}handleClickOutside(t){t.composedPath().includes(this)||this.closeMenu()}toggleMenu(){this.closed=!this.closed,this.adjustPopoverPlacement(),this.closed&&(this.highlightedIndex=this.options.indexOf(this.selectedValue))}closeMenu(){this.closed=!0,this.highlightedIndex=this.options.indexOf(this.selectedValue)}openMenu(){this.closed=!1,this.adjustPopoverPlacement()}adjustPopoverPlacement(){let t=this.shadowRoot.querySelector(".popover");this.closed||t.getBoundingClientRect().bottom<=window.innerHeight?t.setAttribute("placement","bottom"):t.setAttribute("placement","top")}handleMouseEnter(t){this.highlightedIndex=t}handleMenuOption(t,r){t===this.max&&this.shadowRoot.querySelector(".text-field-input")?.focus(),this.selectedValue=t,this.sendEvent(),r&&this.closeMenu()}sendEvent(){let t=new CustomEvent(ae,{detail:{option:this.selectedValue},bubbles:!0});this.dispatchEvent(t)}get offerSelect(){return this.querySelector("merch-offer-select")}get popover(){return f` <div
+
+    :host(:dir(rtl)) .item.selected {
+        background-position: left 7px center;
+    }
+`;var[kb,Pb,Da,$a,Qc,Zc]=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter","Tab"];var za=class extends z{static get properties(){return{closed:{type:Boolean,reflect:!0},selected:{type:Number},min:{type:Number},max:{type:Number},step:{type:Number},maxInput:{type:Number,attribute:"max-input"},options:{type:Array},highlightedIndex:{type:Number},defaultValue:{type:Number,attribute:"default-value",reflect:!0},title:{type:String}}}static get styles(){return Kc}constructor(){super(),this.options=[],this.title="",this.closed=!0,this.min=0,this.max=0,this.step=0,this.maxInput=void 0,this.defaultValue=void 0,this.selectedValue=0,this.highlightedIndex=0,this.toggleMenu=this.toggleMenu.bind(this),this.closeMenu=this.closeMenu.bind(this),this.openMenu=this.openMenu.bind(this),this.handleClickOutside=this.handleClickOutside.bind(this),this.boundKeydownListener=this.handleKeydown.bind(this),this.handleKeyupDebounced=Cr(this.handleKeyup.bind(this),500),this.debouncedQuantityUpdate=Cr(this.handleQuantityUpdate.bind(this),500)}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this.boundKeydownListener),window.addEventListener("mousedown",this.handleClickOutside),this.addEventListener(Ct,this.debouncedQuantityUpdate)}get button(){return this.shadowRoot.querySelector("button")}handleKeyup(t){t.key===$a||t.key===Da||(this.handleInput(),this.sendEvent())}selectValue(){if(!this.closed){let t=this.options[this.highlightedIndex];if(!t){this.closed=!0;return}this.selectedValue=t,this.handleMenuOption(this.selectedValue),this.closed=!0}}handleKeydown(t){switch(t.key){case" ":this.selectValue();break;case"Escape":this.closed=!0;break;case Zc:this.selectValue();break;case $a:this.closed?this.openMenu():this.highlightedIndex=(this.highlightedIndex+1)%this.options.length,t.preventDefault();break;case Da:this.closed||(this.highlightedIndex=(this.highlightedIndex-1+this.options.length)%this.options.length),t.preventDefault();break;case Qc:this.selectValue(),this.button.classList.contains("focused")&&t.preventDefault();break}t.composedPath().includes(this)&&t.stopPropagation()}adjustInput(t,r){this.selectedValue=r,t.value=r,this.highlightedIndex=this.options.indexOf(r)}handleInput(){let t=this.shadowRoot.querySelector(".text-field-input"),r=t.value.replace(/\D/g,"");t.value=r;let i=parseInt(r);if(!isNaN(i))if(i>0&&i!==this.selectedValue){let n=i;this.maxInput&&i>this.maxInput&&(n=this.maxInput),this.min&&n<this.min&&(n=this.min),this.adjustInput(t,n)}else this.adjustInput(t,this.selectedValue||this.min||1)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside),this.removeEventListener("keydown",this.boundKeydownListener),this.removeEventListener(Ct,this.debouncedQuantityUpdate)}generateOptionsArray(){let t=[];if(this.step>0)for(let r=this.min;r<=this.max;r+=this.step)t.push(r);return t}update(t){(t.has("min")||t.has("max")||t.has("step")||t.has("defaultValue"))&&(this.options=this.generateOptionsArray(),this.highlightedIndex=this.defaultValue?this.options.indexOf(this.defaultValue):0,this.handleMenuOption(this.defaultValue?this.defaultValue:this.options[0])),super.update(t)}handleClickOutside(t){t.composedPath().includes(this)||this.closeMenu()}toggleMenu(){this.closed=!this.closed,this.adjustPopoverPlacement(),this.closed&&(this.highlightedIndex=this.options.indexOf(this.selectedValue))}closeMenu(){this.closed=!0,this.highlightedIndex=this.options.indexOf(this.selectedValue)}openMenu(){this.closed=!1,this.adjustPopoverPlacement()}adjustPopoverPlacement(){let t=this.shadowRoot.querySelector(".popover");this.closed||t.getBoundingClientRect().bottom<=window.innerHeight?t.setAttribute("placement","bottom"):t.setAttribute("placement","top")}handleMouseEnter(t){this.highlightedIndex=t}handleMenuOption(t,r){t===this.max&&this.shadowRoot.querySelector(".text-field-input")?.focus(),this.selectedValue=t,this.sendEvent(),r&&this.closeMenu()}sendEvent(){let t=new CustomEvent(ne,{detail:{option:this.selectedValue},bubbles:!0});this.dispatchEvent(t)}get offerSelect(){return this.querySelector("merch-offer-select")}get popover(){return f` <div
             id="qsPopover"
             class="popover ${this.closed?"closed":"open"}"
             placement="bottom"
@@ -6878,16 +7226,16 @@ merch-card [slot='callout-content'] .icon-button::before {
                     role="combobox"
                     aria-expanded=${!this.closed}
                     aria-controls="qsPopover"
-                    aria-activedescendant="${this.closed?L:`qs-item-${this.highlightedIndex}`}"
+                    aria-activedescendant="${this.closed?w:`qs-item-${this.highlightedIndex}`}"
                     .value="${this.selectedValue}"
                     type="text"
-                    autocomplete="off"
+                    autocomplete="on"
                     @keydown="${this.handleKeydown}"
                     @keyup="${this.handleKeyupDebounced}"
                 />
                 <button
                     class="picker-button"
-                    aria-activedescendant="${this.closed?L:`qs-item-${this.highlightedIndex}`}"
+                    aria-activedescendant="${this.closed?w:`qs-item-${this.highlightedIndex}`}"
                     @focus="${this.onButtonFocus}"
                     @blur="${this.onButtonBlur}"
                     aria-controls="qsPopover"
@@ -6901,7 +7249,7 @@ merch-card [slot='callout-content'] .icon-button::before {
                 </button>
                 ${this.popover}
             </div>
-        `}};customElements.define("merch-quantity-select",Pa);Ri();R();var Bc=`
+        `}};customElements.define("merch-quantity-select",za);Di();M();var Jc=`
 
   merch-card[variant="ccd-suggested"] [slot="heading-xs"] {
     font-size: var(--consonant-merch-card-heading-xxs-font-size);
@@ -6931,7 +7279,7 @@ merch-card [slot='callout-content'] .icon-button::before {
 .spectrum--darkest  merch-card[variant="ccd-suggested"]:hover {
   --consonant-merch-card-border-color:rgb(73, 73, 73);
 }
-`;var Uc={backgroundImage:{attribute:"background-image"},badge:!0,ctas:{slot:"cta",size:"M"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"p",slot:"price"},size:[],subtitle:{tag:"h4",slot:"detail-s"},title:{tag:"h3",slot:"heading-xs"}},ir=class extends T{getGlobalCSS(){return Bc}get stripStyle(){return this.card.backgroundImage?`
+`;var el={backgroundImage:{attribute:"background-image"},badge:!0,ctas:{slot:"cta",size:"M"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"p",slot:"price"},size:[],subtitle:{tag:"h4",slot:"detail-s"},title:{tag:"h3",slot:"heading-xs"}},nr=class extends C{getGlobalCSS(){return Jc}get stripStyle(){return this.card.backgroundImage?`
             background: url("${this.card.backgroundImage}");
         background-size: auto 100%;
         background-repeat: no-repeat;
@@ -6953,7 +7301,7 @@ merch-card [slot='callout-content'] .icon-button::before {
                     <slot name="cta"></slot>
                 </div>
             </div>
-            <slot></slot>`}postCardUpdateHook(t){t.has("backgroundImage")&&this.styleBackgroundImage()}styleBackgroundImage(){if(this.card.classList.remove("thin-strip"),this.card.classList.remove("wide-strip"),!this.card.backgroundImage)return;let t=new Image;t.src=this.card.backgroundImage,t.onload=()=>{t.width>8?this.card.classList.add("wide-strip"):t.width===8&&this.card.classList.add("thin-strip")}}};m(ir,"variantStyle",b`
+            <slot></slot>`}postCardUpdateHook(t){t.has("backgroundImage")&&this.styleBackgroundImage()}styleBackgroundImage(){if(this.card.classList.remove("thin-strip"),this.card.classList.remove("wide-strip"),!this.card.backgroundImage)return;let t=new Image;t.src=this.card.backgroundImage,t.onload=()=>{t.width>8?this.card.classList.add("wide-strip"):t.width===8&&this.card.classList.add("thin-strip")}}};m(nr,"variantStyle",b`
         :host([variant='ccd-suggested']) {
             --consonant-merch-card-background-color: rgb(245, 245, 245);
             --consonant-merch-card-body-xs-color: rgb(75, 75, 75);
@@ -7061,7 +7409,7 @@ merch-card [slot='callout-content'] .icon-button::before {
         :host([variant='ccd-suggested']) .top-section {
             align-items: center;
         }
-    `);R();var Fc=`
+    `);M();var tl=`
 
 merch-card[variant="ccd-slice"] [slot='image'] img {
   overflow: hidden;
@@ -7086,7 +7434,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
   --consonant-merch-card-border-color:rgb(48, 48, 48);
   --consonant-merch-card-detail-s-color:rgb(235, 235, 235);
 }
-`;var Gc={backgroundImage:{tag:"div",slot:"image"},badge:!0,ctas:{slot:"footer",size:"S"},description:{tag:"div",slot:"body-s"},mnemonics:{size:"m"},size:["wide"]},nr=class extends T{getGlobalCSS(){return Fc}renderLayout(){return f` <div class="content">
+`;var rl={backgroundImage:{tag:"div",slot:"image"},badge:!0,ctas:{slot:"footer",size:"S"},description:{tag:"div",slot:"body-s"},mnemonics:{size:"m"},size:["wide"]},ar=class extends C{getGlobalCSS(){return tl}renderLayout(){return f` <div class="content">
                 <div class="top-section">
                     <slot name="icons"></slot>
                     ${this.badge}
@@ -7095,7 +7443,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
                 <slot name="footer"></slot>
             </div>
             <slot name="image"></slot>
-            <slot></slot>`}};m(nr,"variantStyle",b`
+            <slot></slot>`}};m(ar,"variantStyle",b`
         :host([variant='ccd-slice']) {
             --consonant-merch-card-background-color: rgb(248, 248, 248);
             --consonant-merch-card-border-color: rgb(230, 230, 230);
@@ -7197,7 +7545,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             align-items: center;
             gap: 8px;
         }
-    `);R();var qc=`
+    `);M();var il=`
     merch-card[variant="ah-try-buy-widget"] [slot="body-xxs"] {
         letter-spacing: normal;
         margin-bottom: 16px;
@@ -7307,7 +7655,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     merch-card[variant="ah-try-buy-widget"] [slot="image"] {
       display: none;
     }
-    
+
     merch-card[variant="ah-try-buy-widget"][size='single'] [slot="image"] {
       display: flex;
       width: 199px;
@@ -7326,12 +7674,12 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
 
     .spectrum--dark merch-card[variant="ah-try-buy-widget"][background-color='gray'],
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"][background-color='gray'] {
-      --merch-card-ah-try-buy-widget-gray-background: rgb(27, 27, 27);
+      --merch-card-ah-try-buy-widget-gray-background: rgb(34, 34, 34);
     }
 
     .spectrum--dark merch-card[variant="ah-try-buy-widget"],
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"] {
-      --consonant-merch-card-background-color:rgb(17, 17, 17);
+      --consonant-merch-card-background-color:rgb(34, 34, 34);
       --consonant-merch-card-heading-xxxs-color:rgb(242, 242, 242);
       --consonant-merch-card-body-xxs-color:rgb(219, 219, 219);
     }
@@ -7340,7 +7688,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     .spectrum--darkest merch-card[variant="ah-try-buy-widget"]:hover {
       --consonant-merch-card-border-color:rgb(73, 73, 73);
     }
-`;var La={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"fuchsia"},allowedBadgeColors:["fuchsia"],description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{}},allowedColors:{gray:"--spectrum-gray-100"},size:["single","double","triple"]},ar=class extends T{getGlobalCSS(){return qc}get aemFragmentMapping(){return La}renderLayout(){return f`
+`;var Ha={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"fuchsia"},allowedBadgeColors:["fuchsia"],description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{gradient:"linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)"}},allowedColors:{gray:"--spectrum-gray-75"},size:["single","double","triple"]},or=class extends C{getGlobalCSS(){return il}get aemFragmentMapping(){return Ha}renderLayout(){return f`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -7357,7 +7705,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             <slot name="image"></slot>
             <slot name="badge"></slot>
             <slot></slot>
-        `}};m(ar,"variantStyle",b`
+        `}};m(or,"variantStyle",b`
         :host([variant='ah-try-buy-widget']) {
             --merch-card-ah-try-buy-widget-min-width: 156px;
             --merch-card-ah-try-buy-widget-content-min-width: 132px;
@@ -7384,6 +7732,26 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             gap: 16px;
             justify-content: space-between;
             box-sizing: border-box !important;
+        }
+
+        :host([variant='ah-try-buy-widget'][gradient-border='true']) {
+            border: none;
+            padding: 15px !important;
+            background-origin: padding-box, border-box;
+            background-clip: padding-box, border-box;
+            background-image: linear-gradient(
+                    to bottom,
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    ),
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    )
+                ),
+                linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%);
+            border: 1px solid transparent;
         }
 
         :host([variant='ah-try-buy-widget'][size='single']) {
@@ -7438,7 +7806,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             flex-direction: row;
             align-self: flex-end;
         }
-    `);R();var Vc=`
+    `);M();var nl=`
     merch-card[variant="ah-promoted-plans"] [slot="body-xxs"] {
         letter-spacing: normal;
         box-sizing: border-box;
@@ -7525,7 +7893,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
       --consonant-merch-card-body-xxs-color:rgb(219, 219, 219);
       --merch-card-ah-promoted-plans-strikethrough-color:rgb(138, 138, 138);
     }
-`;var Ra={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{gradient:"linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)"}}},or=class extends T{getGlobalCSS(){return Vc}get aemFragmentMapping(){return Ra}renderLayout(){return f`
+`;var Ba={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxxs",maxCount:40,withSuffix:!0},description:{tag:"div",slot:"body-xxs",maxCount:200,withSuffix:!1},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"S"},backgroundImage:{tag:"div",slot:"image"},backgroundColor:{attribute:"background-color"},borderColor:{attribute:"border-color",specialValues:{gradient:"linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)"}}},sr=class extends C{getGlobalCSS(){return nl}get aemFragmentMapping(){return Ba}renderLayout(){return f`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -7540,7 +7908,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
                 </div>
             </div>
             <slot></slot>
-        `}};m(or,"variantStyle",b`
+        `}};m(sr,"variantStyle",b`
         /* Default styles for the component */
         :host([variant='ah-promoted-plans']) {
             --merch-card-ah-promoted-plans-min-width: 211px;
@@ -7629,7 +7997,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             justify-content: space-between;
             align-items: center;
         }
-    `);R();var jc=`
+    `);M();var al=`
     merch-card[variant='fries'] {
         background-color: var(
             --merch-card-custom-background-color,
@@ -7774,7 +8142,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     .spectrum--darkest merch-card[variant="fries"] [slot="body-s"] {
         color: rgb(142, 142, 147);
     }
-`;var Ma={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300"}}},sr=class extends T{getGlobalCSS(){return jc}get aemFragmentMapping(){return Ma}renderLayout(){return f`
+`;var Ua={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300"}}},cr=class extends C{getGlobalCSS(){return al}get aemFragmentMapping(){return Ua}renderLayout(){return f`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -7792,7 +8160,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
                 </div>
             </div>
             <slot></slot>
-        `}};m(sr,"variantStyle",b`
+        `}};m(cr,"variantStyle",b`
         :host([variant='fries']) {
             --merch-card-fries-max-width: 620px;
             --merch-card-fries-padding: 24px;
@@ -7857,7 +8225,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             gap: 8px;
             margin-top: 15px;
         }
-    `);V("ccd-suggested",ir,Uc,ir.variantStyle);V("ccd-slice",nr,Gc,nr.variantStyle);V("ah-try-buy-widget",ar,La,ar.variantStyle);V("ah-promoted-plans",or,Ra,or.variantStyle);V("fries",sr,Ma,sr.variantStyle);
+    `);j("ccd-suggested",nr,el,nr.variantStyle);j("ccd-slice",ar,rl,ar.variantStyle);j("ah-try-buy-widget",or,Ha,or.variantStyle);j("ah-promoted-plans",sr,Ba,sr.variantStyle);j("fries",cr,Ua,cr.variantStyle);
 /*! Bundled license information:
 
 @lit/reactive-element/css-tag.js:
@@ -7870,6 +8238,8 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
 @lit/reactive-element/reactive-element.js:
 lit-html/lit-html.js:
 lit-element/lit-element.js:
+lit-html/directive.js:
+lit-html/directives/unsafe-html.js:
   (**
    * @license
    * Copyright 2017 Google LLC

@@ -1,11 +1,10 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_PUBLISHED, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES } from './constants.js';
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
 import Store from './store.js';
-import { getService } from './utils.js';
 import StoreController from './reactivity/store-controller.js';
 import './mas-nav-folder-picker.js';
-import './filters/mas-nav-locale-picker.js';
+import './mas-locale-picker.js';
 
 class MasTopNav extends LitElement {
     page = new StoreController(this, Store.page);
@@ -62,7 +61,7 @@ class MasTopNav extends LitElement {
                 e.preventDefault();
                 window.adobeIMS.signOut();
             });
-            studioContentEl.addEventListener('click', () => {
+            studioContentEl?.addEventListener('click', () => {
                 profileBody.classList.remove('show');
             });
 
@@ -85,10 +84,9 @@ class MasTopNav extends LitElement {
         super();
         this.aemEnv = 'prod';
         this.showPickers = true;
-    }
-
-    get envIndicator() {
-        return EnvColorCode[this.aemEnv];
+        Store.search.subscribe(() => {
+            this.requestUpdate();
+        });
     }
 
     get shouldShowPickers() {
@@ -99,8 +97,23 @@ class MasTopNav extends LitElement {
         return Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
 
+    get isTranslationEditorPage() {
+        return Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
+    }
+
+    get isTranslationsPage() {
+        return Store.page.value === PAGE_NAMES.TRANSLATIONS;
+    }
+
     get isDraftLandscape() {
         return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
+    }
+
+    get environmentIndicator() {
+        if (this.aemEnv === 'prod') {
+            return html``;
+        }
+        return html` <sp-badge size="small" variant="${EnvColorCode[this.aemEnv]}"> ${this.aemEnv.toUpperCase()} </sp-badge> `;
     }
 
     render() {
@@ -126,6 +139,7 @@ class MasTopNav extends LitElement {
                         />
                     </svg>
                     <span id="mas-studio">Merch At Scale Studio</span>
+                    ${this.environmentIndicator}
                 </a>
 
                 <div class="spacer"></div>
@@ -133,8 +147,30 @@ class MasTopNav extends LitElement {
                 <div class="right-section">
                     ${this.shouldShowPickers
                         ? html`
-                              <mas-nav-folder-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-folder-picker>
-                              <mas-nav-locale-picker ?disabled=${this.isFragmentEditorPage}></mas-nav-locale-picker>
+                              <mas-nav-folder-picker
+                                  ?disabled=${this.isFragmentEditorPage || this.isTranslationEditorPage}
+                              ></mas-nav-folder-picker>
+                              <mas-locale-picker
+                                  displayMode="strong"
+                                  @locale-changed=${(e) => {
+                                      Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
+                                  }}
+                                  ?disabled=${this.isFragmentEditorPage ||
+                                  this.isTranslationEditorPage ||
+                                  this.isTranslationsPage}
+                                  surface=${Store.surface()}
+                              >
+                              </mas-locale-picker>
+                              <sp-switch
+                                  class="landscape-switch"
+                                  size="m"
+                                  ?checked=${this.isDraftLandscape}
+                                  @change=${(e) => {
+                                      Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
+                                  }}
+                              >
+                                  Draft landscape offer
+                              </sp-switch>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

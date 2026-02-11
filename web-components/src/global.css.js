@@ -90,6 +90,8 @@ styles.innerHTML = `
     --merch-color-grey-800: #222222;
     --merch-color-green-promo: #05834E;
     --merch-color-red-promo: #D31510;
+    --merch-color-error: #D73220;
+    --merch-color-error-background: #ffebe8;
     --merch-color-grey-80: #2c2c2c;
     --consonant-merch-card-body-xs-color: var(--spectrum-gray-800, var(--merch-color-grey-80));
     --merch-color-inline-price-strikethrough: initial;
@@ -116,6 +118,7 @@ styles.innerHTML = `
     --spectrum-gray-300-plans: #DADADA;
     --spectrum-gray-700-plans: #505050;
     --spectrum-red-700-plans: #EB1000;
+    --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
 
     /* simplified-pricing-express colors */
     --spectrum-gray-50: #FFFFFF;
@@ -369,6 +372,12 @@ merch-card span.heading-l {
     margin: 0;
 }
 
+/* RTL text alignment for all heading slots */
+[dir="rtl"] merch-card [slot^='heading-'],
+[dir="rtl"] merch-card [class^='heading-'] {
+    text-align: right;
+}
+
 merch-card [slot='offers'] {
     padding: var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-s);
 }
@@ -387,7 +396,7 @@ merch-card [slot='callout-content'] {
 merch-card[variant^='plans'] [slot='badge'] {
     position: absolute;
     top: 16px;
-    right: 0;
+    inset-inline-end: 0;
     line-height: 16px;
 }
 
@@ -619,6 +628,25 @@ merch-sidenav-list sp-sidenav > sp-sidenav-item:last-of-type {
     line-height: var(--mod-sidenav-top-level-line-height)
 }
 
+/* RTL support for sp-sidenav-item */
+[dir="rtl"] sp-sidenav-item {
+    text-align: right;
+}
+
+/* Only apply flex layout when icon with .right class is present */
+[dir="rtl"] sp-sidenav-item:has([slot="icon"].right) {
+    display: flex;
+    flex-direction: row;
+}
+
+[dir="rtl"] sp-sidenav-item [slot="icon"].right {
+    position: relative;
+    right: auto;
+    left: auto;
+    order: 2;
+    margin-inline-start: var(--mod-sidenav-icon-spacing, var(--spectrum-sidenav-icon-spacing));
+}
+
 merch-sidenav-checkbox-group h3 {
     font-size: var(--merch-sidenav-checkbox-group-title-font-size);
     font-weight: var(--merch-sidenav-checkbox-group-title-font-weight);
@@ -626,6 +654,10 @@ merch-sidenav-checkbox-group h3 {
     color: var(--merch-sidenav-checkbox-group-title-color);
     padding: var(--merch-sidenav-checkbox-group-title-padding);
     margin: 0;
+}
+
+[dir="rtl"] merch-sidenav-checkbox-group h3 {
+    text-align: right;
 }
 
 sr-only {
@@ -698,18 +730,48 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
   display: none;
 }
 
+merch-card merch-whats-included [slot="contentBullets"] [slot="icon"] {
+    margin-right: 10px;
+}
+
+merch-card merch-whats-included[has-bullets] [slot="content"] {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 10px;
+}
+
 merch-badge[background-color="spectrum-red-700-plans"] {
   color: #FFFFFF;
 }
+
+/* Badge border-radius with RTL support */
+merch-badge {
+  --merch-badge-border-radius: 4px 0 0 4px; /* LTR default */
+}
+
+[dir="rtl"] merch-badge {
+  --merch-badge-border-radius: 0 4px 4px 0; /* RTL override */
+}
+
 /* Red border color for merch-cards */
 merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
 }
 
 @media (max-width: 600px) {
-merch-card [slot='callout-content'] .icon-button::before { 
+merch-card [slot='callout-content'] .icon-button::before {
     max-width: 180px;
   }
+}
+
+/* RTL support for collection header - Mobile */
+[dir="rtl"] merch-card-collection-header {
+    --merch-card-collection-header-areas: 'search search' 'sort filter'
+        'result result';
+}
+
+[dir="rtl"] merch-card-collection-header #result {
+    text-align: right;
 }
 
 @media screen and ${TABLET_UP} {
@@ -717,6 +779,12 @@ merch-card [slot='callout-content'] .icon-button::before {
     .three-merch-cards,
     .four-merch-cards {
         grid-template-columns: repeat(2, var(--merch-card-collection-card-width));
+    }
+
+    /* RTL support for collection header - Tablet */
+    [dir="rtl"] merch-card-collection-header {
+        --merch-card-collection-header-areas: 'sort filter search'
+            'result result result';
     }
 }
 
@@ -728,6 +796,11 @@ merch-card [slot='callout-content'] .icon-button::before {
     .three-merch-cards,
     merch-sidenav ~ .four-merch-cards {
         grid-template-columns: repeat(3, var(--merch-card-collection-card-width));
+    }
+
+    /* RTL support for collection header - Desktop */
+    [dir="rtl"] merch-card-collection-header {
+        --merch-card-collection-header-areas: 'sort result';
     }
 }
 

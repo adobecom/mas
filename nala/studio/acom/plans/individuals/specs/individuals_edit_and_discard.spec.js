@@ -344,13 +344,13 @@ export default {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 cta: {
                     original: {
-                        text: 'Buy now',
+                        label: 'Buy now',
                         workflowStep: 'email',
                         ucv3: 'commerce.adobe.com/store/email',
                     },
                     updated: {
-                        option: 'Save now',
-                        text: 'save-now',
+                        label: 'Save now',
+                        placeholder: 'save-now',
                         workflowStep: 'segmentation',
                         workflowOption: 'Segmentation',
                         ucv3: 'commerce.adobe.com/store/segmentation',

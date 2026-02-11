@@ -1,5 +1,6 @@
 import { css, html, LitElement } from 'lit';
 import { EVENT_CHANGE } from '../constants.js';
+import { renderSpIcon } from '../constants/icon-library.js';
 import '../mas-mnemonic-modal.js';
 
 class MnemonicField extends LitElement {
@@ -9,6 +10,8 @@ class MnemonicField extends LitElement {
             alt: { type: String, reflect: true },
             link: { type: String, reflect: true },
             modalOpen: { type: Boolean, state: true },
+            iconLibrary: { type: Boolean, state: true },
+            variant: { type: String },
         };
     }
 
@@ -23,7 +26,7 @@ class MnemonicField extends LitElement {
             gap: 12px;
             padding: 12px;
             border: 1px solid var(--spectrum-gray-300);
-            border-radius: 8px;
+            border-radius: 10px;
             min-height: 48px;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
         }
@@ -74,6 +77,16 @@ class MnemonicField extends LitElement {
         .action-menu {
             margin-left: auto;
         }
+
+        .icon-library.mnemonic-preview {
+            cursor: pointer;
+            min-height: unset;
+        }
+
+        :host([data-field-state='overridden']) .mnemonic-preview {
+            border: 2px solid var(--spectrum-blue-400);
+            background-color: var(--spectrum-blue-100);
+        }
     `;
 
     constructor() {
@@ -82,6 +95,8 @@ class MnemonicField extends LitElement {
         this.alt = '';
         this.link = '';
         this.modalOpen = false;
+        this.iconLibrary = false;
+        this.variant = '';
     }
 
     #handleEditClick() {
@@ -94,9 +109,25 @@ class MnemonicField extends LitElement {
 
     #handleModalClose() {
         this.modalOpen = false;
+        // If field is empty (no icon selected), remove it
+        if (!this.icon) {
+            this.#handleDeleteClick();
+        }
     }
 
     #handleDeleteClick() {
+        if (this.iconLibrary) {
+            this.icon = '';
+            this.dispatchEvent(
+                new CustomEvent(EVENT_CHANGE, {
+                    bubbles: true,
+                    composed: true,
+                    detail: this,
+                }),
+            );
+            return;
+        }
+
         this.dispatchEvent(
             new CustomEvent('delete-field', {
                 bubbles: true,
@@ -108,7 +139,10 @@ class MnemonicField extends LitElement {
     #handleMenuChange(event) {
         event.stopPropagation();
         const value = event.target.value;
-        if (value === 'edit') {
+        if (
+            (this.iconLibrary && event.target.tagName !== 'SP-ACTION-MENU' && event.target.tagName !== 'SP-MENU-ITEM') ||
+            value === 'edit'
+        ) {
             this.#handleEditClick();
         } else if (value === 'delete') {
             this.#handleDeleteClick();
@@ -146,6 +180,13 @@ class MnemonicField extends LitElement {
     #getIconName() {
         if (!this.icon) return 'No icon selected';
 
+        if (this.iconLibrary && this.icon.startsWith('sp-icon-')) {
+            return this.icon
+                .replace('sp-icon-', '')
+                .replace(/-/g, ' ')
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+        }
+
         if (this.icon.includes('/product-icons/svg/')) {
             const match = this.icon.match(/\/([^/]+)\.svg$/);
             if (match) {
@@ -157,16 +198,24 @@ class MnemonicField extends LitElement {
         return urlParts[urlParts.length - 1] || this.icon;
     }
 
+    renderIcon() {
+        if (this.iconLibrary && this.icon.startsWith('sp-icon-')) {
+            return html`${renderSpIcon(this.icon, this.variant)}`;
+        } else {
+            return html`<img
+                src="${this.icon}"
+                alt="${this.alt || 'Icon preview'}"
+                @error=${(e) => (e.target.style.display = 'none')}
+            />`;
+        }
+    }
+
     render() {
         return html`
-            <div class="mnemonic-preview">
+            <div class="mnemonic-preview ${this.iconLibrary ? 'icon-library' : ''}" @click="${this.#handleMenuChange}">
                 <div class="icon-preview">
                     ${this.icon
-                        ? html`<img
-                              src="${this.icon}"
-                              alt="${this.alt || 'Icon preview'}"
-                              @error=${(e) => (e.target.style.display = 'none')}
-                          />`
+                        ? html`${this.renderIcon()}`
                         : html`<div class="icon-placeholder">
                               <sp-icon-image size="m"></sp-icon-image>
                           </div>`}
@@ -196,6 +245,8 @@ class MnemonicField extends LitElement {
                 .icon=${this.icon}
                 .alt=${this.alt}
                 .link=${this.link}
+                .variant=${this.variant}
+                .iconLibrary="${this.iconLibrary}"
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>

@@ -1,5 +1,6 @@
 import { ReactiveStore } from './reactive-store.js';
-import { previewFragmentForEditor, LOCALE_DEFAULTS } from 'fragment-client';
+import { previewFragmentForEditor } from 'fragment-client';
+import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 
 export class EditorContextStore extends ReactiveStore {
@@ -18,20 +19,16 @@ export class EditorContextStore extends ReactiveStore {
         if (!fragmentPath) return { isVariation: false, defaultLocale: null };
         const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
         if (!pathMatch) return { isVariation: false, defaultLocale: null };
-        const pathLocale = pathMatch[1];
-        if (LOCALE_DEFAULTS.includes(pathLocale)) {
-            return { isVariation: false, defaultLocale: null };
-        }
-        const language = pathLocale.split('_')[0];
-        const expectedDefault = LOCALE_DEFAULTS.find((l) => l.startsWith(`${language}_`));
-        if (expectedDefault && expectedDefault !== pathLocale) {
-            return { isVariation: true, defaultLocale: expectedDefault, pathLocale };
+        const localeCode = pathMatch[1];
+        const expectedDefault = getDefaultLocaleCode(Store.surface(), localeCode);
+        if (expectedDefault && expectedDefault !== localeCode) {
+            return { isVariation: true, defaultLocale: expectedDefault, pathLocale: localeCode };
         }
         return { isVariation: false, defaultLocale: null };
     }
 
     async loadFragmentContext(fragmentId, fragmentPath) {
-        this.loading = true;
+        this.loading = false;
         this.localeDefaultFragment = null;
         this.defaultLocaleId = null;
         this.parentFetchPromise = null;
@@ -41,7 +38,7 @@ export class EditorContextStore extends ReactiveStore {
         let notified = false;
 
         try {
-            let surface = Store.search.value.path;
+            let surface = Store.surface();
             if (!surface && fragmentPath) {
                 const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/([^/]+)\//);
                 if (pathMatch) {

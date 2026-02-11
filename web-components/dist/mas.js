@@ -4099,7 +4099,7 @@ merch-card-collection.segment merch-card {
                 var(--consonant-merch-card-border-color, #dadada) border-box;
             border: 1px solid transparent;
         }
-        :host([variant='segment']) ::slotted([slot='heading-xs']) {
+        :host([variant='segment']) ::slotted(h3[slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
     `);M();var Ec=`

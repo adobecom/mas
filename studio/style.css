@@ -1176,7 +1176,7 @@ mas-mnemonic-field sp-action-menu sp-overlay sp-popover sp-menu {
 /* Price error styling (authoring only) */
 span[is='inline-price'].placeholder-failed {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 6px;
 }
 
@@ -1193,6 +1193,14 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 .price-error-title {
     color: var(--merch-color-error, #d73220);
     font-weight: 800;
+}
+
+[slot*='heading'] .price-error-title {
+    font-size: var(--consonant-merch-card-heading-xs-font-size);
+}
+
+[slot*='body-xs'] .price-error-title {
+    font-size: var(--consonant-merch-card-body-xs-font-size);
 }
 
 span[is='inline-price'].placeholder-failed .price-error-message {

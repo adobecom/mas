@@ -71,6 +71,7 @@ export class Router extends EventTarget {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
                 const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
                 if (confirmed) {
+                    Store.fragmentEditor.translatedLocales.set(null);
                     if (
                         (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION) &&
                         value !== PAGE_NAMES.FRAGMENT_EDITOR &&
@@ -198,10 +199,10 @@ export class Router extends EventTarget {
      * Navigate to the translation editor with optional pre-fill data
      * @param {Object} options - Navigation options
      * @param {string} options.targetLocale - Optional target locale to pre-fill
-     * @param {string} options.fragmentId - Optional fragment ID to pre-fill
+     * @param {string} options.fragmentPath - Optional fragment path to pre-fill
      */
     async navigateToTranslationEditor(options = {}) {
-        const { targetLocale, fragmentId } = options;
+        const { targetLocale, fragmentPath } = options;
 
         this.isNavigating = true;
         try {
@@ -221,8 +222,8 @@ export class Router extends EventTarget {
             Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
 
             // Store pre-fill data for the translation editor to consume
-            if (targetLocale || fragmentId) {
-                Store.translationProjects.prefill.set({ targetLocale, fragmentId });
+            if (targetLocale || fragmentPath) {
+                Store.translationProjects.prefill.set({ targetLocale, fragmentPath });
             }
 
             // Set the page - the store subscription will update the URL

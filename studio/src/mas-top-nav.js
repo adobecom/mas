@@ -176,10 +176,15 @@ class MasTopNav extends LitElement {
                 Store.search.set((prev) => ({ ...prev, region: null }));
                 this.filters.set((prev) => ({ ...prev, locale }));
             } else if (!fragmentId) {
-                // If no translation exists for this locale, show the "missing variation" state
+                // If no translation exists for this locale, navigate to en_US fragment
+                // and show the "missing variation" state
                 Store.editor.resetChanges();
+                const translatedLocales = Store.fragmentEditor.translatedLocales.get();
+                const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
+                const enUsFragmentId = enUsTranslation?.id || currentFragment?.id;
                 Store.search.set((prev) => ({ ...prev, region: locale }));
                 this.filters.set((prev) => ({ ...prev, locale }));
+                router.navigateToFragmentEditor(enUsFragmentId);
             }
             return;
         }

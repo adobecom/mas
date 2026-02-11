@@ -69,7 +69,7 @@ class MasTranslationEditor extends LitElement {
 
         // Check for pre-fill data from store (e.g., from missing-variation-panel)
         const prefill = Store.translationProjects.prefill.get();
-        const { targetLocale, fragmentId } = prefill || {};
+        const { targetLocale, fragmentPath } = prefill || {};
         // Clear prefill state after consumption to prevent stale data
         if (prefill) {
             Store.translationProjects.prefill.set(null);
@@ -81,7 +81,7 @@ class MasTranslationEditor extends LitElement {
             this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC] });
         } else {
-            await this.#initializeNewTranslationProject(fragmentId, targetLocale);
+            this.#initializeNewTranslationProject(fragmentPath, targetLocale);
         }
         this.storeController = new StoreController(this, Store.translationProjects.inEdit);
         this.selectedController = new ReactiveController(this, [
@@ -162,17 +162,14 @@ class MasTranslationEditor extends LitElement {
         }
     }
 
-    async #initializeNewTranslationProject(fragmentId, targetLocale) {
-        // Load fragment by ID to get its path for the project
-        const fragment = fragmentId ? await this.#loadAndEnrichFragment(fragmentId) : null;
-
+    #initializeNewTranslationProject(fragmentPath, targetLocale) {
         const newProject = new TranslationProject({
             id: null,
             title: '',
             fields: [
                 { name: 'title', type: 'text', multiple: false, values: [] },
                 { name: 'status', type: 'text', multiple: false, values: [] },
-                { name: 'fragments', type: 'content-fragment', multiple: true, values: fragment?.path ? [fragment.path] : [] },
+                { name: 'fragments', type: 'content-fragment', multiple: true, values: fragmentPath ? [fragmentPath] : [] },
                 { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'targetLocales', type: 'text', multiple: true, values: targetLocale ? [targetLocale] : [] },
@@ -182,9 +179,8 @@ class MasTranslationEditor extends LitElement {
         this.isNewTranslationProject = true;
         this.translationProjectStore = new FragmentStore(newProject);
 
-        // Pre-populate stores if we have pre-fill data
-        if (fragment?.path) {
-            Store.translationProjects.selectedCards.set([fragment.path]);
+        if (fragmentPath) {
+            Store.translationProjects.selectedCards.set([fragmentPath]);
         }
         if (targetLocale) {
             Store.translationProjects.targetLocales.set([targetLocale]);
@@ -192,21 +188,6 @@ class MasTranslationEditor extends LitElement {
 
         this.showSelectedEmptyState = this.selectedCount === 0;
         this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
-    }
-
-    async #loadAndEnrichFragment(fragmentId) {
-        try {
-            const fragment = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
-            if (fragment) {
-                const cardsByPaths = new Map(Store.translationProjects.cardsByPaths.value);
-                cardsByPaths.set(fragment.path, fragment);
-                Store.translationProjects.cardsByPaths.set(cardsByPaths);
-            }
-            return fragment;
-        } catch (err) {
-            console.warn('Failed to load fragment for pre-fill:', err);
-            return null;
-        }
     }
 
     #handleFragmentUpdate({ target, detail, values }) {

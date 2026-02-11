@@ -974,7 +974,6 @@ class MerchCardEditor extends LitElement {
                     <sp-field-label for="promo-text">Promo Text</sp-field-label>
                     <rte-field
                         id="promo-text"
-                        styling
                         link
                         data-field="promoText"
                         data-field-state="${this.getFieldState('promoText')}"

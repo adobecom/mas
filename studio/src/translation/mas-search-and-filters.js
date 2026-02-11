@@ -39,10 +39,17 @@ class MasSearchAndFilters extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.commonDataController = new ReactiveController(this, [
+        const storesToWatch = [
+            Store.translationProjects[`all${this.typeUppercased}`],
             Store.translationProjects[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
-        ]);
+        ];
+        if (this.type === TABLE_TYPE.CARDS) {
+            storesToWatch.push(Store.translationProjects.cardsProcessing);
+        } else if (this.type === TABLE_TYPE.COLLECTIONS) {
+            storesToWatch.push(Store.translationProjects.collectionsProcessing);
+        }
+        this.commonDataController = new ReactiveController(this, storesToWatch);
 
         switch (this.type) {
             case TABLE_TYPE.CARDS:
@@ -69,6 +76,8 @@ class MasSearchAndFilters extends LitElement {
                     this.requestUpdate();
                 });
                 break;
+            default:
+                break;
         }
     }
 
@@ -93,16 +102,25 @@ class MasSearchAndFilters extends LitElement {
     }
 
     get isLoading() {
+        let storeLoading;
+        let isProcessing = false;
         switch (this.type) {
             case TABLE_TYPE.CARDS:
-                return Store.fragments.list.loading.get();
+                storeLoading = Store.fragments.list.loading.get();
+                isProcessing = Store.translationProjects.cardsProcessing.get();
+                break;
             case TABLE_TYPE.COLLECTIONS:
-                return Store.fragments.list.loading.get();
+                storeLoading = Store.fragments.list.loading.get();
+                isProcessing = Store.translationProjects.collectionsProcessing.get();
+                break;
             case TABLE_TYPE.PLACEHOLDERS:
-                return Store.placeholders.list.loading.get();
+                storeLoading = Store.placeholders.list.loading.get();
+                break;
             default:
-                return false;
+                storeLoading = false;
         }
+        const allData = Store.translationProjects[`all${this.typeUppercased}`]?.value;
+        return storeLoading || isProcessing || !allData?.length;
     }
 
     get appliedFilters() {

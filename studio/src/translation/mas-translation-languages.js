@@ -25,7 +25,7 @@ class MasTranslationLanguages extends LitElement {
                 return a.locale > b.locale ? 1 : -1;
             });
         this.localesMatrix = this.getLocales();
-        this.storeController = new ReactiveController(this, [Store.translationProjects.targetLocales]);
+        this.targetLocalesController = new ReactiveController(this, [Store.translationProjects.targetLocales]);
     }
 
     get selectAllChecked() {

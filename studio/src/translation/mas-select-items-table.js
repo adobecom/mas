@@ -19,6 +19,9 @@ class MasSelectItemsTable extends LitElement {
         tableKey: { type: Number, state: true },
         viewOnly: { type: Boolean },
         viewOnlyLoading: { type: Boolean, state: true },
+        cardsTableColumns: { type: Set, state: true },
+        collectionsTableColumns: { type: Set, state: true },
+        placeholdersTableColumns: { type: Set, state: true },
     };
 
     constructor() {
@@ -26,6 +29,7 @@ class MasSelectItemsTable extends LitElement {
         this.tableKey = 0;
         this.selectedInTable = [];
         this.dataSubscription = null;
+        this.loadingSubscription = null;
         this.OFFER_DATA_CONCURRENCY_LIMIT = 5;
         this.processAbortController = null;
         this.isProcessingCards = false;
@@ -36,6 +40,23 @@ class MasSelectItemsTable extends LitElement {
         this.selectedCardsStoreController = null;
         this.selectedCollectionsStoreController = null;
         this.selectedPlaceholdersStoreController = null;
+        this.cardsTableColumns = new Set([
+            { label: 'Offer', key: 'offer', sortable: true },
+            { label: 'Fragment title', key: 'fragmentTitle' },
+            { label: 'Offer ID', key: 'offerId' },
+            { label: 'Path', key: 'path' },
+            { label: 'Status', key: 'status' },
+        ]);
+        this.collectionsTableColumns = new Set([
+            { label: 'Collection title', key: 'collectionTitle' },
+            { label: 'Path', key: 'path' },
+            { label: 'Status', key: 'status' },
+        ]);
+        this.placeholdersTableColumns = new Set([
+            { label: 'Key', key: 'key' },
+            { label: 'Value', key: 'value' },
+            { label: 'Status', key: 'status' },
+        ]);
     }
 
     connectedCallback() {
@@ -57,6 +78,7 @@ class MasSelectItemsTable extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.dataSubscription?.unsubscribe();
+        this.loadingSubscription?.unsubscribe();
         this.processAbortController?.abort();
         this.processAbortController = null;
     }
@@ -79,33 +101,6 @@ class MasSelectItemsTable extends LitElement {
             return Store.placeholders.list.loading.get();
         }
         return false;
-    }
-
-    get columnsToShow() {
-        switch (this.type) {
-            case TABLE_TYPE.CARDS:
-                return new Set([
-                    { label: 'Offer', key: 'offer', sortable: true },
-                    { label: 'Fragment title', key: 'fragmentTitle' },
-                    { label: 'Offer ID', key: 'offerId' },
-                    { label: 'Path', key: 'path' },
-                    { label: 'Status', key: 'status' },
-                ]);
-            case TABLE_TYPE.COLLECTIONS:
-                return new Set([
-                    { label: 'Collection title', key: 'collectionTitle' },
-                    { label: 'Path', key: 'path' },
-                    { label: 'Status', key: 'status' },
-                ]);
-            case TABLE_TYPE.PLACEHOLDERS:
-                return new Set([
-                    { label: 'Key', key: 'key' },
-                    { label: 'Value', key: 'value' },
-                    { label: 'Status', key: 'status' },
-                ]);
-            default:
-                return new Set();
-        }
     }
 
     get itemsToDisplay() {
@@ -136,6 +131,16 @@ class MasSelectItemsTable extends LitElement {
             this.type === TABLE_TYPE.CARDS
                 ? await this.#processCardsData(allCards)
                 : this.#processCollectionsData(allCollections);
+        });
+
+        this.loadingSubscription = Store.fragments.list.loading.subscribe((loading) => {
+            if (!loading) {
+                if (this.type === TABLE_TYPE.CARDS) {
+                    Store.translationProjects.cardsProcessing.set(false);
+                } else if (this.type === TABLE_TYPE.COLLECTIONS) {
+                    Store.translationProjects.collectionsProcessing.set(false);
+                }
+            }
         });
     }
 
@@ -235,6 +240,7 @@ class MasSelectItemsTable extends LitElement {
             this.processAbortController?.abort();
         }
         this.isProcessingCards = true;
+        Store.translationProjects.cardsProcessing.set(true);
         this.processAbortController = new AbortController();
         const { signal } = this.processAbortController;
 
@@ -278,13 +284,14 @@ class MasSelectItemsTable extends LitElement {
             const cardsByPaths = new Map(enrichedCards.map((card) => [card.path, card]));
             Store.translationProjects.allCards.set(enrichedCards);
             Store.translationProjects.cardsByPaths.set(cardsByPaths);
-            Store.translationProjects.displayCards.set([...enrichedCards]);
+            Store.translationProjects.displayCards.set(enrichedCards);
         } finally {
             this.isProcessingCards = false;
         }
     }
 
     #processCollectionsData(allCollections) {
+        Store.translationProjects.collectionsProcessing.set(true);
         Store.translationProjects.allCollections.set(allCollections);
         const collectionsByPaths = new Map(allCollections.map((fragment) => [fragment.path, fragment]));
         Store.translationProjects.collectionsByPaths.set(collectionsByPaths);
@@ -469,7 +476,7 @@ class MasSelectItemsTable extends LitElement {
         return html`
             <sp-table-head>
                 ${repeat(
-                    this.columnsToShow,
+                    this[`${this.type}TableColumns`],
                     (column) => column.key,
                     (column) => html`<sp-table-head-cell> ${column.label} </sp-table-head-cell>`,
                 )}

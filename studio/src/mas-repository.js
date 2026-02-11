@@ -800,9 +800,9 @@ export class MasRepository extends LitElement {
     }
 
     async loadTranslationProjects() {
+        const translationsPath = this.getTranslationsPath();
+        if (!translationsPath) return;
         try {
-            const translationsPath = this.getTranslationsPath();
-            if (!translationsPath) return;
             if (this.#abortControllers.translations) this.#abortControllers.translations.abort();
             this.#abortControllers.translations = new AbortController();
             Store.translationProjects.list.loading.set(true);

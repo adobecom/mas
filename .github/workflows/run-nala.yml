@@ -15,11 +15,24 @@ jobs:
     nala-gate:
         name: Nala Gate
         runs-on: ubuntu-latest
+        outputs:
+            run-nala: ${{ steps.check-should-run.outputs.should-run }}
         steps:
+            - name: Check if tests should run
+              id: check-should-run
+              # Run tests when 'run nala' label is added, or
+              # when 'run nala' exists on each PR open/synchronize
+              run: |
+                  if [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.label.name }}" == "run nala" ]] || \
+                     [[ "${{ github.event.action }}" == "opened" && "${{ join(github.event.pull_request.labels.*.name, ' ') }}" == *"run nala"*]] || \
+                     [[ "${{ github.event.action }}" == "synchronize" && "${{ join(github.event.pull_request.labels.*.name, ' ') }}" == *"run nala"*]]; then
+                      echo "should-run=true" >> $GITHUB_OUTPUT
+                  else
+                      echo "should-run=false" >> $GITHUB_OUTPUT
+                  fi
             - name: Require 'run nala' label
-              # Only enforce label requirement for synchronize events, not when PR is first opened
+              # Run check for 'run nala' label always
               if: |
-                  github.event.action != 'opened' &&
                   !contains(github.event.pull_request.labels.*.name, 'run nala')
               run: |
                   echo "::error::Add the 'run nala' label to merge this PR"
@@ -28,11 +41,7 @@ jobs:
     run-nala-studio-tests:
         name: Running Nala Studio E2E UI Tests
         needs: nala-gate
-        # Run when PR is opened (no label needed) OR when 'run nala' label exists
-        # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
-        if: |
-            github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala')
+        if: needs.nala-gate.outputs.run-nala == 'true'
         runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 30 # Prevent hanging jobs
         strategy:
@@ -118,11 +127,7 @@ jobs:
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests
         needs: nala-gate
-        # Run when PR is opened (no label needed) OR when 'run nala' label exists
-        # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
-        if: |
-            github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala')
+        if: needs.nala-gate.outputs.run-nala == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:

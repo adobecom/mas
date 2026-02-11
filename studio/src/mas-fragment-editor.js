@@ -721,6 +721,7 @@ export default class MasFragmentEditor extends LitElement {
                 .map((copy) => ({
                     locale: this.extractLocaleFromPath(copy.path),
                     id: copy.id,
+                    path: copy.path,
                 }))
                 .filter((item) => item.locale);
             Store.fragmentEditor.translatedLocales.set(locales);
@@ -1399,11 +1400,11 @@ export default class MasFragmentEditor extends LitElement {
 
     async goToTranslationEditor() {
         const targetLocale = Store.localeOrRegion();
-        // Get en_US fragment ID from translatedLocales store
+        // Get en_US fragment path from translatedLocales store
         const translatedLocales = Store.fragmentEditor.translatedLocales.get();
         const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
-        const fragmentId = enUsTranslation?.id || this.fragment?.id;
-        await router.navigateToTranslationEditor({ targetLocale, fragmentId });
+        const fragmentPath = enUsTranslation?.path;
+        await router.navigateToTranslationEditor({ targetLocale, fragmentPath });
     }
 
     render() {

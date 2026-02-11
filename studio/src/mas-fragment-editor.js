@@ -5,7 +5,6 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
@@ -354,7 +353,7 @@ export default class MasFragmentEditor extends LitElement {
     page = new StoreController(this, Store.page);
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
-    reactiveController = new ReactiveController(this, [Store.search, Store.filters]);
+    reactiveController = new ReactiveController(this, [Store.fragmentEditor.loading, Store.search, Store.filters]);
     editorContextStore = Store.fragmentEditor.editorContext;
 
     discardPromiseResolver;
@@ -609,6 +608,7 @@ export default class MasFragmentEditor extends LitElement {
             this.inEdit.set(existingStore);
             Store.editor.resetChanges();
             this.reactiveController.updateStores([
+                Store.fragmentEditor.loading,
                 this.inEdit,
                 existingStore,
                 existingStore.previewStore,
@@ -626,7 +626,6 @@ export default class MasFragmentEditor extends LitElement {
 
             this.initState = MasFragmentEditor.INIT_STATE.READY;
             Store.fragmentEditor.loading.set(false);
-            this.requestUpdate();
             return;
         }
 
@@ -634,6 +633,8 @@ export default class MasFragmentEditor extends LitElement {
         try {
             // Start loading placeholders early
             const placeholdersPromise = this.repository.loadPreviewPlaceholders().catch(() => null);
+            const isVariation = this.editorContextStore.isVariation(fragmentId);
+            this.updateTranslatedLocalesStore(isVariation); // no need to await
 
             // Fetch fragment data
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
@@ -649,7 +650,6 @@ export default class MasFragmentEditor extends LitElement {
                 this.repository.skipVariationDetection = false;
             }
 
-            const isVariation = this.editorContextStore.isVariation(fragmentId);
             let parentFragment = null;
 
             // For variations, fetch parent fragment BEFORE creating stores
@@ -672,6 +672,7 @@ export default class MasFragmentEditor extends LitElement {
             }
             this.inEdit.set(fragmentStore);
             this.reactiveController.updateStores([
+                Store.fragmentEditor.loading,
                 this.inEdit,
                 fragmentStore,
                 fragmentStore.previewStore,
@@ -694,11 +695,9 @@ export default class MasFragmentEditor extends LitElement {
             Store.editor.resetChanges();
 
             // Update translated locales store for locale picker
-            await this.updateTranslatedLocalesStore(isVariation);
 
             this.initState = MasFragmentEditor.INIT_STATE.READY;
             Store.fragmentEditor.loading.set(false);
-            this.requestUpdate();
         } catch (error) {
             console.error('Failed to fetch fragment:', error);
             showToast(`Failed to load fragment: ${error.message}`, 'negative');
@@ -714,13 +713,14 @@ export default class MasFragmentEditor extends LitElement {
             return;
         }
 
-        if (!this.fragment) {
+        const fragmentId = Store.fragmentEditor.fragmentId.get();
+        if (!fragmentId) {
             Store.fragmentEditor.translatedLocales.set(null);
             return;
         }
 
         try {
-            const { languageCopies = [] } = await this.repository.aem.sites.cf.fragments.getTranslations(this.fragment.id);
+            const { languageCopies = [] } = await this.repository.aem.sites.cf.fragments.getTranslations(fragmentId);
             const locales = languageCopies
                 .map((copy) => ({
                     locale: this.extractLocaleFromPath(copy.path),

@@ -47,7 +47,7 @@ var d=Object.defineProperty;var b=(o,t,e)=>t in o?d(o,t,{enumerable:!0,configura
             z-index: 999;
             background: var(--spectrum-gray-800, #323232);
             color: #fff;
-            padding: 8px 12px;
+            padding: var(--mas-mnemonic-tooltip-padding, 8px 12px);
             border-radius: 4px;
             white-space: normal;
             width: max-content;

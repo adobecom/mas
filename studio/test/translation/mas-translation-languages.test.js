@@ -57,6 +57,14 @@ describe('MasTranslationLanguages', () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
             expect(el.storeController).to.exist;
         });
+
+        it('should initialize with locales array from store surface, excluding en_US', async () => {
+            Store.search.set({ path: 'acom' });
+            const el = await fixture(html`<mas-translation-langs .selectedLanguages=${[]}></mas-translation-langs>`);
+            expect(el.localesArray).to.be.an('array');
+            expect(el.localesArray.length).to.be.greaterThan(0);
+            expect(el.localesArray.some((item) => item.lang === 'en' && item.country === 'US')).to.be.false;
+        });
     });
 
     describe('selectAllChecked getter', () => {

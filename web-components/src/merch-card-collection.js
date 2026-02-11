@@ -25,6 +25,7 @@ const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
     plans: ['four-merch-cards'],
     plansThreeColumns: ['three-merch-cards'],
+    image: ['three-merch-cards'],
 };
 
 const SIDENAV_AUTOCLOSE = {

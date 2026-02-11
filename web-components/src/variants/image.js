@@ -9,6 +9,7 @@ export const IMAGE_AEM_FRAGMENT_MAPPING = {
     description: { tag: 'div', slot: 'body-xs' },
     mnemonics: { size: 'l' },
     prices: { tag: 'h3', slot: 'heading-xs' },
+    promoText: { tag: 'p', slot: 'promo-text' },
     size: ['wide', 'super-wide'],
     title: { tag: 'h3', slot: 'heading-xs' },
     subtitle: { tag: 'p', slot: 'body-xxs' },

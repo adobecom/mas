@@ -128,24 +128,44 @@ class MerchCardEditor extends LitElement {
     }
 
     async resetTagsToParent() {
-        const parentTags = this.localeDefaultFragment?.tags || [];
-        this.fragment.tags = [...parentTags];
-        this.fragment.newTags = null;
-        this.fragmentStore.set(this.fragment);
+        const parentTagIds = this.localeDefaultFragment?.tags?.map((t) => t.id) || [];
+        this.fragmentStore.updateField('tags', parentTagIds);
         showToast('Tags restored to parent value', 'positive');
     }
 
+    static MNEMONIC_FIELDS = ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink', 'mnemonicTooltipText', 'mnemonicTooltipPlacement'];
+
+    /**
+     * Gets the combined field state for all mnemonic fields.
+     * Returns 'overridden' if ANY mnemonic field is overridden.
+     */
+    getMnemonicsFieldState() {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        const isAnyOverridden = MerchCardEditor.MNEMONIC_FIELDS.some(
+            (fieldName) => this.getFieldState(fieldName) === 'overridden',
+        );
+        return isAnyOverridden ? 'overridden' : 'inherited';
+    }
+
+    async resetMnemonicsToParent() {
+        for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        }
+        showToast('Visuals restored to parent value', 'positive');
+    }
+
+    renderMnemonicsStatusIndicator() {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getMnemonicsFieldState() !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetMnemonicsToParent());
+    }
+
     async resetFieldToParent(fieldName) {
-        await this.updateComplete;
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
         const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         if (success) {
             showToast('Field restored to parent value', 'positive');
-            await this.updateComplete;
-            const rteField = this.querySelector(`rte-field[data-field="${fieldName}"]`);
-            if (rteField && parentValues.length > 0) {
-                rteField.updateContent(parentValues[0]);
-            }
         }
         return success;
     }
@@ -234,21 +254,45 @@ class MerchCardEditor extends LitElement {
         return doc.querySelector('merch-whats-included');
     }
 
+    getWhatsIncludedProps(el) {
+        const iconEl = el.querySelector('merch-icon');
+        const icon = iconEl?.getAttribute('src') || '';
+        const alt = iconEl?.getAttribute('alt') || '';
+        const linkEl = el.querySelector('[slot="icon"] a');
+        const link = linkEl?.getAttribute('href') || '';
+        return { icon, alt, link };
+    }
+
     get whatsIncluded() {
         const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
         const values = [];
-        this.whatsIncludedElement?.querySelectorAll('merch-mnemonic-list').forEach((listEl) => {
-            const iconEl = listEl.querySelector('merch-icon');
-            const icon = iconEl?.getAttribute('src') || '';
-            const alt = iconEl?.getAttribute('alt') || '';
-            const linkEl = listEl.querySelector('[slot="icon"] a');
-            const link = linkEl?.getAttribute('href') || '';
-            values.push({ icon, alt, link });
+        this.whatsIncludedElement?.querySelectorAll('[slot="content"] merch-mnemonic-list').forEach((listEl) => {
+            values.push(this.getWhatsIncludedProps(listEl));
+        });
+
+        const bullets = [];
+        this.whatsIncludedElement?.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').forEach((listEl) => {
+            const props = this.getWhatsIncludedProps(listEl);
+            if (props.icon) {
+                bullets.push(props);
+            } else {
+                const icon = listEl.querySelector('.sp-icon')?.tagName.toLowerCase() || '';
+                const desc = listEl.querySelector('[slot="description"] > span');
+                const text = listEl.querySelector('[slot="description"]')?.textContent || '';
+                let alt;
+                if (desc?.innerHTML == text) {
+                    alt = text;
+                } else {
+                    alt = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
+                }
+                bullets.push({ icon, alt, link: '' });
+            }
         });
 
         return {
             label,
             values,
+            bullets,
         };
     }
 
@@ -576,7 +620,7 @@ class MerchCardEditor extends LitElement {
                 }
 
                 #whatsIncluded mas-multifield {
-                    margin-bottom: 16px;
+                    margin: 8px 16px 8px 0;
                 }
 
                 .menu-item-container {
@@ -607,6 +651,9 @@ class MerchCardEditor extends LitElement {
                 }
                 .editor-form-container {
                     display: var(--form-display, block);
+                }
+                #badge mas-mnemonic-field {
+                    margin-right: 16px;
                 }
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
@@ -722,6 +769,7 @@ class MerchCardEditor extends LitElement {
                     <mas-multifield
                         id="mnemonics"
                         button-label="Add visual"
+                        data-field-state="${this.getMnemonicsFieldState()}"
                         .value="${this.mnemonics}"
                         @change="${this.#updateMnemonics}"
                         @input="${this.#updateMnemonics}"
@@ -730,7 +778,7 @@ class MerchCardEditor extends LitElement {
                             <mas-mnemonic-field></mas-mnemonic-field>
                         </template>
                     </mas-multifield>
-                    ${this.renderFieldStatusIndicator('mnemonicIcon')}
+                    ${this.renderMnemonicsStatusIndicator()}
                 </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="badge">
@@ -757,6 +805,15 @@ class MerchCardEditor extends LitElement {
                         ></sp-textfield>
                         ${this.renderBadgeComponentOverrideIndicator('trialBadge', 'text')}
                     </sp-field-group>
+                    <sp-field-group class="toggle" id="badgeIcon">
+                        <mas-mnemonic-field
+                            .icon="${this.badge.icon}"
+                            .iconLibrary="${true}"
+                            .variant="${this.fragment.variant}"
+                            style="display: ${this.badge.text ? 'block' : 'none'};"
+                            @change=${this.#updateBadgeIcon}
+                        ></mas-mnemonic-field>
+                    </sp-field-group>
                 </div>
                 ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}
                 <div class="two-column-grid">
@@ -782,13 +839,23 @@ class MerchCardEditor extends LitElement {
                         value="${this.whatsIncluded.label}"
                         @input="${this.#updateWhatsIncluded}"
                     ></sp-textfield>
-                    ${this.renderSectionStatusIndicator(['whatsIncluded'])}
+                    <mas-multifield
+                        button-label="Add bullet"
+                        data-field-state="bullet"
+                        .value="${this.whatsIncluded.bullets}"
+                        @change="${(e) => this.#updateWhatsIncluded(e, true)}"
+                        @input="${(e) => this.#updateWhatsIncluded(e, true)}"
+                    >
+                        <template>
+                            <mas-included-field></mas-included-field>
+                        </template>
+                    </mas-multifield>
                     <mas-multifield
                         button-label="Add application"
                         data-field-state="${this.getFieldState('whatsIncluded')}"
                         .value="${this.whatsIncluded.values}"
-                        @change="${this.#updateWhatsIncluded}"
-                        @input="${this.#updateWhatsIncluded}"
+                        @change="${(e) => this.#updateWhatsIncluded(e, false)}"
+                        @input="${(e) => this.#updateWhatsIncluded(e, false)}"
                     >
                         <template>
                             <mas-included-field></mas-included-field>
@@ -1112,7 +1179,51 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
     }
 
-    createIncludedElement(label, values) {
+    createMnemonicList(value, isBullet) {
+        const list = document.createElement('merch-mnemonic-list');
+        const iconSlot = document.createElement('div');
+        iconSlot.setAttribute('slot', 'icon');
+        if (value.icon?.startsWith('sp-icon-')) {
+            const icon = document.createElement(value.icon);
+            icon.setAttribute('class', 'sp-icon');
+            iconSlot.append(icon);
+        } else if (value.icon) {
+            const merchIcon = document.createElement('merch-icon');
+            merchIcon.setAttribute('size', isBullet ? 'xs' : 's');
+            merchIcon.setAttribute('src', value.icon);
+            merchIcon.setAttribute('alt', value.alt || '');
+            if (value.link) {
+                const anchor = document.createElement('a');
+                anchor.setAttribute('href', value.link);
+                anchor.append(merchIcon);
+                iconSlot.append(anchor);
+            } else {
+                iconSlot.append(merchIcon);
+            }
+        }
+        const description = document.createElement('p');
+        description.setAttribute('slot', 'description');
+        if (isBullet) {
+            const span = document.createElement('span');
+            if (value.alt?.startsWith('<p>')) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(value.alt, 'text/html');
+                span.innerHTML = doc.querySelector('p').innerHTML;
+            } else {
+                span.textContent = value.alt || '';
+            }
+            description.append(span);
+        } else {
+            const strong = document.createElement('strong');
+            strong.textContent = value.alt || '';
+            description.append(strong);
+        }
+        list.append(iconSlot);
+        list.append(description);
+        return list;
+    }
+
+    createIncludedElement(label, values, bullets) {
         if (!label && !values?.length) return undefined;
 
         const element = document.createElement('merch-whats-included');
@@ -1120,59 +1231,51 @@ class MerchCardEditor extends LitElement {
         heading.setAttribute('slot', 'heading');
         heading.textContent = label || '';
         element.append(heading);
+        const contentBullets = document.createElement('div');
+        contentBullets.setAttribute('slot', 'contentBullets');
+        element.append(contentBullets);
+        if (bullets.length) element.setAttribute('has-bullets', 'true');
+        bullets.forEach((value) => {
+            contentBullets.append(this.createMnemonicList(value, true));
+        });
         const content = document.createElement('div');
         content.setAttribute('slot', 'content');
         element.append(content);
         values.forEach((value) => {
-            const list = document.createElement('merch-mnemonic-list');
-            const iconSlot = document.createElement('div');
-            iconSlot.setAttribute('slot', 'icon');
-            if (value.icon) {
-                const merchIcon = document.createElement('merch-icon');
-                merchIcon.setAttribute('size', 's');
-                merchIcon.setAttribute('src', value.icon);
-                merchIcon.setAttribute('alt', value.alt || '');
-                if (value.link) {
-                    const anchor = document.createElement('a');
-                    anchor.setAttribute('href', value.link);
-                    anchor.append(merchIcon);
-                    iconSlot.append(anchor);
-                } else {
-                    iconSlot.append(merchIcon);
-                }
-            }
-            const description = document.createElement('p');
-            description.setAttribute('slot', 'description');
-            const strong = document.createElement('strong');
-            strong.textContent = value.alt || '';
-            description.append(strong);
-            list.append(iconSlot);
-            list.append(description);
-            content.append(list);
+            content.append(this.createMnemonicList(value));
         });
 
         return element;
     }
 
-    #updateWhatsIncluded(event) {
+    #updateWhatsIncluded(event, isBullet) {
         let label = '';
         let values = [];
+        let bullets = [];
         if (Array.isArray(event.target.value)) {
             event.target.value.forEach(({ icon, alt, link }) => {
-                values.push({ icon, alt, link });
+                if (isBullet) {
+                    bullets.push({ icon, alt, link });
+                } else {
+                    values.push({ icon, alt, link });
+                }
             });
             label = this.whatsIncluded.label;
+            if (isBullet) {
+                values = this.whatsIncluded.values;
+            } else {
+                bullets = this.whatsIncluded.bullets;
+            }
         } else {
             label = event.target.value;
             values = this.whatsIncluded.values;
+            bullets = this.whatsIncluded.bullets;
         }
-        const element = this.createIncludedElement(label, values);
+        const element = this.createIncludedElement(label, values, bullets);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 
     #updateMnemonics(event) {
-        const fragment = this.fragmentStore.get();
-
         this.lastMnemonicState = {
             timestamp: Date.now(),
             mnemonicIcon: [...this.getEffectiveFieldValues('mnemonicIcon')],
@@ -1187,6 +1290,7 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = [];
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
+
         event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
@@ -1195,15 +1299,68 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
 
-        fragment.updateField('mnemonicIcon', mnemonicIcon);
-        fragment.updateField('mnemonicAlt', mnemonicAlt);
-        fragment.updateField('mnemonicLink', mnemonicLink);
-        fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
-        fragment.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
-        this.fragmentStore.set(fragment);
+        // For variations: use empty string sentinel [""] to explicitly clear (vs [] which inherits)
+        // For non-variations or when values differ from parent: update normally
+        // When values match parent: auto-reset to inherited state
+        const isExplicitClear = mnemonicIcon.length === 0 && this.effectiveIsVariation;
+        const parent = this.effectiveIsVariation ? this.localeDefaultFragment : null;
 
-        const previousCount = this.lastMnemonicState.mnemonicIcon.length;
-        const newCount = mnemonicIcon.length;
+        const values = {
+            mnemonicIcon: isExplicitClear ? [''] : mnemonicIcon,
+            mnemonicAlt: isExplicitClear ? [''] : mnemonicAlt,
+            mnemonicLink: isExplicitClear ? [''] : mnemonicLink,
+            mnemonicTooltipText: isExplicitClear ? [''] : mnemonicTooltipText,
+            mnemonicTooltipPlacement: isExplicitClear ? [''] : mnemonicTooltipPlacement,
+        };
+
+        // For variations: check if ALL mnemonic values match parent before resetting
+        if (parent) {
+            // Compare against effective parent values (what would be inherited)
+            // For fields that don't exist on parent, treat default values as matching
+            const allMatchParent = MerchCardEditor.MNEMONIC_FIELDS.every((fieldName) => {
+                const newValues = values[fieldName] || [];
+                const parentField = parent.getField(fieldName);
+                const parentValues = parentField?.values || [];
+
+                // If parent has the field, compare directly
+                if (parentField && parentValues.length > 0) {
+                    return newValues.length === parentValues.length && newValues.every((v, i) => v === parentValues[i]);
+                }
+
+                // If parent doesn't have the field, check if new values are default/empty
+                // Default values: empty string for text fields, 'top' for placement
+                const isDefaultValue = newValues.every((v) => v === '' || v === 'top');
+                return isDefaultValue;
+            });
+
+            if (allMatchParent) {
+                // All values match parent - reset all mnemonic fields to inherited state
+                for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+                    this.fragment.resetFieldToParent(fieldName);
+                }
+                this.fragmentStore.notify();
+                this.fragmentStore.refreshAemFragment();
+                this.requestUpdate();
+            } else {
+                // At least one field differs from parent - update all fields
+                this.fragmentStore.updateField('mnemonicIcon', values.mnemonicIcon);
+                this.fragmentStore.updateField('mnemonicAlt', values.mnemonicAlt);
+                this.fragmentStore.updateField('mnemonicLink', values.mnemonicLink);
+                this.fragmentStore.updateField('mnemonicTooltipText', values.mnemonicTooltipText);
+                this.fragmentStore.updateField('mnemonicTooltipPlacement', values.mnemonicTooltipPlacement);
+            }
+        } else {
+            // Non-variation: update all fields normally
+            this.fragmentStore.updateField('mnemonicIcon', values.mnemonicIcon);
+            this.fragmentStore.updateField('mnemonicAlt', values.mnemonicAlt);
+            this.fragmentStore.updateField('mnemonicLink', values.mnemonicLink);
+            this.fragmentStore.updateField('mnemonicTooltipText', values.mnemonicTooltipText);
+            this.fragmentStore.updateField('mnemonicTooltipPlacement', values.mnemonicTooltipPlacement);
+        }
+
+        // Only count non-empty mnemonics (those with an icon) for toast notifications
+        const previousCount = this.lastMnemonicState.mnemonicIcon.filter((icon) => icon).length;
+        const newCount = mnemonicIcon.filter((icon) => icon).length;
         const isAdd = newCount > previousCount;
         const isRemove = newCount < previousCount;
 
@@ -1350,11 +1507,13 @@ class MerchCardEditor extends LitElement {
         const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
         const borderColorSelected = document.querySelector('sp-picker[data-field="badgeBorderColor"]')?.value;
         const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
+        const icon = this.badgeElement?.getAttribute?.('icon');
 
         return {
             text,
             bgColor,
             borderColor,
+            icon,
         };
     }
 
@@ -1495,11 +1654,11 @@ class MerchCardEditor extends LitElement {
 
         if (fieldName === 'badge') {
             if (component === 'text') {
-                this.#updateBadge(parentParsed.text, this.badge.bgColor, this.badge.borderColor);
+                this.#updateBadge(parentParsed.text, this.badge.bgColor, this.badge.borderColor, this.badge.icon);
             } else if (component === 'bgColor') {
-                this.#updateBadge(this.badge.text, parentParsed.bgColor, this.badge.borderColor);
+                this.#updateBadge(this.badge.text, parentParsed.bgColor, this.badge.borderColor, this.badge.icon);
             } else if (component === 'borderColor') {
-                this.#updateBadge(this.badge.text, this.badge.bgColor, parentParsed.borderColor);
+                this.#updateBadge(this.badge.text, this.badge.bgColor, parentParsed.borderColor, this.badge.icon);
             }
         } else if (fieldName === 'trialBadge') {
             if (component === 'text') {
@@ -1513,7 +1672,7 @@ class MerchCardEditor extends LitElement {
         showToast('Field restored to parent value', 'positive');
     }
 
-    #createBadgeElement(text, bgColor, borderColor) {
+    #createBadgeElement(text, bgColor, borderColor, icon) {
         if (!text) return;
 
         const element = document.createElement('merch-badge');
@@ -1529,6 +1688,9 @@ class MerchCardEditor extends LitElement {
         if (borderColor) {
             element.setAttribute('border-color', borderColor);
         }
+        if (icon) {
+            element.setAttribute('icon', icon);
+        }
         element.setAttribute('variant', this.fragment.variant);
         element.textContent = text;
         return element;
@@ -1536,9 +1698,20 @@ class MerchCardEditor extends LitElement {
 
     #updateBadgeText(event) {
         const text = event.target.value?.trim() || '';
+        const icon = this.badge.icon;
+        this.#updateBadgeTextAndIcon(text, icon);
+    }
+
+    #updateBadgeIcon(event) {
+        const text = this.badge.text;
+        const icon = event.detail.icon;
+        this.#updateBadgeTextAndIcon(text, icon);
+    }
+
+    #updateBadgeTextAndIcon(text, icon) {
         if (this.supportsBadgeColors) {
             this.#displayBadgeColorFields(text);
-            this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor);
+            this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor, icon);
         } else {
             this.fragmentStore.updateField('badge', [text]);
         }
@@ -1554,8 +1727,8 @@ class MerchCardEditor extends LitElement {
         }
     }
 
-    #updateBadge = (text, bgColor, borderColor) => {
-        const element = this.#createBadgeElement(text, bgColor, borderColor);
+    #updateBadge = (text, bgColor, borderColor, icon) => {
+        const element = this.#createBadgeElement(text, bgColor, borderColor, icon);
         this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
     };
 
@@ -1647,11 +1820,11 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    #handleFragmentUpdate = (event) => {
+    #handleFragmentUpdate(event) {
         if (this.updateFragment) {
             this.updateFragment(event);
         }
-    };
+    }
 
     #handleLocReady() {
         const value = !this.fragment.getField('locReady')?.values[0];
@@ -1733,13 +1906,13 @@ class MerchCardEditor extends LitElement {
             if (value === 'Default') {
                 if (isBadgeColor) {
                     if (dataField === 'badgeColor') {
-                        this.#updateBadge(this.badge.text, '', this.badge.borderColor);
+                        this.#updateBadge(this.badge.text, '', this.badge.borderColor, this.badge.icon);
                     } else if (dataField === 'trialBadgeColor') {
                         this.#updateTrialBadge(this.trialBadge.text, '', this.trialBadge.borderColor);
                     }
                 } else if (isBadgeBorderColor) {
                     if (dataField === 'badgeBorderColor') {
-                        this.#updateBadge(this.badge.text, this.badge.bgColor, '');
+                        this.#updateBadge(this.badge.text, this.badge.bgColor, '', this.badge.icon);
                     } else if (dataField === 'trialBadgeBorderColor') {
                         this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, '');
                     }
@@ -1755,13 +1928,13 @@ class MerchCardEditor extends LitElement {
             } else if (value === 'Transparent') {
                 if (isBadgeColor) {
                     if (dataField === 'badgeColor') {
-                        this.#updateBadge(this.badge.text, 'transparent', this.badge.borderColor);
+                        this.#updateBadge(this.badge.text, 'transparent', this.badge.borderColor, this.badge.icon);
                     } else if (dataField === 'trialBadgeColor') {
                         this.#updateTrialBadge(this.trialBadge.text, 'transparent', this.trialBadge.borderColor);
                     }
                 } else if (isBadgeBorderColor) {
                     if (dataField === 'badgeBorderColor') {
-                        this.#updateBadge(this.badge.text, this.badge.bgColor, 'transparent');
+                        this.#updateBadge(this.badge.text, this.badge.bgColor, 'transparent', this.badge.icon);
                     } else if (dataField === 'trialBadgeBorderColor') {
                         this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, 'transparent');
                     }
@@ -1777,13 +1950,13 @@ class MerchCardEditor extends LitElement {
                 this.fragmentStore.set(fragment);
             } else if (isBadgeColor) {
                 if (dataField === 'badgeColor') {
-                    this.#updateBadge(this.badge.text, value, this.badge.borderColor);
+                    this.#updateBadge(this.badge.text, value, this.badge.borderColor, this.badge.icon);
                 } else if (dataField === 'trialBadgeColor') {
                     this.#updateTrialBadge(this.trialBadge.text, value, this.trialBadge.borderColor);
                 }
             } else if (isBadgeBorderColor) {
                 if (dataField === 'badgeBorderColor') {
-                    this.#updateBadge(this.badge.text, this.badge.bgColor, value);
+                    this.#updateBadge(this.badge.text, this.badge.bgColor, value, this.badge.icon);
                 } else if (dataField === 'trialBadgeBorderColor') {
                     this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, value);
                 }

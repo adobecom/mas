@@ -234,7 +234,7 @@
                     "backgroundImage": "https://www.adobe.com/my/images/bg.jpg",
                     "cardTitle": "Photography  (1TB)",
                     "prices": {
-                        "value": "<p><span is=\"inline-price\" data-tax-exclusive=\"false\" data-template=\"price\" data-wcs-osi=\"7eMy4KQZ4IYf7QQDBemiRJuGnNLV0ezGROEJLJZZisE\"></span></p>",
+                        "value": "<p><span is=\"inline-price\" data-force-tax-exclusive=\"false\" data-template=\"price\" data-wcs-osi=\"7eMy4KQZ4IYf7QQDBemiRJuGnNLV0ezGROEJLJZZisE\"></span></p>",
                         "mimeType": "text/html"
                     },
                     "shortDescription": {

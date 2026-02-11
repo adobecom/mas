@@ -71,6 +71,7 @@ export class Router extends EventTarget {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
                 const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
                 if (confirmed) {
+                    Store.fragmentEditor.translatedLocales.set(null);
                     if (
                         (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION) &&
                         value !== PAGE_NAMES.FRAGMENT_EDITOR &&

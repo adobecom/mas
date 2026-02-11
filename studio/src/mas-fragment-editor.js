@@ -337,7 +337,6 @@ export default class MasFragmentEditor extends LitElement {
     static INIT_STATE = { IDLE: 'idle', LOADING: 'loading', READY: 'ready' };
 
     static properties = {
-        fragmentId: { type: String, attribute: 'fragment-id' },
         showDeleteDialog: { type: Boolean, state: true },
         deleteInProgress: { type: Boolean, state: true },
         showDiscardDialog: { type: Boolean, state: true },
@@ -353,8 +352,17 @@ export default class MasFragmentEditor extends LitElement {
     page = new StoreController(this, Store.page);
     inEdit = Store.fragments.inEdit;
     operation = Store.operation;
-    reactiveController = new ReactiveController(this, [Store.fragmentEditor.loading, Store.search, Store.filters]);
+    reactiveController = new ReactiveController(this, [
+        Store.fragmentEditor.fragmentId,
+        Store.fragmentEditor.loading,
+        Store.search,
+        Store.filters,
+    ]);
     editorContextStore = Store.fragmentEditor.editorContext;
+
+    get fragmentId() {
+        return Store.fragmentEditor.fragmentId.get();
+    }
 
     discardPromiseResolver;
     #pendingDiscardPromise = null;
@@ -364,7 +372,6 @@ export default class MasFragmentEditor extends LitElement {
 
     constructor() {
         super();
-        this.fragmentId = null;
         this.showDeleteDialog = false;
         this.showDiscardDialog = false;
         this.showCloneDialog = false;
@@ -396,33 +403,20 @@ export default class MasFragmentEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.handleFragmentIdChange = this.handleFragmentIdChange.bind(this);
-
-        const currentFragmentId = Store.fragmentEditor.fragmentId.get();
-        if (currentFragmentId) {
-            this.fragmentId = currentFragmentId;
-        }
-
-        Store.fragmentEditor.fragmentId.subscribe(this.handleFragmentIdChange);
-        if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR && currentFragmentId) {
+        if (this.fragmentId) {
             this.initFragment();
         }
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        Store.fragmentEditor.fragmentId.unsubscribe(this.handleFragmentIdChange);
-    }
-
     willUpdate(changedProperties) {
         super.willUpdate(changedProperties);
+
         if (this.fragmentStore?.previewStore) {
             this.previewResolved = this.fragmentStore.previewStore.resolved || false;
         }
-    }
 
-    handleFragmentIdChange(newFragmentId) {
-        if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR && newFragmentId && newFragmentId !== this.fragmentId) {
+        // Handle fragmentId changes or inEdit cleared (e.g., locale switch)
+        if (this.fragmentId && !this.inEdit.get()) {
             this.initFragment();
         }
     }
@@ -575,27 +569,30 @@ export default class MasFragmentEditor extends LitElement {
 
     #updateLocaleIfNeeded(path) {
         const locale = this.extractLocaleFromPath(path);
-        if (locale && Store.localeOrRegion() !== locale) {
+        // Only update region if the current locale filter is the default (en_US)
+        // This preserves the locale when viewing missing variations (e.g., locale=tr_TR with en_US fragment)
+        if (locale && Store.filters.value.locale === 'en_US' && Store.localeOrRegion() !== locale) {
             Store.search.set((prev) => ({ ...prev, region: locale }));
         }
         return locale;
     }
 
     async initFragment() {
-        const fragmentId = Store.fragmentEditor.fragmentId.get();
+        const fragmentId = this.fragmentId;
 
         if (!fragmentId) {
             console.error('No fragment ID in store');
             return;
         }
 
-        this.fragmentId = fragmentId;
         this.previewResolved = false;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
         Store.fragmentEditor.loading.set(true);
 
         // Check for existing store first
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+        const isVariation = this.editorContextStore.isVariation(fragmentId);
+        this.updateTranslatedLocalesStore(isVariation); // no need to await
 
         if (existingStore) {
             // Use existing store - just refresh it
@@ -633,8 +630,6 @@ export default class MasFragmentEditor extends LitElement {
         try {
             // Start loading placeholders early
             const placeholdersPromise = this.repository.loadPreviewPlaceholders().catch(() => null);
-            const isVariation = this.editorContextStore.isVariation(fragmentId);
-            this.updateTranslatedLocalesStore(isVariation); // no need to await
 
             // Fetch fragment data
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
@@ -1358,12 +1353,6 @@ export default class MasFragmentEditor extends LitElement {
                     const targetLocale = getLocaleByCode(currentLocale);
                     const targetCountryName = getCountryName(targetLocale.country);
 
-                    // Get the default/source locale info for the "View default version" button
-                    const sourceLocaleCode = this.extractLocaleFromPath(sourceFragment.path);
-                    const sourceLocale = sourceLocaleCode ? getLocaleByCode(sourceLocaleCode) : null;
-                    const sourceCountryName = sourceLocale ? getCountryName(sourceLocale.country) : 'US';
-                    const sourceLang = sourceLocale ? sourceLocale.lang.toUpperCase() : 'EN';
-
                     return html`
                         <div id="missing-variation-panel" class="empty-state">
                             <sp-icon-translate class="translation-icon"></sp-icon-translate>
@@ -1372,12 +1361,11 @@ export default class MasFragmentEditor extends LitElement {
                                 yet.
                             </h2>
                             <p class="empty-state-subtitle">
-                                Create a new translation project or view the default ${sourceCountryName} (${sourceLang})
-                                version.
+                                Create a new translation project or view the United States (EN) version.
                             </p>
                             <div class="empty-state-actions">
                                 <sp-button id="view-source-fragment" variant="secondary" @click="${this.viewSourceFragment}">
-                                    View ${sourceCountryName} (${sourceLang}) version
+                                    View United States (EN) version
                                 </sp-button>
                                 <sp-button
                                     id="create-translation-project"
@@ -1406,7 +1394,10 @@ export default class MasFragmentEditor extends LitElement {
 
     async goToTranslationEditor() {
         const targetLocale = Store.localeOrRegion();
-        const fragmentId = this.fragment?.id;
+        // Get en_US fragment ID from translatedLocales store
+        const translatedLocales = Store.fragmentEditor.translatedLocales.get();
+        const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
+        const fragmentId = enUsTranslation?.id || this.fragment?.id;
         await router.navigateToTranslationEditor({ targetLocale, fragmentId });
     }
 

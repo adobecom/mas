@@ -54,6 +54,8 @@ export class EditorContextStore extends ReactiveStore {
             const options = {
                 locale: Store.filters.value.locale,
                 surface,
+                hasExternalDictionary: true,
+                dictionary: {},
             };
             const result = await previewFragmentForEditor(fragmentId, options);
 

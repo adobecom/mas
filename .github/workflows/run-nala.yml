@@ -23,9 +23,10 @@ jobs:
               # Run tests when 'run nala' label is added, or
               # when 'run nala' exists on each PR open/synchronize
               run: |
+                  LABELS="${{ join(github.event.pull_request.labels.*.name, ' ') }}"
                   if [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.label.name }}" == "run nala" ]] || \
-                     [[ "${{ github.event.action }}" == "opened" && "${{ join(github.event.pull_request.labels.*.name, ' ') }}" == *"run nala"*]] || \
-                     [[ "${{ github.event.action }}" == "synchronize" && "${{ join(github.event.pull_request.labels.*.name, ' ') }}" == *"run nala"*]]; then
+                     ([[ "${{ github.event.action }}" == "opened" ]] && echo "$LABELS" | grep -q "run nala") || \
+                     ([[ "${{ github.event.action }}" == "synchronize" ]] && echo "$LABELS" | grep -q "run nala"); then
                       echo "should-run=true" >> $GITHUB_OUTPUT
                   else
                       echo "should-run=false" >> $GITHUB_OUTPUT

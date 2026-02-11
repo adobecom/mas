@@ -258,3 +258,7 @@ export function extractLocaleFromPath(fragmentPath) {
     const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
     return parts.find((part) => localePattern.test(part)) || null;
 }
+
+export function deepEquals(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+}

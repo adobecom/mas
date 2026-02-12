@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, nothing } from 'lit';
 import Store from './store.js';
 import {
     getDefaultLocales,
@@ -237,6 +237,7 @@ export class MasLocalePicker extends LitElement {
     render() {
         const currentLocale = this.currentLocale;
         const code = getLocaleCode(currentLocale);
+        if (!currentLocale) return nothing;
         return html`
             ${this.label ? html`<sp-label>${this.label}</sp-label>` : ''}
             <sp-action-menu value=${code} ?disabled=${this.disabled} @sp-opened=${this.handleMenuOpen}>

@@ -15,6 +15,7 @@ export const VARIANT_NAMES = {
     PROMOTED_PLANS: 'ah-promoted-plans',
     FRIES: 'fries',
     MINI: 'mini',
+    MINI_COMPARE_CHART: 'mini-compare-chart',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
     FULL_PRICING_EXPRESS: 'full-pricing-express',
 };
@@ -75,6 +76,11 @@ export const VARIANTS = [
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
         surface: SURFACES.EXPRESS.name,
+    },
+    {
+        label: 'Mini Compare Chart',
+        value: VARIANT_NAMES.MINI_COMPARE_CHART,
+        surface: SURFACES.ACOM.name,
     },
 ];
 

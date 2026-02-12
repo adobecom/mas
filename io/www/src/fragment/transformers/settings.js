@@ -41,6 +41,9 @@ function applyCollectionSettings(context) {
                 if (variant === 'mini') {
                     applyMiniSettings(ref.value, context);
                 }
+                if (variant === 'mini-compare-chart') {
+                    applyPlansSettings(ref.value, context);
+                }
             }
         });
     }
@@ -110,6 +113,24 @@ function applyMiniSettings(fragment, context) {
     }
 }
 
+function applyBadgeSettings(fragment) {
+    // Set badge attributes for proper rendering in MILO consumption
+    // Similar to processBadge in hydrate.js
+    const DEFAULT_BADGE_COLOR = '#000000';
+    const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';
+
+    const badgeText = fragment?.fields?.badge?.value || fragment?.fields?.badge;
+    if (badgeText) {
+        if (!fragment.attributes) {
+            fragment.attributes = {};
+        }
+
+        fragment.attributes['badge-text'] = badgeText;
+        fragment.attributes['badge-color'] = fragment.fields.badgeColor || DEFAULT_BADGE_COLOR;
+        fragment.attributes['badge-background-color'] = fragment.fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR;
+    }
+}
+
 function applyPriceLiterals(fragment) {
     if (fragment) {
         fragment.priceLiterals = {
@@ -137,6 +158,11 @@ async function settings(context) {
 
     if (context.body?.fields?.variant === 'mini') {
         applyMiniSettings(context.body, context);
+    }
+
+    if (context.body?.fields?.variant === 'mini-compare-chart') {
+        applyPlansSettings(context.body, context);
+        applyBadgeSettings(context.body);
     }
 
     if (context.body?.model?.id === COLLECTION_MODEL_ID) {

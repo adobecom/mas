@@ -1,7 +1,10 @@
 import { Catalog, CATALOG_AEM_FRAGMENT_MAPPING } from './catalog.js';
 import { Image } from './image.js';
 import { InlineHeading } from './inline-heading.js';
-import { MiniCompareChart } from './mini-compare-chart.js';
+import {
+    MiniCompareChart,
+    MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+} from './mini-compare-chart.js';
 import {
     Plans,
     PLANS_AEM_FRAGMENT_MAPPING,
@@ -61,7 +64,7 @@ registerVariant('inline-heading', InlineHeading);
 registerVariant(
     'mini-compare-chart',
     MiniCompareChart,
-    null,
+    MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
     MiniCompareChart.variantStyle,
 );
 registerVariant(

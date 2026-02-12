@@ -6,9 +6,50 @@ import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
 const FOOTER_ROW_MIN_HEIGHT = 32; // as per the XD.
+
+
+export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
+    cardName: { attribute: 'name' },
+    title: { tag: 'h3', slot: 'heading-xs' },
+    prices: { tag: 'p', slot: 'heading-m-price' },
+    shortDescription: { tag: 'div', slot: 'body-m' },
+    description: { tag: 'div', slot: 'body-xs' },
+    promoText: { tag: 'p', slot: 'promo-text' },
+    mnemonics: { size: 'l' },
+    // callout: { tag: 'div', slot: 'callout-content' },
+    quantitySelect: { tag: 'div', slot: 'quantity-select' },
+    addon: true,
+    secureLabel: true,
+    planType: true,
+    badgeIcon: true,
+    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
+    badgeColor: { attribute: 'badge-color' },
+    badgeBackgroundColor: { attribute: 'badge-background-color' },
+    badgeText: { attribute: 'badge-text' },
+    allowedBadgeColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-gray-700-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
+    ],
+    allowedBorderColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
+    ],
+    borderColor: { attribute: 'border-color' },
+    size: ['wide', 'super-wide'],
+    ctas: { slot: 'footer', size: 'm' },
+    style: 'consonant',
+};
 
 export class MiniCompareChart extends VariantLayout {
     constructor(card) {
@@ -35,6 +76,22 @@ export class MiniCompareChart extends VariantLayout {
         this.mainPrice.dataset.quantity = detail.option;
     }
 
+    priceOptionsProvider(element, options) {
+        if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+            options.displayPlanType =
+                this.card?.settings?.displayPlanType ?? false;
+            return;
+        }
+        // For main price display (strikethrough and regular price)
+        // Disable perUnit display - it will be shown in legal price only
+        if (
+            element.dataset.template === 'strikethrough' ||
+            element.dataset.template === 'price'
+        ) {
+            options.displayPerUnit = false;
+        }
+    }
+
     getRowMinHeightPropertyName = (index) =>
         `--consonant-merch-card-footer-row-${index}-min-height`;
 
@@ -43,14 +100,10 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     getMiniCompareFooter = () => {
-        const secureLabel = this.card.secureLabel
-            ? html`<slot name="secure-transaction-label">
-                  <span class="secure-transaction-label"
-                      >${this.card.secureLabel}</span
-                  ></slot
-              >`
-            : html`<slot name="secure-transaction-label"></slot>`;
-        return html`<footer>${secureLabel}<slot name="footer"></slot></footer>`;
+        return html`<footer>
+            <slot name="secure-transaction-label">${this.secureLabel}</slot>
+            <slot name="footer"></slot>
+        </footer>`;
     };
 
     adjustMiniCompareBodySlots() {
@@ -62,14 +115,15 @@ export class MiniCompareChart extends VariantLayout {
         );
 
         let slots = [
+            'heading-xs',
             'heading-m',
             'body-m',
             'heading-m-price',
             'body-xxs',
             'price-commitment',
             'offers',
-            'promo-text',
-            'callout-content',
+            'body-xs',
+            // 'callout-content',
         ];
         if (this.card.classList.contains('bullet-list')) {
             slots.push('footer-rows');
@@ -138,11 +192,67 @@ export class MiniCompareChart extends VariantLayout {
         });
     }
 
+    get badgeElement() {
+        return this.card.querySelector('[slot="badge"]');
+    }
+
+    get badge() {
+        const parentBadge = super.badge;
+        if (parentBadge) return parentBadge;
+
+        return html`
+            <div
+                class="mini-compare-chart-badge"
+                style="${this.badgeElement ? '' : 'visibility: hidden'}"
+            >
+                <slot name="badge"></slot>
+            </div>
+        `;
+    }
+
     get mainPrice() {
-        const price = this.card.querySelector(
-            `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        return (
+            this.card.querySelector(
+                `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+            ) ??
+            this.card.querySelector(
+                `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+            )
         );
-        return price;
+    }
+
+    async adjustLegal() {
+        if (this.legalAdjusted) return;
+
+        try {
+            this.legalAdjusted = true;
+            await this.card.updateComplete;
+            await customElements.whenDefined('inline-price');
+
+            const headingPrice = this.mainPrice;
+            if (!headingPrice) return;
+
+            const legal = headingPrice.cloneNode(true);
+            await headingPrice.onceSettled();
+
+            if (!headingPrice?.options) return;
+
+            if (headingPrice.options.displayPerUnit)
+                headingPrice.dataset.displayPerUnit = 'false';
+            if (headingPrice.options.displayTax)
+                headingPrice.dataset.displayTax = 'false';
+            if (headingPrice.options.displayPlanType)
+                headingPrice.dataset.displayPlanType = 'false';
+
+            legal.setAttribute('data-template', 'legal');
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            await legal.onceSettled();
+        } catch {
+            // Proceed with other adjustments
+        }
     }
 
     get headingMPriceSlot() {
@@ -222,28 +332,26 @@ export class MiniCompareChart extends VariantLayout {
         return html` <div class="top-section${this.badge ? ' badge' : ''}">
                 <slot name="icons"></slot> ${this.badge}
             </div>
-            <slot name="heading-m"></slot>
-            ${this.card.classList.contains('bullet-list')
-                ? html`<slot name="heading-m-price"></slot>
-                      <slot name="price-commitment"></slot>
-                      <slot name="body-xxs"></slot>
-                      <slot name="promo-text"></slot>
-                      <slot name="body-m"></slot>
-                      <slot name="offers"></slot>`
-                : html`<slot name="body-m"></slot>
-                      <slot name="heading-m-price"></slot>
-                      <slot name="body-xxs"></slot>
-                      <slot name="price-commitment"></slot>
-                      <slot name="offers"></slot>
-                      <slot name="promo-text"></slot> `}
-            <slot name="callout-content"></slot>
-            <slot name="addon"></slot>
-            ${this.getMiniCompareFooter()}
-            <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
+				<slot name="heading-xs"></slot>
+				<slot name="heading-m-price"></slot>
+				<slot name="body-m"></slot>
+				<slot name="body-xxs"></slot>
+				<slot name="offers"></slot>
+				${this.getMiniCompareFooter()}
+				<slot name="promo-text"></slot>
+				<slot name="footer-rows"><slot name="body-s"></slot></slot>
+				<slot name="body-xs"></slot>
+				<slot name="badge"></slot>
+				<slot name="addon"></slot>
+
+            `;
     }
 
     async postCardUpdateHook() {
         await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        if (!this.legalAdjusted) {
+            await this.adjustLegal();
+        }
         await this.adjustAddon();
         if (Media.isMobile) {
             this.removeEmptyRows();
@@ -378,6 +486,16 @@ export class MiniCompareChart extends VariantLayout {
                 --consonant-merch-card-mini-compare-chart-callout-content-height
             );
         }
+        :host([variant='mini-compare-chart']) slot[name='heading-xs'] {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-heading-xs-height
+            );
+        }
+        :host([variant='mini-compare-chart']) slot[name='body-xs'] {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-body-xs-height
+            );
+        }
         :host([variant='mini-compare-chart']) slot[name='addon'] {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-addon-height
@@ -386,6 +504,69 @@ export class MiniCompareChart extends VariantLayout {
         :host([variant='mini-compare-chart']:not(.bullet-list))
             slot[name='footer-rows'] {
             justify-content: flex-start;
+        }
+
+        /* Border color styles */
+        :host([variant='mini-compare-chart'][border-color='spectrum-yellow-300-plans']) {
+            border-color: #ffd947;
+        }
+
+        :host([variant='mini-compare-chart'][border-color='spectrum-gray-300-plans']) {
+            border-color: #dadada;
+        }
+
+        :host([variant='mini-compare-chart'][border-color='spectrum-green-900-plans']) {
+            border-color: #05834e;
+        }
+
+        :host([variant='mini-compare-chart'][border-color='spectrum-red-700-plans']) {
+            border-color: #eb1000;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
+        }
+
+        :host([variant='mini-compare-chart'][border-color='gradient-purple-blue']) {
+            border-image: linear-gradient(135deg, #9256DC, #1473E6) 1;
+        }
+
+        /* Badge color styles */
+        :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].spectrum-red-700-plans) {
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
+        }
+
+        :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].spectrum-yellow-300-plans),
+        :host([variant='mini-compare-chart']) #badge.spectrum-yellow-300-plans {
+            background-color: #ffd947;
+            color: #2c2c2c;
+        }
+
+        :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].spectrum-gray-300-plans),
+        :host([variant='mini-compare-chart']) #badge.spectrum-gray-300-plans {
+            background-color: #dadada;
+            color: #2c2c2c;
+        }
+
+        :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].spectrum-gray-700-plans),
+        :host([variant='mini-compare-chart']) #badge.spectrum-gray-700-plans {
+            background-color: #4b4b4b;
+            color: #ffffff;
+        }
+
+        :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].spectrum-green-900-plans),
+        :host([variant='mini-compare-chart']) #badge.spectrum-green-900-plans {
+            background-color: #05834e;
+            color: #ffffff;
+        }
+
+        :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].spectrum-red-700-plans),
+        :host([variant='mini-compare-chart']) #badge.spectrum-red-700-plans {
+            background-color: #eb1000;
+            color: #ffffff;
         }
     `;
 }

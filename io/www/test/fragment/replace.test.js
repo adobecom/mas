@@ -214,9 +214,21 @@ describe('replace', () => {
         const contentFetchCalls = () => fetchStub.getCalls().filter((c) => c.args[0]?.includes('references=all-hydrated'));
 
         it('uses cached dictionary on second request (no extra fetch)', async () => {
-            const response1 = await getResponse('please {{view-account}}', '{{buy-now}}', DEFAULT_SURFACE, DEFAULT_LOCALE, true);
+            const response1 = await getResponse(
+                'please {{view-account}}',
+                '{{buy-now}}',
+                DEFAULT_SURFACE,
+                DEFAULT_LOCALE,
+                true,
+            );
             expect(response1.body.fields.cta).to.equal('Buy now');
-            const response2 = await getResponse('please {{view-account}}', '{{buy-now}}', DEFAULT_SURFACE, DEFAULT_LOCALE, false);
+            const response2 = await getResponse(
+                'please {{view-account}}',
+                '{{buy-now}}',
+                DEFAULT_SURFACE,
+                DEFAULT_LOCALE,
+                false,
+            );
             expect(response2.body.fields.cta).to.equal('Buy now');
             expect(contentFetchCalls()).to.have.length(1);
         });

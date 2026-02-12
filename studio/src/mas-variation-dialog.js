@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_KEYDOWN, VARIATION_TYPES } from './constants.js';
-import { showToast, extractLocaleFromPath, localeIconProvider } from './utils.js';
+import { showToast, extractLocaleFromPath } from './utils.js';
 import Store from './store.js';
 import { getCountryName, getLocaleCode, getRegionLocales } from '../../io/www/src/fragment/locales.js';
 import './aem/aem-tag-picker-field.js';
@@ -257,7 +257,6 @@ export class MasVariationDialog extends LitElement {
                     top="locale"
                     multiple
                     ?disabled=${this.loading}
-                    .iconProvider=${localeIconProvider}
                     @change=${this.handlePznTagsChange}
                 ></aem-tag-picker-field>
             </sp-field-group>

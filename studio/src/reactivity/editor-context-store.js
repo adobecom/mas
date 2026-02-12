@@ -46,6 +46,10 @@ export class EditorContextStore extends ReactiveStore {
         this.isVariationByPath = false;
         this.isGroupedVariationByPath = false;
         this.expectedDefaultLocale = null;
+        const isGroupedVariationPath = EditorContextStore.isGroupedVariationPath(fragmentPath);
+        if (isGroupedVariationPath) {
+            this.isGroupedVariationByPath = true;
+        }
 
         let notified = false;
 
@@ -101,19 +105,23 @@ export class EditorContextStore extends ReactiveStore {
                 notified = true;
             }
 
-            if (!this.defaultLocaleId && fragmentPath) {
-                const pathDetection = this.detectVariationFromPath(fragmentPath);
-                if (pathDetection.isVariation) {
-                    this.isVariationByPath = true;
-                    this.expectedDefaultLocale = pathDetection.defaultLocale;
-                    this.fetchParentByPath(fragmentPath, pathDetection.defaultLocale, pathDetection.pathLocale);
-                    if (!notified) {
-                        this.notify();
-                        notified = true;
+            if (fragmentPath) {
+                if (!this.defaultLocaleId) {
+                    const pathDetection = this.detectVariationFromPath(fragmentPath);
+                    if (pathDetection.isVariation) {
+                        this.isVariationByPath = true;
+                        this.expectedDefaultLocale = pathDetection.defaultLocale;
+                        this.fetchParentByPath(fragmentPath, pathDetection.defaultLocale, pathDetection.pathLocale);
+                        if (!notified) {
+                            this.notify();
+                            notified = true;
+                        }
                     }
-                } else if (EditorContextStore.isGroupedVariationPath(fragmentPath)) {
-                    // Grouped variations (pzn) - fetch parent by removing /pzn/ from path
-                    this.isGroupedVariationByPath = true;
+                }
+
+                if (this.isGroupedVariationByPath && (!this.defaultLocaleId || this.defaultLocaleId === fragmentId)) {
+                    // Grouped variations need parent lookup via references. If defaultLocaleId is the
+                    // current fragment, it's not the parent and must be resolved explicitly.
                     this.fetchGroupedVariationParent(fragmentPath);
                     if (!notified) {
                         this.notify();

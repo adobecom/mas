@@ -63,6 +63,8 @@ class AemTagPickerField extends LitElement {
         ready: { type: Boolean, state: true },
         selection: { type: String }, // 'checkbox' | default-hierarchy
         flatTags: { type: Array, state: true },
+        // When true, display tag value/name instead of tag label/title
+        displayValue: { type: Boolean, attribute: 'display-value' },
 
         // Temporary selections in 'checkbox' mode (before Apply)
         tempValue: { type: Array, state: true },
@@ -186,6 +188,7 @@ class AemTagPickerField extends LitElement {
         this.parentTags = [];
         this.iconProvider = null;
         this.readonly = false;
+        this.displayValue = false;
     }
 
     #onOstSelect = ({ detail: { offer } }) => {
@@ -303,9 +306,9 @@ class AemTagPickerField extends LitElement {
 
         if (this.selection === SELECTION_CHECKBOX) {
             this.flatTags = allTags
-                .filter((tag) => tag.title)
+                .filter((tag) => this.#getTagTextByMode(tag))
                 .sort((a, b) =>
-                    a.title.localeCompare(b.title, undefined, {
+                    this.#getTagTextByMode(a).localeCompare(this.#getTagTextByMode(b), undefined, {
                         sensitivity: 'base',
                     }),
                 )
@@ -374,10 +377,18 @@ class AemTagPickerField extends LitElement {
         this.toggleTag(pathToDelete);
     }
 
-    // Convert a path to a tag's friendly title
-    #resolveTagTitle(path) {
+    #getTagTextByMode(tag) {
+        if (!tag) return '';
+        if (this.displayValue) return tag.name || tag.title || '';
+        return tag.title || tag.name || '';
+    }
+
+    // Convert a path to a tag's display text based on mode
+    #resolveTagText(path, fallback = '') {
         const tag = this.#data.get(path);
-        return tag ? tag.title : '';
+        if (tag) return this.#getTagTextByMode(tag);
+        if (fallback) return fallback;
+        return path?.split('/').pop() || '';
     }
 
     /**
@@ -405,7 +416,7 @@ class AemTagPickerField extends LitElement {
         return [...node.entries()].map(([key, item]) => {
             const hasChildren = item.__children__.size > 0;
             const info = item.__info__;
-            const label = info ? this.#resolveTagTitle(info.path) : key;
+            const label = info ? this.#resolveTagText(info.path, key) : key;
             const value = info ? info.path : `${parentPath}/${key}`;
             return html`
                 <sp-sidenav-item label="${label}" value="${value}">
@@ -454,7 +465,7 @@ class AemTagPickerField extends LitElement {
                 const fieldState = getItemFieldState(path, parentTagPaths);
                 return html`
                     <sp-tag deletable @delete=${this.#deleteTag} data-path=${path} data-field-state="${fieldState}">
-                        ${this.#resolveTagTitle(path)} ${this.#getTagIcon(path)}
+                        ${this.#resolveTagText(path)} ${this.#getTagIcon(path)}
                     </sp-tag>
                 `;
             },
@@ -537,7 +548,7 @@ class AemTagPickerField extends LitElement {
         let filteredTags = this.flatTags;
         if (this.flatTags.length > 7) {
             filteredTags = this.flatTags.filter((path) =>
-                this.#resolveTagTitle(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
+                this.#resolveTagText(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
             );
         }
 
@@ -555,7 +566,7 @@ class AemTagPickerField extends LitElement {
                             const icon = this.iconProvider ? this.iconProvider(path) : null;
                             return html`
                                 <sp-checkbox value="${path}" ?checked=${checked} @change=${this.#handleCheckboxToggle}>
-                                    ${icon ? html`${icon} ` : nothing}${this.#resolveTagTitle(path)}
+                                    ${icon ? html`${icon} ` : nothing}${this.#resolveTagText(path)}
                                 </sp-checkbox>
                             `;
                         },
@@ -603,7 +614,7 @@ class AemTagPickerField extends LitElement {
                     (path) => path,
                     (path) => {
                         const icon = this.iconProvider ? this.iconProvider(path) : nothing;
-                        const title = this.#resolveTagTitle(path);
+                        const title = this.#resolveTagText(path);
                         return html`<sp-tag readonly>${icon} ${title}</sp-tag>`;
                     },
                 )}

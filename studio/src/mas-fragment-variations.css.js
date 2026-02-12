@@ -65,7 +65,7 @@ export const styles = `
     display: flex;
     gap: 40px;
     align-items: flex-start;
-    background-color: var(--spectrum-gray-100);
+    background-color: var(--spectrum-background-layer-1-color);
     border-left: 1px solid var(--spectrum-gray-400);
     border-bottom: 1px solid var(--spectrum-gray-400);
     padding: 12px 20px 20px 81px;

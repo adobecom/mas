@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { Fragment } from './aem/fragment.js';
-import generateFragmentStore from './reactivity/source-fragment-store.js';
+import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
@@ -14,6 +14,7 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { branch2Icon } from './icons.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -592,10 +593,39 @@ export default class MasFragmentEditor extends LitElement {
 
         // Check for existing store first
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
-        const isVariation = this.editorContextStore.isVariation(fragmentId);
-        this.updateTranslatedLocalesStore(isVariation); // no need to await
 
         if (existingStore) {
+            const fragmentPath = existingStore.get().path;
+            this.#updateLocaleIfNeeded(fragmentPath);
+
+            // Reload context to correctly determine if this fragment is a variation
+            await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
+            const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
+
+            if (isVariationAfterContext) {
+                const parentData = await this.editorContextStore.getLocaleDefaultFragmentAsync();
+                if (parentData) {
+                    const parentFragment = new Fragment(parentData);
+                    this.localeDefaultFragment = parentFragment;
+
+                    // Existing list stores are created without parent context.
+                    // Re-attach parent + merged preview so inheritance is initialized correctly in editor.
+                    if (existingStore.parentFragment?.id !== parentFragment.id) {
+                        existingStore.parentFragment = parentFragment;
+                        if (existingStore.previewStore) {
+                            const previewData = createPreviewDataWithParent(existingStore.get(), parentFragment);
+                            existingStore.previewStore.refreshFrom(previewData);
+                        }
+                    }
+                } else {
+                    this.localeDefaultFragment = existingStore.parentFragment;
+                }
+            } else {
+                this.localeDefaultFragment = existingStore.parentFragment;
+            }
+
+            this.updateTranslatedLocalesStore(isVariationAfterContext); // no need to await
+
             // Use existing store - just refresh it
             if (existingStore.previewStore) {
                 existingStore.previewStore.resolved = false;
@@ -614,13 +644,6 @@ export default class MasFragmentEditor extends LitElement {
                 Store.search,
                 Store.filters,
             ]);
-
-            const fragmentPath = existingStore.get().path;
-            this.#updateLocaleIfNeeded(fragmentPath);
-            this.localeDefaultFragment = existingStore.parentFragment;
-
-            // Reload context to correctly determine if this fragment is a variation
-            await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
 
             this.initState = MasFragmentEditor.INIT_STATE.READY;
             Store.fragmentEditor.loading.set(false);
@@ -694,6 +717,7 @@ export default class MasFragmentEditor extends LitElement {
             Store.editor.resetChanges();
 
             // Update translated locales store for locale picker
+            this.updateTranslatedLocalesStore(isVariationAfterContext); // no need to await
 
             this.initState = MasFragmentEditor.INIT_STATE.READY;
             Store.fragmentEditor.loading.set(false);
@@ -1174,7 +1198,7 @@ export default class MasFragmentEditor extends LitElement {
             <div class="derived-from-container">
                 <div class="derived-from-header">
                     <div class="derived-from-label">
-                        <sp-icon-link size="s"></sp-icon-link>
+                        <sp-icon size="s"> ${branch2Icon} </sp-icon>
                         <span>Derived from</span>
                     </div>
                     <a @click="${this.navigateToLocaleDefaultFragment}" class="derived-from-link clickable">

@@ -225,9 +225,12 @@ export function toggleSelection(id) {
  */
 export function editFragment(store, x = 0) {
     const fragmentId = store.get().id;
+    const fragmentPath = store.get().path;
     const storeFragments = Store.fragments.list.data.get();
     const defaultInStore = storeFragments.includes(store);
-    const variationInStore = storeFragments.find((s) => s.get().references?.find((r) => r.id === fragmentId));
+    const variationInStore = storeFragments.find((s) =>
+        s.get().references?.find((r) => r.id === fragmentId || (fragmentPath && r.path === fragmentPath)),
+    );
     if (!defaultInStore && !variationInStore) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }

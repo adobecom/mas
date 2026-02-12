@@ -249,6 +249,13 @@ export class MasRepository extends LitElement {
         const locale = this.filters.value.locale;
 
         if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
+            const filteredData = currentData.filter((fragmentStore) => {
+                const fragmentPath = fragmentStore?.get?.()?.path;
+                return !Fragment.isGroupedVariationPath(fragmentPath);
+            });
+            if (filteredData.length !== currentData.length) {
+                dataStore.set(filteredData);
+            }
             Store.fragments.list.loading.set(false);
             Store.fragments.list.firstPageLoaded.set(true);
             return;
@@ -314,7 +321,11 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
-                if (fragmentData && fragmentData.path.indexOf(ROOT_PATH) === 0) {
+                if (
+                    fragmentData &&
+                    fragmentData.path.indexOf(ROOT_PATH) === 0 &&
+                    !Fragment.isGroupedVariationPath(fragmentData.path)
+                ) {
                     const fragmentFolderPath = fragmentData.path.substring(ROOT_PATH.length + 1);
                     const fragmentFolder = fragmentFolderPath.split('/')[0];
                     const surface = fragmentFolder?.toLowerCase();
@@ -339,6 +350,7 @@ export class MasRepository extends LitElement {
                 for await (const result of cursor) {
                     for await (const item of result) {
                         if (this.skipVariant(variants, item)) continue;
+                        if (Fragment.isGroupedVariationPath(item.path)) continue;
                         // Apply corrector transformer before caching
                         applyCorrectorToFragment(item, surface);
                         const fragment = await this.#addToCache(item);
@@ -393,6 +405,7 @@ export class MasRepository extends LitElement {
             // Extract surface from path for corrector
             const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
             for await (const item of result.value) {
+                if (Fragment.isGroupedVariationPath(item.path)) continue;
                 // Apply corrector transformer before caching
                 applyCorrectorToFragment(item, surface);
                 const fragment = await this.#addToCache(item);

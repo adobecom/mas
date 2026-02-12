@@ -9,7 +9,7 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
-import { getFragmentMapping, showToast, localeIconProvider } from '../utils.js';
+import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
 import Store from '../store.js';
 import Events from '../events.js';
@@ -84,13 +84,21 @@ class MerchCardEditor extends LitElement {
 
     get pznTagsValue() {
         const pznTags = this.fragment.getFieldValues('pznTags') || [];
-        // pznTags are already in tag format (e.g., "mas:locale/AE/en_AE"), just join them
-        return pznTags.join(',');
+        // Normalize to attribute format (mas:...) for aem-tag-picker-field.
+        // Accept legacy path values as input as well.
+        return pznTags
+            .map((tag) => (tag?.startsWith('/content/cq:tags/') ? toAttribute([tag]) : tag))
+            .filter(Boolean)
+            .join(',');
     }
 
     #handlePznTagsChange = (event) => {
         const tagPicker = event.target;
-        this.fragmentStore.updateField('pznTags', tagPicker.value || []);
+        // aem-tag-picker-field exposes .value as tag paths; store tag IDs (mas:...) consistently.
+        const normalizedTags = toAttribute(tagPicker.value || [])
+            .split(',')
+            .filter(Boolean);
+        this.fragmentStore.updateField('pznTags', normalizedTags);
     };
 
     get groupedVariationTagsTemplate() {
@@ -104,7 +112,6 @@ class MerchCardEditor extends LitElement {
                     top="locale"
                     multiple
                     value="${this.pznTagsValue}"
-                    .iconProvider=${localeIconProvider}
                     @change=${this.#handlePznTagsChange}
                 ></aem-tag-picker-field>
             </sp-field-group>
@@ -788,6 +795,7 @@ class MerchCardEditor extends LitElement {
                     <aem-tag-picker-field
                         id="tags-field"
                         label="Tags"
+                        display-value
                         namespace="/content/cq:tags/mas"
                         multiple
                         class="tags-spacing"

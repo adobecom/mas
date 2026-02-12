@@ -5,7 +5,6 @@ import { VARIATION_TYPES } from './constants.js';
 import { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
 import router from './router.js';
-import { localeIconProvider } from './utils.js';
 import './aem/aem-tag-picker-field.js';
 
 const styleElement = document.createElement('style');
@@ -163,7 +162,8 @@ class MasFragmentVariations extends LitElement {
             <sp-table size="m">
                 <sp-table-body>
                     ${this.groupedVariations.map((variationFragment) => {
-                        const fragmentStore = new FragmentStore(new Fragment(variationFragment));
+                        const mergedData = createPreviewDataWithParent(variationFragment, this.fragment);
+                        const fragmentStore = new FragmentStore(new Fragment(mergedData));
                         const tagsValue = this.getGroupedVariationTagsValue(variationFragment);
                         const promoCode = this.getPromoCode(variationFragment);
                         const isExpanded = this.isGroupedVariationExpanded(variationFragment.id);
@@ -172,6 +172,7 @@ class MasFragmentVariations extends LitElement {
                                 class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''}"
                                 data-id="${variationFragment.id}"
                                 .fragmentStore=${fragmentStore}
+                                .canCreateVariation=${false}
                                 .expanded=${isExpanded}
                                 .toggleExpand=${() => this.toggleGroupedVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(fragmentStore)}
@@ -187,9 +188,9 @@ class MasFragmentVariations extends LitElement {
                                               <span class="field-label">Grouped variation tags</span>
                                               <aem-tag-picker-field
                                                   namespace="/content/cq:tags/mas"
+                                                  display-value
                                                   top="locale"
                                                   value="${tagsValue}"
-                                                  .iconProvider=${localeIconProvider}
                                                   readonly
                                               ></aem-tag-picker-field>
                                           </div>

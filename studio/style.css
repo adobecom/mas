@@ -1227,3 +1227,9 @@ merch-card:has(.placeholder-failed) {
 .price-error-icon {
     color: var(--merch-color-error, #d73220);
 }
+
+mas-fragment-table .icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}

@@ -266,7 +266,7 @@ class MasTranslation extends LitElement {
                             class=${key}
                             style="${align === 'right' ? 'text-align: right;' : ''}"
                             .sortable=${key === 'sentOn'}
-                            sort-direction="desc"
+                            sort-direction="asc"
                             sort-key="sentOn"
                             @sorted=${this.#sortBySentOn}
                         >

@@ -285,6 +285,44 @@ describe('VersionRepository', () => {
             expect(savedFragment.title).to.equal('Current Title');
             expect(savedFragment.description).to.equal('Restored Description Only');
         });
+
+        it('should preserve current fragment variations field when restoring', async () => {
+            const version = { id: 'v1', title: 'Version 1' };
+            const currentVariations = ['/content/dam/mas/sandbox/en_AU/card-name-test'];
+            const currentFragment = {
+                id: 'fragment-1',
+                title: 'Current Title',
+                description: 'Current Description',
+                fields: [
+                    { name: 'field1', type: 'text', values: ['current'] },
+                    {
+                        name: 'variations',
+                        type: 'content-fragment',
+                        multiple: true,
+                        values: currentVariations,
+                    },
+                ],
+            };
+            const versionData = {
+                fields: [{ name: 'field1', values: ['restored'] }],
+            };
+            const normalizedFields = { field1: 'restored' };
+            const denormalizedFieldsFromVersion = [{ name: 'field1', type: 'text', values: ['restored'] }];
+
+            mockRepository.aem.sites.cf.fragments.getVersion.resolves(versionData);
+            mockRepository.aem.sites.cf.fragments.save.resolves({});
+
+            const normalizeFields = sandbox.stub().returns(normalizedFields);
+            const denormalizeFields = sandbox.stub().returns(denormalizedFieldsFromVersion);
+
+            await versionRepository.restoreVersion(version, currentFragment, normalizeFields, denormalizeFields);
+
+            const savedFragment = mockRepository.aem.sites.cf.fragments.save.firstCall.args[0];
+            const savedVariationsField = savedFragment.fields.find((f) => f.name === 'variations');
+            expect(savedVariationsField).to.not.be.undefined;
+            expect(savedVariationsField.values).to.deep.equal(currentVariations);
+            expect(savedFragment.fields).to.have.lengthOf(2);
+        });
     });
 
     describe('searchVersions', () => {

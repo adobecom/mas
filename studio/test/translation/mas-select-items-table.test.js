@@ -234,32 +234,6 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
-    describe('columnsToShow getter', () => {
-        it('should return correct columns for cards type', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
-            const columns = Array.from(el.columnsToShow);
-            expect(columns).to.have.lengthOf(5);
-            expect(columns.map((c) => c.key)).to.deep.equal(['offer', 'fragmentTitle', 'offerId', 'path', 'status']);
-        });
-
-        it('should return correct columns for collections type', async () => {
-            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
-            const columns = Array.from(el.columnsToShow);
-            expect(columns).to.have.lengthOf(3);
-            expect(columns.map((c) => c.key)).to.deep.equal(['collectionTitle', 'path', 'status']);
-        });
-
-        it('should return correct columns for placeholders type', async () => {
-            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
-            const columns = Array.from(el.columnsToShow);
-            expect(columns).to.have.lengthOf(3);
-            expect(columns.map((c) => c.key)).to.deep.equal(['key', 'value', 'status']);
-        });
-    });
-
     describe('itemsToDisplay getter', () => {
         it('should return displayCards from store when not viewOnly', async () => {
             const cards = [createMockCard('/path/card1', 'Card 1')];

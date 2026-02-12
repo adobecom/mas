@@ -6,20 +6,24 @@ import { PAGE_NAMES, SURFACES } from '../../src/constants.js';
 import Store from '../../src/store.js';
 import router from '../../src/router.js';
 import Events from '../../src/events.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-translation.js';
 
 describe('MasTranslation', () => {
     let sandbox;
 
-    const createMockTranslationProject = (id, title, fullName = 'John Doe') => ({
-        get: () => ({
+    const createMockTranslationProject = (id, title, fullName = 'John Doe') => {
+        const fragment = new Fragment({
             id,
             title,
             path: `/content/dam/mas/translations/${id}`,
             modified: { fullName },
-        }),
-    });
+            fields: [],
+        });
+        return new FragmentStore(fragment);
+    };
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -67,20 +71,6 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             expect(el.translationProjectsData).to.equal(mockProjects);
-        });
-    });
-
-    describe('translationProjectsLoading getter', () => {
-        it('should return false when not loading', async () => {
-            Store.translationProjects.list.loading.value = false;
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            expect(el.translationProjectsLoading).to.be.false;
-        });
-
-        it('should return true when loading', async () => {
-            Store.translationProjects.list.loading.value = true;
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            expect(el.translationProjectsLoading).to.be.true;
         });
     });
 

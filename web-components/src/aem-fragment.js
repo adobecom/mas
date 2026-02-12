@@ -370,7 +370,6 @@ export class AemFragment extends HTMLElement {
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
         }
-        // cache.remove(this.#fragmentId); // TODO: remove after verifying dedup
         const fragment = await cache.getOrFetch(
             this.#fragmentId,
             async () => {

@@ -69,6 +69,14 @@ class AemTagPickerField extends LitElement {
 
         searchQuery: { type: String, state: true },
         parentTags: { type: Array, attribute: false },
+        /**
+         * Optional function to provide custom icons for tags.
+         * Receives the tag path and should return an icon (e.g., country flag emoji) or nothing.
+         * @type {(path: string) => string | typeof nothing}
+         */
+        iconProvider: { type: Function, attribute: false },
+        /** When true, renders tags in readonly mode without picker controls */
+        readonly: { type: Boolean },
     };
 
     static styles = css`
@@ -152,6 +160,11 @@ class AemTagPickerField extends LitElement {
             --mod-tag-background-color: var(--spectrum-blue-100);
             border-width: 2px;
         }
+
+        .no-tags {
+            color: var(--spectrum-gray-600);
+            font-style: italic;
+        }
     `;
 
     #aem;
@@ -171,6 +184,8 @@ class AemTagPickerField extends LitElement {
         this.selection = ''; // e.g., 'checkbox' | ''
         this.searchQuery = '';
         this.parentTags = [];
+        this.iconProvider = null;
+        this.readonly = false;
     }
 
     #onOstSelect = ({ detail: { offer } }) => {
@@ -365,6 +380,26 @@ class AemTagPickerField extends LitElement {
         return tag ? tag.title : '';
     }
 
+    /**
+     * Returns the icon for a sidenav item.
+     * Uses iconProvider if available for leaf nodes, otherwise returns default icons.
+     * @param {string} path - The tag path
+     * @param {boolean} hasChildren - Whether the item has children
+     * @returns {TemplateResult}
+     */
+    #getSidenavIcon(path, hasChildren) {
+        if (hasChildren) {
+            return html`<sp-icon-add slot="icon"></sp-icon-add>`;
+        }
+        if (this.iconProvider) {
+            const icon = this.iconProvider(path);
+            if (icon) {
+                return html`<span slot="icon">${icon}</span>`;
+            }
+        }
+        return html`<sp-icon-label slot="icon"></sp-icon-label>`;
+    }
+
     // Recursively render <sp-sidenav-item> for hierarchical tags
     renderSidenavItems(node, parentPath = '') {
         return [...node.entries()].map(([key, item]) => {
@@ -375,9 +410,7 @@ class AemTagPickerField extends LitElement {
             return html`
                 <sp-sidenav-item label="${label}" value="${value}">
                     ${hasChildren ? this.renderSidenavItems(item.__children__, value) : nothing}
-                    ${hasChildren
-                        ? html`<sp-icon-add slot="icon"></sp-icon-add>`
-                        : html`<sp-icon-label slot="icon"></sp-icon-label>`}
+                    ${this.#getSidenavIcon(value, hasChildren)}
                 </sp-sidenav-item>
             `;
         });
@@ -386,6 +419,22 @@ class AemTagPickerField extends LitElement {
     // In hierarchical mode, only keep tags that start under #tagsRoot
     get tagsInHierarchy() {
         return this.value.filter((path) => path.startsWith(this.#tagsRoot));
+    }
+
+    /**
+     * Returns the icon for a tag path.
+     * Uses iconProvider if available, otherwise returns the default icon.
+     * @param {string} path - The tag path
+     * @returns {TemplateResult}
+     */
+    #getTagIcon(path) {
+        if (this.iconProvider) {
+            const icon = this.iconProvider(path);
+            if (icon) {
+                return html`<span slot="icon">${icon}</span>`;
+            }
+        }
+        return html`<sp-icon-label slot="icon"></sp-icon-label>`;
     }
 
     // Renders the chosen tags for hierarchical or checkbox mode
@@ -405,8 +454,7 @@ class AemTagPickerField extends LitElement {
                 const fieldState = getItemFieldState(path, parentTagPaths);
                 return html`
                     <sp-tag deletable @delete=${this.#deleteTag} data-path=${path} data-field-state="${fieldState}">
-                        ${this.#resolveTagTitle(path)}
-                        <sp-icon-label slot="icon"></sp-icon-label>
+                        ${this.#resolveTagTitle(path)} ${this.#getTagIcon(path)}
                     </sp-tag>
                 `;
             },
@@ -504,9 +552,10 @@ class AemTagPickerField extends LitElement {
                         (path) => path, // Unique key for each item
                         (path) => {
                             const checked = this.tempValue.includes(path);
+                            const icon = this.iconProvider ? this.iconProvider(path) : null;
                             return html`
                                 <sp-checkbox value="${path}" ?checked=${checked} @change=${this.#handleCheckboxToggle}>
-                                    ${this.#resolveTagTitle(path)}
+                                    ${icon ? html`${icon} ` : nothing}${this.#resolveTagTitle(path)}
                                 </sp-checkbox>
                             `;
                         },
@@ -542,7 +591,30 @@ class AemTagPickerField extends LitElement {
         `;
     }
 
+    get readonlyTags() {
+        if (!this.ready) return nothing;
+        if (this.tagsInHierarchy.length === 0) {
+            return html`<span class="no-tags">No tags</span>`;
+        }
+        return html`
+            <sp-tags>
+                ${repeat(
+                    this.tagsInHierarchy,
+                    (path) => path,
+                    (path) => {
+                        const icon = this.iconProvider ? this.iconProvider(path) : nothing;
+                        const title = this.#resolveTagTitle(path);
+                        return html`<sp-tag readonly>${icon} ${title}</sp-tag>`;
+                    },
+                )}
+            </sp-tags>
+        `;
+    }
+
     render() {
+        if (this.readonly) {
+            return this.readonlyTags;
+        }
         if (this.selection === 'checkbox') {
             return this.checkboxMode;
         }

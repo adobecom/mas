@@ -9,7 +9,7 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
-import { getFragmentMapping, showToast } from '../utils.js';
+import { getFragmentMapping, showToast, localeIconProvider } from '../utils.js';
 import '../fields/addon-field.js';
 import Store from '../store.js';
 import Events from '../events.js';
@@ -17,7 +17,7 @@ import { VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
-import { getDefaultLocales, getLocaleCode, getCountryName, getCountryFlag } from '../../../io/www/src/fragment/locales.js';
+import { toAttribute } from '../aem/aem-tag-picker-field.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -38,7 +38,6 @@ class MerchCardEditor extends LitElement {
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
         fieldsReady: { type: Boolean, state: true },
-        localeSearch: { type: String, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -83,63 +82,15 @@ class MerchCardEditor extends LitElement {
         return Fragment.isGroupedVariationPath(this.fragment?.path);
     }
 
-    get groupedVariationLocaleTags() {
-        return this.fragment.getFieldValues('pznTags') || [];
+    get pznTagsValue() {
+        const pznTags = this.fragment.getFieldValues('pznTags') || [];
+        // pznTags are already in tag format (e.g., "mas:locale/AE/en_AE"), just join them
+        return pznTags.join(',');
     }
 
-    get surfaceLocales() {
-        const surface = Store.surface();
-        const allLocales = [];
-        for (const defaultLocale of getDefaultLocales(surface)) {
-            // Add the default locale
-            allLocales.push({
-                lang: defaultLocale.lang,
-                country: defaultLocale.country,
-                code: getLocaleCode(defaultLocale),
-            });
-            // Add all region locales
-            if (defaultLocale.regions) {
-                for (const region of defaultLocale.regions) {
-                    allLocales.push({
-                        lang: defaultLocale.lang,
-                        country: region,
-                        code: `${defaultLocale.lang}_${region}`,
-                    });
-                }
-            }
-        }
-        // Sort by locale code
-        return allLocales.sort((a, b) => a.code.localeCompare(b.code));
-    }
-
-    get filteredSurfaceLocales() {
-        const selectedLocales = this.groupedVariationLocaleTags;
-        const search = (this.localeSearch || '').toLowerCase();
-        return this.surfaceLocales.filter((locale) => {
-            if (selectedLocales.includes(locale.code)) return false;
-            if (!search) return true;
-            const countryName = getCountryName(locale.country).toLowerCase();
-            return locale.code.toLowerCase().includes(search) || countryName.includes(search);
-        });
-    }
-
-    #handleLocaleTagAdd(localeCode) {
-        const currentPznTags = this.fragment.getFieldValues('pznTags') || [];
-        if (!currentPznTags.includes(localeCode)) {
-            this.fragmentStore.updateField('pznTags', [...currentPznTags, localeCode]);
-        }
-        this.localeSearch = '';
-        this.showLocaleDropdown = false;
-    }
-
-    #handleLocaleTagRemove(localeCode) {
-        const currentPznTags = this.fragment.getFieldValues('pznTags') || [];
-        const updatedPznTags = currentPznTags.filter((tag) => tag !== localeCode);
-        this.fragmentStore.updateField('pznTags', updatedPznTags);
-    }
-
-    #handleLocaleSearchInput = (e) => {
-        this.localeSearch = e.target.value;
+    #handlePznTagsChange = (event) => {
+        const tagPicker = event.target;
+        this.fragmentStore.updateField('pznTags', tagPicker.value || []);
     };
 
     get groupedVariationTagsTemplate() {
@@ -147,42 +98,15 @@ class MerchCardEditor extends LitElement {
         return html`
             <sp-field-group id="grouped-variation-tags">
                 <sp-field-label>Grouped variation tags</sp-field-label>
-                <sp-tags class="locale-tags-picker">
-                    <overlay-trigger placement="bottom-start">
-                        <sp-action-button slot="trigger" size="s">
-                            Add locale
-                            <sp-icon-add slot="icon"></sp-icon-add>
-                        </sp-action-button>
-                        <sp-popover slot="click-content" tip>
-                            <div class="locale-picker-popover">
-                                <input
-                                    class="locale-search"
-                                    type="text"
-                                    placeholder="Search locales..."
-                                    .value=${this.localeSearch}
-                                    @input=${this.#handleLocaleSearchInput}
-                                />
-                                <div class="locale-options">
-                                    ${this.filteredSurfaceLocales.map(
-                                        (locale) => html`
-                                            <div class="locale-option" @click=${() => this.#handleLocaleTagAdd(locale.code)}>
-                                                ${getCountryFlag(locale.country)} ${locale.code}
-                                            </div>
-                                        `,
-                                    )}
-                                </div>
-                            </div>
-                        </sp-popover>
-                    </overlay-trigger>
-                    ${this.groupedVariationLocaleTags.map((localeCode) => {
-                        const country = localeCode.split('_')[1];
-                        return html`
-                            <sp-tag deletable @delete=${() => this.#handleLocaleTagRemove(localeCode)}>
-                                ${getCountryFlag(country)} ${localeCode}
-                            </sp-tag>
-                        `;
-                    })}
-                </sp-tags>
+                <aem-tag-picker-field
+                    label="Locale tags"
+                    namespace="/content/cq:tags/mas"
+                    top="locale"
+                    multiple
+                    value="${this.pznTagsValue}"
+                    .iconProvider=${localeIconProvider}
+                    @change=${this.#handlePznTagsChange}
+                ></aem-tag-picker-field>
             </sp-field-group>
         `;
     }
@@ -713,50 +637,6 @@ class MerchCardEditor extends LitElement {
 
                 .tags-spacing {
                     margin: 0;
-                }
-
-                sp-tags.locale-tags-picker {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 8px;
-                    align-items: center;
-                }
-
-                .locale-picker-popover {
-                    padding: 12px;
-                    min-width: 200px;
-                }
-
-                .locale-picker-popover .locale-search {
-                    width: 100%;
-                    box-sizing: border-box;
-                    padding: 8px 12px;
-                    border: 1px solid var(--spectrum-gray-300);
-                    border-radius: 4px;
-                    font-size: 14px;
-                    outline: none;
-                    margin-bottom: 8px;
-                }
-
-                .locale-picker-popover .locale-search:focus {
-                    border-color: var(--spectrum-blue-500);
-                }
-
-                .locale-picker-popover .locale-options {
-                    max-height: 200px;
-                    overflow-y: auto;
-                }
-
-                .locale-picker-popover .locale-option {
-                    padding: 8px 12px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    color: var(--spectrum-gray-800);
-                    border-radius: 4px;
-                }
-
-                .locale-picker-popover .locale-option:hover {
-                    background: var(--spectrum-gray-100);
                 }
 
                 .full-width {

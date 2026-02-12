@@ -25,6 +25,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-archive.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-aspect-ratio.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-bell.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-bookmark.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-branch3.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-brush.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-calendar.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-campaign.js';

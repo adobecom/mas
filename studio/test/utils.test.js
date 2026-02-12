@@ -1,6 +1,6 @@
 import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
-import { copyToClipboard } from '../src/utils.js';
+import { copyToClipboard, localeIconProvider } from '../src/utils.js';
 import Events from '../src/events.js';
 
 describe('copyToClipboard', () => {
@@ -120,5 +120,44 @@ describe('copyToClipboard', () => {
                 content: 'Copied to clipboard',
             }),
         ).to.be.true;
+    });
+});
+
+describe('localeIconProvider', () => {
+    it('should return country flag for valid locale tag path with country folder', () => {
+        // Path structure: /content/cq:tags/mas/locale/{COUNTRY}/{lang_COUNTRY}
+        const result = localeIconProvider('/content/cq:tags/mas/locale/AE/ar_AE');
+        expect(result).to.equal('🇦🇪');
+    });
+
+    it('should return country flag for different locales with country folder', () => {
+        expect(localeIconProvider('/content/cq:tags/mas/locale/FR/fr_FR')).to.equal('🇫🇷');
+        expect(localeIconProvider('/content/cq:tags/mas/locale/DE/de_DE')).to.equal('🇩🇪');
+        expect(localeIconProvider('/content/cq:tags/mas/locale/JP/ja_JP')).to.equal('🇯🇵');
+        expect(localeIconProvider('/content/cq:tags/mas/locale/GB/en_GB')).to.equal('🇬🇧');
+        expect(localeIconProvider('/content/cq:tags/mas/locale/US/en_US')).to.equal('🇺🇸');
+    });
+
+    it('should return country flag for flat locale paths (without country folder)', () => {
+        // Also support flat structure: /content/cq:tags/mas/locale/{lang_COUNTRY}
+        expect(localeIconProvider('/content/cq:tags/mas/locale/en_US')).to.equal('🇺🇸');
+        expect(localeIconProvider('/content/cq:tags/mas/locale/fr_FR')).to.equal('🇫🇷');
+    });
+
+    it('should return null for paths without locale segment', () => {
+        const result = localeIconProvider('/content/cq:tags/mas/product/photoshop');
+        expect(result).to.be.null;
+    });
+
+    it('should return null for country folder paths (not the full locale path)', () => {
+        // The country folder itself (e.g., /locale/AE) should return null
+        const result = localeIconProvider('/content/cq:tags/mas/locale/AE');
+        expect(result).to.be.null;
+    });
+
+    it('should return null for empty or invalid paths', () => {
+        expect(localeIconProvider('')).to.be.null;
+        expect(localeIconProvider(null)).to.be.null;
+        expect(localeIconProvider(undefined)).to.be.null;
     });
 });

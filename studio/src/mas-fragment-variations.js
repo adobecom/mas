@@ -5,7 +5,8 @@ import { VARIATION_TYPES } from './constants.js';
 import { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
 import router from './router.js';
-import { getLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { localeIconProvider } from './utils.js';
+import './aem/aem-tag-picker-field.js';
 
 const styleElement = document.createElement('style');
 styleElement.textContent = styles;
@@ -66,13 +67,14 @@ class MasFragmentVariations extends LitElement {
     }
 
     /**
-     * Returns locale codes from the fragment's pznTags field.
+     * Returns pznTags value as a comma-separated string for aem-tag-picker-field.
      * @param {Object} variationFragment
-     * @returns {string[]}
+     * @returns {string}
      */
-    getGroupedVariationLocaleTags(variationFragment) {
+    getGroupedVariationTagsValue(variationFragment) {
         const pznTagsField = variationFragment.fields?.find((field) => field.name === 'pznTags');
-        return pznTagsField?.values || [];
+        const tags = pznTagsField?.values || [];
+        return tags.join(',');
     }
 
     /**
@@ -162,7 +164,7 @@ class MasFragmentVariations extends LitElement {
                 <sp-table-body>
                     ${this.groupedVariations.map((variationFragment) => {
                         const fragmentStore = new FragmentStore(new Fragment(variationFragment));
-                        const localeTags = this.getGroupedVariationLocaleTags(variationFragment);
+                        const tagsValue = this.getGroupedVariationTagsValue(variationFragment);
                         const promoCode = this.getPromoCode(variationFragment);
                         const isExpanded = this.isGroupedVariationExpanded(variationFragment.id);
                         return html`
@@ -170,7 +172,6 @@ class MasFragmentVariations extends LitElement {
                                 class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''}"
                                 data-id="${variationFragment.id}"
                                 .fragmentStore=${fragmentStore}
-                                .nested=${false}
                                 .expanded=${isExpanded}
                                 .toggleExpand=${() => this.toggleGroupedVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(fragmentStore)}
@@ -184,11 +185,13 @@ class MasFragmentVariations extends LitElement {
                                           </div>
                                           <div class="tags-group">
                                               <span class="field-label">Grouped variation tags</span>
-                                              <sp-tags>
-                                                  ${localeTags.length > 0
-                                                      ? localeTags.map((tag) => html`<sp-tag size="m" readonly>${tag}</sp-tag>`)
-                                                      : html`<span class="no-tags">No locale tags</span>`}
-                                              </sp-tags>
+                                              <aem-tag-picker-field
+                                                  namespace="/content/cq:tags/mas"
+                                                  top="locale"
+                                                  value="${tagsValue}"
+                                                  .iconProvider=${localeIconProvider}
+                                                  readonly
+                                              ></aem-tag-picker-field>
                                           </div>
                                       </div>
                                   `

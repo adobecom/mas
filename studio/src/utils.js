@@ -1,6 +1,7 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
+import { getCountryFlag } from '../../io/www/src/fragment/locales.js';
 
 /**
  * @param {string} input
@@ -281,4 +282,24 @@ export async function copyToClipboard(e, text) {
 
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Provides country flag icons for locale tags.
+ * Used as iconProvider for aem-tag-picker-field when selecting locale tags.
+ * @param {string} path - Tag path like "/content/cq:tags/mas/locale/AE/ar_AE" or "/content/cq:tags/mas/locale/en_US"
+ * @returns {string|null} Country flag emoji or null
+ */
+export function localeIconProvider(path) {
+    if (!path) return null;
+    // Match locale code at the end of the path (e.g., "ar_AE" from "/locale/AE/ar_AE" or "en_US" from "/locale/en_US")
+    const match = path.match(/\/locale\/(?:[A-Z]{2}\/)?([a-z]{2}_[A-Z]{2,})$/);
+    if (match) {
+        const localeCode = match[1];
+        const country = localeCode.split('_')[1];
+        if (country) {
+            return getCountryFlag(country);
+        }
+    }
+    return null;
 }

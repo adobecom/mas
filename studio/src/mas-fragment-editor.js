@@ -1133,9 +1133,26 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
+    displayGroupedVariationInfo(clazz) {
+        if (!Fragment.isGroupedVariationPath(this.fragment?.path)) return nothing;
+        const pznTags = this.fragment.getFieldValues('pznTags') || [];
+        if (pznTags.length === 0) return nothing;
+        // Extract locale codes from tag paths like "/content/cq:tags/mas/locale/fr_FR"
+        const localeCodes = pznTags.map((tag) => {
+            const parts = tag.split('/');
+            return parts[parts.length - 1];
+        });
+        return html`<div class="${clazz}">
+            <span>Grouped variation: <strong>${localeCodes.join(', ')}</strong></span>
+        </div>`;
+    }
+
     get localeVariationHeader() {
         if (!this.fragment || !this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
+        }
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
+            return this.displayGroupedVariationInfo('locale-variation-header');
         }
         return this.displayRegionalVarationInfo('locale-variation-header');
     }
@@ -1315,7 +1332,9 @@ export default class MasFragmentEditor extends LitElement {
             <div id="preview-column">
                 <div id="preview-wrapper">
                     ${this.editorContextStore.isVariation(this.fragment.id)
-                        ? this.displayRegionalVarationInfo('preview-header')
+                        ? Fragment.isGroupedVariationPath(this.fragment.path)
+                            ? this.displayGroupedVariationInfo('preview-header')
+                            : this.displayRegionalVarationInfo('preview-header')
                         : nothing}
                     <div class="preview-content columns mas-fragment">
                         <sp-theme color="light" scale="medium" system="${getSpectrumVersion(this.fragment?.variant)}">

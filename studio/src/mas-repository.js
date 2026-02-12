@@ -1390,11 +1390,11 @@ export class MasRepository extends LitElement {
     /**
      * Creates a grouped variation fragment under en_US/{productArrangementCode}/pzn/.
      * @param {string} fragmentId - The parent fragment ID
-     * @param {string[]} localeTags - Array of locale codes (e.g. ['fr_FR', 'fr_CH', 'fr_BE'])
+     * @param {string[]} pznTags - Array of locale codes (e.g. ['fr_FR', 'fr_CH', 'fr_BE'])
      * @param {Object} offerData - The resolved WCS offer data containing productArrangementCode
      * @returns {Promise<Object>} The created variation fragment
      */
-    async createGroupedVariation(fragmentId, localeTags, offerData) {
+    async createGroupedVariation(fragmentId, pznTags, offerData) {
         const parentFragment = await this.aem.sites.cf.fragments.getById(fragmentId);
         if (!parentFragment) {
             throw new Error('Failed to fetch parent fragment');
@@ -1431,7 +1431,7 @@ export class MasRepository extends LitElement {
             modelId: parentFragment.model.id,
             parentPath: targetFolder,
             name: fragmentName,
-            fields: [],
+            fields: pznTags?.length ? [{ name: 'pznTags', type: 'tag', multiple: true, values: pznTags }] : [],
         });
 
         if (parentFragment.tags?.length) {

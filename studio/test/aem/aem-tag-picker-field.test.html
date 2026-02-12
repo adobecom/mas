@@ -181,6 +181,67 @@
                         const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
                         expect(spSearch).to.not.be.null;
                     });
+
+                    it('supports iconProvider for custom icons in checkbox mode', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker6', this.test.title);
+                        // Set up an iconProvider that returns an emoji based on the tag path
+                        aemTagPicker.iconProvider = (path) => {
+                            if (path.includes('draft')) return '📝';
+                            if (path.includes('published')) return '✅';
+                            return null;
+                        };
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const checkboxList = aemTagPicker.shadowRoot.querySelector('.checkbox-list');
+                        const items = checkboxList.querySelectorAll('sp-checkbox');
+
+                        // Find the draft and published checkboxes and verify they have icons
+                        const draftCheckbox = [...items].find((item) => item.getAttribute('value')?.includes('draft'));
+                        const publishedCheckbox = [...items].find((item) => item.getAttribute('value')?.includes('published'));
+
+                        expect(draftCheckbox).to.not.be.undefined;
+                        expect(publishedCheckbox).to.not.be.undefined;
+                        expect(draftCheckbox.textContent).to.include('📝');
+                        expect(publishedCheckbox.textContent).to.include('✅');
+                    });
+
+                    it('supports iconProvider for custom icons in tags display', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker2', this.test.title);
+                        // Set up an iconProvider
+                        aemTagPicker.iconProvider = (path) => {
+                            if (path.includes('draft')) return '📝';
+                            return null;
+                        };
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.updateComplete;
+                        await delay(100);
+
+                        const spTag = aemTagPicker.shadowRoot.querySelector('sp-tag');
+                        expect(spTag).to.not.be.null;
+                        // The icon should be rendered in a span with slot="icon"
+                        const iconSpan = spTag.querySelector('span[slot="icon"]');
+                        expect(iconSpan).to.not.be.null;
+                        expect(iconSpan.textContent).to.equal('📝');
+                    });
+
+                    it('falls back to default icon when iconProvider returns null', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker2', this.test.title);
+                        // Set up an iconProvider that returns null for all paths
+                        aemTagPicker.iconProvider = () => null;
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.updateComplete;
+                        await delay(100);
+
+                        const spTag = aemTagPicker.shadowRoot.querySelector('sp-tag');
+                        expect(spTag).to.not.be.null;
+                        // Should fall back to sp-icon-label
+                        const defaultIcon = spTag.querySelector('sp-icon-label');
+                        expect(defaultIcon).to.not.be.null;
+                    });
                 });
             });
         </script>

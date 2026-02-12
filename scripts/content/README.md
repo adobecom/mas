@@ -18,12 +18,6 @@ Creates locale tags in AEM under `/content/cq:tags/mas/locale/`.
 export MAS_ACCESS_TOKEN="Bearer eyJ..."
 node scripts/content/gen-locale-tags.js \
   --host=https://author-pxxx-yyyy.adobeaemcloud.com
-
-# Export tag definitions as JSON
-node scripts/content/gen-locale-tags.js --format=json > locale-tags.json
-
-# Export tag definitions as CSV
-node scripts/content/gen-locale-tags.js --format=csv > locale-tags.csv
 ```
 
 ### Environment Variables
@@ -37,8 +31,6 @@ node scripts/content/gen-locale-tags.js --format=csv > locale-tags.csv
 | Option          | Description                                        |
 | --------------- | -------------------------------------------------- |
 | `--host=<URL>`  | AEM host URL (required for tag creation)           |
-| `--format=json` | Output JSON array of tag definitions (no creation) |
-| `--format=csv`  | Output CSV for documentation/review (no creation)  |
 
 ### How It Works
 

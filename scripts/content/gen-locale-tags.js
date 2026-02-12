@@ -114,8 +114,6 @@ function generateTagDefinitions() {
 async function fetchExistingTags(host, token) {
     const url = `${host}/bin/querybuilder.json?path=/content/cq:tags/mas&type=cq:Tag&orderby=@jcr:path&p.limit=-1`;
 
-    console.log(`curl -X GET "${url}" -H "Authorization: ${token}"`);
-
     const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -213,48 +211,25 @@ async function createMissingTags(host, token) {
 }
 
 /**
- * Format output as JSON
- */
-function formatAsJson(tags) {
-    return JSON.stringify(tags, null, 2);
-}
-
-/**
- * Format output as CSV
- */
-function formatAsCsv(tags) {
-    const lines = ['path,name,title'];
-
-    for (const tag of tags) {
-        // Escape quotes in title
-        const escapedTitle = tag.title.replace(/"/g, '""');
-        lines.push(`"${tag.path}","${tag.name}","${escapedTitle}"`);
-    }
-
-    return lines.join('\n');
-}
-
-/**
  * Main function
  */
 async function main() {
     const args = process.argv.slice(2);
     let host = null;
-    let format = null;
 
     for (const arg of args) {
         if (arg.startsWith('--host=')) {
             host = arg.split('=')[1];
         } else if (arg.startsWith('--format=')) {
-            format = arg.split('=')[1];
+            console.error('Error: --format is no longer supported.');
+            console.error('Use --help for usage information.');
+            process.exit(1);
         } else if (arg === '--help' || arg === '-h') {
             console.log(`
 Usage: node scripts/content/gen-locale-tags.js [options]
 
 Options:
   --host=<URL>     AEM host URL (required for tag creation)
-  --format=json    Output JSON array of tag definitions (no creation)
-  --format=csv     Output CSV for documentation/review (no creation)
   --help, -h       Show this help message
 
 Environment variables:
@@ -269,35 +244,12 @@ Examples:
   # Create missing tags in AEM
   export MAS_ACCESS_TOKEN="Bearer eyJ..."
   node scripts/content/gen-locale-tags.js --host=https://author-p22655-e155390.adobeaemcloud.com
-
-  # Export tag definitions
-  node scripts/content/gen-locale-tags.js --format=json > locale-tags.json
-  node scripts/content/gen-locale-tags.js --format=csv > locale-tags.csv
 `);
             process.exit(0);
         }
     }
 
-    // If format is specified, output and exit
-    if (format) {
-        const tags = generateTagDefinitions();
-        let output;
-        switch (format) {
-            case 'json':
-                output = formatAsJson(tags);
-                break;
-            case 'csv':
-                output = formatAsCsv(tags);
-                break;
-            default:
-                console.error(`Unknown format: ${format}`);
-                process.exit(1);
-        }
-        console.log(output);
-        return;
-    }
-
-    // Otherwise, create tags in AEM
+    // Create tags in AEM
     const accessToken = process.env.MAS_ACCESS_TOKEN;
     if (!host || !accessToken) {
         console.error('Error: --host and MAS_ACCESS_TOKEN environment variable are required for tag creation.');

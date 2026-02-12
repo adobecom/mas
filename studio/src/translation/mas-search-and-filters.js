@@ -39,61 +39,24 @@ class MasSearchAndFilters extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        const storesToWatch = [
+        this.commonDataController = new ReactiveController(this, [
             Store.translationProjects[`all${this.typeUppercased}`],
             Store.translationProjects[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
-        ];
-        if (this.type === TABLE_TYPE.CARDS) {
-            storesToWatch.push(Store.translationProjects.cardsProcessing);
-        } else if (this.type === TABLE_TYPE.COLLECTIONS) {
-            storesToWatch.push(Store.translationProjects.collectionsProcessing);
-        }
-        this.commonDataController = new ReactiveController(this, storesToWatch);
-
-        switch (this.type) {
-            case TABLE_TYPE.CARDS:
-                this.dataSubscription = Store.translationProjects.allCards.subscribe(() => {
-                    if (!this.searchOnly) {
-                        this.#extractFilterOptions();
-                    }
-                    this.requestUpdate();
-                });
-                break;
-            case TABLE_TYPE.COLLECTIONS:
-                this.dataSubscription = Store.translationProjects.allCollections.subscribe(() => {
-                    if (!this.searchOnly) {
-                        this.#extractFilterOptions();
-                    }
-                    this.requestUpdate();
-                });
-                break;
-            case TABLE_TYPE.PLACEHOLDERS:
-                this.dataSubscription = Store.placeholders.list.data.subscribe(() => {
-                    if (!this.searchOnly) {
-                        this.#extractFilterOptions();
-                    }
-                    this.requestUpdate();
-                });
-                break;
-            default:
-                break;
-        }
+        ]);
+        this.dataSubscription = Store.translationProjects[`all${this.typeUppercased}`].subscribe(() => {
+            if (!this.searchOnly) {
+                this.#extractFilterOptions();
+            }
+            this.requestUpdate();
+        });
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        switch (this.type) {
-            case TABLE_TYPE.CARDS:
-                Store.translationProjects.displayCards.set(Store.translationProjects.allCards.value);
-                break;
-            case TABLE_TYPE.COLLECTIONS:
-                Store.translationProjects.displayCollections.set(Store.translationProjects.allCollections.value);
-                break;
-            case TABLE_TYPE.PLACEHOLDERS:
-                Store.translationProjects.displayPlaceholders.set(Store.translationProjects.allPlaceholders.value);
-                break;
-        }
+        Store.translationProjects[`display${this.typeUppercased}`].set(
+            Store.translationProjects[`all${this.typeUppercased}`].value,
+        );
         this.dataSubscription?.unsubscribe();
     }
 
@@ -102,25 +65,9 @@ class MasSearchAndFilters extends LitElement {
     }
 
     get isLoading() {
-        let storeLoading;
-        let isProcessing = false;
-        switch (this.type) {
-            case TABLE_TYPE.CARDS:
-                storeLoading = Store.fragments.list.loading.get();
-                isProcessing = Store.translationProjects.cardsProcessing.get();
-                break;
-            case TABLE_TYPE.COLLECTIONS:
-                storeLoading = Store.fragments.list.loading.get();
-                isProcessing = Store.translationProjects.collectionsProcessing.get();
-                break;
-            case TABLE_TYPE.PLACEHOLDERS:
-                storeLoading = Store.placeholders.list.loading.get();
-                break;
-            default:
-                storeLoading = false;
-        }
-        const allData = Store.translationProjects[`all${this.typeUppercased}`]?.value;
-        return storeLoading || isProcessing || !allData?.length;
+        return this.type === TABLE_TYPE.PLACEHOLDERS
+            ? Store.placeholders.list.loading.get()
+            : Store.fragments.list.loading.get();
     }
 
     get appliedFilters() {

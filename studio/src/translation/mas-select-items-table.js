@@ -29,7 +29,6 @@ class MasSelectItemsTable extends LitElement {
         this.tableKey = 0;
         this.selectedInTable = [];
         this.dataSubscription = null;
-        this.loadingSubscription = null;
         this.OFFER_DATA_CONCURRENCY_LIMIT = 5;
         this.processAbortController = null;
         this.isProcessingCards = false;
@@ -78,7 +77,6 @@ class MasSelectItemsTable extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.dataSubscription?.unsubscribe();
-        this.loadingSubscription?.unsubscribe();
         this.processAbortController?.abort();
         this.processAbortController = null;
     }
@@ -133,15 +131,6 @@ class MasSelectItemsTable extends LitElement {
                 : this.#processCollectionsData(allCollections);
         });
 
-        this.loadingSubscription = Store.fragments.list.loading.subscribe((loading) => {
-            if (!loading) {
-                if (this.type === TABLE_TYPE.CARDS) {
-                    Store.translationProjects.cardsProcessing.set(false);
-                } else if (this.type === TABLE_TYPE.COLLECTIONS) {
-                    Store.translationProjects.collectionsProcessing.set(false);
-                }
-            }
-        });
     }
 
     async #fetchSelectedFragments() {
@@ -240,7 +229,6 @@ class MasSelectItemsTable extends LitElement {
             this.processAbortController?.abort();
         }
         this.isProcessingCards = true;
-        Store.translationProjects.cardsProcessing.set(true);
         this.processAbortController = new AbortController();
         const { signal } = this.processAbortController;
 
@@ -291,7 +279,6 @@ class MasSelectItemsTable extends LitElement {
     }
 
     #processCollectionsData(allCollections) {
-        Store.translationProjects.collectionsProcessing.set(true);
         Store.translationProjects.allCollections.set(allCollections);
         const collectionsByPaths = new Map(allCollections.map((fragment) => [fragment.path, fragment]));
         Store.translationProjects.collectionsByPaths.set(collectionsByPaths);

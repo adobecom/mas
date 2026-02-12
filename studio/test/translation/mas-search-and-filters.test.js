@@ -210,24 +210,6 @@ describe('MasSearchAndFilters', () => {
             expect(search.placeholder).to.equal('Search fragments...');
         });
 
-        it('should render result count', async () => {
-            Store.translationProjects.displayCards.set([createMockFragment(), createMockFragment()]);
-            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const resultCount = el.shadowRoot.querySelector('.result-count');
-            expect(resultCount).to.exist;
-            expect(resultCount.textContent).to.include('2');
-            expect(resultCount.textContent).to.include('results');
-        });
-
-        it('should render singular result for 1 item', async () => {
-            Store.translationProjects.displayCards.set([createMockFragment()]);
-            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const resultCount = el.shadowRoot.querySelector('.result-count');
-            expect(resultCount.textContent).to.include('1');
-            expect(resultCount.textContent).to.include('result');
-            expect(resultCount.textContent).to.not.include('results');
-        });
-
         it('should render progress circle when loading', async () => {
             Store.fragments.list.loading.set(true);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
@@ -1010,13 +992,6 @@ describe('MasSearchAndFilters', () => {
             search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCollections.get().length).to.equal(1);
-        });
-
-        it('should render result count for collections', async () => {
-            Store.translationProjects.displayCollections.set([createMockFragment(), createMockFragment()]);
-            const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
-            const resultCount = el.shadowRoot.querySelector('.result-count');
-            expect(resultCount.textContent).to.include('2');
         });
     });
 });

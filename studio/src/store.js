@@ -118,14 +118,12 @@ const Store = {
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
-        cardsProcessing: new ReactiveStore(false),
         offerDataCache: new Map(),
 
         allCollections: new ReactiveStore([]),
         collectionsByPaths: new ReactiveStore(new Map()),
         displayCollections: new ReactiveStore([]),
         selectedCollections: new ReactiveStore([]),
-        collectionsProcessing: new ReactiveStore(false),
 
         allPlaceholders: new ReactiveStore([]),
         placeholdersByPaths: new ReactiveStore(new Map()),

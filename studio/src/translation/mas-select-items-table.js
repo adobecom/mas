@@ -130,7 +130,6 @@ class MasSelectItemsTable extends LitElement {
                 ? await this.#processCardsData(allCards)
                 : this.#processCollectionsData(allCollections);
         });
-
     }
 
     async #fetchSelectedFragments() {

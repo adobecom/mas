@@ -951,6 +951,9 @@ export class MasRepository extends LitElement {
             fragmentStore.refreshFrom(savedFragment);
             fragmentCache.remove(savedFragment.id);
             fragmentCache.add(new Fragment(savedFragment));
+            if (parentFragment) {
+                await this.refreshVariationParentInList(savedFragment, parentFragment);
+            }
             if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {
@@ -959,6 +962,40 @@ export class MasRepository extends LitElement {
         } finally {
             this.operation.set(null);
         }
+    }
+
+    /**
+     * Refreshes parent/list stores that reference a saved variation so nested rows in
+     * the content table stay in sync when navigating back from the editor.
+     * @param {Object} variationFragment
+     * @param {Object} parentFragment
+     */
+    async refreshVariationParentInList(variationFragment, parentFragment) {
+        if (!variationFragment) return;
+
+        const listStores = Store.fragments.list.data.get() || [];
+        const variationId = variationFragment.id;
+        const variationPath = variationFragment.path;
+        const parentId = parentFragment?.id;
+
+        const storesToRefresh = listStores.filter((store) => {
+            const fragment = store?.get?.();
+            if (!fragment) return false;
+            if (parentId && fragment.id === parentId) return true;
+            return fragment.references?.some((reference) => reference.id === variationId || reference.path === variationPath);
+        });
+
+        if (!storesToRefresh.length) return;
+
+        await Promise.all(
+            storesToRefresh.map(async (store) => {
+                try {
+                    await this.refreshFragment(store);
+                } catch (error) {
+                    console.warn('Failed to refresh parent fragment store after variation save:', error?.message || error);
+                }
+            }),
+        );
     }
 
     /**

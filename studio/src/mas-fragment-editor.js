@@ -405,7 +405,7 @@ export default class MasFragmentEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        if (this.fragmentId) {
+        if (this.#shouldInitFragment()) {
             this.initFragment();
         }
     }
@@ -417,10 +417,15 @@ export default class MasFragmentEditor extends LitElement {
             this.previewResolved = this.fragmentStore.previewStore.resolved || false;
         }
 
-        // Handle fragmentId changes or inEdit cleared (e.g., locale switch)
-        if (this.fragmentId && !this.inEdit.get()) {
+        // Handle fragmentId changes or inEdit cleared (e.g., locale switch).
+        // Guard against re-entering initFragment() on every store-driven rerender while loading.
+        if (this.#shouldInitFragment()) {
             this.initFragment();
         }
+    }
+
+    #shouldInitFragment() {
+        return this.fragmentId && !this.inEdit.get() && this.initState !== MasFragmentEditor.INIT_STATE.LOADING;
     }
 
     get previewSkeleton() {

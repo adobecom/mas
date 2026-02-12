@@ -1,4 +1,5 @@
-import { PATH_TOKENS } from '../constants.js';
+import { PATH_TOKENS, TAG_PROMOTION_PREFIX } from '../constants.js';
+
 export class Fragment {
     path = '';
     hasChanges = false;
@@ -13,48 +14,28 @@ export class Fragment {
     /**
      * @param {*} AEM Fragment JSON object
      */
-    constructor({
-        id,
-        dictionary,
-        etag,
-        fields,
-        model,
-        path,
-        title,
-        description,
-        status,
-        created,
-        modified,
-        placeholders,
-        priceLiterals,
-        published,
-        references,
-        settings,
-        tags,
-    }) {
-        this.model = model;
-        this.description = description;
-        this.dictionary = dictionary;
-        this.etag = etag;
-        this.fields = fields;
-        this.id = id;
-        this.initialValue = structuredClone(this);
-        this.status = status;
-        this.created = created;
-        this.modified = modified;
-        this.name = path?.split('/')?.pop();
-        this.path = path;
-        this.placeholders = placeholders || {};
-        this.priceLiterals = priceLiterals || {};
-        this.published = published;
-        this.references = references;
-        this.settings = settings || {};
-        this.tags = tags || [];
-        this.title = title;
+    constructor(fragment) {
+        this.refreshFrom(fragment);
+    }
+
+    getField(fieldName) {
+        return this.fields.find((field) => field.name === fieldName);
+    }
+
+    getFieldValues(fieldName) {
+        return this.getField(fieldName)?.values || [];
+    }
+
+    getFieldValue(fieldName, index = 0) {
+        return this.getFieldValues(fieldName)?.[index];
+    }
+
+    isValueEmpty(values) {
+        return values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
     }
 
     get variant() {
-        return this.fields.find((field) => field.name === 'variant')?.values?.[0];
+        return this.getFieldValue('variant');
     }
 
     get fragmentName() {
@@ -75,28 +56,28 @@ export class Fragment {
         return match?.groups?.parsedLocale || '';
     }
 
-    refreshFrom(fragmentData) {
-        Object.assign(this, fragmentData);
-        this.initialValue = structuredClone(this);
-        this.hasChanges = false;
-    }
-
     /**
      * Updates the fragment entirely while preserving the initial value & hasChange status if not specified
      * @param {object} fragmentData
      * @param {Boolean | undefined} hasChanges
      */
     replaceFrom(fragmentData, hasChanges) {
-        Object.assign(this, fragmentData);
+        const clonedData = structuredClone(fragmentData);
+        Object.assign(this, clonedData);
         if (hasChanges === undefined) return;
         this.hasChanges = hasChanges;
     }
 
+    refreshFrom(fragmentData) {
+        this.replaceFrom(fragmentData, false);
+        this.initialValue = structuredClone(fragmentData);
+        this.newTags = undefined;
+    }
+
     discardChanges() {
         if (!this.hasChanges) return;
-        Object.assign(this, this.initialValue);
-        this.initialValue = structuredClone(this);
-        this.hasChanges = false;
+        this.newTags = undefined;
+        this.replaceFrom(this.initialValue, false);
     }
 
     updateFieldInternal(fieldName, value) {
@@ -104,17 +85,8 @@ export class Fragment {
         this.hasChanges = true;
     }
 
-    getField(fieldName) {
-        return this.fields.find((field) => field.name === fieldName);
-    }
-
-    getFieldValue(fieldName, index = 0) {
-        return this.fields.find((field) => field.name === fieldName)?.values?.[index];
-    }
-
     getVariations() {
-        const variationsField = this.fields.find((field) => field.name === 'variations');
-        return variationsField?.values || [];
+        return this.getFieldValues('variations') || [];
     }
 
     hasVariations() {
@@ -122,40 +94,73 @@ export class Fragment {
         return variations.length > 0;
     }
 
-    updateField(fieldName, value) {
-        let change = false;
-        const encodedValues = value.map((v) => {
-            if (typeof v === 'string') {
-                return v.normalize('NFC');
-            }
-            return v;
-        });
+    /**
+     * Updates a field's values.
+     * For variations: if values match parent exactly, resets to inherited state.
+     * @param {string} fieldName - The field name to update
+     * @param {Array} value - The new values
+     * @param {Fragment|null} [parentFragment] - The parent fragment (for variations)
+     * @returns {boolean|'reset'} - true if updated, false if no change, 'reset' if reset to parent
+     */
+    updateField(fieldName, value, parentFragment = null) {
+        const encodedValues = value.map((v) => (typeof v === 'string' ? v.normalize('NFC') : v));
+        const existingField = this.getField(fieldName);
+        const isTags = fieldName === 'tags';
+        const parentField = parentFragment?.getField(fieldName);
 
-        const existingField = this.fields.find((field) => field.name === fieldName);
+        // [''] is the explicit clear sentinel for multi-value fields
+        const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
 
-        if (existingField) {
-            if (
-                existingField.values.length === encodedValues.length &&
-                existingField.values.every((v, index) => v === encodedValues[index])
-            ) {
-                if (fieldName === 'tags') this.newTags = value;
-                return change;
+        // Determine if this is a multi-value field based on the .multiple property
+        const isMultiple = parentField?.multiple === true || existingField?.multiple === true;
+
+        // For variations: if values match parent exactly, reset to inherited state
+        if (parentFragment) {
+            const parentValues = parentField?.values || [];
+            const valuesMatchParent =
+                encodedValues.length === parentValues.length && encodedValues.every((v, i) => v === parentValues[i]);
+
+            if (valuesMatchParent) {
+                // Reset field if it exists, or just confirm it should stay inherited
+                this.resetFieldToParent(fieldName);
+                return 'reset';
             }
-            existingField.values = encodedValues;
-            this.hasChanges = true;
-            change = true;
-        } else if (encodedValues.length > 0 && encodedValues.some((v) => v !== '')) {
-            this.fields.push({
-                name: fieldName,
-                type: 'text',
-                values: encodedValues,
-            });
-            this.hasChanges = true;
-            change = true;
         }
 
-        if (fieldName === 'tags') this.newTags = value;
-        return change;
+        if (existingField) {
+            const { values } = existingField;
+            // Skip [] to [''] on single-value fields (RTE initialization sends [''] for empty fields).
+            // For multiple:true fields, [''] is an explicit "clear" sentinel.
+            if (values.length === 0 && isSingleEmptyString && !isMultiple) {
+                return false;
+            }
+            // No change if values are identical
+            if (values.length === encodedValues.length && values.every((v, i) => v === encodedValues[i])) {
+                if (isTags) this.newTags = value;
+                return false;
+            }
+            existingField.values = encodedValues;
+            // Inherit multiple from parent field if not already set
+            if (parentField?.multiple && !existingField.multiple) {
+                existingField.multiple = true;
+            }
+        } else {
+            // Only create new field if there's meaningful content
+            // Exception: [''] is allowed as explicit clear sentinel for multi-value fields
+            const hasContent = encodedValues.length && encodedValues.some((v) => v?.trim?.());
+            if (!hasContent && !(isSingleEmptyString && isMultiple)) {
+                if (isTags) this.newTags = value;
+                return false;
+            }
+            const newField = { name: fieldName, type: 'text', values: encodedValues };
+            // Inherit multiple from parent field
+            if (parentField?.multiple) newField.multiple = true;
+            this.fields.push(newField);
+        }
+
+        this.hasChanges = true;
+        if (isTags) this.newTags = value;
+        return true;
     }
 
     getEffectiveFieldValue(fieldName, parentFragment, isVariation, index = 0) {
@@ -171,14 +176,37 @@ export class Fragment {
 
     getEffectiveFieldValues(fieldName, parentFragment, isVariation) {
         const ownField = this.getField(fieldName);
-        if (ownField && ownField.values && ownField.values.length > 0) {
-            return ownField.values;
+        const ownValues = ownField?.values || [];
+
+        // [] (empty array) = inherit from parent if variation
+        if (ownValues.length === 0) {
+            if (!parentFragment || !isVariation) {
+                return [];
+            }
+            const parentField = parentFragment.getField(fieldName);
+            return parentField?.values || [];
         }
-        if (!parentFragment || !isVariation) {
-            return ownField?.values || [];
+
+        // For [""] (single empty string):
+        // - For multi-value fields (multiple: true): explicit clear sentinel → return empty array
+        // - For single-value fields (multiple: false): AEM initializes empty fields this way → inherit from parent
+        const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
+        if (isSingleEmptyString) {
+            const isMultipleField = ownField?.multiple === true;
+            if (isMultipleField) {
+                // Explicit clear for multi-value fields
+                return [];
+            }
+            // Single-value field with [""] - inherit from parent if variation
+            if (!parentFragment || !isVariation) {
+                return [];
+            }
+            const parentField = parentFragment.getField(fieldName);
+            return parentField?.values || [];
         }
-        const parentField = parentFragment.getField(fieldName);
-        return parentField?.values || [];
+
+        // Has actual values - return them
+        return ownValues;
     }
 
     getFieldState(fieldName, parentFragment, isVariation) {
@@ -186,24 +214,27 @@ export class Fragment {
             return 'no-parent';
         }
         const ownField = this.getField(fieldName);
-        const parentField = parentFragment.getField(fieldName);
-
         const ownValues = ownField?.values || [];
-        const parentValues = parentField?.values || [];
+        const parentValues = parentFragment.getFieldValues(fieldName) || [];
 
-        const isEffectivelyEmpty = (values) =>
-            values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
-
-        const ownIsEmpty = isEffectivelyEmpty(ownValues);
-        const parentIsEmpty = isEffectivelyEmpty(parentValues);
-
-        if (ownIsEmpty && parentIsEmpty) {
-            return 'inherited';
-        }
-        if (ownIsEmpty) {
+        // [] (empty array) = inherited
+        if (ownValues.length === 0) {
             return 'inherited';
         }
 
+        // For [""] (single empty string):
+        // - For multi-value fields (multiple: true): this is explicit clear sentinel → overridden
+        // - For single-value fields (multiple: false): AEM initializes empty fields this way → inherited
+        const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
+        if (isSingleEmptyString) {
+            const isMultipleField = ownField?.multiple === true;
+            if (!isMultipleField) {
+                return 'inherited';
+            }
+            // For multiple fields, [""] is explicit clear - fall through to comparison
+        }
+
+        // Has actual values - compare with parent
         const normalizeForComparison = (v) => {
             if (v === null || v === undefined) return '';
             if (typeof v === 'string') {
@@ -219,11 +250,42 @@ export class Fragment {
         const areEqual =
             ownValues.length === parentValues.length &&
             ownValues.every((v, i) => normalizeForComparison(v) === normalizeForComparison(parentValues[i]));
+
         return areEqual ? 'same-as-parent' : 'overridden';
     }
 
     isFieldOverridden(fieldName, parentFragment, isVariation) {
         return this.getFieldState(fieldName, parentFragment, isVariation) === 'overridden';
+    }
+
+    /**
+     * Prepares a variation fragment for saving by resetting fields that match parent values.
+     * This ensures we don't save inherited values as explicit overrides.
+     * @param {Fragment} parentFragment - The parent fragment to compare against
+     * @returns {Fragment} A clone of this fragment with inherited fields reset to []
+     */
+    prepareVariationForSave(parentFragment) {
+        if (!parentFragment) return this;
+
+        // Create a new Fragment instance from this fragment's data (constructor handles cloning)
+        const prepared = new Fragment(this);
+
+        // Fields that should never be reset (they're fragment-specific, not inherited)
+        const excludeFields = ['variations', 'tags', 'originalId', 'locReady'];
+
+        for (const field of prepared.fields) {
+            if (excludeFields.includes(field.name)) continue;
+
+            const fieldState = this.getFieldState(field.name, parentFragment, true);
+
+            // If field is inherited or same-as-parent, reset to empty array
+            // Only keep values that are truly overridden (different from parent)
+            if (fieldState === 'inherited' || fieldState === 'same-as-parent') {
+                field.values = [];
+            }
+        }
+
+        return prepared;
     }
 
     resetFieldToParent(fieldName) {
@@ -241,6 +303,9 @@ export class Fragment {
      * @returns {Fragment[]}
      */
     listLocaleVariations() {
+        const variationPaths = this.getVariations();
+        if (!this.references?.length || !variationPaths.length) return [];
+
         const currentMatch = this.path.match(PATH_TOKENS);
         if (!currentMatch?.groups) {
             return [];
@@ -248,7 +313,13 @@ export class Fragment {
 
         const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
 
-        return this.references?.filter((reference) => {
+        return this.references.filter((reference) => {
+            if (!variationPaths.includes(reference.path)) return false;
+
+            // Exclude promo variations from locale variations list
+            const isPromo = reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
+            if (isPromo) return false;
+
             const refMatch = reference.path.match(PATH_TOKENS);
             if (!refMatch?.groups) {
                 return false;
@@ -256,5 +327,39 @@ export class Fragment {
             const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
             return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
         });
+    }
+
+    /**
+     * Gets the count of locale variations.
+     * Locale variations are fragments with the same name but different locale paths.
+     * @returns {number}
+     */
+    getLocaleVariationCount() {
+        return this.listLocaleVariations()?.length || 0;
+    }
+
+    /**
+     * Gets the count of promo variations.
+     * Promo variations are identified by promotion tags on references that are also in the variations field.
+     * @returns {number}
+     */
+    getPromoVariationCount() {
+        const variationPaths = this.getVariations();
+        if (!this.references?.length || !variationPaths.length) return 0;
+
+        return this.references.filter((reference) => {
+            return (
+                variationPaths.includes(reference.path) &&
+                reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX))
+            );
+        }).length;
+    }
+
+    /**
+     * Gets the total count of all variations (locale + promo).
+     * @returns {number}
+     */
+    getTotalVariationCount() {
+        return this.getLocaleVariationCount() + this.getPromoVariationCount();
     }
 }

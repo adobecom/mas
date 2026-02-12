@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>RTL Support Test Page</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 20px;
+                font-family: sans-serif;
+            }
+
+            .test-container {
+                display: flex;
+                gap: 20px;
+                flex-direction: column;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .collection-container.plans {
+                display: flex;
+                gap: 20px;
+                padding: 20px;
+                background: #f5f5f5;
+            }
+
+            .columns.checkmark-list ul {
+                margin: 16px 0;
+            }
+
+            merch-card {
+                max-width: 300px;
+            }
+
+            merch-sidenav {
+                max-width: 248px;
+            }
+
+            .test-section {
+                border: 1px solid #ddd;
+                padding: 20px;
+                border-radius: 8px;
+                background: white;
+            }
+
+            .test-section h2 {
+                margin-top: 0;
+            }
+        </style>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+    </head>
+
+    <body>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+        <script type="module" src="./rtl-support.test.html.js"></script>
+
+        <div class="test-container">
+            <div class="test-section">
+                <h2>Sidenav Component</h2>
+                <merch-sidenav>
+                    <h2>Test Sidenav</h2>
+                    <merch-sidenav-list>
+                        <sp-sidenav-item
+                            value="all"
+                            label="All"
+                            selected
+                        ></sp-sidenav-item>
+                        <sp-sidenav-item
+                            value="creative"
+                            label="Creative"
+                        ></sp-sidenav-item>
+                    </merch-sidenav-list>
+                </merch-sidenav>
+            </div>
+
+            <div class="test-section">
+                <h2>Merch Card with Action Menu</h2>
+                <merch-card variant="plans">
+                    <merch-badge
+                        slot="badge"
+                        background-color="spectrum-yellow-300-plans"
+                        >Best Value</merch-badge
+                    >
+                    <h3 slot="heading-xs">Test Plan</h3>
+                    <div slot="body-xs">
+                        <p>Test content for RTL support</p>
+                    </div>
+                    <div slot="footer">
+                        <a href="#" class="con-button blue">Buy now</a>
+                    </div>
+                </merch-card>
+            </div>
+
+            <div class="test-section">
+                <h2>Plans Variant with Callout Content</h2>
+                <merch-card variant="plans">
+                    <div slot="callout-content">
+                        <p>
+                            Callout text
+                            <span class="icon-button">Icon</span>
+                        </p>
+                    </div>
+                    <h3 slot="heading-xs">Plan with Callout</h3>
+                    <div slot="body-xs">
+                        <p>Test content</p>
+                    </div>
+                </merch-card>
+            </div>
+
+            <div class="test-section">
+                <h2>Checkmark List (Plans Variant)</h2>
+                <div class="columns checkmark-list">
+                    <ul>
+                        <li>First item in checkmark list</li>
+                        <li>Second item in checkmark list</li>
+                        <li>Third item in checkmark list</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h2>Collection Container with Sidenav</h2>
+                <div class="collection-container plans">
+                    <merch-sidenav>
+                        <h2>Filter</h2>
+                        <merch-sidenav-list>
+                            <sp-sidenav-item
+                                value="all"
+                                label="All"
+                                selected
+                            ></sp-sidenav-item>
+                        </merch-sidenav-list>
+                    </merch-sidenav>
+                    <merch-card variant="plans">
+                        <h3 slot="heading-xs">Card 1</h3>
+                    </merch-card>
+                    <merch-card variant="plans">
+                        <h3 slot="heading-xs">Card 2</h3>
+                    </merch-card>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

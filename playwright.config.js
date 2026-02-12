@@ -48,7 +48,7 @@ const config = {
 
     /* Configure projects for major browsers */
     projects: [
-        // Setup project
+        // Setup project for authentication (only runs for studio tests)
         {
             name: 'setup',
             use: {
@@ -58,22 +58,53 @@ const config = {
             testMatch: /.*\.setup\.cjs/,
         },
 
+        // Project for @mas-studio tests (requires authentication)
+        // Matches files in nala/studio/** directory
         {
-            name: 'mas-live-chromium',
+            name: 'mas-studio-chromium',
             use: {
                 ...devices['Desktop Chrome'],
                 userAgent: USER_AGENT_DESKTOP,
-                ...(process.env.SKIP_AUTH !== 'true' && {
-                    storageState: './nala/.auth/user.json',
-                }),
+                storageState: './nala/.auth/user.json',
             },
             bypassCSP: true,
             launchOptions: {
                 args: ['--disable-web-security', '--disable-gpu'],
             },
-            ...(process.env.SKIP_AUTH !== 'true' && {
-                dependencies: ['setup'],
-            }),
+            dependencies: ['setup'],
+            testMatch: /nala\/studio\/.*\.test\.js/,
+        },
+
+        // Project for @mas-docs tests (no authentication required)
+        // Matches files in nala/docs/** directory
+        {
+            name: 'mas-docs-chromium',
+            use: {
+                ...devices['Desktop Chrome'],
+                userAgent: USER_AGENT_DESKTOP,
+            },
+            bypassCSP: true,
+            launchOptions: {
+                args: ['--disable-web-security', '--disable-gpu'],
+            },
+            testMatch: /nala\/docs\/.*\.test\.js/,
+        },
+
+        // Fallback project for backward compatibility (requires auth to safely run any tests)
+        // This project can match any tests, so it MUST require authentication to handle studio tests
+        // If studio tests run through this project, they will have auth via setup dependency
+        {
+            name: 'mas-live-chromium',
+            use: {
+                ...devices['Desktop Chrome'],
+                userAgent: USER_AGENT_DESKTOP,
+                storageState: './nala/.auth/user.json',
+            },
+            bypassCSP: true,
+            launchOptions: {
+                args: ['--disable-web-security', '--disable-gpu'],
+            },
+            dependencies: ['setup'],
         },
     ],
 };

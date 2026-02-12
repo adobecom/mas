@@ -4,7 +4,7 @@ on:
     pull_request:
         branches:
             - main
-        types: [opened, synchronize, labeled]
+        types: [opened, synchronize, labeled, unlabeled]
 
 # Prevent multiple runs from happening at the same time
 concurrency:
@@ -12,14 +12,29 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    run-nala-tests:
-        name: Running Nala E2E UI Tests
+    nala-gate:
+        name: Nala Gate
         runs-on: ubuntu-latest
-        timeout-minutes: 20 # Prevent hanging jobs
+        steps:
+            - name: Require 'run nala' label
+              # Only enforce label requirement for synchronize events, not when PR is first opened
+              if: |
+                  github.event.action != 'opened' &&
+                  !contains(github.event.pull_request.labels.*.name, 'run nala')
+              run: |
+                  echo "::error::Add the 'run nala' label to merge this PR"
+                  exit 1
+
+    run-nala-studio-tests:
+        name: Running Nala Studio E2E UI Tests
+        needs: nala-gate
+        # Run when PR is opened (no label needed) OR when 'run nala' label exists
+        # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
         if: |
             github.event.action == 'opened' ||
-            (github.event.action == 'labeled' && github.event.label.name == 'run nala') ||
-            (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'run nala'))
+            contains(github.event.pull_request.labels.*.name, 'run nala')
+        runs-on: [self-hosted, Linux, X64]
+        timeout-minutes: 30 # Prevent hanging jobs
         strategy:
             matrix:
                 node-version: [20.x]
@@ -44,21 +59,28 @@ jobs:
             - name: Cache Playwright browsers
               uses: actions/cache@v4
               id: playwright-cache
+              continue-on-error: true
               with:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
-            - name: Install Playwright dependencies
+            - name: Install Playwright system dependencies
               if: steps.playwright-cache.outputs.cache-hit != 'true'
-              run: npx playwright install --with-deps
+              run: npx playwright install-deps
+
+            - name: Install/verify Playwright browsers
+              run: |
+                  # Always run this - it's idempotent and fast when browsers are already correct
+                  # It checks version compatibility and only installs if browsers are missing or outdated
+                  npx playwright install
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh
 
-            - name: Run Nala Tests via gh.run.sh
+            - name: Run Nala Studio Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh
               env:
-                  labels: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+                  labels: "@mas-studio ${{ join(github.event.pull_request.labels.*.name, ' ') }}"
                   branch: ${{ github.event.pull_request.head.ref }}
                   repoName: ${{ github.repository }}
                   prUrl: ${{ github.event.pull_request.head.repo.html_url }}
@@ -89,6 +111,80 @@ jobs:
               uses: actions/upload-artifact@v4
               if: failure()
               with:
-                  name: test-results
+                  name: test-results-studio
+                  path: test-results
+                  retention-days: 7
+
+    run-nala-docs-tests:
+        name: Running Nala Docs E2E UI Tests
+        needs: nala-gate
+        # Run when PR is opened (no label needed) OR when 'run nala' label exists
+        # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
+        if: |
+            github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala')
+        runs-on: ubuntu-latest
+        timeout-minutes: 20 # Prevent hanging jobs
+        strategy:
+            matrix:
+                node-version: [20.x]
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Set up Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'npm'
+                  cache-dependency-path: |
+                      **/package-lock.json
+                      **/yarn.lock
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@v4
+              id: playwright-cache
+              continue-on-error: true
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
+
+            - name: Install Playwright system dependencies
+              if: steps.playwright-cache.outputs.cache-hit != 'true'
+              run: npx playwright install-deps
+
+            - name: Install/verify Playwright browsers
+              run: |
+                  # Always run this - it's idempotent and fast when browsers are already correct
+                  # It checks version compatibility and only installs if browsers are missing or outdated
+                  npx playwright install
+
+            - name: Set execute permission for gh.run.sh
+              run: chmod +x ./nala/utils/gh.run.sh
+
+            - name: Run Nala Docs Tests via gh.run.sh
+              run: ./nala/utils/gh.run.sh
+              env:
+                  labels: "@mas-docs ${{ join(github.event.pull_request.labels.*.name, ' ') }}"
+                  branch: ${{ github.event.pull_request.head.ref }}
+                  repoName: ${{ github.repository }}
+                  prUrl: ${{ github.event.pull_request.head.repo.html_url }}
+                  prOrg: ${{ github.event.pull_request.head.repo.owner.login }}
+                  prRepo: ${{ github.event.pull_request.head.repo.name }}
+                  prBranch: ${{ github.event.pull_request.head.ref }}
+                  prBaseBranch: ${{ github.event.pull_request.base.ref }}
+                  GITHUB_ACTION_PATH: ${{ github.workspace }}
+                  FORCE_COLOR: 3 # Force color output
+
+            - name: Upload screenshots
+              uses: actions/upload-artifact@v4
+              if: failure()
+              with:
+                  name: test-results-docs
                   path: test-results
                   retention-days: 7

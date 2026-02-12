@@ -7,6 +7,7 @@
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="aem-base-url" />
+        <meta name="io-base-url" />
         <script type="importmap">
             {
                 "imports": {
@@ -16,6 +17,7 @@
                     "lit/directives/class-map.js": "/web-components/dist/lit-all.min.js",
                     "lit/directives/repeat.js": "/web-components/dist/lit-all.min.js",
                     "lit/directives/until.js": "/web-components/dist/lit-all.min.js",
+                    "lit/directives/keyed.js": "/web-components/dist/lit-all.min.js",
                     "prosemirror-state": "/studio/libs/prosemirror.js",
                     "prosemirror-model": "/studio/libs/prosemirror.js",
                     "prosemirror-view": "/studio/libs/prosemirror.js",
@@ -45,7 +47,19 @@
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
                 baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
             }
+            if (envOverride) {
+                document.querySelector('title').innerText += ` [${envOverride.toUpperCase()}]`;
+            }
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
+
+            let ioEnv;
+            if (isLocal && !envOverride) {
+                ioEnv = '';
+            } else {
+                ioEnv = envOverride ? `-${envOverride}` : '';
+            }
+            const ioBaseUrl = `https://14257-masstudio${ioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+            document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);
         </script>
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
@@ -65,6 +79,7 @@
                 studio.setAttribute('base-url', baseUrl);
                 bucket && studio.setAttribute('aem-bucket', bucket);
                 document.querySelector('sp-theme').appendChild(studio);
+                if (envOverride) studio.aemEnv = envOverride;
             }
             const context = {
                 profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,

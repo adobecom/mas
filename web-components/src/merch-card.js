@@ -569,7 +569,7 @@ export class MerchCard extends LitElement {
         if (!this.isConnected) return;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
-            if (VARIANTS_WITH_HEIGHT_SYNC.includes(this.variantLayout)) {
+            if (VARIANTS_WITH_HEIGHT_SYNC.includes(this.variant)) {
                 intersectionObserver.observe(this);
             }
             this.#hydrationPromise = undefined;
@@ -805,6 +805,18 @@ export class MerchCard extends LitElement {
         return this.#regularPrice
             ?.querySelector('span.price-recurrence')
             ?.textContent?.trim();
+    }
+
+    get unitText() {
+        const unitTextSelector = '.price-unit-type';
+        return (
+            this.#legal?.querySelector(unitTextSelector)?.textContent?.trim() ??
+            this.#regularPrice
+                ?.querySelector(unitTextSelector)
+                ?.textContent?.trim() ??
+            this.querySelector(unitTextSelector)?.textContent?.trim() ??
+            undefined
+        );
     }
 
     get planTypeText() {

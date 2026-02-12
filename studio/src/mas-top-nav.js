@@ -1,4 +1,4 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES } from './constants.js';
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
 import Store from './store.js';
@@ -61,7 +61,7 @@ class MasTopNav extends LitElement {
                 e.preventDefault();
                 window.adobeIMS.signOut();
             });
-            studioContentEl.addEventListener('click', () => {
+            studioContentEl?.addEventListener('click', () => {
                 profileBody.classList.remove('show');
             });
 
@@ -89,10 +89,6 @@ class MasTopNav extends LitElement {
         });
     }
 
-    get envIndicator() {
-        return EnvColorCode[this.aemEnv];
-    }
-
     get shouldShowPickers() {
         return this.showPickers;
     }
@@ -111,6 +107,13 @@ class MasTopNav extends LitElement {
 
     get isDraftLandscape() {
         return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
+    }
+
+    get environmentIndicator() {
+        if (this.aemEnv === 'prod') {
+            return html``;
+        }
+        return html` <sp-badge size="small" variant="${EnvColorCode[this.aemEnv]}"> ${this.aemEnv.toUpperCase()} </sp-badge> `;
     }
 
     render() {
@@ -136,6 +139,7 @@ class MasTopNav extends LitElement {
                         />
                     </svg>
                     <span id="mas-studio">Merch At Scale Studio</span>
+                    ${this.environmentIndicator}
                 </a>
 
                 <div class="spacer"></div>
@@ -157,6 +161,16 @@ class MasTopNav extends LitElement {
                                   surface=${Store.surface()}
                               >
                               </mas-locale-picker>
+                              <sp-switch
+                                  class="landscape-switch"
+                                  size="m"
+                                  ?checked=${this.isDraftLandscape}
+                                  @change=${(e) => {
+                                      Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
+                                  }}
+                              >
+                                  Draft landscape offer
+                              </sp-switch>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

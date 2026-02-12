@@ -1,4 +1,4 @@
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 
@@ -192,7 +192,7 @@ export function getFragmentPartsToUse(fragment, path) {
                 marketSegment: fragment?.getTagTitle('market_segment'),
                 customerSegment: fragment?.getTagTitle('customer_segment'),
                 product: fragment?.getTagTitle('mas:product/'),
-                promotion: fragment?.getTagTitle('mas:promotion/'),
+                promotion: fragment?.getTagTitle(TAG_PROMOTION_PREFIX),
             };
 
             VARIANTS.forEach((variant) => {
@@ -257,4 +257,28 @@ export function extractLocaleFromPath(fragmentPath) {
     const parts = fragmentPath.split('/');
     const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
     return parts.find((part) => localePattern.test(part)) || null;
+}
+
+/**
+ * Copies text to clipboard
+ * @param {Event} e - The event object
+ * @param {string} text - The text to copy
+ */
+export async function copyToClipboard(e, text) {
+    e.stopPropagation();
+    if (!text) {
+        showToast('No text to copy', 'negative');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard', 'positive');
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        showToast('Failed to copy', 'negative');
+    }
+}
+
+export function deepEquals(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
 }

@@ -38,16 +38,18 @@ export class Router extends EventTarget {
                 return {
                     editor,
                     hasChanges: editor && Store.editor.hasChanges,
-                    shouldCheckUnsavedChanges: editor && !editor.isLoading && Store.editor.hasChanges,
+                    shouldCheckUnsavedChanges: editor && Store.editor.hasChanges,
                 };
             }
             case PAGE_NAMES.TRANSLATION_EDITOR: {
                 const editor = document.querySelector('mas-translation-editor');
+                if (!editor) {
+                    return { editor: null, hasChanges: null, shouldCheckUnsavedChanges: null };
+                }
                 return {
                     editor,
-                    hasChanges: (editor && Store.translationProjects.inEdit.get()?.get()?.hasChanges) || null,
-                    shouldCheckUnsavedChanges:
-                        editor && !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    hasChanges: !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    shouldCheckUnsavedChanges: !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
                 };
             }
             default:
@@ -69,12 +71,22 @@ export class Router extends EventTarget {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
                 const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
                 if (confirmed) {
-                    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && value !== PAGE_NAMES.FRAGMENT_EDITOR) {
+                    if (
+                        (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION) &&
+                        value !== PAGE_NAMES.FRAGMENT_EDITOR &&
+                        value !== PAGE_NAMES.VERSION
+                    ) {
                         Store.fragmentEditor.fragmentId.set(null);
+                        Store.fragmentEditor.loading.set(false);
+                        Store.version.fragmentId.set(null);
                     }
                     if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && value !== PAGE_NAMES.TRANSLATION_EDITOR) {
                         Store.translationProjects.translationProjectId.set(null);
                         Store.translationProjects.inEdit.set(null);
+                        Store.translationProjects.showSelected.set(false);
+                    }
+                    if (value === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
+                        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
                     }
                     Store.fragments.inEdit.set();
                     if (value !== PAGE_NAMES.CONTENT) {
@@ -89,6 +101,41 @@ export class Router extends EventTarget {
                 this.isNavigating = false;
             }
         };
+    }
+
+    /**
+     * Navigate to the content table with a specific fragment expanded to show variations.
+     * @param {string} fragmentId - The fragment ID to expand in the variations table
+     */
+    async navigateToVariationsTable(fragmentId) {
+        if (!fragmentId) {
+            console.error('Fragment ID is required for navigation');
+            return;
+        }
+
+        this.isNavigating = true;
+        try {
+            // Check for unsaved changes
+            const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+            const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
+
+            if (!confirmed) return;
+
+            // Set the fragment ID to be expanded
+            Store.fragments.expandedId.set(fragmentId);
+
+            // Clear fragment editor state
+            Store.fragmentEditor.fragmentId.set(null);
+            Store.fragmentEditor.loading.set(false);
+            Store.fragments.inEdit.set();
+
+            // Navigate to content page in table view
+            Store.viewMode.set('default');
+            Store.renderMode.set('table');
+            Store.page.set(PAGE_NAMES.CONTENT);
+        } finally {
+            this.isNavigating = false;
+        }
     }
 
     /**
@@ -277,6 +324,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
         this.linkStoreToHash(Store.landscape, 'commerce.landscape', WCS_LANDSCAPE_PUBLISHED);
+        this.linkStoreToHash(Store.version.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
@@ -332,8 +380,11 @@ export class Router extends EventTarget {
                     Store.search.set((prev) => ({ ...prev, query: undefined }));
                     this.updateHistory();
                 }
-            } else if (Store.viewMode.value === 'editing') {
-                Store.viewMode.set('default');
+            } else {
+                Store.fragmentEditor.loading.set(false);
+                if (Store.viewMode.value === 'editing') {
+                    Store.viewMode.set('default');
+                }
             }
 
             Store.removeRegionOverride();

@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { EVENT_KEYDOWN } from './constants.js';
 import { showToast, extractLocaleFromPath } from './utils.js';
 import Store from './store.js';
-import { getCountryName, getLocaleCode, getRegionLocales } from './locales.js';
+import { getCountryName, getLocaleCode, getRegionLocales } from '../../io/www/src/fragment/locales.js';
 
 export class MasVariationDialog extends LitElement {
     static properties = {
@@ -132,8 +132,7 @@ export class MasVariationDialog extends LitElement {
     }
 
     get availableTargetLocales() {
-        const [sourceLanguage] = (this.sourceLocale || 'en_US').split('_');
-        return getRegionLocales(Store.surface(), sourceLanguage, false).map((locale) => ({
+        return getRegionLocales(Store.surface(), this.sourceLocale || 'en_US', false).map((locale) => ({
             ...locale,
             disabled: this.existingVariationLocales.includes(getLocaleCode(locale)),
         }));

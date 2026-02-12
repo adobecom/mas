@@ -18,9 +18,11 @@ const Store = {
             limit: new ReactiveStore(6),
         },
         inEdit: new ReactiveStore(null),
+        expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
+        loading: new ReactiveStore(false),
         get editorContext() {
             if (!editorContextInstance) {
                 editorContextInstance = new EditorContextStore(null);
@@ -30,6 +32,12 @@ const Store = {
     },
     operation: new ReactiveStore(),
     editor: {
+        resetChanges() {
+            const fragmentData = Store.fragments.inEdit.get()?.get();
+            if (fragmentData) {
+                fragmentData.hasChanges = false;
+            }
+        },
         get hasChanges() {
             return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
         },
@@ -46,7 +54,6 @@ const Store = {
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
-    viewMode: new ReactiveStore('default'),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
     placeholders: {
         search: new ReactiveStore(''),
@@ -69,6 +76,9 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    version: {
+        fragmentId: new ReactiveStore(null),
+    },
     promotions: {
         list: {
             loading: new ReactiveStore(true),
@@ -103,6 +113,24 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
+
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+
+        targetLocales: new ReactiveStore([]),
+        showSelected: new ReactiveStore(false),
     },
 };
 
@@ -136,6 +164,7 @@ function pageValidator(value) {
         PAGE_NAMES.WELCOME,
         PAGE_NAMES.CONTENT,
         PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.VERSION,
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
         PAGE_NAMES.PROMOTIONS_EDITOR,

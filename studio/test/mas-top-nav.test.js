@@ -24,6 +24,7 @@ describe('MasTopNav', () => {
         sandbox.stub(window, 'fetch').resolves({
             json: () => Promise.resolve({ user: { avatar: 'https://example.com/avatar.png' } }),
         });
+        Store.search.value = { path: 'acom' };
     });
 
     afterEach(() => {
@@ -177,6 +178,63 @@ describe('MasTopNav', () => {
         it('should have showPickers default to true', async () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             expect(el.showPickers).to.be.true;
+        });
+    });
+
+    describe('landscape switch', () => {
+        it('should render landscape switch when pickers are shown', async () => {
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
+            expect(landscapeSwitch).to.exist;
+        });
+
+        it('should not render landscape switch when pickers are hidden', async () => {
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            el.showPickers = false;
+            await el.updateComplete;
+            const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
+            expect(landscapeSwitch).to.not.exist;
+        });
+
+        it('should be checked when landscape is draft', async () => {
+            Store.landscape.value = WCS_LANDSCAPE_DRAFT;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
+            expect(landscapeSwitch.checked).to.be.true;
+        });
+
+        it('should be unchecked when landscape is published', async () => {
+            Store.landscape.value = WCS_LANDSCAPE_PUBLISHED;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
+            expect(landscapeSwitch.checked).to.be.false;
+        });
+
+        it('should set landscape to DRAFT when switch is checked', async () => {
+            Store.landscape.value = WCS_LANDSCAPE_PUBLISHED;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
+
+            landscapeSwitch.checked = true;
+            landscapeSwitch.dispatchEvent(new Event('change'));
+
+            expect(Store.landscape.value).to.equal(WCS_LANDSCAPE_DRAFT);
+        });
+
+        it('should set landscape to PUBLISHED when switch is unchecked', async () => {
+            Store.landscape.value = WCS_LANDSCAPE_DRAFT;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const landscapeSwitch = el.querySelector('sp-switch.landscape-switch');
+
+            landscapeSwitch.checked = false;
+            landscapeSwitch.dispatchEvent(new Event('change'));
+
+            expect(Store.landscape.value).to.equal(WCS_LANDSCAPE_PUBLISHED);
         });
     });
 });

@@ -3,6 +3,7 @@ import * as Constants from './constants.js';
 import {
     EVENT_TYPE_READY,
     FF_DEFAULTS,
+    FF_ANNUAL_PRICE,
     SELECTOR_MAS_ELEMENT,
 } from './constants.js';
 import { Defaults } from './defaults.js';
@@ -14,6 +15,7 @@ import { getSettings } from './settings.js';
 import { Wcs } from './wcs.js';
 import { updateConfig as updateLanaConfig } from './lana.js';
 import { printMeasure } from './utils.js';
+import { resolvePriceTaxFlags } from './inline-price.js';
 import { getParameter } from '@dexter/tacocat-core';
 
 export const TAG_NAME_SERVICE = 'mas-commerce-service';
@@ -96,6 +98,7 @@ export class MasCommerceService extends HTMLElement {
         if (!this.#featureFlags) {
             this.#featureFlags = {
                 [FF_DEFAULTS]: this.#getFeatureFlag(FF_DEFAULTS),
+                [FF_ANNUAL_PRICE]: this.#getFeatureFlag(FF_ANNUAL_PRICE),
             };
         }
         return this.#featureFlags;
@@ -130,6 +133,7 @@ export class MasCommerceService extends HTMLElement {
                 ...Constants,
                 // Defined serviceweb  component API
                 Log,
+                resolvePriceTaxFlags,
                 get defaults() {
                     return Defaults;
                 },

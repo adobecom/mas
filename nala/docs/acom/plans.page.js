@@ -18,7 +18,7 @@ export default class MasPlans {
         // Plans individual card properties:
         this.cssProp = {
             card: {
-                'background-color': 'rgb(255, 255, 255)',
+                'background-color': 'rgb(245, 199, 0)',
                 // 'max-width': '378px',
             },
             icon: {

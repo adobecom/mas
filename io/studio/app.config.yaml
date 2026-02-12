@@ -7,6 +7,9 @@ application:
         packages:
             MerchAtScaleStudio:
                 license: Apache-2.0
+                inputs:
+                    allowedClientId: mas-studio
+                    odinEndpoint: $ODIN_ENDPOINT
                 actions:
                     ost-products-write:
                         function: src/ost-products/write.js
@@ -35,3 +38,20 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
+                    translation-project-start:
+                        function: src/translation/project-start.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            batchSize: $BATCH_SIZE
+                            translationMapping:
+                                acom: transcreation
+                                express: transcreation
+                                sandbox: machineTranslation
+                            allowedSurfaces:
+                                - acom
+                                - express
+                                - sandbox
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

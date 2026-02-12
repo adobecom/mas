@@ -46,7 +46,7 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
         size: 'XL',
     },
     mnemonics: {
-        size: 'l',
+        size: 'xs',
     },
     borderColor: {
         attribute: 'border-color',
@@ -59,6 +59,7 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
                 'linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)',
         },
     },
+    multiWhatsIncluded: 'true',
     disabledAttributes: [],
 };
 
@@ -73,6 +74,21 @@ export class FullPricingExpress extends VariantLayout {
 
     get headingSelector() {
         return '[slot="heading-xs"]';
+    }
+
+    get badgeElement() {
+        return this.card.querySelector('[slot="badge"]');
+    }
+
+    get badge() {
+        return html`
+            <div
+                class="badge-wrapper"
+                style="${this.badgeElement ? '' : 'visibility: hidden'}"
+            >
+                <slot name="badge"></slot>
+            </div>
+        `;
     }
 
     syncHeights() {
@@ -133,13 +149,13 @@ export class FullPricingExpress extends VariantLayout {
 
     renderLayout() {
         return html`
-            <div class="badge-wrapper">
-                <slot name="badge"></slot>
-            </div>
+            ${this.badge}
             <div class="card-content">
                 <div class="header">
                     <slot name="heading-xs"></slot>
-                    <slot name="icons"></slot>
+                    <div class="icons">
+                        <slot name="icons"></slot>
+                    </div>
                 </div>
                 <div class="short-description">
                     <slot name="short-description"></slot>
@@ -167,6 +183,9 @@ export class FullPricingExpress extends VariantLayout {
             --merch-card-full-pricing-express-padding: 24px;
             --merch-card-full-pricing-express-padding-mobile: 20px;
             --merch-card-full-pricing-express-section-gap: 24px;
+            --express-custom-gray-500: #8f8f8f;
+            --express-custom-gray-400: #d5d5d5;
+            --express-custom-price-border: #e0e2ff;
 
             /* Price container specific */
             --merch-card-full-pricing-express-price-bg: #f8f8f8;
@@ -224,6 +243,12 @@ export class FullPricingExpress extends VariantLayout {
             justify-content: center;
         }
 
+        :host([variant='full-pricing-express']) .icons {
+            display: flex;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--spectrum-black);
+        }
+
         /* Card content styling */
         :host([variant='full-pricing-express']) .card-content {
             border-radius: 8px;
@@ -242,11 +267,7 @@ export class FullPricingExpress extends VariantLayout {
         :host([variant='full-pricing-express']:not([gradient-border='true']))
             .card-content {
             background: var(--spectrum-gray-50);
-            border: 1px solid
-                var(
-                    --consonant-merch-card-border-color,
-                    var(--spectrum-gray-100)
-                );
+            border: 1px solid #d5d5d5;
         }
 
         /* When badge exists, adjust card content border radius */
@@ -368,9 +389,17 @@ export class FullPricingExpress extends VariantLayout {
             flex-shrink: 0;
         }
 
-        :host([variant='full-pricing-express']) [slot='icons'] merch-icon {
-            --img-width: 20px;
-            --img-height: 20px;
+        :host([variant='full-pricing-express']) .icons ::slotted(merch-icon) {
+            --mod-img-width: auto;
+            --mod-img-height: 18px;
+            align-self: flex-end;
+        }
+
+        :host([variant='full-pricing-express'])
+            .icons
+            ::slotted(merch-icon:nth-of-type(2)) {
+            --mod-img-height: 14px;
+            height: 14px;
         }
 
         /* Description sections */
@@ -384,7 +413,7 @@ export class FullPricingExpress extends VariantLayout {
             background: var(--merch-card-full-pricing-express-price-bg);
             padding: 24px 16px;
             border-radius: var(--merch-card-full-pricing-express-price-radius);
-            border: 1px solid #e0e2ff;
+            border: 1px solid var(--express-custom-price-border);
             display: flex;
             flex-direction: column;
             position: relative;
@@ -401,22 +430,20 @@ export class FullPricingExpress extends VariantLayout {
             display: block;
         }
 
-        /* Mobile styles */
-        @media (max-width: 1024px) {
+        /* Mobile and tablet styles */
+        @media (max-width: 1199px) {
             :host([variant='full-pricing-express']) {
-                width: var(--merch-card-full-pricing-express-mobile-width);
-                max-width: var(--merch-card-full-pricing-express-mobile-width);
+                width: 100%;
+                max-width: 100%;
             }
 
             :host([variant='full-pricing-express']) .card-content {
-                padding: var(--merch-card-full-pricing-express-padding-mobile);
+                padding: 24px 16px;
             }
 
             :host([variant='full-pricing-express'][gradient-border='true'])
                 .card-content {
-                padding: calc(
-                    var(--merch-card-full-pricing-express-padding-mobile) + 2px
-                );
+                padding: 26px 18px;
             }
 
             :host([variant='full-pricing-express']) .short-description {
@@ -434,23 +461,11 @@ export class FullPricingExpress extends VariantLayout {
                 flex: 1;
             }
 
-            :host([variant='full-pricing-express']) .price-container {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-price-height
-                );
-            }
-
             :host([variant='full-pricing-express']) .cta {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-cta-height
-                );
                 margin-bottom: 24px;
             }
 
             :host([variant='full-pricing-express']) .short-description {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-short-description-height
-                );
                 margin-bottom: 24px;
             }
         }

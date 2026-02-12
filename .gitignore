@@ -1,4 +1,4 @@
-logs/*
+**/logs/
 helix-importer-ui
 .DS_Store
 *.bak
@@ -28,6 +28,9 @@ nala/.auth/
 .CLAUDE.md
 **/CLAUDE.md
 .claude/
+.specify/
+/specs/
+/agents/
 
 # IO Runtime Config
 config.json

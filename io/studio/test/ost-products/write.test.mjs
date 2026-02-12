@@ -51,8 +51,8 @@ describe('getProducts', () => {
 
         const result = await writeModule.getProducts(params);
 
-        // Verify fetch was called 5 times (2 landscapes * 2 locales + 1 for the empty array)
-        expect(global.fetch.callCount).to.equal(5);
+        // Verify fetch was called 5 times (2 landscapes * 3 locales + 1 for the empty array)
+        expect(global.fetch.callCount).to.equal(7);
 
         // Compare result with expected output
         expect(result).to.deep.equal(expectedProducts);

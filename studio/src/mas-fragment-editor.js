@@ -776,11 +776,7 @@ export default class MasFragmentEditor extends LitElement {
                 if (localeDefaultFragment) {
                     await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
                 }
-                const deleted = await this.repository.deleteFragment(this.fragment);
-                if (!deleted) {
-                    console.warn('Regular delete failed for variation, trying force delete');
-                    await this.repository.aem.sites.cf.fragments.forceDelete({ path: this.fragment.path });
-                }
+                await this.repository.deleteFragment(this.fragment, { force: true, startToast: false, endToast: false });
             } else {
                 await this.repository.deleteFragmentWithVariations(this.fragment);
             }

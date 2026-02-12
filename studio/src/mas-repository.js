@@ -1133,14 +1133,17 @@ export class MasRepository extends LitElement {
      * @param {object} options
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async deleteFragment(fragment, { startToast = true, endToast = true } = {}) {
+    async deleteFragment(fragment, { startToast = true, endToast = true, force = false } = {}) {
         try {
             this.operation.set(OPERATIONS.DELETE);
             if (startToast) showToast('Deleting fragment...');
 
-            const fragmentWithEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
-
-            if (fragmentWithEtag) await this.aem.sites.cf.fragments.delete(fragmentWithEtag);
+            if (force) {
+                await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
+            } else {
+                const fragmentWithEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
+                if (fragmentWithEtag) await this.aem.sites.cf.fragments.delete(fragmentWithEtag);
+            }
 
             if (endToast) showToast('Fragment successfully deleted.', 'positive');
 
@@ -1391,20 +1394,48 @@ export class MasRepository extends LitElement {
             throw new Error('Failed to fetch parent fragment');
         }
 
-        const variationFragment = await this.createEmptyVariation(parentFragment, targetLocale);
-        if (!variationFragment) {
-            throw new Error('Failed to create variation');
+        try {
+            const variationFragment = await this.createEmptyVariation(parentFragment, targetLocale);
+            if (!variationFragment) {
+                throw new Error('Failed to create variation');
+            }
+
+            await this.updateParentVariations(parentFragment, variationFragment.path);
+
+            // Refresh the parent FragmentStore to include the new variation in references
+            const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+            if (parentStore) {
+                await this.refreshFragment(parentStore);
+            }
+
+            return variationFragment;
+        } catch (err) {
+            const existingPath = this.parseVariationAlreadyExistsPath(err?.message);
+            if (existingPath) {
+                await this.updateParentVariations(parentFragment, existingPath);
+                const existingFragment = await this.aem.sites.cf.fragments.getByPath(existingPath);
+                const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+                if (parentStore) {
+                    await this.refreshFragment(parentStore);
+                }
+                return existingFragment;
+            }
+            throw err;
         }
+    }
 
-        await this.updateParentVariations(parentFragment, variationFragment.path);
-
-        // Refresh the parent FragmentStore to include the new variation in references
-        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
-        if (parentStore) {
-            await this.refreshFragment(parentStore);
-        }
-
-        return variationFragment;
+    /**
+     * If message is "A variation already exists at /path/to/fragment", returns that path.
+     * Used to repair parent's variations when a variation exists but was missing from the list (e.g. after a past restore).
+     * @param {string} [message]
+     * @returns {string|null}
+     */
+    parseVariationAlreadyExistsPath(message) {
+        if (!message || typeof message !== 'string') return null;
+        const prefix = 'A variation already exists at ';
+        if (!message.startsWith(prefix)) return null;
+        const path = message.slice(prefix.length).trim();
+        return path.length > 0 ? path : null;
     }
 
     /**

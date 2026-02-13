@@ -2,7 +2,6 @@ import { odinReferences, odinUrl } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 import { getDefaultLocaleCode } from '../locales.js';
-import { getFieldValues } from '../utils/fragment.js';
 
 const PZN_FOLDER = '/pzn/';
 const PZN_FIELD = 'pznTags';
@@ -95,9 +94,9 @@ function findPersonalizationVariation(variations, { references, regionLocale }) 
     const personalizationVariations = extractVariationBasedOnPath(variations, references, PZN_FOLDER);
     if (personalizationVariations.length === 0) return null;
     return personalizationVariations.find((variation) => {
-        const tags = getFieldValues(variation, PZN_FIELD);
-        const match = tags.find((tag) => tag?.includes(regionLocale));
-        return match != null;
+        const { pznTags } = variation.fields;
+        const match = pznTags?.find((tag) => tag?.includes(regionLocale));
+        return !!match;
     });
 }
 

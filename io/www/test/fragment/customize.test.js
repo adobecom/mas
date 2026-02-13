@@ -123,7 +123,7 @@ describe('customize collections', function () {
             id: 'root-fragment',
             title: 'Root',
             fields: {
-                badge: { value: 'default badge', mimeType: 'text/html' },
+                badge: 'default badge',
                 variations: [pznVariationId],
             },
             references: {
@@ -133,10 +133,10 @@ describe('customize collections', function () {
                         path: '/content/dam/mas/pzn/sandbox/promo',
                         id: pznVariationId,
                         title: 'PZN Promo',
-                        fields: [
-                            { name: 'pznTags', values: ['en_KW'] },
-                            { name: 'badge', values: ['Kuwait PZN badge'] },
-                        ],
+                        fields: {
+                            pznTags: ['en_KW'],
+                            badge: 'Kuwait PZN badge',
+                        },
                     },
                 },
             },
@@ -152,10 +152,7 @@ describe('customize collections', function () {
         });
 
         expect(result.status).to.equal(200);
-        expect(result.body.fields).to.be.an('array');
-        const badgeField = result.body.fields.find((f) => f.name === 'badge');
-        expect(badgeField).to.exist;
-        expect(badgeField.values).to.include('Kuwait PZN badge');
+        expect(result.body.fields.badge).to.equal('Kuwait PZN badge');
     });
 
     it('should not merge personalization variation when no pznTags match regionLocale', async function () {
@@ -175,10 +172,7 @@ describe('customize collections', function () {
                         path: '/content/dam/mas/pzn/sandbox/promo',
                         id: pznVariationId,
                         title: 'PZN Promo',
-                        fields: [
-                            { name: 'pznTags', values: ['en_AE', 'fr_FR'] },
-                            { name: 'badge', values: ['Other badge'] },
-                        ],
+                        fields: { pznTags: ['en_AE', 'fr_FR'], badge: 'Other badge' },
                     },
                 },
             },

@@ -20,10 +20,12 @@ function createResponse(status, data, statusText = 'OK') {
 const storage = {};
 const localStorageStub = {
     getItem: sinon.stub().callsFake((key) => storage[key] || null),
+    removeItem: sinon.stub().callsFake((key) => delete storage[key]),
     setItem: sinon.stub().callsFake((key, value) => {
         storage[key] = value.toString();
     }),
 };
+let objectKeysStub;
 
 describe('FragmentClient', () => {
     const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
@@ -34,6 +36,8 @@ describe('FragmentClient', () => {
         globalThis.window = globalThis.window || { localStorage: {} };
         sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
         globalThis.localStorage = localStorageStub;
+        objectKeysStub = sinon.stub(Object, 'keys').callThrough();
+        objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
         fetchStub = sinon.stub(globalThis, 'fetch');
         fetchStub
             .withArgs(`${baseUrl}/${mockCardFragment.id}?references=all-hydrated`)
@@ -54,11 +58,11 @@ describe('FragmentClient', () => {
                 ],
             }),
         );
-        clearCaches();
     });
 
     after(() => {
         fetchStub.restore();
+        objectKeysStub.restore();
         delete globalThis.localStorage;
         if (globalThis.window?.localStorage) {
             sinon.restore();
@@ -97,6 +101,9 @@ describe('FragmentClient', () => {
         });
         expect(output.references).deep.equal(expectedOutput.references);
         expect(output.referencesTree).deep.equal(expectedOutput.referencesTree);
+        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.exist;
+        clearCaches();
+        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
     });
 
     it('should handle fetch errors', async () => {

@@ -226,3 +226,5 @@ export const TABLE_TYPE = {
     COLLECTIONS: 'collections',
     PLACEHOLDERS: 'placeholders',
 };
+
+export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];

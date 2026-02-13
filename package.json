@@ -68,7 +68,7 @@
         "@spectrum-web-components/tooltip": "^1.0.0",
         "@spectrum-web-components/top-nav": "^1.0.0",
         "@spectrum-web-components/tray": "^1.0.0",
-        "axios": "^1.12.2",
+        "axios": "^1.13.5",
         "prosemirror-commands": "^1.6.1",
         "prosemirror-example-setup": "^1.2.3",
         "prosemirror-keymap": "^1.2.2",

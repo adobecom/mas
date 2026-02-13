@@ -589,7 +589,7 @@ class MasTranslationEditor extends LitElement {
                               </div>`
                             : nothing
                     }
-                    <h2>General Info</h2>
+                    <h2>General info</h2>
                     <sp-field-label for="title" required>Title</sp-field-label>
                     <sp-textfield
                         id="title"

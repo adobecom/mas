@@ -115,6 +115,87 @@ describe('customize collections', function () {
         expect(cardKW.fields.cardTitle).to.equal('Photography  (1TB)');
         expect(cardKW.fields.backgroundImage).to.equal('https://www.adobe.com/my/image.jpg');
     });
+
+    it('should merge personalization (PZN) variation when pznTags match regionLocale', async function () {
+        const pznVariationId = 'pzn-var-en-kw';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: { value: 'default badge', mimeType: 'text/html' },
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/promo',
+                        id: pznVariationId,
+                        title: 'PZN Promo',
+                        fields: [
+                            { name: 'pznTags', values: ['en_KW'] },
+                            { name: 'badge', values: ['Kuwait PZN badge'] },
+                        ],
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_KW',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields).to.be.an('array');
+        const badgeField = result.body.fields.find((f) => f.name === 'badge');
+        expect(badgeField).to.exist;
+        expect(badgeField.values).to.include('Kuwait PZN badge');
+    });
+
+    it('should not merge personalization variation when no pznTags match regionLocale', async function () {
+        const pznVariationId = 'pzn-var-other';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: { value: 'default badge', mimeType: 'text/html' },
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/promo',
+                        id: pznVariationId,
+                        title: 'PZN Promo',
+                        fields: [
+                            { name: 'pznTags', values: ['en_AE', 'fr_FR'] },
+                            { name: 'badge', values: ['Other badge'] },
+                        ],
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_KW',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.deep.include({ value: 'default badge', mimeType: 'text/html' });
+    });
 });
 
 async function process(context) {

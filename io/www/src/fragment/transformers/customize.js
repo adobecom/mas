@@ -2,6 +2,10 @@ import { odinReferences, odinUrl } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 import { getDefaultLocaleCode } from '../locales.js';
+import { getFieldValues } from '../utils/fragment.js';
+
+const PZN_FOLDER = '/pzn/';
+const PZN_FIELD = 'pznTags';
 
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
@@ -76,24 +80,38 @@ function deepMerge(...objects) {
     return result;
 }
 
+function extractVariationBasedOnPath(variations, references, pathSegment) {
+    return variations
+        .filter((variationId) => references[variationId]?.value?.path?.includes(pathSegment))
+        .map((variationId) => references[variationId].value);
+}
+
+function findRegionalVariation(variations, references, prefix) {
+    const regionalVariations = extractVariationBasedOnPath(variations, references, prefix);
+    return regionalVariations.length > 0 ? regionalVariations[0] : null;
+}
+
+function findPersonalizationVariation(variations, { references, regionLocale }) {
+    const personalizationVariations = extractVariationBasedOnPath(variations, references, PZN_FOLDER);
+    if (personalizationVariations.length === 0) return null;
+    return personalizationVariations.find((variation) => {
+        const tags = getFieldValues(variation, PZN_FIELD);
+        const match = tags.find((tag) => tag?.includes(regionLocale));
+        return match != null;
+    });
+}
+
 function mergeVariations(root, customizeContext) {
     const { references, prefix, isRegionLocale } = customizeContext;
     const variations = root?.fields?.variations;
     if (!isRegionLocale || !variations || variations.length === 0) {
         return root;
     }
-    let regionalVariation = null;
-    for (const variationId of variations) {
-        const variationCandidate = references[variationId]?.value;
-        if (variationCandidate?.path.includes(prefix)) {
-            regionalVariation = variationCandidate;
-            break;
-        }
-    }
-    if (!regionalVariation) {
-        return root;
-    }
-    return deepMerge(root, regionalVariation);
+    const regionalVariation = findRegionalVariation(variations, references, prefix);
+    if (regionalVariation) return deepMerge(root, regionalVariation);
+    const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
+    if (personalizationVariation) return deepMerge(root, personalizationVariation);
+    return root;
 }
 
 /**
@@ -167,6 +185,7 @@ async function customize(context) {
     const customizeContext = {
         isRegionLocale,
         promos,
+        regionLocale,
         prefix: `${surface}/${regionLocale}`,
         references,
     };

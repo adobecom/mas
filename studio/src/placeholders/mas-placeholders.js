@@ -11,6 +11,7 @@ import '../mas-selection-panel.js';
 import { showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
+import { clearCaches } from '../../libs/fragment-client.js';
 
 class MasPlaceholders extends LitElement {
     static styles = styles;
@@ -213,6 +214,7 @@ class MasPlaceholders extends LitElement {
     }
 
     onSave() {
+        clearCaches();
         this.refresh();
     }
 

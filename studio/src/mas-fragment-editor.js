@@ -252,6 +252,45 @@ export default class MasFragmentEditor extends LitElement {
             color: var(--spectrum-global-color-yellow-700);
         }
 
+        #orphan-grouped-variation-panel {
+            align-self: anchor-center;
+            background: var(--spectrum-global-color-red-100);
+            border: 1px solid var(--spectrum-global-color-red-300);
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow:
+                0px 0px 1px 0px rgba(0, 0, 0, 0.08),
+                0px 1px 4px 0px rgba(0, 0, 0, 0.04),
+                0px 2px 8px 0px rgba(0, 0, 0, 0.08);
+            color: var(--spectrum-global-color-gray-900);
+            box-sizing: border-box;
+            width: 1148px;
+            min-height: 320px;
+        }
+
+        #orphan-grouped-variation-panel .orphan-icon {
+            width: 52px;
+            height: 52px;
+            margin-bottom: 12px;
+            color: var(--spectrum-global-color-red-700);
+        }
+
+        #orphan-grouped-variation-panel h2 {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 24px;
+            margin: 0 0 8px 0;
+            color: var(--spectrum-global-color-gray-900);
+        }
+
+        #orphan-grouped-variation-panel .empty-state-subtitle {
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 18px;
+            margin: 0 0 8px 0;
+            color: var(--spectrum-global-color-gray-800);
+        }
+
         .clickable {
             cursor: pointer;
         }
@@ -349,6 +388,7 @@ export default class MasFragmentEditor extends LitElement {
         previewResolved: { type: Boolean, state: true },
         variationsToDelete: { type: Array, state: true },
         initState: { type: String, state: true },
+        groupedVariationOrphanMessage: { type: String, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -384,6 +424,7 @@ export default class MasFragmentEditor extends LitElement {
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
         this.initState = MasFragmentEditor.INIT_STATE.IDLE;
+        this.groupedVariationOrphanMessage = null;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -592,6 +633,7 @@ export default class MasFragmentEditor extends LitElement {
             return;
         }
 
+        this.groupedVariationOrphanMessage = null;
         this.previewResolved = false;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
         Store.fragmentEditor.loading.set(true);
@@ -608,7 +650,7 @@ export default class MasFragmentEditor extends LitElement {
             const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
 
             if (isVariationAfterContext) {
-                const parentData = await this.editorContextStore.getLocaleDefaultFragmentAsync();
+                const parentData = await this.resolveVariationParentFragment(fragmentPath);
                 if (parentData) {
                     const parentFragment = new Fragment(parentData);
                     this.localeDefaultFragment = parentFragment;
@@ -622,7 +664,7 @@ export default class MasFragmentEditor extends LitElement {
                             existingStore.previewStore.refreshFrom(previewData);
                         }
                     }
-                } else {
+                } else if (!Fragment.isGroupedVariationPath(fragmentPath)) {
                     this.localeDefaultFragment = existingStore.parentFragment;
                 }
             } else {
@@ -681,7 +723,7 @@ export default class MasFragmentEditor extends LitElement {
 
             // For variations, fetch parent fragment BEFORE creating stores
             if (isVariationAfterContext && !skipVariation) {
-                const parentData = await this.editorContextStore.getLocaleDefaultFragmentAsync();
+                const parentData = await this.resolveVariationParentFragment(fragment.path);
                 if (parentData) {
                     parentFragment = new Fragment(parentData);
                     this.localeDefaultFragment = parentFragment;
@@ -732,6 +774,69 @@ export default class MasFragmentEditor extends LitElement {
             this.initState = MasFragmentEditor.INIT_STATE.IDLE;
             Store.fragmentEditor.loading.set(false);
         }
+    }
+
+    async resolveVariationParentFragment(fragmentPath) {
+        let parentData = await this.editorContextStore.getLocaleDefaultFragmentAsync();
+        if (parentData) {
+            this.groupedVariationOrphanMessage = null;
+            return parentData;
+        }
+
+        if (!Fragment.isGroupedVariationPath(fragmentPath)) {
+            return null;
+        }
+
+        parentData = await this.pollGroupedVariationParentReference(fragmentPath, {
+            timeoutMs: 15000,
+            intervalMs: 1000,
+        });
+
+        if (parentData) {
+            this.groupedVariationOrphanMessage = null;
+            return parentData;
+        }
+
+        this.groupedVariationOrphanMessage =
+            'No default-locale fragment currently references this grouped variation. Inheritance cannot be resolved, and this fragment may be orphaned.';
+
+        return null;
+    }
+
+    async pollGroupedVariationParentReference(fragmentPath, { timeoutMs = 15000, intervalMs = 1000 } = {}) {
+        const fragmentsApi = this.repository?.aem?.sites?.cf?.fragments;
+        if (!fragmentsApi?.getReferencedBy || !fragmentsApi?.getByPath) {
+            return null;
+        }
+
+        const startedAt = Date.now();
+        while (Date.now() - startedAt <= timeoutMs) {
+            try {
+                const references = await fragmentsApi.getReferencedBy(fragmentPath);
+                const parentPath = references?.parentReferences?.[0]?.path;
+                if (parentPath) {
+                    const parentData = await fragmentsApi.getByPath(parentPath);
+                    if (parentData) {
+                        this.editorContextStore.localeDefaultFragment = parentData;
+                        this.editorContextStore.defaultLocaleId = parentData.id;
+                        this.editorContextStore.parentFetchPromise = Promise.resolve(parentData);
+                        this.editorContextStore.notify?.();
+                        return parentData;
+                    }
+                }
+            } catch (error) {
+                console.debug('Grouped variation parent lookup retry failed:', error.message);
+            }
+
+            const elapsed = Date.now() - startedAt;
+            const remaining = timeoutMs - elapsed;
+            if (remaining <= 0) break;
+            await new Promise((resolve) => {
+                setTimeout(resolve, Math.min(intervalMs, remaining));
+            });
+        }
+
+        return null;
     }
 
     async updateTranslatedLocalesStore(isVariation) {
@@ -1214,6 +1319,19 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
+    get orphanGroupedVariationState() {
+        if (!this.groupedVariationOrphanMessage) return null;
+
+        return html`
+            <div id="orphan-grouped-variation-panel" class="empty-state" role="alert" aria-live="polite">
+                <sp-icon-alert class="orphan-icon"></sp-icon-alert>
+                <h2>Parent reference missing for this grouped variation.</h2>
+                <p class="empty-state-subtitle">${this.groupedVariationOrphanMessage}</p>
+                <p class="empty-state-subtitle">Please contact #merch-at-scale on Slack for assistance.</p>
+            </div>
+        `;
+    }
+
     /**
      * Navigates to the variations table view with the parent fragment expanded.
      */
@@ -1474,6 +1592,14 @@ export default class MasFragmentEditor extends LitElement {
                         <sp-progress-circle indeterminate size="l"></sp-progress-circle>
                     </div>
                 </div>
+            `;
+        }
+
+        const orphanGroupedVariation = this.orphanGroupedVariationState;
+        if (orphanGroupedVariation) {
+            return html`
+                ${this.styles}
+                <div id="fragment-editor">${orphanGroupedVariation}</div>
             `;
         }
 

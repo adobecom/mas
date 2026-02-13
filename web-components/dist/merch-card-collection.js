@@ -505,7 +505,7 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
 
   merch-card[variant="mini-compare-chart"] .action-area {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     align-items: flex-end;
     flex-wrap: wrap;
     width: 100%;
@@ -736,10 +736,6 @@ merch-card[variant="mini-compare-chart"] [slot="secure-transaction-label"] {
 	display: flex;
 }
 
-merch-card[variant="mini-compare-chart"] .action-area {
-  justify-content: flex-start;
-}
-
 .footer-rows-container {
   background-color: #F8F8F8;
   border-radius: 0 0 var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-xxs);
@@ -952,7 +948,9 @@ merch-card .footer-row-cell:nth-child(8) {
 			<slot name="secure-transaction-label">
 				<span class="secure-transaction-label-text">${this.secureLabel}</span>
 			</slot>
-            <slot name="footer"></slot>
+            <p class="action-area">
+				<slot name="footer"></slot>
+			</p>
         </footer>`);g(this,"getMiniCompareFooterRows",()=>qt`
 		<div class="footer-rows-container">
 			<slot name="body-xs"></slot>
@@ -1176,6 +1174,17 @@ merch-card .footer-row-cell:nth-child(8) {
             background-color: #F8F8F8;
             border-radius: 0 0 var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-xxs);
         }
+
+        :host([variant='mini-compare-chart']) .action-area {
+            display: flex;
+            justify-content: start;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            width: 100%;
+            gap: var(--consonant-merch-spacing-xxs);
+			margin: unset;
+        }
+
     `);import{html as xt,css as ns,nothing as jt}from"./lit-all.min.js";var da=`
 :root {
     --consonant-merch-card-plans-width: 302px;

@@ -198,7 +198,7 @@ export const CSS = `
 
   merch-card[variant="mini-compare-chart"] .action-area {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     align-items: flex-end;
     flex-wrap: wrap;
     width: 100%;
@@ -427,10 +427,6 @@ merch-card[variant="mini-compare-chart"] footer {
 
 merch-card[variant="mini-compare-chart"] [slot="secure-transaction-label"] {
 	display: flex;
-}
-
-merch-card[variant="mini-compare-chart"] .action-area {
-  justify-content: flex-start;
 }
 
 .footer-rows-container {

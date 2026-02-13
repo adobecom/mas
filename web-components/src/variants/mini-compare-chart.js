@@ -99,7 +99,9 @@ export class MiniCompareChart extends VariantLayout {
 			<slot name="secure-transaction-label">
 				<span class="secure-transaction-label-text">${this.secureLabel}</span>
 			</slot>
-            <slot name="footer"></slot>
+            <p class="action-area">
+				<slot name="footer"></slot>
+			</p>
         </footer>`;
     };
 
@@ -461,5 +463,16 @@ export class MiniCompareChart extends VariantLayout {
             background-color: #F8F8F8;
             border-radius: 0 0 var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-xxs);
         }
+
+        :host([variant='mini-compare-chart']) .action-area {
+            display: flex;
+            justify-content: start;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            width: 100%;
+            gap: var(--consonant-merch-spacing-xxs);
+			margin: unset;
+        }
+
     `;
 }

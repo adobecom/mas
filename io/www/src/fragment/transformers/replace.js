@@ -10,8 +10,16 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
 let dictionaryCache;
 
-export function clearDictionaryCache() {
-    dictionaryCache = undefined;
+export function clearDictionaryCache(preview = false) {
+    if (preview) {
+        Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('dictionary-')) {
+                localStorage.removeItem(key);
+            }
+        });
+    } else {
+        dictionaryCache = undefined;
+    }
 }
 
 async function cacheKey(context) {

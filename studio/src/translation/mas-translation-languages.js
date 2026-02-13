@@ -2,18 +2,14 @@ import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-translation-languages.css.js';
 import Store from '../store.js';
 import { getDefaultLocales, getLocaleCode } from '../../../io/www/src/fragment/locales.js';
-
-const NMB_CLMN = 4;
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasTranslationLanguages extends LitElement {
     static styles = styles;
-    static properties = {
-        selectedLanguages: { type: Array, state: true, reflect: true },
-    };
 
-    constructor() {
-        super();
-    }
+    static properties = {
+        localesArray: { type: Array, state: true },
+    };
 
     connectedCallback() {
         super.connectedCallback();
@@ -29,15 +25,18 @@ class MasTranslationLanguages extends LitElement {
                 return a.locale > b.locale ? 1 : -1;
             });
         this.localesMatrix = this.getLocales();
-        this.numberOfLocales = this.localesArray.length;
-    }
-
-    get selectAllCheckbox() {
-        return this.shadowRoot.querySelector('#cb-select-all');
+        this.targetLocalesController = new ReactiveController(this, [Store.translationProjects.targetLocales]);
     }
 
     get selectAllChecked() {
-        return this.selectedLanguages.length === this.numberOfLocales;
+        return Store.translationProjects.targetLocales.value.length === this.localesArray.length;
+    }
+
+    get numberOfLocales() {
+        const languagesText = Store.translationProjects.targetLocales.value.length === 1 ? 'language' : 'languages';
+        return Store.translationProjects.targetLocales.value.length
+            ? `${Store.translationProjects.targetLocales.value.length} ${languagesText} selected`
+            : `${this.localesArray.length} ${languagesText}`;
     }
 
     /** The array of locales needs to be transform into the matrix with NMB_CLMN columns
@@ -45,12 +44,13 @@ class MasTranslationLanguages extends LitElement {
      *  to display the content properly in the table.
      */
     getLocales() {
+        const numberOfColumns = 4;
         const matrix = this.localesArray.reduce((rows, key, index) => {
-            return (index % NMB_CLMN == 0 ? rows.push([key]) : rows[rows.length - 1].push(key)) && rows;
+            return (index % numberOfColumns == 0 ? rows.push([key]) : rows[rows.length - 1].push(key)) && rows;
         }, []);
 
         const lastRowLength = matrix[matrix.length - 1].length;
-        for (let i = 0; i < NMB_CLMN - lastRowLength; i++) {
+        for (let i = 0; i < numberOfColumns - lastRowLength; i++) {
             matrix[matrix.length - 1].push({});
         }
         return matrix;
@@ -58,27 +58,25 @@ class MasTranslationLanguages extends LitElement {
 
     selectAll(event) {
         if (event.target.checked) {
-            this.selectedLanguages = this.localesArray.map((item) => item.locale);
+            Store.translationProjects.targetLocales.set(this.localesArray.map((item) => item.locale));
         } else {
-            this.selectedLanguages = [];
+            Store.translationProjects.targetLocales.set([]);
         }
         this.requestUpdate();
     }
 
     changeCheckboxState(event) {
         event.stopPropagation();
-
         if (event.target.checked) {
-            this.selectedLanguages.push(event.target.textContent);
+            Store.translationProjects.targetLocales.set([
+                ...Store.translationProjects.targetLocales.value,
+                event.target.textContent.trim(),
+            ]);
         } else {
-            const index = this.selectedLanguages.indexOf(event.target.textContent);
-            if (index > -1) {
-                // only splice array when item is found
-                this.selectedLanguages.splice(index, 1); // 2nd parameter means remove one item only
-            }
+            Store.translationProjects.targetLocales.set(
+                Store.translationProjects.targetLocales.value.filter((locale) => locale !== event.target.textContent.trim()),
+            );
         }
-        this.selectAllCheckbox.checked = this.selectAllChecked;
-        this.requestUpdate();
     }
 
     renderTableCell(item) {
@@ -88,9 +86,10 @@ class MasTranslationLanguages extends LitElement {
                     ? html`
                           <sp-checkbox
                               @change=${this.changeCheckboxState}
-                              ?checked=${this.selectedLanguages.includes(item.locale)}
-                              >${item.locale}</sp-checkbox
+                              ?checked=${Store.translationProjects.targetLocales.value.includes(item.locale)}
                           >
+                              ${item.locale}
+                          </sp-checkbox>
                       `
                     : nothing}
             </sp-table-cell>
@@ -105,10 +104,10 @@ class MasTranslationLanguages extends LitElement {
         return html`
             <div class="select-lang-content">
                 <div class="select-all-lang">
-                    <sp-checkbox id="cb-select-all" ?checked=${this.selectAllChecked} @change=${this.selectAll} size="m"
-                        >Select all</sp-checkbox
-                    >
-                    <div class="nmb-languages">${this.numberOfLocales} languages</div>
+                    <sp-checkbox id="cb-select-all" ?checked=${this.selectAllChecked} @change=${this.selectAll} size="m">
+                        Select all
+                    </sp-checkbox>
+                    <div class="nmb-languages">${this.numberOfLocales}</div>
                 </div>
                 <sp-divider size="s"></sp-divider>
                 <div class="select-lang">
@@ -121,4 +120,4 @@ class MasTranslationLanguages extends LitElement {
     }
 }
 
-customElements.define('mas-translation-langs', MasTranslationLanguages);
+customElements.define('mas-translation-languages', MasTranslationLanguages);

@@ -6,13 +6,14 @@
     "private": true,
     "workspaces": [
         "studio",
-        "web-components"
+        "web-components",
+        "io/studio"
     ],
     "scripts": {
         "lint": "eslint --fix",
         "format": "prettier . --write",
         "test": "npm run test:ci --workspaces",
-        "build": "npm run build --workspaces",
+        "build": "npm run build --workspaces --if-present",
         "studio": "cd studio && npm run proxy & aem up",
         "studio:qa": "cd studio && npm run proxy:qa & aem up",
         "studio:stage": "cd studio && npm run proxy:stage & aem up",

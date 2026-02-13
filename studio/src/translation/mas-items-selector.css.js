@@ -12,7 +12,23 @@ export const styles = css`
         width: 80vw;
     }
 
-    .selected-files-count {
+    .container.view-only {
+        width: 100%;
+    }
+
+    sp-tab-panel.view-only {
+        padding: 20px 0 0 0;
+    }
+
+    sp-toast {
+        position: fixed;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+    }
+
+    .selected-items-count {
         position: fixed;
         bottom: 98px;
         right: 22px;

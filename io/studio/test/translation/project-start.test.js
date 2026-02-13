@@ -845,7 +845,7 @@ describe('Translation project-start', () => {
             expect(lastCallOptions['/adobe/sites/cf/fragments/fragment2-fr-id/versions'].method).to.equal('POST');
             const versionBody = JSON.parse(lastCallOptions['/adobe/sites/cf/fragments/fragment2-fr-id/versions'].body);
             expect(versionBody).to.deep.equal({
-                comment: 'translation project \"Test Project\" (test-project-id)',
+                comment: 'Pre-translation project \"Test Project\" (test-project-id)',
                 label: 'Pre-translation version',
             });
         });

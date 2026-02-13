@@ -189,7 +189,7 @@ async function main(params) {
             }
             await postToOdinWithRetry(params.odinEndpoint, `/adobe/sites/cf/fragments/${id}/versions`, authToken, {
                 label: 'Pre-translation version',
-                comment: `translation project "${title}" (${params.projectId})`,
+                comment: `Pre-translation project "${title}" (${params.projectId})`,
             });
             return { success: true, item: path };
         } catch (error) {

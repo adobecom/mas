@@ -24,6 +24,7 @@
     },
     "scripts": {
         "test": "c8 --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 mocha --recursive ./test",
+        "test:ci": "c8 --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 mocha --recursive ./test",
         "test:watch": "nodemon --watch src --watch test --ext js,json --exec \"mocha --recursive ./test\"",
         "test:file": "nodemon --watch src --watch test --ext js,json --exec \"mocha --recursive ./test --grep \\\"$npm_config_grep\\\"\"",
         "test:coverage": "c8 --reporter=lcov --reporter=text-summary --check-coverage --lines=99 --functions=99 --branches=99 --statements=99 mocha --recursive ./test",

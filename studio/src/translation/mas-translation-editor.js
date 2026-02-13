@@ -663,7 +663,7 @@ class MasTranslationEditor extends LitElement {
                     this.showSelectedEmptyState
                         ? html`
                               <div class="form-field select-items">
-                                  <h2>Select files <sp-icon-asterisk100></sp-icon-asterisk100></h2>
+                                  <h2>Select items <sp-icon-asterisk100></sp-icon-asterisk100></h2>
                                   <div class="items-empty-state">
                                       <div class="icon">
                                           <overlay-trigger
@@ -688,7 +688,7 @@ class MasTranslationEditor extends LitElement {
                         : html`<div class="form-field selected-items">
                               <div class="selected-items-header">
                                   <h2>
-                                      Selected Items
+                                      Selected items
                                       <span>(${this.selectedCount})</span>
                                       <sp-icon-asterisk100></sp-icon-asterisk100>
                                   </h2>

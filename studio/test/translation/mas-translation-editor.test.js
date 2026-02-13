@@ -386,7 +386,7 @@ describe('MasTranslationEditor', () => {
             const selectedItems = el.shadowRoot.querySelector('.selected-items');
             expect(selectedItems).to.exist;
             const header = selectedItems.querySelector('h2');
-            expect(header.textContent).to.include('Selected Items');
+            expect(header.textContent).to.include('Selected items');
         });
     });
 

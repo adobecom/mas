@@ -59,4 +59,61 @@ export const styles = `
 #content .expanded-content .nested-fragment sp-table-row:hover {
     background-color: var(--spectrum-blue-400);
 }
+
+/* Grouped variation expanded section */
+.grouped-variation-expanded {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    background-color: var(--spectrum-background-layer-1-color);
+    border-left: 1px solid var(--spectrum-gray-400);
+    border-bottom: 1px solid var(--spectrum-gray-400);
+    padding: 12px 20px 20px 81px;
+}
+
+.promo-code-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 224px;
+    max-width: 224px;
+    min-height: 32px;
+}
+
+.tags-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.field-label {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 18px;
+    color: var(--spectrum-gray-700);
+    padding-top: 7px;
+    padding-bottom: 7px;
+}
+
+.field-value {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 18px;
+    color: var(--spectrum-gray-800);
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.tags-group sp-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.no-tags {
+    font-size: 14px;
+    color: var(--spectrum-gray-500);
+    font-style: italic;
+}
 `;

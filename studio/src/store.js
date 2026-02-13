@@ -22,6 +22,7 @@ const Store = {
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
+        translatedLocales: new ReactiveStore(null), // Array of locale codes like ['en_US', 'fr_FR'] or null
         loading: new ReactiveStore(false),
         get editorContext() {
             if (!editorContextInstance) {
@@ -113,6 +114,7 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
+        prefill: new ReactiveStore(null),
 
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
@@ -223,9 +225,12 @@ export function toggleSelection(id) {
  */
 export function editFragment(store, x = 0) {
     const fragmentId = store.get().id;
+    const fragmentPath = store.get().path;
     const storeFragments = Store.fragments.list.data.get();
     const defaultInStore = storeFragments.includes(store);
-    const variationInStore = storeFragments.find((s) => s.get().references?.find((r) => r.id === fragmentId));
+    const variationInStore = storeFragments.find((s) =>
+        s.get().references?.find((r) => r.id === fragmentId || (fragmentPath && r.path === fragmentPath)),
+    );
     if (!defaultInStore && !variationInStore) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }

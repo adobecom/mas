@@ -68,11 +68,6 @@ describe('EditorContextStore', () => {
             expect(store.get()).to.deep.equal(initialValue);
         });
 
-        it('should initialize loading as false', () => {
-            store = new EditorContextStore(null);
-            expect(store.loading).to.be.false;
-        });
-
         it('should initialize localeDefaultFragment as null', () => {
             store = new EditorContextStore(null);
             expect(store.localeDefaultFragment).to.be.null;

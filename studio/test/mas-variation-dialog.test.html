@@ -104,6 +104,22 @@
                             expect(localePicker).to.exist;
                         });
 
+                        it('should render grouped variation option for en_US source locale', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/en_US/test-fragment' };
+                            await dialog.updateComplete;
+
+                            const groupedOption = dialog.shadowRoot.querySelector('sp-menu-item[value="grouped"]');
+                            expect(groupedOption).to.exist;
+                        });
+
+                        it('should hide grouped variation option for non en_US source locale', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/fr_FR/test-fragment' };
+                            await dialog.updateComplete;
+
+                            const groupedOption = dialog.shadowRoot.querySelector('sp-menu-item[value="grouped"]');
+                            expect(groupedOption).to.not.exist;
+                        });
+
                         it('should render cancel and create buttons', async () => {
                             const buttons = dialog.shadowRoot.querySelectorAll('sp-button');
                             expect(buttons.length).to.equal(2);
@@ -302,6 +318,15 @@
                             await dialog.updateComplete;
 
                             expect(dialog.sourceLocale).to.be.null;
+                        });
+
+                        it('should reset grouped variationType to regional for non en_US locales', async () => {
+                            dialog.variationType = 'grouped';
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/de_DE/test-fragment' };
+                            await dialog.updateComplete;
+
+                            expect(dialog.variationType).to.equal('regional');
+                            expect(dialog.isGrouped).to.be.false;
                         });
                     });
                 });

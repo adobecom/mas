@@ -1,14 +1,18 @@
-import { LitElement, html, css } from 'lit';
-import { EVENT_KEYDOWN } from './constants.js';
+import { LitElement, html, css, nothing } from 'lit';
+import { EVENT_KEYDOWN, VARIATION_TYPES } from './constants.js';
 import { showToast, extractLocaleFromPath } from './utils.js';
 import Store from './store.js';
 import { getCountryName, getLocaleCode, getRegionLocales } from '../../io/www/src/fragment/locales.js';
+import './aem/aem-tag-picker-field.js';
 
 export class MasVariationDialog extends LitElement {
     static properties = {
         fragment: { type: Object },
         isVariation: { type: Boolean },
+        offerData: { type: Object },
+        variationType: { state: true },
         selectedLocale: { state: true },
+        pznTags: { state: true },
         loading: { state: true },
         error: { state: true },
         existingVariationLocales: { state: true },
@@ -16,64 +20,33 @@ export class MasVariationDialog extends LitElement {
 
     static styles = css`
         :host {
+            display: contents;
+        }
+
+        sp-underlay:not([open]) + sp-dialog {
+            display: none;
+        }
+
+        sp-underlay + sp-dialog {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 999;
-            display: block;
+            border-radius: 16px;
+            z-index: 1;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 480px;
+            background: var(--spectrum-white);
         }
 
-        .dialog-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .form-field {
-            margin-bottom: 24px;
-        }
-
-        sp-field-label {
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        sp-picker {
+        sp-field-group sp-picker,
+        sp-field-group aem-tag-picker-field {
             width: 100%;
         }
 
-        .dialog-container {
-            background: var(--spectrum-white);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            padding: 24px;
-            min-width: 400px;
-            z-index: 1000;
-            position: relative;
-        }
-
-        .dialog-header {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--spectrum-gray-200);
-        }
-
-        .dialog-footer {
+        #fields {
             display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            margin-top: 24px;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .error-message {
@@ -87,7 +60,10 @@ export class MasVariationDialog extends LitElement {
         super();
         this.fragment = null;
         this.isVariation = false;
+        this.offerData = null;
+        this.variationType = 'regional';
         this.selectedLocale = '';
+        this.pznTags = [];
         this.loading = false;
         this.error = null;
         this.repository = null;
@@ -96,7 +72,6 @@ export class MasVariationDialog extends LitElement {
         this.handleSubmit = this.handleSubmit.bind(this);
         this.close = this.close.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
-        this.handleBackdropClick = this.handleBackdropClick.bind(this);
     }
 
     connectedCallback() {
@@ -149,18 +124,41 @@ export class MasVariationDialog extends LitElement {
                 this.selectedLocale = this.firstAvailableLocale;
             }
         }
+        if ((changedProperties.has('fragment') || changedProperties.has('variationType')) && !this.canShowGroupedVariation) {
+            if (this.variationType === 'grouped') {
+                this.variationType = 'regional';
+            }
+        }
+    }
+
+    get isGrouped() {
+        return this.variationType === 'grouped' && this.canShowGroupedVariation;
+    }
+
+    get canShowGroupedVariation() {
+        return this.sourceLocale === 'en_US';
     }
 
     get canSubmit() {
-        return this.selectedLocale && !this.loading;
+        if (this.loading) return false;
+        if (this.isGrouped) {
+            return this.pznTags.length > 0;
+        }
+        return !!this.selectedLocale;
+    }
+
+    handleVariationTypeChange(event) {
+        const nextType = event.target.value;
+        this.variationType = nextType === 'grouped' && !this.canShowGroupedVariation ? 'regional' : nextType;
+        this.error = null;
+    }
+
+    handlePznTagsChange(event) {
+        const tagPicker = event.target;
+        this.pznTags = tagPicker.value || [];
     }
 
     async handleSubmit() {
-        if (!this.selectedLocale) {
-            this.error = 'Please select a locale';
-            return;
-        }
-
         if (!this.repository) {
             this.error = 'Repository not available';
             return;
@@ -168,35 +166,62 @@ export class MasVariationDialog extends LitElement {
 
         try {
             this.loading = true;
-            showToast('Creating variation...');
+            this.error = null;
 
-            const variationFragment = await this.repository.createVariation(
-                this.fragment.id,
-                this.selectedLocale,
-                this.isVariation,
-            );
+            if (this.isGrouped) {
+                if (this.pznTags.length === 0) {
+                    this.error = 'Please add at least one locale tag';
+                    this.loading = false;
+                    return;
+                }
 
-            showToast('Variation created successfully', 'positive');
+                showToast('Creating grouped variation...');
 
-            Store.search.set((prev) => ({ ...prev, region: this.selectedLocale }));
+                const variationFragment = await this.repository.createGroupedVariation(
+                    this.fragment.id,
+                    this.pznTags,
+                    this.offerData,
+                );
 
-            this.dispatchEvent(
-                new CustomEvent('fragment-copied', {
-                    detail: { fragment: variationFragment },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
+                showToast('Grouped variation created successfully', 'positive');
+
+                this.dispatchEvent(
+                    new CustomEvent('fragment-copied', {
+                        detail: { fragment: variationFragment },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+            } else {
+                if (!this.selectedLocale) {
+                    this.error = 'Please select a locale';
+                    this.loading = false;
+                    return;
+                }
+
+                showToast('Creating variation...');
+
+                const variationFragment = await this.repository.createVariation(
+                    this.fragment.id,
+                    this.selectedLocale,
+                    this.isVariation,
+                );
+
+                showToast('Variation created successfully', 'positive');
+                Store.search.set((prev) => ({ ...prev, region: this.selectedLocale }));
+
+                this.dispatchEvent(
+                    new CustomEvent('fragment-copied', {
+                        detail: { fragment: variationFragment },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+            }
         } catch (err) {
             this.error = err.message || 'Failed to create variation';
             this.loading = false;
             showToast(`Failed to create variation: ${err.message}`, 'negative');
-        }
-    }
-
-    handleBackdropClick(event) {
-        if (event.target.classList.contains('dialog-backdrop') && !this.loading) {
-            this.close();
         }
     }
 
@@ -209,50 +234,74 @@ export class MasVariationDialog extends LitElement {
         );
     }
 
-    render() {
+    get regionalFieldsTemplate() {
         const localeOptions = this.availableTargetLocales;
-
         return html`
-            <div class="dialog-backdrop" @click=${this.handleBackdropClick}>
-                <div class="dialog-container" @click=${(e) => e.stopPropagation()}>
-                    <div class="dialog-header">Set a variation type</div>
+            <sp-field-group>
+                <sp-field-label>Regional</sp-field-label>
+                <sp-picker
+                    value=${this.selectedLocale}
+                    @change=${(e) => (this.selectedLocale = e.target.value)}
+                    ?disabled=${this.loading}
+                    placeholder="Select a locale"
+                >
+                    ${localeOptions.map(
+                        (locale) => html`
+                            <sp-menu-item value="${getLocaleCode(locale)}" ?disabled=${locale.disabled}>
+                                ${getCountryName(locale.country)} (${locale.country})${locale.disabled ? ' (exists)' : ''}
+                            </sp-menu-item>
+                        `,
+                    )}
+                </sp-picker>
+            </sp-field-group>
+        `;
+    }
 
-                    <div class="form-field">
+    get groupedFieldsTemplate() {
+        return html`
+            <sp-field-group>
+                <sp-field-label>Grouped variation tags</sp-field-label>
+                <aem-tag-picker-field
+                    label="Locale tags"
+                    namespace="/content/cq:tags/mas"
+                    selection="checkbox-tags"
+                    render-value
+                    top="locale"
+                    multiple
+                    ?disabled=${this.loading}
+                    @change=${this.handlePznTagsChange}
+                ></aem-tag-picker-field>
+            </sp-field-group>
+        `;
+    }
+
+    render() {
+        return html`
+            <sp-underlay open></sp-underlay>
+            <sp-dialog size="s" no-divider>
+                <h2 slot="heading">Set a variation type</h2>
+                <div id="fields">
+                    <sp-field-group>
                         <sp-field-label>Variation type</sp-field-label>
-                        <sp-picker value="regional" disabled>
-                            <sp-menu-item value="regional" selected>Regional</sp-menu-item>
-                        </sp-picker>
-                    </div>
-
-                    <div class="form-field">
-                        <sp-field-label>Regional</sp-field-label>
                         <sp-picker
-                            value=${this.selectedLocale}
-                            @change=${(e) => (this.selectedLocale = e.target.value)}
+                            value=${this.variationType}
+                            @change=${this.handleVariationTypeChange}
                             ?disabled=${this.loading}
-                            placeholder="Select a locale"
                         >
-                            ${localeOptions.map(
-                                (locale) => html`
-                                    <sp-menu-item value="${getLocaleCode(locale)}" ?disabled=${locale.disabled}>
-                                        ${getCountryName(locale.country)}
-                                        (${locale.country})${locale.disabled ? ' (exists)' : ''}
-                                    </sp-menu-item>
-                                `,
-                            )}
+                            <sp-menu-item value="regional">Regional</sp-menu-item>
+                            ${this.canShowGroupedVariation
+                                ? html`<sp-menu-item value="grouped">${VARIATION_TYPES.GROUPED}</sp-menu-item>`
+                                : nothing}
                         </sp-picker>
-                    </div>
-
-                    ${this.error ? html`<div class="error-message">${this.error}</div>` : ''}
-
-                    <div class="dialog-footer">
-                        <sp-button variant="secondary" treatment="outline" @click=${this.close}> Cancel </sp-button>
-                        <sp-button variant="accent" ?disabled=${!this.canSubmit} @click=${this.handleSubmit}>
-                            Create variation
-                        </sp-button>
-                    </div>
+                    </sp-field-group>
+                    ${this.isGrouped ? this.groupedFieldsTemplate : this.regionalFieldsTemplate}
+                    ${this.error ? html`<p class="error-message">${this.error}</p>` : nothing}
                 </div>
-            </div>
+                <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.close}>Cancel</sp-button>
+                <sp-button slot="button" variant="accent" ?disabled=${!this.canSubmit} @click=${this.handleSubmit}>
+                    Create variation
+                </sp-button>
+            </sp-dialog>
         `;
     }
 }

@@ -115,9 +115,55 @@
                         expect(aemTagPicker.shadowRoot.querySelector('sp-action-button' /* tag picker button */)).to.not.be
                             .null;
                     });
+
+                    it('renders icon-only trigger at the end of sp-tags in default hierarchy mode', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker2', this.test.title);
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.updateComplete;
+
+                        const tagsContainer = aemTagPicker.shadowRoot.querySelector('sp-tags');
+                        const triggerButton = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+
+                        expect(tagsContainer).to.not.be.null;
+                        expect(triggerButton).to.not.be.null;
+                        expect(tagsContainer.lastElementChild?.localName).to.equal('overlay-trigger');
+                        expect(triggerButton.textContent.trim()).to.equal('');
+                    });
+
+                    it('Displays tag value instead of label when display-value is set', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker8', this.test.title);
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/product/cc');
+                        await aemTagPicker.updateComplete;
+                        await delay(100);
+
+                        const spTag = aemTagPicker.shadowRoot.querySelector('sp-tag');
+                        expect(spTag).to.not.be.null;
+                        expect(spTag.textContent).to.include('cc');
+                        expect(spTag.textContent).to.not.include('Creative Cloud');
+                    });
                 });
 
                 describe('aem-tag-picker-field custom element: checkbox', async () => {
+                    it('uses a quiet trigger button', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker6', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        const triggerButton = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+                        expect(triggerButton).to.not.be.null;
+                        expect(triggerButton.hasAttribute('quiet')).to.be.true;
+                    });
+
+                    it('shows selected count on trigger button', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker6', this.test.title);
+                        await aemTagPicker.loadTags();
+                        aemTagPicker.value = ['/content/cq:tags/mas/status/draft'];
+                        await aemTagPicker.updateComplete;
+
+                        const triggerButton = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+                        expect(triggerButton.textContent).to.include('(1)');
+                    });
+
                     it('Should not alter tags outside the scope of the picker', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker4', this.test.title);
                         await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
@@ -181,6 +227,268 @@
                         const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
                         expect(spSearch).to.not.be.null;
                     });
+
+                    it('keeps selections made across different filters when applying', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker7', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
+                        const expressPath = '/content/cq:tags/mas/product/cc/adobe-express';
+                        const photoshopPath = '/content/cq:tags/mas/product/cc/photoshop';
+
+                        spSearch.value = 'adobe ex';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+                        const expressCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${expressPath}"]`);
+                        expressCheckbox.checked = true;
+                        expressCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        spSearch.value = 'photoshop';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+                        const photoshopCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${photoshopPath}"]`);
+                        photoshopCheckbox.checked = true;
+                        photoshopCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        aemTagPicker.shadowRoot.querySelector('#footer sp-button:last-child').click();
+                        await aemTagPicker.updateComplete;
+
+                        expect(aemTagPicker.value).to.include(expressPath);
+                        expect(aemTagPicker.value).to.include(photoshopPath);
+                    });
+
+                    it('supports iconProvider for custom icons in checkbox mode', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker6', this.test.title);
+                        // Set up an iconProvider that returns an emoji based on the tag path
+                        aemTagPicker.iconProvider = (path) => {
+                            if (path.includes('draft')) return '📝';
+                            if (path.includes('published')) return '✅';
+                            return null;
+                        };
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const checkboxList = aemTagPicker.shadowRoot.querySelector('.checkbox-list');
+                        const items = checkboxList.querySelectorAll('sp-checkbox');
+
+                        // Find the draft and published checkboxes and verify they have icons
+                        const draftCheckbox = [...items].find((item) => item.getAttribute('value')?.includes('draft'));
+                        const publishedCheckbox = [...items].find((item) => item.getAttribute('value')?.includes('published'));
+
+                        expect(draftCheckbox).to.not.be.undefined;
+                        expect(publishedCheckbox).to.not.be.undefined;
+                        expect(draftCheckbox.textContent).to.include('📝');
+                        expect(publishedCheckbox.textContent).to.include('✅');
+                    });
+
+                    it('supports iconProvider for custom icons in tags display', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker2', this.test.title);
+                        // Set up an iconProvider
+                        aemTagPicker.iconProvider = (path) => {
+                            if (path.includes('draft')) return '📝';
+                            return null;
+                        };
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.updateComplete;
+                        await delay(100);
+
+                        const spTag = aemTagPicker.shadowRoot.querySelector('sp-tag');
+                        expect(spTag).to.not.be.null;
+                        // The icon should be rendered in a span with slot="icon"
+                        const iconSpan = spTag.querySelector('span[slot="icon"]');
+                        expect(iconSpan).to.not.be.null;
+                        expect(iconSpan.textContent).to.equal('📝');
+                    });
+
+                    it('falls back to default icon when iconProvider returns null', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker2', this.test.title);
+                        // Set up an iconProvider that returns null for all paths
+                        aemTagPicker.iconProvider = () => null;
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.updateComplete;
+                        await delay(100);
+
+                        const spTag = aemTagPicker.shadowRoot.querySelector('sp-tag');
+                        expect(spTag).to.not.be.null;
+                        // Should fall back to sp-icon-label
+                        const defaultIcon = spTag.querySelector('sp-icon-label');
+                        expect(defaultIcon).to.not.be.null;
+                    });
+                });
+
+                describe('aem-tag-picker-field custom element: checkbox-tags', async () => {
+                    it('uses a non-quiet trigger button', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        const triggerButton = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+                        expect(triggerButton).to.not.be.null;
+                        expect(triggerButton.hasAttribute('quiet')).to.be.false;
+                    });
+
+                    it('renders selected tags with sp-tags and no trigger count', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
+                        await aemTagPicker.loadTags();
+                        aemTagPicker.value = ['/content/cq:tags/mas/status/draft'];
+                        await aemTagPicker.updateComplete;
+
+                        const tagsContainer = aemTagPicker.shadowRoot.querySelector('sp-tags');
+                        const selectedTag = aemTagPicker.shadowRoot.querySelector('sp-tags sp-tag[data-path]');
+                        const triggerButton = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+
+                        expect(tagsContainer).to.not.be.null;
+                        expect(selectedTag).to.not.be.null;
+                        expect(tagsContainer.lastElementChild?.localName).to.equal('overlay-trigger');
+                        expect(triggerButton.textContent).to.not.include('(1)');
+                        expect(triggerButton.textContent.trim()).to.equal('');
+                    });
+
+                    it('renders flattened checkbox list labels and no footer', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker10', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const checkboxList = aemTagPicker.shadowRoot.querySelector('.checkbox-list');
+                        expect(checkboxList).to.not.be.null;
+                        expect(aemTagPicker.shadowRoot.querySelector('#footer')).to.be.null;
+
+                        const expressCheckbox = checkboxList.querySelector(
+                            'sp-checkbox[value="/content/cq:tags/mas/product/cc/adobe-express"]',
+                        );
+                        expect(expressCheckbox).to.not.be.null;
+                        expect(expressCheckbox.textContent).to.include('Adobe Express');
+                    });
+
+                    it('renders value as label when render-value is present', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker11', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const expressCheckbox = aemTagPicker.shadowRoot.querySelector(
+                            'sp-checkbox[value="/content/cq:tags/mas/product/cc/adobe-express"]',
+                        );
+                        expect(expressCheckbox).to.not.be.null;
+                        expect(expressCheckbox.textContent).to.include('adobe-express');
+                        expect(expressCheckbox.textContent).to.not.include('Adobe Express');
+                    });
+
+                    it('filters checkbox list while typing in search', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker10', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
+                        expect(spSearch).to.not.be.null;
+
+                        spSearch.value = 'adobe';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+
+                        let filteredItems = [...aemTagPicker.shadowRoot.querySelectorAll('.checkbox-list sp-checkbox')];
+                        expect(filteredItems.length).to.be.above(1);
+
+                        spSearch.value = 'adobe ex';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+
+                        filteredItems = [...aemTagPicker.shadowRoot.querySelectorAll('.checkbox-list sp-checkbox')];
+                        expect(filteredItems.length).to.equal(1);
+                        expect(filteredItems[0].textContent).to.include('Adobe Express');
+                    });
+
+                    it('keeps selections made across different filters when popover closes', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker10', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+
+                        const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
+                        const overlayTrigger = aemTagPicker.shadowRoot.querySelector('overlay-trigger');
+                        const expressPath = '/content/cq:tags/mas/product/cc/adobe-express';
+                        const photoshopPath = '/content/cq:tags/mas/product/cc/photoshop';
+
+                        spSearch.value = 'adobe ex';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+                        const expressCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${expressPath}"]`);
+                        expressCheckbox.checked = true;
+                        expressCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        spSearch.value = 'photoshop';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+                        const photoshopCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${photoshopPath}"]`);
+                        photoshopCheckbox.checked = true;
+                        photoshopCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const applyOnCloseListener = oneEvent(aemTagPicker, 'change');
+                        overlayTrigger.dispatchEvent(new Event('sp-closed'));
+                        await applyOnCloseListener;
+
+                        expect(aemTagPicker.value).to.include(expressPath);
+                        expect(aemTagPicker.value).to.include(photoshopPath);
+                    });
+
+                    it('applies selection only when popover closes', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+                        const overlayTrigger = aemTagPicker.shadowRoot.querySelector('overlay-trigger');
+
+                        const draftPath = '/content/cq:tags/mas/status/draft';
+                        const draftCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${draftPath}"]`);
+                        expect(draftCheckbox).to.not.be.null;
+
+                        draftCheckbox.checked = true;
+                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+                        expect(aemTagPicker.value).to.not.include(draftPath);
+
+                        const applyOnCloseListener = oneEvent(aemTagPicker, 'change');
+                        overlayTrigger.dispatchEvent(new Event('sp-closed'));
+                        await applyOnCloseListener;
+                        expect(aemTagPicker.value).to.include(draftPath);
+                    });
+
+                    it('keeps the popover open while selecting tags', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        const overlayTrigger = aemTagPicker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.open = true;
+                        expect(overlayTrigger.open).to.be.true;
+
+                        const draftPath = '/content/cq:tags/mas/status/draft';
+                        const draftCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${draftPath}"]`);
+                        draftCheckbox.checked = true;
+                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+
+                        expect(overlayTrigger.open).to.be.true;
+                    });
                 });
             });
         </script>
@@ -225,6 +533,34 @@
                 top="product"
                 label="Select a product"
                 selection="checkbox"
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker8">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="product"
+                multiple
+                display-value
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker9">
+            <aem-tag-picker-field namespace="/content/cq:tags/mas" top="status" selection="checkbox-tags"></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker10">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="product"
+                label="Select a product"
+                selection="checkbox-tags"
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker11">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="product"
+                label="Select a product"
+                selection="checkbox-tags"
+                render-value
             ></aem-tag-picker-field>
         </template>
     </body>

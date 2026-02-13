@@ -1,4 +1,4 @@
-import { PATH_TOKENS, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX } from '../constants.js';
 
 export class Fragment {
     path = '';
@@ -302,6 +302,15 @@ export class Fragment {
      * Lists all locale variations of the fragment. Other name: regional variations.
      * @returns {Fragment[]}
      */
+    /**
+     * Checks whether a path is a grouped (pzn) variation path.
+     * @param {string} path
+     * @returns {boolean}
+     */
+    static isGroupedVariationPath(path) {
+        return path?.includes(`/${PZN_FOLDER}/`) ?? false;
+    }
+
     listLocaleVariations() {
         const variationPaths = this.getVariations();
         if (!this.references?.length || !variationPaths.length) return [];
@@ -316,6 +325,9 @@ export class Fragment {
         return this.references.filter((reference) => {
             if (!variationPaths.includes(reference.path)) return false;
 
+            // Exclude grouped (pzn) variations from locale variations list
+            if (Fragment.isGroupedVariationPath(reference.path)) return false;
+
             // Exclude promo variations from locale variations list
             const isPromo = reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
             if (isPromo) return false;
@@ -327,6 +339,29 @@ export class Fragment {
             const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
             return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
         });
+    }
+
+    /**
+     * Lists all grouped (pzn) variations of the fragment.
+     * Grouped variations live under a /pzn/ folder in the path.
+     * @returns {Object[]}
+     */
+    listGroupedVariations() {
+        const variationPaths = this.getVariations();
+        if (!this.references?.length || !variationPaths.length) return [];
+
+        return this.references.filter((reference) => {
+            if (!variationPaths.includes(reference.path)) return false;
+            return Fragment.isGroupedVariationPath(reference.path);
+        });
+    }
+
+    /**
+     * Gets the count of grouped (pzn) variations.
+     * @returns {number}
+     */
+    getGroupedVariationCount() {
+        return this.listGroupedVariations()?.length || 0;
     }
 
     /**
@@ -356,10 +391,10 @@ export class Fragment {
     }
 
     /**
-     * Gets the total count of all variations (locale + promo).
+     * Gets the total count of all variations (locale + promo + grouped).
      * @returns {number}
      */
     getTotalVariationCount() {
-        return this.getLocaleVariationCount() + this.getPromoVariationCount();
+        return this.getLocaleVariationCount() + this.getPromoVariationCount() + this.getGroupedVariationCount();
     }
 }

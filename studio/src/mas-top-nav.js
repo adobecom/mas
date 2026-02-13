@@ -2,12 +2,28 @@ import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
 import Store from './store.js';
-import StoreController from './reactivity/store-controller.js';
+import ReactiveController from './reactivity/reactive-controller.js';
+import router from './router.js';
+import { extractLocaleFromPath } from './utils.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
 class MasTopNav extends LitElement {
-    page = new StoreController(this, Store.page);
+    page = Store.page;
+    inEdit = Store.fragments.inEdit;
+    editorContext = Store.fragmentEditor.editorContext;
+    search = Store.search;
+    filters = Store.filters;
+    landscape = Store.landscape;
+
+    reactiveController = new ReactiveController(this, [
+        this.page,
+        this.inEdit,
+        this.editorContext,
+        this.search,
+        this.filters,
+        this.landscape,
+    ]);
 
     createRenderRoot() {
         return this;
@@ -84,7 +100,7 @@ class MasTopNav extends LitElement {
         super();
         this.aemEnv = 'prod';
         this.showPickers = true;
-        Store.search.subscribe(() => {
+        this.search.subscribe(() => {
             this.requestUpdate();
         });
     }
@@ -93,20 +109,86 @@ class MasTopNav extends LitElement {
         return this.showPickers;
     }
 
+    get isContentPage() {
+        return this.page.value === PAGE_NAMES.CONTENT;
+    }
+
     get isFragmentEditorPage() {
-        return Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
+        return this.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
 
     get isTranslationEditorPage() {
-        return Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
+        return this.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
     }
 
     get isTranslationsPage() {
-        return Store.page.value === PAGE_NAMES.TRANSLATIONS;
+        return this.page.value === PAGE_NAMES.TRANSLATIONS;
+    }
+
+    get isLocalePickerDisabled() {
+        if (this.isContentPage) {
+            return false;
+        }
+        if (this.isFragmentEditorPage) {
+            // Enable picker when viewing default locale fragment (not a variation)
+            // so users can browse to locale variations
+            const fragmentId = this.inEdit.get()?.get()?.id;
+            return this.editorContext.isVariation(fragmentId);
+        }
+        return true;
     }
 
     get isDraftLandscape() {
-        return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
+        return this.landscape.value === WCS_LANDSCAPE_DRAFT;
+    }
+
+    get currentFragmentLocale() {
+        if (this.isFragmentEditorPage && this.inEdit.value) {
+            const currentFragment = this.inEdit.value.get();
+            if (currentFragment?.path) {
+                return extractLocaleFromPath(currentFragment.path);
+            }
+        }
+        return null;
+    }
+
+    async onLocaleChanged(e) {
+        const { locale, fragmentId } = e.detail;
+        if (this.isFragmentEditorPage) {
+            const currentFragment = this.inEdit.get()?.get();
+            if (fragmentId && fragmentId !== currentFragment?.id) {
+                if (currentFragment?.hasChanges) {
+                    const editor = document.querySelector('mas-fragment-editor');
+                    const confirmed = await editor?.promptDiscardChanges();
+                    if (!confirmed) {
+                        // Reset the picker to the current locale
+                        this.requestUpdate();
+                        return;
+                    }
+                }
+                // Clear the region override and update locale filter before navigating
+                Store.search.set((prev) => ({ ...prev, region: null }));
+                this.filters.set((prev) => ({ ...prev, locale }));
+                router.navigateToFragmentEditor(fragmentId);
+            } else if (fragmentId && fragmentId === currentFragment?.id) {
+                // User selected the same fragment's locale
+                Store.editor.resetChanges();
+                Store.search.set((prev) => ({ ...prev, region: null }));
+                this.filters.set((prev) => ({ ...prev, locale }));
+            } else if (!fragmentId) {
+                // If no translation exists for this locale, navigate to en_US fragment
+                // and show the "missing variation" state
+                Store.editor.resetChanges();
+                const translatedLocales = Store.fragmentEditor.translatedLocales.get();
+                const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
+                const enUsFragmentId = enUsTranslation?.id || currentFragment?.id;
+                Store.search.set((prev) => ({ ...prev, region: locale }));
+                this.filters.set((prev) => ({ ...prev, locale }));
+                router.navigateToFragmentEditor(enUsFragmentId);
+            }
+            return;
+        }
+        this.filters.set((prev) => ({ ...prev, locale }));
     }
 
     get environmentIndicator() {
@@ -152,15 +234,11 @@ class MasTopNav extends LitElement {
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"
-                                  @locale-changed=${(e) => {
-                                      Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
-                                  }}
-                                  ?disabled=${this.isFragmentEditorPage ||
-                                  this.isTranslationEditorPage ||
-                                  this.isTranslationsPage}
+                                  @locale-changed=${this.onLocaleChanged}
+                                  ?disabled=${this.isLocalePickerDisabled}
                                   surface=${Store.surface()}
-                              >
-                              </mas-locale-picker>
+                                  locale=${Store.localeOrRegion()}
+                              ></mas-locale-picker>
                               <sp-switch
                                   class="landscape-switch"
                                   size="m"

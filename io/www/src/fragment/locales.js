@@ -1,4 +1,4 @@
-const COUNTRY_DATA = {
+export const COUNTRY_DATA = {
     AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
     AR: { name: 'Argentina', flag: '🇦🇷' },
     AT: { name: 'Austria', flag: '🇦🇹' },
@@ -65,7 +65,7 @@ const COUNTRY_DATA = {
     ZA: { name: 'South Africa', flag: '🇿🇦' },
 };
 
-const ACOM = [
+export const ACOM = [
     { lang: 'ar', country: 'SA', regions: ['AE', 'EG', 'KW', 'QA'] },
     { lang: 'bg', country: 'BG' },
     { lang: 'cs', country: 'CZ' },
@@ -362,7 +362,7 @@ const DEFAULT_LOCALES = {
     commerce: COMMERCE,
 };
 
-const LANG_TO_LANGUAGE = {
+export const LANG_TO_LANGUAGE = {
     ar: 'Arabic',
     bg: 'Bulgarian',
     cs: 'Czech',
@@ -404,6 +404,18 @@ const LANG_TO_LANGUAGE = {
 const regionLocalesCache = {};
 
 const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
+
+/**
+ * Get locale object from locale code
+ * @param {string} code - Locale code (e.g., 'en_US')
+ * @returns {{ lang: string, country: string } | null}
+ */
+export function getLocaleByCode(code) {
+    if (!code) return null;
+    const [lang, country] = parseLocaleCode(code);
+    if (!lang || !country) return null;
+    return { lang, country };
+}
 
 // Helper to generate locale code from lang and country
 export function getLocaleCode(locale) {

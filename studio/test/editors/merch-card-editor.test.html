@@ -134,9 +134,10 @@
                     let layoutContainer, sideNav, fragmentEditor, editor, saveNavItem, fragmentStore;
 
                     async function setupTestEnvironment(overrides = {}, testId = 'default') {
+                        const variationPath = overrides.path || `/content/dam/mas/nala/en_AU/test-variation-${testId}`;
                         const variationData = {
                             ...baseMockData,
-                            path: `/content/dam/mas/nala/en_AU/test-variation-${testId}`,
+                            path: variationPath,
                             title: `Test Variation ${testId}`,
                             id: `test-variation-${testId}`,
                             tags: overrides.tags || [],
@@ -321,6 +322,28 @@
 
                         expect(Store.editor.hasChanges).to.be.true;
                         expect(saveNavItem.disabled).to.be.false;
+                    });
+
+                    it('renders grouped-variation-tags as readonly in non en_US locales', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-readonly' },
+                            'grouped-variation-readonly',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+                        expect(groupedTagsPicker.readonly).to.be.true;
+                    });
+
+                    it('renders grouped-variation-tags as editable in en_US locale', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-editable' },
+                            'grouped-variation-editable',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+                        expect(groupedTagsPicker.readonly).to.be.false;
                     });
 
                     describe('description field inheritance logic', () => {

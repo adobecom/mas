@@ -19,8 +19,22 @@ export const CSS = `
     padding: 0 var(--consonant-merch-spacing-s) 0;
   }
 
-  merch-card[variant="mini-compare-chart"] [slot="heading-xs"] {
-    padding: 0 var(--consonant-merch-spacing-s);
+  merch-card[variant="mini-compare-chart"] [slot="badge"] {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 0;
+    line-height: 16px;
+  }
+
+  merch-card[variant="mini-compare-chart"] div[class$='-badge']:dir(rtl) {
+    left: 0;
+    right: initial;
+    padding: 8px 11px;
+    border-radius: 0 5px 5px 0;
+  }
+
+  merch-card[variant="mini-compare-chart"] merch-badge {
+    max-width: calc(var(--consonant-merch-card-plans-width) * var(--merch-badge-card-size) - var(--merch-badge-with-offset) * 40px - var(--merch-badge-offset) * 48px);
   }
 
   merch-card[variant="mini-compare-chart"] merch-addon {
@@ -28,7 +42,6 @@ export const CSS = `
   }
 
   merch-card[variant="mini-compare-chart"] merch-addon {
-    padding-left: 4px;
     padding-top: 8px;
     padding-bottom: 8px;
     padding-right: 8px;
@@ -69,6 +82,10 @@ export const CSS = `
     display: none;
   }
 
+	merch-card[variant="mini-compare-chart"] [slot="heading-m-price"] {
+		padding: unset;
+	}
+
   merch-card[variant="mini-compare-chart"] [slot="heading-m-price"] .price-unit-type.disabled,
   merch-card[variant="mini-compare-chart"] [slot="heading-m-price"] .price-tax-inclusivity.disabled {
     display: none;
@@ -106,7 +123,7 @@ export const CSS = `
     color: var(--spectrum-gray-700, #505050);
     font-size: 16px;
     font-weight: 400;
-    line-height: 1.4;
+    line-height: 1.4;x
   }
 
   merch-card[variant="mini-compare-chart"] [slot="callout-content"] {
@@ -114,7 +131,7 @@ export const CSS = `
   }
 
   merch-card[variant="mini-compare-chart"] [slot="body-m"] {
-    padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-s);
+    padding: 12px 0;
   }
 
   merch-card[variant="mini-compare-chart"] [slot="body-xs"] {
@@ -308,11 +325,6 @@ merch-card[variant="mini-compare-chart"] [slot="heading-m"] {
   line-height: var(--consonant-merch-card-heading-xxs-line-height);
 }
 
-merch-card[variant="mini-compare-chart"] [slot="heading-m-price"],
-merch-card[variant="mini-compare-chart"] [slot="price-commitment"] {
-  padding: 0 var(--consonant-merch-spacing-xs);
-}
-
 merch-card[variant="mini-compare-chart"] [slot="heading-m-price"] .starting-at {
   font-size: var(--consonant-merch-card-body-s-font-size);
   line-height: var(--consonant-merch-card-body-s-line-height);
@@ -371,13 +383,12 @@ merch-card[variant="mini-compare-chart"] [slot="promo-text"] a {
 }
 
 merch-card[variant="mini-compare-chart"] [slot="heading-xs"] {
-	padding: var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-xs);
 	font-size: var(--consonant-merch-card-heading-xxs-font-size);
 	line-height: var(--consonant-merch-card-heading-xxs-line-height);
 }
 
 merch-card[variant="mini-compare-chart"] [slot="body-m"] {
-  padding: 12px var(--consonant-merch-spacing-xs) 0;
+  padding: unset;
   font-size: var(--consonant-merch-card-body-s-font-size);
   line-height: var(--consonant-merch-card-body-s-line-height);
   font-weight: 400;
@@ -414,11 +425,15 @@ merch-card[variant="mini-compare-chart"] footer {
   gap: var(--consonant-merch-spacing-xxs);
 }
 
+merch-card[variant="mini-compare-chart"] [slot="secure-transaction-label"] {
+	display: flex;
+}
+
 merch-card[variant="mini-compare-chart"] .action-area {
   justify-content: flex-start;
 }
 
-merch-card[variant="mini-compare-chart"] [slot="footer-rows"] {
+.footer-rows-container {
   background-color: #F8F8F8;
   border-radius: 0 0 var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-xxs);
 }
@@ -463,7 +478,6 @@ merch-card[variant="mini-compare-chart"] .price-plan-type{
   }
 
   merch-card[variant="mini-compare-chart"] [slot="heading-xs"] {
-    padding: 8px 16px;
     font-size: var(--consonant-merch-card-body-xxs-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
   }
@@ -543,13 +557,6 @@ merch-card[variant="mini-compare-chart"] .price-plan-type{
   .three-merch-cards.mini-compare-chart,
   .four-merch-cards.mini-compare-chart {
       grid-template-columns: repeat(2, minmax(var(--consonant-merch-card-mini-compare-chart-width), var(--consonant-merch-card-mini-compare-chart-wide-width)));
-  }
-
-   merch-card[variant="mini-compare-chart"] [slot="price-commitment"] {
-    padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xs) 0 var(--consonant-merch-spacing-xs);
-    font-size: var(--consonant-merch-card-body-s-font-size);
-    line-height: var(--consonant-merch-card-body-s-line-height);
-    font-weight: 400;
   }
 
   merch-card[variant="mini-compare-chart"] [slot="footer-rows"] {

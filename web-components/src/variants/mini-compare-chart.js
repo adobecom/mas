@@ -18,18 +18,12 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
     prices: { tag: 'p', slot: 'heading-m-price' },
     shortDescription: { tag: 'div', slot: 'body-m' },
     description: { tag: 'div', slot: 'body-xs' },
-    promoText: { tag: 'p', slot: 'promo-text' },
     mnemonics: { size: 'l' },
-    // callout: { tag: 'div', slot: 'callout-content' },
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
-    addon: true,
     secureLabel: true,
     planType: true,
     badgeIcon: true,
     badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
-    badgeColor: { attribute: 'badge-color' },
-    badgeBackgroundColor: { attribute: 'badge-background-color' },
-    badgeText: { attribute: 'badge-text' },
     allowedBadgeColors: [
         'spectrum-yellow-300-plans',
         'spectrum-gray-300-plans',
@@ -100,34 +94,33 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     getMiniCompareFooter = () => {
-        return html`<footer>
-            <slot name="secure-transaction-label">${this.secureLabel}</slot>
+        return html`
+		<footer>
+			<slot name="secure-transaction-label">
+				<span class="secure-transaction-label-text">${this.secureLabel}</span>
+			</slot>
             <slot name="footer"></slot>
         </footer>`;
+    };
+
+	getMiniCompareFooterRows = () => {
+        return html`
+		<div class="footer-rows-container">
+			<slot name="body-xs"></slot>
+			<slot name="footer-rows"></slot>
+		</div>`;
     };
 
     adjustMiniCompareBodySlots() {
         if (this.card.getBoundingClientRect().width <= 2) return;
 
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot.querySelector('.top-section'),
-            'top-section',
-        );
-
         let slots = [
             'heading-xs',
-            'heading-m',
+			'heading-m-price',
             'body-m',
-            'heading-m-price',
-            'body-xxs',
-            'price-commitment',
-            'offers',
             'body-xs',
-            // 'callout-content',
+			'footer-rows',
         ];
-        if (this.card.classList.contains('bullet-list')) {
-            slots.push('footer-rows');
-        }
 
         slots.forEach((slot) =>
             this.updateCardElementMinHeight(
@@ -139,16 +132,6 @@ export class MiniCompareChart extends VariantLayout {
             this.card.shadowRoot.querySelector('footer'),
             'footer',
         );
-
-        const badge = this.card.shadowRoot.querySelector(
-            '.mini-compare-chart-badge',
-        );
-        if (badge?.textContent !== '') {
-            this.getContainer().style.setProperty(
-                '--consonant-merch-card-mini-compare-chart-top-section-mobile-height',
-                '32px',
-            );
-        }
     }
 
     adjustMiniCompareFooterRows() {
@@ -192,33 +175,11 @@ export class MiniCompareChart extends VariantLayout {
         });
     }
 
-    get badgeElement() {
-        return this.card.querySelector('[slot="badge"]');
-    }
-
-    get badge() {
-        const parentBadge = super.badge;
-        if (parentBadge) return parentBadge;
-
-        return html`
-            <div
-                class="mini-compare-chart-badge"
-                style="${this.badgeElement ? '' : 'visibility: hidden'}"
-            >
-                <slot name="badge"></slot>
-            </div>
-        `;
-    }
-
     get mainPrice() {
-        return (
-            this.card.querySelector(
-                `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
-            ) ??
-            this.card.querySelector(
-                `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
-            )
+		const price = this.card.querySelector(
+            `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
         );
+		return price;
     }
 
     async adjustLegal() {
@@ -255,95 +216,27 @@ export class MiniCompareChart extends VariantLayout {
         }
     }
 
-    get headingMPriceSlot() {
-        return this.card.shadowRoot
-            .querySelector('slot[name="heading-m-price"]')
-            ?.assignedElements()[0];
-    }
-
-    toggleAddon(merchAddon) {
-        const mainPrice = this.mainPrice;
-        const headingMPriceSlot = this.headingMPriceSlot;
-        if (!mainPrice && headingMPriceSlot) {
-            const planType = merchAddon?.getAttribute('plan-type');
-            let visibleSpan = null;
-            if (merchAddon && planType) {
-                const matchingP = merchAddon.querySelector(
-                    `p[data-plan-type="${planType}"]`,
-                );
-                visibleSpan = matchingP?.querySelector(
-                    'span[is="inline-price"]',
-                );
-            }
-            this.card
-                .querySelectorAll('p[slot="heading-m-price"]')
-                .forEach((p) => p.remove());
-            if (merchAddon.checked) {
-                if (visibleSpan) {
-                    const replacementP = createTag(
-                        'p',
-                        {
-                            class: 'addon-heading-m-price-addon',
-                            slot: 'heading-m-price',
-                        },
-                        visibleSpan.innerHTML,
-                    );
-                    this.card.appendChild(replacementP);
-                }
-            } else {
-                const freeP = createTag(
-                    'p',
-                    {
-                        class: 'card-heading',
-                        id: 'free',
-                        slot: 'heading-m-price',
-                    },
-                    'Free',
-                );
-                this.card.appendChild(freeP);
-            }
-        }
-    }
-
-    async adjustAddon() {
-        await this.card.updateComplete;
-        const addon = this.card.addon;
-        if (!addon) return;
-        const price = this.mainPrice;
-        let planType = this.card.planType;
-        if (price) {
-            await price.onceSettled();
-            planType = price.value?.[0]?.planType;
-        }
-        if (!planType) return;
-        addon.planType = planType;
-        const addonWithPlanType = this.card.querySelector(
-            'merch-addon[plan-type]',
-        );
-        addonWithPlanType?.updateComplete.then(() => {
-            this.updateCardElementMinHeight(
-                this.card.shadowRoot.querySelector(`slot[name="addon"]`),
-                'addon',
-            );
-        });
+    get icons() {
+        if (
+            !this.card.querySelector('[slot="icons"]') &&
+            !this.card.getAttribute('id')
+        )
+            return nothing;
+        return html`<slot name="icons"></slot>`;
     }
 
     renderLayout() {
-        return html` <div class="top-section${this.badge ? ' badge' : ''}">
-                <slot name="icons"></slot> ${this.badge}
-            </div>
+        return html`
+			${this.badge}
+			<div class="body">
+				${this.icons}
+				<slot name="badge"></slot>
 				<slot name="heading-xs"></slot>
 				<slot name="heading-m-price"></slot>
 				<slot name="body-m"></slot>
-				<slot name="body-xxs"></slot>
-				<slot name="offers"></slot>
 				${this.getMiniCompareFooter()}
-				<slot name="promo-text"></slot>
-				<slot name="footer-rows"><slot name="body-s"></slot></slot>
-				<slot name="body-xs"></slot>
-				<slot name="badge"></slot>
-				<slot name="addon"></slot>
-
+			</div>
+			${this.getMiniCompareFooterRows()}
             `;
     }
 
@@ -352,7 +245,6 @@ export class MiniCompareChart extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
-        await this.adjustAddon();
         if (Media.isMobile) {
             this.removeEmptyRows();
         } else {
@@ -366,14 +258,14 @@ export class MiniCompareChart extends VariantLayout {
             display: block;
         }
 
-        :host([variant='mini-compare-chart'].bullet-list)
+        :host([variant='mini-compare-chart'])
             > slot[name='heading-m-price'] {
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
         }
 
-        :host([variant='mini-compare-chart'].bullet-list)
+        :host([variant='mini-compare-chart'])
             .mini-compare-chart-badge {
             padding: 2px 10px 3px 10px;
             font-size: var(--consonant-merch-card-body-xs-font-size);
@@ -387,14 +279,19 @@ export class MiniCompareChart extends VariantLayout {
                 --consonant-merch-card-mini-compare-chart-footer-height
             );
             padding: var(--consonant-merch-spacing-s);
+			flex-flow: column nowrap;
+			min-height: var(--consonant-merch-card-mini-compare-chart-footer-height);
+			padding: var(--consonant-merch-spacing-xs);
+			align-items: start;
+			padding: 0;
         }
 
-        :host([variant='mini-compare-chart'].bullet-list) footer {
+        :host([variant='mini-compare-chart']) footer {
             flex-flow: column nowrap;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-footer-height
             );
-            padding: var(--consonant-merch-spacing-xs);
+            /* padding: var(--consonant-merch-spacing-xs); */
         }
 
         /* mini-compare card  */
@@ -409,15 +306,6 @@ export class MiniCompareChart extends VariantLayout {
         :host([variant='mini-compare-chart'].bullet-list) .top-section {
             padding-top: var(--consonant-merch-spacing-xs);
             padding-inline-start: var(--consonant-merch-spacing-xs);
-        }
-
-        :host([variant='mini-compare-chart'].bullet-list)
-            .secure-transaction-label {
-            align-self: flex-start;
-            flex: none;
-            font-size: var(--consonant-merch-card-body-xxs-font-size);
-            font-weight: 400;
-            color: #505050;
         }
 
         @media screen and ${unsafeCSS(TABLET_DOWN)} {
@@ -501,7 +389,7 @@ export class MiniCompareChart extends VariantLayout {
                 --consonant-merch-card-mini-compare-chart-addon-height
             );
         }
-        :host([variant='mini-compare-chart']:not(.bullet-list))
+        :host([variant='mini-compare-chart'])
             slot[name='footer-rows'] {
             justify-content: flex-start;
         }
@@ -567,6 +455,11 @@ export class MiniCompareChart extends VariantLayout {
         :host([variant='mini-compare-chart']) #badge.spectrum-red-700-plans {
             background-color: #eb1000;
             color: #ffffff;
+        }
+
+        :host([variant='mini-compare-chart']) .footer-rows-container {
+            background-color: #F8F8F8;
+            border-radius: 0 0 var(--consonant-merch-spacing-xxs) var(--consonant-merch-spacing-xxs);
         }
     `;
 }

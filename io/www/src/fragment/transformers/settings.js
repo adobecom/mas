@@ -162,7 +162,8 @@ async function settings(context) {
 
     if (context.body?.fields?.variant === 'mini-compare-chart') {
         applyPlansSettings(context.body, context);
-        applyBadgeSettings(context.body);
+        // Note: badge processing is now slot-based (like plans variant)
+        // applyBadgeSettings is not called here; hydrate.js handles processBadge
     }
 
     if (context.body?.model?.id === COLLECTION_MODEL_ID) {

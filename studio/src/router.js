@@ -71,6 +71,7 @@ export class Router extends EventTarget {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
                 const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
                 if (confirmed) {
+                    Store.fragmentEditor.translatedLocales.set(null);
                     if (
                         (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION) &&
                         value !== PAGE_NAMES.FRAGMENT_EDITOR &&
@@ -189,6 +190,44 @@ export class Router extends EventTarget {
             Store.search.set((prev) => ({ ...prev, query: undefined }));
             Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
             Store.viewMode.set('editing');
+        } finally {
+            this.isNavigating = false;
+        }
+    }
+
+    /**
+     * Navigate to the translation editor with optional pre-fill data
+     * @param {Object} options - Navigation options
+     * @param {string} options.targetLocale - Optional target locale to pre-fill
+     * @param {string} options.fragmentPath - Optional fragment path to pre-fill
+     */
+    async navigateToTranslationEditor(options = {}) {
+        const { targetLocale, fragmentPath } = options;
+
+        this.isNavigating = true;
+        try {
+            // Check for unsaved changes
+            const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+            const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
+
+            if (!confirmed) return;
+
+            // Clear fragment editor state
+            Store.fragmentEditor.fragmentId.set(null);
+            Store.fragments.inEdit.set();
+            Store.viewMode.set('default');
+
+            // Reset locale to default
+            Store.search.set((prev) => ({ ...prev, region: null }));
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
+            // Store pre-fill data for the translation editor to consume
+            if (targetLocale || fragmentPath) {
+                Store.translationProjects.prefill.set({ targetLocale, fragmentPath });
+            }
+
+            // Set the page - the store subscription will update the URL
+            Store.page.set(PAGE_NAMES.TRANSLATION_EDITOR);
         } finally {
             this.isNavigating = false;
         }

@@ -1187,6 +1187,30 @@ class AEM {
         return await response.json();
     }
 
+    /**
+     * Get translations/language copies for a fragment
+     * @param {string} id - Fragment ID
+     * @returns {Promise<Object>} Translations response with locale and languageCopies array
+     */
+    async getFragmentTranslations(id) {
+        if (!id) {
+            throw new Error('Fragment ID is required');
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}/translations`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get fragment translations: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
     sites = {
         cf: {
             fragments: {
@@ -1274,6 +1298,10 @@ class AEM {
                  * @see AEM#findVariationsByName
                  */
                 findVariationsByName: this.findVariationsByName.bind(this),
+                /**
+                 * @see AEM#getFragmentTranslations
+                 */
+                getTranslations: this.getFragmentTranslations.bind(this),
             },
         },
     };

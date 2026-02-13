@@ -1,7 +1,22 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH, SURFACES } from '../src/constants.js';
+import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '../src/constants.js';
+
+const mockFragmentCache = {
+    get: () => null,
+    add: () => {},
+    has: () => false,
+    remove: () => {},
+};
+if (!customElements.get('aem-fragment')) {
+    customElements.define(
+        'aem-fragment',
+        class extends HTMLElement {
+            cache = mockFragmentCache;
+        },
+    );
+}
 
 describe('MasRepository dictionary helpers', () => {
     let sandbox;
@@ -15,6 +30,13 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     const createRepository = () => Object.create(MasRepository.prototype);
+
+    const createFullRepository = () => {
+        const repo = new MasRepository();
+        repo.bucket = 'test-bucket';
+        repo.baseUrl = 'https://test.example.com';
+        return repo;
+    };
 
     const createAemMock = (overrides = {}) => ({
         sites: {
@@ -471,6 +493,670 @@ describe('MasRepository dictionary helpers', () => {
             } finally {
                 Store.folders.loaded.set = originalStoreLoaded;
                 Store.folders.data.set = originalStoreData;
+            }
+        });
+    });
+
+    describe('getTranslationsPath', () => {
+        it('returns correct path when surface is set', () => {
+            const repository = createRepository();
+            repository.search = { value: { path: 'acom/subpath' } };
+            const result = repository.getTranslationsPath();
+            expect(result).to.equal(`${ROOT_PATH}/acom/translations`);
+        });
+
+        it('returns correct path for single segment surface', () => {
+            const repository = createRepository();
+            repository.search = { value: { path: 'ccd' } };
+            const result = repository.getTranslationsPath();
+            expect(result).to.equal(`${ROOT_PATH}/ccd/translations`);
+        });
+
+        it('returns null when search path is empty', () => {
+            const repository = createRepository();
+            repository.search = { value: { path: '' } };
+            const result = repository.getTranslationsPath();
+            expect(result).to.be.null;
+        });
+
+        it('returns null when search path is undefined', () => {
+            const repository = createRepository();
+            repository.search = { value: {} };
+            const result = repository.getTranslationsPath();
+            expect(result).to.be.null;
+        });
+    });
+
+    describe('handleSearch', () => {
+        it('returns early when profile is not set', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set(null);
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.searchFragments = sandbox.stub();
+            repository.loadPreviewPlaceholders = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.searchFragments.called).to.be.false;
+                expect(repository.loadPreviewPlaceholders.called).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('calls searchFragments and loadPreviewPlaceholders for CONTENT page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.searchFragments = sandbox.stub();
+            repository.loadPreviewPlaceholders = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.searchFragments.calledOnce).to.be.true;
+                expect(repository.loadPreviewPlaceholders.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('calls loadRecentlyUpdatedFragments and loadPreviewPlaceholders for WELCOME page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.WELCOME };
+            repository.loadRecentlyUpdatedFragments = sandbox.stub();
+            repository.loadPreviewPlaceholders = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.loadRecentlyUpdatedFragments.calledOnce).to.be.true;
+                expect(repository.loadPreviewPlaceholders.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('calls loadPreviewPlaceholders for FRAGMENT_EDITOR page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.FRAGMENT_EDITOR };
+            repository.loadPreviewPlaceholders = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.loadPreviewPlaceholders.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('calls loadPlaceholders for PLACEHOLDERS page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+
+            repository.page = { value: PAGE_NAMES.PLACEHOLDERS };
+            repository.loadPlaceholders = sandbox.stub();
+
+            try {
+                repository.handleSearch();
+                expect(repository.loadPlaceholders.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('calls loadPromotions for PROMOTIONS page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.PROMOTIONS };
+            repository.loadPromotions = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.loadPromotions.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('calls loadTranslationProjects for TRANSLATIONS page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.TRANSLATIONS };
+            repository.loadTranslationProjects = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.loadTranslationProjects.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+    });
+
+    describe('loadTranslationProjects', () => {
+        it('returns early when translations path is null', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: '' } };
+            const searchStub = sandbox.stub();
+            repository.searchFragmentList = searchStub;
+            await repository.loadTranslationProjects();
+            expect(searchStub.called).to.be.false;
+        });
+
+        it('loads and stores translation projects successfully', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: 'acom' } };
+            const mockFragments = [
+                createFragment({ id: 'proj-1', path: `${ROOT_PATH}/acom/translations/project1` }),
+                createFragment({ id: 'proj-2', path: `${ROOT_PATH}/acom/translations/project2` }),
+            ];
+            repository.searchFragmentList = sandbox.stub().resolves(mockFragments);
+            const { default: Store } = await import('../src/store.js');
+            const originalLoading = Store.translationProjects.list.loading.set.bind(Store.translationProjects.list.loading);
+            const originalData = Store.translationProjects.list.data.set.bind(Store.translationProjects.list.data);
+            const loadingSetStub = sandbox.stub();
+            const dataSetStub = sandbox.stub();
+            Store.translationProjects.list.loading.set = loadingSetStub;
+            Store.translationProjects.list.data.set = dataSetStub;
+            try {
+                await repository.loadTranslationProjects();
+
+                expect(loadingSetStub.calledWith(true)).to.be.true;
+                expect(loadingSetStub.calledWith(false)).to.be.true;
+                expect(dataSetStub.calledOnce).to.be.true;
+
+                const storedProjects = dataSetStub.firstCall.args[0];
+                expect(storedProjects).to.have.lengthOf(2);
+            } finally {
+                Store.translationProjects.list.loading.set = originalLoading;
+                Store.translationProjects.list.data.set = originalData;
+            }
+        });
+
+        it('calls searchFragmentList with correct path and limit', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: 'ccd' } };
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+            const { default: Store } = await import('../src/store.js');
+            const originalLoading = Store.translationProjects.list.loading.set.bind(Store.translationProjects.list.loading);
+            const originalData = Store.translationProjects.list.data.set.bind(Store.translationProjects.list.data);
+            Store.translationProjects.list.loading.set = sandbox.stub();
+            Store.translationProjects.list.data.set = sandbox.stub();
+            try {
+                await repository.loadTranslationProjects();
+
+                expect(repository.searchFragmentList.calledOnce).to.be.true;
+                const [searchOptions, limit] = repository.searchFragmentList.firstCall.args;
+                expect(searchOptions.path).to.equal(`${ROOT_PATH}/ccd/translations`);
+                expect(limit).to.equal(50);
+            } finally {
+                Store.translationProjects.list.loading.set = originalLoading;
+                Store.translationProjects.list.data.set = originalData;
+            }
+        });
+
+        it('handles errors gracefully', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: 'acom' } };
+            repository.searchFragmentList = sandbox.stub().rejects(new Error('Network error'));
+            repository.processError = sandbox.stub();
+            const { default: Store } = await import('../src/store.js');
+            const originalLoading = Store.translationProjects.list.loading.set.bind(Store.translationProjects.list.loading);
+            Store.translationProjects.list.loading.set = sandbox.stub();
+            try {
+                await repository.loadTranslationProjects();
+
+                expect(repository.processError.calledOnce).to.be.true;
+                expect(repository.processError.firstCall.args[1]).to.equal('Could not load translation projects.');
+            } finally {
+                Store.translationProjects.list.loading.set = originalLoading;
+            }
+        });
+    });
+
+    describe('searchFragments', () => {
+        it('returns early when page is not CONTENT or TRANSLATION_EDITOR', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.WELCOME };
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            await repository.searchFragments();
+            expect(searchStub.called).to.be.false;
+        });
+
+        it('returns early when profile is not set', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set(null);
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('returns early when cached data matches current search params', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ value: { id: 'cached-fragment' } }]),
+                getMeta: sandbox.stub().callsFake((key) => {
+                    if (key === 'path') return 'acom';
+                    if (key === 'query') return '';
+                    if (key === 'locale') return 'en_US';
+                    return null;
+                }),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('searches by UUID when query is a valid UUID', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '12345678-1234-1234-1234-123456789012' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const mockFragment = createFragment({
+                id: '12345678-1234-1234-1234-123456789012',
+                path: `${ROOT_PATH}/acom/en_US/test-fragment`,
+                fields: [],
+            });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: getByIdStub,
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            const originalFolders = Store.folders.data.get();
+            Store.fragments.list.data = mockDataStore;
+            Store.folders.data.set(['acom', 'ccd']);
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(getByIdStub.firstCall.args[0]).to.equal('12345678-1234-1234-1234-123456789012');
+                expect(searchStub.called).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+                Store.folders.data.set(originalFolders);
+            }
+        });
+
+        it('performs regular search when query is not a UUID', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'test-query' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const mockFragments = [createFragment({ id: 'frag-1', path: `${ROOT_PATH}/acom/en_US/frag1`, fields: [] })];
+            const mockCursor = {
+                [Symbol.asyncIterator]: async function* () {
+                    yield {
+                        [Symbol.asyncIterator]: async function* () {
+                            for (const fragment of mockFragments) {
+                                yield fragment;
+                            }
+                        },
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const searchOptions = searchStub.firstCall.args[0];
+                expect(searchOptions.path).to.equal(`${ROOT_PATH}/acom/en_US`);
+                expect(searchOptions.modelIds).to.deep.equal(EDITABLE_FRAGMENT_MODEL_IDS);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('handles errors gracefully', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().rejects(new Error('Search failed'));
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            repository.processError = sandbox.stub();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(repository.processError.calledOnce).to.be.true;
+                expect(repository.processError.firstCall.args[1]).to.equal('Could not load fragments.');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('filters tags for variant and model ID tags', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: 'mas:variant/segment,mas:studio/content-type/merch-card,mas:custom-tag',
+                },
+            };
+            const mockCursor = {
+                [Symbol.asyncIterator]: async function* () {
+                    yield {
+                        [Symbol.asyncIterator]: async function* () {},
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                const searchOptions = searchStub.firstCall.args[0];
+                // Variant and content-type tags should be filtered out
+                expect(searchOptions.tags).to.deep.equal(['mas:custom-tag']);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('handles published tag filter by setting status', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: 'mas:status/published,mas:custom-tag',
+                },
+            };
+            const mockCursor = {
+                [Symbol.asyncIterator]: async function* () {
+                    yield {
+                        [Symbol.asyncIterator]: async function* () {},
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                const searchOptions = searchStub.firstCall.args[0];
+                expect(searchOptions.status).to.equal('PUBLISHED');
+                expect(searchOptions.tags).to.deep.equal(['mas:custom-tag']);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+    });
+
+    describe('parseVariationAlreadyExistsPath', () => {
+        it('returns path when message is "A variation already exists at /path/to/fragment"', () => {
+            const repository = createRepository();
+            const path = '/content/dam/mas/sandbox/en_AU/card-name-test';
+            expect(repository.parseVariationAlreadyExistsPath(`A variation already exists at ${path}`)).to.equal(path);
+        });
+
+        it('returns null when message does not start with the expected prefix', () => {
+            const repository = createRepository();
+            expect(repository.parseVariationAlreadyExistsPath('Some other error')).to.be.null;
+            expect(repository.parseVariationAlreadyExistsPath('A variation already exists')).to.be.null;
+        });
+
+        it('returns null when message is null, undefined, or not a string', () => {
+            const repository = createRepository();
+            expect(repository.parseVariationAlreadyExistsPath(null)).to.be.null;
+            expect(repository.parseVariationAlreadyExistsPath(undefined)).to.be.null;
+            expect(repository.parseVariationAlreadyExistsPath(123)).to.be.null;
+        });
+
+        it('returns trimmed path when message has trailing whitespace', () => {
+            const repository = createRepository();
+            const path = '/content/dam/mas/sandbox/en_AU/card-name-test';
+            expect(repository.parseVariationAlreadyExistsPath(`A variation already exists at ${path}   `)).to.equal(path);
+        });
+
+        it('returns null when path after prefix is empty or whitespace only', () => {
+            const repository = createRepository();
+            expect(repository.parseVariationAlreadyExistsPath('A variation already exists at ')).to.be.null;
+            expect(repository.parseVariationAlreadyExistsPath('A variation already exists at    ')).to.be.null;
+        });
+    });
+
+    describe('createVariation', () => {
+        const parentFragment = {
+            id: 'parent-1',
+            path: '/content/dam/mas/sandbox/en_US/card-name-test',
+            model: { id: 'model-1' },
+            fields: [],
+        };
+        const existingVariationPath = '/content/dam/mas/sandbox/en_AU/card-name-test';
+        const existingVariation = { id: 'variation-1', path: existingVariationPath };
+
+        it('creates variation and updates parent when createEmptyVariation succeeds', async () => {
+            const repository = createRepository();
+            const newVariation = { id: 'new-var-1', path: existingVariationPath };
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                },
+            });
+            sandbox.stub(repository, 'createEmptyVariation').resolves(newVariation);
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+
+            const result = await repository.createVariation(parentFragment.id, 'en_AU', false);
+
+            expect(repository.createEmptyVariation.calledOnce).to.be.true;
+            expect(repository.createEmptyVariation.calledWith(parentFragment, 'en_AU')).to.be.true;
+            expect(repository.updateParentVariations.calledOnce).to.be.true;
+            expect(repository.updateParentVariations.calledWith(parentFragment, newVariation.path)).to.be.true;
+            expect(result).to.deep.equal(newVariation);
+        });
+
+        it('throws when createEmptyVariation returns null or undefined', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                },
+            });
+            sandbox.stub(repository, 'createEmptyVariation').resolves(null);
+            sandbox.stub(repository, 'updateParentVariations');
+
+            try {
+                await repository.createVariation(parentFragment.id, 'en_AU', false);
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to create variation');
+            }
+        });
+
+        it('repairs parent variations and returns existing fragment when "variation already exists" is thrown', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: sandbox.stub().resolves(existingVariation),
+                },
+            });
+            sandbox
+                .stub(repository, 'createEmptyVariation')
+                .rejects(new Error(`A variation already exists at ${existingVariationPath}`));
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+
+            const result = await repository.createVariation(parentFragment.id, 'en_AU', false);
+
+            expect(repository.updateParentVariations.calledOnce).to.be.true;
+            expect(repository.updateParentVariations.calledWith(parentFragment, existingVariationPath)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getByPath.calledOnce).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getByPath.calledWith(existingVariationPath)).to.be.true;
+            expect(result).to.deep.equal(existingVariation);
+        });
+
+        it('rethrows when createEmptyVariation throws an error other than "variation already exists"', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                },
+            });
+            sandbox.stub(repository, 'createEmptyVariation').rejects(new Error('Network error'));
+            sandbox.stub(repository, 'updateParentVariations');
+
+            try {
+                await repository.createVariation(parentFragment.id, 'en_AU', false);
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Network error');
+                expect(repository.updateParentVariations.called).to.be.false;
+            }
+        });
+
+        it('throws when getById returns null (parent fragment not found)', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(null),
+                },
+            });
+
+            try {
+                await repository.createVariation(parentFragment.id, 'en_AU', false);
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to fetch parent fragment');
+            }
+        });
+
+        it('throws when creating variation from a variation (isVariation true)', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock();
+
+            try {
+                await repository.createVariation(parentFragment.id, 'en_AU', true);
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.include('Cannot create a variation from another variation');
             }
         });
     });

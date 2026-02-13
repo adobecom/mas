@@ -10,6 +10,12 @@ export const ICON_LIBRARY = [
     { id: 'sp-icon-upload-to-cloud-outline', name: 'Upload to cloud outline' },
     { id: 'sp-icon-learn', name: 'Learn' },
     { id: 'sp-icon-data-correlated', name: 'Data correlated' },
+    { id: 'sp-icon-apps', name: 'Apps' },
+    { id: 'sp-icon-camera', name: 'Camera' },
+    { id: 'sp-icon-graphic', name: 'Graphic' },
+    { id: 'sp-icon-video-filled', name: 'Video' },
+    { id: 'sp-icon-brush', name: 'Brush' },
+    { id: 'sp-icon-social-network', name: 'Social network' },
 ];
 
 const VARIANT_SPECTRUM = {

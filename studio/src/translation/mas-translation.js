@@ -205,6 +205,27 @@ class MasTranslation extends LitElement {
         }
     }
 
+    #formatSubmissionDate(translationProject) {
+        const date = translationProject.get().getFieldValue('submissionDate');
+        if (!date) return 'N/A';
+        return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    #sortBySentOn({ detail: { sortKey, sortDirection } }) {
+        const translationProjects = [...this.translationProjectsData].sort((a, b) => {
+            const dateA = a.get().getFieldValue('submissionDate');
+            const dateB = b.get().getFieldValue('submissionDate');
+            if (!dateA && !dateB) return 0;
+            if (!dateA) return sortDirection === 'desc' ? 1 : -1;
+            if (!dateB) return sortDirection === 'desc' ? -1 : 1;
+            const timestampA = new Date(dateA).getTime();
+            const timestampB = new Date(dateB).getTime();
+            if (sortDirection === 'desc') return timestampB - timestampA;
+            return timestampA - timestampB;
+        });
+        Store.translationProjects.list.data.set(translationProjects);
+    }
+
     renderActionCell(translationProject) {
         return html`
             <sp-table-cell class="action-cell">
@@ -241,7 +262,14 @@ class MasTranslation extends LitElement {
             <sp-table-head>
                 ${columns.map(
                     ({ key, label, align }) => html`
-                        <sp-table-head-cell class=${key} style="${align === 'right' ? 'text-align: right;' : ''}">
+                        <sp-table-head-cell
+                            class=${key}
+                            style="${align === 'right' ? 'text-align: right;' : ''}"
+                            .sortable=${key === 'sentOn'}
+                            sort-direction="asc"
+                            sort-key="sentOn"
+                            @sorted=${this.#sortBySentOn}
+                        >
                             ${label}
                         </sp-table-head-cell>
                     `,
@@ -275,7 +303,7 @@ class MasTranslation extends LitElement {
                             >
                                 <sp-table-cell>${translationProject.get().title}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
-                                <sp-table-cell>N/A</sp-table-cell>
+                                <sp-table-cell>${this.#formatSubmissionDate(translationProject)}</sp-table-cell>
                                 ${this.renderActionCell(translationProject)}
                             </sp-table-row>
                         `,

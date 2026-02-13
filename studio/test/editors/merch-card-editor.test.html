@@ -1,0 +1,385 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+
+            // Set up fetch mock before any components are loaded
+            const originalFetch = window.fetch;
+            // Load offers for WCS mock
+            const offersPromise = originalFetch('/test/mocks/offers.json').then((r) => r.json());
+
+            window.fetch = async function (args) {
+                try {
+                    const url = new URL(args);
+                    const { pathname, search } = url;
+                    const fullPath = pathname + search;
+
+                    if (/querybuilder\.json\?path=\/content\/cq:tags\/mas/.test(fullPath)) {
+                        return originalFetch('/test/mocks/tags.json');
+                    }
+                    if (/querybuilder\.json\?path=\/content\/dam\/mas/.test(fullPath)) {
+                        return originalFetch('/test/mocks/folders.json');
+                    }
+                    // Mock WCS offer fetch
+                    if (pathname.includes('web_commerce_artifact')) {
+                        const offers = await offersPromise;
+                        const osi = url.searchParams.get('offer_selector_ids');
+                        const language = url.searchParams.get('language')?.toLowerCase() || 'mult';
+                        const offerKey = `${osi}-${language}`;
+                        const offerData = offers[offerKey] || offers[osi];
+                        if (offerData) {
+                            return new Response(
+                                JSON.stringify({
+                                    resolvedOffers: offerData.map((offer) => ({
+                                        ...offer,
+                                        offerSelectorIds: [osi],
+                                    })),
+                                }),
+                                { status: 200, headers: { 'Content-Type': 'application/json' } },
+                            );
+                        }
+                        return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+                    }
+                    return originalFetch(...arguments);
+                } catch (e) {
+                    return originalFetch(...arguments);
+                }
+            };
+        </script>
+        <title>merch-card-editor mnemonic tests</title>
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../../style.css" />
+        <style>
+            body {
+                margin: 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            sp-theme {
+                display: block;
+                width: 100%;
+            }
+            mas-fragment-editor {
+                display: block;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { html } from 'lit';
+            // Import actual components
+            import '../../src/swc.js';
+            import '../../src/rte/rte-field.js';
+            import '../../src/aem/aem-tag-picker-field.js';
+            import '../../src/mas-fragment-editor.js';
+            import '../../src/mas-repository.js';
+            import '../../src/mas-side-nav.js';
+            // Import aem-fragment, mas-commerce-service, and merch-card from web-components
+            import '../../../web-components/src/mas-commerce-service.js';
+            import '../../../web-components/src/aem-fragment.js';
+            import '../../../web-components/src/merch-card.js';
+            // Import data classes
+            import { Fragment } from '../../src/aem/fragment.js';
+            import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
+            import Store from '../../src/store.js';
+            import { PAGE_NAMES } from '../../src/constants.js';
+            import { delay } from '../utils.js';
+
+            // Load the existing mock data for a merch card
+            const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
+
+            runTests(async () => {
+                const spTheme = document.querySelector('sp-theme');
+
+                describe('merch-card-editor inheritance and overrides', () => {
+                    // Parent fragment with values for all testable fields
+                    const parentWithAllFields = {
+                        ...baseMockData,
+                        path: '/content/dam/mas/nala/en_US/test-parent',
+                        id: 'test-parent-id',
+                        tags: [{ id: 'mas:product/photoshop', title: 'Photoshop' }],
+                        fields: baseMockData.fields.map((field) => {
+                            if (field.name === 'variant') return { ...field, values: ['plans'] };
+                            if (field.name === 'cardTitle') return { ...field, values: ['<p>Parent Title</p>'] };
+                            if (field.name === 'cardName') return { ...field, values: ['Parent Card Name'] };
+                            if (field.name === 'subtitle') return { ...field, values: ['Parent Subtitle'] };
+                            if (field.name === 'size') return { ...field, values: ['wide'] };
+                            if (field.name === 'description') return { ...field, values: ['<p>Parent Description</p>'] };
+                            if (field.name === 'shortDescription') return { ...field, values: ['<p>Parent Short Desc</p>'] };
+                            if (field.name === 'prices') return { ...field, values: ['<p>Parent Prices</p>'] };
+                            if (field.name === 'promoCode') return { ...field, values: ['PARENTPROMO'] };
+                            if (field.name === 'promoText') return { ...field, values: ['<p>Parent Promo</p>'] };
+                            if (field.name === 'callout') return { ...field, values: ['<p>Parent Callout</p>'] };
+                            if (field.name === 'ctas') return { ...field, values: ['<p>Parent CTAs</p>'] };
+                            if (field.name === 'mnemonicIcon')
+                                return { ...field, values: ['/test/mocks/img/creative-cloud.svg'], multiple: true };
+                            if (field.name === 'mnemonicAlt') return { ...field, values: ['Parent Alt'], multiple: true };
+                            if (field.name === 'mnemonicLink')
+                                return { ...field, values: ['https://parent.com'], multiple: true };
+                            if (field.name === 'backgroundImage') return { ...field, values: ['/parent-bg.jpg'] };
+                            if (field.name === 'backgroundImageAltText') return { ...field, values: ['Parent BG Alt'] };
+                            if (field.name === 'badge') return { ...field, values: ['{"text":"Parent Badge"}'] };
+                            if (field.name === 'osi') return { ...field, values: ['parent-osi'] };
+                            return field;
+                        }),
+                    };
+
+                    let layoutContainer, sideNav, fragmentEditor, editor, saveNavItem, fragmentStore;
+
+                    async function setupTestEnvironment(overrides = {}, testId = 'default') {
+                        const variationData = {
+                            ...baseMockData,
+                            path: `/content/dam/mas/nala/en_AU/test-variation-${testId}`,
+                            title: `Test Variation ${testId}`,
+                            id: `test-variation-${testId}`,
+                            tags: overrides.tags || [],
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') return { ...field, values: ['plans'] };
+                                if (overrides[field.name] !== undefined) {
+                                    return { ...field, values: overrides[field.name], multiple: field.multiple };
+                                }
+                                return { ...field, values: [] }; // Empty = inherit
+                            }),
+                        };
+
+                        const variationFragment = new Fragment(structuredClone(variationData));
+                        const parentFragment = new Fragment(structuredClone(parentWithAllFields));
+                        fragmentStore = generateFragmentStore(variationFragment, parentFragment);
+
+                        Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
+                        Store.fragmentEditor.fragmentId.set(`test-variation-${testId}`);
+                        Store.fragments.inEdit.set(fragmentStore);
+                        Store.fragments.list.data.set([fragmentStore]);
+                        Store.placeholders.preview.set({});
+                        Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala' }));
+                        Store.viewMode.set('editing');
+
+                        layoutContainer = document.createElement('div');
+                        layoutContainer.style.cssText = 'display: flex; width: 100%;';
+
+                        sideNav = document.createElement('mas-side-nav');
+                        layoutContainer.appendChild(sideNav);
+
+                        fragmentEditor = document.createElement('mas-fragment-editor');
+                        fragmentEditor.style.cssText = 'flex: 1;';
+                        const repository = document.querySelector('mas-repository');
+                        repository.refreshFragment = async () => {};
+                        repository.loadPreviewPlaceholders = async () => {};
+
+                        fragmentEditor.editorContextStore = {
+                            loadFragmentContext: async () => {},
+                            isVariation: () => true,
+                            getLocaleDefaultFragmentAsync: async () => structuredClone(parentWithAllFields),
+                            getDefaultLocaleId: () => 'test-parent-id',
+                            getLocaleDefaultFragment: () => structuredClone(parentWithAllFields),
+                        };
+                        fragmentEditor.localeDefaultFragment = parentFragment;
+                        fragmentEditor.initState = 'ready';
+                        fragmentStore.previewStore.resolved = true;
+
+                        const AemFragment = customElements.get('aem-fragment');
+                        if (AemFragment?.cache) {
+                            AemFragment.cache.add(fragmentStore.previewStore.value);
+                        }
+
+                        sideNav.reactiveController.updateStores([
+                            Store.page,
+                            Store.search,
+                            Store.viewMode,
+                            Store.fragmentEditor.editorContext,
+                            Store.fragments.inEdit,
+                            fragmentStore,
+                        ]);
+
+                        layoutContainer.appendChild(fragmentEditor);
+                        spTheme.appendChild(layoutContainer);
+
+                        await fragmentEditor.updateComplete;
+                        await sideNav.updateComplete;
+                        await delay(200);
+
+                        editor = fragmentEditor.querySelector('merch-card-editor');
+                        saveNavItem = sideNav.shadowRoot.querySelector('mas-side-nav-item[label="Save"]');
+
+                        fragmentStore.get().hasChanges = false;
+                        fragmentStore.notify();
+                        await sideNav.updateComplete;
+
+                        return { fragmentStore, editor, sideNav, saveNavItem };
+                    }
+
+                    afterEach(() => {
+                        if (layoutContainer) {
+                            layoutContainer.remove();
+                            layoutContainer = null;
+                        }
+                        Store.editor.resetChanges();
+                    });
+
+                    it('removes inherited mnemonic and restores it via override indicator', async () => {
+                        await setupTestEnvironment();
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+
+                        const multifield = editor.querySelector('mas-multifield#mnemonics');
+                        const mnemonicField = multifield.shadowRoot.querySelector('mas-mnemonic-field');
+                        mnemonicField.dispatchEvent(new CustomEvent('delete-field', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('overridden');
+                        expect(editor.mnemonics).to.have.length(0);
+
+                        const indicator = editor.querySelector('#mnemonics .field-status-indicator a');
+                        indicator.click();
+
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+                    });
+
+                    it('maintains inherited state after add visual then cancel', async () => {
+                        // This test reproduces the bug where:
+                        // 1. Click "Restore override" on Visuals (resets to inherit from parent)
+                        // 2. Click "Add visual"
+                        // 3. Click "Cancel" on the modal
+                        // Result: inherited visual incorrectly remains marked as overridden
+
+                        await setupTestEnvironment();
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+
+                        // Simulate restore override (already inherited, but ensures clean state)
+                        await editor.resetMnemonicsToParent();
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+
+                        // Simulate add visual - this adds an empty field and opens modal
+                        const multifield = editor.querySelector('mas-multifield#mnemonics');
+                        multifield.addField();
+                        await delay(100);
+                        await editor.updateComplete;
+
+                        // Simulate cancel (delete the empty field that was just added)
+                        // This is what happens when modal closes with no icon selected
+                        const fields = multifield.shadowRoot.querySelectorAll('.field-wrapper');
+                        const lastField = fields[fields.length - 1];
+                        const mnemonicField = lastField.querySelector('mas-mnemonic-field');
+                        mnemonicField.dispatchEvent(new CustomEvent('delete-field', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+                        await delay(100);
+
+                        // After cancel, state should return to inherited (not same-as-parent or overridden)
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+                    });
+
+                    const restoreTests = [
+                        { name: 'text field (cardName)', field: 'cardName', selector: '#cardName', value: ['Overridden Name'] },
+                        {
+                            name: 'RTE field (description)',
+                            field: 'description',
+                            selector: '#description',
+                            value: ['<p>Overridden Description</p>'],
+                        },
+                        { name: 'dropdown field (size)', field: 'size', selector: '#size', value: ['super-wide'] },
+                        { name: 'multifield (mnemonics)', field: 'mnemonicIcon', selector: '#mnemonics', value: [''] },
+                    ];
+
+                    restoreTests.forEach(({ name, field, selector, value }) => {
+                        it(`restoring ${name} activates save button`, async () => {
+                            await setupTestEnvironment({ [field]: value }, field);
+                            expect(editor.getFieldState(field)).to.equal('overridden');
+                            expect(saveNavItem.disabled).to.be.true;
+
+                            const indicator = editor.querySelector(`${selector} .field-status-indicator a`);
+                            indicator.click();
+                            await editor.updateComplete;
+                            await sideNav.updateComplete;
+
+                            expect(Store.editor.hasChanges).to.be.true;
+                            expect(saveNavItem.disabled).to.be.false;
+                        });
+                    });
+
+                    it('tags field restore activates save', async () => {
+                        await setupTestEnvironment({ tags: [{ id: 'mas:product/illustrator', title: 'Illustrator' }] }, 'tags');
+                        editor.fragment.newTags = ['mas:product/illustrator'];
+                        await editor.updateComplete;
+
+                        const indicator = editor.querySelector('#tags .field-status-indicator a');
+                        indicator.click();
+                        await editor.updateComplete;
+                        await sideNav.updateComplete;
+
+                        expect(Store.editor.hasChanges).to.be.true;
+                        expect(saveNavItem.disabled).to.be.false;
+                    });
+
+                    describe('description field inheritance logic', () => {
+                        it('correctly handles inheritance and overrides for RTE fields', async () => {
+                            const parent = new Fragment(structuredClone(parentWithAllFields));
+
+                            // 1. Inherited (Empty values)
+                            const variationInherited = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [] } : f)),
+                            });
+                            expect(variationInherited.getFieldState('description', parent, true)).to.equal('inherited');
+                            expect(variationInherited.getEffectiveFieldValues('description', parent, true)).to.deep.equal([
+                                '<p>Parent Description</p>',
+                            ]);
+
+                            // 2. Inherited (AEM default [""])
+                            const variationAemDefault = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [''] } : f)),
+                            });
+                            expect(variationAemDefault.getFieldState('description', parent, true)).to.equal('inherited');
+
+                            // 3. Overridden
+                            const variationOverridden = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) =>
+                                    f.name === 'description' ? { ...f, values: ['<p>New</p>'] } : f,
+                                ),
+                            });
+                            expect(variationOverridden.getFieldState('description', parent, true)).to.equal('overridden');
+
+                            // 4. Same as parent
+                            const variationSame = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) =>
+                                    f.name === 'description' ? { ...f, values: ['<p>Parent Description</p>'] } : f,
+                                ),
+                            });
+                            expect(variationSame.getFieldState('description', parent, true)).to.equal('same-as-parent');
+                        });
+
+                        it('source store is not contaminated after preview resolution', async () => {
+                            const variation = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [] } : f)),
+                            });
+                            const parent = new Fragment(structuredClone(parentWithAllFields));
+                            const store = generateFragmentStore(variation, parent);
+
+                            store.previewStore.value.getField('description').values = ['<p>Resolved</p>'];
+                            expect(store.value.getFieldValues('description')).to.deep.equal([]);
+                        });
+                    });
+                });
+            });
+        </script>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+        <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
+        <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
+    </body>
+</html>

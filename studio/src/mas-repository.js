@@ -904,24 +904,36 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Unified method to save a fragment (regular or dictionary)
-     * @param {FragmentStore} fragmentStore - The fragment to save
+     * Generic method to save any fragment with card-specific validation and variation handling
+     * @param {FragmentStore} fragmentStore - The fragment store to save
      * @param {boolean} withToast - Whether to show toast notifications
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore, withToast = true) {
         if (withToast) showToast('Saving fragment...');
-        const fragmentToSave = fragmentStore.get();
-        const tags = fragmentToSave.getField('tags')?.values || [];
+        this.operation.set(OPERATIONS.SAVE);
+
+        const fragment = fragmentStore.get();
+        const parentFragment = fragmentStore.parentFragment;
+
+        // For variations, prepare the fragment by stripping inherited values before save
+        const fragmentToSave = parentFragment ? fragment.prepareVariationForSave(parentFragment) : fragment;
+
+        // Card-specific validation
+        const tags = fragment.getField('tags')?.values || [];
         const hasOfferlessTag = tags.some((tag) => tag?.includes('offerless'));
-        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !fragmentToSave.getFieldValue('osi') && !hasOfferlessTag) {
+        const osi = fragment.getFieldValue('osi') || parentFragment?.getFieldValue('osi');
+
+        if (fragmentToSave.model?.path === CARD_MODEL_PATH && !osi && !hasOfferlessTag) {
             if (withToast) showToast('Please select offer', 'negative');
+            this.operation.set(null);
             return false;
         }
-        this.operation.set(OPERATIONS.SAVE);
+
         try {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
+
             fragmentStore.refreshFrom(savedFragment);
             fragmentCache.remove(savedFragment.id);
             fragmentCache.add(new Fragment(savedFragment));
@@ -969,6 +981,10 @@ export class MasRepository extends LitElement {
             sourceStore.get().hasChanges = false;
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
             this.skipVariationDetection = true;
+
+            // Reset changes on the current fragment to prevent discard prompt during navigation
+            Store.editor.resetChanges();
+
             await router.navigateToFragmentEditor(newFragment.id);
 
             this.operation.set();
@@ -1066,14 +1082,17 @@ export class MasRepository extends LitElement {
      * @param {object} options
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async deleteFragment(fragment, { startToast = true, endToast = true } = {}) {
+    async deleteFragment(fragment, { startToast = true, endToast = true, force = false } = {}) {
         try {
             this.operation.set(OPERATIONS.DELETE);
             if (startToast) showToast('Deleting fragment...');
 
-            const fragmentWithEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
-
-            if (fragmentWithEtag) await this.aem.sites.cf.fragments.delete(fragmentWithEtag);
+            if (force) {
+                await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
+            } else {
+                const fragmentWithEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
+                if (fragmentWithEtag) await this.aem.sites.cf.fragments.delete(fragmentWithEtag);
+            }
 
             if (endToast) showToast('Fragment successfully deleted.', 'positive');
 
@@ -1324,14 +1343,48 @@ export class MasRepository extends LitElement {
             throw new Error('Failed to fetch parent fragment');
         }
 
-        const variationFragment = await this.createEmptyVariation(parentFragment, targetLocale);
-        if (!variationFragment) {
-            throw new Error('Failed to create variation');
+        try {
+            const variationFragment = await this.createEmptyVariation(parentFragment, targetLocale);
+            if (!variationFragment) {
+                throw new Error('Failed to create variation');
+            }
+
+            await this.updateParentVariations(parentFragment, variationFragment.path);
+
+            // Refresh the parent FragmentStore to include the new variation in references
+            const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+            if (parentStore) {
+                await this.refreshFragment(parentStore);
+            }
+
+            return variationFragment;
+        } catch (err) {
+            const existingPath = this.parseVariationAlreadyExistsPath(err?.message);
+            if (existingPath) {
+                await this.updateParentVariations(parentFragment, existingPath);
+                const existingFragment = await this.aem.sites.cf.fragments.getByPath(existingPath);
+                const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+                if (parentStore) {
+                    await this.refreshFragment(parentStore);
+                }
+                return existingFragment;
+            }
+            throw err;
         }
+    }
 
-        await this.updateParentVariations(parentFragment, variationFragment.path);
-
-        return variationFragment;
+    /**
+     * If message is "A variation already exists at /path/to/fragment", returns that path.
+     * Used to repair parent's variations when a variation exists but was missing from the list (e.g. after a past restore).
+     * @param {string} [message]
+     * @returns {string|null}
+     */
+    parseVariationAlreadyExistsPath(message) {
+        if (!message || typeof message !== 'string') return null;
+        const prefix = 'A variation already exists at ';
+        if (!message.startsWith(prefix)) return null;
+        const path = message.slice(prefix.length).trim();
+        return path.length > 0 ? path : null;
     }
 
     async createPlaceholder(placeholder) {

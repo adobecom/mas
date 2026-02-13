@@ -2,6 +2,8 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
 import { ROOT_PATH, SURFACES } from '../src/constants.js';
+import Events from '../src/events.js';
+import Store from '../src/store.js';
 
 describe('MasRepository dictionary helpers', () => {
     let sandbox;
@@ -623,6 +625,165 @@ describe('MasRepository dictionary helpers', () => {
             } catch (error) {
                 expect(error.message).to.include('Cannot create a variation from another variation');
             }
+        });
+    });
+
+    describe('createGroupedVariation', () => {
+        const parentFragment = {
+            id: 'parent-grouped-1',
+            path: '/content/dam/mas/sandbox/en_US/pac/parent-fragment',
+            title: 'Parent title',
+            description: 'Parent description',
+            model: { id: 'model-1' },
+            fields: [{ name: 'variations', values: [] }],
+            tags: [{ id: 'mas:product/cc/photoshop' }],
+        };
+
+        it('creates grouped variation and updates the parent variations field', async () => {
+            const repository = createRepository();
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+
+            const getByPathStub = sandbox.stub().callsFake(async (path) => {
+                if (path === createdFragment.path) return createdFragment;
+                return null;
+            });
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: getByPathStub,
+                    ensureFolderExists: sandbox.stub().resolves(),
+                    create: sandbox.stub().resolves(createdDraft),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            const result = await repository.createGroupedVariation(parentFragment.id, ['mas:locale/EG/ar_EG'], {
+                productArrangementCode: 'pac',
+            });
+
+            expect(repository.updateParentVariations.calledOnce).to.be.true;
+            expect(repository.updateParentVariations.calledWith(parentFragment, createdFragment.path)).to.be.true;
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('resolves parent fragment via referencedBy when source fragment is grouped', async () => {
+            const repository = createRepository();
+            const groupedSource = {
+                id: 'grouped-source',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source',
+                title: 'Grouped source',
+                description: 'Grouped source',
+                model: { id: 'model-1' },
+                fields: [{ name: 'variations', values: [] }],
+                tags: [],
+            };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+
+            const getByPathStub = sandbox.stub().callsFake(async (path) => {
+                if (path === parentFragment.path) return parentFragment;
+                if (path === createdFragment.path) return createdFragment;
+                return null;
+            });
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(groupedSource),
+                    getReferencedBy: sandbox.stub().resolves({
+                        path: groupedSource.path,
+                        parentReferences: [{ type: 'content-fragment', path: parentFragment.path }],
+                    }),
+                    getByPath: getByPathStub,
+                    ensureFolderExists: sandbox.stub().resolves(),
+                    create: sandbox.stub().resolves({ id: createdFragment.id }),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            const result = await repository.createGroupedVariation(groupedSource.id, ['mas:locale/EG/ar_EG'], {
+                productArrangementCode: 'pac',
+            });
+
+            expect(repository.aem.sites.cf.fragments.getReferencedBy.calledOnceWith(groupedSource.path)).to.be.true;
+            expect(repository.updateParentVariations.calledOnce).to.be.true;
+            expect(repository.updateParentVariations.calledWith(parentFragment, createdFragment.path)).to.be.true;
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('throws when grouped source has no parent reference', async () => {
+            const repository = createRepository();
+            const groupedSource = {
+                id: 'grouped-source',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source',
+                title: 'Grouped source',
+                description: 'Grouped source',
+                model: { id: 'model-1' },
+                fields: [{ name: 'variations', values: [] }],
+                tags: [],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(groupedSource),
+                    getReferencedBy: sandbox.stub().resolves({
+                        path: groupedSource.path,
+                        parentReferences: [],
+                    }),
+                },
+            });
+
+            try {
+                await repository.createGroupedVariation(groupedSource.id, ['mas:locale/EG/ar_EG'], {
+                    productArrangementCode: 'pac',
+                });
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to resolve parent fragment for grouped variation');
+            }
+        });
+    });
+
+    describe('deleteFragment', () => {
+        it('refreshes referencing list stores after deletion to prevent stale variation rows', async () => {
+            const repository = createRepository();
+            const fragment = createFragment({
+                id: null,
+                path: '/content/dam/mas/acom/en_US/some-product/pzn/some-grouped-variation',
+            });
+
+            repository.aem = createAemMock({
+                fragments: {
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = {
+                set: sandbox.stub(),
+            };
+
+            const refreshVariationParentInListStub = sandbox
+                .stub(repository, 'refreshVariationParentInList')
+                .resolves();
+            const fragmentDeletedEmitStub = sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragment(fragment, {
+                force: true,
+                startToast: false,
+                endToast: false,
+            });
+
+            expect(result).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledOnceWith({ path: fragment.path })).to.be.true;
+            expect(refreshVariationParentInListStub.calledOnceWith(fragment, null)).to.be.true;
+            expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
         });
     });
 });

@@ -1147,6 +1147,15 @@ export class MasRepository extends LitElement {
 
             if (endToast) showToast('Fragment successfully deleted.', 'positive');
 
+            if (fragment?.id) {
+                await initFragmentCache();
+                fragmentCache.remove(fragment.id);
+            }
+
+            // Keep expanded variation rows in sync when a variation is deleted from editor.
+            // This refreshes any parent/list stores that currently reference the deleted fragment.
+            await this.refreshVariationParentInList(fragment, null);
+
             Events.fragmentDeleted.emit(fragment);
 
             return true;
@@ -1294,19 +1303,18 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The updated parent fragment
      */
     async updateParentVariations(parentFragment, variationPath) {
-        const variationsField = parentFragment.fields.find((f) => f.name === 'variations');
-        const currentVariations = variationsField?.values || [];
-
-        if (currentVariations.includes(variationPath)) {
-            return parentFragment;
-        }
-
-        const updatedVariations = [...currentVariations, variationPath];
-
         const latestParent = await this.aem.sites.cf.fragments.getWithEtag(parentFragment.id);
         if (!latestParent) {
             throw new Error('Failed to retrieve parent fragment for update');
         }
+
+        const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+        if (currentVariations.includes(variationPath)) {
+            return latestParent;
+        }
+
+        const updatedVariations = [...currentVariations, variationPath];
 
         const updatedFields = latestParent.fields.map((field) => {
             if (field.name === 'variations') {
@@ -1476,9 +1484,22 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The created variation fragment
      */
     async createGroupedVariation(fragmentId, pznTags, offerData) {
-        const parentFragment = await this.aem.sites.cf.fragments.getById(fragmentId);
-        if (!parentFragment) {
+        const sourceFragment = await this.aem.sites.cf.fragments.getById(fragmentId);
+        if (!sourceFragment) {
             throw new Error('Failed to fetch parent fragment');
+        }
+
+        let parentFragment = sourceFragment;
+        if (Fragment.isGroupedVariationPath(sourceFragment.path)) {
+            const references = await this.aem.sites.cf.fragments.getReferencedBy(sourceFragment.path);
+            const parentRefPath = references?.parentReferences?.[0]?.path;
+            if (!parentRefPath) {
+                throw new Error('Failed to resolve parent fragment for grouped variation');
+            }
+            parentFragment = await this.aem.sites.cf.fragments.getByPath(parentRefPath);
+            if (!parentFragment) {
+                throw new Error(`Failed to fetch grouped variation parent: ${parentRefPath}`);
+            }
         }
 
         const fragment = new Fragment(parentFragment);
@@ -1525,6 +1546,10 @@ export class MasRepository extends LitElement {
         }
 
         await this.updateParentVariations(parentFragment, createdFragment.path);
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === parentFragment.id);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
 
         return createdFragment;
     }

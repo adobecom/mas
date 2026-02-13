@@ -124,10 +124,19 @@ export class MasVariationDialog extends LitElement {
                 this.selectedLocale = this.firstAvailableLocale;
             }
         }
+        if ((changedProperties.has('fragment') || changedProperties.has('variationType')) && !this.canShowGroupedVariation) {
+            if (this.variationType === 'grouped') {
+                this.variationType = 'regional';
+            }
+        }
     }
 
     get isGrouped() {
-        return this.variationType === 'grouped';
+        return this.variationType === 'grouped' && this.canShowGroupedVariation;
+    }
+
+    get canShowGroupedVariation() {
+        return this.sourceLocale === 'en_US';
     }
 
     get canSubmit() {
@@ -139,7 +148,8 @@ export class MasVariationDialog extends LitElement {
     }
 
     handleVariationTypeChange(event) {
-        this.variationType = event.target.value;
+        const nextType = event.target.value;
+        this.variationType = nextType === 'grouped' && !this.canShowGroupedVariation ? 'regional' : nextType;
         this.error = null;
     }
 
@@ -254,6 +264,8 @@ export class MasVariationDialog extends LitElement {
                 <aem-tag-picker-field
                     label="Locale tags"
                     namespace="/content/cq:tags/mas"
+                    selection="checkbox-tags"
+                    render-value
                     top="locale"
                     multiple
                     ?disabled=${this.loading}
@@ -277,7 +289,9 @@ export class MasVariationDialog extends LitElement {
                             ?disabled=${this.loading}
                         >
                             <sp-menu-item value="regional">Regional</sp-menu-item>
-                            <sp-menu-item value="grouped">${VARIATION_TYPES.GROUPED}</sp-menu-item>
+                            ${this.canShowGroupedVariation
+                                ? html`<sp-menu-item value="grouped">${VARIATION_TYPES.GROUPED}</sp-menu-item>`
+                                : nothing}
                         </sp-picker>
                     </sp-field-group>
                     ${this.isGrouped ? this.groupedFieldsTemplate : this.regionalFieldsTemplate}

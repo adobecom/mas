@@ -103,10 +103,15 @@ class MerchCardEditor extends LitElement {
 
     get groupedVariationTagsTemplate() {
         if (!this.isGroupedVariation) return nothing;
+        const locale = this.fragment?.locale;
+        const isReadonly = locale !== 'en_US';
         return html`
             <sp-field-group id="grouped-variation-tags">
                 <sp-field-label>Grouped variation tags</sp-field-label>
                 <aem-tag-picker-field
+                    selection="checkbox-tags"
+                    render-value
+                    ?readonly=${isReadonly}
                     label="Locale tags"
                     namespace="/content/cq:tags/mas"
                     top="locale"

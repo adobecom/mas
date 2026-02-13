@@ -8,6 +8,7 @@ import { getItemFieldState } from '../utils/field-state.js';
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
 const SELECTION_CHECKBOX = 'checkbox';
+const SELECTION_CHECKBOX_TAGS = 'checkbox-tags';
 
 /**
  * Converts from attribute (tag format) to property (path format).
@@ -47,7 +48,7 @@ class AemTagPickerField extends LitElement {
         baseUrl: { type: String, attribute: 'base-url' },
         label: { type: String },
         bucket: { type: String },
-        // Controls whether popover is open in 'checkbox' mode
+        // Controls whether popover is open in checkbox-like modes
         open: { type: Boolean, state: true },
         // The actual selected tag paths (e.g., ["/content/cq:tags/namespace/top/foo"])
         value: {
@@ -61,10 +62,12 @@ class AemTagPickerField extends LitElement {
         hierarchicalTags: { type: Object, state: true },
         selected: { type: String },
         ready: { type: Boolean, state: true },
-        selection: { type: String }, // 'checkbox' | default-hierarchy
+        selection: { type: String }, // 'checkbox' | 'checkbox-tags' | default-hierarchy
         flatTags: { type: Array, state: true },
         // When true, display tag value/name instead of tag label/title
         displayValue: { type: Boolean, attribute: 'display-value' },
+        // For checkbox-tags mode: when true, render tag value (name) instead of tag label (title)
+        renderValue: { type: Boolean, attribute: 'render-value' },
 
         // Temporary selections in 'checkbox' mode (before Apply)
         tempValue: { type: Array, state: true },
@@ -134,6 +137,10 @@ class AemTagPickerField extends LitElement {
             flex-direction: row-reverse;
         }
 
+        sp-action-button[slot='trigger'] {
+            --mod-actionbutton-border-radius: 16px;
+        }
+
         sp-popover.checkbox-popover {
             min-width: 248px;
             border-radius: 10px;
@@ -183,12 +190,13 @@ class AemTagPickerField extends LitElement {
         this.tempValue = [];
         this.#aem = null;
         this.ready = false;
-        this.selection = ''; // e.g., 'checkbox' | ''
+        this.selection = ''; // e.g., 'checkbox' | 'checkbox-tags' | ''
         this.searchQuery = '';
         this.parentTags = [];
         this.iconProvider = null;
         this.readonly = false;
         this.displayValue = false;
+        this.renderValue = false;
     }
 
     #onOstSelect = ({ detail: { offer } }) => {
@@ -234,7 +242,7 @@ class AemTagPickerField extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.multiple = this.multiple ?? this.selection === SELECTION_CHECKBOX;
+        this.multiple = this.multiple ?? [SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection);
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
         if (!this.top) {
@@ -304,7 +312,7 @@ class AemTagPickerField extends LitElement {
 
         const allTags = [...this.#data.values()].filter((tag) => tag.path.startsWith(this.#tagsRoot));
 
-        if (this.selection === SELECTION_CHECKBOX) {
+        if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
             this.flatTags = allTags
                 .filter((tag) => this.#getTagTextByMode(tag))
                 .sort((a, b) =>
@@ -391,6 +399,14 @@ class AemTagPickerField extends LitElement {
         return path?.split('/').pop() || '';
     }
 
+    // For checkbox-tags mode: render label by default, or value when render-value is set.
+    #resolveCheckboxTagsText(path, fallback = '') {
+        const tag = this.#data.get(path);
+        if (!tag) return this.#resolveTagText(path, fallback);
+        if (this.renderValue) return tag.name || tag.title || this.#resolveTagText(path, fallback);
+        return tag.title || tag.name || this.#resolveTagText(path, fallback);
+    }
+
     /**
      * Returns the icon for a sidenav item.
      * Uses iconProvider if available for leaf nodes, otherwise returns default icons.
@@ -463,9 +479,10 @@ class AemTagPickerField extends LitElement {
             (path) => path,
             (path) => {
                 const fieldState = getItemFieldState(path, parentTagPaths);
+                const title = this.isCheckboxTagsMode ? this.#resolveCheckboxTagsText(path) : this.#resolveTagText(path);
                 return html`
                     <sp-tag deletable @delete=${this.#deleteTag} data-path=${path} data-field-state="${fieldState}">
-                        ${this.#resolveTagText(path)} ${this.#getTagIcon(path)}
+                        ${title} ${this.#getTagIcon(path)}
                     </sp-tag>
                 `;
             },
@@ -516,12 +533,24 @@ class AemTagPickerField extends LitElement {
         return this.multiple ? 'Select tags' : 'Select a tag';
     }
 
-    #handleCheckboxToggle(event) {
+    get isCheckboxTagsMode() {
+        return this.selection === SELECTION_CHECKBOX_TAGS;
+    }
+
+    async #handleCheckboxToggle(event) {
         event.stopPropagation();
-        const checkboxes = this.shadowRoot.querySelectorAll('sp-checkbox');
-        this.tempValue = [...checkboxes]
-            .filter((checkbox) => checkbox.checked)
-            .map((checkbox) => checkbox.getAttribute('value'));
+        const checkbox = event.composedPath?.()[0] || event.target;
+        const path = checkbox?.value || checkbox?.getAttribute?.('value');
+        if (!path) return;
+
+        const currentValue = [...(this.tempValue || [])];
+        const index = currentValue.indexOf(path);
+        if (checkbox.checked && index === -1) {
+            currentValue.push(path);
+        } else if (!checkbox.checked && index !== -1) {
+            currentValue.splice(index, 1);
+        }
+        this.tempValue = currentValue;
     }
 
     resetSelection() {
@@ -538,8 +567,27 @@ class AemTagPickerField extends LitElement {
         this.#notifyChange();
     }
 
+    #hasSameSelections(a, b) {
+        if (a.length !== b.length) return false;
+        const bSet = new Set(b);
+        return a.every((value) => bSet.has(value));
+    }
+
     #handleCheckoxMenuClose() {
+        if (this.isCheckboxTagsMode) {
+            const nextValue = [...this.tempValue];
+            const currentValue = [...(this.value || [])];
+            const changed = !this.#hasSameSelections(nextValue, currentValue);
+            this.value = nextValue;
+            if (changed) this.#notifyChange();
+            return;
+        }
         this.tempValue = [...this.value];
+    }
+
+    #handleSearchInput(event) {
+        const eventTarget = event.composedPath?.()[0] || event.target;
+        this.searchQuery = eventTarget?.value || '';
     }
 
     get checkboxMenu() {
@@ -548,14 +596,16 @@ class AemTagPickerField extends LitElement {
         let filteredTags = this.flatTags;
         if (this.flatTags.length > 7) {
             filteredTags = this.flatTags.filter((path) =>
-                this.#resolveTagText(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
+                (this.isCheckboxTagsMode ? this.#resolveCheckboxTagsText(path) : this.#resolveTagText(path))
+                    .toLowerCase()
+                    .includes(this.searchQuery.toLowerCase()),
             );
         }
 
         return html`
             <div id="content">
                 ${this.flatTags.length > 7
-                    ? html` <sp-search @input=${(e) => (this.searchQuery = e.target.value)} placeholder="Search"></sp-search> `
+                    ? html` <sp-search @input=${this.#handleSearchInput} placeholder="Search"></sp-search> `
                     : nothing}
                 <div class="checkbox-list">
                     ${repeat(
@@ -566,19 +616,23 @@ class AemTagPickerField extends LitElement {
                             const icon = this.iconProvider ? this.iconProvider(path) : null;
                             return html`
                                 <sp-checkbox value="${path}" ?checked=${checked} @change=${this.#handleCheckboxToggle}>
-                                    ${icon ? html`${icon} ` : nothing}${this.#resolveTagText(path)}
+                                    ${icon ? html`${icon} ` : nothing}${this.isCheckboxTagsMode
+                                        ? this.#resolveCheckboxTagsText(path)
+                                        : this.#resolveTagText(path)}
                                 </sp-checkbox>
                             `;
                         },
                     )}
                 </div>
-                <div id="footer">
-                    <span> ${this.selectedText} </span>
-                    <sp-button size="s" @click=${this.resetSelection} variant="secondary" treatment="outline">
-                        Reset
-                    </sp-button>
-                    <sp-button size="s" @click=${this.applySelection}> Apply </sp-button>
-                </div>
+                ${this.isCheckboxTagsMode
+                    ? nothing
+                    : html`<div id="footer">
+                          <span> ${this.selectedText} </span>
+                          <sp-button size="s" @click=${this.resetSelection} variant="secondary" treatment="outline">
+                              Reset
+                          </sp-button>
+                          <sp-button size="s" @click=${this.applySelection}> Apply </sp-button>
+                      </div>`}
             </div>
         `;
     }
@@ -586,20 +640,29 @@ class AemTagPickerField extends LitElement {
     /**
      * - Clicking the action button toggles the popover.
      * - The list of sp-checkbox is scrollable if too large.
-     * - The footer shows # selected, plus Reset/Apply.
+     * - In 'checkbox' mode, the footer shows # selected, plus Reset/Apply.
+     * - In 'checkbox-tags' mode, selections apply when the popover closes and footer is hidden.
      */
     get checkboxMode() {
-        const selectCount = this.value.length > 0 ? html`(${this.value.length})` : '';
-        return html`
+        const selectCount = !this.isCheckboxTagsMode && this.value.length > 0 ? html`(${this.value.length})` : '';
+        const trigger = html`
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
-                <sp-action-button slot="trigger" quiet>
-                    ${this.triggerLabel} ${selectCount}
-                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                <sp-action-button slot="trigger" ?quiet=${!this.isCheckboxTagsMode} aria-label=${this.triggerLabel}>
+                    ${this.isCheckboxTagsMode ? nothing : html`${this.triggerLabel} ${selectCount}`}
+                    ${this.isCheckboxTagsMode
+                        ? html`<sp-icon-add size="m" slot="icon"></sp-icon-add>`
+                        : html`<sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>`}
                 </sp-action-button>
 
                 <sp-popover slot="click-content" class="checkbox-popover"> ${this.checkboxMenu} </sp-popover>
             </overlay-trigger>
         `;
+
+        if (this.isCheckboxTagsMode) {
+            return html` <sp-tags> ${this.tags} ${trigger} </sp-tags> `;
+        }
+
+        return html` ${trigger} `;
     }
 
     get readonlyTags() {
@@ -626,16 +689,16 @@ class AemTagPickerField extends LitElement {
         if (this.readonly) {
             return this.readonlyTags;
         }
-        if (this.selection === 'checkbox') {
+        if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
             return this.checkboxMode;
         }
         if (!this.ready) return nothing;
         return html`
             <sp-tags>
+                ${this.tags}
                 <overlay-trigger placement="bottom">
-                    <sp-action-button slot="trigger">
-                        ${this.triggerLabel}
-                        <sp-icon-add slot="icon"></sp-icon-add>
+                    <sp-action-button slot="trigger" aria-label=${this.triggerLabel}>
+                        <sp-icon-add size="m" slot="icon"></sp-icon-add>
                     </sp-action-button>
                     <sp-popover slot="click-content">
                         <sp-dialog size="s" no-divider>
@@ -645,7 +708,6 @@ class AemTagPickerField extends LitElement {
                         </sp-dialog>
                     </sp-popover>
                 </overlay-trigger>
-                ${this.tags}
             </sp-tags>
         `;
     }

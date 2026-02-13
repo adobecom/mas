@@ -67,6 +67,10 @@ class MasTranslationEditor extends LitElement {
     async connectedCallback() {
         super.connectedCallback();
 
+        // reset locale to default
+        Store.search.set((prev) => ({ ...prev, region: null }));
+        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
         // Check for pre-fill data from store (e.g., from missing-variation-panel)
         const prefill = Store.translationProjects.prefill.get();
         const { targetLocale, fragmentPath } = prefill || {};

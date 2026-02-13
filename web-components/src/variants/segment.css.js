@@ -4,6 +4,10 @@ export const CSS = `
   --consonant-merch-card-segment-width: 378px;
 }
 
+merch-card[variant="segment"] {
+  max-width: var(--consonant-merch-card-segment-width);
+}
+
 /* grid style for segment */
 .one-merch-card.segment,
 .two-merch-cards.segment,
@@ -44,5 +48,54 @@ export const CSS = `
   .four-merch-cards.segment {
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
+}
+
+merch-card[variant="segment"] [slot='callout-content'] > div > div,
+merch-card[variant="segment"] [slot="callout-content"] > p {
+    position: relative;
+    padding: 2px 10px 3px;
+    background: #D9D9D9;
+    color: var(--text-color);
+}
+
+merch-card[variant="segment"] [slot="callout-content"] > p:has(> .icon-button) {
+  padding-inline-end: 36px;
+}
+
+merch-card[variant="segment"] [slot="callout-content"] .icon-button {
+  margin: 1.5px 0 1.5px 8px;
+}
+
+merch-card[variant="segment"] a.spectrum-Link--secondary {
+  color: inherit;
+}
+
+merch-card[variant="segment"] span[data-template="legal"] {
+    display: block;
+    color: var(----merch-color-grey-80);
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 21px;
+}
+
+merch-card[variant="segment"] .price-unit-type:not(.disabled)::before {
+    content: "";
+}
+
+merch-card[variant="segment"] [slot="footer"] a.con-button.primary {
+    border: 2px solid var(--text-color);
+    color: var(--text-color);
+}
+
+merch-card[variant="segment"] [slot="footer"] a.con-button.primary:hover {
+    background-color: var(--color-black);
+    border-color: var(--color-black);
+    color: var(--color-white);
+}
+
+merch-card-collection.segment merch-card {
+    width: auto;
+    height: 100%;
 }
 `;

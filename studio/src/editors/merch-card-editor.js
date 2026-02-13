@@ -992,15 +992,15 @@ class MerchCardEditor extends LitElement {
                 </div>
                 <sp-field-group class="toggle" id="promoText">
                     <sp-field-label for="promo-text">Promo Text</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter promo text"
+                    <rte-field
                         id="promo-text"
+                        link
                         data-field="promoText"
                         data-field-state="${this.getFieldState('promoText')}"
-                        value="${form.promoText?.values[0]}"
-                        @input="${this.#handleFragmentUpdate}"
-                        ?disabled=${this.disabled}
-                    ></sp-textfield>
+                        .osi=${form.osi.values[0]}
+                        .value=${form.promoText?.values[0] || ''}
+                        @change="${this.#handleFragmentUpdate}"
+                    ></rte-field>
                     ${this.renderFieldStatusIndicator('promoText')}
                 </sp-field-group>
                 <sp-field-group>

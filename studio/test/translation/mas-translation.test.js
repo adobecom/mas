@@ -4,6 +4,8 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import { PAGE_NAMES } from '../../src/constants.js';
 import Store from '../../src/store.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import router from '../../src/router.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-translation.js';
@@ -11,14 +13,20 @@ import '../../src/translation/mas-translation.js';
 describe('MasTranslation', () => {
     let sandbox;
 
-    const createMockTranslationProject = (id, title, fullName = 'John Doe') => ({
-        get: () => ({
+    const createMockTranslationProject = (id, title, fullName = 'John Doe', submissionDate = null) => {
+        const fields = [];
+        if (submissionDate !== null && submissionDate !== undefined) {
+            fields.push({ name: 'submissionDate', type: 'long', values: [submissionDate] });
+        }
+        const fragment = new Fragment({
             id,
             title,
             path: `/content/dam/mas/translations/${id}`,
             modified: { fullName },
-        }),
-    });
+            fields,
+        });
+        return new FragmentStore(fragment);
+    };
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -255,6 +263,140 @@ describe('MasTranslation', () => {
             const duplicateItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Duplicate'));
             expect(duplicateItem).to.exist;
             expect(duplicateItem.disabled).to.be.true;
+        });
+    });
+
+    describe('formatSubmissionDate', () => {
+        it('should display N/A when submission date is null', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', null)];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
+            expect(cells[2].textContent).to.equal('N/A');
+        });
+
+        it('should display N/A when submission date is undefined', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', undefined)];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
+            expect(cells[2].textContent).to.equal('N/A');
+        });
+
+        it('should format date correctly when submission date exists', async () => {
+            const testDate = new Date('2024-03-15T10:00:00Z').getTime();
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', testDate)];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
+            expect(cells[2].textContent).to.equal('Mar 15, 2024');
+        });
+
+        it('should format different dates correctly', async () => {
+            const testDate = new Date('2025-12-25T00:00:00Z').getTime();
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', testDate)];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
+            expect(cells[2].textContent).to.equal('Dec 25, 2025');
+        });
+    });
+
+    describe('sortBySentOn', () => {
+        it('should sort projects by submission date ascending', async () => {
+            const date1 = new Date('2024-01-15').getTime();
+            const date2 = new Date('2024-03-20').getTime();
+            const date3 = new Date('2024-02-10').getTime();
+            const mockProjects = [
+                createMockTranslationProject('1', 'Project 1', 'User 1', date2),
+                createMockTranslationProject('2', 'Project 2', 'User 2', date1),
+                createMockTranslationProject('3', 'Project 3', 'User 3', date3),
+            ];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const headerCell = el.shadowRoot.querySelector('sp-table-head-cell.sentOn');
+            headerCell.dispatchEvent(new CustomEvent('sorted', { detail: { sortKey: 'sentOn', sortDirection: 'asc' } }));
+            await el.updateComplete;
+            const sortedData = Store.translationProjects.list.data.get();
+            expect(sortedData[0].get().id).to.equal('2');
+            expect(sortedData[1].get().id).to.equal('3');
+            expect(sortedData[2].get().id).to.equal('1');
+        });
+
+        it('should sort projects by submission date descending', async () => {
+            const date1 = new Date('2024-01-15').getTime();
+            const date2 = new Date('2024-03-20').getTime();
+            const date3 = new Date('2024-02-10').getTime();
+            const mockProjects = [
+                createMockTranslationProject('1', 'Project 1', 'User 1', date1),
+                createMockTranslationProject('2', 'Project 2', 'User 2', date3),
+                createMockTranslationProject('3', 'Project 3', 'User 3', date2),
+            ];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const headerCell = el.shadowRoot.querySelector('sp-table-head-cell.sentOn');
+            headerCell.dispatchEvent(new CustomEvent('sorted', { detail: { sortKey: 'sentOn', sortDirection: 'desc' } }));
+            await el.updateComplete;
+            const sortedData = Store.translationProjects.list.data.get();
+            expect(sortedData[0].get().id).to.equal('3');
+            expect(sortedData[1].get().id).to.equal('2');
+            expect(sortedData[2].get().id).to.equal('1');
+        });
+
+        it('should place null dates at the end when sorting ascending', async () => {
+            const date1 = new Date('2024-01-15').getTime();
+            const date2 = new Date('2024-03-20').getTime();
+            const mockProjects = [
+                createMockTranslationProject('1', 'Project 1', 'User 1', null),
+                createMockTranslationProject('2', 'Project 2', 'User 2', date2),
+                createMockTranslationProject('3', 'Project 3', 'User 3', date1),
+            ];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const headerCell = el.shadowRoot.querySelector('sp-table-head-cell.sentOn');
+            headerCell.dispatchEvent(new CustomEvent('sorted', { detail: { sortKey: 'sentOn', sortDirection: 'asc' } }));
+            await el.updateComplete;
+            const sortedData = Store.translationProjects.list.data.get();
+            expect(sortedData[0].get().id).to.equal('1');
+            expect(sortedData[1].get().id).to.equal('3');
+            expect(sortedData[2].get().id).to.equal('2');
+        });
+
+        it('should place null dates at the beginning when sorting descending', async () => {
+            const date1 = new Date('2024-01-15').getTime();
+            const date2 = new Date('2024-03-20').getTime();
+            const mockProjects = [
+                createMockTranslationProject('1', 'Project 1', 'User 1', date1),
+                createMockTranslationProject('2', 'Project 2', 'User 2', null),
+                createMockTranslationProject('3', 'Project 3', 'User 3', date2),
+            ];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const headerCell = el.shadowRoot.querySelector('sp-table-head-cell.sentOn');
+            headerCell.dispatchEvent(new CustomEvent('sorted', { detail: { sortKey: 'sentOn', sortDirection: 'desc' } }));
+            await el.updateComplete;
+            const sortedData = Store.translationProjects.list.data.get();
+            expect(sortedData[0].get().id).to.equal('3');
+            expect(sortedData[1].get().id).to.equal('1');
+            expect(sortedData[2].get().id).to.equal('2');
+        });
+
+        it('should maintain relative order when both dates are null', async () => {
+            const date1 = new Date('2024-01-15').getTime();
+            const mockProjects = [
+                createMockTranslationProject('1', 'Project 1', 'User 1', null),
+                createMockTranslationProject('2', 'Project 2', 'User 2', date1),
+                createMockTranslationProject('3', 'Project 3', 'User 3', null),
+            ];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const headerCell = el.shadowRoot.querySelector('sp-table-head-cell.sentOn');
+            headerCell.dispatchEvent(new CustomEvent('sorted', { detail: { sortKey: 'sentOn', sortDirection: 'asc' } }));
+            await el.updateComplete;
+            const sortedData = Store.translationProjects.list.data.get();
+            expect(sortedData[0].get().id).to.equal('1');
+            const nullProjects = sortedData.filter((p) => p.get().getFieldValue('submissionDate') == null);
+            expect(nullProjects.length).to.equal(2);
         });
     });
 

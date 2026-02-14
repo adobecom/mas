@@ -1,5 +1,5 @@
 import { Catalog, CATALOG_AEM_FRAGMENT_MAPPING } from './catalog.js';
-import { Image } from './image.js';
+import { Image, IMAGE_AEM_FRAGMENT_MAPPING } from './image.js';
 import { InlineHeading } from './inline-heading.js';
 import { MiniCompareChart } from './mini-compare-chart.js';
 import {
@@ -113,6 +113,7 @@ registerVariant(
     FullPricingExpress.variantStyle,
 );
 registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
+registerVariant('image', Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
 
 const applyStyleSheet = (card, style, state) => {
     try {

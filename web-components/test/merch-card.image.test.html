@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Merch Card Image Variant Test</title>
+        <script>
+            window.process = {
+                env: {},
+            };
+        </script>
+        <style>
+            main {
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+                padding: 40px;
+            }
+
+            .one-merch-card.image {
+                display: grid;
+            }
+        </style>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+    </head>
+
+    <body>
+        <script type="module" src="./merch-card.image.test.html.js"></script>
+        <main>
+            <div class="one-merch-card image">
+                <merch-card
+                    id="image-default"
+                    variant="image"
+                    badge-background-color="#EDCC2D"
+                    badge-color="#000000"
+                    badge-text="Best Value"
+                    secure-label="Secure Transaction"
+                >
+                    <merch-icon
+                        slot="icons"
+                        size="l"
+                        src="/test/mocks/img/creative-cloud.svg"
+                        alt="Creative Cloud"
+                    ></merch-icon>
+                    <h3 slot="heading-xs">Photoshop</h3>
+                    <h4 slot="body-xxs">Desktop + Mobile</h4>
+                    <div slot="promo-text">Limited time offer</div>
+                    <div slot="body-xs">
+                        <p>Fast editing and compositing tools.</p>
+                    </div>
+                    <div slot="footer">
+                        <a
+                            href="https://business.adobe.com"
+                            class="con-button blue"
+                            >Learn more</a
+                        >
+                    </div>
+                    <div slot="bg-image" class="bgimage">
+                        <img
+                            loading="lazy"
+                            alt=""
+                            src="../img/special-offers-img.png"
+                            width="750"
+                            height="357"
+                        />
+                    </div>
+                </merch-card>
+            </div>
+
+            <div class="one-merch-card image">
+                <merch-card
+                    id="image-promo-bottom"
+                    variant="image"
+                    class="promo-bottom"
+                >
+                    <merch-icon
+                        slot="icons"
+                        size="l"
+                        src="/test/mocks/img/creative-cloud.svg"
+                        alt="Creative Cloud"
+                    ></merch-icon>
+                    <h3 slot="heading-xs">Illustrator</h3>
+                    <h4 slot="body-xxs">Desktop</h4>
+                    <div slot="promo-text">Promo after body</div>
+                    <div slot="body-xs">
+                        <p>Vector tools for precise artwork.</p>
+                    </div>
+                    <div slot="bg-image" class="bgimage">
+                        <img
+                            loading="lazy"
+                            alt=""
+                            src="../img/special-offers-img.png"
+                            width="750"
+                            height="357"
+                        />
+                    </div>
+                </merch-card>
+            </div>
+
+            <div class="one-merch-card image">
+                <merch-card
+                    id="image-evergreen"
+                    variant="image"
+                    class="intro-pricing"
+                    detail-bg="linear-gradient(135deg, #fff 0%, #eee 100%)"
+                >
+                    <merch-icon
+                        slot="icons"
+                        size="l"
+                        src="/test/mocks/img/creative-cloud.svg"
+                        alt="Creative Cloud"
+                    ></merch-icon>
+                    <h3 slot="heading-xs">Lightroom</h3>
+                    <h4 slot="body-xxs">Desktop + Mobile</h4>
+                    <div slot="promo-text">Evergreen promo</div>
+                    <div slot="body-xs">
+                        <p>Organize and edit photos anywhere.</p>
+                    </div>
+                    <div slot="detail-bg">Detail background content</div>
+                    <div slot="bg-image" class="bgimage">
+                        <img
+                            loading="lazy"
+                            alt=""
+                            src="../img/special-offers-img.png"
+                            width="750"
+                            height="357"
+                        />
+                    </div>
+                </merch-card>
+            </div>
+        </main>
+    </body>
+</html>

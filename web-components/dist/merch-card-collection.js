@@ -249,7 +249,10 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
       grid-template-columns: repeat(4, var(--consonant-merch-card-image-width-4clm));
   }
 }
-`;var na={cardName:{attribute:"name"},badge:!0,ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},backgroundImage:{tag:"div",slot:"bg-image"}},Re=class extends N{constructor(t){super(t)}getGlobalCSS(){return aa}renderLayout(){return bt`${this.cardImage}
+`;var na={cardName:{attribute:"name"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},borderColor:{attribute:"border-color"},allowedBadgeColors:["spectrum-yellow-300","spectrum-gray-300","spectrum-gray-700","spectrum-green-900","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300","spectrum-gray-300","spectrum-green-900","gradient-purple-blue"],ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},backgroundImage:{tag:"div",slot:"bg-image"}},Re=class extends N{constructor(t){super(t)}getGlobalCSS(){return aa}renderLayout(){return bt`<div class="image">
+                <slot name="bg-image"></slot>
+                <slot name="badge"></slot>
+            </div>
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
@@ -272,6 +275,19 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
         :host([variant='image']) {
             min-height: 330px;
             width: var(--consonant-merch-card-image-width);
+        }
+
+        :host([variant='image']) ::slotted([slot='badge']) {
+            position: absolute;
+            top: 16px;
+            right: 0px;
+        }
+
+        :host-context([dir='rtl'])
+            :host([variant='image'])
+            ::slotted([slot='badge']) {
+            left: 0px;
+            right: initial;
         }
     `);import{html as sa}from"./lit-all.min.js";var oa=`
 :root {

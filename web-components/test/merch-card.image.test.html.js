@@ -22,7 +22,9 @@ runTests(async () => {
             const imageSlot = card.shadowRoot.querySelector(
                 '.image slot[name="bg-image"]',
             );
-            const badge = card.shadowRoot.getElementById('badge');
+            const badge = card.shadowRoot.querySelector(
+                '.image slot[name="badge"]',
+            );
             expect(imageSlot).to.exist;
             expect(badge).to.exist;
         });

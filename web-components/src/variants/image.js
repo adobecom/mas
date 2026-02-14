@@ -4,7 +4,25 @@ import { CSS } from './image.css.js';
 
 export const IMAGE_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
-    badge: true,
+    badge: {
+        tag: 'div',
+        slot: 'badge',
+        default: 'spectrum-yellow-300',
+    },
+    borderColor: { attribute: 'border-color' },
+    allowedBadgeColors: [
+        'spectrum-yellow-300',
+        'spectrum-gray-300',
+        'spectrum-gray-700',
+        'spectrum-green-900',
+        'gradient-purple-blue',
+    ],
+    allowedBorderColors: [
+        'spectrum-yellow-300',
+        'spectrum-gray-300',
+        'spectrum-green-900',
+        'gradient-purple-blue',
+    ],
     ctas: { slot: 'footer', size: 'm' },
     description: { tag: 'div', slot: 'body-xs' },
     mnemonics: { size: 'l' },
@@ -26,7 +44,10 @@ export class Image extends VariantLayout {
     }
 
     renderLayout() {
-        return html`${this.cardImage}
+        return html`<div class="image">
+                <slot name="bg-image"></slot>
+                <slot name="badge"></slot>
+            </div>
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
@@ -56,6 +77,19 @@ export class Image extends VariantLayout {
         :host([variant='image']) {
             min-height: 330px;
             width: var(--consonant-merch-card-image-width);
+        }
+
+        :host([variant='image']) ::slotted([slot='badge']) {
+            position: absolute;
+            top: 16px;
+            right: 0px;
+        }
+
+        :host-context([dir='rtl'])
+            :host([variant='image'])
+            ::slotted([slot='badge']) {
+            left: 0px;
+            right: initial;
         }
     `;
 }

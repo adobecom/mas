@@ -234,6 +234,15 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
     return { authorPath, code, richText, href };
 }
 
+/**
+ * Generates a rich link for a single fragment field.
+ * Used by the "Copy Field" sidebar button to produce a clipboard entry
+ * that pastes as a clickable "alias → fieldName" link in SharePoint.
+ * @param {object} fragment - The AEM content fragment
+ * @param {string} path - The current surface path (e.g. "/acom")
+ * @param {string} fieldName - The field to link to (e.g. "prices", "description")
+ * @returns {{ displayText: string, href: string, richText: string } | null}
+ */
 export function generateFieldLink(fragment, path, fieldName) {
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];

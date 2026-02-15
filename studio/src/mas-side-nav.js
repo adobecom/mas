@@ -54,6 +54,8 @@ class MasSideNav extends LitElement {
     variationDataLoading = false;
     fragmentStoreSubscription = null;
     variationLoadingTimeout = null;
+    /** Cached resolved price text (e.g. "US$99.99/mo") for the Copy Field popover. */
+    _resolvedPriceText = '';
 
     connectedCallback() {
         super.connectedCallback();
@@ -71,6 +73,9 @@ class MasSideNav extends LitElement {
             }
 
             if (fragmentStore) {
+                // Reset and re-resolve price preview for the new fragment
+                this._resolvedPriceText = '';
+                this._resolvePricePreview();
                 this.variationDataLoading = true;
                 this.setupVariationLoadingTimeout();
                 this.fragmentStoreSubscription = fragmentStoreHandler;
@@ -212,18 +217,33 @@ class MasSideNav extends LitElement {
         return text.length > 60 ? `${text.slice(0, 57)}...` : text;
     }
 
-    getResolvedPriceText() {
-        const card = this.fragmentEditor?.querySelector('merch-card')
-            || document.querySelector('merch-card');
-        if (!card) return '';
+    /**
+     * Waits for the merch-card preview to finish rendering (including WCS price
+     * resolution), then caches the resolved price text for the Copy Field popover.
+     * Uses the same checkReady() pattern as mas-card-preview.js.
+     */
+    async _resolvePricePreview() {
+        const card = this.fragmentEditor?.querySelector('merch-card');
+        if (!card) return;
+        await card.checkReady?.();
+        // inline-price spans are light DOM children of merch-card (slotted content)
         let prices = card.querySelectorAll('span[is="inline-price"]');
         if (!prices.length && card.shadowRoot) {
             prices = card.shadowRoot.querySelectorAll('span[is="inline-price"]');
         }
         const texts = [...prices].map((p) => p.textContent.trim()).filter(Boolean);
-        return texts.join(', ');
+        const text = texts.join(', ');
+        if (text && text !== this._resolvedPriceText) {
+            this._resolvedPriceText = text;
+            this.requestUpdate();
+        }
     }
 
+    /**
+     * Returns the list of non-empty fragment fields for the Copy Field popover.
+     * Each entry includes the field name, a display name (e.g. "variant" → "template"),
+     * and a short preview of the field's value.
+     */
     get copyableFields() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
@@ -231,8 +251,9 @@ class MasSideNav extends LitElement {
             .filter((f) => !fragment.isValueEmpty(f.values))
             .map((f) => {
                 let preview = MasSideNav.previewValue(f.values);
+                // Prices contain unresolved <inline-price> HTML — use cached resolved text
                 if (!preview && f.name === 'prices') {
-                    preview = this.getResolvedPriceText();
+                    preview = this._resolvedPriceText;
                 }
                 return {
                     name: f.name,
@@ -242,6 +263,11 @@ class MasSideNav extends LitElement {
             });
     }
 
+    /**
+     * Copies a rich link for a single field to the clipboard.
+     * The link points to the fragment's field in MAS Studio and pastes as a
+     * clickable "alias → fieldName" reference in SharePoint documents.
+     */
     async copyField(fieldName) {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment) return;
@@ -362,9 +388,9 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Copy Code" ?disabled=${loading} @nav-click="${this.copyCode}">
                 <sp-icon-code slot="icon"></sp-icon-code>
             </mas-side-nav-item>
+            <!-- Copy Field: popover listing fragment fields with preview values -->
             <overlay-trigger placement="right" offset="8">
-                <mas-side-nav-item label="Copy Field" ?disabled=${loading} slot="trigger"
-                    @mousedown=${() => this.requestUpdate()}>
+                <mas-side-nav-item label="Copy Field" ?disabled=${loading} slot="trigger">
                     <sp-icon-copy slot="icon"></sp-icon-copy>
                 </mas-side-nav-item>
                 <sp-popover slot="click-content" direction="right" tip>

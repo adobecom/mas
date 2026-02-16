@@ -54,7 +54,7 @@ export class FragmentStore extends ReactiveStore {
     }
 
     resetFieldToParent(fieldName, parentValues = []) {
-        const success = this.value.resetFieldToParent(fieldName);
+        const success = this.value.resetFieldToParent(fieldName, parentValues);
         if (success) {
             this.notify();
             this.refreshAemFragment();

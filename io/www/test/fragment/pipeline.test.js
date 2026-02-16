@@ -136,6 +136,13 @@ describe('pipeline full use case', () => {
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from preview too', async () => {
+        const previewStorage = {};
+        globalThis.localStorage = {
+            getItem: (key) => previewStorage[key] ?? null,
+            setItem: (key, value) => {
+                previewStorage[key] = value;
+            },
+        };
         setupFragmentMocks(
             fetchStub,
             {
@@ -169,6 +176,7 @@ describe('pipeline full use case', () => {
             },
             hash: EXPECTED_BODY_HASH,
         });
+        delete globalThis.localStorage;
     });
 
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
@@ -312,6 +320,34 @@ describe('pipeline corner cases', () => {
         fetchStub.restore();
     });
 
+    it('should handle main timeout', async () => {
+        const odinDomain = 'https://odin.adobe.com';
+        const odinUriRoot = '/adobe/sites/fragments';
+        //simulate slow response
+        fetchStub
+            .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
+            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 50)));
+
+        fetchStub
+            .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
+            .returns(createResponse(200, { items: [{ id: 'some-fr-fr-fragment' }] }));
+
+        fetchStub
+            .withArgs(`${odinDomain}${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
+            .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
+
+        const state = new MockState();
+        await state.put('configuration', `{"networkConfig":{"mainTimeout":10,"retries": 1}}`);
+
+        const result = await action({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+        expect(result.statusCode).to.equal(504);
+        expect(result.message).to.equal('Fragment pipeline timed out');
+    });
+
     it('action should be defined', () => {
         expect(action).to.be.a('function');
     });
@@ -365,7 +401,7 @@ describe('pipeline corner cases', () => {
             .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, {})), 50)));
 
         const state = new MockState();
-        state.put('configuration', '{"networkConfig":{"fetchTimeout":20,"retries":1,"retryDelay":1}}');
+        await state.put('configuration', '{"networkConfig":{"fetchTimeout":20,"retries":1,"retryDelay":1}}');
         const result = await getFragment({
             id: 'test-fragment',
             state,
@@ -384,7 +420,7 @@ describe('pipeline corner cases', () => {
     it('should handle fetch exceptions', async () => {
         fetchStub.withArgs(sinon.match(/adobe\/sites\/fragments\/test-fragment/)).rejects(new Error('Network error'));
         const state = new MockState();
-        state.put('configuration', '{"networkConfig":{"retries": 2, "retryDelay": 1}}');
+        await state.put('configuration', '{"networkConfig":{"retries": 2, "retryDelay": 1}}');
         const result = await getFragment({
             id: 'test-fragment',
             state,
@@ -398,47 +434,6 @@ describe('pipeline corner cases', () => {
                 message: 'fetch error',
             },
         });
-    });
-
-    it('should handle main timeout', async () => {
-        // Mock dictionary with a delay to ensure timeout fires
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
-            .returns(
-                new Promise((resolve) =>
-                    setTimeout(() => resolve(createResponse(200, { items: [{ id: 'sandbox_fr_FR_dictionary' }] })), 50),
-                ),
-            );
-
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
-            .returns(createResponse(200, DICTIONARY_RESPONSE));
-
-        const odinDomain = 'https://odin.adobe.com';
-        const odinUriRoot = '/adobe/sites/fragments';
-
-        // Setup other fragment mocks
-        fetchStub
-            .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
-            .returns(createResponse(200, FRAGMENT_RESPONSE_EN));
-
-        fetchStub
-            .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
-            .returns(createResponse(200, { items: [{ id: 'some-fr-fr-fragment' }] }));
-
-        fetchStub
-            .withArgs(`${odinDomain}${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
-            .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
-
-        const state = new MockState();
-        state.put('configuration', '{"networkConfig":{"mainTimeout":10,"retries": 1}}');
-        const result = await action({
-            id: 'some-en-us-fragment',
-            state: state,
-            locale: 'fr_FR',
-        });
-        expect(result.statusCode).to.equal(504);
-        expect(result.message).to.equal('Fragment pipeline timed out');
     });
 
     it('should handle 404 response status', async () => {
@@ -484,16 +479,18 @@ describe('pipeline corner cases', () => {
         const result = await runOnFilledState(
             fetchStub,
             JSON.stringify({
-                dictionaryId: 'sandbox_fr_FR_dictionary',
-                translatedId: 'some-fr-fr-fragment',
+                fragmentsIds: {
+                    'dictionary-id': 'sandbox_fr_FR_dictionary',
+                    'default-locale-id': 'some-fr-fr-fragment',
+                },
                 hash: EXPECTED_BODY_HASH,
             }),
             {
                 'if-modified-since': RANDOM_OLD_DATE,
             },
         );
-        expect(result.body).to.deep.include(EXPECTED_BODY);
         expect(result.statusCode).to.equal(200);
+        expect(result.body).to.deep.include(EXPECTED_BODY);
     });
 
     it('should manage bad cache entry', async () => {
@@ -710,8 +707,10 @@ describe('caching headers', () => {
         const result = await runOnFilledState(
             fetchStub,
             JSON.stringify({
-                dictionaryId: 'sandbox_fr_FR_dictionary',
-                translatedId: 'some-fr-fr-fragment',
+                fragmentsIds: {
+                    'dictionary-id': 'sandbox_fr_FR_dictionary',
+                    'default-locale-id': 'some-fr-fr-fragment',
+                },
                 lastModified: RANDOM_OLD_DATE,
                 hash: EXPECTED_BODY_HASH,
             }),

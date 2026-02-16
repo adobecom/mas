@@ -11,15 +11,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const aosResponse = JSON.parse(readFileSync(join(__dirname, '../mocks/aos-response.json'), 'utf8'));
 
-// Mock fetch globally
-global.fetch = sinon.stub();
-
 describe('getProducts', () => {
     let writeModule;
 
     beforeEach(async () => {
-        // Reset fetch stub
-        global.fetch.reset();
+        // (Re)create fetch stub so tests pass when run after common.test.js (which deletes global.fetch)
+        global.fetch = sinon.stub();
 
         // Mock fetch to return aos-response.json only once, then empty array
         let firstCall = true;
@@ -41,6 +38,7 @@ describe('getProducts', () => {
 
     afterEach(() => {
         sinon.restore();
+        delete global.fetch;
     });
 
     it('should fetch and combine products from different landscapes and locales', async () => {

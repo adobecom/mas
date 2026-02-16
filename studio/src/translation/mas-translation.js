@@ -4,11 +4,8 @@ import { styles } from './mas-translation.css.js';
 import router from '../router.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { MasRepository } from '../mas-repository.js';
-import { PAGE_NAMES } from '../constants.js';
+import { PAGE_NAMES, TRANSLATIONS_ALLOWED_SURFACES } from '../constants.js';
 import { showToast } from '../utils.js';
-
-const ALLOWED_PATHS = ['acom', 'express', 'sandbox', 'nala'];
 
 class MasTranslation extends LitElement {
     static styles = styles;
@@ -16,9 +13,10 @@ class MasTranslation extends LitElement {
     static properties = {
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        columns: { type: Set, state: true },
     };
 
-    #searchUnsubscribe = null;
+    #searchCallback = null;
 
     constructor() {
         super();
@@ -28,14 +26,15 @@ class MasTranslation extends LitElement {
         ]);
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
-    }
-
-    get translationProjectsData() {
-        return Store.translationProjects?.list?.data?.get() || [];
-    }
-
-    get translationProjectsLoading() {
-        return Store.translationProjects?.list?.loading?.get() || false;
+        this.columns = new Set([
+            { key: 'title', label: 'Translation Project' },
+            {
+                key: 'lastUpdatedBy',
+                label: 'Last updated by',
+            },
+            { key: 'sentOn', label: 'Sent on' },
+            { key: 'actions', label: 'Actions', align: 'right' },
+        ]);
     }
 
     /** @type {MasRepository} */
@@ -43,65 +42,13 @@ class MasTranslation extends LitElement {
         return document.querySelector('mas-repository');
     }
 
-    /**
-     * Ensures the repository is available
-     * @param {string} [errorMessage='Repository component not found'] - Custom error message
-     * @throws {Error} If repository is not available
-     * @returns {MasRepository} The repository instance
-     */
-    ensureRepository(errorMessage = 'Repository component not found') {
-        const repository = this.repository;
-        if (!repository) {
-            this.error = errorMessage;
-            throw new Error(errorMessage);
-        }
-        return repository;
+    get translationProjectsData() {
+        return Store.translationProjects?.list?.data?.get() || [];
     }
 
-    async connectedCallback() {
-        super.connectedCallback();
-
-        const currentPage = Store.page.get();
-        if (currentPage !== PAGE_NAMES.TRANSLATIONS) {
-            router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
-        }
-
-        const masRepository = this.repository;
-        if (!masRepository) {
-            this.error = 'Repository component not found';
-            return;
-        }
-
-        this.#searchUnsubscribe = Store.search.subscribe((search) => {
-            const path = search?.path;
-            if (path && !ALLOWED_PATHS.includes(path)) {
-                router.navigateToPage(PAGE_NAMES.CONTENT)();
-            }
-        });
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        if (this.#searchUnsubscribe) {
-            this.#searchUnsubscribe();
-            this.#searchUnsubscribe = null;
-        }
-    }
-
-    get loadingIndicator() {
-        if (!this.translationProjectsLoading) return nothing;
-        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
-    }
-
-    /**
-     * Renders a confirmation dialog
-     * @returns {TemplateResult} - HTML template
-     */
-    renderConfirmDialog() {
+    get confirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
-
         const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
-
         return html`
             <div class="confirm-dialog-overlay">
                 <sp-dialog-wrapper
@@ -129,13 +76,108 @@ class MasTranslation extends LitElement {
         `;
     }
 
-    /**
-     * Display a dialog for confirmation
-     * @param {string} title - Dialog title
-     * @param {string} message - Dialog message
-     * @param {Object} options - Additional options
-     * @returns {Promise<boolean>} - True if confirmed, false if canceled
-     */
+    get translationsProjectsContent() {
+        if (Store.translationProjects?.list?.loading?.get()) {
+            return html`<div class="loading-container"><sp-progress-circle indeterminate size="l"></sp-progress-circle></div>`;
+        }
+        if (this.translationProjectsData.length) {
+            return html` <sp-table emphasized .scroller=${true} class="translation-table">
+                <sp-table-head>
+                    ${[...this.columns].map(
+                        ({ key, label, align }) => html`
+                            <sp-table-head-cell
+                                class=${key}
+                                style="${align === 'right' ? 'text-align: right;' : ''}"
+                                .sortable=${key === 'sentOn'}
+                                sort-direction="asc"
+                                sort-key="sentOn"
+                                @sorted=${this.#sortBySentOn}
+                            >
+                                ${label}
+                            </sp-table-head-cell>
+                        `,
+                    )}
+                </sp-table-head>
+                <sp-table-body>
+                    ${repeat(
+                        this.translationProjectsData,
+                        (translationProject) => translationProject.get().id,
+                        (translationProject) => html`
+                            <sp-table-row
+                                @dblclick=${() => this.#goToEditorExistingProject(translationProject)}
+                                value=${translationProject.get().path}
+                                data-id=${translationProject.get().id}
+                            >
+                                <sp-table-cell>${translationProject.get().title}</sp-table-cell>
+                                <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
+                                <sp-table-cell>${this.#formatSubmissionDate(translationProject)}</sp-table-cell>
+                                <sp-table-cell class="action-cell">
+                                    <sp-action-menu size="m">
+                                        ${html`
+                                            <sp-menu-item @click=${() => this.#goToEditorExistingProject(translationProject)}>
+                                                <sp-icon-edit slot="icon"></sp-icon-edit>
+                                                Edit
+                                            </sp-menu-item>
+                                            <sp-menu-item disabled>
+                                                <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                                                Duplicate
+                                            </sp-menu-item>
+                                            <sp-menu-item disabled>
+                                                <sp-icon-archive slot="icon"></sp-icon-archive>
+                                                Archive
+                                            </sp-menu-item>
+                                            <sp-menu-item @click=${() => this.#deleteTranslationProject(translationProject)}>
+                                                <sp-icon-delete slot="icon"></sp-icon-delete>
+                                                Delete
+                                            </sp-menu-item>
+                                            <sp-menu-item disabled>
+                                                <sp-icon-cancel slot="icon"></sp-icon-cancel>
+                                                Cancel
+                                            </sp-menu-item>
+                                        `}
+                                    </sp-action-menu>
+                                </sp-table-cell>
+                            </sp-table-row>
+                        `,
+                    )}
+                </sp-table-body>
+            </sp-table>`;
+        } else {
+            return html`<div class="translation-empty-state">No translation projects found.</div>`;
+        }
+    }
+
+    async connectedCallback() {
+        super.connectedCallback();
+
+        const currentPage = Store.page.get();
+        if (currentPage !== PAGE_NAMES.TRANSLATIONS) {
+            router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
+        }
+
+        const masRepository = this.repository;
+        if (!masRepository) {
+            this.error = 'Repository component not found';
+            return;
+        }
+
+        this.#searchCallback = (search) => {
+            const path = search?.path;
+            if (path && !TRANSLATIONS_ALLOWED_SURFACES.includes(path)) {
+                router.navigateToPage(PAGE_NAMES.CONTENT)();
+            }
+        };
+        Store.search.subscribe(this.#searchCallback);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this.#searchCallback) {
+            Store.search.unsubscribe(this.#searchCallback);
+            this.#searchCallback = null;
+        }
+    }
+
     async #showDialog(title, message, options = {}) {
         if (this.isDialogOpen) return false;
 
@@ -205,94 +247,25 @@ class MasTranslation extends LitElement {
         }
     }
 
-    renderActionCell(translationProject) {
-        return html`
-            <sp-table-cell class="action-cell">
-                <sp-action-menu size="m">
-                    ${html`
-                        <sp-menu-item @click=${() => this.#goToEditorExistingProject(translationProject)}>
-                            <sp-icon-edit slot="icon"></sp-icon-edit>
-                            Edit
-                        </sp-menu-item>
-                        <sp-menu-item disabled>
-                            <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
-                            Duplicate
-                        </sp-menu-item>
-                        <sp-menu-item disabled>
-                            <sp-icon-archive slot="icon"></sp-icon-archive>
-                            Archive
-                        </sp-menu-item>
-                        <sp-menu-item @click=${() => this.#deleteTranslationProject(translationProject)}>
-                            <sp-icon-delete slot="icon"></sp-icon-delete>
-                            Delete
-                        </sp-menu-item>
-                        <sp-menu-item disabled>
-                            <sp-icon-cancel slot="icon"></sp-icon-cancel>
-                            Cancel
-                        </sp-menu-item>
-                    `}
-                </sp-action-menu>
-            </sp-table-cell>
-        `;
+    #formatSubmissionDate(translationProject) {
+        const date = translationProject.get().getFieldValue('submissionDate');
+        if (!date) return 'N/A';
+        return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    renderTableHeader(columns) {
-        return html`
-            <sp-table-head>
-                ${columns.map(
-                    ({ key, label, align }) => html`
-                        <sp-table-head-cell class=${key} style="${align === 'right' ? 'text-align: right;' : ''}">
-                            ${label}
-                        </sp-table-head-cell>
-                    `,
-                )}
-            </sp-table-head>
-        `;
-    }
-
-    renderTranslationProjectsTable() {
-        const columns = [
-            { key: 'title', label: 'Translation Project' },
-            {
-                key: 'lastUpdatedBy',
-                label: 'Last updated by',
-            },
-            { key: 'sentOn', label: 'Sent on' },
-            { key: 'actions', label: 'Actions', align: 'right' },
-        ];
-        return html`
-            <sp-table emphasized .scroller=${true} class="translation-table">
-                ${this.renderTableHeader(columns)}
-                <sp-table-body>
-                    ${repeat(
-                        this.translationProjectsData,
-                        (translationProject) => translationProject.get().id,
-                        (translationProject) => html`
-                            <sp-table-row
-                                @dblclick=${() => this.#goToEditorExistingProject(translationProject)}
-                                value=${translationProject.get().path}
-                                data-id=${translationProject.get().id}
-                            >
-                                <sp-table-cell>${translationProject.get().title}</sp-table-cell>
-                                <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
-                                <sp-table-cell>N/A</sp-table-cell>
-                                ${this.renderActionCell(translationProject)}
-                            </sp-table-row>
-                        `,
-                    )}
-                </sp-table-body>
-            </sp-table>
-        `;
-    }
-
-    renderTranslationsProjects() {
-        if (this.translationProjectsLoading) {
-            return html`<div class="loading-container">${this.loadingIndicator}</div>`;
-        }
-        if (this.translationProjectsData.length === 0) {
-            return html`<div class="translation-empty-state">No translation projects found.</div>`;
-        }
-        return html`${this.renderTranslationProjectsTable()}`;
+    #sortBySentOn({ detail: { sortKey, sortDirection } }) {
+        const translationProjects = [...this.translationProjectsData].sort((a, b) => {
+            const dateA = a.get().getFieldValue('submissionDate');
+            const dateB = b.get().getFieldValue('submissionDate');
+            if (!dateA && !dateB) return 0;
+            if (!dateA) return sortDirection === 'desc' ? 1 : -1;
+            if (!dateB) return sortDirection === 'desc' ? -1 : 1;
+            const timestampA = new Date(dateA).getTime();
+            const timestampB = new Date(dateB).getTime();
+            if (sortDirection === 'desc') return timestampB - timestampA;
+            return timestampA - timestampB;
+        });
+        Store.translationProjects.list.data.set(translationProjects);
     }
 
     render() {
@@ -309,8 +282,8 @@ class MasTranslation extends LitElement {
                     <sp-search size="m" placeholder="Search" disabled></sp-search>
                     <div>${this.translationProjectsData.length} result(s)</div>
                 </div>
-                ${this.renderConfirmDialog()}
-                <div class="translation-content">${this.renderTranslationsProjects()}</div>
+                ${this.confirmDialog}
+                <div class="translation-content">${this.translationsProjectsContent}</div>
             </div>
         `;
     }

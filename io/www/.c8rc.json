@@ -1,8 +1,0 @@
-{
-    "exclude": [
-        "src/fragment/utils/odinSchemaTransform.js",
-        "src/ost-products/read.js",
-        "src/ost-products/write.js",
-        "test/**/*"
-    ]
-}

@@ -6,6 +6,52 @@ const DICTIONARY_ID_PATH = 'dictionary/index';
 const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 
 const TRANSFORMER_NAME = 'replace';
+const CONFIG_CACHE_TTL = 5 * 60 * 1000;
+
+let dictionaryCache;
+
+export function clearDictionaryCache(preview = false) {
+    if (preview) {
+        Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('dictionary-')) {
+                localStorage.removeItem(key);
+            }
+        });
+    } else {
+        dictionaryCache = undefined;
+    }
+}
+
+async function cacheKey(context) {
+    const { surface } = await getRequestInfos(context);
+    const { locale } = context;
+    return `dictionary-${surface}-${locale}`;
+}
+
+async function getCachedDictionary(context) {
+    const key = await cacheKey(context);
+    const cacheEntry = context.preview ? JSON.parse(localStorage.getItem(key)) : dictionaryCache?.[key];
+    if (cacheEntry) {
+        cacheEntry.isExpired = Date.now() - cacheEntry.timestamp > CONFIG_CACHE_TTL;
+        return cacheEntry;
+    }
+    return null;
+}
+
+async function cache(context, dictionary) {
+    const key = await cacheKey(context);
+    const cacheEntry = {
+        dictionary,
+        timestamp: Date.now(),
+    };
+    if (context.preview) {
+        localStorage.setItem(key, JSON.stringify(cacheEntry));
+    } else {
+        dictionaryCache = dictionaryCache || {};
+        dictionaryCache[key] = cacheEntry;
+    }
+    return dictionary;
+}
 
 async function getDictionaryId(context) {
     const { surface } = await getRequestInfos(context);
@@ -52,6 +98,8 @@ function collectDictionariesEntries(fragmentId, rootFragment, references, dictio
 export async function getDictionary(context) {
     /* c8 ignore next 1 */
     if (context.hasExternalDictionary) return context.dictionary;
+    const cachedDictionary = await getCachedDictionary(context);
+    if (cachedDictionary && !cachedDictionary.isExpired) return cachedDictionary.dictionary;
     const dictionary = context.dictionary || {};
     const { id } = await getDictionaryId(context);
     if (!id) {
@@ -75,7 +123,7 @@ export async function getDictionary(context) {
             }
         });
 
-        return dictionary;
+        return await cache(context, dictionary);
     }
     return dictionary;
 }

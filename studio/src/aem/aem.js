@@ -1246,7 +1246,6 @@ class AEM {
         return { ...item, parentReferences: contentFragmentRefs };
     }
 
-
     sites = {
         cf: {
             fragments: {

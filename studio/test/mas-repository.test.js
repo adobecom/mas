@@ -1304,9 +1304,7 @@ describe('MasRepository dictionary helpers', () => {
                 set: sandbox.stub(),
             };
 
-            const refreshVariationParentInListStub = sandbox
-                .stub(repository, 'refreshVariationParentInList')
-                .resolves();
+            const refreshVariationParentInListStub = sandbox.stub(repository, 'refreshVariationParentInList').resolves();
             const fragmentDeletedEmitStub = sandbox.stub(Events.fragmentDeleted, 'emit');
 
             const result = await repository.deleteFragment(fragment, {

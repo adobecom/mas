@@ -313,7 +313,8 @@ export class Fragment {
 
     listLocaleVariations() {
         const variationPaths = this.getVariations();
-        if (!this.references?.length || !variationPaths.length) return [];
+        if (!variationPaths.length) return [];
+        if (!this.references?.length) return [];
 
         const currentMatch = this.path.match(PATH_TOKENS);
         if (!currentMatch?.groups) {
@@ -321,24 +322,22 @@ export class Fragment {
         }
 
         const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
+        const referencesByPath = new Map(this.references.map((reference) => [reference.path, reference]));
+        const pathsToProcess = variationPaths.filter((path) => referencesByPath.has(path));
 
-        return this.references.filter((reference) => {
-            if (!variationPaths.includes(reference.path)) return false;
-
-            // Exclude grouped (pzn) variations from locale variations list
-            if (Fragment.isGroupedVariationPath(reference.path)) return false;
-
-            // Exclude promo variations from locale variations list
-            const isPromo = reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
-            if (isPromo) return false;
-
-            const refMatch = reference.path.match(PATH_TOKENS);
-            if (!refMatch?.groups) {
-                return false;
-            }
-            const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
-            return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
-        });
+        return pathsToProcess
+            .filter((path) => {
+                if (Fragment.isGroupedVariationPath(path)) return false;
+                const refMatch = path.match(PATH_TOKENS);
+                if (!refMatch?.groups) return false;
+                // Exclude promo variations when tag metadata is available.
+                const reference = referencesByPath.get(path);
+                const isPromo = reference?.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
+                if (isPromo) return false;
+                const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
+                return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
+            })
+            .map((path) => referencesByPath.get(path));
     }
 
     /**
@@ -348,12 +347,14 @@ export class Fragment {
      */
     listGroupedVariations() {
         const variationPaths = this.getVariations();
-        if (!this.references?.length || !variationPaths.length) return [];
+        if (!variationPaths.length) return [];
+        if (!this.references?.length) return [];
+        const referencesByPath = new Map(this.references.map((reference) => [reference.path, reference]));
+        const pathsToProcess = variationPaths.filter((path) => referencesByPath.has(path));
 
-        return this.references.filter((reference) => {
-            if (!variationPaths.includes(reference.path)) return false;
-            return Fragment.isGroupedVariationPath(reference.path);
-        });
+        return pathsToProcess
+            .filter((path) => Fragment.isGroupedVariationPath(path))
+            .map((path) => referencesByPath.get(path));
     }
 
     /**
@@ -380,7 +381,7 @@ export class Fragment {
      */
     getPromoVariationCount() {
         const variationPaths = this.getVariations();
-        if (!this.references?.length || !variationPaths.length) return 0;
+        if (!variationPaths.length || !this.references?.length) return 0;
 
         return this.references.filter((reference) => {
             return (

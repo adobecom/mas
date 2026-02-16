@@ -89,7 +89,7 @@
             import { Fragment } from '../../src/aem/fragment.js';
             import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
             import Store from '../../src/store.js';
-            import { PAGE_NAMES } from '../../src/constants.js';
+            import { PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
             import { delay } from '../utils.js';
 
             // Load the existing mock data for a merch card
@@ -132,9 +132,12 @@
                     };
 
                     let layoutContainer, sideNav, fragmentEditor, editor, saveNavItem, fragmentStore;
+                    let originalGetByPath;
 
                     async function setupTestEnvironment(overrides = {}, testId = 'default') {
+                        const isVariation = overrides.isVariation !== undefined ? overrides.isVariation : true;
                         const variationPath = overrides.path || `/content/dam/mas/nala/en_AU/test-variation-${testId}`;
+                        const variationLocale = variationPath.match(/^\/content\/dam\/mas\/[^/]+\/([^/]+)\//)?.[1] || 'en_US';
                         const variationData = {
                             ...baseMockData,
                             path: variationPath,
@@ -159,7 +162,7 @@
                         Store.fragments.inEdit.set(fragmentStore);
                         Store.fragments.list.data.set([fragmentStore]);
                         Store.placeholders.preview.set({});
-                        Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala' }));
+                        Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
                         Store.viewMode.set('editing');
 
                         layoutContainer = document.createElement('div');
@@ -173,10 +176,11 @@
                         const repository = document.querySelector('mas-repository');
                         repository.refreshFragment = async () => {};
                         repository.loadPreviewPlaceholders = async () => {};
+                        originalGetByPath = repository.aem?.sites?.cf?.fragments?.getByPath || originalGetByPath;
 
                         fragmentEditor.editorContextStore = {
                             loadFragmentContext: async () => {},
-                            isVariation: () => true,
+                            isVariation: () => isVariation,
                             getLocaleDefaultFragmentAsync: async () => structuredClone(parentWithAllFields),
                             getDefaultLocaleId: () => 'test-parent-id',
                             getLocaleDefaultFragment: () => structuredClone(parentWithAllFields),
@@ -216,7 +220,68 @@
                         return { fragmentStore, editor, sideNav, saveNavItem };
                     }
 
+                    function setSourceVariationCounts({
+                        locale = 0,
+                        promo = 0,
+                        grouped = 0,
+                        includeReferences = true,
+                        includeCurrentGroupedPath = false,
+                    }) {
+                        const sourceFragment = fragmentEditor.localeDefaultFragment;
+                        const [, rootPath, sourceLocale, fragmentPath] =
+                            sourceFragment.path.match(/^(\/content\/dam\/mas\/[^/]+)\/([^/]+)\/(.+)$/) || [];
+
+                        const localeCodes = ['en_AU', 'fr_FR', 'de_DE', 'es_ES', 'it_IT'];
+                        const variationPaths = [];
+                        const references = [];
+
+                        for (let i = 0; i < locale; i += 1) {
+                            const localeCode = localeCodes[i] || `x${i}_XX`;
+                            const path = `${rootPath}/${localeCode}/${fragmentPath}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [] });
+                            }
+                        }
+
+                        for (let i = 0; i < promo; i += 1) {
+                            const path = `${rootPath}/${sourceLocale}/promo-${i}-${fragmentPath}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [{ id: `${TAG_PROMOTION_PREFIX}test-${i}` }] });
+                            }
+                        }
+
+                        if (includeCurrentGroupedPath && grouped > 0) {
+                            const currentPath = fragmentEditor.fragment.path;
+                            variationPaths.push(currentPath);
+                            if (includeReferences) {
+                                references.push({ path: currentPath, tags: [] });
+                            }
+                        }
+
+                        for (let i = includeCurrentGroupedPath ? 1 : 0; i < grouped; i += 1) {
+                            const path = `${rootPath}/${sourceLocale}/pzn/${fragmentPath}-${i}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [] });
+                            }
+                        }
+
+                        sourceFragment.references = includeReferences ? references : [];
+                        const variationsField = sourceFragment.fields.find((f) => f.name === 'variations');
+                        if (variationsField) {
+                            variationsField.values = variationPaths;
+                        } else {
+                            sourceFragment.fields.push({ name: 'variations', values: variationPaths, multiple: true });
+                        }
+                    }
+
                     afterEach(() => {
+                        const repository = document.querySelector('mas-repository');
+                        if (repository?.aem?.sites?.cf?.fragments && originalGetByPath) {
+                            repository.aem.sites.cf.fragments.getByPath = originalGetByPath;
+                        }
                         if (layoutContainer) {
                             layoutContainer.remove();
                             layoutContainer = null;
@@ -344,6 +409,175 @@
                         const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
                         expect(groupedTagsPicker).to.exist;
                         expect(groupedTagsPicker.readonly).to.be.false;
+                    });
+
+                    it('displays grouped sibling variation count for grouped variations', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-counts',
+                            },
+                            'grouped-variation-counts',
+                        );
+                        setSourceVariationCounts({ locale: 0, promo: 0, grouped: 3 });
+                        expect(fragmentEditor.localeDefaultFragment.references).to.have.length(3);
+                        expect(fragmentEditor.localeDefaultFragment.getGroupedVariationCount()).to.equal(3);
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['2 grouped sibling variations']);
+                    });
+
+                    it('displays regional sibling variation count for locale variations', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/test-locale-variation-counts',
+                            },
+                            'locale-variation-counts',
+                        );
+                        setSourceVariationCounts({ locale: 4, promo: 0, grouped: 0 });
+                        expect(fragmentEditor.localeDefaultFragment.references).to.have.length(4);
+                        expect(fragmentEditor.localeDefaultFragment.getLocaleVariationCount()).to.equal(4);
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['3 Regional sibling variations']);
+                    });
+
+                    it('displays grouped and regional sibling counts when source has variations but no references', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-no-references',
+                            },
+                            'grouped-variation-no-references',
+                        );
+                        setSourceVariationCounts({
+                            locale: 2,
+                            promo: 0,
+                            grouped: 5,
+                            includeReferences: false,
+                            includeCurrentGroupedPath: true,
+                        });
+
+                        const source = fragmentEditor.localeDefaultFragment;
+                        const allPaths = new Set(source.getVariations());
+                        const repository = document.querySelector('mas-repository');
+                        repository.aem.sites.cf.fragments.getByPath = async (path) => {
+                            if (!allPaths.has(path)) {
+                                throw new Error('Not found');
+                            }
+                            return {
+                                id: `existing-${path.split('/').pop()}`,
+                                path,
+                                tags: [],
+                            };
+                        };
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+                        await delay(50);
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['2 Regional sibling variations', '4 grouped sibling variations']);
+                    });
+
+                    it('shows 5 regional + 1 grouped sibling counts after filtering stale variation paths', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-stale-paths',
+                            },
+                            'grouped-variation-stale-paths',
+                        );
+
+                        setSourceVariationCounts({
+                            locale: 8,
+                            promo: 0,
+                            grouped: 5,
+                            includeReferences: false,
+                            includeCurrentGroupedPath: true,
+                        });
+
+                        const source = fragmentEditor.localeDefaultFragment;
+                        const variationPaths = source.getVariations();
+                        const localePaths = variationPaths.filter((p) => !p.includes('/pzn/'));
+                        const groupedPaths = variationPaths.filter((p) => p.includes('/pzn/'));
+                        const currentGroupedPath = fragmentEditor.fragment.path;
+                        const siblingGroupedPath = groupedPaths.find((p) => p !== currentGroupedPath);
+                        const existingPaths = new Set([...localePaths.slice(0, 5), currentGroupedPath, siblingGroupedPath]);
+
+                        const repository = document.querySelector('mas-repository');
+                        repository.aem.sites.cf.fragments.getByPath = async (path) => {
+                            if (!existingPaths.has(path)) {
+                                throw new Error('Not found');
+                            }
+                            return {
+                                id: `existing-${path.split('/').pop()}`,
+                                path,
+                                tags: [],
+                            };
+                        };
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+                        await delay(50);
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['5 Regional sibling variations', '1 grouped sibling variation']);
+                    });
+
+                    it('does not render related variations container for source fragments before references are loaded', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_US/test-source-variation-container',
+                                isVariation: false,
+                            },
+                            'source-variation-container',
+                        );
+
+                        const sourceFragment = fragmentEditor.fragment;
+                        sourceFragment.references = [];
+                        const sourceVariationsField = sourceFragment.fields.find((f) => f.name === 'variations');
+                        const variationPath = '/content/dam/mas/nala/fr_FR/test-source-variation-container';
+                        if (sourceVariationsField) {
+                            sourceVariationsField.values = [variationPath];
+                        } else {
+                            sourceFragment.fields.push({ name: 'variations', values: [variationPath], multiple: true });
+                        }
+
+                        const repository = document.querySelector('mas-repository');
+                        repository.aem.sites.cf.fragments.getByPath = async () =>
+                            new Promise(() => {
+                                // Keep hydration pending to verify container visibility does not depend on resolved counts.
+                            });
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.not.exist;
                     });
 
                     describe('description field inheritance logic', () => {

@@ -408,6 +408,10 @@ export default class MasFragmentEditor extends LitElement {
 
     discardPromiseResolver;
     #pendingDiscardPromise = null;
+    #variationReferencesHydrationKey = null;
+    #variationReferencesHydrationPromise = null;
+    #variationReferencesHydrationToken = 0;
+    #variationReferencesHydratedKeys = new Set();
     titleClone = '';
     tagsClone = [];
     osiClone = null;
@@ -487,6 +491,62 @@ export default class MasFragmentEditor extends LitElement {
 
     get repository() {
         return document.querySelector('mas-repository');
+    }
+
+    #hydrateVariationReferences(fragment) {
+        if (!fragment?.getVariations) return null;
+
+        const variationPaths = fragment.getVariations() || [];
+        if (!variationPaths.length) return null;
+        const key = `${fragment.id || fragment.path}:${variationPaths.join('|')}`;
+        if (fragment.references?.length) {
+            this.#variationReferencesHydratedKeys.add(key);
+            return null;
+        }
+        if (this.#variationReferencesHydratedKeys.has(key)) return null;
+
+        const getByPath = this.repository?.aem?.sites?.cf?.fragments?.getByPath;
+        if (!getByPath) return null;
+
+        if (this.#variationReferencesHydrationKey === key) {
+            return this.#variationReferencesHydrationPromise;
+        }
+
+        this.#variationReferencesHydrationKey = key;
+        const token = ++this.#variationReferencesHydrationToken;
+        this.#variationReferencesHydrationPromise = (async () => {
+            const resolvedReferences = (
+                await Promise.all(
+                    variationPaths.map(async (path) => {
+                        try {
+                            const data = await getByPath.call(this.repository.aem.sites.cf.fragments, path);
+                            if (!data?.path) return null;
+                            return { id: data.id, path: data.path, tags: data.tags || [] };
+                        } catch {
+                            return null;
+                        }
+                    }),
+                )
+            ).filter(Boolean);
+
+            // Ignore stale hydration results if a newer hydration started or refs were set meanwhile.
+            if (token !== this.#variationReferencesHydrationToken) return;
+            if (this.#variationReferencesHydrationKey !== key) return;
+            if (fragment.references?.length) {
+                this.#variationReferencesHydratedKeys.add(key);
+                return;
+            }
+
+            fragment.references = resolvedReferences;
+            this.#variationReferencesHydratedKeys.add(key);
+            this.requestUpdate();
+        })().finally(() => {
+            if (token === this.#variationReferencesHydrationToken) {
+                this.#variationReferencesHydrationPromise = null;
+            }
+        });
+
+        return this.#variationReferencesHydrationPromise;
     }
 
     get fragment() {
@@ -1356,22 +1416,28 @@ export default class MasFragmentEditor extends LitElement {
         const sourceFragment = isVariation ? this.localeDefaultFragment : this.fragment;
 
         if (!sourceFragment) return nothing;
+        if (this.#hydrateVariationReferences(sourceFragment)) return nothing;
 
         let localeCount = sourceFragment.getLocaleVariationCount?.() || 0;
         let promoCount = sourceFragment.getPromoVariationCount?.() || 0;
+        let groupedCount = sourceFragment.getGroupedVariationCount?.() || 0;
 
         // Subtract 1 from the appropriate count if current fragment is not the source (i.e., it's a variation)
         if (isVariation) {
-            const isPromoVariation = this.fragment.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
-            if (isPromoVariation) {
-                promoCount = Math.max(0, promoCount - 1);
+            if (Fragment.isGroupedVariationPath(this.fragment.path)) {
+                groupedCount = Math.max(0, groupedCount - 1);
             } else {
-                localeCount = Math.max(0, localeCount - 1);
+                const isPromoVariation = this.fragment.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
+                if (isPromoVariation) {
+                    promoCount = Math.max(0, promoCount - 1);
+                } else {
+                    localeCount = Math.max(0, localeCount - 1);
+                }
             }
         }
 
         // If no variations exist, don't render the container
-        if (localeCount === 0 && promoCount === 0) return nothing;
+        if (!isVariation && localeCount === 0 && promoCount === 0 && groupedCount === 0) return nothing;
 
         // Determine the label suffix based on whether we're in a variation
         const siblingLabel = isVariation ? ' sibling' : '';
@@ -1389,6 +1455,12 @@ export default class MasFragmentEditor extends LitElement {
                       ${promoCount} promo${siblingLabel} variation${promoCount !== 1 ? 's' : ''}
                   </p>`
                 : nothing;
+        const groupedText =
+            groupedCount > 0
+                ? html`<p class="related-variations-count">
+                      ${groupedCount} grouped${siblingLabel} variation${groupedCount !== 1 ? 's' : ''}
+                  </p>`
+                : nothing;
 
         return html`
             <div class="related-variations-container">
@@ -1399,7 +1471,7 @@ export default class MasFragmentEditor extends LitElement {
                         <span>View variations</span>
                     </a>
                 </div>
-                <div class="related-variations-counts">${localeText} ${promoText}</div>
+                <div class="related-variations-counts">${localeText} ${promoText} ${groupedText}</div>
             </div>
         `;
     }

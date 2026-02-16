@@ -51,14 +51,9 @@
                 document.querySelector('title').innerText += ` [${envOverride.toUpperCase()}]`;
             }
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
-
-            let ioEnv;
-            if (isLocal && !envOverride) {
-                ioEnv = '';
-            } else {
-                ioEnv = envOverride ? `-${envOverride}` : '';
-            }
-            const ioBaseUrl = `https://14257-masstudio${ioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+            const ioStudioEnvParam = params.get('io.studio.env') || envOverride;
+            const ioStudioEnv = ioStudioEnvParam ? `-${ioStudioEnvParam}` : '';
+            const ioBaseUrl = `https://14257-masstudio${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
             document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);
         </script>
         <script src="../web-components/dist/mas.js" type="module"></script>

@@ -640,6 +640,8 @@ export default class MasFragmentEditor extends LitElement {
 
         // Check for existing store first
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+        const isVariation = this.editorContextStore.isVariation(fragmentId);
+        this.updateTranslatedLocalesStore(isVariation); // no need to await
 
         if (existingStore) {
             const fragmentPath = existingStore.get().path;

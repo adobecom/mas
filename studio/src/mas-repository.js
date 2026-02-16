@@ -30,7 +30,6 @@ import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
-import { TranslationProject } from './translation/translation-project.js';
 
 let fragmentCache;
 
@@ -815,9 +814,9 @@ export class MasRepository extends LitElement {
     }
 
     async loadTranslationProjects() {
+        const translationsPath = this.getTranslationsPath();
+        if (!translationsPath) return;
         try {
-            const translationsPath = this.getTranslationsPath();
-            if (!translationsPath) return;
             if (this.#abortControllers.translations) this.#abortControllers.translations.abort();
             this.#abortControllers.translations = new AbortController();
             Store.translationProjects.list.loading.set(true);
@@ -826,7 +825,7 @@ export class MasRepository extends LitElement {
                 50,
                 this.#abortControllers.translations,
             );
-            const translationProjects = fragments.map((fragment) => new FragmentStore(new TranslationProject(fragment)));
+            const translationProjects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
             Store.translationProjects.list.data.set(translationProjects);
         } catch (error) {
             this.processError(error, 'Could not load translation projects.');

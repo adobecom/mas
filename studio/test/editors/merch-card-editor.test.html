@@ -132,7 +132,6 @@
                     };
 
                     let layoutContainer, sideNav, fragmentEditor, editor, saveNavItem, fragmentStore;
-                    let originalGetByPath;
 
                     async function setupTestEnvironment(overrides = {}, testId = 'default') {
                         const isVariation = overrides.isVariation !== undefined ? overrides.isVariation : true;
@@ -176,7 +175,6 @@
                         const repository = document.querySelector('mas-repository');
                         repository.refreshFragment = async () => {};
                         repository.loadPreviewPlaceholders = async () => {};
-                        originalGetByPath = repository.aem?.sites?.cf?.fragments?.getByPath || originalGetByPath;
 
                         fragmentEditor.editorContextStore = {
                             loadFragmentContext: async () => {},
@@ -278,10 +276,6 @@
                     }
 
                     afterEach(() => {
-                        const repository = document.querySelector('mas-repository');
-                        if (repository?.aem?.sites?.cf?.fragments && originalGetByPath) {
-                            repository.aem.sites.cf.fragments.getByPath = originalGetByPath;
-                        }
                         if (layoutContainer) {
                             layoutContainer.remove();
                             layoutContainer = null;
@@ -455,7 +449,7 @@
                         expect(counts).to.deep.equal(['3 Regional sibling variations']);
                     });
 
-                    it('displays grouped and regional sibling counts when source has variations but no references', async () => {
+                    it('does not display sibling counts when source has variations but no references', async () => {
                         await setupTestEnvironment(
                             {
                                 path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-no-references',
@@ -470,35 +464,18 @@
                             includeCurrentGroupedPath: true,
                         });
 
-                        const source = fragmentEditor.localeDefaultFragment;
-                        const allPaths = new Set(source.getVariations());
-                        const repository = document.querySelector('mas-repository');
-                        repository.aem.sites.cf.fragments.getByPath = async (path) => {
-                            if (!allPaths.has(path)) {
-                                throw new Error('Not found');
-                            }
-                            return {
-                                id: `existing-${path.split('/').pop()}`,
-                                path,
-                                tags: [],
-                            };
-                        };
-
                         fragmentEditor.requestUpdate();
-                        await fragmentEditor.updateComplete;
-                        await delay(50);
                         await fragmentEditor.updateComplete;
 
                         const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
                         expect(relatedVariations).to.exist;
-
                         const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
                             el.textContent.trim().replace(/\s+/g, ' '),
                         );
-                        expect(counts).to.deep.equal(['2 Regional sibling variations', '4 grouped sibling variations']);
+                        expect(counts).to.deep.equal([]);
                     });
 
-                    it('shows 5 regional + 1 grouped sibling counts after filtering stale variation paths', async () => {
+                    it('shows 5 regional + 1 grouped sibling counts when variations contains stale paths not present in references', async () => {
                         await setupTestEnvironment(
                             {
                                 path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-stale-paths',
@@ -507,36 +484,21 @@
                         );
 
                         setSourceVariationCounts({
-                            locale: 8,
+                            locale: 5,
                             promo: 0,
-                            grouped: 5,
-                            includeReferences: false,
+                            grouped: 2,
+                            includeReferences: true,
                             includeCurrentGroupedPath: true,
                         });
 
                         const source = fragmentEditor.localeDefaultFragment;
-                        const variationPaths = source.getVariations();
-                        const localePaths = variationPaths.filter((p) => !p.includes('/pzn/'));
-                        const groupedPaths = variationPaths.filter((p) => p.includes('/pzn/'));
-                        const currentGroupedPath = fragmentEditor.fragment.path;
-                        const siblingGroupedPath = groupedPaths.find((p) => p !== currentGroupedPath);
-                        const existingPaths = new Set([...localePaths.slice(0, 5), currentGroupedPath, siblingGroupedPath]);
-
-                        const repository = document.querySelector('mas-repository');
-                        repository.aem.sites.cf.fragments.getByPath = async (path) => {
-                            if (!existingPaths.has(path)) {
-                                throw new Error('Not found');
-                            }
-                            return {
-                                id: `existing-${path.split('/').pop()}`,
-                                path,
-                                tags: [],
-                            };
-                        };
+                        const variationsField = source.fields.find((f) => f.name === 'variations');
+                        variationsField.values.push(
+                            '/content/dam/mas/nala/en_IE/test-grouped-variation-stale-paths',
+                            '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-stale-paths-stale',
+                        );
 
                         fragmentEditor.requestUpdate();
-                        await fragmentEditor.updateComplete;
-                        await delay(50);
                         await fragmentEditor.updateComplete;
 
                         const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
@@ -548,7 +510,7 @@
                         expect(counts).to.deep.equal(['5 Regional sibling variations', '1 grouped sibling variation']);
                     });
 
-                    it('does not render related variations container for source fragments before references are loaded', async () => {
+                    it('does not render related variations container for source fragments when references are empty', async () => {
                         await setupTestEnvironment(
                             {
                                 path: '/content/dam/mas/nala/en_US/test-source-variation-container',
@@ -566,12 +528,6 @@
                         } else {
                             sourceFragment.fields.push({ name: 'variations', values: [variationPath], multiple: true });
                         }
-
-                        const repository = document.querySelector('mas-repository');
-                        repository.aem.sites.cf.fragments.getByPath = async () =>
-                            new Promise(() => {
-                                // Keep hydration pending to verify container visibility does not depend on resolved counts.
-                            });
 
                         fragmentEditor.requestUpdate();
                         await fragmentEditor.updateComplete;

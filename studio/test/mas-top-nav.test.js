@@ -316,6 +316,34 @@ describe('MasTopNav', () => {
     });
 
     describe('profileBuilder', () => {
+        it('should fetch profile once across rerenders', async () => {
+            const getProfileSpy = sandbox.spy(window.adobeIMS, 'getProfile');
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await delay(200);
+
+            expect(window.fetch.calledOnce).to.be.true;
+            expect(getProfileSpy.calledOnce).to.be.true;
+
+            el.requestUpdate();
+            await el.updateComplete;
+            await delay(50);
+
+            expect(window.fetch.calledOnce).to.be.true;
+            expect(getProfileSpy.calledOnce).to.be.true;
+        });
+
+        it('should refetch profile when aem-env changes', async () => {
+            const el = await fixture(html`<mas-top-nav aem-env="prod"></mas-top-nav>`);
+            await delay(200);
+            expect(window.fetch.calledOnce).to.be.true;
+
+            el.aemEnv = 'stage';
+            await el.updateComplete;
+            await delay(200);
+
+            expect(window.fetch.calledTwice).to.be.true;
+        });
+
         it('should toggle profile menu on click', async () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             // Wait for profile to be built (it's async via until)

@@ -88,15 +88,16 @@
 
                     describe('Rendering', () => {
                         it('should render dialog with correct header', async () => {
-                            const header = dialog.shadowRoot.querySelector('.dialog-header');
+                            const header = dialog.shadowRoot.querySelector('h2[slot="heading"]');
                             expect(header).to.exist;
                             expect(header.textContent).to.equal('Set a variation type');
                         });
 
-                        it('should render variation type picker as disabled', async () => {
-                            const typePicker = dialog.shadowRoot.querySelector('sp-picker[disabled]');
+                        it('should render variation type picker with regional as default', async () => {
+                            const typePicker = dialog.shadowRoot.querySelector('sp-picker');
                             expect(typePicker).to.exist;
                             expect(typePicker.value).to.equal('regional');
+                            expect(typePicker.disabled).to.be.false;
                         });
 
                         it('should render locale picker', async () => {
@@ -179,13 +180,19 @@
                         });
 
                         it('should close on backdrop click', async () => {
-                            const cancelPromise = oneEvent(dialog, 'cancel');
-                            const backdrop = dialog.shadowRoot.querySelector('.dialog-backdrop');
+                            let cancelFired = false;
+                            dialog.addEventListener(
+                                'cancel',
+                                () => {
+                                    cancelFired = true;
+                                },
+                                { once: true },
+                            );
+                            const backdrop = dialog.shadowRoot.querySelector('sp-underlay');
 
-                            backdrop.click();
-
-                            const event = await cancelPromise;
-                            expect(event).to.exist;
+                            backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+                            await delay(0);
+                            expect(cancelFired).to.be.true;
                         });
 
                         it('should not close on dialog container click', async () => {
@@ -194,7 +201,7 @@
                                 cancelFired = true;
                             });
 
-                            const container = dialog.shadowRoot.querySelector('.dialog-container');
+                            const container = dialog.shadowRoot.querySelector('sp-dialog');
                             container.click();
                             await delay(50);
 

@@ -277,7 +277,7 @@ export class MasVariationDialog extends LitElement {
 
     render() {
         return html`
-            <sp-underlay open></sp-underlay>
+            <sp-underlay open @click=${this.close}></sp-underlay>
             <sp-dialog size="s" no-divider>
                 <h2 slot="heading">Set a variation type</h2>
                 <div id="fields">

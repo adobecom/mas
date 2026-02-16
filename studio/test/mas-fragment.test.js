@@ -73,12 +73,14 @@ describe('MasFragment', () => {
 
         it('handles error when loading references', async () => {
             const fragmentStore = createFragmentStore();
+            const consoleErrorStub = sandbox.stub(console, 'error');
             const mockRepo = {
                 refreshFragment: sandbox.stub().rejects(new Error('Load failed')),
             };
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
             sandbox.stub(el, 'repository').get(() => mockRepo);
             await el.toggleExpand();
+            expect(consoleErrorStub.calledWithMatch('Failed to load references:', sinon.match.instanceOf(Error))).to.be.true;
             expect(el.expanded).to.be.true;
             expect(el.loadingReferences).to.be.false;
         });

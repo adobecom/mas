@@ -96,6 +96,8 @@ class MasTopNav extends LitElement {
         showPickers: { type: Boolean, attribute: 'show-pickers' },
     };
 
+    profileTemplatePromise = null;
+
     constructor() {
         super();
         this.aemEnv = 'prod';
@@ -103,6 +105,19 @@ class MasTopNav extends LitElement {
         this.search.subscribe(() => {
             this.requestUpdate();
         });
+    }
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('aemEnv')) {
+            this.profileTemplatePromise = null;
+        }
+    }
+
+    getProfileTemplate() {
+        if (!this.profileTemplatePromise) {
+            this.profileTemplatePromise = this.profileBuilder().then((profile) => html`${profile}`);
+        }
+        return this.profileTemplatePromise;
     }
 
     get shouldShowPickers() {
@@ -268,7 +283,7 @@ class MasTopNav extends LitElement {
                               </div>
                           `
                         : ''}
-                    ${until(this.profileBuilder().then((profile) => html`${profile}`))}
+                    ${until(this.getProfileTemplate())}
                 </div>
             </nav>
         `;

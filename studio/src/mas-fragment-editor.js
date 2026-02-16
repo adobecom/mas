@@ -408,10 +408,7 @@ export default class MasFragmentEditor extends LitElement {
 
     discardPromiseResolver;
     #pendingDiscardPromise = null;
-    #variationReferencesHydrationKey = null;
-    #variationReferencesHydrationPromise = null;
-    #variationReferencesHydrationToken = 0;
-    #variationReferencesHydratedKeys = new Set();
+    #translatedLocalesRequest = null;
     titleClone = '';
     tagsClone = [];
     osiClone = null;
@@ -491,62 +488,6 @@ export default class MasFragmentEditor extends LitElement {
 
     get repository() {
         return document.querySelector('mas-repository');
-    }
-
-    #hydrateVariationReferences(fragment) {
-        if (!fragment?.getVariations) return null;
-
-        const variationPaths = fragment.getVariations() || [];
-        if (!variationPaths.length) return null;
-        const key = `${fragment.id || fragment.path}:${variationPaths.join('|')}`;
-        if (fragment.references?.length) {
-            this.#variationReferencesHydratedKeys.add(key);
-            return null;
-        }
-        if (this.#variationReferencesHydratedKeys.has(key)) return null;
-
-        const getByPath = this.repository?.aem?.sites?.cf?.fragments?.getByPath;
-        if (!getByPath) return null;
-
-        if (this.#variationReferencesHydrationKey === key) {
-            return this.#variationReferencesHydrationPromise;
-        }
-
-        this.#variationReferencesHydrationKey = key;
-        const token = ++this.#variationReferencesHydrationToken;
-        this.#variationReferencesHydrationPromise = (async () => {
-            const resolvedReferences = (
-                await Promise.all(
-                    variationPaths.map(async (path) => {
-                        try {
-                            const data = await getByPath.call(this.repository.aem.sites.cf.fragments, path);
-                            if (!data?.path) return null;
-                            return { id: data.id, path: data.path, tags: data.tags || [] };
-                        } catch {
-                            return null;
-                        }
-                    }),
-                )
-            ).filter(Boolean);
-
-            // Ignore stale hydration results if a newer hydration started or refs were set meanwhile.
-            if (token !== this.#variationReferencesHydrationToken) return;
-            if (this.#variationReferencesHydrationKey !== key) return;
-            if (fragment.references?.length) {
-                this.#variationReferencesHydratedKeys.add(key);
-                return;
-            }
-
-            fragment.references = resolvedReferences;
-            this.#variationReferencesHydratedKeys.add(key);
-            this.requestUpdate();
-        })().finally(() => {
-            if (token === this.#variationReferencesHydrationToken) {
-                this.#variationReferencesHydrationPromise = null;
-            }
-        });
-
-        return this.#variationReferencesHydrationPromise;
     }
 
     get fragment() {
@@ -700,8 +641,6 @@ export default class MasFragmentEditor extends LitElement {
 
         // Check for existing store first
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
-        const isVariation = this.editorContextStore.isVariation(fragmentId);
-        this.updateTranslatedLocalesStore(isVariation); // no need to await
 
         if (existingStore) {
             const fragmentPath = existingStore.get().path;
@@ -915,7 +854,14 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         try {
-            const { languageCopies = [] } = await this.repository.aem.sites.cf.fragments.getTranslations(fragmentId);
+            if (this.#translatedLocalesRequest?.fragmentId === fragmentId) {
+                return;
+            }
+
+            const requestPromise = this.repository.aem.sites.cf.fragments.getTranslations(fragmentId);
+            this.#translatedLocalesRequest = { fragmentId, requestPromise };
+
+            const { languageCopies = [] } = await requestPromise;
             const locales = languageCopies
                 .map((copy) => ({
                     locale: this.extractLocaleFromPath(copy.path),
@@ -923,10 +869,20 @@ export default class MasFragmentEditor extends LitElement {
                     path: copy.path,
                 }))
                 .filter((item) => item.locale);
+
+            // Ignore stale responses when fragment/context changes while request is in flight.
+            if (Store.fragmentEditor.fragmentId.get() !== fragmentId || this.editorContextStore.isVariation(fragmentId)) {
+                return;
+            }
+
             Store.fragmentEditor.translatedLocales.set(locales);
         } catch (error) {
             console.warn('Failed to fetch fragment translations:', error.message);
             Store.fragmentEditor.translatedLocales.set(null);
+        } finally {
+            if (this.#translatedLocalesRequest?.fragmentId === fragmentId) {
+                this.#translatedLocalesRequest = null;
+            }
         }
     }
 
@@ -1416,7 +1372,6 @@ export default class MasFragmentEditor extends LitElement {
         const sourceFragment = isVariation ? this.localeDefaultFragment : this.fragment;
 
         if (!sourceFragment) return nothing;
-        if (this.#hydrateVariationReferences(sourceFragment)) return nothing;
 
         let localeCount = sourceFragment.getLocaleVariationCount?.() || 0;
         let promoCount = sourceFragment.getPromoVariationCount?.() || 0;

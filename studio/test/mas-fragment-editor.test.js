@@ -223,6 +223,42 @@ describe('MasFragmentEditor', () => {
         });
     });
 
+    describe('translated locales fetching', () => {
+        it('dedupes in-flight translation requests for the same fragment', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalFragmentId = Store.fragmentEditor.fragmentId.value;
+            try {
+                const deferred = {};
+                const getTranslations = sandbox.stub().returns(
+                    new Promise((resolve) => {
+                        deferred.resolve = resolve;
+                    }),
+                );
+                const mockRepo = {
+                    aem: {
+                        sites: {
+                            cf: {
+                                fragments: { getTranslations },
+                            },
+                        },
+                    },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+                Store.fragmentEditor.fragmentId.value = 'test-id';
+
+                const firstCall = el.updateTranslatedLocalesStore(false);
+                const secondCall = el.updateTranslatedLocalesStore(false);
+                deferred.resolve({ languageCopies: [] });
+
+                await Promise.all([firstCall, secondCall]);
+                expect(getTranslations.calledOnceWith('test-id')).to.be.true;
+            } finally {
+                Store.fragmentEditor.fragmentId.value = originalFragmentId;
+            }
+        });
+    });
+
     describe('discard changes', () => {
         let el;
         beforeEach(() => {

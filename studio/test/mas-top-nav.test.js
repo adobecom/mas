@@ -3,7 +3,9 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../src/store.js';
+import router from '../src/router.js';
 import { PAGE_NAMES, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from '../src/constants.js';
+import { delay } from './utils.js';
 import '../src/swc.js';
 import '../src/mas-top-nav.js';
 
@@ -210,12 +212,93 @@ describe('MasTopNav', () => {
 
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const searchSetSpy = sandbox.spy(Store.search, 'set');
+            const filtersSetSpy = sandbox.spy(Store.filters, 'set');
 
             await el.onLocaleChanged({ detail: { locale: 'fr_FR', fragmentId: 'test-id' } });
 
             expect(searchSetSpy.calledOnce).to.be.true;
-            const updateFn = searchSetSpy.firstCall.args[0];
-            expect(updateFn({ region: 'en_US' })).to.deep.equal({ region: null });
+            expect(searchSetSpy.firstCall.args[0]({ region: 'en_US' })).to.deep.equal({ region: null });
+            expect(filtersSetSpy.calledOnce).to.be.true;
+            expect(filtersSetSpy.firstCall.args[0]({ locale: 'en_US' })).to.deep.equal({ locale: 'fr_FR' });
+        });
+
+        it('should handle locale change in fragment editor with different fragmentId and no changes', async () => {
+            const currentFragment = { id: 'test-id', hasChanges: false };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.value = { get: () => currentFragment };
+
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const searchSetSpy = sandbox.spy(Store.search, 'set');
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+
+            await el.onLocaleChanged({ detail: { locale: 'fr_FR', fragmentId: 'other-id' } });
+
+            expect(searchSetSpy.calledOnce).to.be.true;
+            expect(navigateSpy.calledWith('other-id')).to.be.true;
+        });
+
+        it('should handle locale change in fragment editor with different fragmentId and unsaved changes (confirmed)', async () => {
+            const currentFragment = { id: 'test-id', hasChanges: true };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.value = { get: () => currentFragment };
+
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const mockEditor = { promptDiscardChanges: sandbox.stub().resolves(true) };
+            sandbox.stub(document, 'querySelector').withArgs('mas-fragment-editor').returns(mockEditor);
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+
+            await el.onLocaleChanged({ detail: { locale: 'fr_FR', fragmentId: 'other-id' } });
+
+            expect(mockEditor.promptDiscardChanges.calledOnce).to.be.true;
+            expect(navigateSpy.calledWith('other-id')).to.be.true;
+        });
+
+        it('should handle locale change in fragment editor with different fragmentId and unsaved changes (cancelled)', async () => {
+            const currentFragment = { id: 'test-id', hasChanges: true };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.value = { get: () => currentFragment };
+
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const mockEditor = { promptDiscardChanges: sandbox.stub().resolves(false) };
+            sandbox.stub(document, 'querySelector').withArgs('mas-fragment-editor').returns(mockEditor);
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+            const requestUpdateSpy = sandbox.spy(el, 'requestUpdate');
+
+            await el.onLocaleChanged({ detail: { locale: 'fr_FR', fragmentId: 'other-id' } });
+
+            expect(mockEditor.promptDiscardChanges.calledOnce).to.be.true;
+            expect(navigateSpy.called).to.be.false;
+            expect(requestUpdateSpy.calledOnce).to.be.true;
+        });
+
+        it('should handle locale change in fragment editor when no fragmentId provided (missing variation, with en_US translation)', async () => {
+            const currentFragment = { id: 'test-id' };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.value = { get: () => currentFragment };
+            Store.fragmentEditor.translatedLocales.set([{ locale: 'en_US', id: 'en-us-id' }]);
+
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+
+            await el.onLocaleChanged({ detail: { locale: 'tr_TR', fragmentId: null } });
+
+            expect(navigateSpy.calledWith('en-us-id')).to.be.true;
+            expect(Store.search.value.region).to.equal('tr_TR');
+        });
+
+        it('should handle locale change in fragment editor when no fragmentId provided (missing variation, no en_US translation)', async () => {
+            const currentFragment = { id: 'test-id' };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.value = { get: () => currentFragment };
+            Store.fragmentEditor.translatedLocales.set([]); // No en_US
+
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+
+            await el.onLocaleChanged({ detail: { locale: 'tr_TR', fragmentId: null } });
+
+            expect(navigateSpy.calledWith('test-id')).to.be.true;
+            expect(Store.search.value.region).to.equal('tr_TR');
         });
     });
 
@@ -229,6 +312,63 @@ describe('MasTopNav', () => {
             const el = await fixture(html`<mas-top-nav aem-env="stage"></mas-top-nav>`);
             const badge = el.environmentIndicator;
             expect(badge).to.not.be.null;
+        });
+    });
+
+    describe('profileBuilder', () => {
+        it('should toggle profile menu on click', async () => {
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            // Wait for profile to be built (it's async via until)
+            await delay(200);
+
+            const profileButton = el.querySelector('.profile-button');
+            const profileBody = el.querySelector('.profile-body');
+
+            expect(profileBody.classList.contains('show')).to.be.false;
+            profileButton.click();
+            expect(profileBody.classList.contains('show')).to.be.true;
+            profileButton.click();
+            expect(profileBody.classList.contains('show')).to.be.false;
+        });
+
+        it('should close profile menu on studio content click', async () => {
+            const studioContent = document.createElement('div');
+            studioContent.classList.add('studio-content');
+            document.body.appendChild(studioContent);
+
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await delay(200);
+
+            const profileButton = el.querySelector('.profile-button');
+            const profileBody = el.querySelector('.profile-body');
+
+            profileButton.click();
+            expect(profileBody.classList.contains('show')).to.be.true;
+
+            studioContent.click();
+            expect(profileBody.classList.contains('show')).to.be.false;
+
+            studioContent.remove();
+        });
+
+        it('should call signOut on signout link click', async () => {
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await delay(200);
+
+            const signOutLink = el.querySelector('.signout-link');
+            signOutLink.click();
+
+            expect(window.adobeIMS.signOut.calledOnce).to.be.true;
+        });
+
+        it('should show error message on fetch failure', async () => {
+            window.fetch.restore();
+            sandbox.stub(window, 'fetch').rejects(new Error('Fetch failed'));
+
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await delay(200);
+
+            expect(el.textContent).to.contain('Profile unavailable');
         });
     });
 

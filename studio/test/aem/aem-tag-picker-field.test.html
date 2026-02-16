@@ -250,7 +250,9 @@
                         spSearch.value = 'photoshop';
                         spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
                         await aemTagPicker.updateComplete;
-                        const photoshopCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${photoshopPath}"]`);
+                        const photoshopCheckbox = aemTagPicker.shadowRoot.querySelector(
+                            `sp-checkbox[value="${photoshopPath}"]`,
+                        );
                         photoshopCheckbox.checked = true;
                         photoshopCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
 
@@ -436,7 +438,9 @@
                         spSearch.value = 'photoshop';
                         spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
                         await aemTagPicker.updateComplete;
-                        const photoshopCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${photoshopPath}"]`);
+                        const photoshopCheckbox = aemTagPicker.shadowRoot.querySelector(
+                            `sp-checkbox[value="${photoshopPath}"]`,
+                        );
                         photoshopCheckbox.checked = true;
                         photoshopCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
 
@@ -536,15 +540,14 @@
             ></aem-tag-picker-field>
         </template>
         <template id="tagPicker8">
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                top="product"
-                multiple
-                display-value
-            ></aem-tag-picker-field>
+            <aem-tag-picker-field namespace="/content/cq:tags/mas" top="product" multiple display-value></aem-tag-picker-field>
         </template>
         <template id="tagPicker9">
-            <aem-tag-picker-field namespace="/content/cq:tags/mas" top="status" selection="checkbox-tags"></aem-tag-picker-field>
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="status"
+                selection="checkbox-tags"
+            ></aem-tag-picker-field>
         </template>
         <template id="tagPicker10">
             <aem-tag-picker-field

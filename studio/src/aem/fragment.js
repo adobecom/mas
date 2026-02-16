@@ -352,9 +352,7 @@ export class Fragment {
         const referencesByPath = new Map(this.references.map((reference) => [reference.path, reference]));
         const pathsToProcess = variationPaths.filter((path) => referencesByPath.has(path));
 
-        return pathsToProcess
-            .filter((path) => Fragment.isGroupedVariationPath(path))
-            .map((path) => referencesByPath.get(path));
+        return pathsToProcess.filter((path) => Fragment.isGroupedVariationPath(path)).map((path) => referencesByPath.get(path));
     }
 
     /**

@@ -28,9 +28,9 @@ node scripts/content/gen-locale-tags.js \
 
 ### Options
 
-| Option          | Description                                        |
-| --------------- | -------------------------------------------------- |
-| `--host=<URL>`  | AEM host URL (required for tag creation)           |
+| Option         | Description                              |
+| -------------- | ---------------------------------------- |
+| `--host=<URL>` | AEM host URL (required for tag creation) |
 
 ### How It Works
 

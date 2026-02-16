@@ -169,15 +169,66 @@ describe('MasTopNav', () => {
         });
     });
 
-    describe('default properties', () => {
-        it('should have aemEnv default to prod', async () => {
+    describe('currentFragmentLocale getter', () => {
+        it('should return locale from current fragment in editor', async () => {
+            const fragmentStore = {
+                get: () => ({ path: '/content/dam/mas/s/fr_FR/f' }),
+            };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.value = fragmentStore;
+
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            expect(el.aemEnv).to.equal('prod');
+            expect(el.currentFragmentLocale).to.equal('fr_FR');
         });
 
-        it('should have showPickers default to true', async () => {
+        it('should return null if not on fragment editor page', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            expect(el.showPickers).to.be.true;
+            expect(el.currentFragmentLocale).to.be.null;
+        });
+    });
+
+    describe('onLocaleChanged', () => {
+        it('should update filters locale on content page', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const filtersSetSpy = sandbox.spy(Store.filters, 'set');
+
+            await el.onLocaleChanged({ detail: { locale: 'de_DE' } });
+
+            expect(filtersSetSpy.calledOnce).to.be.true;
+            const updateFn = filtersSetSpy.firstCall.args[0];
+            expect(updateFn({ locale: 'en_US' })).to.deep.equal({ locale: 'de_DE' });
+        });
+
+        it('should handle locale change in fragment editor with same fragmentId', async () => {
+            const currentFragment = { id: 'test-id' };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+
+            // Bypass structuredClone by setting value directly
+            Store.fragments.inEdit.value = { get: () => currentFragment };
+
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const searchSetSpy = sandbox.spy(Store.search, 'set');
+
+            await el.onLocaleChanged({ detail: { locale: 'fr_FR', fragmentId: 'test-id' } });
+
+            expect(searchSetSpy.calledOnce).to.be.true;
+            const updateFn = searchSetSpy.firstCall.args[0];
+            expect(updateFn({ region: 'en_US' })).to.deep.equal({ region: null });
+        });
+    });
+
+    describe('environmentIndicator', () => {
+        it('should return nothing for prod', async () => {
+            const el = await fixture(html`<mas-top-nav aem-env="prod"></mas-top-nav>`);
+            expect(el.environmentIndicator).to.deep.equal(html``);
+        });
+
+        it('should return badge for non-prod', async () => {
+            const el = await fixture(html`<mas-top-nav aem-env="stage"></mas-top-nav>`);
+            const badge = el.environmentIndicator;
+            expect(badge).to.not.be.null;
         });
     });
 

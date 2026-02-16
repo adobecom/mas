@@ -62,6 +62,13 @@ class MasTranslationEditor extends LitElement {
     async connectedCallback() {
         super.connectedCallback();
 
+        if (this.repository?.searchFragments) {
+            this.repository.searchFragments();
+        }
+        if (this.repository?.loadPlaceholders) {
+            this.repository.loadPlaceholders();
+        }
+
         // reset locale to default
         Store.search.set((prev) => ({ ...prev, region: null }));
         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));

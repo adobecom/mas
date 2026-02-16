@@ -113,6 +113,10 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.CONTENT;
     }
 
+    get isPlaceholdersPage() {
+        return this.page.value === PAGE_NAMES.PLACEHOLDERS;
+    }
+
     get isFragmentEditorPage() {
         return this.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
@@ -126,7 +130,7 @@ class MasTopNav extends LitElement {
     }
 
     get isLocalePickerDisabled() {
-        if (this.isContentPage) {
+        if (this.isContentPage || this.isPlaceholdersPage) {
             return false;
         }
         if (this.isFragmentEditorPage) {

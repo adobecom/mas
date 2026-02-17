@@ -229,6 +229,7 @@ export class MasRepository extends LitElement {
     }
 
     skipVariant(variants, item) {
+        if (Fragment.isGroupedVariationPath(item.path)) return true;
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
         return variants.length && !variants.includes(variant);
     }
@@ -349,7 +350,6 @@ export class MasRepository extends LitElement {
                 for await (const result of cursor) {
                     for await (const item of result) {
                         if (this.skipVariant(variants, item)) continue;
-                        if (Fragment.isGroupedVariationPath(item.path)) continue;
                         // Apply corrector transformer before caching
                         applyCorrectorToFragment(item, surface);
                         const fragment = await this.#addToCache(item);
@@ -404,7 +404,6 @@ export class MasRepository extends LitElement {
             // Extract surface from path for corrector
             const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
             for await (const item of result.value) {
-                if (Fragment.isGroupedVariationPath(item.path)) continue;
                 // Apply corrector transformer before caching
                 applyCorrectorToFragment(item, surface);
                 const fragment = await this.#addToCache(item);

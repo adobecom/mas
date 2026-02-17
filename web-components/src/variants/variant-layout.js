@@ -30,7 +30,10 @@ export class VariantLayout {
             const badgeEl = this.card.querySelector('[slot="badge"]');
             const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
 
-            if (cardWidth === 0 || badgeWidth === 0) return;
+            if (cardWidth === 0 || badgeWidth === 0) {
+                this.#headingObserver.disconnect();
+                return;
+            }
             this.card.style.setProperty(
                 '--consonant-merch-card-heading-xs-max-width',
                 `${Math.round(cardWidth - badgeWidth - 16)}px`, // consonant-merch-spacing-xs

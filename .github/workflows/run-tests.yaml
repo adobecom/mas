@@ -11,7 +11,7 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                node-version: [20.x]
+                node-version: [22.x]
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -40,4 +40,4 @@ jobs:
               continue-on-error: true
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
-                  files: studio/coverage/lcov.info,web-components/coverage/lcov.info
+                  files: studio/coverage/lcov.info,web-components/coverage/lcov.info,io/studio/coverage/lcov.info

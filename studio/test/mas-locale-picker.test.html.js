@@ -68,6 +68,21 @@ runTests(async () => {
                 expect(el.currentLocale.country).to.equal('US');
                 expect(el.currentLocale.lang).to.equal('en');
             });
+            it('should return nothing when currentLocale is null', async function () {
+                setContext('en_US');
+                const el = initElementFromTemplate('localeEN_US', this.test.title);
+                await el.updateComplete;
+                // Override currentLocale getter to return null
+                Object.defineProperty(el, 'currentLocale', {
+                    get: () => null,
+                    configurable: true,
+                });
+                el.requestUpdate();
+                await el.updateComplete;
+                // Verify render returns nothing (shadowRoot should be empty or minimal)
+                const actionMenu = el.shadowRoot.querySelector('sp-action-menu');
+                expect(actionMenu).to.be.null;
+            });
         });
 
         describe('Modes', () => {

@@ -225,5 +225,42 @@ runTests(async () => {
             // Check Store was updated
             expect(Store.placeholders.search.get()).to.equal('test');
         });
+
+        // Save placeholder use case: open creation modal
+        it('should open creation modal when Create New Placeholder is clicked', async function () {
+            expect(element.shadowRoot.querySelector('mas-placeholders-creation-modal')).to.not.exist;
+
+            const createButton = element.shadowRoot.querySelector('.create-button');
+            expect(createButton).to.exist;
+            createButton.click();
+            await elementUpdated(element);
+
+            const modal = element.shadowRoot.querySelector('mas-placeholders-creation-modal');
+            expect(modal).to.exist;
+        });
+
+        // Save placeholder use case: onSave runs (clearCaches + refresh) when modal dispatches save
+        it('should run onSave and refresh when modal dispatches save event', async function () {
+            const refreshSpy = sinon.spy(element, 'refresh');
+
+            const createButton = element.shadowRoot.querySelector('.create-button');
+            createButton.click();
+            await elementUpdated(element);
+
+            const modal = element.shadowRoot.querySelector('mas-placeholders-creation-modal');
+            expect(modal).to.exist;
+            modal.dispatchEvent(new CustomEvent('save'));
+            await elementUpdated(element);
+
+            expect(refreshSpy.calledOnce).to.be.true;
+        });
+
+        // Save placeholder use case: onSave() clears caches and refreshes list
+        it('should refresh when onSave is called', async function () {
+            const refreshSpy = sinon.spy(element, 'refresh');
+            element.onSave();
+            await elementUpdated(element);
+            expect(refreshSpy.calledOnce).to.be.true;
+        });
     });
 });

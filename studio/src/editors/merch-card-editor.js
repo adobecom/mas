@@ -110,7 +110,7 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label>Grouped variation tags</sp-field-label>
                 <aem-tag-picker-field
                     selection="checkbox-tags"
-                    render-value
+                    display-value
                     ?readonly=${isReadonly}
                     label="Locale tags"
                     namespace="/content/cq:tags/mas"

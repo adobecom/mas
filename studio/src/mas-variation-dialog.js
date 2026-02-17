@@ -265,7 +265,7 @@ export class MasVariationDialog extends LitElement {
                     label="Locale tags"
                     namespace="/content/cq:tags/mas"
                     selection="checkbox-tags"
-                    render-value
+                    display-value
                     top="locale"
                     multiple
                     ?disabled=${this.loading}

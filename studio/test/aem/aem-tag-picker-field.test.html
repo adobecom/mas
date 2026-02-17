@@ -368,11 +368,13 @@
                         const expressCheckbox = checkboxList.querySelector(
                             'sp-checkbox[value="/content/cq:tags/mas/product/cc/adobe-express"]',
                         );
+                        const parentCheckbox = checkboxList.querySelector('sp-checkbox[value="/content/cq:tags/mas/product/cc"]');
                         expect(expressCheckbox).to.not.be.null;
+                        expect(parentCheckbox).to.be.null;
                         expect(expressCheckbox.textContent).to.include('Adobe Express');
                     });
 
-                    it('renders value as label when render-value is present', async function () {
+                    it('renders value as label when display-value is present', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker11', this.test.title);
                         await aemTagPicker.loadTags();
                         await aemTagPicker.updateComplete;
@@ -563,7 +565,7 @@
                 top="product"
                 label="Select a product"
                 selection="checkbox-tags"
-                render-value
+                display-value
             ></aem-tag-picker-field>
         </template>
     </body>

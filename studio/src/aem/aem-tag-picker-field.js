@@ -66,8 +66,6 @@ class AemTagPickerField extends LitElement {
         flatTags: { type: Array, state: true },
         // When true, display tag value/name instead of tag label/title
         displayValue: { type: Boolean, attribute: 'display-value' },
-        // For checkbox-tags mode: when true, render tag value (name) instead of tag label (title)
-        renderValue: { type: Boolean, attribute: 'render-value' },
 
         // Temporary selections in 'checkbox' mode (before Apply)
         tempValue: { type: Array, state: true },
@@ -196,7 +194,6 @@ class AemTagPickerField extends LitElement {
         this.iconProvider = null;
         this.readonly = false;
         this.displayValue = false;
-        this.renderValue = false;
     }
 
     #onOstSelect = ({ detail: { offer } }) => {
@@ -313,8 +310,13 @@ class AemTagPickerField extends LitElement {
         const allTags = [...this.#data.values()].filter((tag) => tag.path.startsWith(this.#tagsRoot));
 
         if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
-            this.flatTags = allTags
-                .filter((tag) => this.#getTagTextByMode(tag))
+            let tagsForCheckboxList = allTags.filter((tag) => this.#getTagTextByMode(tag));
+
+            if (this.isCheckboxTagsMode) {
+                tagsForCheckboxList = this.#filterOutParentsWithChildren(tagsForCheckboxList);
+            }
+
+            this.flatTags = tagsForCheckboxList
                 .sort((a, b) =>
                     this.#getTagTextByMode(a).localeCompare(this.#getTagTextByMode(b), undefined, {
                         sensitivity: 'base',
@@ -328,6 +330,23 @@ class AemTagPickerField extends LitElement {
         }
 
         this.ready = true;
+    }
+
+    #filterOutParentsWithChildren(tags) {
+        const paths = new Set(tags.map((tag) => tag.path));
+        const parentPaths = new Set();
+
+        for (const path of paths) {
+            let slashIndex = path.lastIndexOf('/');
+            while (slashIndex > 0) {
+                const parentPath = path.slice(0, slashIndex);
+                if (!parentPath.startsWith(this.#tagsRoot)) break;
+                if (paths.has(parentPath)) parentPaths.add(parentPath);
+                slashIndex = parentPath.lastIndexOf('/');
+            }
+        }
+
+        return tags.filter((tag) => !parentPaths.has(tag.path));
     }
 
     buildHierarchy(tags) {
@@ -399,11 +418,11 @@ class AemTagPickerField extends LitElement {
         return path?.split('/').pop() || '';
     }
 
-    // For checkbox-tags mode: render label by default, or value when render-value is set.
+    // For checkbox-tags mode: render value or label based on display-value setting.
     #resolveCheckboxTagsText(path, fallback = '') {
         const tag = this.#data.get(path);
         if (!tag) return this.#resolveTagText(path, fallback);
-        if (this.renderValue) return tag.name || tag.title || this.#resolveTagText(path, fallback);
+        if (this.displayValue) return tag.name || tag.title || this.#resolveTagText(path, fallback);
         return tag.title || tag.name || this.#resolveTagText(path, fallback);
     }
 

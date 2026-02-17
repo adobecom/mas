@@ -6,11 +6,13 @@ export default class VersionPage {
         this.versionPage = page.locator('version-page');
         this.versionPageWrapper = page.locator('version-page .version-page-wrapper');
 
-        // Breadcrumbs
+        // Breadcrumbs (version page breadcrumbs are in main layout .breadcrumbs-container, not inside version-page)
         this.breadcrumbs = page.locator('version-page sp-breadcrumbs');
         this.breadcrumbItems = page.locator('version-page sp-breadcrumb-item');
         this.breadcrumbHome = page.locator('version-page sp-breadcrumb-item').first();
         this.breadcrumbCurrent = page.locator('version-page sp-breadcrumb-item').last();
+        this.layoutBreadcrumbs = page.locator('.breadcrumbs-container sp-breadcrumbs');
+        this.layoutBreadcrumbItems = page.locator('.breadcrumbs-container sp-breadcrumb-item');
 
         // Version list panel
         this.versionListPanel = page.locator('version-page .version-list-panel');
@@ -127,6 +129,14 @@ export default class VersionPage {
     }
 
     /**
+     * Click "Restore this version" menu item (menu must be open, e.g. via openVersionMenu)
+     */
+    async clickRestoreThisVersion() {
+        await this.page.locator('version-page sp-menu-item:has-text("Restore this version")').first().click();
+        await this.page.waitForTimeout(500);
+    }
+
+    /**
      * Wait for version page to be fully loaded
      */
     async waitForVersionPageLoaded() {
@@ -168,11 +178,49 @@ export default class VersionPage {
     }
 
     /**
-     * Navigate back to content using breadcrumbs
+     * Navigate back to content (Fragments table) using layout breadcrumb - first item
+     */
+    async clickBreadcrumbFragmentsTable() {
+        await this.layoutBreadcrumbItems.first().click();
+        await this.page.waitForTimeout(1500);
+    }
+
+    /**
+     * Navigate to fragment editor using layout breadcrumb - second item
+     */
+    async clickBreadcrumbEditor() {
+        await this.layoutBreadcrumbItems.nth(1).click();
+        await this.page.waitForTimeout(1500);
+    }
+
+    /**
+     * Navigate back to content using breadcrumbs (alias for clickBreadcrumbFragmentsTable)
      */
     async navigateBackToContent() {
-        await this.breadcrumbHome.click();
-        await this.page.waitForTimeout(1000);
+        await this.clickBreadcrumbFragmentsTable();
+    }
+
+    /**
+     * Find version item index by version title (e.g. '1.0', '1.3')
+     */
+    async getVersionIndexByTitle(title) {
+        const count = await this.versionItems.count();
+        for (let i = 0; i < count; i++) {
+            const item = this.versionItems.nth(i);
+            const text = await item.textContent();
+            if (text && text.includes(title)) return i;
+        }
+        return -1;
+    }
+
+    /**
+     * Select a version by its title (e.g. '1.0', '1.3')
+     */
+    async selectVersionByTitle(title) {
+        const index = await this.getVersionIndexByTitle(title);
+        if (index >= 0) {
+            await this.selectVersionByIndex(index);
+        }
     }
 
     /**

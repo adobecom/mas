@@ -9,19 +9,22 @@ export const IMAGE_AEM_FRAGMENT_MAPPING = {
         slot: 'badge',
         default: 'spectrum-yellow-300-plans',
     },
+    badgeIcon: true,
     borderColor: { attribute: 'border-color' },
     allowedBadgeColors: [
         'spectrum-yellow-300-plans',
         'spectrum-gray-300-plans',
         'spectrum-gray-700-plans',
         'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
         'gradient-purple-blue',
     ],
     allowedBorderColors: [
         'spectrum-yellow-300-plans',
         'spectrum-gray-300-plans',
         'spectrum-green-900-plans',
-        'gradient-purple-blue-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
     ],
     ctas: { slot: 'footer', size: 'm' },
     description: { tag: 'div', slot: 'body-xs' },
@@ -77,6 +80,10 @@ export class Image extends VariantLayout {
         :host([variant='image']) {
             min-height: 330px;
             width: var(--consonant-merch-card-image-width);
+            background:
+                linear-gradient(white, white) padding-box,
+                var(--consonant-merch-card-border-color, #dadada) border-box;
+            border: 1px solid transparent;
         }
 
         :host([variant='image']) ::slotted([slot='badge']) {

@@ -22,6 +22,7 @@ const Store = {
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
+        translatedLocales: new ReactiveStore(null), // Array of locale codes like ['en_US', 'fr_FR'] or null
         loading: new ReactiveStore(false),
         get editorContext() {
             if (!editorContextInstance) {
@@ -113,6 +114,7 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
+        prefill: new ReactiveStore(null),
 
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),

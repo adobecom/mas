@@ -131,6 +131,22 @@ describe('MasTranslationEditor', () => {
             expect(el.showLangSelectedEmptyState).to.be.true;
         });
 
+        it('should initialize with prefill data if present', async () => {
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.prefill.set({
+                targetLocale: 'tr_TR',
+                fragmentPath: '/content/dam/mas/s/en_US/f',
+            });
+
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+
+            expect(Store.translationProjects.targetLocales.get()).to.deep.equal(['tr_TR']);
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/content/dam/mas/s/en_US/f']);
+            expect(el.showSelectedEmptyState).to.be.false;
+            expect(el.showLangSelectedEmptyState).to.be.false;
+        });
+
         it('should have save, discard, delete and loc actions disabled for new project by default', async () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.true;
@@ -944,6 +960,19 @@ describe('MasTranslationEditor', () => {
             titleField.value = '';
             titleField.checked = true;
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
+        });
+
+        it('should handle missing values property', async () => {
+            const mockFragment = new Fragment(createMockFragment());
+            const fragmentStore = new FragmentStore(mockFragment);
+            Store.translationProjects.inEdit.set(fragmentStore);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'New Value';
+            titleField.dispatchEvent(new CustomEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
         });

@@ -37,6 +37,36 @@ runTests(async () => {
                     .shadowRoot.querySelector('.special-offers-badge'),
             ).to.exist;
         });
+        it('should render slot-based merch-badge for yellow variant', async () => {
+            const card = document.querySelector('#yellow-badge');
+            expect(card).to.exist;
+            expect(card.getAttribute('border-color')).to.equal(
+                'spectrum-yellow-300-special-offers',
+            );
+            const badge = card.querySelector('merch-badge[slot="badge"]');
+            expect(badge).to.exist;
+            expect(badge.getAttribute('background-color')).to.equal(
+                'spectrum-yellow-300-special-offers',
+            );
+        });
+        it('should render slot-based merch-badge for green variant', async () => {
+            const card = document.querySelector('#green-badge');
+            expect(card).to.exist;
+            expect(card.getAttribute('border-color')).to.equal(
+                'spectrum-green-900-special-offers',
+            );
+            const badge = card.querySelector('merch-badge[slot="badge"]');
+            expect(badge).to.exist;
+        });
+        it('should render slot-based merch-badge for gray variant', async () => {
+            const card = document.querySelector('#gray-badge');
+            expect(card).to.exist;
+            expect(card.getAttribute('border-color')).to.equal(
+                'spectrum-gray-300-special-offers',
+            );
+            const badge = card.querySelector('merch-badge[slot="badge"]');
+            expect(badge).to.exist;
+        });
     });
 
     it('should return title for special offer card', async () => {

@@ -7,6 +7,7 @@ import {
 export const CSS = `
 :root {
   --consonant-merch-card-special-offers-width: 302px;
+	--merch-card-collection-card-width: var(--consonant-merch-card-special-offers-width);
 }
 
 merch-card[variant="special-offers"] span[is="inline-price"][data-template="promo-strikethrough"],

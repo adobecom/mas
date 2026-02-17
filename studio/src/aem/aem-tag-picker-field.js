@@ -241,7 +241,7 @@ class AemTagPickerField extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.multiple = this.multiple ?? [SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection);
+        this.multiple = this.multiple || [SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection);
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
         if (!this.top) {
@@ -374,21 +374,24 @@ class AemTagPickerField extends LitElement {
     // For hierarchical or single-click modes
     async toggleTag(path) {
         await this.#data; // ensure data is loaded first
-        const currentValue = [...(this.value || [])];
+        let currentValue = [...(this.value || [])];
         const storedPath = this.#toStoredValue(path);
-        const index = currentValue.indexOf(storedPath);
+        const equivalentPath = this.#toPath(path);
+        const equivalentValues = new Set([storedPath, equivalentPath].filter(Boolean));
+        const isMultiSelection = this.multiple || this.isCheckboxTagsMode;
 
-        if (!this.multiple) {
+        if (!isMultiSelection) {
             // single select
             this.value = [storedPath];
             await this.#notifyChange();
             return;
         }
         // multi select
-        if (index === -1) {
+        const hasEquivalent = currentValue.some((value) => equivalentValues.has(value));
+        if (!hasEquivalent) {
             currentValue.push(storedPath);
         } else {
-            currentValue.splice(index, 1);
+            currentValue = currentValue.filter((value) => !equivalentValues.has(value));
         }
         this.value = currentValue;
         await this.#notifyChange();
@@ -439,14 +442,6 @@ class AemTagPickerField extends LitElement {
         if (tag) return this.#getTagTextByMode(tag);
         if (fallback) return fallback;
         return path?.split('/').pop() || '';
-    }
-
-    // For checkbox-tags mode: render value or label based on display-value setting.
-    #resolveCheckboxTagsText(path, fallback = '') {
-        const tag = this.#data.get(path);
-        if (!tag) return this.#resolveTagText(path, fallback);
-        if (this.displayValue) return tag.name || tag.title || this.#resolveTagText(path, fallback);
-        return tag.title || tag.name || this.#resolveTagText(path, fallback);
     }
 
     /**
@@ -521,7 +516,7 @@ class AemTagPickerField extends LitElement {
             (path) => path,
             (path) => {
                 const fieldState = getItemFieldState(path, parentTagPaths);
-                const title = this.isCheckboxTagsMode ? this.#resolveCheckboxTagsText(path) : this.#resolveTagText(path);
+                const title = this.#resolveTagText(path);
                 return html`
                     <sp-tag deletable @delete=${this.#deleteTag} data-path=${path} data-field-state="${fieldState}">
                         ${title} ${this.#getTagIcon(path)}
@@ -638,9 +633,7 @@ class AemTagPickerField extends LitElement {
         let filteredTags = this.flatTags;
         if (this.flatTags.length > 7) {
             filteredTags = this.flatTags.filter((path) =>
-                (this.isCheckboxTagsMode ? this.#resolveCheckboxTagsText(path) : this.#resolveTagText(path))
-                    .toLowerCase()
-                    .includes(this.searchQuery.toLowerCase()),
+                this.#resolveTagText(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
             );
         }
 
@@ -658,9 +651,7 @@ class AemTagPickerField extends LitElement {
                             const icon = this.iconProvider ? this.iconProvider(path) : null;
                             return html`
                                 <sp-checkbox value="${path}" ?checked=${checked} @change=${this.#handleCheckboxToggle}>
-                                    ${icon ? html`${icon} ` : nothing}${this.isCheckboxTagsMode
-                                        ? this.#resolveCheckboxTagsText(path)
-                                        : this.#resolveTagText(path)}
+                                    ${icon ? html`${icon} ` : nothing}${this.#resolveTagText(path)}
                                 </sp-checkbox>
                             `;
                         },

@@ -299,10 +299,6 @@ export class Fragment {
     }
 
     /**
-     * Lists all locale variations of the fragment. Other name: regional variations.
-     * @returns {Fragment[]}
-     */
-    /**
      * Checks whether a path is a grouped (pzn) variation path.
      * @param {string} path
      * @returns {boolean}
@@ -311,48 +307,79 @@ export class Fragment {
         return path?.includes(`/${PZN_FOLDER}/`) ?? false;
     }
 
-    listLocaleVariations() {
-        const variationPaths = this.getVariations();
-        if (!variationPaths.length) return [];
-        if (!this.references?.length) return [];
+    /**
+     * Extracts the product arrangement code segment from a MAS fragment path.
+     * @param {string} path - e.g. "/content/dam/mas/acom/en_US/pac123/fragment"
+     * @returns {string|null}
+     */
+    static extractProductArrangementCode(path) {
+        const match = path?.match(/^\/content\/dam\/mas\/[^/]+\/[^/]+\/([^/]+)/);
+        return match?.[1] || null;
+    }
 
-        const currentMatch = this.path.match(PATH_TOKENS);
-        if (!currentMatch?.groups) {
-            return [];
+    /**
+     * Categorizes all variation references in a single pass into locale, promo, and grouped buckets.
+     * Each variation is classified into exactly one category (grouped > promo > locale).
+     * @returns {{ locale: Object[], promo: Object[], grouped: Object[] }}
+     */
+    #categorizeVariations() {
+        const variationPaths = this.getVariations();
+        if (!variationPaths.length || !this.references?.length) {
+            return { locale: [], promo: [], grouped: [] };
         }
 
-        const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
-        const referencesByPath = new Map(this.references.map((reference) => [reference.path, reference]));
-        const pathsToProcess = variationPaths.filter((path) => referencesByPath.has(path));
+        const referencesByPath = new Map(this.references.map((ref) => [ref.path, ref]));
 
-        return pathsToProcess
-            .filter((path) => {
-                if (Fragment.isGroupedVariationPath(path)) return false;
+        const currentMatch = this.path.match(PATH_TOKENS);
+        const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch?.groups || {};
+
+        const locale = [];
+        const promo = [];
+        const grouped = [];
+
+        for (const path of variationPaths) {
+            const reference = referencesByPath.get(path);
+            if (!reference) continue;
+
+            if (Fragment.isGroupedVariationPath(path)) {
+                grouped.push(reference);
+                continue;
+            }
+
+            const isPromo = reference.tags?.some((t) => t.id?.startsWith(TAG_PROMOTION_PREFIX));
+            if (isPromo) {
+                promo.push(reference);
+                continue;
+            }
+
+            if (surface && currentLocale && fragmentPath) {
                 const refMatch = path.match(PATH_TOKENS);
-                if (!refMatch?.groups) return false;
-                // Exclude promo variations when tag metadata is available.
-                const reference = referencesByPath.get(path);
-                const isPromo = reference?.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
-                if (isPromo) return false;
-                const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
-                return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
-            })
-            .map((path) => referencesByPath.get(path));
+                if (refMatch?.groups) {
+                    const r = refMatch.groups;
+                    if (r.surface === surface && r.fragmentPath === fragmentPath && r.parsedLocale !== currentLocale) {
+                        locale.push(reference);
+                    }
+                }
+            }
+        }
+
+        return { locale, promo, grouped };
+    }
+
+    /**
+     * Lists all locale variations of the fragment (regional variations).
+     * @returns {Object[]}
+     */
+    listLocaleVariations() {
+        return this.#categorizeVariations().locale;
     }
 
     /**
      * Lists all grouped (pzn) variations of the fragment.
-     * Grouped variations live under a /pzn/ folder in the path.
      * @returns {Object[]}
      */
     listGroupedVariations() {
-        const variationPaths = this.getVariations();
-        if (!variationPaths.length) return [];
-        if (!this.references?.length) return [];
-        const referencesByPath = new Map(this.references.map((reference) => [reference.path, reference]));
-        const pathsToProcess = variationPaths.filter((path) => referencesByPath.has(path));
-
-        return pathsToProcess.filter((path) => Fragment.isGroupedVariationPath(path)).map((path) => referencesByPath.get(path));
+        return this.#categorizeVariations().grouped;
     }
 
     /**
@@ -360,33 +387,23 @@ export class Fragment {
      * @returns {number}
      */
     getGroupedVariationCount() {
-        return this.listGroupedVariations()?.length || 0;
+        return this.#categorizeVariations().grouped.length;
     }
 
     /**
      * Gets the count of locale variations.
-     * Locale variations are fragments with the same name but different locale paths.
      * @returns {number}
      */
     getLocaleVariationCount() {
-        return this.listLocaleVariations()?.length || 0;
+        return this.#categorizeVariations().locale.length;
     }
 
     /**
      * Gets the count of promo variations.
-     * Promo variations are identified by promotion tags on references that are also in the variations field.
      * @returns {number}
      */
     getPromoVariationCount() {
-        const variationPaths = this.getVariations();
-        if (!variationPaths.length || !this.references?.length) return 0;
-
-        return this.references.filter((reference) => {
-            return (
-                variationPaths.includes(reference.path) &&
-                reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX))
-            );
-        }).length;
+        return this.#categorizeVariations().promo.length;
     }
 
     /**
@@ -394,6 +411,7 @@ export class Fragment {
      * @returns {number}
      */
     getTotalVariationCount() {
-        return this.getLocaleVariationCount() + this.getPromoVariationCount() + this.getGroupedVariationCount();
+        const { locale, promo, grouped } = this.#categorizeVariations();
+        return locale.length + promo.length + grouped.length;
     }
 }

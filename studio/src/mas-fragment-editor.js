@@ -402,6 +402,16 @@ export default class MasFragmentEditor extends LitElement {
     ]);
     editorContextStore = Store.fragmentEditor.editorContext;
 
+    get localeDefaultFragment() {
+        return this.editorContextStore?.localeDefaultFragment ?? null;
+    }
+
+    set localeDefaultFragment(value) {
+        if (value) {
+            this.editorContextStore?.setParent(value);
+        }
+    }
+
     get fragmentId() {
         return Store.fragmentEditor.fragmentId.get();
     }
@@ -420,7 +430,6 @@ export default class MasFragmentEditor extends LitElement {
         this.showCloneDialog = false;
         this.showCreateVariationDialog = false;
         this.cloneInProgress = false;
-        this.localeDefaultFragment = null;
         this.previewResolved = false;
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
@@ -716,9 +725,7 @@ export default class MasFragmentEditor extends LitElement {
             const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
 
             const skipVariation = this.repository?.skipVariationDetection;
-            if (this.repository?.skipVariationDetection) {
-                this.repository.skipVariationDetection = false;
-            }
+            if (skipVariation) this.repository.skipVariationDetection = false;
 
             let parentFragment = null;
 
@@ -1260,14 +1267,9 @@ export default class MasFragmentEditor extends LitElement {
         return parts[localeIndex] || null;
     }
 
-    extractProductArrangementCodeFromPath(path) {
-        const match = path?.match(/^\/content\/dam\/mas\/[^/]+\/[^/]+\/([^/]+)/);
-        return match?.[1] || null;
-    }
-
     get variationDialogOfferData() {
         const sourcePath = (this.localeDefaultFragment || this.fragment)?.path;
-        const productArrangementCode = this.extractProductArrangementCodeFromPath(sourcePath);
+        const productArrangementCode = Fragment.extractProductArrangementCode(sourcePath);
         return productArrangementCode ? { productArrangementCode } : null;
     }
 

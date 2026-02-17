@@ -482,6 +482,18 @@
                         expect(aemTagPicker.value).to.include('mas:status/draft');
                     });
 
+                    it('removes existing checkbox-tags selection without duplicating when initial value is a path', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
+                        await aemTagPicker.loadTags();
+                        aemTagPicker.value = ['/content/cq:tags/mas/status/draft'];
+                        await aemTagPicker.updateComplete;
+
+                        await aemTagPicker.toggleTag('/content/cq:tags/mas/status/draft');
+                        await aemTagPicker.updateComplete;
+
+                        expect(aemTagPicker.value).to.deep.equal([]);
+                    });
+
                     it('keeps the popover open while selecting tags', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
                         await aemTagPicker.loadTags();

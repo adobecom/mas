@@ -3,6 +3,7 @@ import { EVENT_KEYDOWN, VARIATION_TYPES } from './constants.js';
 import { showToast, extractLocaleFromPath } from './utils.js';
 import Store from './store.js';
 import { getCountryName, getLocaleCode, getRegionLocales } from '../../io/www/src/fragment/locales.js';
+import { Fragment } from './aem/fragment.js';
 import './aem/aem-tag-picker-field.js';
 
 export class MasVariationDialog extends LitElement {
@@ -163,14 +164,9 @@ export class MasVariationDialog extends LitElement {
         this.pznTags = tagPicker.value || [];
     }
 
-    extractProductArrangementCode(path) {
-        const match = path?.match(/^\/content\/dam\/mas\/[^/]+\/[^/]+\/([^/]+)/);
-        return match?.[1] || null;
-    }
-
     resolveGroupedOfferData() {
         if (this.offerData?.productArrangementCode) return this.offerData;
-        const productArrangementCode = this.extractProductArrangementCode(this.fragment?.path);
+        const productArrangementCode = Fragment.extractProductArrangementCode(this.fragment?.path);
         return productArrangementCode ? { productArrangementCode } : null;
     }
 
@@ -185,12 +181,6 @@ export class MasVariationDialog extends LitElement {
             this.error = null;
 
             if (this.isGrouped) {
-                if (this.pznTags.length === 0) {
-                    this.error = 'Please add at least one locale tag';
-                    this.loading = false;
-                    return;
-                }
-
                 showToast('Creating grouped variation...');
 
                 const variationFragment = await this.repository.createGroupedVariation(
@@ -209,12 +199,6 @@ export class MasVariationDialog extends LitElement {
                     }),
                 );
             } else {
-                if (!this.selectedLocale) {
-                    this.error = 'Please select a locale';
-                    this.loading = false;
-                    return;
-                }
-
                 showToast('Creating variation...');
 
                 const variationFragment = await this.repository.createVariation(

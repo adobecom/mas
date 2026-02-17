@@ -177,11 +177,16 @@
                         repository.loadPreviewPlaceholders = async () => {};
 
                         fragmentEditor.editorContextStore = {
+                            localeDefaultFragment: null,
                             loadFragmentContext: async () => {},
                             isVariation: () => isVariation,
                             getLocaleDefaultFragmentAsync: async () => structuredClone(parentWithAllFields),
                             getDefaultLocaleId: () => 'test-parent-id',
                             getLocaleDefaultFragment: () => structuredClone(parentWithAllFields),
+                            setParent(parentData) {
+                                if (!parentData) return;
+                                this.localeDefaultFragment = parentData;
+                            },
                         };
                         fragmentEditor.localeDefaultFragment = parentFragment;
                         fragmentEditor.initState = 'ready';
@@ -403,6 +408,52 @@
                         const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
                         expect(groupedTagsPicker).to.exist;
                         expect(groupedTagsPicker.readonly).to.be.false;
+                    });
+
+                    it('updates grouped locale tags without splitting values into characters', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-tags-array' },
+                            'grouped-variation-tags-array',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+
+                        groupedTagsPicker.value = ['mas:locale/es_AR', 'mas:locale/es_CL'];
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('pznTags')).to.deep.equal([
+                            'mas:locale/es_AR',
+                            'mas:locale/es_CL',
+                        ]);
+
+                        groupedTagsPicker.value = ['mas:locale/es_CL'];
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        const pznTags = fragmentStore.get().getFieldValues('pznTags');
+                        expect(pznTags).to.deep.equal(['mas:locale/es_CL']);
+                        expect(pznTags.every((tag) => tag.startsWith('mas:'))).to.be.true;
+                    });
+
+                    it('normalizes comma-delimited grouped locale tags payloads', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-tags-string' },
+                            'grouped-variation-tags-string',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+
+                        groupedTagsPicker.value = 'mas:locale/es_AR,mas:locale/es_CL';
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('pznTags')).to.deep.equal([
+                            'mas:locale/es_AR',
+                            'mas:locale/es_CL',
+                        ]);
                     });
 
                     it('displays grouped sibling variation count for grouped variations', async () => {

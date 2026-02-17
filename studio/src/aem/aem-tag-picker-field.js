@@ -34,11 +34,7 @@ export function fromAttribute(value) {
  * e.g. "/content/cq:tags/mas/product/photoshop" --> "mas:product/photoshop"
  */
 export function toAttribute(value) {
-    const tags = Array.isArray(value)
-        ? value
-        : typeof value === 'string'
-          ? value.split(',')
-          : [];
+    const tags = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
     if (tags.length === 0) return '';
     return tags
         .map((path) => {

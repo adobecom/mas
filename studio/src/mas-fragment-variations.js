@@ -30,11 +30,11 @@ class MasFragmentVariations extends LitElement {
     }
 
     get localeVariations() {
-        return typeof this.fragment?.listLocaleVariations === 'function' ? this.fragment.listLocaleVariations() || [] : [];
+        return this.fragment.listLocaleVariations() || [];
     }
 
     get groupedVariations() {
-        return typeof this.fragment?.listGroupedVariations === 'function' ? this.fragment.listGroupedVariations() || [] : [];
+        return this.fragment.listGroupedVariations() || [];
     }
 
     get hasLocaleVariations() {

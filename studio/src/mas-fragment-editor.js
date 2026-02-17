@@ -805,25 +805,16 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async pollGroupedVariationParentReference(fragmentPath, { timeoutMs = 15000, intervalMs = 1000 } = {}) {
-        const fragmentsApi = this.repository?.aem?.sites?.cf?.fragments;
-        if (!fragmentsApi?.getReferencedBy || !fragmentsApi?.getByPath) {
-            return null;
-        }
-
         const startedAt = Date.now();
         while (Date.now() - startedAt <= timeoutMs) {
             try {
-                const references = await fragmentsApi.getReferencedBy(fragmentPath);
-                const parentPath = references?.parentReferences?.[0]?.path;
-                if (parentPath) {
-                    const parentData = await fragmentsApi.getByPath(parentPath);
-                    if (parentData) {
-                        this.editorContextStore.localeDefaultFragment = parentData;
-                        this.editorContextStore.defaultLocaleId = parentData.id;
-                        this.editorContextStore.parentFetchPromise = Promise.resolve(parentData);
-                        this.editorContextStore.notify?.();
-                        return parentData;
-                    }
+                const parentData = await this.repository.resolveHydratedParentFragment(fragmentPath);
+                if (parentData) {
+                    this.editorContextStore.localeDefaultFragment = parentData;
+                    this.editorContextStore.defaultLocaleId = parentData.id;
+                    this.editorContextStore.parentFetchPromise = Promise.resolve(parentData);
+                    this.editorContextStore.notify();
+                    return parentData;
                 }
             } catch (error) {
                 console.debug('Grouped variation parent lookup retry failed:', error.message);

@@ -22,13 +22,11 @@ describe('MasFragmentEditor', () => {
         sandbox.restore();
     });
 
-    function createEditor({ getReferencedBy, getByPath, getLocaleDefaultFragmentAsync } = {}) {
+    function createEditor({ resolveHydratedParentFragment, getLocaleDefaultFragmentAsync } = {}) {
         const editor = new MasFragmentEditor();
-        const fragmentsApi = {
-            getReferencedBy: getReferencedBy || sandbox.stub().resolves({ parentReferences: [] }),
-            getByPath: getByPath || sandbox.stub().resolves(null),
+        const repository = {
+            resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
         };
-        const repository = { aem: { sites: { cf: { fragments: fragmentsApi } } } };
 
         sandbox.stub(editor, 'repository').get(() => repository);
 
@@ -40,42 +38,39 @@ describe('MasFragmentEditor', () => {
             getLocaleDefaultFragmentAsync: getLocaleDefaultFragmentAsync || sandbox.stub().resolves(null),
         };
 
-        return { editor, fragmentsApi };
+        return { editor, repository };
     }
 
     describe('grouped variation parent resolution', () => {
         it('polls grouped references every second for up to 15 seconds', async () => {
             const clock = sandbox.useFakeTimers();
-            const getReferencedBy = sandbox.stub().resolves({ parentReferences: [] });
-            const getByPath = sandbox.stub().resolves(null);
-            const { editor } = createEditor({ getReferencedBy, getByPath });
+            const resolveHydratedParentFragment = sandbox.stub().resolves(null);
+            const { editor } = createEditor({ resolveHydratedParentFragment });
 
             const resultPromise = editor.pollGroupedVariationParentReference('/content/dam/mas/sandbox/en_US/pac/pzn/grouped');
             await clock.tickAsync(15000);
             const result = await resultPromise;
 
             expect(result).to.be.null;
-            expect(getReferencedBy.callCount).to.equal(16);
-            expect(getByPath.called).to.be.false;
+            expect(resolveHydratedParentFragment.callCount).to.equal(16);
         });
 
         it('resolves parent when a grouped variation reference appears during polling', async () => {
             const clock = sandbox.useFakeTimers();
-            const parentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
-            const parentData = { id: 'parent-fragment-id', path: parentPath };
-            const getReferencedBy = sandbox.stub();
-            getReferencedBy.onCall(0).resolves({ parentReferences: [] });
-            getReferencedBy.onCall(1).resolves({ parentReferences: [{ path: parentPath }] });
-            const getByPath = sandbox.stub().resolves(parentData);
-            const { editor } = createEditor({ getReferencedBy, getByPath });
+            const groupedPath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped';
+            const parentData = { id: 'parent-fragment-id', path: '/content/dam/mas/sandbox/en_US/pac/default-fragment' };
+            const resolveHydratedParentFragment = sandbox.stub();
+            resolveHydratedParentFragment.onCall(0).resolves(null);
+            resolveHydratedParentFragment.onCall(1).resolves(parentData);
+            const { editor } = createEditor({ resolveHydratedParentFragment });
 
-            const resultPromise = editor.pollGroupedVariationParentReference('/content/dam/mas/sandbox/en_US/pac/pzn/grouped');
+            const resultPromise = editor.pollGroupedVariationParentReference(groupedPath);
             await clock.tickAsync(1000);
             const result = await resultPromise;
 
             expect(result).to.deep.equal(parentData);
-            expect(getReferencedBy.callCount).to.equal(2);
-            expect(getByPath.calledOnceWith(parentPath)).to.be.true;
+            expect(resolveHydratedParentFragment.callCount).to.equal(2);
+            expect(resolveHydratedParentFragment.alwaysCalledWith(groupedPath)).to.be.true;
             expect(editor.editorContextStore.defaultLocaleId).to.equal('parent-fragment-id');
             expect(editor.editorContextStore.localeDefaultFragment).to.deep.equal(parentData);
         });

@@ -122,7 +122,21 @@ export class EditorContextStore extends ReactiveStore {
                 if (this.isGroupedVariationByPath && (!this.defaultLocaleId || this.defaultLocaleId === fragmentId)) {
                     // Grouped variations need parent lookup via references. If defaultLocaleId is the
                     // current fragment, it's not the parent and must be resolved explicitly.
-                    this.fetchGroupedVariationParent(fragmentPath);
+                    const repository = document.querySelector('mas-repository');
+                    this.parentFetchPromise = repository
+                        .resolveHydratedParentFragment(fragmentPath)
+                        .then((parentData) => {
+                            if (parentData) {
+                                this.localeDefaultFragment = parentData;
+                                this.defaultLocaleId = parentData.id;
+                                this.notify();
+                            }
+                            return parentData;
+                        })
+                        .catch((error) => {
+                            console.debug('Failed to fetch grouped variation parent:', error.message);
+                            return null;
+                        });
                     if (!notified) {
                         this.notify();
                         notified = true;
@@ -162,40 +176,6 @@ export class EditorContextStore extends ReactiveStore {
             })
             .catch(() => {
                 console.debug('Locale default fragment not found by path:', parentPath);
-                return null;
-            });
-    }
-
-    /**
-     * Fetches the parent fragment for a grouped (pzn) variation.
-     * Uses getReferencedBy to find which fragment has this variation in its 'variations' field.
-     * @param {string} fragmentPath - The grouped variation fragment path
-     */
-    fetchGroupedVariationParent(fragmentPath) {
-        const aem = document.querySelector('mas-repository')?.aem;
-        if (!aem) return;
-
-        this.parentFetchPromise = aem.sites.cf.fragments
-            .getReferencedBy(fragmentPath)
-            .then(async (result) => {
-                // Find the parent fragment that references this grouped variation
-                const parentRef = result.parentReferences?.[0];
-                if (!parentRef?.path) {
-                    console.debug('No parent reference found for grouped variation:', fragmentPath);
-                    return null;
-                }
-
-                // Fetch the full parent fragment data
-                const parentData = await aem.sites.cf.fragments.getByPath(parentRef.path);
-                if (parentData) {
-                    this.localeDefaultFragment = parentData;
-                    this.defaultLocaleId = parentData.id;
-                    this.notify();
-                }
-                return parentData;
-            })
-            .catch((error) => {
-                console.debug('Failed to fetch grouped variation parent:', error.message);
                 return null;
             });
     }

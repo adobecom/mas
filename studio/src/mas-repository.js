@@ -1476,6 +1476,30 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Resolves the parent fragment for the provided fragment path and hydrates references.
+     * Flow: referencedBy -> parent path -> getByPath -> getById (hydrated)
+     * @param {string} fragmentPath
+     * @returns {Promise<Object|null>}
+     */
+    async resolveHydratedParentFragment(fragmentPath) {
+        const references = await this.aem.sites.cf.fragments.getReferencedBy(fragmentPath);
+        const parentRefPath = references?.parentReferences?.[0]?.path;
+        if (!parentRefPath) return null;
+
+        const parentFragment = await this.aem.sites.cf.fragments.getByPath(parentRefPath);
+        if (!parentFragment) return null;
+        if (!parentFragment.id) return parentFragment;
+
+        try {
+            const hydratedParent = await this.aem.sites.cf.fragments.getById(parentFragment.id);
+            return hydratedParent || parentFragment;
+        } catch (error) {
+            console.debug('Failed to hydrate parent fragment references:', error.message);
+            return parentFragment;
+        }
+    }
+
+    /**
      * Creates a grouped variation fragment under en_US/{productArrangementCode}/pzn/.
      * @param {string} fragmentId - The parent fragment ID
      * @param {string[]} pznTags - Array of locale codes (e.g. ['fr_FR', 'fr_CH', 'fr_BE'])
@@ -1490,14 +1514,9 @@ export class MasRepository extends LitElement {
 
         let parentFragment = sourceFragment;
         if (Fragment.isGroupedVariationPath(sourceFragment.path)) {
-            const references = await this.aem.sites.cf.fragments.getReferencedBy(sourceFragment.path);
-            const parentRefPath = references?.parentReferences?.[0]?.path;
-            if (!parentRefPath) {
-                throw new Error('Failed to resolve parent fragment for grouped variation');
-            }
-            parentFragment = await this.aem.sites.cf.fragments.getByPath(parentRefPath);
+            parentFragment = await this.resolveHydratedParentFragment(sourceFragment.path);
             if (!parentFragment) {
-                throw new Error(`Failed to fetch grouped variation parent: ${parentRefPath}`);
+                throw new Error('Failed to resolve parent fragment for grouped variation');
             }
         }
 

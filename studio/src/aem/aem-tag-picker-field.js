@@ -20,7 +20,6 @@ export function fromAttribute(value) {
     return tags
         .map((tag) => tag.trim())
         .map((tag) => {
-            if (tag.startsWith('/content/cq:tags/')) return tag;
             if (AEM_TAG_PATTERN.test(tag) === false) return false;
             const [namespace, path] = tag.split(':');
             if (!namespace || !path) return '';

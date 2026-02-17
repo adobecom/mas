@@ -62,7 +62,7 @@
                         value = fromAttribute(null);
                         expect(value).to.deep.equal([]);
                         value = fromAttribute('/content/cq:tags/mas/product/photoshop');
-                        expect(value).to.deep.equal(['/content/cq:tags/mas/product/photoshop']);
+                        expect(value).to.deep.equal([]);
                         value = fromAttribute('mas:product/photoshop,mas:product/illustrator');
                         expect(value).to.deep.equal([
                             '/content/cq:tags/mas/product/photoshop',

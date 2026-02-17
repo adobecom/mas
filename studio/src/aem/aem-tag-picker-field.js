@@ -34,8 +34,13 @@ export function fromAttribute(value) {
  * e.g. "/content/cq:tags/mas/product/photoshop" --> "mas:product/photoshop"
  */
 export function toAttribute(value) {
-    if (!value || value.length === 0) return '';
-    return value
+    const tags = Array.isArray(value)
+        ? value
+        : typeof value === 'string'
+          ? value.split(',')
+          : [];
+    if (tags.length === 0) return '';
+    return tags
         .map((path) => {
             if (AEM_TAG_PATTERN.test(path)) return path;
             const match = path.match(/\/content\/cq:tags\/([^/]+)\/(.+)$/);
@@ -218,7 +223,7 @@ class AemTagPickerField extends LitElement {
 
         const categoriesToUpdate = new Set(['offer_type', 'plan_type', 'customer_segment', 'market_segments', 'product_code']);
 
-        const existingTags = this.value.filter((tagPath) => {
+        const existingTags = this.#asValueArray().filter((tagPath) => {
             for (const category of categoriesToUpdate) {
                 if (tagPath.includes(`/content/cq:tags/mas/${category}/`)) {
                     return false; // Exclude this tagPath if it contains any of the categories
@@ -269,7 +274,7 @@ class AemTagPickerField extends LitElement {
     }
 
     get selectedTags() {
-        return this.value.map((path) => this.#data.get(path));
+        return this.#asValueArray().map((path) => this.#data.get(path));
     }
 
     clear() {
@@ -374,7 +379,7 @@ class AemTagPickerField extends LitElement {
     // For hierarchical or single-click modes
     async toggleTag(path) {
         await this.#data; // ensure data is loaded first
-        let currentValue = [...(this.value || [])];
+        let currentValue = [...this.#asValueArray()];
         const storedPath = this.#toStoredValue(path);
         const equivalentPath = this.#toPath(path);
         const equivalentValues = new Set([storedPath, equivalentPath].filter(Boolean));
@@ -426,8 +431,21 @@ class AemTagPickerField extends LitElement {
         return this.isCheckboxTagsMode ? this.#toTagId(path) : path;
     }
 
+    #asValueArray(values = this.value) {
+        if (Array.isArray(values)) return values;
+        if (typeof values === 'string') {
+            return values
+                .split(',')
+                .map((entry) => entry.trim())
+                .filter(Boolean);
+        }
+        return [];
+    }
+
     #selectedPaths(values = this.value) {
-        return (values || []).map((entry) => this.#toPath(entry)).filter(Boolean);
+        return this.#asValueArray(values)
+            .map((entry) => this.#toPath(entry))
+            .filter(Boolean);
     }
 
     #getTagTextByMode(tag) {
@@ -529,7 +547,8 @@ class AemTagPickerField extends LitElement {
     // Keep the internal state & notify on changes
     updated(changedProperties) {
         if (changedProperties.has('value')) {
-            this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths() : [...this.value];
+            const currentValue = this.#asValueArray();
+            this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths(currentValue) : [...currentValue];
         }
         this.#updateMargin();
     }
@@ -613,13 +632,13 @@ class AemTagPickerField extends LitElement {
     #handleCheckoxMenuClose() {
         if (this.isCheckboxTagsMode) {
             const nextValue = this.tempValue.map((path) => this.#toStoredValue(path)).filter(Boolean);
-            const currentValue = [...(this.value || [])];
+            const currentValue = [...this.#asValueArray()];
             const changed = !this.#hasSameSelections(nextValue, currentValue);
             this.value = nextValue;
             if (changed) this.#notifyChange();
             return;
         }
-        this.tempValue = [...this.value];
+        this.tempValue = [...this.#asValueArray()];
     }
 
     #handleSearchInput(event) {
@@ -677,7 +696,8 @@ class AemTagPickerField extends LitElement {
      * - In 'checkbox-tags' mode, selections apply when the popover closes and footer is hidden.
      */
     get checkboxMode() {
-        const selectCount = !this.isCheckboxTagsMode && this.value.length > 0 ? html`(${this.value.length})` : '';
+        const currentValues = this.#asValueArray();
+        const selectCount = !this.isCheckboxTagsMode && currentValues.length > 0 ? html`(${currentValues.length})` : '';
         const trigger = html`
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
                 <sp-action-button slot="trigger" ?quiet=${!this.isCheckboxTagsMode} aria-label=${this.triggerLabel}>

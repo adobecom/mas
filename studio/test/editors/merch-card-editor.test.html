@@ -419,12 +419,12 @@
                         const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
                         expect(groupedTagsPicker).to.exist;
 
-                        groupedTagsPicker.value = ['mas:locale/es_AR', 'mas:locale/es_CL'];
+                        groupedTagsPicker.value = ['mas:locale/AR/es_AR', 'mas:locale/es_CL'];
                         groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await editor.updateComplete;
 
                         expect(fragmentStore.get().getFieldValues('pznTags')).to.deep.equal([
-                            'mas:locale/es_AR',
+                            'mas:locale/AR/es_AR',
                             'mas:locale/es_CL',
                         ]);
 
@@ -446,12 +446,12 @@
                         const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
                         expect(groupedTagsPicker).to.exist;
 
-                        groupedTagsPicker.value = 'mas:locale/es_AR,mas:locale/es_CL';
+                        groupedTagsPicker.value = 'mas:locale/AR/es_AR,mas:locale/es_CL';
                         groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await editor.updateComplete;
 
                         expect(fragmentStore.get().getFieldValues('pznTags')).to.deep.equal([
-                            'mas:locale/es_AR',
+                            'mas:locale/AR/es_AR',
                             'mas:locale/es_CL',
                         ]);
                     });

@@ -519,6 +519,7 @@ describe('MasFragmentEditor', () => {
 
         it('navigates to variations table', async () => {
             const navigateSpy = sandbox.stub(router, 'navigateToVariationsTable');
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
             el.inEdit.value = { get: () => ({ id: 'test-id' }) };
             el.navigateToVariationsTable();
             expect(navigateSpy.calledWith('test-id')).to.be.true;

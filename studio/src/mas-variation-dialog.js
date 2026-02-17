@@ -175,6 +175,14 @@ export class MasVariationDialog extends LitElement {
             this.error = 'Repository not available';
             return;
         }
+        if (this.isGrouped && this.pznTags.length === 0) {
+            this.error = 'Please select at least one locale tag';
+            return;
+        }
+        if (!this.isGrouped && !this.selectedLocale) {
+            this.error = 'Please select a locale';
+            return;
+        }
 
         try {
             this.loading = true;

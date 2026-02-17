@@ -325,6 +325,7 @@ export class Plans extends VariantLayout {
             'change',
             this.adaptForMedia,
         );
+        this.getHeadingObserver()?.disconnect();
     }
 
     renderLayout() {

@@ -476,6 +476,7 @@ export class PlansV2 extends VariantLayout {
             this.handleMediaChange,
         );
         this.visibilityObserver?.disconnect();
+        this.getHeadingObserver()?.disconnect();
     }
 
     renderLayout() {

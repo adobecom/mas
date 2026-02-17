@@ -1764,7 +1764,7 @@ class MerchCardEditor extends LitElement {
 
     #formatColorName(color) {
         return color
-            .replace(/(spectrum|global|color|plans|-)/gi, ' ')
+            .replace(/(spectrum|global|color|plans|variation|-)/gi, ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase())
             .replace(/\s+/g, ' ')
             .trim();

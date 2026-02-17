@@ -120,6 +120,12 @@ styles.innerHTML = `
     --spectrum-red-700-plans: #EB1000;
     --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
 
+    --spectrum-yellow-300-variation: var(--spectrum-yellow-300-plans);
+    --spectrum-green-900-variation: var(--spectrum-green-900-plans);
+    --spectrum-gray-300-variation: var(--spectrum-gray-300-plans);
+    --spectrum-gray-700-variation: var(--spectrum-gray-700-plans);
+    --spectrum-red-700-variation: var(--spectrum-red-700-plans);
+
     /* simplified-pricing-express colors */
     --spectrum-gray-50: #FFFFFF;
     --spectrum-gray-100: #F8F8F8;

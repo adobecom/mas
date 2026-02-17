@@ -20,6 +20,7 @@ export function fromAttribute(value) {
     return tags
         .map((tag) => tag.trim())
         .map((tag) => {
+            if (tag.startsWith('/content/cq:tags/')) return tag;
             if (AEM_TAG_PATTERN.test(tag) === false) return false;
             const [namespace, path] = tag.split(':');
             if (!namespace || !path) return '';
@@ -36,6 +37,7 @@ export function toAttribute(value) {
     if (!value || value.length === 0) return '';
     return value
         .map((path) => {
+            if (AEM_TAG_PATTERN.test(path)) return path;
             const match = path.match(/\/content\/cq:tags\/([^/]+)\/(.+)$/);
             return match ? `${match[1]}:${match[2]}` : '';
         })
@@ -373,17 +375,18 @@ class AemTagPickerField extends LitElement {
     async toggleTag(path) {
         await this.#data; // ensure data is loaded first
         const currentValue = [...(this.value || [])];
-        const index = currentValue.indexOf(path);
+        const storedPath = this.#toStoredValue(path);
+        const index = currentValue.indexOf(storedPath);
 
         if (!this.multiple) {
             // single select
-            this.value = [path];
+            this.value = [storedPath];
             await this.#notifyChange();
             return;
         }
         // multi select
         if (index === -1) {
-            currentValue.push(path);
+            currentValue.push(storedPath);
         } else {
             currentValue.splice(index, 1);
         }
@@ -402,6 +405,26 @@ class AemTagPickerField extends LitElement {
     #deleteTag(event) {
         const pathToDelete = event.target.dataset.path;
         this.toggleTag(pathToDelete);
+    }
+
+    #toPath(tagOrPath) {
+        if (!tagOrPath) return '';
+        if (tagOrPath.startsWith('/content/cq:tags/')) return tagOrPath;
+        return fromAttribute(tagOrPath)?.[0] || '';
+    }
+
+    #toTagId(pathOrTag) {
+        if (!pathOrTag) return '';
+        if (AEM_TAG_PATTERN.test(pathOrTag)) return pathOrTag;
+        return toAttribute([pathOrTag]);
+    }
+
+    #toStoredValue(path) {
+        return this.isCheckboxTagsMode ? this.#toTagId(path) : path;
+    }
+
+    #selectedPaths(values = this.value) {
+        return (values || []).map((entry) => this.#toPath(entry)).filter(Boolean);
     }
 
     #getTagTextByMode(tag) {
@@ -464,7 +487,7 @@ class AemTagPickerField extends LitElement {
 
     // In hierarchical mode, only keep tags that start under #tagsRoot
     get tagsInHierarchy() {
-        return this.value.filter((path) => path.startsWith(this.#tagsRoot));
+        return this.#selectedPaths().filter((path) => path.startsWith(this.#tagsRoot));
     }
 
     /**
@@ -511,7 +534,7 @@ class AemTagPickerField extends LitElement {
     // Keep the internal state & notify on changes
     updated(changedProperties) {
         if (changedProperties.has('value')) {
-            this.tempValue = [...this.value];
+            this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths() : [...this.value];
         }
         this.#updateMargin();
     }
@@ -594,7 +617,7 @@ class AemTagPickerField extends LitElement {
 
     #handleCheckoxMenuClose() {
         if (this.isCheckboxTagsMode) {
-            const nextValue = [...this.tempValue];
+            const nextValue = this.tempValue.map((path) => this.#toStoredValue(path)).filter(Boolean);
             const currentValue = [...(this.value || [])];
             const changed = !this.#hasSameSelections(nextValue, currentValue);
             this.value = nextValue;

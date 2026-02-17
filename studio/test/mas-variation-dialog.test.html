@@ -65,6 +65,7 @@
                     beforeEach(async () => {
                         mockRepository = {
                             createVariation: stub().resolves(mockCreatedVariation),
+                            createGroupedVariation: stub().resolves(mockCreatedVariation),
                         };
                         Store.search.value = { path: 'acom' };
 
@@ -81,6 +82,9 @@
                             dialog.repository = null;
                             dialog.existingVariationLocales = [];
                             dialog.selectedLocale = '';
+                            dialog.variationType = 'regional';
+                            dialog.pznTags = [];
+                            dialog.offerData = null;
                             dialog.loading = false;
                             dialog.error = null;
                         }
@@ -195,6 +199,27 @@
                             expect(cancelFired).to.be.true;
                         });
 
+                        it('should not close while loading on Escape or backdrop click', async () => {
+                            dialog.loading = true;
+                            await dialog.updateComplete;
+
+                            let cancelFired = false;
+                            dialog.addEventListener(
+                                'cancel',
+                                () => {
+                                    cancelFired = true;
+                                },
+                                { once: true },
+                            );
+
+                            document.dispatchEvent(new KeyboardEvent(EVENT_KEYDOWN, { key: 'Escape' }));
+                            const backdrop = dialog.shadowRoot.querySelector('sp-underlay');
+                            backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+                            await delay(0);
+
+                            expect(cancelFired).to.be.false;
+                        });
+
                         it('should not close on dialog container click', async () => {
                             let cancelFired = false;
                             dialog.addEventListener('cancel', () => {
@@ -297,6 +322,26 @@
                             const event = await eventPromise;
                             expect(event).to.exist;
                             expect(event.detail.fragment).to.deep.equal(mockCreatedVariation);
+                        });
+
+                        it('should submit grouped locale tag IDs and fallback to productArrangementCode from path', async () => {
+                            dialog.fragment = {
+                                ...mockFragment,
+                                path: '/content/dam/mas/commerce/en_US/pac/test-fragment',
+                            };
+                            dialog.variationType = 'grouped';
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = null;
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(mockRepository.createGroupedVariation.calledOnce).to.be.true;
+                            expect(
+                                mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/fr_FR'], {
+                                    productArrangementCode: 'pac',
+                                }),
+                            ).to.be.true;
                         });
 
                         it('should show error on submission failure', async () => {

@@ -62,7 +62,7 @@
                         value = fromAttribute(null);
                         expect(value).to.deep.equal([]);
                         value = fromAttribute('/content/cq:tags/mas/product/photoshop');
-                        expect(value).to.deep.equal([]);
+                        expect(value).to.deep.equal(['/content/cq:tags/mas/product/photoshop']);
                         value = fromAttribute('mas:product/photoshop,mas:product/illustrator');
                         expect(value).to.deep.equal([
                             '/content/cq:tags/mas/product/photoshop',
@@ -339,7 +339,7 @@
                     it('renders selected tags with sp-tags and no trigger count', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
                         await aemTagPicker.loadTags();
-                        aemTagPicker.value = ['/content/cq:tags/mas/status/draft'];
+                        aemTagPicker.value = ['mas:status/draft'];
                         await aemTagPicker.updateComplete;
 
                         const tagsContainer = aemTagPicker.shadowRoot.querySelector('sp-tags');
@@ -368,7 +368,9 @@
                         const expressCheckbox = checkboxList.querySelector(
                             'sp-checkbox[value="/content/cq:tags/mas/product/cc/adobe-express"]',
                         );
-                        const parentCheckbox = checkboxList.querySelector('sp-checkbox[value="/content/cq:tags/mas/product/cc"]');
+                        const parentCheckbox = checkboxList.querySelector(
+                            'sp-checkbox[value="/content/cq:tags/mas/product/cc"]',
+                        );
                         expect(expressCheckbox).to.not.be.null;
                         expect(parentCheckbox).to.be.null;
                         expect(expressCheckbox.textContent).to.include('Adobe Express');
@@ -429,6 +431,8 @@
                         const overlayTrigger = aemTagPicker.shadowRoot.querySelector('overlay-trigger');
                         const expressPath = '/content/cq:tags/mas/product/cc/adobe-express';
                         const photoshopPath = '/content/cq:tags/mas/product/cc/photoshop';
+                        const expressTagId = 'mas:product/cc/adobe-express';
+                        const photoshopTagId = 'mas:product/cc/photoshop';
 
                         spSearch.value = 'adobe ex';
                         spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
@@ -450,8 +454,8 @@
                         overlayTrigger.dispatchEvent(new Event('sp-closed'));
                         await applyOnCloseListener;
 
-                        expect(aemTagPicker.value).to.include(expressPath);
-                        expect(aemTagPicker.value).to.include(photoshopPath);
+                        expect(aemTagPicker.value).to.include(expressTagId);
+                        expect(aemTagPicker.value).to.include(photoshopTagId);
                     });
 
                     it('applies selection only when popover closes', async function () {
@@ -470,12 +474,12 @@
                         draftCheckbox.checked = true;
                         draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await aemTagPicker.updateComplete;
-                        expect(aemTagPicker.value).to.not.include(draftPath);
+                        expect(aemTagPicker.value).to.not.include('mas:status/draft');
 
                         const applyOnCloseListener = oneEvent(aemTagPicker, 'change');
                         overlayTrigger.dispatchEvent(new Event('sp-closed'));
                         await applyOnCloseListener;
-                        expect(aemTagPicker.value).to.include(draftPath);
+                        expect(aemTagPicker.value).to.include('mas:status/draft');
                     });
 
                     it('keeps the popover open while selecting tags', async function () {

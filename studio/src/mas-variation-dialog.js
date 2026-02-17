@@ -71,6 +71,7 @@ export class MasVariationDialog extends LitElement {
 
         this.handleSubmit = this.handleSubmit.bind(this);
         this.close = this.close.bind(this);
+        this.handleUnderlayClick = this.handleUnderlayClick.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
     }
 
@@ -100,6 +101,10 @@ export class MasVariationDialog extends LitElement {
         if (event.key === 'Escape') {
             this.close();
         }
+    }
+
+    handleUnderlayClick() {
+        this.close();
     }
 
     get sourceLocale() {
@@ -158,6 +163,17 @@ export class MasVariationDialog extends LitElement {
         this.pznTags = tagPicker.value || [];
     }
 
+    extractProductArrangementCode(path) {
+        const match = path?.match(/^\/content\/dam\/mas\/[^/]+\/[^/]+\/([^/]+)/);
+        return match?.[1] || null;
+    }
+
+    resolveGroupedOfferData() {
+        if (this.offerData?.productArrangementCode) return this.offerData;
+        const productArrangementCode = this.extractProductArrangementCode(this.fragment?.path);
+        return productArrangementCode ? { productArrangementCode } : null;
+    }
+
     async handleSubmit() {
         if (!this.repository) {
             this.error = 'Repository not available';
@@ -180,7 +196,7 @@ export class MasVariationDialog extends LitElement {
                 const variationFragment = await this.repository.createGroupedVariation(
                     this.fragment.id,
                     this.pznTags,
-                    this.offerData,
+                    this.resolveGroupedOfferData(),
                 );
 
                 showToast('Grouped variation created successfully', 'positive');
@@ -226,6 +242,7 @@ export class MasVariationDialog extends LitElement {
     }
 
     close() {
+        if (this.loading) return;
         this.dispatchEvent(
             new CustomEvent('cancel', {
                 bubbles: true,
@@ -277,7 +294,7 @@ export class MasVariationDialog extends LitElement {
 
     render() {
         return html`
-            <sp-underlay open @click=${this.close}></sp-underlay>
+            <sp-underlay open @click=${this.handleUnderlayClick}></sp-underlay>
             <sp-dialog size="s" no-divider>
                 <h2 slot="heading">Set a variation type</h2>
                 <div id="fields">
@@ -297,7 +314,9 @@ export class MasVariationDialog extends LitElement {
                     ${this.isGrouped ? this.groupedFieldsTemplate : this.regionalFieldsTemplate}
                     ${this.error ? html`<p class="error-message">${this.error}</p>` : nothing}
                 </div>
-                <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.close}>Cancel</sp-button>
+                <sp-button slot="button" variant="secondary" treatment="outline" ?disabled=${this.loading} @click=${this.close}
+                    >Cancel</sp-button
+                >
                 <sp-button slot="button" variant="accent" ?disabled=${!this.canSubmit} @click=${this.handleSubmit}>
                     Create variation
                 </sp-button>

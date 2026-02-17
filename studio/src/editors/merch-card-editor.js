@@ -17,7 +17,6 @@ import { VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
-import { toAttribute } from '../aem/aem-tag-picker-field.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -83,22 +82,12 @@ class MerchCardEditor extends LitElement {
     }
 
     get pznTagsValue() {
-        const pznTags = this.fragment.getFieldValues('pznTags') || [];
-        // Normalize to attribute format (mas:...) for aem-tag-picker-field.
-        // Accept legacy path values as input as well.
-        return pznTags
-            .map((tag) => (tag?.startsWith('/content/cq:tags/') ? toAttribute([tag]) : tag))
-            .filter(Boolean)
-            .join(',');
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).join(',');
     }
 
     #handlePznTagsChange = (event) => {
         const tagPicker = event.target;
-        // aem-tag-picker-field exposes .value as tag paths; store tag IDs (mas:...) consistently.
-        const normalizedTags = toAttribute(tagPicker.value || [])
-            .split(',')
-            .filter(Boolean);
-        this.fragmentStore.updateField('pznTags', normalizedTags);
+        this.fragmentStore.updateField('pznTags', (tagPicker.value || []).filter(Boolean));
     };
 
     get groupedVariationTagsTemplate() {

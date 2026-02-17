@@ -110,6 +110,19 @@ describe('MasFragmentEditor', () => {
         expect(el.extractLocaleFromPath('/content/dam/mas/surface/en_US/fragment')).to.equal('en_US');
     });
 
+    it('derives variation dialog offerData from fragment path', () => {
+        const el = document.createElement('mas-fragment-editor');
+        const fragment = new Fragment({
+            id: 'test-id',
+            path: '/content/dam/mas/surface/en_US/pac/fragment',
+            fields: [],
+            references: [],
+        });
+        el.inEdit.value = { get: () => fragment };
+
+        expect(el.variationDialogOfferData).to.deep.equal({ productArrangementCode: 'pac' });
+    });
+
     it('calculates preview attributes correctly', async () => {
         const fragment = new Fragment({
             id: 'test-id',

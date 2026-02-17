@@ -1237,6 +1237,7 @@ export default class MasFragmentEditor extends LitElement {
             <mas-variation-dialog
                 .fragment=${parentForVariation}
                 .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                .offerData=${this.variationDialogOfferData}
                 @fragment-copied=${this.handleFragmentCopied}
                 @cancel=${this.cancelCreateVariation}
             ></mas-variation-dialog>
@@ -1260,6 +1261,17 @@ export default class MasFragmentEditor extends LitElement {
         const parts = path.split('/');
         const localeIndex = parts.indexOf('mas') + 2;
         return parts[localeIndex] || null;
+    }
+
+    extractProductArrangementCodeFromPath(path) {
+        const match = path?.match(/^\/content\/dam\/mas\/[^/]+\/[^/]+\/([^/]+)/);
+        return match?.[1] || null;
+    }
+
+    get variationDialogOfferData() {
+        const sourcePath = (this.localeDefaultFragment || this.fragment)?.path;
+        const productArrangementCode = this.extractProductArrangementCodeFromPath(sourcePath);
+        return productArrangementCode ? { productArrangementCode } : null;
     }
 
     displayRegionalVarationInfo(clazz) {

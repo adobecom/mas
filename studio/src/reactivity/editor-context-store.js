@@ -2,7 +2,7 @@ import { ReactiveStore } from './reactive-store.js';
 import { previewFragmentForEditor } from 'fragment-client';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
-import { PZN_FOLDER } from '../constants.js';
+import { Fragment } from '../aem/fragment.js';
 
 export class EditorContextStore extends ReactiveStore {
     loading = false;
@@ -29,15 +29,6 @@ export class EditorContextStore extends ReactiveStore {
         return { isVariation: false, defaultLocale: null };
     }
 
-    /**
-     * Checks if a path is a grouped (pzn) variation path.
-     * @param {string} path
-     * @returns {boolean}
-     */
-    static isGroupedVariationPath(path) {
-        return path?.includes(`/${PZN_FOLDER}/`) ?? false;
-    }
-
     async loadFragmentContext(fragmentId, fragmentPath) {
         this.loading = false;
         this.localeDefaultFragment = null;
@@ -46,8 +37,7 @@ export class EditorContextStore extends ReactiveStore {
         this.isVariationByPath = false;
         this.isGroupedVariationByPath = false;
         this.expectedDefaultLocale = null;
-        const isGroupedVariationPath = EditorContextStore.isGroupedVariationPath(fragmentPath);
-        if (isGroupedVariationPath) {
+        if (Fragment.isGroupedVariationPath(fragmentPath)) {
             this.isGroupedVariationByPath = true;
         }
 
@@ -118,30 +108,6 @@ export class EditorContextStore extends ReactiveStore {
                         }
                     }
                 }
-
-                if (this.isGroupedVariationByPath && (!this.defaultLocaleId || this.defaultLocaleId === fragmentId)) {
-                    // Grouped variations need parent lookup via references. If defaultLocaleId is the
-                    // current fragment, it's not the parent and must be resolved explicitly.
-                    const repository = document.querySelector('mas-repository');
-                    this.parentFetchPromise = repository
-                        .resolveHydratedParentFragment(fragmentPath)
-                        .then((parentData) => {
-                            if (parentData) {
-                                this.localeDefaultFragment = parentData;
-                                this.defaultLocaleId = parentData.id;
-                                this.notify();
-                            }
-                            return parentData;
-                        })
-                        .catch((error) => {
-                            console.debug('Failed to fetch grouped variation parent:', error.message);
-                            return null;
-                        });
-                    if (!notified) {
-                        this.notify();
-                        notified = true;
-                    }
-                }
             }
 
             return result;
@@ -178,6 +144,14 @@ export class EditorContextStore extends ReactiveStore {
                 console.debug('Locale default fragment not found by path:', parentPath);
                 return null;
             });
+    }
+
+    setParent(parentData) {
+        if (!parentData) return;
+        this.localeDefaultFragment = parentData;
+        this.defaultLocaleId = parentData.id;
+        this.parentFetchPromise = Promise.resolve(parentData);
+        this.notify();
     }
 
     getLocaleDefaultFragment() {

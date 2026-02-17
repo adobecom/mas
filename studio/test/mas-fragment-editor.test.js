@@ -35,6 +35,13 @@ describe('MasFragmentEditor', () => {
             defaultLocaleId: null,
             parentFetchPromise: null,
             notify: sandbox.stub(),
+            setParent(parentData) {
+                if (!parentData) return;
+                this.localeDefaultFragment = parentData;
+                this.defaultLocaleId = parentData.id;
+                this.parentFetchPromise = Promise.resolve(parentData);
+                this.notify();
+            },
             getLocaleDefaultFragmentAsync: getLocaleDefaultFragmentAsync || sandbox.stub().resolves(null),
         };
 

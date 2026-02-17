@@ -810,10 +810,7 @@ export default class MasFragmentEditor extends LitElement {
             try {
                 const parentData = await this.repository.resolveHydratedParentFragment(fragmentPath);
                 if (parentData) {
-                    this.editorContextStore.localeDefaultFragment = parentData;
-                    this.editorContextStore.defaultLocaleId = parentData.id;
-                    this.editorContextStore.parentFetchPromise = Promise.resolve(parentData);
-                    this.editorContextStore.notify();
+                    this.editorContextStore.setParent(parentData);
                     return parentData;
                 }
             } catch (error) {

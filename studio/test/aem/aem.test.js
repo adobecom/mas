@@ -78,4 +78,16 @@ describe('aem.js', () => {
             ]);
         });
     });
+
+    describe('method: getFragmentTranslations', () => {
+        it('should fetch translations', async () => {
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({ languageCopies: [] }),
+            });
+
+            const result = await aem.getFragmentTranslations('test-id');
+            expect(result.languageCopies).to.be.an('array');
+        });
+    });
 });

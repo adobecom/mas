@@ -56,7 +56,7 @@ export const styles = css`
         }
 
         .select-langs,
-        .select-files {
+        .select-items {
             sp-button {
                 --mod-button-background-color-default: transparent;
                 --mod-button-background-color-hover: var(--spectrum-gray-200);
@@ -73,7 +73,7 @@ export const styles = css`
         }
 
         .languages-empty-state,
-        .files-empty-state {
+        .items-empty-state {
             display: flex;
             flex-direction: row;
             gap: 12px;
@@ -83,18 +83,18 @@ export const styles = css`
         }
 
         .add-langs-dialog,
-        .add-files-dialog {
+        .add-items-dialog {
             --mod-dialog-confirm-buttongroup-padding-top: 82px;
         }
 
         .selected-langs,
-        .selected-files {
+        .selected-items {
             display: flex;
             flex-direction: column;
             gap: 20px;
 
             .selected-langs-header,
-            .selected-files-header {
+            .selected-items-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -113,14 +113,6 @@ export const styles = css`
                     --mod-button-background-color-down: var(--spectrum-gray-300);
                     --mod-button-content-color-default: var(--spectrum-gray-800);
                     --mod-button-content-color-hover: var(--spectrum-gray-900);
-                }
-
-                .trigger-btn {
-                    --mod-button-background-color-default: transparent;
-                    --mod-button-background-color-hover: var(--spectrum-blue-200);
-                    --mod-button-background-color-down: var(--spectrum-blue-300);
-                    --mod-button-content-color-default: var(--spectrum-blue-900);
-                    --mod-button-content-color-hover: var(--spectrum-blue-1000);
                 }
             }
         }

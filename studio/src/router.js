@@ -25,6 +25,44 @@ export class Router extends EventTarget {
         this.currentParams = undefined;
     }
 
+    translationEditorHasUnsavedChanges() {
+        const inEdit = Store.translationProjects.inEdit?.get()?.get();
+        if (!inEdit) return false;
+        if (inEdit.hasChanges) return true;
+
+        const savedData = {
+            selectedCards: inEdit.getFieldValues('fragments'),
+            selectedCollections: inEdit.getFieldValues('collections'),
+            selectedPlaceholders: inEdit.getFieldValues('placeholders'),
+            targetLocales: inEdit.getFieldValues('targetLocales'),
+        };
+
+        const fieldsToCompare = ['selectedCards', 'selectedCollections', 'selectedPlaceholders', 'targetLocales'];
+
+        for (const field of fieldsToCompare) {
+            const currentValues = Store.translationProjects[field].value || [];
+            const savedValues = savedData[field] || [];
+
+            if (currentValues.length !== savedValues.length) {
+                return true;
+            }
+
+            const currentSet = new Set(currentValues);
+            const savedSet = new Set(savedValues);
+
+            if (currentSet.size !== savedSet.size) {
+                return true;
+            }
+
+            for (const item of currentSet) {
+                if (!savedSet.has(item)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * Gets the active editor element and its hasChanges state based on the current page
      * @returns {{ editor: Element|null, hasChanges: boolean }}
@@ -43,13 +81,11 @@ export class Router extends EventTarget {
             }
             case PAGE_NAMES.TRANSLATION_EDITOR: {
                 const editor = document.querySelector('mas-translation-editor');
-                if (!editor) {
-                    return { editor: null, hasChanges: null, shouldCheckUnsavedChanges: null };
-                }
+                const hasUnsavedChanges = this.translationEditorHasUnsavedChanges();
                 return {
                     editor,
-                    hasChanges: !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
-                    shouldCheckUnsavedChanges: !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    hasChanges: editor && hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
                 };
             }
             default:
@@ -71,6 +107,7 @@ export class Router extends EventTarget {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
                 const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
                 if (confirmed) {
+                    Store.fragmentEditor.translatedLocales.set(null);
                     if (
                         (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION) &&
                         value !== PAGE_NAMES.FRAGMENT_EDITOR &&
@@ -189,6 +226,44 @@ export class Router extends EventTarget {
             Store.search.set((prev) => ({ ...prev, query: undefined }));
             Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
             Store.viewMode.set('editing');
+        } finally {
+            this.isNavigating = false;
+        }
+    }
+
+    /**
+     * Navigate to the translation editor with optional pre-fill data
+     * @param {Object} options - Navigation options
+     * @param {string} options.targetLocale - Optional target locale to pre-fill
+     * @param {string} options.fragmentPath - Optional fragment path to pre-fill
+     */
+    async navigateToTranslationEditor(options = {}) {
+        const { targetLocale, fragmentPath } = options;
+
+        this.isNavigating = true;
+        try {
+            // Check for unsaved changes
+            const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+            const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
+
+            if (!confirmed) return;
+
+            // Clear fragment editor state
+            Store.fragmentEditor.fragmentId.set(null);
+            Store.fragments.inEdit.set();
+            Store.viewMode.set('default');
+
+            // Reset locale to default
+            Store.search.set((prev) => ({ ...prev, region: null }));
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
+            // Store pre-fill data for the translation editor to consume
+            if (targetLocale || fragmentPath) {
+                Store.translationProjects.prefill.set({ targetLocale, fragmentPath });
+            }
+
+            // Set the page - the store subscription will update the URL
+            Store.page.set(PAGE_NAMES.TRANSLATION_EDITOR);
         } finally {
             this.isNavigating = false;
         }

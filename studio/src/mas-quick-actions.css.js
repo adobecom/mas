@@ -6,7 +6,7 @@ export const styles = css`
         bottom: 24px;
         left: 50%;
         transform: translateX(-50%);
-        z-index: 1000;
+        z-index: 999;
         display: inline-flex;
         align-items: center;
         gap: 2px;

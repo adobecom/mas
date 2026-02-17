@@ -54,6 +54,7 @@ export const styles = css`
                 -webkit-box-orient: vertical;
                 max-width: 80px;
                 overflow: hidden;
+                margin-right: 4px;
             }
 
             div:hover {
@@ -61,36 +62,23 @@ export const styles = css`
                 color: var(--spectrum-blue-1000);
             }
 
-            sp-button {
-                --mod-button-background-color-default: transparent;
-                --mod-button-background-color-hover: transparent;
-                --mod-button-content-color-default: var(--spectrum-blue-900);
+            sp-action-button {
+                --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
 
                 &:hover {
-                    color: var(--spectrum-blue-1000);
+                    --mod-actionbutton-background-color-hover: var(--spectrum-blue-300);
+                    --mod-actionbutton-background-color-hover-selected: var(--spectrum-blue-300);
                 }
 
-                sp-icon-copy {
-                    display: block;
-                    transition:
-                        opacity 0.2s ease,
-                        transform 0.2s ease;
+                &:active {
+                    --mod-actionbutton-background-color-down: var(--spectrum-blue-400);
+                    --mod-actionbutton-background-color-down-selected: var(--spectrum-blue-400);
                 }
 
-                sp-icon-checkmark {
-                    display: none;
-                    color: var(--spectrum-green-700);
-                }
-
-                &.copied {
-                    sp-icon-copy {
-                        display: none;
-                    }
-
-                    sp-icon-checkmark {
-                        display: block;
-                        animation: checkmark-pop 0.3s ease-out;
-                    }
+                &:focus,
+                &:focus-visible {
+                    --mod-actionbutton-background-color-focus: var(--spectrum-blue-400);
+                    --mod-actionbutton-background-color-focus-selected: var(--spectrum-blue-400);
                 }
             }
         }
@@ -142,19 +130,5 @@ export const styles = css`
         justify-content: center;
         align-items: center;
         padding: 80px;
-    }
-
-    @keyframes checkmark-pop {
-        0% {
-            transform: scale(0);
-            opacity: 0;
-        }
-        50% {
-            transform: scale(1.2);
-        }
-        100% {
-            transform: scale(1);
-            opacity: 1;
-        }
     }
 `;

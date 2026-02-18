@@ -64,21 +64,20 @@ $ npm run commit
 
 ### Studio (/studio)
 
-| Folder Name            | Comment                                                                 |
-|------------------------|-------------------------------------------------------------------------|
-| common                 | Holds main views, top bar, etc...                                       |
-| common/constants       | Holds constants reused across code                                    |
-| common/fields          | Holds fields reused across different UIs (e.g., mas-locale-picker)     |
-| common/repository      | Repository interaction features                                        |
-| common/store           | Model common utitilies                                     |
-| common/utils           | Holds common utils                                                      |
-| fragments              | Views, models, specific to fragments view                               |
-| placeholders           | Views, models, specific to placeholders view                            |
-| promotions             | Views, models, specific to promotions view                               |
-| translation            | Views, models, specific to translation view                               |
+| Folder Name       | Comment                                                            |
+| ----------------- | ------------------------------------------------------------------ |
+| common            | Holds main views, top bar, etc...                                  |
+| common/constants  | Holds constants reused across code                                 |
+| common/fields     | Holds fields reused across different UIs (e.g., mas-locale-picker) |
+| common/repository | Repository interaction features                                    |
+| common/store      | Model common utitilies                                             |
+| common/utils      | Holds common utils                                                 |
+| fragments         | Views, models, specific to fragments view                          |
+| placeholders      | Views, models, specific to placeholders view                       |
+| promotions        | Views, models, specific to promotions view                         |
+| translation       | Views, models, specific to translation view                        |
 
 ### io runtime (/io)
-
 
 # How Contributions get Reviewed
 

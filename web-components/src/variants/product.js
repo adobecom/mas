@@ -283,6 +283,10 @@ export class Product extends VariantLayout {
             min-height: var(--consonant-merch-card-product-addon-height);
         }
 
+        :host([variant='product']:not([id])) hr {
+            display: none;
+        }
+
         :host([variant='product']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }

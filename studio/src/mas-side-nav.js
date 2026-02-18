@@ -46,6 +46,11 @@ class MasSideNav extends LitElement {
             width: 14px;
             height: 14px;
         }
+
+        .field-preview {
+            font-style: italic;
+            opacity: 0.7;
+        }
     `;
 
     currentPage = new StoreController(this, Store.page);
@@ -73,9 +78,7 @@ class MasSideNav extends LitElement {
             }
 
             if (fragmentStore) {
-                // Reset and re-resolve price preview for the new fragment
                 this._resolvedPriceText = '';
-                this._resolvePricePreview();
                 this.variationDataLoading = true;
                 this.setupVariationLoadingTimeout();
                 this.fragmentStoreSubscription = fragmentStoreHandler;
@@ -157,6 +160,7 @@ class MasSideNav extends LitElement {
 
         this.variationDataLoading = false;
         this.requestUpdate();
+        this._resolvePricePreview();
     }
 
     setupVariationLoadingTimeout() {
@@ -203,9 +207,13 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.copyToUse();
     }
 
-    static stripHtml(html) {
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        return doc.body.textContent || '';
+    // --- Copy Field helpers ---
+
+    static FIELD_DISPLAY_NAMES = { variant: 'template' };
+    static PREVIEW_MAX_LENGTH = 60;
+
+    static stripHtml(value) {
+        return new DOMParser().parseFromString(value, 'text/html').body.textContent || '';
     }
 
     static previewValue(values) {
@@ -214,7 +222,8 @@ class MasSideNav extends LitElement {
         const text = typeof raw === 'string' && raw.includes('<')
             ? MasSideNav.stripHtml(raw)
             : String(raw);
-        return text.length > 60 ? `${text.slice(0, 57)}...` : text;
+        const max = MasSideNav.PREVIEW_MAX_LENGTH;
+        return text.length > max ? `${text.slice(0, max - 3)}...` : text;
     }
 
     /**
@@ -223,51 +232,39 @@ class MasSideNav extends LitElement {
      * Uses the same checkReady() pattern as mas-card-preview.js.
      */
     async _resolvePricePreview() {
-        const card = this.fragmentEditor?.querySelector('merch-card');
+        const editor = this.fragmentEditor;
+        if (!editor) return;
+        // Ensure the fragment editor has rendered the merch-card
+        await editor.updateComplete;
+        const card = editor.querySelector('merch-card');
         if (!card) return;
+        // Wait for the card to fully render, including WCS price resolution
         await card.checkReady?.();
-        // inline-price spans are light DOM children of merch-card (slotted content)
-        let prices = card.querySelectorAll('span[is="inline-price"]');
-        if (!prices.length && card.shadowRoot) {
-            prices = card.shadowRoot.querySelectorAll('span[is="inline-price"]');
-        }
-        const texts = [...prices].map((p) => p.textContent.trim()).filter(Boolean);
-        const text = texts.join(', ');
+        const price = card.querySelector('span[is="inline-price"]');
+        const text = price?.textContent.trim() ?? '';
         if (text && text !== this._resolvedPriceText) {
             this._resolvedPriceText = text;
             this.requestUpdate();
         }
     }
 
-    /**
-     * Returns the list of non-empty fragment fields for the Copy Field popover.
-     * Each entry includes the field name, a display name (e.g. "variant" → "template"),
-     * and a short preview of the field's value.
-     */
+    /** Non-empty fragment fields with display names and value previews. */
     get copyableFields() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
         return fragment.fields
             .filter((f) => !fragment.isValueEmpty(f.values))
-            .map((f) => {
-                let preview = MasSideNav.previewValue(f.values);
-                // Prices contain unresolved <inline-price> HTML — use cached resolved text
-                if (!preview && f.name === 'prices') {
-                    preview = this._resolvedPriceText;
-                }
-                return {
-                    name: f.name,
-                    displayName: f.name === 'variant' ? 'template' : f.name,
-                    preview,
-                };
-            });
+            .map((f) => ({
+                name: f.name,
+                displayName: MasSideNav.FIELD_DISPLAY_NAMES[f.name] ?? f.name,
+                // Prices contain unresolved <inline-price> HTML — prefer cached resolved text
+                preview: f.name === 'prices'
+                    ? (this._resolvedPriceText || MasSideNav.previewValue(f.values))
+                    : MasSideNav.previewValue(f.values),
+            }));
     }
 
-    /**
-     * Copies a rich link for a single field to the clipboard.
-     * The link points to the fragment's field in MAS Studio and pastes as a
-     * clickable "alias → fieldName" reference in SharePoint documents.
-     */
+    /** Copies a rich link for the given field to the clipboard. */
     async copyField(fieldName) {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment) return;
@@ -400,7 +397,7 @@ class MasSideNav extends LitElement {
                                 <sp-menu-item @click=${() => this.copyField(name)}>
                                     <strong>${displayName}</strong>
                                     ${preview
-                                        ? html`<span slot="description" style="font-style: italic; opacity: 0.7;">${preview}</span>`
+                                        ? html`<span slot="description" class="field-preview">${preview}</span>`
                                         : nothing}
                                 </sp-menu-item>
                             `,

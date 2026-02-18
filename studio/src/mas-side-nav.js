@@ -47,9 +47,30 @@ class MasSideNav extends LitElement {
             height: 14px;
         }
 
-        .field-preview {
-            font-style: italic;
-            opacity: 0.7;
+        sp-menu-divider {
+            margin: 1px 0;
+            opacity: 0.4;
+        }
+
+        .field-entry {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding: 2px 0;
+        }
+
+        .field-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #999;
+        }
+
+        .field-value {
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
     `;
 
@@ -211,8 +232,19 @@ class MasSideNav extends LitElement {
 
     // --- Copy Field helpers ---
 
-    static FIELD_DISPLAY_NAMES = { variant: 'template' };
+    static FIELD_DISPLAY_NAMES = {
+        variant: 'Template',
+        osi: 'OSI',
+        ctas: 'CTAs',
+        whatsIncluded: "What's Included",
+        originalId: 'Original ID',
+    };
+    static HIDDEN_FIELDS = new Set(['quantitySelect']);
     static PREVIEW_MAX_LENGTH = 60;
+
+    static camelToTitle(name) {
+        return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+    }
 
     static stripHtml(value) {
         return new DOMParser().parseFromString(value, 'text/html').body.textContent || '';
@@ -255,10 +287,12 @@ class MasSideNav extends LitElement {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
         return fragment.fields
-            .filter((f) => !fragment.isValueEmpty(f.values))
+            .filter((f) => !fragment.isValueEmpty(f.values) && !MasSideNav.HIDDEN_FIELDS.has(f.name))
             .map((f) => ({
                 name: f.name,
-                displayName: MasSideNav.FIELD_DISPLAY_NAMES[f.name] ?? f.name,
+                displayName:
+                    MasSideNav.FIELD_DISPLAY_NAMES[f.name] ??
+                    MasSideNav.camelToTitle(f.name),
                 // Prices contain unresolved <inline-price> HTML — prefer cached resolved text
                 preview: f.name === 'prices'
                     ? (this._resolvedPriceText || MasSideNav.previewValue(f.values))
@@ -280,7 +314,8 @@ class MasSideNav extends LitElement {
                     'text/html': new Blob([link.richText], { type: 'text/html' }),
                 }),
             ]);
-            Events.toast.emit({ variant: 'positive', content: `Copied ${fieldName} field link` });
+            const displayName = MasSideNav.FIELD_DISPLAY_NAMES[fieldName] ?? MasSideNav.camelToTitle(fieldName);
+            Events.toast.emit({ variant: 'positive', content: `Copied ${displayName} field link` });
         } catch {
             Events.toast.emit({ variant: 'negative', content: 'Failed to copy field link' });
         }
@@ -395,12 +430,15 @@ class MasSideNav extends LitElement {
                 <sp-popover slot="click-content" direction="right" tip>
                     <sp-menu>
                         ${this.copyableFields.map(
-                            ({ name, displayName, preview }) => html`
+                            ({ name, displayName, preview }, i) => html`
+                                ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
                                 <sp-menu-item @click=${() => this.copyField(name)}>
-                                    <strong>${displayName}</strong>
                                     ${preview
-                                        ? html`<span slot="description" class="field-preview">${preview}</span>`
-                                        : nothing}
+                                        ? html`<div class="field-entry">
+                                              <span class="field-label">${displayName}</span>
+                                              <span class="field-value">${preview}</span>
+                                          </div>`
+                                        : displayName}
                                 </sp-menu-item>
                             `,
                         )}

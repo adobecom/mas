@@ -118,25 +118,36 @@ describe('customize collections', function () {
 
     it('should merge personalization (PZN) variation when pznTags match regionLocale', async function () {
         const pznVariationId = 'pzn-var-en-kw';
+        const pznOtherVariationId = 'pzn-test';
         const bodyWithPzn = {
             path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
             id: 'root-fragment',
             title: 'Root',
             fields: {
                 badge: 'default badge',
-                variations: [pznVariationId],
+                variations: [pznVariationId, pznOtherVariationId],
             },
             references: {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/promo',
+                        path: '/content/dam/mas/pzn/sandbox/intro',
                         id: pznVariationId,
-                        title: 'PZN Promo',
+                        title: 'Intro pricing',
                         fields: {
                             pznTags: ['en_KW'],
                             badge: 'Kuwait PZN badge',
                         },
+                    },
+                },
+                [pznOtherVariationId]: {
+                    path: '/content/dam/mas/pzn/sandbox/pznTest',
+                    id: pznOtherVariationId,
+                    title: 'test variation',
+                    description: 'has en_KW too, but appears second in the list',
+                    fields: {
+                        pznTags: ['en_US', 'en_CA', 'en_KW'],
+                        badge: 'TEST badge',
                     },
                 },
             },

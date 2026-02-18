@@ -5,8 +5,42 @@ import { CSS } from './product.css.js';
 import Media from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
+    TEMPLATE_PRICE_LEGAL,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
 } from '../constants.js';
+
+export const PRODUCT_AEM_FRAGMENT_MAPPING = {
+    cardName: { attribute: 'name' },
+    title: { tag: 'h3', slot: 'heading-xs' },
+    prices: { tag: 'p', slot: 'heading-xs' },
+    promoText: { tag: 'p', slot: 'promo-text' },
+    description: { tag: 'div', slot: 'body-xs' },
+    mnemonics: { size: 'l' },
+    callout: { tag: 'div', slot: 'callout-content' },
+    quantitySelect: { tag: 'div', slot: 'quantity-select' },
+    secureLabel: true,
+    planType: true,
+    badgeIcon: true,
+    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-variation' },
+    allowedBadgeColors: [
+        'spectrum-yellow-300-variation',
+        'spectrum-gray-300-variation',
+        'spectrum-gray-700-variation',
+        'spectrum-green-900-variation',
+        'gradient-purple-blue',
+    ],
+    allowedBorderColors: [
+        'spectrum-yellow-300-variation',
+        'spectrum-gray-300-variation',
+        'spectrum-green-900-variation',
+        'gradient-purple-blue',
+    ],
+    borderColor: { attribute: 'border-color' },
+    whatsIncluded: { tag: 'div', slot: 'whats-included' },
+    ctas: { slot: 'footer', size: 'm' },
+    style: 'consonant',
+    perUnitLabel: { tag: 'span', slot: 'per-unit-label' },
+};
 
 export class Product extends VariantLayout {
     constructor(card) {
@@ -17,6 +51,18 @@ export class Product extends VariantLayout {
 
     getGlobalCSS() {
         return CSS;
+    }
+
+    priceOptionsProvider(element, options) {
+        if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+        options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+
+        if (
+            element.dataset.template === 'strikethrough' ||
+            element.dataset.template === 'price'
+        ) {
+            options.displayPerUnit = false;
+        }
     }
 
     adjustProductBodySlots() {
@@ -51,10 +97,14 @@ export class Product extends VariantLayout {
                     : ''}
                 <slot name="body-xs"></slot>
                 ${this.promoBottom ? html`<slot name="promo-text"></slot>` : ''}
+                <slot name="whats-included"></slot>
                 <slot name="callout-content"></slot>
+                <slot name="quantity-select"></slot>
                 <slot name="addon"></slot>
                 <slot name="body-lower"></slot>
+                <slot name="badge"></slot>
             </div>
+            <hr />
             ${this.secureLabelFooter}`;
     }
 
@@ -74,14 +124,51 @@ export class Product extends VariantLayout {
         );
     }
 
-    postCardUpdateHook() {
+    async postCardUpdateHook() {
         if (!this.card.isConnected) return;
         this.adjustAddon();
         if (!Media.isMobile) {
             this.adjustProductBodySlots();
         }
+        if (!this.legalAdjusted) {
+            await this.adjustLegal();
+        }
         this.adjustTitleWidth();
     }
+
+    async adjustLegal() {
+        if (this.legalAdjusted) return;
+
+        try {
+            this.legalAdjusted = true;
+            await this.card.updateComplete;
+            await customElements.whenDefined('inline-price');
+
+            const headingPrice = this.mainPrice;
+            if (!headingPrice) return;
+
+            const legal = headingPrice.cloneNode(true);
+            await headingPrice.onceSettled();
+
+            if (!headingPrice?.options) return;
+
+            if (headingPrice.options.displayPerUnit)
+                headingPrice.dataset.displayPerUnit = 'false';
+            if (headingPrice.options.displayTax)
+                headingPrice.dataset.displayTax = 'false';
+            if (headingPrice.options.displayPlanType)
+                headingPrice.dataset.displayPlanType = 'false';
+
+            legal.setAttribute('data-template', 'legal');
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            await legal.onceSettled();
+        } catch {
+            // Proceed with other adjustments
+        }
+    }    
 
     get headingXSSlot() {
         return this.card.shadowRoot
@@ -156,6 +243,13 @@ export class Product extends VariantLayout {
     }
 
     static variantStyle = css`
+        :host([variant='product']) {
+            background:
+                linear-gradient(white, white) padding-box,
+                var(--consonant-merch-card-border-color, #dadada) border-box;
+            border: 1px solid transparent;
+        }
+
         :host([variant='product']) > slot:not([name='icons']) {
             display: block;
         }
@@ -187,6 +281,11 @@ export class Product extends VariantLayout {
 
         :host([variant='product']) ::slotted([slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
+        }
+
+        :host([variant='product']) .secure-transaction-label {
+            color: rgb(80, 80, 80);
+            line-height: var(--consonant-merch-card-detail-xs-line-height);
         }
     `;
 }

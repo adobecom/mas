@@ -4,6 +4,11 @@ export const CSS = `
   --consonant-merch-card-product-width: 300px;
 }
 
+merch-card[variant="product"] {
+    --consonant-merch-card-callout-icon-size: 18px;
+    width: var(--consonant-merch-card-product-width);
+}
+
   merch-card[variant="product"] merch-addon {
     padding-left: 4px;
     padding-top: 8px;
@@ -65,4 +70,22 @@ export const CSS = `
       grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
   }
 }
+
+merch-card[variant="product"] {
+    merch-whats-included merch-mnemonic-list,
+    merch-whats-included [slot="heading"] {
+        width: 100%;
+    }
+}
+
+merch-card[variant="product"] span[data-template="legal"] {
+    display: block;
+    color: var(----merch-color-grey-80);
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 21px;
+    margin-top: 8px;
+}
+
 `;

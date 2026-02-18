@@ -680,6 +680,8 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
             );
             return checkoutButton;
         });
+        const dividerEl = merchCard.shadowRoot.querySelector('.body + hr');
+        if (dividerEl) dividerEl.style.display = footer.querySelector('hr') ? 'block' : 'none';
 
         footer.innerHTML = '';
         footer.append(...ctas);

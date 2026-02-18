@@ -1089,7 +1089,7 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="ctas"
                         link
-                        inline
+                        divider="${this.fragment.variant === 'product' ? '' : nothing}"
                         data-field="ctas"
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}
@@ -1764,7 +1764,7 @@ class MerchCardEditor extends LitElement {
 
     #formatColorName(color) {
         return color
-            .replace(/(spectrum|global|color|plans|-)/gi, ' ')
+            .replace(/(spectrum|global|color|plans|variation|-)/gi, ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase())
             .replace(/\s+/g, ' ')
             .trim();

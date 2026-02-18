@@ -25,6 +25,7 @@ const VARIANT_SPECTRUM = {
     [VARIANT_NAMES.PLANS_V2]: 'spectrum',
     [VARIANT_NAMES.SPECIAL_OFFERS]: 'spectrum',
     [VARIANT_NAMES.CATALOG]: 'spectrum',
+    [VARIANT_NAMES.PRODUCT]: 'spectrum',
     [VARIANT_NAMES.SIMPLIFIED_PRICING_EXPRESS]: 'express',
     [VARIANT_NAMES.FULL_PRICING_EXPRESS]: 'express',
 };

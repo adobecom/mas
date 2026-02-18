@@ -160,7 +160,9 @@ class MasSideNav extends LitElement {
 
         this.variationDataLoading = false;
         this.requestUpdate();
-        this._resolvePricePreview();
+        this.fragmentEditor?.addEventListener(
+            'preview-updated', () => this._resolvePricePreview(), { once: true },
+        );
     }
 
     setupVariationLoadingTimeout() {

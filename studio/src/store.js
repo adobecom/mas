@@ -71,6 +71,10 @@ const Store = {
         },
         preview: new ReactiveStore(null),
     },
+    settings: {
+        fragmentId: new ReactiveStore(null),
+        creating: new ReactiveStore(false),
+    },
     profile: new ReactiveStore(),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
@@ -163,10 +167,12 @@ function filtersValidator(value) {
  * @returns {string}
  */
 function pageValidator(value) {
+    if (value === PAGE_NAMES.SETTING_EDITOR) return PAGE_NAMES.SETTINGS;
     const validPages = [
         PAGE_NAMES.WELCOME,
         PAGE_NAMES.CONTENT,
         PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.SETTINGS,
         PAGE_NAMES.VERSION,
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,

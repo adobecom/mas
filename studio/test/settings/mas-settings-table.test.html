@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>mas-settings-table visual fixture</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../../style.css" />
+        <style>
+            body {
+                margin: 24px;
+            }
+
+            sp-theme {
+                display: block;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <mas-settings-table id="settings-table"></mas-settings-table>
+            <mas-toast id="settings-toast"></mas-toast>
+        </sp-theme>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import '../../src/swc.js';
+            import '../../src/mas-toast.js';
+            import '../../src/settings/mas-settings-table.js';
+            import { SettingsStore } from '../../src/settings/settings-store.js';
+
+            const figmaLikeReferences = [
+                    {
+                        id: 'setting-secure-transaction',
+                        fieldName: 'entries',
+                        title: 'Secure transaction',
+                        status: 'PUBLISHED',
+                        modified: { by: 'Mr Bean', at: '2025-10-16T11:14:00.000Z' },
+                        path: '/content/dam/mas/acom/en_US/secure-transaction-setting',
+                        tags: [{ id: 'mas:keyword/all', title: 'All' }],
+                        fields: [
+                            { name: 'name', values: ['showSecureTransaction'] },
+                            { name: 'label', values: ['Secure transaction'] },
+                            {
+                                name: 'description',
+                                values: ["Show/hide the security lock icon and label near the card's checkout button."],
+                            },
+                            { name: 'variant', values: ['catalog', 'mini'] },
+                            { name: 'value', values: [true] },
+                            {
+                                name: 'overrides',
+                                values: [
+                                    JSON.stringify([
+                                        {
+                                            id: 'override-fr-fr',
+                                            label: 'Secure transaction',
+                                            locale: 'FR (FR)',
+                                            template: 'All',
+                                            value: true,
+                                            tags: ['All'],
+                                            modifiedBy: 'Mr Bean',
+                                            modifiedAt: '2025-10-16T11:14:00.000Z',
+                                            status: 'PUBLISHED',
+                                        },
+                                        {
+                                            id: 'override-es-es',
+                                            label: 'Secure transaction',
+                                            locale: 'ES (ES)',
+                                            template: 'All',
+                                            value: true,
+                                            tags: ['EDU'],
+                                            modifiedBy: 'Mr Bean',
+                                            modifiedAt: '2025-10-16T11:14:00.000Z',
+                                            status: 'PUBLISHED',
+                                        },
+                                    ]),
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        id: 'setting-show-addon',
+                        fieldName: 'entries',
+                        title: 'Show Addon',
+                        status: 'PUBLISHED',
+                        modified: { by: 'Mr Bean', at: '2025-10-15T10:10:00.000Z' },
+                        path: '/content/dam/mas/acom/en_US/show-addon',
+                        tags: [{ id: 'mas:keyword/checkout', title: 'Checkout' }],
+                        fields: [
+                            { name: 'name', values: ['showAddon'] },
+                            { name: 'label', values: ['Show Addon'] },
+                            {
+                                name: 'description',
+                                values: [
+                                    'Toggles the visibility of configured add-on lines (e.g., extra storage) in the card. If disabled, all add-on info is hidden.',
+                                ],
+                            },
+                            { name: 'variant', values: [] },
+                            { name: 'value', values: [true] },
+                        ],
+                    },
+                    {
+                        id: 'setting-show-plan-type',
+                        fieldName: 'entries',
+                        title: 'Show Plan type',
+                        status: 'PUBLISHED',
+                        modified: { by: 'Mr Bean', at: '2025-10-14T09:11:00.000Z' },
+                        path: '/content/dam/mas/acom/en_US/show-plan-type',
+                        tags: [{ id: 'mas:keyword/pricing', title: 'Pricing' }],
+                        fields: [
+                            { name: 'name', values: ['showPlanType'] },
+                            { name: 'label', values: ['Show Plan type'] },
+                            {
+                                name: 'description',
+                                values: [
+                                    'Toggles the plan-type label (e.g., "Annual, paid monthly") next to the price. If off, only the price is shown.',
+                                ],
+                            },
+                            { name: 'variant', values: ['catalog', 'plans'] },
+                            { name: 'value', values: [true] },
+                        ],
+                    },
+                    {
+                        id: 'setting-show-badge',
+                        fieldName: 'entries',
+                        title: 'Show Badge',
+                        status: 'PUBLISHED',
+                        modified: { by: 'Mr Bean', at: '2025-10-13T09:11:00.000Z' },
+                        path: '/content/dam/mas/acom/en_US/show-badge',
+                        tags: [{ id: 'mas:keyword/design', title: 'Design' }],
+                        fields: [
+                            { name: 'name', values: ['showBadge'] },
+                            { name: 'label', values: ['Show badge'] },
+                            { name: 'variant', values: ['catalog', 'plans', 'mini', 'ccd-slice', 'special-offers'] },
+                            { name: 'value', values: [true] },
+                        ],
+                    },
+                ];
+
+            const mockAem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getByPath: async (path) => ({
+                                id: 'settings-index',
+                                path,
+                                fields: [{ name: 'entries', values: figmaLikeReferences.map((item) => item.path) }],
+                                references: figmaLikeReferences,
+                            }),
+                        },
+                    },
+                },
+            };
+
+            runTests(async () => {
+                describe('mas-settings-table visual fixture', () => {
+                    it('renders figma-like rows and shows toggle feedback toast', async () => {
+                        const el = document.querySelector('#settings-table');
+                        const toastHost = document.querySelector('#settings-toast');
+                        SettingsStore.destroy();
+                        SettingsStore.setAem(mockAem);
+                        await SettingsStore.loadSurface('acom');
+                        await el.updateComplete;
+
+                        const rows = el.shadowRoot.querySelectorAll('mas-setting-item');
+                        expect(rows.length).to.equal(4);
+                        const tableText = el.shadowRoot.textContent;
+                        expect(tableText).to.include('All templates selected');
+                        expect(tableText).to.include('5 templates selected');
+                        expect(tableText).to.include('Merch card (2 selected)');
+
+                        const firstSwitch = el.shadowRoot.querySelector('mas-setting-item sp-switch');
+                        firstSwitch.checked = false;
+                        firstSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await el.updateComplete;
+
+                        const toast = toastHost.shadowRoot.querySelector('sp-toast');
+                        expect(toast.textContent).to.include("'Secure transaction' is now [Off]");
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import './mas-fragment-render.js';
 import './mas-fragment-table.js';
-import './mas-fragment-variations.js';
+import './settings/mas-settings-table.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import Store from './store.js';
 import router from './router.js';
@@ -168,10 +168,7 @@ class MasFragment extends LitElement {
                 ><sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
             </overlay-trigger>
             ${this.expanded
-                ? html`<mas-fragment-variations
-                      .fragment=${this.fragmentStore.value}
-                      .loading=${this.loadingReferences}
-                  ></mas-fragment-variations>`
+                ? html`<mas-settings-table .loading=${this.loadingReferences}> </mas-settings-table>`
                 : ''}`;
     }
 

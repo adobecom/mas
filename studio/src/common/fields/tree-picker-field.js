@@ -1,0 +1,577 @@
+import { css, html, LitElement, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
+import { EVENT_CHANGE } from '../../constants.js';
+
+/**
+ * Generic tree-picker field.
+ *
+ * Expected tree model:
+ * [{ id: string, label: string, children?: TreeNode[] }]
+ */
+export class TreePickerField extends LitElement {
+    static properties = {
+        label: { type: String },
+        placeholder: { type: String },
+        tree: { type: Array, attribute: false },
+        value: { type: Array, attribute: false },
+        open: { type: Boolean, state: true },
+        searchQuery: { type: String, state: true },
+        draftValue: { type: Array, state: true },
+        expandedPaths: { type: Object, state: true },
+        disabled: { type: Boolean, reflect: true },
+        readonly: { type: Boolean, reflect: true },
+    };
+
+    static styles = css`
+        :host {
+            display: block;
+        }
+
+        .field-label {
+            color: var(--spectrum-gray-800);
+            display: block;
+            font-size: var(--spectrum-font-size-100);
+            line-height: 1.3;
+            margin-bottom: 6px;
+        }
+
+        .trigger {
+            align-items: center;
+            background: var(--spectrum-gray-50);
+            border: 2px solid var(--spectrum-gray-300);
+            border-radius: 8px;
+            box-sizing: border-box;
+            color: var(--spectrum-gray-900);
+            cursor: pointer;
+            display: flex;
+            gap: 8px;
+            height: 32px;
+            justify-content: space-between;
+            padding: 0 10px 0 12px;
+            width: 100%;
+        }
+
+        .trigger:disabled {
+            background: var(--spectrum-gray-100);
+            border-color: var(--spectrum-gray-200);
+            color: var(--spectrum-gray-500);
+            cursor: not-allowed;
+        }
+
+        .trigger-text {
+            flex: 1;
+            font-size: var(--spectrum-font-size-100);
+            line-height: 1.3;
+            overflow: hidden;
+            text-align: left;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .trigger-text.is-placeholder {
+            color: var(--spectrum-gray-700);
+        }
+
+        .trigger-icon {
+            flex-shrink: 0;
+        }
+
+        sp-popover.picker-popover {
+            border-radius: 10px;
+            max-width: min(420px, 90vw);
+            min-width: 248px;
+        }
+
+        .popover-content {
+            padding: 20px;
+        }
+
+        .popover-content sp-search {
+            width: 100%;
+        }
+
+        .tree-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 12px;
+            max-height: 640px;
+            overflow-y: auto;
+            width: 286px;
+        }
+
+        .tree-row {
+            align-items: center;
+            display: flex;
+            min-height: 32px;
+            padding-inline-start: calc(var(--tree-depth, 0) * 22px);
+        }
+
+        .tree-toggle {
+            align-items: center;
+            appearance: none;
+            background: none;
+            border: none;
+            color: var(--spectrum-gray-900);
+            cursor: pointer;
+            display: inline-flex;
+            height: 18px;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+            width: 18px;
+        }
+
+        .tree-toggle.is-spacer {
+            cursor: default;
+            visibility: hidden;
+        }
+
+        .tree-checkbox {
+            flex: 1;
+            min-height: 32px;
+        }
+
+        .tree-checkbox-count {
+            color: var(--spectrum-gray-700);
+            margin-inline-start: 4px;
+        }
+
+        .empty-state {
+            color: var(--spectrum-gray-700);
+            display: block;
+            font-style: italic;
+            padding: 8px;
+        }
+    `;
+
+    #nodeMap;
+    #childrenMap;
+    #parentMap;
+    #leafDescendantsMap;
+    #rootIds;
+    #leafIds;
+
+    constructor() {
+        super();
+        this.label = '';
+        this.placeholder = 'Select';
+        this.tree = [];
+        this.value = [];
+        this.open = false;
+        this.searchQuery = '';
+        this.draftValue = [];
+        this.expandedPaths = new Set();
+        this.disabled = false;
+        this.readonly = false;
+
+        this.#nodeMap = new Map();
+        this.#childrenMap = new Map();
+        this.#parentMap = new Map();
+        this.#leafDescendantsMap = new Map();
+        this.#rootIds = [];
+        this.#leafIds = [];
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.#rebuildTreeIndex();
+        this.#syncDraftFromValue();
+    }
+
+    updated(changedProperties) {
+        if (changedProperties.has('tree')) {
+            this.#rebuildTreeIndex();
+            this.#syncDraftFromValue();
+        }
+
+        if (changedProperties.has('value') && !this.open) {
+            this.#syncDraftFromValue();
+        }
+    }
+
+    #rebuildTreeIndex() {
+        this.#nodeMap = new Map();
+        this.#childrenMap = new Map();
+        this.#parentMap = new Map();
+        this.#leafDescendantsMap = new Map();
+        this.#rootIds = [];
+        this.#leafIds = [];
+
+        const walk = (node, parentId = null) => {
+            if (!node || typeof node !== 'object') return;
+
+            const nodeId = String(node.id ?? '');
+            if (!nodeId) return;
+            if (this.#nodeMap.has(nodeId)) return;
+
+            const label = String(node.label ?? nodeId);
+            const children = Array.isArray(node.children) ? node.children : [];
+            const childIds = [];
+
+            this.#nodeMap.set(nodeId, {
+                id: nodeId,
+                label,
+                hasChildren: children.length > 0,
+            });
+            this.#childrenMap.set(nodeId, childIds);
+            this.#parentMap.set(nodeId, parentId);
+
+            children.forEach((child) => {
+                const childId = String(child?.id ?? '');
+                if (!childId) return;
+                childIds.push(childId);
+                walk(child, nodeId);
+            });
+        };
+
+        (Array.isArray(this.tree) ? this.tree : []).forEach((rootNode) => {
+            const rootId = String(rootNode?.id ?? '');
+            if (!rootId) return;
+            this.#rootIds.push(rootId);
+            walk(rootNode);
+        });
+
+        const collectLeafDescendants = (nodeId) => {
+            if (!this.#nodeMap.has(nodeId)) return [];
+            const children = this.#childrenMap.get(nodeId) || [];
+
+            if (children.length === 0) {
+                this.#leafDescendantsMap.set(nodeId, [nodeId]);
+                return [nodeId];
+            }
+
+            const descendantLeaves = [];
+            children.forEach((childId) => {
+                descendantLeaves.push(...collectLeafDescendants(childId));
+            });
+
+            this.#leafDescendantsMap.set(nodeId, descendantLeaves);
+            return descendantLeaves;
+        };
+
+        this.#rootIds.forEach((rootId) => {
+            collectLeafDescendants(rootId);
+        });
+
+        this.#leafIds = this.#rootIds.flatMap((rootId) => this.#leafDescendantsMap.get(rootId) || []);
+    }
+
+    #sameSelection(a = [], b = []) {
+        if (a.length !== b.length) return false;
+        const bSet = new Set(b);
+        return a.every((value) => bSet.has(value));
+    }
+
+    #selectedLeafIds(value = this.value) {
+        const selected = new Set();
+        const valueArray = Array.isArray(value) ? value : [];
+
+        valueArray.forEach((nodeId) => {
+            const id = String(nodeId);
+            const leafDescendants = this.#leafDescendantsMap.get(id);
+            if (leafDescendants) {
+                leafDescendants.forEach((leafId) => selected.add(leafId));
+            }
+        });
+
+        return [...selected];
+    }
+
+    #syncDraftFromValue() {
+        const nextDraft = this.#selectedLeafIds(this.value);
+        if (!this.#sameSelection(this.draftValue, nextDraft)) {
+            this.draftValue = nextDraft;
+        }
+        this.#syncExpandedPathsFromSelection(nextDraft);
+    }
+
+    #syncExpandedPathsFromSelection(selectedLeafIds = this.draftValue) {
+        const currentExpanded = this.expandedPaths || new Set();
+        const nextExpanded = new Set(currentExpanded);
+
+        selectedLeafIds.forEach((leafId) => {
+            let parentId = this.#parentMap.get(leafId);
+            while (parentId) {
+                nextExpanded.add(parentId);
+                parentId = this.#parentMap.get(parentId);
+            }
+        });
+
+        if (nextExpanded.size === currentExpanded.size && [...nextExpanded].every((path) => currentExpanded.has(path))) {
+            return;
+        }
+
+        this.expandedPaths = nextExpanded;
+    }
+
+    #getNodeSelectionState(nodeId) {
+        const selectedSet = new Set(this.draftValue || []);
+        const leafDescendants = this.#leafDescendantsMap.get(nodeId) || [];
+
+        if (leafDescendants.length === 0) {
+            return 'none';
+        }
+
+        const selectedCount = leafDescendants.reduce((count, leafId) => count + (selectedSet.has(leafId) ? 1 : 0), 0);
+
+        if (selectedCount === 0) return 'none';
+        if (selectedCount === leafDescendants.length) return 'checked';
+        return 'partial';
+    }
+
+    #toggleExpand(event) {
+        event.stopPropagation();
+        const target = event.composedPath?.()[0] || event.target;
+        const nodeId = target?.dataset?.treeToggle;
+        if (!nodeId) return;
+
+        const nextExpanded = new Set(this.expandedPaths || []);
+        if (nextExpanded.has(nodeId)) nextExpanded.delete(nodeId);
+        else nextExpanded.add(nodeId);
+        this.expandedPaths = nextExpanded;
+    }
+
+    #toggleCheckbox(event) {
+        event.stopPropagation();
+        const target = event.composedPath?.()[0] || event.target;
+        const nodeId = target?.value || target?.getAttribute?.('value');
+        if (!nodeId) return;
+
+        const leafDescendants = this.#leafDescendantsMap.get(nodeId) || [];
+        if (leafDescendants.length === 0) return;
+
+        const nextDraft = new Set(this.draftValue || []);
+        if (target.checked) leafDescendants.forEach((leafId) => nextDraft.add(leafId));
+        else leafDescendants.forEach((leafId) => nextDraft.delete(leafId));
+
+        this.draftValue = [...nextDraft];
+        this.#syncExpandedPathsFromSelection(this.draftValue);
+    }
+
+    #handleSearchInput(event) {
+        const target = event.composedPath?.()[0] || event.target;
+        this.searchQuery = target?.value || '';
+    }
+
+    #getRows() {
+        if (!this.#rootIds.length) return [];
+
+        const rows = [];
+        const query = this.searchQuery.trim().toLowerCase();
+
+        if (!query) {
+            const visit = (nodeId, depth = 0) => {
+                const node = this.#nodeMap.get(nodeId);
+                if (!node) return;
+
+                const children = this.#childrenMap.get(nodeId) || [];
+                rows.push({ nodeId, depth, node, hasChildren: children.length > 0 });
+
+                if (children.length && (this.expandedPaths || new Set()).has(nodeId)) {
+                    children.forEach((childId) => visit(childId, depth + 1));
+                }
+            };
+
+            this.#rootIds.forEach((rootId) => visit(rootId, 0));
+            return rows;
+        }
+
+        const visitWithSearch = (nodeId, depth = 0) => {
+            const node = this.#nodeMap.get(nodeId);
+            if (!node) return { matched: false, rows: [] };
+
+            const children = this.#childrenMap.get(nodeId) || [];
+            const labelMatch = node.label.toLowerCase().includes(query);
+
+            let matchedChildRows = [];
+            let hasMatchingChild = false;
+
+            children.forEach((childId) => {
+                const result = visitWithSearch(childId, depth + 1);
+                if (!result.matched) return;
+                hasMatchingChild = true;
+                matchedChildRows = matchedChildRows.concat(result.rows);
+            });
+
+            if (!labelMatch && !hasMatchingChild) {
+                return { matched: false, rows: [] };
+            }
+
+            return {
+                matched: true,
+                rows: [{ nodeId, depth, node, hasChildren: children.length > 0 }, ...matchedChildRows],
+            };
+        };
+
+        this.#rootIds.forEach((rootId) => {
+            const result = visitWithSearch(rootId, 0);
+            if (result.matched) rows.push(...result.rows);
+        });
+
+        return rows;
+    }
+
+    #commitSelection() {
+        const currentSelection = this.#selectedLeafIds(this.value);
+        const nextSelection = [...new Set(this.draftValue || [])];
+        if (this.#sameSelection(currentSelection, nextSelection)) return;
+
+        this.value = nextSelection;
+        this.dispatchEvent(
+            new CustomEvent(EVENT_CHANGE, {
+                bubbles: true,
+                composed: true,
+                detail: this,
+            }),
+        );
+    }
+
+    #handlePopoverOpened() {
+        this.open = true;
+        this.searchQuery = '';
+        this.#syncDraftFromValue();
+    }
+
+    #handlePopoverClosed() {
+        this.open = false;
+        this.searchQuery = '';
+        this.#commitSelection();
+    }
+
+    get #summary() {
+        const selectedIds = this.open ? this.draftValue : this.#selectedLeafIds(this.value);
+        const selectedCount = selectedIds.length;
+
+        if (selectedCount === 0) {
+            return {
+                text: this.placeholder,
+                placeholder: true,
+            };
+        }
+
+        if (selectedCount === this.#leafIds.length && this.#leafIds.length > 0) {
+            return {
+                text: 'All selected',
+                placeholder: false,
+            };
+        }
+
+        if (selectedCount === 1) {
+            const label = this.#nodeMap.get(selectedIds[0])?.label || selectedIds[0];
+            return {
+                text: label,
+                placeholder: false,
+            };
+        }
+
+        return {
+            text: `${selectedCount} selected`,
+            placeholder: false,
+        };
+    }
+
+    get #triggerDisabled() {
+        return this.disabled || this.readonly || this.#leafIds.length === 0;
+    }
+
+    get #rows() {
+        return this.#getRows();
+    }
+
+    #renderTreeRow({ nodeId, depth, node, hasChildren }) {
+        const expanded = (this.expandedPaths || new Set()).has(nodeId);
+        const state = this.#getNodeSelectionState(nodeId);
+        const descendantLeaves = this.#leafDescendantsMap.get(nodeId) || [];
+        const count = hasChildren ? descendantLeaves.length : 0;
+
+        return html`
+            <div class="tree-row" style="--tree-depth:${depth}" data-tree-path="${nodeId}">
+                <button
+                    class="tree-toggle ${hasChildren ? '' : 'is-spacer'}"
+                    ?disabled=${!hasChildren}
+                    data-tree-toggle="${nodeId}"
+                    @click=${this.#toggleExpand}
+                >
+                    ${!hasChildren
+                        ? nothing
+                        : expanded
+                          ? html`<sp-icon-chevron-down size="s"></sp-icon-chevron-down>`
+                          : html`<sp-icon-chevron-right size="s"></sp-icon-chevron-right>`}
+                </button>
+                <sp-checkbox
+                    class="tree-checkbox"
+                    data-tree-checkbox="${nodeId}"
+                    value="${nodeId}"
+                    ?checked=${state === 'checked'}
+                    .indeterminate=${state === 'partial'}
+                    @change=${this.#toggleCheckbox}
+                >
+                    ${node.label} ${count > 0 ? html`<span class="tree-checkbox-count">(${count})</span>` : nothing}
+                </sp-checkbox>
+            </div>
+        `;
+    }
+
+    get #popoverContent() {
+        if (!this.open) return nothing;
+
+        return html`
+            <div class="popover-content">
+                <sp-search @input=${this.#handleSearchInput} placeholder="Search" value="${this.searchQuery}"></sp-search>
+                <div class="tree-list">
+                    ${this.#rows.length === 0
+                        ? html`<span class="empty-state">No matches</span>`
+                        : repeat(
+                              this.#rows,
+                              ({ nodeId }) => nodeId,
+                              (row) => this.#renderTreeRow(row),
+                          )}
+                </div>
+            </div>
+        `;
+    }
+
+    get #triggerTemplate() {
+        const summary = this.#summary;
+        return html`
+            <button
+                slot="trigger"
+                class="trigger"
+                type="button"
+                aria-label=${this.label || this.placeholder}
+                ?disabled=${this.#triggerDisabled}
+            >
+                <span class="trigger-text ${summary.placeholder ? 'is-placeholder' : ''}">${summary.text}</span>
+                <sp-icon-chevron-down size="s" class="trigger-icon"></sp-icon-chevron-down>
+            </button>
+        `;
+    }
+
+    render() {
+        const summary = this.#summary;
+
+        return html`
+            ${this.label ? html`<span class="field-label">${this.label}</span>` : nothing}
+            ${this.readonly
+                ? html`
+                      <div class="trigger" aria-label=${this.label || this.placeholder}>
+                          <span class="trigger-text ${summary.placeholder ? 'is-placeholder' : ''}">${summary.text}</span>
+                          <sp-icon-chevron-down size="s" class="trigger-icon"></sp-icon-chevron-down>
+                      </div>
+                  `
+                : html`
+                      <overlay-trigger
+                          placement="bottom-start"
+                          @sp-opened=${this.#handlePopoverOpened}
+                          @sp-closed=${this.#handlePopoverClosed}
+                      >
+                          ${this.#triggerTemplate}
+                          <sp-popover slot="click-content" class="picker-popover">${this.#popoverContent}</sp-popover>
+                      </overlay-trigger>
+                  `}
+        `;
+    }
+}
+
+customElements.define('tree-picker-field', TreePickerField);

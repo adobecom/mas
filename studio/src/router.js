@@ -88,6 +88,15 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.SETTINGS: {
+                const editor = document.querySelector('mas-settings');
+                const hasUnsavedChanges = editor && editor.hasUnsavedChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             default:
                 return { editor: null, hasChanges: false, shouldCheckUnsavedChanges: false };
         }
@@ -130,6 +139,10 @@ export class Router extends EventTarget {
                         Store.fragments.list.data.set([]);
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
                         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+                    }
+                    if (value !== PAGE_NAMES.SETTINGS) {
+                        Store.settings.creating.set(false);
+                        Store.settings.fragmentId.set(null);
                     }
                     Store.viewMode.set('default');
                     Store.page.set(value);
@@ -403,6 +416,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
+        this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }

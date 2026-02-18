@@ -29,8 +29,11 @@ class MasSideNav extends LitElement {
             flex-direction: column;
         }
 
-        .side-nav-support {
+        #settings-nav-item {
             margin-top: auto;
+        }
+
+        .side-nav-support {
             position: relative;
         }
 
@@ -40,6 +43,11 @@ class MasSideNav extends LitElement {
             right: 8px;
             width: 14px;
             height: 14px;
+        }
+
+        #settings-nav-item {
+            position: absolute;
+            bottom: 12px;
         }
     `;
 
@@ -183,6 +191,13 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-help slot="icon"></sp-icon-help>
                 <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
+            </mas-side-nav-item>
+            <mas-side-nav-item
+                id="settings-nav-item"
+                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.SETTINGS)}"
+            >
+                <sp-icon-settings slot="icon" size="l"></sp-icon-settings>
             </mas-side-nav-item>
         `;
     }

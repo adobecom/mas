@@ -105,6 +105,8 @@ export const STATUS_MODIFIED = 'MODIFIED';
 export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
+    SETTINGS: 'settings',
+    SETTING_EDITOR: 'setting-editor',
     CONTENT: 'content',
     VERSION: 'version',
     FRAGMENT_EDITOR: 'fragment-editor',

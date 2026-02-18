@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>mas-settings visual fixture</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../../style.css" />
+        <style>
+            body {
+                margin: 0;
+            }
+
+            sp-theme {
+                display: block;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <mas-settings id="settings-page"></mas-settings>
+        </sp-theme>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import '../../src/swc.js';
+            import '../../src/settings/mas-settings.js';
+            import Store from '../../src/store.js';
+
+            const settingFragments = [
+                {
+                    id: 'setting-secure-transaction',
+                    title: 'Secure transaction',
+                    path: '/content/dam/mas/acom/en_US/settings/secure-transaction',
+                    status: 'PUBLISHED',
+                    modified: { by: 'Mr Bean', at: '2025-10-16T11:14:00.000Z' },
+                    tags: [{ id: 'mas:keyword/all', title: 'All' }],
+                    fields: [
+                        { name: 'name', values: ['showSecureTransaction'] },
+                        { name: 'label', values: ['Secure transaction'] },
+                        { name: 'variant', values: ['catalog', 'mini'] },
+                        { name: 'value', values: [true] },
+                    ],
+                },
+                {
+                    id: 'setting-show-addon',
+                    title: 'Show Addon',
+                    path: '/content/dam/mas/acom/en_US/settings/show-addon',
+                    status: 'PUBLISHED',
+                    modified: { by: 'Mr Bean', at: '2025-10-15T10:10:00.000Z' },
+                    tags: [{ id: 'mas:keyword/checkout', title: 'Checkout' }],
+                    fields: [
+                        { name: 'name', values: ['showAddon'] },
+                        { name: 'label', values: ['Show Addon'] },
+                        { name: 'variant', values: [] },
+                        { name: 'value', values: [true] },
+                    ],
+                },
+                {
+                    id: 'setting-show-plan-type',
+                    title: 'Show Plan type',
+                    path: '/content/dam/mas/acom/en_US/settings/show-plan-type',
+                    status: 'PUBLISHED',
+                    modified: { by: 'Mr Bean', at: '2025-10-14T09:11:00.000Z' },
+                    tags: [{ id: 'mas:keyword/pricing', title: 'Pricing' }],
+                    fields: [
+                        { name: 'name', values: ['showPlanType'] },
+                        { name: 'label', values: ['Show Plan type'] },
+                        { name: 'variant', values: ['catalog', 'plans'] },
+                        { name: 'value', values: [true] },
+                    ],
+                },
+                {
+                    id: 'setting-see-all-plans',
+                    title: 'See all plans & pricing details',
+                    path: '/content/dam/mas/acom/en_US/settings/see-all-plans',
+                    status: 'PUBLISHED',
+                    modified: { by: 'Mr Bean', at: '2025-10-13T08:21:00.000Z' },
+                    tags: [{ id: 'mas:keyword/legal', title: 'Legal' }],
+                    fields: [
+                        { name: 'name', values: ['showPlansPricingDetails'] },
+                        { name: 'label', values: ['See all plans & pricing details'] },
+                        { name: 'variant', values: ['plans'] },
+                        { name: 'value', values: ['See all plans & pricing details'] },
+                    ],
+                },
+                {
+                    id: 'setting-acrobat-ai-assistant',
+                    title: 'Acrobat AI assistant',
+                    path: '/content/dam/mas/acom/en_US/settings/acrobat-ai-assistant',
+                    status: 'PUBLISHED',
+                    modified: { by: 'Mr Bean', at: '2025-10-12T10:25:00.000Z' },
+                    tags: [{ id: 'mas:keyword/all', title: 'All' }],
+                    fields: [
+                        { name: 'name', values: ['showAcrobatAiAssistant'] },
+                        { name: 'label', values: ['Acrobat AI assistant'] },
+                        { name: 'variant', values: [] },
+                        {
+                            name: 'value',
+                            values: [
+                                'Add AI Assistant to your free Reader app for US$59.88/yr. Add AI Assistant to your free Reader app for US$4.99/mo.',
+                            ],
+                        },
+                    ],
+                },
+            ];
+
+            const mockAem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getByPath: async (path) => ({
+                                id: 'settings-index',
+                                path,
+                                fields: [{ name: 'entries', values: settingFragments.map((item) => item.path) }],
+                                references: settingFragments.map((item) => ({ ...item, fieldName: 'entries' })),
+                            }),
+                        },
+                    },
+                },
+            };
+
+            runTests(async () => {
+                describe('mas-settings visual fixture', () => {
+                    it('renders settings page and table', async () => {
+                        const settingsPage = document.querySelector('#settings-page');
+                        Store.search.set({ path: 'acom' });
+                        Store.filters.set({ ...Store.filters.get(), locale: 'en_US' });
+                        settingsPage.aem = mockAem;
+                        await settingsPage.updateComplete;
+                        await settingsPage.updateComplete;
+
+                        expect(settingsPage.shadowRoot.querySelector('#title').textContent.trim()).to.equal('Settings');
+
+                        const settingsTable = settingsPage.shadowRoot.querySelector('#settings-table');
+                        let attempts = 0;
+                        let rowCount = 0;
+                        while (attempts < 20) {
+                            await settingsTable.updateComplete;
+                            rowCount = settingsTable.shadowRoot.querySelectorAll('mas-setting-item').length;
+                            if (rowCount === 5) break;
+                            attempts++;
+                            await new Promise((resolve) => setTimeout(resolve, 0));
+                        }
+                        expect(rowCount).to.equal(5);
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

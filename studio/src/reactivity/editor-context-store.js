@@ -68,6 +68,7 @@ export class EditorContextStore extends ReactiveStore {
                             .getById(this.defaultLocaleId)
                             .then((data) => {
                                 this.localeDefaultFragment = data;
+                                this.notify();
                                 return data;
                             })
                             .catch(() => {
@@ -128,6 +129,7 @@ export class EditorContextStore extends ReactiveStore {
             .then((data) => {
                 this.localeDefaultFragment = data;
                 this.defaultLocaleId = data?.id;
+                this.notify();
                 return data;
             })
             .catch(() => {

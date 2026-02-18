@@ -62,8 +62,24 @@ class MasTranslationEditor extends LitElement {
     async connectedCallback() {
         super.connectedCallback();
 
-        this.repository?.searchFragments();
-        this.repository?.loadPlaceholders();
+        if (this.repository?.searchFragments) {
+            this.repository.searchFragments();
+        }
+        if (this.repository?.loadPlaceholders) {
+            this.repository.loadPlaceholders();
+        }
+
+        // reset locale to default
+        Store.search.set((prev) => ({ ...prev, region: null }));
+        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
+        // Check for pre-fill data from store (e.g., from missing-variation-panel)
+        const prefill = Store.translationProjects.prefill.get();
+        const { targetLocale, fragmentPath } = prefill || {};
+        // Clear prefill state after consumption to prevent stale data
+        if (prefill) {
+            Store.translationProjects.prefill.set(null);
+        }
 
         const translationProjectId = Store.translationProjects.translationProjectId.get();
         if (translationProjectId) {
@@ -71,7 +87,7 @@ class MasTranslationEditor extends LitElement {
             this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC] });
         } else {
-            this.#initializeNewTranslationProject();
+            this.#initializeNewTranslationProject(fragmentPath, targetLocale);
         }
         this.storeController = new StoreController(this, Store.translationProjects.inEdit);
         this.selectedController = new ReactiveController(this, [
@@ -152,24 +168,32 @@ class MasTranslationEditor extends LitElement {
         }
     }
 
-    #initializeNewTranslationProject() {
+    #initializeNewTranslationProject(fragmentPath, targetLocale) {
         const newProject = new Fragment({
             id: null,
             title: '',
             fields: [
                 { name: 'title', type: 'text', multiple: false, values: [] },
                 { name: 'status', type: 'text', multiple: false, values: [] },
-                { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
+                { name: 'fragments', type: 'content-fragment', multiple: true, values: fragmentPath ? [fragmentPath] : [] },
                 { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
-                { name: 'targetLocales', type: 'text', multiple: true, values: [] },
+                { name: 'targetLocales', type: 'text', multiple: true, values: targetLocale ? [targetLocale] : [] },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
             ],
         });
         this.isNewTranslationProject = true;
         this.translationProjectStore = new FragmentStore(newProject);
-        this.showSelectedEmptyState = true;
-        this.showLangSelectedEmptyState = true;
+
+        if (fragmentPath) {
+            Store.translationProjects.selectedCards.set([fragmentPath]);
+        }
+        if (targetLocale) {
+            Store.translationProjects.targetLocales.set([targetLocale]);
+        }
+
+        this.showSelectedEmptyState = this.selectedCount === 0;
+        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
     }
 
     #handleFragmentUpdate({ target, detail, values }) {

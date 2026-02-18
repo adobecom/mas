@@ -21,7 +21,11 @@ export const PRODUCT_AEM_FRAGMENT_MAPPING = {
     secureLabel: true,
     planType: true,
     badgeIcon: true,
-    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-variation' },
+    badge: {
+        tag: 'div',
+        slot: 'badge',
+        default: 'spectrum-yellow-300-variation',
+    },
     allowedBadgeColors: [
         'spectrum-yellow-300-variation',
         'spectrum-gray-300-variation',
@@ -168,7 +172,7 @@ export class Product extends VariantLayout {
         } catch {
             // Proceed with other adjustments
         }
-    }    
+    }
 
     get headingXSSlot() {
         return this.card.shadowRoot

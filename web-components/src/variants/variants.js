@@ -92,11 +92,12 @@ registerVariant(
     PlansV2.variantStyle,
     PlansV2.collectionOptions,
 );
-registerVariant('product',
+registerVariant(
+    'product',
     Product,
     PRODUCT_AEM_FRAGMENT_MAPPING,
     Product.variantStyle,
-    Product.collectionOptions
+    Product.collectionOptions,
 );
 registerVariant('segment', Segment, null, Segment.variantStyle);
 registerVariant(

@@ -547,7 +547,9 @@ export class MerchCardCollection extends LitElement {
             const variant = normalizeVariant(cards[0]?.fields?.variant);
             this.variant = variant;
             if (
-                (variant === 'plans' || variant === 'segment' || variant === 'product') &&
+                (variant === 'plans' ||
+                    variant === 'segment' ||
+                    variant === 'product') &&
                 (cards.length === 2 || cards.length === 3) &&
                 !cards.some((card) => card.fields?.size?.includes('wide'))
             ) {

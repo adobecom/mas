@@ -4,7 +4,7 @@ import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
-import { generateFieldLink } from './utils.js';
+import { generateFieldLink, camelToTitle, stripHtml, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
 
 class MasSideNav extends LitElement {
@@ -80,8 +80,7 @@ class MasSideNav extends LitElement {
     variationDataLoading = false;
     fragmentStoreSubscription = null;
     variationLoadingTimeout = null;
-    /** Cached resolved price text (e.g. "US$99.99/mo") for the Copy Field popover. */
-    _resolvedPriceText = '';
+    resolvedPriceText = '';
 
     connectedCallback() {
         super.connectedCallback();
@@ -99,7 +98,7 @@ class MasSideNav extends LitElement {
             }
 
             if (fragmentStore) {
-                this._resolvedPriceText = '';
+                this.resolvedPriceText = '';
                 this.variationDataLoading = true;
                 this.setupVariationLoadingTimeout();
                 this.fragmentStoreSubscription = fragmentStoreHandler;
@@ -230,7 +229,7 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.copyToUse();
     }
 
-    // --- Copy Field helpers ---
+    // --- Copy Field config ---
 
     static FIELD_DISPLAY_NAMES = {
         variant: 'Template',
@@ -240,25 +239,6 @@ class MasSideNav extends LitElement {
         originalId: 'Original ID',
     };
     static HIDDEN_FIELDS = new Set(['quantitySelect']);
-    static PREVIEW_MAX_LENGTH = 60;
-
-    static camelToTitle(name) {
-        return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
-    }
-
-    static stripHtml(value) {
-        return new DOMParser().parseFromString(value, 'text/html').body.textContent || '';
-    }
-
-    static previewValue(values) {
-        const raw = values?.[0] ?? '';
-        if (!raw) return '';
-        const text = typeof raw === 'string' && raw.includes('<')
-            ? MasSideNav.stripHtml(raw)
-            : String(raw);
-        const max = MasSideNav.PREVIEW_MAX_LENGTH;
-        return text.length > max ? `${text.slice(0, max - 3)}...` : text;
-    }
 
     /**
      * Waits for the merch-card preview to finish rendering (including WCS price
@@ -276,8 +256,8 @@ class MasSideNav extends LitElement {
         await card.checkReady?.();
         const price = card.querySelector('span[is="inline-price"]');
         const text = price?.textContent.trim() ?? '';
-        if (text && text !== this._resolvedPriceText) {
-            this._resolvedPriceText = text;
+        if (text && text !== this.resolvedPriceText) {
+            this.resolvedPriceText = text;
             this.requestUpdate();
         }
     }
@@ -292,11 +272,11 @@ class MasSideNav extends LitElement {
                 name: f.name,
                 displayName:
                     MasSideNav.FIELD_DISPLAY_NAMES[f.name] ??
-                    MasSideNav.camelToTitle(f.name),
+                    camelToTitle(f.name),
                 // Prices contain unresolved <inline-price> HTML — prefer cached resolved text
                 preview: f.name === 'prices'
-                    ? (this._resolvedPriceText || MasSideNav.previewValue(f.values))
-                    : MasSideNav.previewValue(f.values),
+                    ? (this.resolvedPriceText || previewValue(f.values))
+                    : previewValue(f.values),
             }));
     }
 
@@ -314,7 +294,7 @@ class MasSideNav extends LitElement {
                     'text/html': new Blob([link.richText], { type: 'text/html' }),
                 }),
             ]);
-            const displayName = MasSideNav.FIELD_DISPLAY_NAMES[fieldName] ?? MasSideNav.camelToTitle(fieldName);
+            const displayName = MasSideNav.FIELD_DISPLAY_NAMES[fieldName] ?? camelToTitle(fieldName);
             Events.toast.emit({ variant: 'positive', content: `Copied ${displayName} field link` });
         } catch {
             Events.toast.emit({ variant: 'negative', content: 'Failed to copy field link' });

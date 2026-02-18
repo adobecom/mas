@@ -257,6 +257,44 @@ export function generateFieldLink(fragment, path, fieldName) {
     return { displayText, href, richText };
 }
 
+// --- Copy Field display helpers ---
+
+const PREVIEW_MAX_LENGTH = 60;
+
+/**
+ * Converts a camelCase field name to Title Case.
+ * e.g. "cardTitle" → "Card Title", "borderColor" → "Border Color"
+ * @param {string} name
+ * @returns {string}
+ */
+export function camelToTitle(name) {
+    return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+}
+
+/**
+ * Strips HTML tags from a string, returning the text content.
+ * @param {string} value
+ * @returns {string}
+ */
+export function stripHtml(value) {
+    return new DOMParser().parseFromString(value, 'text/html').body.textContent || '';
+}
+
+/**
+ * Returns a truncated plain-text preview of the first value in an array.
+ * HTML is stripped; long strings are capped at 60 characters with ellipsis.
+ * @param {any[]} values
+ * @returns {string}
+ */
+export function previewValue(values) {
+    const raw = values?.[0] ?? '';
+    if (!raw) return '';
+    const text = typeof raw === 'string' && raw.includes('<')
+        ? stripHtml(raw)
+        : String(raw);
+    return text.length > PREVIEW_MAX_LENGTH ? `${text.slice(0, PREVIEW_MAX_LENGTH - 3)}...` : text;
+}
+
 /*
  * Helper method to show toast messages with consistent formatting
  * @param {string} message - The message to display

@@ -450,9 +450,7 @@ class MerchCardEditor extends LitElement {
             const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
             this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
         }
-        const fragment = this.fragmentStore.get();
-        fragment.updateField(QUANTITY_MODEL, [html]);
-        this.fragmentStore.set(fragment);
+        this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
     };
 
     showQuantityFields(show) {

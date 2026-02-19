@@ -44,6 +44,9 @@
                 id: 'test-fragment-id',
                 path: '/content/dam/mas/commerce/en_US/test-fragment',
                 fields: [{ name: 'variations', values: ['/content/dam/mas/commerce/en_AU/test-fragment'] }],
+                getFieldValue(name, index = 0) {
+                    return this.fields.find((f) => f.name === name)?.values?.[index];
+                },
             };
 
             const mockParentFragment = {

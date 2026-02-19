@@ -11,10 +11,10 @@ jobs:
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             batch_size: 15
-            odin_bucket: ${{ secrets.ODIN_BUCKET_STAGE }}
         secrets:
             ENV: ${{ secrets.AIO_STUDIO_ENV_STAGE }}
             AIO: ${{  secrets.AIO_STUDIO_AIO_STAGE }}
+            ODIN_BUCKET: ${{ secrets.ODIN_BUCKET_STAGE }}
 
     test_stage:
         needs: deploy_stage
@@ -27,10 +27,10 @@ jobs:
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             batch_size: 25
-            odin_bucket: ${{ secrets.ODIN_BUCKET_PROD }}
         secrets:
             ENV: ${{ secrets.AIO_STUDIO_ENV_PROD }}
             AIO: ${{  secrets.AIO_STUDIO_AIO_PROD }}
+            ODIN_BUCKET: ${{ secrets.ODIN_BUCKET_PROD }}
 
     test_production:
         needs: deploy_production

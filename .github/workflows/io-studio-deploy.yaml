@@ -10,13 +10,12 @@ on:
                 type: number
                 required: false
                 default: 10
-            odin_bucket:
-                type: string
-                required: true
         secrets:
             ENV:
                 required: true
             AIO:
+                required: true
+            ODIN_BUCKET:
                 required: true
 
 jobs:
@@ -74,8 +73,8 @@ jobs:
 
             - name: Set environment paramaters (odin bucket, batch size)
               run: |
-                  echo "Setting odin bucket to ${{ inputs.odin_bucket }}"
-                  npx aio config set ODIN_ENDPOINT "https://author-p22655-${{ inputs.odin_bucket }}.adobeaemcloud.com"
+                  echo "Setting odin bucket to ${{ secrets.ODIN_BUCKET }}"
+                  npx aio config set ODIN_ENDPOINT "https://author-p22655-${{ secrets.ODIN_BUCKET }}.adobeaemcloud.com"
                   echo "Setting batch size to ${{ inputs.batch_size }}"
                   npx aio config set BATCH_SIZE "${{ inputs.batch_size }}"
 

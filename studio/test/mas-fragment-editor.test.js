@@ -574,8 +574,10 @@ describe('MasFragmentEditor', () => {
         let el;
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
             const fragment = new Fragment({ id: 'test-id' });
             sandbox.stub(fragment, 'getLocaleVariationCount').returns(2);
+            sandbox.stub(fragment, 'getGroupedVariationCount').returns(2);
             sandbox.stub(fragment, 'getPromoVariationCount').returns(1);
             el.inEdit.value = { get: () => fragment };
         });

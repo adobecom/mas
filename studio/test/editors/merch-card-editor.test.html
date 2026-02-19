@@ -519,11 +519,7 @@
                         await fragmentEditor.updateComplete;
 
                         const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
-                        expect(relatedVariations).to.exist;
-                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
-                            el.textContent.trim().replace(/\s+/g, ' '),
-                        );
-                        expect(counts).to.deep.equal([]);
+                        expect(relatedVariations).to.not.exist;
                     });
 
                     it('shows 5 regional + 1 grouped sibling counts when variations contains stale paths not present in references', async () => {

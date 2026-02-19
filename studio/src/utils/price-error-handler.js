@@ -4,7 +4,7 @@ document.addEventListener('mas:failed', (event) => {
         originalTarget.innerHTML = `
             <sp-icon-alert class="price-error-icon"></sp-icon-alert>
             <div class="price-error-content">
-                <span class="price-error-title heading-xs">Price unavailable</span>
+                <span class="price-error-title">Price unavailable</span>
             </div>
         `;
     }

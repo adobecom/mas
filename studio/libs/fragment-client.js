@@ -8,7 +8,7 @@ import { logError } from '../../io/www/src/fragment/utils/log.js';
 import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
-import { getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
+import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
 import { transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
@@ -49,6 +49,10 @@ const DEFAULT_CONTEXT = {
     api_key: 'n/a',
     locale: 'en_US',
 };
+
+function clearCaches() {
+    clearDictionaryCache(true);
+}
 
 async function previewFragment(id, options) {
     let context = { ...DEFAULT_CONTEXT, ...options, id };
@@ -134,4 +138,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewFragmentForEditor, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export { clearCaches, previewFragment, previewFragmentForEditor, previewStudioFragment, customize, settings, replace, getDictionary, corrector };

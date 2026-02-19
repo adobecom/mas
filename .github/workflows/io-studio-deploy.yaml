@@ -66,18 +66,18 @@ jobs:
 
             - name: Prepare .aio and .env files
               env:
-                ENV_CONTENT: ${{ secrets.ENV }}
-                AIO_CONTENT: ${{ secrets.AIO }}
+                  ENV_CONTENT: ${{ secrets.ENV }}
+                  AIO_CONTENT: ${{ secrets.AIO }}
               run: |
-                printf '%s' "$ENV_CONTENT" > .env
-                printf '%s' "$AIO_CONTENT" > .aio
+                  printf '%s' "$ENV_CONTENT" > .env
+                  printf '%s' "$AIO_CONTENT" > .aio
 
             - name: Set environment paramaters (odin bucket, batch size)
               run: |
-                echo "Setting odin bucket to ${{ inputs.odin_bucket }}"
-                npx aio config set ODIN_ENDPOINT "https://author-p22655-${{ inputs.odin_bucket }}.adobeaemcloud.com"
-                echo "Setting batch size to ${{ inputs.batch_size }}"
-                npx aio config set BATCH_SIZE "${{ inputs.batch_size }}"
+                  echo "Setting odin bucket to ${{ inputs.odin_bucket }}"
+                  npx aio config set ODIN_ENDPOINT "https://author-p22655-${{ inputs.odin_bucket }}.adobeaemcloud.com"
+                  echo "Setting batch size to ${{ inputs.batch_size }}"
+                  npx aio config set BATCH_SIZE "${{ inputs.batch_size }}"
 
             - name: Deploy
               run: npx aio app deploy -v

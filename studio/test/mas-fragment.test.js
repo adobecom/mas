@@ -25,6 +25,7 @@ describe('MasFragment', () => {
                 getFieldValue: sandbox.stub().returns(''),
                 getTagTitle: sandbox.stub().returns(''),
                 listLocaleVariations: sandbox.stub().returns([]),
+                listGroupedVariations: sandbox.stub().returns([]),
                 ...overrides,
             },
             get() {

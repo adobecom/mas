@@ -4,6 +4,7 @@ import { Fragment } from './aem/fragment.js';
 import { VARIATION_TYPES } from './constants.js';
 import { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
+import { extractLocaleFromPath } from './utils.js';
 import router from './router.js';
 import './aem/aem-tag-picker-field.js';
 
@@ -52,17 +53,9 @@ class MasFragmentVariations extends LitElement {
     async handleEdit(fragmentStore) {
         const fragment = fragmentStore.value;
         if (fragment?.id) {
-            const locale = this.extractLocaleFromPath(fragment.path);
+            const locale = extractLocaleFromPath(fragment.path);
             await router.navigateToFragmentEditor(fragment.id, { locale });
         }
-    }
-
-    extractLocaleFromPath(path) {
-        if (!path) return null;
-        const parts = path.split('/');
-        const masIndex = parts.indexOf('mas');
-        if (masIndex === -1) return null;
-        return parts[masIndex + 2] || null;
     }
 
     /**

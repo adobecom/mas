@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { generateCodeToUse, getService, showToast } from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, getService, showToast } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
@@ -138,7 +138,7 @@ class MasFragmentTable extends LitElement {
         this.showVariationDialog = false;
         const { fragment } = event.detail;
         if (fragment?.id) {
-            const locale = this.extractLocaleFromPath(fragment.path);
+            const locale = extractLocaleFromPath(fragment.path);
             router.navigateToFragmentEditor(fragment.id, { locale });
         }
     }
@@ -147,17 +147,9 @@ class MasFragmentTable extends LitElement {
         event.stopPropagation();
         const fragment = this.fragmentStore.value;
         if (fragment?.id) {
-            const locale = this.extractLocaleFromPath(fragment.path);
+            const locale = extractLocaleFromPath(fragment.path);
             router.navigateToFragmentEditor(fragment.id, { locale });
         }
-    }
-
-    extractLocaleFromPath(path) {
-        if (!path) return null;
-        const parts = path.split('/');
-        const masIndex = parts.indexOf('mas');
-        if (masIndex === -1) return null;
-        return parts[masIndex + 2] || null;
     }
 
     getTruncatedOfferId() {

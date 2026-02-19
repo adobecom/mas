@@ -8,7 +8,7 @@ import StoreController from './reactivity/store-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
@@ -626,7 +626,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     #updateLocaleIfNeeded(path) {
-        const locale = this.extractLocaleFromPath(path);
+        const locale = extractLocaleFromPath(path);
         // Only update region if the current locale filter is the default (en_US)
         // This preserves the locale when viewing missing variations (e.g., locale=tr_TR with en_US fragment)
         if (locale && Store.filters.value.locale === 'en_US' && Store.localeOrRegion() !== locale) {
@@ -761,7 +761,7 @@ export default class MasFragmentEditor extends LitElement {
 
             // Handle locale-specific placeholder reload for variations
             if (isVariationAfterContext) {
-                const fragmentLocale = this.extractLocaleFromPath(fragment.path);
+                const fragmentLocale = extractLocaleFromPath(fragment.path);
                 if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
                     Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
                     await this.repository.loadPreviewPlaceholders();
@@ -859,7 +859,7 @@ export default class MasFragmentEditor extends LitElement {
             const { languageCopies = [] } = await requestPromise;
             const locales = languageCopies
                 .map((copy) => ({
-                    locale: this.extractLocaleFromPath(copy.path),
+                    locale: extractLocaleFromPath(copy.path),
                     id: copy.id,
                     path: copy.path,
                 }))
@@ -892,7 +892,7 @@ export default class MasFragmentEditor extends LitElement {
 
     async navigateToLocaleDefaultFragment() {
         if (!this.localeDefaultFragment) return;
-        const parentLocale = this.extractLocaleFromPath(this.localeDefaultFragment.path);
+        const parentLocale = extractLocaleFromPath(this.localeDefaultFragment.path);
         // Reset changes to avoid discard dialog since we're navigating to the parent
         Store.editor.resetChanges();
         if (parentLocale) {
@@ -1260,13 +1260,6 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
-    extractLocaleFromPath(path) {
-        if (!path) return null;
-        const parts = path.split('/');
-        const localeIndex = parts.indexOf('mas') + 2;
-        return parts[localeIndex] || null;
-    }
-
     get variationDialogOfferData() {
         const sourcePath = (this.localeDefaultFragment || this.fragment)?.path;
         const productArrangementCode = Fragment.extractProductArrangementCode(sourcePath);
@@ -1274,7 +1267,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     displayRegionalVarationInfo(clazz) {
-        const localeCode = this.extractLocaleFromPath(this.fragment.path);
+        const localeCode = extractLocaleFromPath(this.fragment.path);
         if (!localeCode) return nothing;
         const [lang, country] = localeCode.split('_');
         if (!lang || !country) return nothing;
@@ -1309,7 +1302,7 @@ export default class MasFragmentEditor extends LitElement {
 
     get localeDefaultLocaleLabel() {
         if (!this.localeDefaultFragment) return '';
-        const localeCode = this.extractLocaleFromPath(this.localeDefaultFragment.path);
+        const localeCode = extractLocaleFromPath(this.localeDefaultFragment.path);
         if (!localeCode) return '';
         const [lang, country] = localeCode.split('_');
         return `: Default ${country} (${lang.toUpperCase()})`;
@@ -1541,7 +1534,7 @@ export default class MasFragmentEditor extends LitElement {
 
     get missingVariationState() {
         const currentLocale = Store.localeOrRegion();
-        const fragmentLocale = this.extractLocaleFromPath(this.fragment?.path);
+        const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
 
         if (fragmentLocale && currentLocale !== fragmentLocale) {
             const isVariation = this.editorContextStore.isVariation(this.fragment.id);
@@ -1549,7 +1542,7 @@ export default class MasFragmentEditor extends LitElement {
 
             if (sourceFragment) {
                 const variations = sourceFragment.listLocaleVariations() || [];
-                const hasVariation = variations.some((v) => this.extractLocaleFromPath(v.path) === currentLocale);
+                const hasVariation = variations.some((v) => extractLocaleFromPath(v.path) === currentLocale);
 
                 if (!hasVariation) {
                     const targetLocale = getLocaleByCode(currentLocale);

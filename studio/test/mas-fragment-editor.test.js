@@ -8,6 +8,7 @@ import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { PAGE_NAMES, CARD_MODEL_PATH } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
+import { extractLocaleFromPath } from '../src/utils.js';
 import { nothing } from 'lit';
 
 describe('MasFragmentEditor', () => {
@@ -113,8 +114,7 @@ describe('MasFragmentEditor', () => {
     });
 
     it('extracts locale from path', async () => {
-        const el = document.createElement('mas-fragment-editor');
-        expect(el.extractLocaleFromPath('/content/dam/mas/surface/en_US/fragment')).to.equal('en_US');
+        expect(extractLocaleFromPath('/content/dam/mas/surface/en_US/fragment')).to.equal('en_US');
     });
 
     it('derives variation dialog offerData from fragment path', () => {

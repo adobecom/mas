@@ -3,6 +3,7 @@ import { previewFragmentForEditor } from 'fragment-client';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 import { Fragment } from '../aem/fragment.js';
+import { extractSurfaceFromPath, extractLocaleFromPath } from '../utils.js';
 
 export class EditorContextStore extends ReactiveStore {
     loading = false;
@@ -19,9 +20,8 @@ export class EditorContextStore extends ReactiveStore {
 
     detectVariationFromPath(fragmentPath) {
         if (!fragmentPath) return { isVariation: false, defaultLocale: null };
-        const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
-        if (!pathMatch) return { isVariation: false, defaultLocale: null };
-        const localeCode = pathMatch[1];
+        const localeCode = extractLocaleFromPath(fragmentPath);
+        if (!localeCode) return { isVariation: false, defaultLocale: null };
         const expectedDefault = getDefaultLocaleCode(Store.surface(), localeCode);
         if (expectedDefault && expectedDefault !== localeCode) {
             return { isVariation: true, defaultLocale: expectedDefault, pathLocale: localeCode };
@@ -46,10 +46,7 @@ export class EditorContextStore extends ReactiveStore {
         try {
             let surface = Store.surface();
             if (!surface && fragmentPath) {
-                const pathMatch = fragmentPath.match(/\/content\/dam\/mas\/([^/]+)\//);
-                if (pathMatch) {
-                    surface = pathMatch[1];
-                }
+                surface = extractSurfaceFromPath(fragmentPath);
             }
 
             if (!surface) {

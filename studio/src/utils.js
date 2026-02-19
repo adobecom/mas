@@ -247,6 +247,18 @@ export function showToast(message, variant = 'info') {
 }
 
 /**
+ * Extracts the surface from a fragment path
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @returns {string | null} - The surface (e.g., 'acom') or null if not found
+ */
+export function extractSurfaceFromPath(fragmentPath) {
+    if (!fragmentPath) return null;
+    const match = fragmentPath.match(/\/content\/dam\/mas\/([\w-]+)\//);
+    return match?.[1] ?? null;
+}
+
+/**
  * Extracts the locale code from a fragment path
  * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
  * @param {string} fragmentPath - The full AEM fragment path

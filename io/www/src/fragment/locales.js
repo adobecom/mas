@@ -1,4 +1,4 @@
-export const COUNTRY_DATA = {
+const COUNTRY_DATA = {
     AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
     AR: { name: 'Argentina', flag: '🇦🇷' },
     AT: { name: 'Austria', flag: '🇦🇹' },

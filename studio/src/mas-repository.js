@@ -7,7 +7,7 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath } from './utils.js';
+import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -1527,12 +1527,10 @@ export class MasRepository extends LitElement {
         }
 
         const parentPath = parentFragment.path;
-        const pathMatch = parentPath.match(/\/content\/dam\/mas\/(?<surface>[\w-_]+)\//);
-        if (!pathMatch?.groups?.surface) {
+        const surface = extractSurfaceFromPath(parentPath);
+        if (!surface) {
             throw new Error('Could not determine surface from parent path');
         }
-
-        const surface = pathMatch.groups.surface;
         const fragmentName = this.generateGroupedVariationName(fragment);
         const targetFolder = `${ROOT_PATH}/${surface}/en_US/${productArrangementCode}/${PZN_FOLDER}`;
 

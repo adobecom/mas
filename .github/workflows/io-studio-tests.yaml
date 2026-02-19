@@ -14,6 +14,7 @@ jobs:
                   WORKSPACE: ${{ secrets.workspace }}
               run: |
                   url="https://${WORKSPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/health-check"
+                  echo "Running health check test on $url"
                   curl -sf -o /dev/null -w "%{http_code}\n" "$url"
                   if [ $? -ne 0 ]; then
                       echo "Health check test failed"

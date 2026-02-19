@@ -1133,6 +1133,8 @@ merch-card[variant^="plans"] [slot="description"] {
 
 merch-card[variant^="plans"] [slot="body-xs"] a {
     color: var(--link-color);
+    display: inline-block;
+    padding: 2px 0;
 }
 
 merch-card[variant^="plans"] [slot="promo-text"] a {

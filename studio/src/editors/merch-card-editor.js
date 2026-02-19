@@ -474,7 +474,9 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) {
             return;
         }
-        const variantValue = this.fragment.variant;
+        // Variations can inherit `variant` from their parent fragment.
+        // Use the effective value so template field visibility remains accurate.
+        const variantValue = this.getEffectiveFieldValue('variant');
         if (!variantValue) {
             this.fieldsReady = true;
             return;

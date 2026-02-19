@@ -155,31 +155,6 @@ runTests(async () => {
                 cache.clear();
             });
 
-            it('startFetch claims fetch for a key, subsequent calls return false', () => {
-                cache.clear();
-                expect(cache.startFetch('test-key')).to.be.true;
-                expect(cache.startFetch('test-key')).to.be.false;
-                expect(cache.startFetch('test-key')).to.be.false;
-                cache.clear();
-            });
-
-            it('endFetch releases the claim so startFetch succeeds again', () => {
-                cache.clear();
-                expect(cache.startFetch('test-key')).to.be.true;
-                cache.endFetch('test-key');
-                expect(cache.startFetch('test-key')).to.be.true;
-                cache.clear();
-            });
-
-            it('cache.add clears the fetching claim', () => {
-                cache.clear();
-                expect(cache.startFetch('add-test')).to.be.true;
-                expect(cache.startFetch('add-test')).to.be.false; // claimed
-                cache.add({ id: 'add-test', fields: {} });
-                cache.remove('add-test');
-                expect(cache.startFetch('add-test')).to.be.true; // add() released the claim
-                cache.clear();
-            });
         });
 
         describe('aem-fragment with merch-card', () => {
@@ -378,16 +353,16 @@ runTests(async () => {
                 expect(fragment.fetchInfo['aem-fragment:measure']).to.exist;
             });
 
-            it('deduplicates concurrent fetches for the same fragment ID', async () => {
+            it('deduplicates fetches using loading="cache"', async () => {
                 cache.clear();
                 const count = aemMock.count;
                 const fragment1 = addFragment('fragment-cc-all-apps');
-                const fragment2 = addFragment('fragment-cc-all-apps');
-                const fragment3 = addFragment('fragment-cc-all-apps');
+                const fragment2 = addFragment('fragment-cc-all-apps', 'cache');
+                const fragment3 = addFragment('fragment-cc-all-apps', 'cache');
                 await Promise.all([
-                    fragment1.updateComplete,
-                    fragment2.updateComplete,
-                    fragment3.updateComplete,
+                    oneEvent(fragment1, 'aem:load'),
+                    oneEvent(fragment2, 'aem:load'),
+                    oneEvent(fragment3, 'aem:load'),
                 ]);
                 expect(aemMock.count).to.equal(count + 1);
                 expect(fragment1.data).to.exist;

@@ -24,13 +24,11 @@ class FragmentCache {
     #fragmentCache = new Map();
     #fetchInfos = new Map();
     #promises = new Map();
-    #fetching = new Set();
 
     clear() {
         this.#fragmentCache.clear();
         this.#fetchInfos.clear();
         this.#promises.clear();
-        this.#fetching.clear();
     }
 
     /**
@@ -42,10 +40,8 @@ class FragmentCache {
         if (this.has(fragment.fields?.originalId)) return;
 
         this.#fragmentCache.set(fragment.id, fragment);
-        this.#fetching.delete(fragment.id);
         if (fragment.fields?.originalId) {
             this.#fragmentCache.set(fragment.fields.originalId, fragment);
-            this.#fetching.delete(fragment.fields.originalId);
         }
         if (this.#promises.has(fragment.id)) {
             const [, resolve] = this.#promises.get(fragment.id);
@@ -134,17 +130,6 @@ class FragmentCache {
         this.#fragmentCache.delete(fragmentId);
         this.#fetchInfos.delete(fragmentId);
         this.#promises.delete(fragmentId);
-        this.#fetching.delete(fragmentId);
-    }
-
-    startFetch(key) {
-        if (this.#fetching.has(key)) return false;
-        this.#fetching.add(key);
-        return true;
-    }
-
-    endFetch(key) {
-        this.#fetching.delete(key);
     }
 }
 
@@ -360,40 +345,22 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-
         let fragment = cache.get(this.#fragmentId);
         if (fragment) {
             this.#rawData = fragment;
             return true;
         }
-
-        if (!cache.startFetch(this.#fragmentId)) {
-            await Promise.race([
-                cache.getAsPromise(this.#fragmentId),
-                new Promise((resolve) => setTimeout(resolve, this.#timeout)),
-            ]);
-            fragment = cache.get(this.#fragmentId);
-            if (fragment) {
-                this.#rawData = fragment;
-                return true;
-            }
-        }
-
         const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
         }
-        try {
-            fragment = await this.#getFragmentById(endpoint);
-            fragment.fields.originalId ??= this.#fragmentId;
-            cache.add(fragment);
-            this.#rawData = fragment;
-            return true;
-        } catch (e) {
-            cache.endFetch(this.#fragmentId);
-            throw e;
-        }
+
+        fragment = await this.#getFragmentById(endpoint);
+        fragment.fields.originalId ??= this.#fragmentId;
+        cache.add(fragment);
+        this.#rawData = fragment;
+        return true;
     }
 
     get updateComplete() {

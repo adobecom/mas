@@ -1,6 +1,7 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
+import { PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 
 /**
  * @param {string} input
@@ -254,8 +255,8 @@ export function showToast(message, variant = 'info') {
  */
 export function extractSurfaceFromPath(fragmentPath) {
     if (!fragmentPath) return null;
-    const match = fragmentPath.match(/\/content\/dam\/mas\/([\w-]+)\//);
-    return match?.[1] ?? null;
+    const match = fragmentPath.match(PATH_TOKENS);
+    return match?.groups?.surface ?? null;
 }
 
 /**

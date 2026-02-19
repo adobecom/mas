@@ -1341,8 +1341,7 @@ export default class MasFragmentEditor extends LitElement {
             }
         }
 
-        // If no variations exist, don't render the container
-        if (!isVariation && localeCount === 0 && promoCount === 0 && groupedCount === 0) return nothing;
+        if (localeCount === 0 && promoCount === 0 && groupedCount === 0) return nothing;
 
         // Determine the label suffix based on whether we're in a variation
         const siblingLabel = isVariation ? ' sibling' : '';

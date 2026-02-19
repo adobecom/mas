@@ -1538,10 +1538,11 @@ export class MasRepository extends LitElement {
 
         await this.aem.sites.cf.fragments.ensureFolderExists(targetFolder);
 
-        const targetPath = `${targetFolder}/${fragmentName}`;
+        let targetPath = `${targetFolder}/${fragmentName}`;
         const existingFragment = await this.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
         if (existingFragment) {
-            throw new Error(`A fragment already exists at ${targetPath}`);
+            const suffix = Array.from({ length: 4 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('');
+            targetPath = `${targetFolder}/${fragmentName}-${suffix}`;
         }
 
         const newFragment = await this.aem.sites.cf.fragments.create({

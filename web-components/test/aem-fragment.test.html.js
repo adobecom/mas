@@ -155,63 +155,29 @@ runTests(async () => {
                 cache.clear();
             });
 
-            it('getOrFetch returns cached data without calling fetchFn', async () => {
+            it('startFetch claims fetch for a key, subsequent calls return false', () => {
                 cache.clear();
-                cache.add({ id: 'cached-test', fields: {} });
-                let fetchCalled = false;
-                const result = await cache.getOrFetch(
-                    'cached-test',
-                    async () => {
-                        fetchCalled = true;
-                    },
-                );
-                expect(fetchCalled).to.be.false;
-                expect(result.id).to.equal('cached-test');
+                expect(cache.startFetch('test-key')).to.be.true;
+                expect(cache.startFetch('test-key')).to.be.false;
+                expect(cache.startFetch('test-key')).to.be.false;
                 cache.clear();
             });
 
-            it('getOrFetch deduplicates concurrent calls', async () => {
+            it('endFetch releases the claim so startFetch succeeds again', () => {
                 cache.clear();
-                let fetchCount = 0;
-                const fetchFn = async () => {
-                    fetchCount++;
-                    await delay(50);
-                    const fragment = { id: 'dedup-test', fields: {} };
-                    cache.add(fragment);
-                    return fragment;
-                };
-                const [result1, result2] = await Promise.all([
-                    cache.getOrFetch('dedup-test', fetchFn),
-                    cache.getOrFetch('dedup-test', fetchFn),
-                ]);
-                expect(fetchCount).to.equal(1);
-                expect(result1).to.equal(result2);
-                expect(cache.has('dedup-test')).to.be.true;
+                expect(cache.startFetch('test-key')).to.be.true;
+                cache.endFetch('test-key');
+                expect(cache.startFetch('test-key')).to.be.true;
                 cache.clear();
             });
 
-            it('getOrFetch cleans up on error allowing retry', async () => {
+            it('cache.add clears the fetching claim', () => {
                 cache.clear();
-                let callCount = 0;
-                try {
-                    await cache.getOrFetch('error-test', async () => {
-                        callCount++;
-                        throw new Error('network error');
-                    });
-                } catch (e) {
-                    expect(e.message).to.equal('network error');
-                }
-                const fragment = { id: 'error-test', fields: {} };
-                const result = await cache.getOrFetch(
-                    'error-test',
-                    async () => {
-                        callCount++;
-                        cache.add(fragment);
-                        return fragment;
-                    },
-                );
-                expect(callCount).to.equal(2);
-                expect(result.id).to.equal('error-test');
+                expect(cache.startFetch('add-test')).to.be.true;
+                expect(cache.startFetch('add-test')).to.be.false; // claimed
+                cache.add({ id: 'add-test', fields: {} });
+                cache.remove('add-test');
+                expect(cache.startFetch('add-test')).to.be.true; // add() released the claim
                 cache.clear();
             });
         });

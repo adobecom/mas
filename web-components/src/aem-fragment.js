@@ -24,13 +24,13 @@ class FragmentCache {
     #fragmentCache = new Map();
     #fetchInfos = new Map();
     #promises = new Map();
-    #inFlight = new Map();
+    #fetching = new Set();
 
     clear() {
         this.#fragmentCache.clear();
         this.#fetchInfos.clear();
         this.#promises.clear();
-        this.#inFlight.clear();
+        this.#fetching.clear();
     }
 
     /**
@@ -42,8 +42,10 @@ class FragmentCache {
         if (this.has(fragment.fields?.originalId)) return;
 
         this.#fragmentCache.set(fragment.id, fragment);
+        this.#fetching.delete(fragment.id);
         if (fragment.fields?.originalId) {
             this.#fragmentCache.set(fragment.fields.originalId, fragment);
+            this.#fetching.delete(fragment.fields.originalId);
         }
         if (this.#promises.has(fragment.id)) {
             const [, resolve] = this.#promises.get(fragment.id);
@@ -132,24 +134,17 @@ class FragmentCache {
         this.#fragmentCache.delete(fragmentId);
         this.#fetchInfos.delete(fragmentId);
         this.#promises.delete(fragmentId);
-        this.#inFlight.delete(fragmentId);
+        this.#fetching.delete(fragmentId);
     }
 
-    /**
-     * Deduplicates fragment fetches. Returns cached data if available,
-     * joins an in-flight request if one exists, or starts a new fetch.
-     * Ensures only one network request per unique fragment ID.
-     */
-    getOrFetch(key, fetchFn) {
-        const cached = this.#fragmentCache.get(key);
-        if (cached) return Promise.resolve(cached); // already fetched
-        const inFlight = this.#inFlight.get(key);
-        if (inFlight) return inFlight; // fetch in progress, reuse its promise
-        const promise = fetchFn().finally(() => {
-            this.#inFlight.delete(key);
-        });
-        this.#inFlight.set(key, promise);
-        return promise;
+    startFetch(key) {
+        if (this.#fetching.has(key)) return false;
+        this.#fetching.add(key);
+        return true;
+    }
+
+    endFetch(key) {
+        this.#fetching.delete(key);
     }
 }
 
@@ -365,22 +360,40 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
+
+        let fragment = cache.get(this.#fragmentId);
+        if (fragment) {
+            this.#rawData = fragment;
+            return true;
+        }
+
+        if (!cache.startFetch(this.#fragmentId)) {
+            await Promise.race([
+                cache.getAsPromise(this.#fragmentId),
+                new Promise((resolve) => setTimeout(resolve, this.#timeout)),
+            ]);
+            fragment = cache.get(this.#fragmentId);
+            if (fragment) {
+                this.#rawData = fragment;
+                return true;
+            }
+        }
+
         const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
         }
-        const fragment = await cache.getOrFetch(
-            this.#fragmentId,
-            async () => {
-                const result = await this.#getFragmentById(endpoint);
-                result.fields.originalId ??= this.#fragmentId;
-                cache.add(result);
-                return result;
-            },
-        );
-        this.#rawData = fragment;
-        return true;
+        try {
+            fragment = await this.#getFragmentById(endpoint);
+            fragment.fields.originalId ??= this.#fragmentId;
+            cache.add(fragment);
+            this.#rawData = fragment;
+            return true;
+        } catch (e) {
+            cache.endFetch(this.#fragmentId);
+            throw e;
+        }
     }
 
     get updateComplete() {

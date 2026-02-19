@@ -43,4 +43,4 @@ jobs:
         needs: deploy
         uses: ./.github/workflows/io-studio-tests.yaml
         secrets:
-            workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
+            workspace: ${{ secrets[format('AIO_STUDIO_NS_{0}', github.actor)] || secrets.AIO_STUDIO_NS_QA }}

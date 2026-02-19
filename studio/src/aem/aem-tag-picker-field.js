@@ -247,12 +247,20 @@ class AemTagPickerField extends LitElement {
         if (!this.top) {
             document.addEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
         }
+        this.addEventListener('keydown', this.#stopEscapePropagation);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
+        this.removeEventListener('keydown', this.#stopEscapePropagation);
     }
+
+    #stopEscapePropagation = (event) => {
+        if (event.key === 'Escape') {
+            event.stopPropagation();
+        }
+    };
 
     get #tagsRoot() {
         if (this.top) return `${this.namespace}/${this.top}/`;

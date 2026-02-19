@@ -758,35 +758,40 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
     `);import{html as qe,css as Oi}from"./lit-all.min.js";var br=`
 :root {
   --consonant-merch-card-image-width: 300px;
+  --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
 }
 
 .one-merch-card.image,
 .two-merch-cards.image,
 .three-merch-cards.image,
 .four-merch-cards.image {
-  grid-template-columns: var(--consonant-merch-card-image-width);
+  --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
+  grid-template-columns: minmax(300px, var(--consonant-merch-card-image-width));
+}
+
+.section[class*="-merch-cards"]:has(merch-card[variant="image"]) > .content {
+  --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
 }
 
 @media screen and ${y} {
   .two-merch-cards.image,
   .three-merch-cards.image,
   .four-merch-cards.image {
-      grid-template-columns: repeat(2, var(--consonant-merch-card-image-width));
+      grid-template-columns: repeat(2, minmax(300px, var(--consonant-merch-card-image-width)));
   }
 }
 
 @media screen and ${u} {
   :root {
     --consonant-merch-card-image-width: 378px;
-    --consonant-merch-card-image-width-4clm: 276px;
   }
-    
+
   .three-merch-cards.image {
       grid-template-columns: repeat(3, var(--consonant-merch-card-image-width));
   }
 
   .four-merch-cards.image {
-      grid-template-columns: repeat(4, var(--consonant-merch-card-image-width-4clm));
+      grid-template-columns: repeat(4, var(--consonant-merch-card-image-width));
   }
 }
 `;var yr={cardName:{attribute:"name"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},badgeIcon:!0,borderColor:{attribute:"border-color"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},backgroundImage:{tag:"div",slot:"bg-image"}},te=class extends x{constructor(t){super(t)}getGlobalCSS(){return br}renderLayout(){return qe`<div class="image">

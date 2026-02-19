@@ -65,7 +65,7 @@ const COUNTRY_DATA = {
     ZA: { name: 'South Africa', flag: '🇿🇦' },
 };
 
-export const ACOM = [
+const ACOM = [
     { lang: 'ar', country: 'SA', regions: ['AE', 'EG', 'KW', 'QA'] },
     { lang: 'bg', country: 'BG' },
     { lang: 'cs', country: 'CZ' },
@@ -362,7 +362,7 @@ const DEFAULT_LOCALES = {
     commerce: COMMERCE,
 };
 
-export const LANG_TO_LANGUAGE = {
+const LANG_TO_LANGUAGE = {
     ar: 'Arabic',
     bg: 'Bulgarian',
     cs: 'Czech',

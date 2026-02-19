@@ -117,7 +117,7 @@ describe('MasFragmentEditor', () => {
         expect(extractLocaleFromPath('/content/dam/mas/surface/en_US/fragment')).to.equal('en_US');
     });
 
-    it('derives variation dialog offerData from fragment path', () => {
+    it('does not derive variation dialog offerData from fragment path', () => {
         const el = document.createElement('mas-fragment-editor');
         const fragment = new Fragment({
             id: 'test-id',
@@ -127,7 +127,7 @@ describe('MasFragmentEditor', () => {
         });
         el.inEdit.value = { get: () => fragment };
 
-        expect(el.variationDialogOfferData).to.deep.equal({ productArrangementCode: 'pac' });
+        expect(el.variationDialogOfferData).to.be.undefined;
     });
 
     it('calculates preview attributes correctly', async () => {

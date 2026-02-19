@@ -88,6 +88,7 @@
                             dialog.loading = false;
                             dialog.error = null;
                         }
+                        document.querySelector('mas-commerce-service')?.remove();
                     });
 
                     describe('Rendering', () => {
@@ -324,10 +325,38 @@
                             expect(event.detail.fragment).to.deep.equal(mockCreatedVariation);
                         });
 
-                        it('should submit grouped locale tag IDs and fallback to productArrangementCode from path', async () => {
+                        it('should submit grouped locale tag IDs with productArrangementCode from offer', async () => {
                             dialog.fragment = {
                                 ...mockFragment,
-                                path: '/content/dam/mas/commerce/en_US/pac/test-fragment',
+                                path: '/content/dam/mas/commerce/en_US/test-fragment',
+                            };
+                            dialog.variationType = 'grouped';
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = { productArrangementCode: 'pac-from-offer' };
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(mockRepository.createGroupedVariation.calledOnce).to.be.true;
+                            expect(
+                                mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/fr_FR'], {
+                                    productArrangementCode: 'pac-from-offer',
+                                }),
+                            ).to.be.true;
+                        });
+
+                        it('should resolve grouped offer data from OSI when offerData is not preloaded', async () => {
+                            const service = document.createElement('mas-commerce-service');
+                            service.collectPriceOptions = stub().returns({ some: 'options' });
+                            service.resolveOfferSelectors = stub().returns([
+                                Promise.resolve([{ productArrangementCode: 'pac-from-resolved-offer' }]),
+                            ]);
+                            document.body.append(service);
+
+                            dialog.fragment = {
+                                ...mockFragment,
+                                path: '/content/dam/mas/commerce/en_US/test-fragment',
+                                fields: [{ name: 'osi', values: ['wcs-osi-123'] }],
                             };
                             dialog.variationType = 'grouped';
                             dialog.pznTags = ['mas:locale/fr_FR'];
@@ -339,7 +368,7 @@
                             expect(mockRepository.createGroupedVariation.calledOnce).to.be.true;
                             expect(
                                 mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/fr_FR'], {
-                                    productArrangementCode: 'pac',
+                                    productArrangementCode: 'pac-from-resolved-offer',
                                 }),
                             ).to.be.true;
                         });

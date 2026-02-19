@@ -308,16 +308,6 @@ export class Fragment {
     }
 
     /**
-     * Extracts the product arrangement code segment from a MAS fragment path.
-     * @param {string} path - e.g. "/content/dam/mas/acom/en_US/pac123/fragment"
-     * @returns {string|null}
-     */
-    static extractProductArrangementCode(path) {
-        const match = path?.match(/^\/content\/dam\/mas\/[^/]+\/[^/]+\/([^/]+)/);
-        return match?.[1] || null;
-    }
-
-    /**
      * Categorizes all variation references in a single pass into locale, promo, and grouped buckets.
      * Each variation is classified into exactly one category (grouped > promo > locale).
      * @returns {{ locale: Object[], promo: Object[], grouped: Object[] }}

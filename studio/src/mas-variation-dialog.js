@@ -1,9 +1,8 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { EVENT_KEYDOWN, VARIATION_TYPES } from './constants.js';
-import { showToast, extractLocaleFromPath } from './utils.js';
+import { showToast, extractLocaleFromPath, getService } from './utils.js';
 import Store from './store.js';
 import { getCountryName, getLocaleCode, getRegionLocales } from '../../io/www/src/fragment/locales.js';
-import { Fragment } from './aem/fragment.js';
 import './aem/aem-tag-picker-field.js';
 
 export class MasVariationDialog extends LitElement {
@@ -164,10 +163,21 @@ export class MasVariationDialog extends LitElement {
         this.pznTags = tagPicker.value || [];
     }
 
-    resolveGroupedOfferData() {
+    async resolveGroupedOfferData() {
         if (this.offerData?.productArrangementCode) return this.offerData;
-        const productArrangementCode = Fragment.extractProductArrangementCode(this.fragment?.path);
-        return productArrangementCode ? { productArrangementCode } : null;
+
+        const wcsOsi = this.fragment?.getFieldValue?.('osi');
+        if (!wcsOsi) throw new Error('No OSI value found on the fragment');
+
+        const service = getService();
+        const priceOptions = service.collectPriceOptions({ wcsOsi });
+        const [offersPromise] = service.resolveOfferSelectors(priceOptions);
+        const [offer] = await offersPromise;
+        if (!offer?.productArrangementCode) {
+            throw new Error('Could not resolve offer data for the given OSI');
+        }
+        this.offerData = offer;
+        return offer;
     }
 
     async handleSubmit() {
@@ -194,7 +204,7 @@ export class MasVariationDialog extends LitElement {
                 const variationFragment = await this.repository.createGroupedVariation(
                     this.fragment.id,
                     this.pznTags,
-                    this.resolveGroupedOfferData(),
+                    await this.resolveGroupedOfferData(),
                 );
 
                 showToast('Grouped variation created successfully', 'positive');

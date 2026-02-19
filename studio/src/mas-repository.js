@@ -1445,11 +1445,12 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Generates a slugified fragment name from fragment tags (product first) + random suffix.
+     * Generates a slugified fragment name from fragment tags (product first) + locale codes (first 3).
      * @param {Object} fragment - The parent fragment
+     * @param {string[]} pznTags - Array of locale codes (e.g. ['fr_BE', 'fr_CH', 'fr_CA'])
      * @returns {string} The generated fragment name
      */
-    generateGroupedVariationName(fragment) {
+    generateGroupedVariationName(fragment, pznTags) {
         const parts = [];
         const product = fragment.getTagTitle('mas:product/');
         if (product) parts.push(product);
@@ -1464,14 +1465,15 @@ export class MasRepository extends LitElement {
             parts.push(fragment.title || 'variation');
         }
 
-        const slug = parts
+        if (pznTags?.length) {
+            parts.push(...pznTags.slice(0, 3));
+        }
+
+        return parts
             .join('-')
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '');
-
-        const suffix = Math.random().toString(36).substring(2, 6);
-        return `${slug}-${suffix}`;
     }
 
     /**
@@ -1531,7 +1533,7 @@ export class MasRepository extends LitElement {
         if (!surface) {
             throw new Error('Could not determine surface from parent path');
         }
-        const fragmentName = this.generateGroupedVariationName(fragment);
+        const fragmentName = this.generateGroupedVariationName(fragment, pznTags);
         const targetFolder = `${ROOT_PATH}/${surface}/en_US/${productArrangementCode}/${PZN_FOLDER}`;
 
         await this.aem.sites.cf.fragments.ensureFolderExists(targetFolder);

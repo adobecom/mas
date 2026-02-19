@@ -958,44 +958,6 @@ export default class MasFragmentEditor extends LitElement {
             value = target.multiline ? value?.split(',') : [value ?? ''];
         }
 
-        // For variations: skip updates that just echo the parent value
-        if (this.localeDefaultFragment && this.editorContextStore.isVariation(this.fragment?.id)) {
-            const sourceField = this.fragment.getField(fieldName);
-
-            // Skip if field is being restored (prevents RTE change events from re-adding the field)
-            const editor = this.querySelector('merch-card-editor, merch-card-collection-editor');
-            if (editor?.isFieldBeingRestored?.(fieldName)) {
-                return;
-            }
-
-            // If field doesn't exist in source (inherited), skip update
-            // This prevents RTE re-rendering from re-adding a just-removed field
-            if (!sourceField) {
-                return;
-            }
-
-            // If field exists but is empty, skip if value matches parent (RTE initialization)
-            if (sourceField) {
-                const sourceValues = sourceField.values || [];
-                const isSourceEmpty = sourceValues.length === 0 || (sourceValues.length === 1 && sourceValues[0] === '');
-
-                if (isSourceEmpty) {
-                    const isNewValueEmpty = value.length === 0 || (value.length === 1 && value[0] === '');
-
-                    // If new value is empty, preserve inheritance
-                    if (isNewValueEmpty) {
-                        return;
-                    }
-
-                    const parentValues = this.localeDefaultFragment.getFieldValues(fieldName) || [];
-                    // If new value matches parent, it's likely RTE initialization - skip
-                    if (value.length === parentValues.length && value.every((v, i) => v === parentValues[i])) {
-                        return;
-                    }
-                }
-            }
-        }
-
         this.fragmentStore.updateField(fieldName, value);
     }
 

@@ -1,0 +1,83 @@
+name: IO Studio Deploy
+on:
+    workflow_call:
+        inputs:
+            run_tests:
+                type: boolean
+                required: false
+                default: true
+            batch_size:
+                type: number
+                required: false
+                default: 10
+            odin_bucket:
+                type: string
+                required: true
+        secrets:
+            ENV:
+                required: true
+            AIO:
+                required: true
+
+jobs:
+    tests:
+        if: inputs.run_tests == true
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: io/studio
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js 22
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: 'npm'
+                  cache-dependency-path: io/studio/package.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run tests
+              run: npm test
+
+    deploy:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: io/studio
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js 22
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: 'npm'
+                  cache-dependency-path: io/studio/package.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Prepare .aio and .env files
+              env:
+                ENV_CONTENT: ${{ secrets.ENV }}
+                AIO_CONTENT: ${{ secrets.AIO }}
+              run: |
+                printf '%s' "$ENV_CONTENT" > .env
+                printf '%s' "$AIO_CONTENT" > .aio
+
+            - name: Set environment paramaters (odin bucket, batch size)
+              run: |
+                echo "Setting odin bucket to ${{ inputs.odin_bucket }}"
+                npx aio config set ODIN_ENDPOINT "https://author-p22655-${{ inputs.odin_bucket }}.adobeaemcloud.com"
+                echo "Setting batch size to ${{ inputs.batch_size }}"
+                npx aio config set BATCH_SIZE "${{ inputs.batch_size }}"
+
+            - name: Deploy
+              run: npx aio app deploy -v

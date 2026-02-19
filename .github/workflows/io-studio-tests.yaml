@@ -1,0 +1,26 @@
+name: IO Studio Tests
+on:
+    workflow_call:
+        secrets:
+            workspace:
+                required: true
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: io/studio
+
+        steps:
+            - name: Health Check test
+              env:
+                  WORKSPACE: ${{ secrets.workspace }}
+              run: |
+                  url="https://${WORKSPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/health-check"
+                  curl -sf -o /dev/null -w "%{http_code}\n" "$url"
+                  if [ $? -ne 0 ]; then
+                      echo "Health check test failed"
+                      exit 1
+                  fi
+                  echo "Health check test passed"

@@ -805,7 +805,6 @@ class MerchCardEditor extends LitElement {
                     <aem-tag-picker-field
                         id="tags-field"
                         label="Tags"
-                        display-value
                         namespace="/content/cq:tags/mas"
                         multiple
                         class="tags-spacing"

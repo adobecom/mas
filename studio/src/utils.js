@@ -247,11 +247,7 @@ export function generateFieldLink(fragment, path, fieldName) {
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
     if (!webComponentName) return null;
-    const alias = fragmentParts
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-    const displayText = `${alias} → ${fieldName}`;
+    const displayText = `merch-field: ${fragmentParts} → ${fieldName}`;
     const href = `https://mas.adobe.com/studio.html#content-type=${webComponentName}&fragment=${fragment?.id}&field=${fieldName}`;
     const richText = `<a href="${href}">${displayText}</a>`;
     return { displayText, href, richText };

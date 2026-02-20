@@ -676,7 +676,7 @@ aem-fragment {
   display: contents;
 }
 
-mas-field {
+merch-field {
   display: inline;
 }
 

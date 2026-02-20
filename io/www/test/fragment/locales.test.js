@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import {
     getLocaleCode,
+    getLocaleByCode,
     getCountryName,
     getCountryFlag,
     getDefaultLocale,
@@ -20,6 +21,30 @@ describe('locales', function () {
         it('should return null when locale is null or undefined', function () {
             expect(getLocaleCode(null)).to.be.null;
             expect(getLocaleCode(undefined)).to.be.null;
+        });
+    });
+
+    describe('getLocaleByCode', function () {
+        it('should return locale object from locale code', function () {
+            const result = getLocaleByCode('en_US');
+            expect(result).to.deep.equal({ lang: 'en', country: 'US' });
+        });
+
+        it('should handle different locale codes', function () {
+            expect(getLocaleByCode('fr_FR')).to.deep.equal({ lang: 'fr', country: 'FR' });
+            expect(getLocaleByCode('ja_JP')).to.deep.equal({ lang: 'ja', country: 'JP' });
+            expect(getLocaleByCode('pt_BR')).to.deep.equal({ lang: 'pt', country: 'BR' });
+        });
+
+        it('should return null when code is null or undefined', function () {
+            expect(getLocaleByCode(null)).to.be.null;
+            expect(getLocaleByCode(undefined)).to.be.null;
+        });
+
+        it('should return null for invalid locale code format', function () {
+            expect(getLocaleByCode('')).to.be.null;
+            expect(getLocaleByCode('en')).to.be.null;
+            expect(getLocaleByCode('invalid')).to.be.null;
         });
     });
 

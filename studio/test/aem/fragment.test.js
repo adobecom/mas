@@ -81,6 +81,97 @@ describe('Fragment', () => {
             expect(variations).to.have.lengthOf(1);
             expect(variations[0].id).to.equal('ref-1');
         });
+
+        it('returns no locale variations when references are missing even if variations field has paths', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [],
+                    fields: [
+                        {
+                            name: 'variations',
+                            values: [
+                                '/content/dam/mas/sandbox/fr_FR/my-fragment',
+                                '/content/dam/mas/sandbox/de_DE/my-fragment',
+                                '/content/dam/mas/sandbox/en_US/pzn/my-fragment',
+                                '/content/dam/mas/sandbox/en_US/other-fragment',
+                            ],
+                        },
+                    ],
+                }),
+            );
+
+            const variations = fragment.listLocaleVariations();
+            expect(variations).to.have.lengthOf(0);
+        });
+
+        it('filters out stale locale variation paths that are not present in references', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [{ id: 'ref-1', path: '/content/dam/mas/sandbox/fr_FR/my-fragment' }],
+                    fields: [
+                        {
+                            name: 'variations',
+                            values: [
+                                '/content/dam/mas/sandbox/fr_FR/my-fragment',
+                                '/content/dam/mas/sandbox/de_DE/my-fragment',
+                            ],
+                        },
+                    ],
+                }),
+            );
+
+            const variations = fragment.listLocaleVariations();
+            expect(variations).to.have.lengthOf(1);
+            expect(variations[0].path).to.equal('/content/dam/mas/sandbox/fr_FR/my-fragment');
+        });
+    });
+
+    describe('listGroupedVariations', () => {
+        it('returns no grouped variations when references are missing even if variations field has paths', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [],
+                    fields: [
+                        {
+                            name: 'variations',
+                            values: [
+                                '/content/dam/mas/sandbox/en_US/pzn/my-fragment-a',
+                                '/content/dam/mas/sandbox/en_US/pzn/my-fragment-b',
+                                '/content/dam/mas/sandbox/fr_FR/my-fragment',
+                            ],
+                        },
+                    ],
+                }),
+            );
+
+            const groupedVariations = fragment.listGroupedVariations();
+            expect(groupedVariations).to.have.lengthOf(0);
+        });
+
+        it('filters out stale grouped variation paths that are not present in references', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [{ id: 'ref-1', path: '/content/dam/mas/sandbox/en_US/pzn/my-fragment-a' }],
+                    fields: [
+                        {
+                            name: 'variations',
+                            values: [
+                                '/content/dam/mas/sandbox/en_US/pzn/my-fragment-a',
+                                '/content/dam/mas/sandbox/en_US/pzn/my-fragment-b',
+                            ],
+                        },
+                    ],
+                }),
+            );
+
+            const groupedVariations = fragment.listGroupedVariations();
+            expect(groupedVariations).to.have.lengthOf(1);
+            expect(groupedVariations[0].path).to.equal('/content/dam/mas/sandbox/en_US/pzn/my-fragment-a');
+        });
     });
 
     describe('getEffectiveFieldValues', () => {

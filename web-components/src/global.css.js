@@ -118,6 +118,11 @@ styles.innerHTML = `
     --spectrum-gray-300-plans: #DADADA;
     --spectrum-gray-700-plans: #505050;
     --spectrum-red-700-plans: #EB1000;
+
+    /* special-offers colors */
+    --spectrum-yellow-300-special-offers: #EDCC00;
+    --spectrum-green-900-special-offers: #2D9D78;
+    --spectrum-gray-300-special-offers: #D1D1D1;
     --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
 
     /* simplified-pricing-express colors */
@@ -133,7 +138,7 @@ styles.innerHTML = `
     --spectrum-gray-900: #1C1C1C;
     --spectrum-indigo-300: #D3D5FF;
     --spectrum-indigo-900: #5258E4;
-  
+
     /* merch card generic */
     --consonant-merch-card-max-width: 300px;
     --transition: cmax-height 0.3s linear, opacity 0.3s linear;
@@ -214,7 +219,9 @@ merch-card-collection-header > div[slot] p {
 .one-merch-card,
 .two-merch-cards,
 .three-merch-cards,
-.four-merch-cards {
+.four-merch-cards,
+.section[class$="merch-cards"] > .content
+{
     --merch-card-collection-card-width: unset;
     display: grid;
     justify-content: center;
@@ -393,7 +400,8 @@ merch-card [slot='callout-content'] {
     gap: var(--consonant-merch-card-callout-spacing-xxs);
 }
 
-merch-card[variant^='plans'] [slot='badge'] {
+merch-card[variant^='plans'] [slot='badge'],
+merch-card[variant='special-offers'] [slot='badge'] {
     position: absolute;
     top: 16px;
     inset-inline-end: 0;
@@ -589,7 +597,7 @@ merch-card [slot^="body-"] ul {
     padding-inline-start: var(--merch-card-ul-padding);
     list-style-type: "•";
 }
-    
+
 merch-card [slot^="body-"] ul li {
     padding-inline-start: var(--merch-card-ul-padding);
 }
@@ -740,7 +748,8 @@ merch-card merch-whats-included[has-bullets] [slot="content"] {
     row-gap: 10px;
 }
 
-merch-badge[background-color="spectrum-red-700-plans"] {
+merch-badge[background-color="spectrum-red-700-plans"],
+merch-badge[background-color="spectrum-green-900-special-offers"] {
   color: #FFFFFF;
 }
 
@@ -777,7 +786,9 @@ merch-card [slot='callout-content'] .icon-button::before {
 @media screen and ${TABLET_UP} {
     .two-merch-cards,
     .three-merch-cards,
-    .four-merch-cards {
+    .four-merch-cards,
+	.section[class*="-merch-cards"] > .content
+	{
         grid-template-columns: repeat(2, var(--merch-card-collection-card-width));
     }
 
@@ -789,12 +800,15 @@ merch-card [slot='callout-content'] .icon-button::before {
 }
 
 @media screen and ${DESKTOP_UP} {
-    .four-merch-cards {
+
+    .four-merch-cards,
+	.section.four-merch-cards > .content {
         grid-template-columns: repeat(4, var(--merch-card-collection-card-width));
     }
 
     .three-merch-cards,
-    merch-sidenav ~ .four-merch-cards {
+    merch-sidenav ~ .four-merch-cards,
+	.section.three-merch-cards > .content {
         grid-template-columns: repeat(3, var(--merch-card-collection-card-width));
     }
 
@@ -806,7 +820,8 @@ merch-card [slot='callout-content'] .icon-button::before {
 
 @media screen and ${LARGE_DESKTOP} {
     .four-merch-cards,
-    merch-sidenav ~ .four-merch-cards {
+    merch-sidenav ~ .four-merch-cards,
+	.section.four-merch-cards > .content {
         grid-template-columns: repeat(4, var(--merch-card-collection-card-width));
     }
 }

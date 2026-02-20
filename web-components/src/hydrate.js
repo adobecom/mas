@@ -228,7 +228,9 @@ export function processBorderColor(fields, merchCard, variantMapping) {
             specialValue?.includes('gradient') ||
             /-gradient/.test(fields.borderColor);
         // Check if it's a spectrum color that needs attribute-based styling
-        const isSpectrumColor = /^spectrum-.*-plans$/.test(fields.borderColor);
+        const isSpectrumColor = /^spectrum-.*-(plans|special-offers)$/.test(
+            fields.borderColor,
+        );
 
         if (isGradient) {
             // For gradients, set both attributes needed for CSS selectors

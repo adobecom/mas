@@ -1735,6 +1735,8 @@ class MerchCardEditor extends LitElement {
             if (
                 bgColor === 'spectrum-green-900-plans' ||
                 bgColor === 'spectrum-gray-700-plans' ||
+                bgColor === 'spectrum-green-900-variation' ||
+                bgColor === 'spectrum-gray-700-variation' ||
                 bgColor === 'gradient-purple-blue'
             )
                 element.setAttribute('color', '#fff');

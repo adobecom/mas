@@ -35,7 +35,7 @@ async function getDefaultLanguageVariation(context) {
     }
     if (defaultLocale !== parsedLocale) {
         logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);
-        const defaultLocaleIdUrl = odinUrl(surface, defaultLocale, fragmentPath, preview);
+        const defaultLocaleIdUrl = odinUrl(surface, { locale: defaultLocale, fragmentPath, preview });
         const { id: defaultLocaleId, status, message } = await getFragmentId(context, defaultLocaleIdUrl, 'default-locale-id');
         if (status != 200) {
             return { status, message };

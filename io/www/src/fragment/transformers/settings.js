@@ -1,46 +1,174 @@
+import { odinUrl, odinReferences, PATH_TOKENS } from '../utils/paths.js';
+import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { logDebug } from '../utils/log.js';
+
+const SETTINGS_ID_PATH = 'settings/index';
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
-/**
- * Plan type label will be enabled by default for the following locales.
- * Plan type literal has the format {planType, select, ABM {Annual, billed monthly} M2M {Monthly} PUF {Annual, prepaid} other {}}
- * and different labels are displayed for different customer/market segments.
- */
-const PLAN_TYPE_LOCALES = [
-    'en_US',
-    'en_AU',
-    'en_HK',
-    'zh_HK',
-    'en_ID',
-    'id_ID',
-    'en_MY',
-    'ms_MY',
-    'en_NZ',
-    'en_PH',
-    'fil_PH',
-    'en_SG',
-    'en_TH',
-    'th_TH',
-    'zh_TW',
-    'en_VN',
-    'vi_VN',
-    'en_IN',
-    'de_AT',
-    'de_CH',
-    'de_DE',
-    'de_LU',
-];
+let settingsCache;
 
-function applyCollectionSettings(context) {
+export function clearSettingsCache(preview = false) {
+    if (preview) {
+        Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('settings-')) {
+                localStorage.removeItem(key);
+            }
+        });
+    } else {
+        settingsCache = undefined;
+    }
+}
+
+async function cacheKey(context) {
+    const { surface } = await getRequestInfos(context);
+    return `settings-${surface}`;
+}
+
+async function getCachedSettings(context) {
+    const key = await cacheKey(context);
+    const cacheEntry = context.preview ? JSON.parse(localStorage.getItem(key)) : settingsCache?.[key];
+    if (cacheEntry) {
+        cacheEntry.isExpired = Date.now() - cacheEntry.timestamp > CONFIG_CACHE_TTL;
+        return cacheEntry;
+    }
+    return null;
+}
+
+async function cache(context, settings) {
+    const key = await cacheKey(context);
+    const cacheEntry = {
+        settings,
+        timestamp: Date.now(),
+    };
+    if (context.preview) {
+        localStorage.setItem(key, JSON.stringify(cacheEntry));
+    } else {
+        settingsCache = settingsCache || {};
+        settingsCache[key] = cacheEntry;
+    }
+    return settings;
+}
+
+async function getSettingsId(context) {
+    const { surface } = await getRequestInfos(context);
+    const { preview } = context;
+    const settingsUrl = odinUrl(surface, { fragmentPath: SETTINGS_ID_PATH, preview });
+    const { id, status, message } = await getFragmentId(context, settingsUrl, 'settings-id');
+    if (status != 200) {
+        return { status, message };
+    }
+    return { status: 200, id };
+}
+
+function extractValue(entry) {
+    switch (entry.type) {
+        case 'boolean':
+            return entry.boolValue;
+        case 'placeholder':
+            return entry.textValue;
+        case 'richText':
+            return entry.richTextValue;
+        case 'text':
+            return entry.textValue;
+        default:
+            return entry.boolValue;
+    }
+}
+
+export function collectSettingEntries(settingFragment) {
+    const { references } = settingFragment;
+    const grouped = {};
+
+    for (const ref of Object.values(references ?? {})) {
+        const {
+            value: { fields },
+        } = ref;
+        if (!fields) continue;
+        const { name, locales, tags } = fields;
+        if (!name) continue;
+        if (!grouped[name]) {
+            grouped[name] = { default: null, override: [] };
+        }
+        if (locales?.length > 0 || tags?.length > 0) {
+            grouped[name].override.push(fields);
+        } else {
+            grouped[name].default = fields;
+        }
+    }
+
+    return grouped;
+}
+
+export async function getSettings(context) {
+    /* c8 ignore next 1 */
+    if (context.hasExternalSettings) return context.settings;
+    const cachedSettings = await getCachedSettings(context);
+    if (cachedSettings && !cachedSettings.isExpired) return cachedSettings.settings;
+    const { id } = await getSettingsId(context);
+    if (!id) {
+        return null;
+    }
+    const response = await fetch(odinReferences(id, true, context.preview), context, 'settings');
+
+    if (response.status !== 200) {
+        logDebug(() => 'Failed to fetch settings fragment', context);
+        return null;
+    }
+
+    const settings = collectSettingEntries(response.body);
+    return await cache(context, settings);
+}
+
+async function init(initContext) {
+    return await getSettings(initContext);
+}
+
+function resolveSettingEntry(fragment, locale, setting) {
+    const defaultEntry = setting.default;
+    if (!defaultEntry) return null;
+    if (defaultEntry.templates && !(fragment.variant in defaultEntry.templates)) return null;
+    const filteredLocale = setting.override.filter(
+        (overrideSetting) =>
+            !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale),
+    );
+    if (filteredLocale.length == 0) return defaultEntry;
+    // Find all overrides matching the locale; now select best by tags
+    let bestMatch = defaultEntry;
+    let maxTagMatches = -1;
+
+    if (filteredLocale.length > 1 && fragment?.tags) {
+        for (const overrideSetting of filteredLocale) {
+            const tagMatches = overrideSetting.tags.filter((tag) => fragment.tags.includes(tag)).length;
+            if (tagMatches > maxTagMatches) {
+                maxTagMatches = tagMatches;
+                bestMatch = overrideSetting;
+            }
+        }
+    } else if (filteredLocale.length === 1) {
+        // No tags or no fragment tags; just return the first matching override
+        bestMatch = filteredLocale[0];
+    }
+
+    return bestMatch;
+}
+
+function applySettings(fragment, locale, settings) {
+    for (const key of Object.keys(settings)) {
+        const entry = resolveSettingEntry(fragment, locale, settings[key]);
+        if (!entry) continue;
+        fragment.settings = {
+            ...fragment.settings,
+            [entry.name]: extractValue(entry),
+        };
+    }
+}
+
+function applyCollectionSettings(context, locale, settings) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
             if (ref && ref.type === 'content-fragment') {
-                const variant = ref.value?.fields?.variant;
-                if (variant?.startsWith('plans')) {
-                    applyPlansSettings(ref.value, context);
-                }
-                if (variant === 'mini') {
-                    applyMiniSettings(ref.value, context);
-                }
+                applySettings(ref.value, locale, settings);
             }
         });
     }
@@ -82,34 +210,6 @@ function applyCollectionSettings(context) {
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 
-function applyPlansSettings(fragment, context) {
-    const { locale } = context;
-    fragment.settings = {};
-    if (fragment?.fields?.showSecureLabel !== false) {
-        fragment.settings.secureLabel = '{{secure-label}}';
-    }
-    if (fragment?.fields?.showPlanType != null) {
-        fragment.settings.displayPlanType = fragment?.fields?.showPlanType;
-    }
-    if (fragment?.fields?.perUnitLabel) {
-        fragment.priceLiterals ??= {};
-        fragment.priceLiterals.perUnitLabel = fragment.fields.perUnitLabel;
-    }
-    if (PLAN_TYPE_LOCALES.includes(locale)) {
-        fragment.settings.displayPlanType ??= true;
-    }
-}
-
-function applyMiniSettings(fragment, context) {
-    const { locale } = context;
-    if (locale === 'en_AU') {
-        fragment.settings = {
-            displayPlanType: true,
-            displayAnnual: true,
-        };
-    }
-}
-
 function applyPriceLiterals(fragment) {
     if (fragment) {
         fragment.priceLiterals = {
@@ -131,16 +231,16 @@ function applyPriceLiterals(fragment) {
 async function settings(context) {
     applyPriceLiterals(context.body);
 
-    if (context.body?.fields?.variant?.startsWith('plans')) {
-        applyPlansSettings(context.body, context);
-    }
+    const settings = await context.promises?.settings;
 
-    if (context.body?.fields?.variant === 'mini') {
-        applyMiniSettings(context.body, context);
-    }
+    const { body, locale } = context;
 
-    if (context.body?.model?.id === COLLECTION_MODEL_ID) {
-        applyCollectionSettings(context);
+    if (settings) {
+        if (body?.model?.id === COLLECTION_MODEL_ID) {
+            applyCollectionSettings(context, locale, settings);
+        } else {
+            applySettings(body, locale, settings);
+        }
     }
 
     return context;
@@ -148,6 +248,7 @@ async function settings(context) {
 
 export const transformer = {
     name: 'settings',
+    init,
     process: settings,
 };
-export { applyCollectionSettings, PLAN_TYPE_LOCALES };
+export { applyCollectionSettings };

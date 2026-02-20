@@ -9,7 +9,7 @@ import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } 
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
-import { transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
+import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 
@@ -52,6 +52,7 @@ const DEFAULT_CONTEXT = {
 
 function clearCaches() {
     clearDictionaryCache(true);
+    clearSettingsCache(true);
 }
 
 async function previewFragment(id, options) {

@@ -1,334 +1,505 @@
 import { expect } from 'chai';
-import { transformer as settings, PLAN_TYPE_LOCALES } from '../../src/fragment/transformers/settings.js';
+import sinon from 'sinon';
+import {
+    transformer as settings,
+    getSettings,
+    collectSettingEntries,
+    clearSettingsCache,
+} from '../../src/fragment/transformers/settings.js';
+import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
+import { createResponse } from './mocks/MockFetch.js';
 
-describe('settings transformer', () => {
-    let context;
+const DEFAULT_SURFACE = 'sandbox';
+const DEFAULT_LOCALE = 'fr_FR';
 
-    beforeEach(() => {
-        context = {
-            locale: 'en_US',
-            body: {
-                fields: {},
-            },
-        };
-    });
+const settingsIndexUrl = (surface = DEFAULT_SURFACE) =>
+    `https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/${surface}/settings/index`;
 
-    it('should add secure label and stock settings when variant is plans and showSecureLabel is undefined', async () => {
-        context.body.fields.variant = 'plans';
+const settingsContentUrl = (id) => `https://odin.adobe.com/adobe/sites/fragments/${id}?references=all-hydrated`;
 
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: true,
+let fetchStub;
+
+function mockSettingsFetch(
+    surface = DEFAULT_SURFACE,
+    settingsId = 'settings-id',
+    referencesBody = { body: { references: {} } },
+    stub = fetchStub,
+) {
+    stub.withArgs(settingsIndexUrl(surface)).returns(createResponse(200, { items: [{ id: settingsId }] }));
+    stub.withArgs(settingsContentUrl(settingsId)).returns(createResponse(200, referencesBody));
+}
+
+function createContext(overrides = {}) {
+    return {
+        surface: DEFAULT_SURFACE,
+        locale: DEFAULT_LOCALE,
+        networkConfig: { retries: 1, retryDelay: 1 },
+        ...overrides,
+    };
+}
+describe('settings', () => {
+    describe('collectSettingEntries', () => {
+        it('groups default & overrides', () => {
+            const result = collectSettingEntries(SETTINGS_RESPONSE);
+            expect(result.showSecureLabel.default).to.exist;
+            expect(result.showSecureLabel.default.name).to.equal('showSecureLabel');
+            expect(result.showSecureLabel.override).to.have.length(1);
+            expect(result.showSecureLabel.override[0].locales).to.include('fr_FR');
+        });
+
+        it('returns empty object when references is null', () => {
+            expect(collectSettingEntries({})).to.deep.equal({});
+            expect(collectSettingEntries({ references: null })).to.deep.equal({});
+        });
+
+        it('skips refs without value or name', () => {
+            const fragment = {
+                references: {
+                    ref1: { value: {} },
+                    ref2: { value: { fields: null } },
+                    ref3: { value: { fields: { type: 'text' } } },
+                },
+            };
+            expect(collectSettingEntries(fragment)).to.deep.equal({});
         });
     });
 
-    it('should add perUnitLabel when variant is plans and perUnitLabel is provided', async () => {
-        context.body.fields = {
-            variant: 'plans',
-            perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.priceLiterals).to.deep.equal({
-            alternativePriceAriaLabel: '{{price-literal-alternative-price-aria-label}}',
-            freeAriaLabel: '{{price-literal-free-aria-label}}',
-            freeLabel: '{{price-literal-free-label}}',
-            perUnitAriaLabel: '{{price-literal-per-unit-aria-label}}',
-            perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
-            planTypeLabel: '{{price-literal-plan-type-label}}',
-            recurrenceAriaLabel: '{{price-literal-recurrence-aria-label}}',
-            recurrenceLabel: '{{price-literal-recurrence-label}}',
-            strikethroughAriaLabel: '{{price-literal-strikethrough-aria-label}}',
-            taxExclusiveLabel: '{{price-literal-tax-exclusive-label}}',
-            taxInclusiveLabel: '{{price-literal-tax-inclusive-label}}',
+    describe('getSettings', () => {
+        beforeEach(() => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
         });
-    });
 
-    it('should not add perUnitLabel when variant is plans and perUnitLabel is not provided', async () => {
-        context.body.fields = {
-            variant: 'plans',
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: true,
+        afterEach(() => {
+            fetchStub.restore();
+            clearSettingsCache();
         });
-        expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
-    });
 
-    it('should add secure label when variant is plans and showSecureLabel is true', async () => {
-        context.body.fields = {
-            variant: 'plans',
-            showSecureLabel: true,
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: true,
+        it('returns context.settings when hasExternalSettings', async () => {
+            const external = {
+                showSecureLabel: { default: { name: 'showSecureLabel', type: 'boolean', boolValue: true }, override: [] },
+            };
+            const result = await getSettings(createContext({ hasExternalSettings: true, settings: external }));
+            expect(result).to.equal(external);
+            expect(fetchStub.called).to.be.false;
         });
-    });
 
-    it('should not add secure label when variant is plans and showSecureLabel is false', async () => {
-        context.body.fields = {
-            variant: 'plans',
-            showSecureLabel: false,
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            displayPlanType: true,
+        it('returns null when settings index has no items', async () => {
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [] }));
+            const result = await getSettings(createContext());
+            expect(result).to.be.null;
         });
-    });
 
-    it('should handle references with plans variant', async () => {
-        context.body = {
-            model: {
-                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-            },
-            references: {
-                ref1: {
-                    type: 'content-fragment',
-                    value: {
-                        fields: {
-                            variant: 'plans',
-                            showSecureLabel: true,
+        it('returns null when fetch references fails', async () => {
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [{ id: 'sid' }] }));
+            fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(500, null, 'Internal Server Error'));
+            const result = await getSettings(createContext());
+            expect(result).to.be.null;
+        });
+
+        it('returns grouped settings on success', async () => {
+            const referencesBody = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: {
+                                name: 'showSecureLabel',
+                                type: 'boolean',
+                                boolValue: true,
+                            },
                         },
                     },
                 },
-            },
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.references.ref1.value.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: true,
-        });
-    });
-
-    it('should handle multiple references with different variants', async () => {
-        context.body = {
-            model: {
-                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-            },
-            references: {
-                ref1: {
-                    type: 'content-fragment',
-                    value: {
-                        fields: {
-                            variant: 'plans',
-                        },
-                    },
+            };
+            mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
+            const result = await getSettings(createContext());
+            expect(result).to.deep.equal({
+                showSecureLabel: {
+                    default: { name: 'showSecureLabel', type: 'boolean', boolValue: true },
+                    override: [],
                 },
-                ref2: {
-                    type: 'content-fragment',
-                    value: {
-                        fields: {
-                            variant: 'other',
-                        },
-                    },
-                },
-            },
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.references.ref1.value.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: true,
-        });
-        expect(result.body.references.ref2.value.settings).to.be.undefined;
-    });
-
-    it('should not add displayPlanType when locale is not en_US', async () => {
-        context.locale = 'fr_FR';
-        context.body.fields.variant = 'plans';
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-        });
-    });
-
-    it('should add displayPlanType when locale is APAC', async () => {
-        context.body.fields.variant = 'plans';
-        PLAN_TYPE_LOCALES.forEach(async (loc) => {
-            context.locale = loc;
-            const result = await settings.process(context);
-            expect(result.body.settings).to.deep.equal({
-                secureLabel: '{{secure-label}}',
-                displayPlanType: true,
             });
         });
     });
 
-    it('should not add any settings when variant is not plans', async () => {
-        context.body.fields.variant = 'other';
+    describe('settings transformer init', () => {
+        beforeEach(() => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+        });
 
-        const result = await settings.process(context);
-        expect(result.body.settings).to.be.undefined;
-    });
+        afterEach(() => {
+            fetchStub.restore();
+            clearSettingsCache();
+        });
 
-    it('should handle missing body', async () => {
-        context = { locale: 'en_US' };
+        it('returns null when surface is missing', async () => {
+            fetchStub.withArgs(settingsIndexUrl(undefined)).returns(createResponse(200, { items: [] }));
+            const context = createContext();
+            delete context.surface;
+            const result = await settings.init(context);
+            expect(result).to.be.null;
+        });
 
-        const result = await settings.process(context);
-        expect(result).to.deep.equal(context);
-    });
+        it('returns null when fragment not found', async () => {
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [] }));
+            const result = await settings.init(createContext());
+            expect(result).to.be.null;
+        });
 
-    it('should handle missing fields', async () => {
-        context = {
-            locale: 'en_US',
-            body: {},
-        };
+        it('returns null when fetch references fails', async () => {
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [{ id: 'sid' }] }));
+            fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(500, null, 'Internal Server Error'));
+            const result = await settings.init(createContext());
+            expect(result).to.be.null;
+        });
 
-        const result = await settings.process(context);
-        expect(result).to.deep.equal(context);
-    });
-
-    it('should handle invalid reference structure', async () => {
-        context.body = {
-            model: {
-                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-            },
-            references: {
-                ref1: null,
-                ref2: {},
-                ref3: { type: 'content-fragment' },
-            },
-        };
-
-        const result = await settings.process(context);
-        expect(result).to.deep.equal(context);
-    });
-
-    it('should handle no references collection', async () => {
-        context.body = {
-            model: {
-                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-            },
-        };
-
-        const result = await settings.process(context);
-        expect(result).to.deep.equal(context);
-    });
-
-    it('should override plan type when variant is plans and showPlanType is false', async () => {
-        context.body.fields = {
-            locale: 'en_US',
-            showPlanType: false,
-            variant: 'plans',
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: false,
+        it('returns grouped settings on success', async () => {
+            mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', SETTINGS_RESPONSE);
+            const result = await settings.init(createContext());
+            expect(result.showSecureLabel).to.exist;
+            expect(result.showSecureLabel.default.name).to.equal('showSecureLabel');
+            expect(result.showSecureLabel.default.booleanValue).to.be.true;
+            expect(result.showSecureLabel.override).to.have.length(1);
+            expect(result.showSecureLabel.override[0].locales).to.include('fr_FR');
+            expect(result.displayPlanType).to.exist;
+            expect(result.displayAnnual).to.exist;
         });
     });
 
-    it('should not add plan type when variant is mini and locale is not en_AU', async () => {
-        context.body.fields = {
-            variant: 'mini',
-        };
-        const result = await settings.process(context);
-        expect(result.body.settings).to.be.undefined;
-    });
-
-    it('should add plan type when variant is mini and locale is en_AU', async () => {
-        context.locale = 'en_AU';
-        context.body.fields = {
-            variant: 'mini',
-        };
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            displayPlanType: true,
-            displayAnnual: true,
-        });
-    });
-
-    it('should handle references with mini variant', async () => {
-        context.locale = 'en_AU';
-        context.body = {
-            model: {
-                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-            },
+    describe('settings caching', () => {
+        const referencesBody = {
             references: {
                 ref1: {
-                    type: 'content-fragment',
                     value: {
                         fields: {
-                            variant: 'mini',
+                            name: 'showSecureLabel',
+                            type: 'boolean',
+                            boolValue: true,
                         },
                     },
                 },
             },
         };
 
-        const result = await settings.process(context);
-        expect(result.body.references.ref1.value.settings).to.deep.equal({
-            displayPlanType: true,
-            displayAnnual: true,
+        beforeEach(() => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+        });
+
+        afterEach(() => {
+            fetchStub.restore();
+            clearSettingsCache();
+        });
+
+        const contentFetchCalls = () => fetchStub.getCalls().filter((c) => c.args[0]?.includes('references=all-hydrated'));
+
+        it('uses cached settings on second request (no extra content fetch)', async () => {
+            clearSettingsCache();
+            mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
+
+            const ctx1 = createContext();
+            ctx1.promises = {};
+            ctx1.promises.settings = settings.init(ctx1);
+            await ctx1.promises.settings;
+
+            const ctx2 = createContext();
+            ctx2.promises = {};
+            ctx2.promises.settings = settings.init(ctx2);
+            await ctx2.promises.settings;
+
+            expect(contentFetchCalls()).to.have.length(1);
+        });
+
+        it('caches settings with 200 and reuses within TTL', async () => {
+            clearSettingsCache();
+            mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
+
+            const result1 = await getSettings(createContext());
+            expect(result1.showSecureLabel.default.boolValue).to.be.true;
+            expect(contentFetchCalls()).to.have.length(1);
+
+            const result2 = await getSettings(createContext());
+            expect(result2.showSecureLabel.default.boolValue).to.be.true;
+            expect(contentFetchCalls()).to.have.length(1);
+        });
+
+        it('clearSettingsCache() clears in-memory cache', async () => {
+            clearSettingsCache();
+            mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
+            await getSettings(createContext());
+            expect(contentFetchCalls()).to.have.length(1);
+
+            clearSettingsCache();
+            await getSettings(createContext());
+            expect(contentFetchCalls()).to.have.length(2);
+        });
+
+        it('different surface/locale use different cache entries', async () => {
+            clearSettingsCache();
+            const bodyA = {
+                references: {
+                    ref1: { value: { fields: { name: 'x', type: 'text', textValue: 'A' } } },
+                },
+            };
+            const bodyB = {
+                references: {
+                    ref1: { value: { fields: { name: 'x', type: 'text', textValue: 'B' } } },
+                },
+            };
+            mockSettingsFetch('surfaceA', 'id-a', bodyA);
+            mockSettingsFetch('surfaceB', 'id-b', bodyB);
+
+            const resultA = await getSettings(createContext({ surface: 'surfaceA', locale: 'en_US' }));
+            const resultB = await getSettings(createContext({ surface: 'surfaceB', locale: 'fr_FR' }));
+            expect(resultA.x.default.textValue).to.equal('A');
+            expect(resultB.x.default.textValue).to.equal('B');
+        });
+
+        it('shares cache across locales for same surface (settings URL has no locale)', async () => {
+            clearSettingsCache();
+            const referencesBody = {
+                references: {
+                    ref1: {
+                        value: { fields: { name: 'x', type: 'text', textValue: 'shared' } },
+                    },
+                },
+            };
+            mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
+            const contentCalls = () => fetchStub.getCalls().filter((c) => c.args[0]?.includes('references=all-hydrated'));
+
+            await getSettings(createContext({ surface: DEFAULT_SURFACE, locale: 'en_US' }));
+            await getSettings(createContext({ surface: DEFAULT_SURFACE, locale: 'fr_FR' }));
+            expect(contentCalls()).to.have.length(1);
         });
     });
 
-    it('should add perUnitLabel when variant is plans and perUnitLabel is empty string', async () => {
-        context.body.fields = {
-            variant: 'plans',
-            perUnitLabel: '',
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.settings).to.deep.equal({
-            secureLabel: '{{secure-label}}',
-            displayPlanType: true,
+    describe('settings transformer process', () => {
+        it('applies settings from context.promises.settings (grouped format)', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: {
+                    fields: { variant: 'plans' },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        showSecureLabel: {
+                            default: {
+                                name: 'showSecureLabel',
+                                type: 'boolean',
+                                boolValue: true,
+                            },
+                            override: [],
+                        },
+                        checkoutWorkflow: {
+                            default: {
+                                name: 'checkoutWorkflow',
+                                type: 'text',
+                                textValue: 'UCv3',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.showSecureLabel).to.be.true;
+            expect(result.body.settings.checkoutWorkflow).to.equal('UCv3');
         });
-        expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
-    });
 
-    it('should handle references with perUnitLabel', async () => {
-        context.body = {
-            model: {
-                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-            },
-            references: {
-                ref1: {
-                    type: 'content-fragment',
-                    value: {
-                        fields: {
-                            variant: 'plans',
-                            perUnitLabel: '{perUnit, select, LICENSE {per license} other {}}',
+        it('applies placeholder for secureLabel when showSecureLabel is true', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        showSecureLabel: {
+                            default: {
+                                name: 'showSecureLabel',
+                                type: 'placeholder',
+                                textValue: '{{secure-label}}',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.showSecureLabel).to.equal('{{secure-label}}');
+        });
+
+        it('always applies priceLiterals', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: {} },
+                promises: { settings: Promise.resolve({}) },
+            };
+            const result = await settings.process(context);
+            expect(result.body.priceLiterals).to.be.an('object');
+            expect(result.body.priceLiterals.recurrenceLabel).to.equal('{{price-literal-recurrence-label}}');
+        });
+
+        it('applies settings to collection model references', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: {
+                    model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24' },
+                    references: {
+                        ref1: {
+                            type: 'content-fragment',
+                            value: { fields: { variant: 'plans' } },
                         },
                     },
                 },
-            },
-        };
-
-        const result = await settings.process(context);
-        expect(result.body.references.ref1.value.priceLiterals).to.deep.equal({
-            perUnitLabel: '{perUnit, select, LICENSE {per license} other {}}',
+                promises: {
+                    settings: Promise.resolve({
+                        showSecureLabel: {
+                            default: {
+                                name: 'showSecureLabel',
+                                type: 'boolean',
+                                boolValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.references.ref1.value.settings.showSecureLabel).to.be.true;
+            expect(result.body.placeholders).to.exist;
+            expect(result.body.settings?.tagLabels).to.exist;
         });
-    });
 
-    it('should apply perUnitLabel to priceLiterals when provided', async () => {
-        context.body = {
-            fields: {
-                variant: 'plans',
-                perUnitLabel: '{perUnit, select, LICENSE {per user} other {}}',
-            },
-        };
+        it('skips null entry (no default and no override)', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: {} },
+                promises: {
+                    settings: Promise.resolve({
+                        optional: { default: null, override: [] },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings).to.be.undefined;
+        });
 
-        const result = await settings.process(context);
-        expect(result.body.priceLiterals.perUnitLabel).to.equal('{perUnit, select, LICENSE {per user} other {}}');
-    });
+        it('handles missing body', async () => {
+            const context = { locale: 'en_US', promises: { settings: Promise.resolve({}) } };
+            const result = await settings.process(context);
+            expect(result).to.deep.equal(context);
+        });
 
-    it('should use default perUnitLabel placeholder when not provided', async () => {
-        context.body = {
-            fields: {},
-        };
+        it('handles missing context.promises.settings', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: {} },
+            };
+            const result = await settings.process(context);
+            expect(result).to.deep.equal(context);
+        });
 
-        const result = await settings.process(context);
-        expect(result.body.priceLiterals.perUnitLabel).to.equal('{{price-literal-per-unit-label}}');
+        it('picks override with most tag matches when multiple overrides match locale', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'plans' }, tags: ['premium', 'b2b'] },
+                promises: {
+                    settings: Promise.resolve({
+                        badgeLabel: {
+                            default: {
+                                name: 'badgeLabel',
+                                type: 'text',
+                                textValue: 'Default badge',
+                            },
+                            override: [
+                                {
+                                    name: 'badgeLabel',
+                                    type: 'text',
+                                    textValue: 'Premium badge',
+                                    locales: ['fr_FR'],
+                                    tags: ['premium'],
+                                },
+                                {
+                                    name: 'badgeLabel',
+                                    type: 'text',
+                                    textValue: 'Premium B2B badge',
+                                    locales: ['fr_FR'],
+                                    tags: ['premium', 'b2b'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.badgeLabel).to.equal('Premium B2B badge');
+        });
+
+        it('uses single matching override when exactly one override matches locale', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        checkoutWorkflow: {
+                            default: {
+                                name: 'checkoutWorkflow',
+                                type: 'text',
+                                textValue: 'UCv3',
+                            },
+                            override: [
+                                {
+                                    name: 'checkoutWorkflow',
+                                    type: 'text',
+                                    textValue: 'UCv3-FR',
+                                    locales: ['fr_FR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.checkoutWorkflow).to.equal('UCv3-FR');
+        });
+
+        it('applies richText setting from richTextValue', async () => {
+            const richText = { mimeType: 'text/html', html: '<p>Trust badge copy</p>' };
+            const context = {
+                locale: 'en_US',
+                body: { fields: {} },
+                promises: {
+                    settings: Promise.resolve({
+                        trustCopy: {
+                            default: {
+                                name: 'trustCopy',
+                                type: 'richText',
+                                richTextValue: richText,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.trustCopy).to.deep.equal(richText);
+        });
+
+        it('applies entry with no type using boolValue (default branch)', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: {} },
+                promises: {
+                    settings: Promise.resolve({
+                        legacyFlag: {
+                            default: {
+                                name: 'legacyFlag',
+                                boolValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.legacyFlag).to.be.true;
+        });
     });
 });

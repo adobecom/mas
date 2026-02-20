@@ -39,7 +39,7 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
     return fetch(offersEndpoint)
         .then((response) => response.json())
         .then((offers) => {
-            console.log(`received ${landscape} - ${page}}`);
+            console.log(`received ${landscape} - ${page}`);
             if (offers && offers.length > 0) {
                 const products = allProducts[landscape];
                 for (const offer of offers) {

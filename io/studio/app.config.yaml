@@ -48,10 +48,6 @@ application:
                                 acom: transcreation
                                 express: transcreation
                                 sandbox: machineTranslation
-                            allowedSurfaces:
-                                - acom
-                                - express
-                                - sandbox
                         annotations:
                             require-adobe-auth: false
                             final: true

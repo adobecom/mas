@@ -44,6 +44,9 @@
                 id: 'test-fragment-id',
                 path: '/content/dam/mas/commerce/en_US/test-fragment',
                 fields: [{ name: 'variations', values: ['/content/dam/mas/commerce/en_AU/test-fragment'] }],
+                getFieldValue(name, index = 0) {
+                    return this.fields.find((f) => f.name === name)?.values?.[index];
+                },
             };
 
             const mockParentFragment = {
@@ -65,6 +68,7 @@
                     beforeEach(async () => {
                         mockRepository = {
                             createVariation: stub().resolves(mockCreatedVariation),
+                            createGroupedVariation: stub().resolves(mockCreatedVariation),
                         };
                         Store.search.value = { path: 'acom' };
 
@@ -81,27 +85,48 @@
                             dialog.repository = null;
                             dialog.existingVariationLocales = [];
                             dialog.selectedLocale = '';
+                            dialog.variationType = 'regional';
+                            dialog.pznTags = [];
+                            dialog.offerData = null;
                             dialog.loading = false;
                             dialog.error = null;
                         }
+                        document.querySelector('mas-commerce-service')?.remove();
                     });
 
                     describe('Rendering', () => {
                         it('should render dialog with correct header', async () => {
-                            const header = dialog.shadowRoot.querySelector('.dialog-header');
+                            const header = dialog.shadowRoot.querySelector('h2[slot="heading"]');
                             expect(header).to.exist;
                             expect(header.textContent).to.equal('Set a variation type');
                         });
 
-                        it('should render variation type picker as disabled', async () => {
-                            const typePicker = dialog.shadowRoot.querySelector('sp-picker[disabled]');
+                        it('should render variation type picker with regional as default', async () => {
+                            const typePicker = dialog.shadowRoot.querySelector('sp-picker');
                             expect(typePicker).to.exist;
                             expect(typePicker.value).to.equal('regional');
+                            expect(typePicker.disabled).to.be.false;
                         });
 
                         it('should render locale picker', async () => {
                             const localePicker = dialog.shadowRoot.querySelectorAll('sp-picker')[1];
                             expect(localePicker).to.exist;
+                        });
+
+                        it('should render grouped variation option for en_US source locale', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/en_US/test-fragment' };
+                            await dialog.updateComplete;
+
+                            const groupedOption = dialog.shadowRoot.querySelector('sp-menu-item[value="grouped"]');
+                            expect(groupedOption).to.exist;
+                        });
+
+                        it('should hide grouped variation option for non en_US source locale', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/fr_FR/test-fragment' };
+                            await dialog.updateComplete;
+
+                            const groupedOption = dialog.shadowRoot.querySelector('sp-menu-item[value="grouped"]');
+                            expect(groupedOption).to.not.exist;
                         });
 
                         it('should render cancel and create buttons', async () => {
@@ -163,13 +188,40 @@
                         });
 
                         it('should close on backdrop click', async () => {
-                            const cancelPromise = oneEvent(dialog, 'cancel');
-                            const backdrop = dialog.shadowRoot.querySelector('.dialog-backdrop');
+                            let cancelFired = false;
+                            dialog.addEventListener(
+                                'cancel',
+                                () => {
+                                    cancelFired = true;
+                                },
+                                { once: true },
+                            );
+                            const backdrop = dialog.shadowRoot.querySelector('sp-underlay');
 
-                            backdrop.click();
+                            backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+                            await delay(0);
+                            expect(cancelFired).to.be.true;
+                        });
 
-                            const event = await cancelPromise;
-                            expect(event).to.exist;
+                        it('should not close while loading on Escape or backdrop click', async () => {
+                            dialog.loading = true;
+                            await dialog.updateComplete;
+
+                            let cancelFired = false;
+                            dialog.addEventListener(
+                                'cancel',
+                                () => {
+                                    cancelFired = true;
+                                },
+                                { once: true },
+                            );
+
+                            document.dispatchEvent(new KeyboardEvent(EVENT_KEYDOWN, { key: 'Escape' }));
+                            const backdrop = dialog.shadowRoot.querySelector('sp-underlay');
+                            backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+                            await delay(0);
+
+                            expect(cancelFired).to.be.false;
                         });
 
                         it('should not close on dialog container click', async () => {
@@ -178,7 +230,7 @@
                                 cancelFired = true;
                             });
 
-                            const container = dialog.shadowRoot.querySelector('.dialog-container');
+                            const container = dialog.shadowRoot.querySelector('sp-dialog');
                             container.click();
                             await delay(50);
 
@@ -276,6 +328,54 @@
                             expect(event.detail.fragment).to.deep.equal(mockCreatedVariation);
                         });
 
+                        it('should submit grouped locale tag IDs with productArrangementCode from offer', async () => {
+                            dialog.fragment = {
+                                ...mockFragment,
+                                path: '/content/dam/mas/commerce/en_US/test-fragment',
+                            };
+                            dialog.variationType = 'grouped';
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = { productArrangementCode: 'pac-from-offer' };
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(mockRepository.createGroupedVariation.calledOnce).to.be.true;
+                            expect(
+                                mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/fr_FR'], {
+                                    productArrangementCode: 'pac-from-offer',
+                                }),
+                            ).to.be.true;
+                        });
+
+                        it('should resolve grouped offer data from OSI when offerData is not preloaded', async () => {
+                            const service = document.createElement('mas-commerce-service');
+                            service.collectPriceOptions = stub().returns({ some: 'options' });
+                            service.resolveOfferSelectors = stub().returns([
+                                Promise.resolve([{ productArrangementCode: 'pac-from-resolved-offer' }]),
+                            ]);
+                            document.body.append(service);
+
+                            dialog.fragment = {
+                                ...mockFragment,
+                                path: '/content/dam/mas/commerce/en_US/test-fragment',
+                                fields: [{ name: 'osi', values: ['wcs-osi-123'] }],
+                            };
+                            dialog.variationType = 'grouped';
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = null;
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(mockRepository.createGroupedVariation.calledOnce).to.be.true;
+                            expect(
+                                mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/fr_FR'], {
+                                    productArrangementCode: 'pac-from-resolved-offer',
+                                }),
+                            ).to.be.true;
+                        });
+
                         it('should show error on submission failure', async () => {
                             mockRepository.createVariation.rejects(new Error('Network error'));
                             dialog.selectedLocale = 'en_CA';
@@ -302,6 +402,15 @@
                             await dialog.updateComplete;
 
                             expect(dialog.sourceLocale).to.be.null;
+                        });
+
+                        it('should reset grouped variationType to regional for non en_US locales', async () => {
+                            dialog.variationType = 'grouped';
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/de_DE/test-fragment' };
+                            await dialog.updateComplete;
+
+                            expect(dialog.variationType).to.equal('regional');
+                            expect(dialog.isGrouped).to.be.false;
                         });
                     });
                 });

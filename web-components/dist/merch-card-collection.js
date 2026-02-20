@@ -2909,6 +2909,13 @@ merch-card-collection.product merch-card {
     width: 100%;
   }
 
+.one-merch-card.section merch-card[variant="product"],
+.two-merch-cards.section merch-card[variant="product"],
+.three-merch-cards.section merch-card[variant="product"],
+.four-merch-cards.section merch-card[variant="product"] {
+    width: auto;
+}
+
 /* grid style for product */
 .one-merch-card.product,
 .two-merch-cards.product,

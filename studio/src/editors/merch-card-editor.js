@@ -16,6 +16,8 @@ import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
+import { Fragment } from '../aem/fragment.js';
+import { toAttribute } from '../aem/aem-tag-picker-field.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -64,6 +66,7 @@ class MerchCardEditor extends LitElement {
         this.isVariation = false;
         this.lastMnemonicState = null;
         this.fieldsReady = false;
+        this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
     }
 
@@ -72,7 +75,57 @@ class MerchCardEditor extends LitElement {
     }
 
     get effectiveIsVariation() {
-        return this.isVariation && this.localeDefaultFragment !== null;
+        return (this.isVariation || this.isGroupedVariation) && this.localeDefaultFragment !== null;
+    }
+
+    get isGroupedVariation() {
+        return Fragment.isGroupedVariationPath(this.fragment?.path);
+    }
+
+    get pznTagsValue() {
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).join(',');
+    }
+
+    #normalizePznTagIds(value) {
+        const rawValues = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+        return [
+            ...new Set(
+                rawValues
+                    .flatMap((entry) => (typeof entry === 'string' ? entry.split(',') : []))
+                    .map((entry) => entry.trim())
+                    .filter(Boolean)
+                    .map((entry) => toAttribute([entry]))
+                    .filter(Boolean),
+            ),
+        ];
+    }
+
+    #handlePznTagsChange = (event) => {
+        const tagPicker = event.target;
+        const normalizedTagIds = this.#normalizePznTagIds(tagPicker.value);
+        this.fragmentStore.updateField('pznTags', normalizedTagIds);
+    };
+
+    get groupedVariationTagsTemplate() {
+        if (!this.isGroupedVariation) return nothing;
+        const locale = this.fragment?.locale;
+        const isReadonly = locale !== 'en_US';
+        return html`
+            <sp-field-group id="grouped-variation-tags">
+                <sp-field-label>Grouped variation tags</sp-field-label>
+                <aem-tag-picker-field
+                    selection="checkbox-tags"
+                    display-value
+                    ?readonly=${isReadonly}
+                    label="Locale tags"
+                    namespace="/content/cq:tags/mas"
+                    top="locale"
+                    multiple
+                    value="${this.pznTagsValue}"
+                    @change=${this.#handlePznTagsChange}
+                ></aem-tag-picker-field>
+            </sp-field-group>
+        `;
     }
 
     getEffectiveFieldValue(fieldName, index = 0) {
@@ -397,9 +450,7 @@ class MerchCardEditor extends LitElement {
             const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
             this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
         }
-        const fragment = this.fragmentStore.get();
-        fragment.updateField(QUANTITY_MODEL, [html]);
-        this.fragmentStore.set(fragment);
+        this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
     };
 
     showQuantityFields(show) {
@@ -421,7 +472,9 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) {
             return;
         }
-        const variantValue = this.fragment.variant;
+        // Variations can inherit `variant` from their parent fragment.
+        // Use the effective value so template field visibility remains accurate.
+        const variantValue = this.getEffectiveFieldValue('variant');
         if (!variantValue) {
             this.fieldsReady = true;
             return;
@@ -764,6 +817,7 @@ class MerchCardEditor extends LitElement {
                     ></aem-tag-picker-field>
                     ${this.renderTagsStatusIndicator()}
                 </sp-field-group>
+                ${this.groupedVariationTagsTemplate}
                 <div class="section-title">Visuals</div>
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield

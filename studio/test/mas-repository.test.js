@@ -2,6 +2,8 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
 import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '../src/constants.js';
+import Events from '../src/events.js';
+import Store from '../src/store.js';
 
 const mockFragmentCache = {
     get: () => null,
@@ -1158,6 +1160,233 @@ describe('MasRepository dictionary helpers', () => {
             } catch (error) {
                 expect(error.message).to.include('Cannot create a variation from another variation');
             }
+        });
+    });
+
+    describe('resolveHydratedParentFragment', () => {
+        it('resolves parent via referencedBy and hydrates it by id', async () => {
+            const repository = createRepository();
+            const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
+            const parentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
+            const parentByPath = { id: 'parent-id', path: parentPath };
+            const hydratedParent = { ...parentByPath, references: [{ id: 'ref-1' }] };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getReferencedBy: sandbox.stub().resolves({
+                        path: sourcePath,
+                        parentReferences: [{ type: 'content-fragment', path: parentPath }],
+                    }),
+                    getByPath: sandbox.stub().resolves(parentByPath),
+                    getById: sandbox.stub().resolves(hydratedParent),
+                },
+            });
+
+            const result = await repository.resolveHydratedParentFragment(sourcePath);
+
+            expect(repository.aem.sites.cf.fragments.getReferencedBy.calledOnceWith(sourcePath)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getByPath.calledOnceWith(parentPath)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('parent-id')).to.be.true;
+            expect(result).to.deep.equal(hydratedParent);
+        });
+
+        it('returns null when referencedBy has no parent reference', async () => {
+            const repository = createRepository();
+            const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getReferencedBy: sandbox.stub().resolves({
+                        path: sourcePath,
+                        parentReferences: [],
+                    }),
+                },
+            });
+
+            const result = await repository.resolveHydratedParentFragment(sourcePath);
+
+            expect(result).to.be.null;
+            expect(repository.aem.sites.cf.fragments.getByPath.called).to.be.false;
+            expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
+        });
+
+        it('falls back to parent fetched by path when hydration by id fails', async () => {
+            const repository = createRepository();
+            const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
+            const parentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
+            const parentByPath = { id: 'parent-id', path: parentPath };
+            const consoleDebugStub = sandbox.stub(console, 'debug');
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getReferencedBy: sandbox.stub().resolves({
+                        path: sourcePath,
+                        parentReferences: [{ type: 'content-fragment', path: parentPath }],
+                    }),
+                    getByPath: sandbox.stub().resolves(parentByPath),
+                    getById: sandbox.stub().rejects(new Error('Hydration failed')),
+                },
+            });
+
+            const result = await repository.resolveHydratedParentFragment(sourcePath);
+
+            expect(result).to.deep.equal(parentByPath);
+            expect(consoleDebugStub.calledWithMatch('Failed to hydrate parent fragment references:')).to.be.true;
+        });
+    });
+
+    describe('createGroupedVariation', () => {
+        const parentFragment = {
+            id: 'parent-grouped-1',
+            path: '/content/dam/mas/sandbox/en_US/pac/parent-fragment',
+            title: 'Parent title',
+            description: 'Parent description',
+            model: { id: 'model-1' },
+            fields: [{ name: 'variations', values: [] }],
+            tags: [{ id: 'mas:product/cc/photoshop' }],
+        };
+
+        it('creates grouped variation and updates the parent variations field', async () => {
+            const repository = createRepository();
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+
+            const getByPathStub = sandbox.stub().callsFake(async (path) => {
+                if (path === createdFragment.path) return createdFragment;
+                return null;
+            });
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: getByPathStub,
+                    ensureFolderExists: sandbox.stub().resolves(),
+                    create: sandbox.stub().resolves(createdDraft),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            const result = await repository.createGroupedVariation(parentFragment.id, ['mas:locale/EG/ar_EG'], {
+                productArrangementCode: 'pac',
+            });
+
+            expect(repository.updateParentVariations.calledOnce).to.be.true;
+            expect(repository.updateParentVariations.calledWith(parentFragment, createdFragment.path)).to.be.true;
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('resolves parent fragment via repository resolver when source fragment is grouped', async () => {
+            const repository = createRepository();
+            const groupedSource = {
+                id: 'grouped-source',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source',
+                title: 'Grouped source',
+                description: 'Grouped source',
+                model: { id: 'model-1' },
+                fields: [{ name: 'variations', values: [] }],
+                tags: [],
+            };
+            const resolvedParentFragment = {
+                ...parentFragment,
+                references: [{ id: 'ref-1', path: '/content/dam/mas/sandbox/en_CA/pac/default-fragment' }],
+            };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+
+            const getByPathStub = sandbox.stub().callsFake(async (path) => {
+                if (path === createdFragment.path) return createdFragment;
+                return null;
+            });
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(groupedSource),
+                    getByPath: getByPathStub,
+                    ensureFolderExists: sandbox.stub().resolves(),
+                    create: sandbox.stub().resolves({ id: createdFragment.id }),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(resolvedParentFragment);
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            const result = await repository.createGroupedVariation(groupedSource.id, ['mas:locale/EG/ar_EG'], {
+                productArrangementCode: 'pac',
+            });
+
+            expect(repository.resolveHydratedParentFragment.calledOnceWith(groupedSource.path)).to.be.true;
+            expect(repository.updateParentVariations.calledOnce).to.be.true;
+            expect(repository.updateParentVariations.firstCall.args[0].id).to.equal(parentFragment.id);
+            expect(repository.updateParentVariations.firstCall.args[1]).to.equal(createdFragment.path);
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('throws when grouped source has no parent reference', async () => {
+            const repository = createRepository();
+            const groupedSource = {
+                id: 'grouped-source',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source',
+                title: 'Grouped source',
+                description: 'Grouped source',
+                model: { id: 'model-1' },
+                fields: [{ name: 'variations', values: [] }],
+                tags: [],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(groupedSource),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(null);
+
+            try {
+                await repository.createGroupedVariation(groupedSource.id, ['mas:locale/EG/ar_EG'], {
+                    productArrangementCode: 'pac',
+                });
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to resolve parent fragment for grouped variation');
+            }
+        });
+    });
+
+    describe('deleteFragment', () => {
+        it('refreshes referencing list stores after deletion to prevent stale variation rows', async () => {
+            const repository = createRepository();
+            const fragment = createFragment({
+                id: null,
+                path: '/content/dam/mas/acom/en_US/some-product/pzn/some-grouped-variation',
+            });
+
+            repository.aem = createAemMock({
+                fragments: {
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = {
+                set: sandbox.stub(),
+            };
+
+            const refreshVariationParentInListStub = sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            const fragmentDeletedEmitStub = sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragment(fragment, {
+                force: true,
+                startToast: false,
+                endToast: false,
+            });
+
+            expect(result).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledOnceWith({ path: fragment.path })).to.be.true;
+            expect(refreshVariationParentInListStub.calledOnceWith(fragment, null)).to.be.true;
+            expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
         });
     });
 });

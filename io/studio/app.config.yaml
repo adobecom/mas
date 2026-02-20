@@ -51,3 +51,10 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    health-check:
+                        function: src/health-check/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

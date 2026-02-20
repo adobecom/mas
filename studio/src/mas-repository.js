@@ -7,7 +7,7 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath } from './utils.js';
+import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -21,6 +21,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    PZN_FOLDER,
     SURFACES,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
@@ -228,6 +229,7 @@ export class MasRepository extends LitElement {
     }
 
     skipVariant(variants, item) {
+        if (Fragment.isGroupedVariationPath(item.path)) return true;
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
         return variants.length && !variants.includes(variant);
     }
@@ -247,6 +249,13 @@ export class MasRepository extends LitElement {
         const locale = this.filters.value.locale;
 
         if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
+            const filteredData = currentData.filter((fragmentStore) => {
+                const fragmentPath = fragmentStore?.get?.()?.path;
+                return !Fragment.isGroupedVariationPath(fragmentPath);
+            });
+            if (filteredData.length !== currentData.length) {
+                dataStore.set(filteredData);
+            }
             Store.fragments.list.loading.set(false);
             Store.fragments.list.firstPageLoaded.set(true);
             return;
@@ -312,7 +321,11 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
-                if (fragmentData && fragmentData.path.indexOf(ROOT_PATH) === 0) {
+                if (
+                    fragmentData &&
+                    fragmentData.path.indexOf(ROOT_PATH) === 0 &&
+                    !Fragment.isGroupedVariationPath(fragmentData.path)
+                ) {
                     const fragmentFolderPath = fragmentData.path.substring(ROOT_PATH.length + 1);
                     const fragmentFolder = fragmentFolderPath.split('/')[0];
                     const surface = fragmentFolder?.toLowerCase();
@@ -936,6 +949,9 @@ export class MasRepository extends LitElement {
             fragmentStore.refreshFrom(savedFragment);
             fragmentCache.remove(savedFragment.id);
             fragmentCache.add(new Fragment(savedFragment));
+            if (parentFragment) {
+                await this.refreshVariationParentInList(savedFragment, parentFragment);
+            }
             if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {
@@ -944,6 +960,40 @@ export class MasRepository extends LitElement {
         } finally {
             this.operation.set(null);
         }
+    }
+
+    /**
+     * Refreshes parent/list stores that reference a saved variation so nested rows in
+     * the content table stay in sync when navigating back from the editor.
+     * @param {Object} variationFragment
+     * @param {Object} parentFragment
+     */
+    async refreshVariationParentInList(variationFragment, parentFragment) {
+        if (!variationFragment) return;
+
+        const listStores = Store.fragments.list.data.get() || [];
+        const variationId = variationFragment.id;
+        const variationPath = variationFragment.path;
+        const parentId = parentFragment?.id;
+
+        const storesToRefresh = listStores.filter((store) => {
+            const fragment = store?.get?.();
+            if (!fragment) return false;
+            if (parentId && fragment.id === parentId) return true;
+            return fragment.references?.some((reference) => reference.id === variationId || reference.path === variationPath);
+        });
+
+        if (!storesToRefresh.length) return;
+
+        await Promise.all(
+            storesToRefresh.map(async (store) => {
+                try {
+                    await this.refreshFragment(store);
+                } catch (error) {
+                    console.warn('Failed to refresh parent fragment store after variation save:', error?.message || error);
+                }
+            }),
+        );
     }
 
     /**
@@ -1095,6 +1145,15 @@ export class MasRepository extends LitElement {
 
             if (endToast) showToast('Fragment successfully deleted.', 'positive');
 
+            if (fragment?.id) {
+                await initFragmentCache();
+                fragmentCache.remove(fragment.id);
+            }
+
+            // Keep expanded variation rows in sync when a variation is deleted from editor.
+            // This refreshes any parent/list stores that currently reference the deleted fragment.
+            await this.refreshVariationParentInList(fragment, null);
+
             Events.fragmentDeleted.emit(fragment);
 
             return true;
@@ -1242,19 +1301,18 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The updated parent fragment
      */
     async updateParentVariations(parentFragment, variationPath) {
-        const variationsField = parentFragment.fields.find((f) => f.name === 'variations');
-        const currentVariations = variationsField?.values || [];
-
-        if (currentVariations.includes(variationPath)) {
-            return parentFragment;
-        }
-
-        const updatedVariations = [...currentVariations, variationPath];
-
         const latestParent = await this.aem.sites.cf.fragments.getWithEtag(parentFragment.id);
         if (!latestParent) {
             throw new Error('Failed to retrieve parent fragment for update');
         }
+
+        const variationsField = latestParent.fields.find((f) => f.name === 'variations');
+        const currentVariations = variationsField?.values || [];
+        if (currentVariations.includes(variationPath)) {
+            return latestParent;
+        }
+
+        const updatedVariations = [...currentVariations, variationPath];
 
         const updatedFields = latestParent.fields.map((field) => {
             if (field.name === 'variations') {
@@ -1384,6 +1442,134 @@ export class MasRepository extends LitElement {
         if (!message.startsWith(prefix)) return null;
         const path = message.slice(prefix.length).trim();
         return path.length > 0 ? path : null;
+    }
+
+    /**
+     * Generates a slugified fragment name from fragment tags (product first) + locale codes (first 3).
+     * @param {Object} fragment - The parent fragment
+     * @param {string[]} pznTags - Array of locale codes (e.g. ['fr_BE', 'fr_CH', 'fr_CA'])
+     * @returns {string} The generated fragment name
+     */
+    generateGroupedVariationName(fragment, pznTags) {
+        const parts = [];
+        const product = fragment.getTagTitle('mas:product/');
+        if (product) parts.push(product);
+
+        const customerSegment = fragment.getTagTitle('customer_segment');
+        if (customerSegment) parts.push(customerSegment);
+
+        const marketSegment = fragment.getTagTitle('market_segment');
+        if (marketSegment) parts.push(marketSegment);
+
+        if (parts.length === 0) {
+            parts.push(fragment.title || 'variation');
+        }
+
+        if (pznTags?.length) {
+            parts.push(...pznTags.slice(0, 3));
+        }
+
+        return parts
+            .join('-')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+    }
+
+    /**
+     * Resolves the parent fragment for the provided fragment path and hydrates references.
+     * Flow: referencedBy -> parent path -> getByPath -> getById (hydrated)
+     * @param {string} fragmentPath
+     * @returns {Promise<Object|null>}
+     */
+    async resolveHydratedParentFragment(fragmentPath) {
+        const references = await this.aem.sites.cf.fragments.getReferencedBy(fragmentPath);
+        const parentRefPath = references?.parentReferences?.[0]?.path;
+        if (!parentRefPath) return null;
+
+        const parentFragment = await this.aem.sites.cf.fragments.getByPath(parentRefPath);
+        if (!parentFragment) return null;
+        if (!parentFragment.id) return parentFragment;
+
+        try {
+            const hydratedParent = await this.aem.sites.cf.fragments.getById(parentFragment.id);
+            return hydratedParent || parentFragment;
+        } catch (error) {
+            console.debug('Failed to hydrate parent fragment references:', error.message);
+            return parentFragment;
+        }
+    }
+
+    /**
+     * Creates a grouped variation fragment under en_US/{productArrangementCode}/pzn/.
+     * @param {string} fragmentId - The parent fragment ID
+     * @param {string[]} pznTags - Array of locale codes (e.g. ['fr_FR', 'fr_CH', 'fr_BE'])
+     * @param {Object} offerData - The resolved WCS offer data containing productArrangementCode
+     * @returns {Promise<Object>} The created variation fragment
+     */
+    async createGroupedVariation(fragmentId, pznTags, offerData) {
+        const sourceFragment = await this.aem.sites.cf.fragments.getById(fragmentId);
+        if (!sourceFragment) {
+            throw new Error('Failed to fetch parent fragment');
+        }
+
+        let parentFragment = sourceFragment;
+        if (Fragment.isGroupedVariationPath(sourceFragment.path)) {
+            parentFragment = await this.resolveHydratedParentFragment(sourceFragment.path);
+            if (!parentFragment) {
+                throw new Error('Failed to resolve parent fragment for grouped variation');
+            }
+        }
+
+        const fragment = new Fragment(parentFragment);
+
+        const productArrangementCode = offerData?.productArrangementCode;
+        if (!productArrangementCode) {
+            throw new Error('Product arrangement code not available. The parent fragment must have a resolved offer.');
+        }
+
+        const parentPath = parentFragment.path;
+        const surface = extractSurfaceFromPath(parentPath);
+        if (!surface) {
+            throw new Error('Could not determine surface from parent path');
+        }
+        const fragmentName = this.generateGroupedVariationName(fragment, pznTags);
+        const targetFolder = `${ROOT_PATH}/${surface}/en_US/${productArrangementCode}/${PZN_FOLDER}`;
+
+        await this.aem.sites.cf.fragments.ensureFolderExists(targetFolder);
+
+        let targetPath = `${targetFolder}/${fragmentName}`;
+        const existingFragment = await this.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        if (existingFragment) {
+            const suffix = Array.from({ length: 4 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('');
+            targetPath = `${targetFolder}/${fragmentName}-${suffix}`;
+        }
+
+        const newFragment = await this.aem.sites.cf.fragments.create({
+            title: parentFragment.title,
+            description: parentFragment.description,
+            modelId: parentFragment.model.id,
+            parentPath: targetFolder,
+            name: fragmentName,
+            fields: pznTags?.length ? [{ name: 'pznTags', type: 'tag', multiple: true, values: pznTags }] : [],
+        });
+
+        if (parentFragment.tags?.length) {
+            await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, parentFragment.tags);
+        }
+
+        const createdFragment = await this.aem.sites.cf.fragments.pollCreatedFragment(newFragment);
+        if (!createdFragment) {
+            throw new Error('Failed to create grouped variation');
+        }
+
+        await this.updateParentVariations(parentFragment, createdFragment.path);
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === parentFragment.id);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
+
+        return createdFragment;
     }
 
     async createPlaceholder(placeholder) {

@@ -163,7 +163,10 @@ export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedL
 
 export const VARIATION_TYPES = {
     LOCALE: 'Locale',
+    GROUPED: 'Grouped variation',
 };
+
+export const PZN_FOLDER = 'pzn';
 
 export const SURFACES = {
     ACOM: {

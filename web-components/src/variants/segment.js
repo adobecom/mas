@@ -14,6 +14,7 @@ export const SEGMENT_AEM_FRAGMENT_MAPPING = {
     description: { tag: 'div', slot: 'body-xs' },
     callout: { tag: 'div', slot: 'callout-content' },
     planType: true,
+    secureLabel: true,
     badgeIcon: true,
     badge: { tag: 'div', slot: 'badge', default: 'spectrum-red-700-variation' },
     allowedBadgeColors: [

@@ -267,6 +267,11 @@ class MasStudio extends LitElement {
         return html`<mas-side-nav></mas-side-nav>`;
     }
 
+    get editorPanel() {
+        if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
+        return html`<editor-panel></editor-panel>`;
+    }
+
     render() {
         return html`
             ${this.topNav}
@@ -277,7 +282,7 @@ class MasStudio extends LitElement {
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
-                          <editor-panel></editor-panel>
+                          ${this.editorPanel}
                       </div>`
                     : nothing}
             </div>

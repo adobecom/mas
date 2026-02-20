@@ -1,12 +1,14 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
+import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { PAGE_NAMES, CARD_MODEL_PATH } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
+import { extractLocaleFromPath } from '../src/utils.js';
 import { nothing } from 'lit';
 
 describe('MasFragmentEditor', () => {
@@ -21,14 +23,111 @@ describe('MasFragmentEditor', () => {
         sandbox.restore();
     });
 
+    function createEditor({ resolveHydratedParentFragment, getLocaleDefaultFragmentAsync } = {}) {
+        const editor = new MasFragmentEditor();
+        const repository = {
+            resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
+        };
+
+        sandbox.stub(editor, 'repository').get(() => repository);
+
+        editor.editorContextStore = {
+            localeDefaultFragment: null,
+            defaultLocaleId: null,
+            parentFetchPromise: null,
+            notify: sandbox.stub(),
+            setParent(parentData) {
+                if (!parentData) return;
+                this.localeDefaultFragment = parentData;
+                this.defaultLocaleId = parentData.id;
+                this.parentFetchPromise = Promise.resolve(parentData);
+                this.notify();
+            },
+            getLocaleDefaultFragmentAsync: getLocaleDefaultFragmentAsync || sandbox.stub().resolves(null),
+        };
+
+        return { editor, repository };
+    }
+
+    describe('grouped variation parent resolution', () => {
+        it('polls grouped references every second for up to 15 seconds', async () => {
+            const clock = sandbox.useFakeTimers();
+            const resolveHydratedParentFragment = sandbox.stub().resolves(null);
+            const { editor } = createEditor({ resolveHydratedParentFragment });
+
+            const resultPromise = editor.pollGroupedVariationParentReference('/content/dam/mas/sandbox/en_US/pac/pzn/grouped');
+            await clock.tickAsync(15000);
+            const result = await resultPromise;
+
+            expect(result).to.be.null;
+            expect(resolveHydratedParentFragment.callCount).to.equal(16);
+        });
+
+        it('resolves parent when a grouped variation reference appears during polling', async () => {
+            const clock = sandbox.useFakeTimers();
+            const groupedPath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped';
+            const parentData = { id: 'parent-fragment-id', path: '/content/dam/mas/sandbox/en_US/pac/default-fragment' };
+            const resolveHydratedParentFragment = sandbox.stub();
+            resolveHydratedParentFragment.onCall(0).resolves(null);
+            resolveHydratedParentFragment.onCall(1).resolves(parentData);
+            const { editor } = createEditor({ resolveHydratedParentFragment });
+
+            const resultPromise = editor.pollGroupedVariationParentReference(groupedPath);
+            await clock.tickAsync(1000);
+            const result = await resultPromise;
+
+            expect(result).to.deep.equal(parentData);
+            expect(resolveHydratedParentFragment.callCount).to.equal(2);
+            expect(resolveHydratedParentFragment.alwaysCalledWith(groupedPath)).to.be.true;
+            expect(editor.editorContextStore.defaultLocaleId).to.equal('parent-fragment-id');
+            expect(editor.editorContextStore.localeDefaultFragment).to.deep.equal(parentData);
+        });
+
+        it('sets orphan warning message when grouped variation remains unreferenced', async () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'pollGroupedVariationParentReference').resolves(null);
+
+            const result = await editor.resolveVariationParentFragment('/content/dam/mas/sandbox/en_US/pac/pzn/grouped');
+
+            expect(result).to.be.null;
+            expect(editor.groupedVariationOrphanMessage).to.equal(
+                'No default-locale fragment currently references this grouped variation. Inheritance cannot be resolved, and this fragment may be orphaned.',
+            );
+        });
+
+        it('renders orphan grouped-variation state as a panel', () => {
+            const { editor } = createEditor();
+            editor.groupedVariationOrphanMessage =
+                'No default-locale fragment currently references this grouped variation. Inheritance cannot be resolved, and this fragment may be orphaned.';
+
+            const panel = editor.orphanGroupedVariationState;
+            const markup = panel.strings.join('');
+
+            expect(markup).to.include('orphan-grouped-variation-panel');
+            expect(markup).to.include('Parent reference missing for this grouped variation.');
+        });
+    });
+
     it('renders loading state when no fragment', async () => {
         const el = await fixture(html`<mas-fragment-editor></mas-fragment-editor>`);
         expect(el.querySelector('#loading-state')).to.exist;
     });
 
     it('extracts locale from path', async () => {
+        expect(extractLocaleFromPath('/content/dam/mas/surface/en_US/fragment')).to.equal('en_US');
+    });
+
+    it('does not derive variation dialog offerData from fragment path', () => {
         const el = document.createElement('mas-fragment-editor');
-        expect(el.extractLocaleFromPath('/content/dam/mas/surface/en_US/fragment')).to.equal('en_US');
+        const fragment = new Fragment({
+            id: 'test-id',
+            path: '/content/dam/mas/surface/en_US/pac/fragment',
+            fields: [],
+            references: [],
+        });
+        el.inEdit.value = { get: () => fragment };
+
+        expect(el.variationDialogOfferData).to.be.undefined;
     });
 
     it('calculates preview attributes correctly', async () => {
@@ -136,6 +235,42 @@ describe('MasFragmentEditor', () => {
 
             expect(el.inEdit.get().id).to.equal('new-id');
             expect(el.initState).to.equal('ready');
+        });
+    });
+
+    describe('translated locales fetching', () => {
+        it('dedupes in-flight translation requests for the same fragment', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalFragmentId = Store.fragmentEditor.fragmentId.value;
+            try {
+                const deferred = {};
+                const getTranslations = sandbox.stub().returns(
+                    new Promise((resolve) => {
+                        deferred.resolve = resolve;
+                    }),
+                );
+                const mockRepo = {
+                    aem: {
+                        sites: {
+                            cf: {
+                                fragments: { getTranslations },
+                            },
+                        },
+                    },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+                Store.fragmentEditor.fragmentId.value = 'test-id';
+
+                const firstCall = el.updateTranslatedLocalesStore(false);
+                const secondCall = el.updateTranslatedLocalesStore(false);
+                deferred.resolve({ languageCopies: [] });
+
+                await Promise.all([firstCall, secondCall]);
+                expect(getTranslations.calledOnceWith('test-id')).to.be.true;
+            } finally {
+                Store.fragmentEditor.fragmentId.value = originalFragmentId;
+            }
         });
     });
 
@@ -384,6 +519,7 @@ describe('MasFragmentEditor', () => {
 
         it('navigates to variations table', async () => {
             const navigateSpy = sandbox.stub(router, 'navigateToVariationsTable');
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
             el.inEdit.value = { get: () => ({ id: 'test-id' }) };
             el.navigateToVariationsTable();
             expect(navigateSpy.calledWith('test-id')).to.be.true;
@@ -438,8 +574,10 @@ describe('MasFragmentEditor', () => {
         let el;
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
             const fragment = new Fragment({ id: 'test-id' });
             sandbox.stub(fragment, 'getLocaleVariationCount').returns(2);
+            sandbox.stub(fragment, 'getGroupedVariationCount').returns(2);
             sandbox.stub(fragment, 'getPromoVariationCount').returns(1);
             el.inEdit.value = { get: () => fragment };
         });

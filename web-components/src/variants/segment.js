@@ -77,10 +77,6 @@ export class Segment extends VariantLayout {
         this.adjustTitleWidth();
     }
 
-    disconnectedCallbackHook() {
-        this.getHeadingObserver()?.disconnect();
-    }
-
     async adjustLegal() {
         if (this.legalAdjusted) return;
 

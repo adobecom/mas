@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { generateCodeToUse, getService, showToast } from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, getService, showToast } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
@@ -15,6 +15,7 @@ class MasFragmentTable extends LitElement {
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
+        canCreateVariation: { type: Boolean, attribute: false },
         toggleExpand: { type: Function, attribute: false },
         showVariationDialog: { state: true },
         failedPrice: { type: Boolean, state: true },
@@ -32,6 +33,7 @@ class MasFragmentTable extends LitElement {
         this.offerData = null;
         this.expanded = false;
         this.nested = false;
+        this.canCreateVariation = true;
         this.showVariationDialog = false;
         this.failedPrice = false;
     }
@@ -136,7 +138,7 @@ class MasFragmentTable extends LitElement {
         this.showVariationDialog = false;
         const { fragment } = event.detail;
         if (fragment?.id) {
-            const locale = this.extractLocaleFromPath(fragment.path);
+            const locale = extractLocaleFromPath(fragment.path);
             router.navigateToFragmentEditor(fragment.id, { locale });
         }
     }
@@ -145,17 +147,9 @@ class MasFragmentTable extends LitElement {
         event.stopPropagation();
         const fragment = this.fragmentStore.value;
         if (fragment?.id) {
-            const locale = this.extractLocaleFromPath(fragment.path);
+            const locale = extractLocaleFromPath(fragment.path);
             router.navigateToFragmentEditor(fragment.id, { locale });
         }
-    }
-
-    extractLocaleFromPath(path) {
-        if (!path) return null;
-        const parts = path.split('/');
-        const masIndex = parts.indexOf('mas');
-        if (masIndex === -1) return null;
-        return parts[masIndex + 2] || null;
     }
 
     getTruncatedOfferId() {
@@ -185,6 +179,7 @@ class MasFragmentTable extends LitElement {
                 ? html`<mas-variation-dialog
                       .fragment=${data}
                       .isVariation=${false}
+                      .offerData=${this.offerData}
                       @cancel=${this.handleVariationDialogCancel}
                       @fragment-copied=${this.handleFragmentCopied}
                   ></mas-variation-dialog>`
@@ -203,7 +198,10 @@ class MasFragmentTable extends LitElement {
                           </button>
                       </sp-table-cell>`}
                 <sp-table-cell class="name">
-                    ${this.nested ? html`${data.locale}` : html`${this.icon} ${this.getFragmentName(data)}`}
+                    ${this.nested
+                        ? html`${data.locale}`
+                        : html`<div class="icon">${this.icon}</div>
+                              ${this.getFragmentName(data)}`}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>
                 <sp-table-cell class="offer-id">
@@ -230,12 +228,13 @@ class MasFragmentTable extends LitElement {
                         ? html`<sp-icon-alert class="price-error-icon"></sp-icon-alert>`
                         : html`<sp-action-menu placement="bottom-end" quiet>
                               <sp-icon-more slot="icon"></sp-icon-more>
-                              ${!this.nested
-                                  ? html`<sp-menu-item @click=${this.handleCreateVariation}>
-                                        <sp-icon-user-group slot="icon"></sp-icon-user-group>
-                                        Create variation
-                                    </sp-menu-item>`
-                                  : ''}
+                              <sp-menu-item
+                                  @click=${this.handleCreateVariation}
+                                  ?hidden=${this.nested || !this.canCreateVariation}
+                              >
+                                  <sp-icon-user-group slot="icon"></sp-icon-user-group>
+                                  Create variation
+                              </sp-menu-item>
                               <sp-menu-item @click=${this.handleEditFragment}>
                                   <sp-icon-edit slot="icon"></sp-icon-edit>
                                   Edit fragment

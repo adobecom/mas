@@ -29,24 +29,19 @@ export class VariantLayout {
     }
 
     updateCardElementMinHeight(el, name) {
-        if (!el) return;
+        if (!el || this.card.heightSync === false) return;
         const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
         const height = Math.max(
             0,
             parseInt(window.getComputedStyle(el).height) || 0,
         );
+        const container = this.getContainer();
         const maxMinHeight =
             parseInt(
-                this.getContainer().style.getPropertyValue(
-                    elMinHeightPropertyName,
-                ),
+                container.style.getPropertyValue(elMinHeightPropertyName),
             ) || 0;
-
         if (height > maxMinHeight) {
-            this.getContainer().style.setProperty(
-                elMinHeightPropertyName,
-                `${height}px`,
-            );
+            container.style.setProperty(elMinHeightPropertyName, `${height}px`);
         }
     }
 

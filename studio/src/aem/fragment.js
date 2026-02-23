@@ -1,4 +1,4 @@
-import { PATH_TOKENS, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX } from '../constants.js';
 
 export class Fragment {
     path = '';
@@ -299,67 +299,109 @@ export class Fragment {
     }
 
     /**
-     * Lists all locale variations of the fragment. Other name: regional variations.
-     * @returns {Fragment[]}
+     * Checks whether a path is a grouped (pzn) variation path.
+     * @param {string} path
+     * @returns {boolean}
      */
-    listLocaleVariations() {
-        const variationPaths = this.getVariations();
-        if (!this.references?.length || !variationPaths.length) return [];
+    static isGroupedVariationPath(path) {
+        return path?.includes(`/${PZN_FOLDER}/`) ?? false;
+    }
 
-        const currentMatch = this.path.match(PATH_TOKENS);
-        if (!currentMatch?.groups) {
-            return [];
+    /**
+     * Categorizes all variation references in a single pass into locale, promo, and grouped buckets.
+     * Each variation is classified into exactly one category (grouped > promo > locale).
+     * @returns {{ locale: Object[], promo: Object[], grouped: Object[] }}
+     */
+    #categorizeVariations() {
+        const variationPaths = this.getVariations();
+        if (!variationPaths.length || !this.references?.length) {
+            return { locale: [], promo: [], grouped: [] };
         }
 
-        const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch.groups;
+        const referencesByPath = new Map(this.references.map((ref) => [ref.path, ref]));
 
-        return this.references.filter((reference) => {
-            if (!variationPaths.includes(reference.path)) return false;
+        const currentMatch = this.path.match(PATH_TOKENS);
+        const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch?.groups || {};
 
-            // Exclude promo variations from locale variations list
-            const isPromo = reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
-            if (isPromo) return false;
+        const locale = [];
+        const promo = [];
+        const grouped = [];
 
-            const refMatch = reference.path.match(PATH_TOKENS);
-            if (!refMatch?.groups) {
-                return false;
+        for (const path of variationPaths) {
+            const reference = referencesByPath.get(path);
+            if (!reference) continue;
+
+            if (Fragment.isGroupedVariationPath(path)) {
+                grouped.push(reference);
+                continue;
             }
-            const { surface: refSurface, parsedLocale: refLocale, fragmentPath: refFragmentPath } = refMatch.groups;
-            return surface === refSurface && fragmentPath === refFragmentPath && currentLocale !== refLocale;
-        });
+
+            const isPromo = reference.tags?.some((t) => t.id?.startsWith(TAG_PROMOTION_PREFIX));
+            if (isPromo) {
+                promo.push(reference);
+                continue;
+            }
+
+            if (surface && currentLocale && fragmentPath) {
+                const refMatch = path.match(PATH_TOKENS);
+                if (refMatch?.groups) {
+                    const r = refMatch.groups;
+                    if (r.surface === surface && r.fragmentPath === fragmentPath && r.parsedLocale !== currentLocale) {
+                        locale.push(reference);
+                    }
+                }
+            }
+        }
+
+        return { locale, promo, grouped };
+    }
+
+    /**
+     * Lists all locale variations of the fragment (regional variations).
+     * @returns {Object[]}
+     */
+    listLocaleVariations() {
+        return this.#categorizeVariations().locale;
+    }
+
+    /**
+     * Lists all grouped (pzn) variations of the fragment.
+     * @returns {Object[]}
+     */
+    listGroupedVariations() {
+        return this.#categorizeVariations().grouped;
+    }
+
+    /**
+     * Gets the count of grouped (pzn) variations.
+     * @returns {number}
+     */
+    getGroupedVariationCount() {
+        return this.#categorizeVariations().grouped.length;
     }
 
     /**
      * Gets the count of locale variations.
-     * Locale variations are fragments with the same name but different locale paths.
      * @returns {number}
      */
     getLocaleVariationCount() {
-        return this.listLocaleVariations()?.length || 0;
+        return this.#categorizeVariations().locale.length;
     }
 
     /**
      * Gets the count of promo variations.
-     * Promo variations are identified by promotion tags on references that are also in the variations field.
      * @returns {number}
      */
     getPromoVariationCount() {
-        const variationPaths = this.getVariations();
-        if (!this.references?.length || !variationPaths.length) return 0;
-
-        return this.references.filter((reference) => {
-            return (
-                variationPaths.includes(reference.path) &&
-                reference.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX))
-            );
-        }).length;
+        return this.#categorizeVariations().promo.length;
     }
 
     /**
-     * Gets the total count of all variations (locale + promo).
+     * Gets the total count of all variations (locale + promo + grouped).
      * @returns {number}
      */
     getTotalVariationCount() {
-        return this.getLocaleVariationCount() + this.getPromoVariationCount();
+        const { locale, promo, grouped } = this.#categorizeVariations();
+        return locale.length + promo.length + grouped.length;
     }
 }

@@ -29,6 +29,7 @@ const VARIANT_CLASSES = {
     productTwoColumns: ['two-merch-cards'],
     productThreeColumns: ['three-merch-cards'],
     'special-offers': ['three-merch-cards'],
+    image: ['three-merch-cards'],
 };
 
 const SIDENAV_AUTOCLOSE = {

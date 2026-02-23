@@ -94,6 +94,8 @@ async function fetchAttempt(path, context, timeout, marker) {
     }
 }
 
+const inflightFetches = new Map();
+
 /**
  * fetches a path with retries and timeout
  * @param {*} path
@@ -101,7 +103,7 @@ async function fetchAttempt(path, context, timeout, marker) {
  * @param {*} timeout
  * @param {*} retries
  */
-async function internalFetch(path, context, marker) {
+async function doFetch(path, context, marker) {
     mark(context, `${marker}`);
     const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
     let delay = retryDelay;
@@ -122,6 +124,24 @@ async function internalFetch(path, context, marker) {
     }
     measureTiming(context, `main-fetch-${marker}`, marker);
     return response;
+}
+
+async function internalFetch(path, context, marker) {
+    const existing = inflightFetches.get(path);
+    if (existing) {
+        mark(context, `${marker}`);
+        const response = await existing;
+        measureTiming(context, `main-fetch-${marker}`, marker);
+        return { ...response };
+    }
+
+    const fetchPromise = doFetch(path, context, marker);
+    inflightFetches.set(path, fetchPromise);
+    try {
+        return await fetchPromise;
+    } finally {
+        inflightFetches.delete(path);
+    }
 }
 
 async function getFromState(key, context) {
@@ -201,8 +221,13 @@ async function getRequestInfos(context) {
     return { parsedLocale, surface, fragmentPath, body };
 }
 
+function clearInflightFetches() {
+    inflightFetches.clear();
+}
+
 export {
     createTimeoutPromise,
+    clearInflightFetches,
     internalFetch as fetch,
     getRequestInfos,
     getFragmentId,

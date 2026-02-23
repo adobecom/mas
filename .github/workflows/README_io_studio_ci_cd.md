@@ -49,10 +49,10 @@ Please note that your GH user-id matches the personal workspace name.
 
 The following secrets need to be added per workspace:
 
-| Name                        | Value       | Comment                                          |
-| --------------------------- | ----------- | ------------------------------------------------ |
-| AIO*STUDIO_ENV*<gh_user_id> | <.env_file> | content of the local `.env` file                 |
-| AIO*STUDIO_AIO*<gh_user_id> | <.aio_file> | content of the local `.aio` file                 |
-| AIO*STUDIO_NS*<gh_user_id>  | <namespace> | see `AIO_runtime_namespace` value in `.env` file |
+| Name                          | Value         | Comment                                          |
+| ----------------------------- | ------------- | ------------------------------------------------ |
+| `AIO_STUDIO_ENV_<gh_user_id>` | `<.env_file>` | content of the local `.env` file                 |
+| `AIO_STUDIO_AIO_<gh_user_id>` | `<.aio_file>` | content of the local `.aio` file                 |
+| `AIO_STUDIO_NS_<gh_user_id>`  | `<namespace>` | see `AIO_runtime_namespace` value in `.env` file |
 
 With these secrets in place, any github user's I/O studio workspace that has the above set of secrets created will be used when raising a PR against `io/studio`.

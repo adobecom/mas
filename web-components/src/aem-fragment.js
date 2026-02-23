@@ -24,11 +24,13 @@ class FragmentCache {
     #fragmentCache = new Map();
     #fetchInfos = new Map();
     #promises = new Map();
+    #inFlight = new Map();
 
     clear() {
         this.#fragmentCache.clear();
         this.#fetchInfos.clear();
         this.#promises.clear();
+        this.#inFlight.clear();
     }
 
     /**
@@ -108,6 +110,24 @@ class FragmentCache {
             }
         });
         this.#promises.set(key, [promise, resolveFn]);
+        return promise;
+    }
+
+    /**
+     * Atomic check-cache-or-fetch: returns cached fragment, joins an
+     * in-flight request, or starts a new one via fetchFn.
+     * Guarantees at most one concurrent network request per key.
+     */
+    getOrFetch(key, fetchFn) {
+        if (this.has(key)) return Promise.resolve(this.get(key));
+
+        const inFlight = this.#inFlight.get(key);
+        if (inFlight) return inFlight;
+
+        const promise = fetchFn().finally(() => {
+            this.#inFlight.delete(key);
+        });
+        this.#inFlight.set(key, promise);
         return promise;
     }
 
@@ -350,15 +370,20 @@ export class AemFragment extends HTMLElement {
             this.#rawData = fragment;
             return true;
         }
-        const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
-        let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
-        if (country && !locale.endsWith(`_${country}`)) {
-            endpoint += `&country=${country}`;
-        }
 
-        fragment = await this.#getFragmentById(endpoint);
-        fragment.fields.originalId ??= this.#fragmentId;
-        cache.add(fragment);
+        fragment = await cache.getOrFetch(this.#fragmentId, async () => {
+            const { masIOUrl, wcsApiKey, country, locale } =
+                this.#service.settings;
+            let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
+            if (country && !locale.endsWith(`_${country}`)) {
+                endpoint += `&country=${country}`;
+            }
+            const result = await this.#getFragmentById(endpoint);
+            result.fields.originalId ??= this.#fragmentId;
+            cache.add(result);
+            return result;
+        });
+
         this.#rawData = fragment;
         return true;
     }

@@ -7,7 +7,7 @@ import { withWcs } from './mocks/wcs.js';
 import { withAem } from './mocks/aem.js';
 import { delay, getTemplateContent, oneEvent } from './utils.js';
 import '../src/mas.js';
-import '../src/mas-field.js';
+import '../src/merch-field.js';
 import {
     EVENT_MAS_ERROR,
     EVENT_MAS_READY,
@@ -353,12 +353,12 @@ runTests(async () => {
                 expect(fragment.fetchInfo['aem-fragment:measure']).to.exist;
             });
 
-            it('deduplicates fetches using loading="cache"', async () => {
+            it('deduplicates concurrent eager fragment fetches', async () => {
                 cache.clear();
                 const count = aemMock.count;
                 const fragment1 = addFragment('fragment-cc-all-apps');
-                const fragment2 = addFragment('fragment-cc-all-apps', 'cache');
-                const fragment3 = addFragment('fragment-cc-all-apps', 'cache');
+                const fragment2 = addFragment('fragment-cc-all-apps');
+                const fragment3 = addFragment('fragment-cc-all-apps');
                 await Promise.all([
                     oneEvent(fragment1, 'aem:load'),
                     oneEvent(fragment2, 'aem:load'),
@@ -497,55 +497,55 @@ runTests(async () => {
             });
         });
 
-        describe('mas-field wrapper', () => {
+        describe('merch-field wrapper', () => {
             afterEach(() => {
-                document.querySelectorAll('mas-field').forEach((el) => el.remove());
+                document.querySelectorAll('merch-field').forEach((el) => el.remove());
             });
 
-            it('renders field content via mas-field wrapper', async () => {
-                const [masField] = getTemplateContent('mas-field-render-field');
-                spTheme.append(masField);
+            it('renders field content via merch-field wrapper', async () => {
+                const [merchField] = getTemplateContent('merch-field-render-field');
+                spTheme.append(merchField);
 
                 await new Promise((resolve) => {
-                    masField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(masField.textContent).to.include('Get Photoshop');
-                expect(masField.innerHTML).to.include('inline-price');
+                expect(merchField.textContent).to.include('Get Photoshop');
+                expect(merchField.innerHTML).to.include('inline-price');
             });
 
             it('renders different fields based on field attribute', async () => {
-                const [masField] = getTemplateContent('mas-field-render-promo');
-                spTheme.append(masField);
+                const [merchField] = getTemplateContent('merch-field-render-promo');
+                spTheme.append(merchField);
 
                 await new Promise((resolve) => {
-                    masField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                expect(masField.textContent).to.include('Save 50%');
+                expect(merchField.textContent).to.include('Save 50%');
             });
 
             it('handles missing field gracefully', async () => {
-                const [masField] = getTemplateContent('mas-field-render-missing-field');
-                spTheme.append(masField);
+                const [merchField] = getTemplateContent('merch-field-render-missing-field');
+                spTheme.append(merchField);
 
                 await new Promise((resolve) => {
-                    masField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                // mas-field should still contain the aem-fragment child (field value was undefined)
-                expect(masField.querySelector('aem-fragment')).to.exist;
+                // merch-field should still contain the aem-fragment child (field value was undefined)
+                expect(merchField.querySelector('aem-fragment')).to.exist;
             });
 
             it('unwraps single paragraph tags', async () => {
-                const [masField] = getTemplateContent('mas-field-render-field');
-                spTheme.append(masField);
+                const [merchField] = getTemplateContent('merch-field-render-field');
+                spTheme.append(merchField);
 
                 await new Promise((resolve) => {
-                    masField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
                 });
 
-                const trimmed = masField.innerHTML.trim();
+                const trimmed = merchField.innerHTML.trim();
                 expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
             });
         });

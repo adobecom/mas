@@ -760,11 +760,7 @@ export default class MasFragmentEditor extends LitElement {
             await this.editorContextStore.loadFragmentContext(fragmentId, fragment.path);
 
             const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
-            const parentFragment = await this.#resolveParentForFetchedVariation(
-                fragmentId,
-                fragment,
-                isVariationAfterContext,
-            );
+            const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
             // Wait for placeholders before creating stores (needed for preview resolution)

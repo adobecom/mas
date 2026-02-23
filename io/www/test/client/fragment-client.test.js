@@ -69,7 +69,7 @@ describe('FragmentClient', () => {
                         fields: {
                             name: 'displayPlanType',
                             type: 'boolean',
-                            boolValue: true,
+                            booleanValue: true,
                         },
                     },
                 },

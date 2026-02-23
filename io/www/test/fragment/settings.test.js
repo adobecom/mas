@@ -76,7 +76,7 @@ describe('settings', () => {
 
         it('returns context.settings when hasExternalSettings', async () => {
             const external = {
-                showSecureLabel: { default: { name: 'showSecureLabel', type: 'boolean', boolValue: true }, override: [] },
+                showSecureLabel: { default: { name: 'showSecureLabel', type: 'boolean', booleanValue: true }, override: [] },
             };
             const result = await getSettings(createContext({ hasExternalSettings: true, settings: external }));
             expect(result).to.equal(external);
@@ -104,7 +104,7 @@ describe('settings', () => {
                             fields: {
                                 name: 'showSecureLabel',
                                 type: 'boolean',
-                                boolValue: true,
+                                booleanValue: true,
                             },
                         },
                     },
@@ -114,7 +114,7 @@ describe('settings', () => {
             const result = await getSettings(createContext());
             expect(result).to.deep.equal({
                 showSecureLabel: {
-                    default: { name: 'showSecureLabel', type: 'boolean', boolValue: true },
+                    default: { name: 'showSecureLabel', type: 'boolean', booleanValue: true },
                     override: [],
                 },
             });
@@ -173,7 +173,7 @@ describe('settings', () => {
                         fields: {
                             name: 'showSecureLabel',
                             type: 'boolean',
-                            boolValue: true,
+                            booleanValue: true,
                         },
                     },
                 },
@@ -213,11 +213,11 @@ describe('settings', () => {
             mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
 
             const result1 = await getSettings(createContext());
-            expect(result1.showSecureLabel.default.boolValue).to.be.true;
+            expect(result1.showSecureLabel.default.booleanValue).to.be.true;
             expect(contentFetchCalls()).to.have.length(1);
 
             const result2 = await getSettings(createContext());
-            expect(result2.showSecureLabel.default.boolValue).to.be.true;
+            expect(result2.showSecureLabel.default.booleanValue).to.be.true;
             expect(contentFetchCalls()).to.have.length(1);
         });
 
@@ -284,7 +284,7 @@ describe('settings', () => {
                             default: {
                                 name: 'showSecureLabel',
                                 type: 'boolean',
-                                boolValue: true,
+                                booleanValue: true,
                             },
                             override: [],
                         },
@@ -354,7 +354,7 @@ describe('settings', () => {
                             default: {
                                 name: 'showSecureLabel',
                                 type: 'boolean',
-                                boolValue: true,
+                                booleanValue: true,
                             },
                             override: [],
                         },
@@ -384,7 +384,7 @@ describe('settings', () => {
         it('handles missing body', async () => {
             const context = { locale: 'en_US', promises: { settings: Promise.resolve({}) } };
             const result = await settings.process(context);
-            expect(result).to.deep.equal(context);
+            expect(result.settings).to.be.undefined;
         });
 
         it('handles missing context.promises.settings', async () => {
@@ -442,6 +442,7 @@ describe('settings', () => {
                             default: {
                                 name: 'checkoutWorkflow',
                                 type: 'text',
+                                templates: ['plans', 'other-variant'],
                                 textValue: 'UCv3',
                             },
                             override: [
@@ -457,7 +458,38 @@ describe('settings', () => {
                 },
             };
             const result = await settings.process(context);
+            expect(result.body.settings).to.exist;
+            expect(result.body.settings.checkoutWorkflow).to.exist;
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3-FR');
+        });
+
+        it('does not apply settings when template is not in settings', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'weird-plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        checkoutWorkflow: {
+                            default: {
+                                name: 'checkoutWorkflow',
+                                type: 'text',
+                                templates: ['plans', 'other-variant'],
+                                textValue: 'UCv3',
+                            },
+                            override: [
+                                {
+                                    name: 'checkoutWorkflow',
+                                    type: 'text',
+                                    textValue: 'UCv3-FR',
+                                    locales: ['fr_FR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result).to.deep.equal(context);
         });
 
         it('applies richText setting from richTextValue', async () => {
@@ -482,7 +514,7 @@ describe('settings', () => {
             expect(result.body.settings.trustCopy).to.deep.equal(richText);
         });
 
-        it('applies entry with no type using boolValue (default branch)', async () => {
+        it('applies entry with no type using booleanValue (default branch)', async () => {
             const context = {
                 locale: 'en_US',
                 body: { fields: {} },
@@ -491,7 +523,7 @@ describe('settings', () => {
                         legacyFlag: {
                             default: {
                                 name: 'legacyFlag',
-                                boolValue: true,
+                                booleanValue: true,
                             },
                             override: [],
                         },

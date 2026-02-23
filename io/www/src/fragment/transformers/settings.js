@@ -64,7 +64,7 @@ async function getSettingsId(context) {
 function extractValue(entry) {
     switch (entry.type) {
         case 'boolean':
-            return entry.boolValue;
+            return entry.booleanValue;
         case 'placeholder':
             return entry.textValue;
         case 'richText':
@@ -72,7 +72,7 @@ function extractValue(entry) {
         case 'text':
             return entry.textValue;
         default:
-            return entry.boolValue;
+            return entry.booleanValue;
     }
 }
 
@@ -126,8 +126,9 @@ async function init(initContext) {
 
 function resolveSettingEntry(fragment, locale, setting) {
     const defaultEntry = setting.default;
+    const template = fragment.fields?.variant;
     if (!defaultEntry) return null;
-    if (defaultEntry.templates && !(fragment.variant in defaultEntry.templates)) return null;
+    if (defaultEntry.templates && !defaultEntry.templates.includes(template)) return null;
     const filteredLocale = setting.override.filter(
         (overrideSetting) =>
             !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale),

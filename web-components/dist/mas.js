@@ -1046,7 +1046,7 @@ Try polyfilling it using "@formatjs/intl-pluralrules"
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `);customElements.define("merch-addon",Ut);M();var Ft,Gr=class Gr{constructor(t){m(this,"card");w(this,Ft);this.card=t,this.insertVariantStyle()}getContainer(){return y(this,Ft,h(this,Ft)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),h(this,Ft)}insertVariantStyle(){let t=this.constructor.name;if(!Gr.styleMap[t]){Gr.styleMap[t]=!0;let r=document.createElement("style");r.innerHTML=this.getGlobalCSS(),document.head.appendChild(r)}}updateCardElementMinHeight(t,r){if(!t||this.card.heightSync===!1)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=t.style.minHeight;t.style.minHeight="auto";let a=Math.max(0,parseInt(window.getComputedStyle(t).height)||0);t.style.minHeight=n;let o=this.getContainer(),s=parseInt(o.style.getPropertyValue(i))||0;a>s&&o.style.setProperty(i,`${a}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
+    `);customElements.define("merch-addon",Ut);M();var Ft,Gr=class Gr{constructor(t){m(this,"card");w(this,Ft);this.card=t,this.insertVariantStyle()}getContainer(){return y(this,Ft,h(this,Ft)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),h(this,Ft)}insertVariantStyle(){let t=this.constructor.name;if(!Gr.styleMap[t]){Gr.styleMap[t]=!0;let r=document.createElement("style");r.innerHTML=this.getGlobalCSS(),document.head.appendChild(r)}}updateCardElementMinHeight(t,r){if(!t||this.card.heightSync===!1)return;let i=`--consonant-merch-card-${this.card.variant}-${r}-height`,n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),a=this.getContainer(),o=parseInt(a.style.getPropertyValue(i))||0;n>o&&a.style.setProperty(i,`${n}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
@@ -5873,7 +5873,9 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
             margin-bottom: var(--merch-card-full-pricing-express-section-gap);
             justify-content: center;
             align-items: center;
-            min-height: var(--consonant-merch-card-full-pricing-express-price-height);
+            min-height: var(
+                --consonant-merch-card-full-pricing-express-price-height
+            );
         }
 
         :host([variant='full-pricing-express']) [slot='callout-content'] {

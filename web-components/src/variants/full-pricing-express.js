@@ -424,7 +424,9 @@ export class FullPricingExpress extends VariantLayout {
             margin-bottom: var(--merch-card-full-pricing-express-section-gap);
             justify-content: center;
             align-items: center;
-            min-height: var(--consonant-merch-card-full-pricing-express-price-height);
+            min-height: var(
+                --consonant-merch-card-full-pricing-express-price-height
+            );
         }
 
         :host([variant='full-pricing-express']) [slot='callout-content'] {

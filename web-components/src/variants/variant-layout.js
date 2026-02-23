@@ -31,13 +31,10 @@ export class VariantLayout {
     updateCardElementMinHeight(el, name) {
         if (!el || this.card.heightSync === false) return;
         const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
-        const originalMinHeight = el.style.minHeight;
-        el.style.minHeight = 'auto';
         const height = Math.max(
             0,
             parseInt(window.getComputedStyle(el).height) || 0,
         );
-        el.style.minHeight = originalMinHeight;
         const container = this.getContainer();
         const maxMinHeight =
             parseInt(

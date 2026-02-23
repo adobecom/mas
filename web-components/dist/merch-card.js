@@ -538,7 +538,7 @@ var Kt=Object.defineProperty;var Qt=i=>{throw TypeError(i)};var vi=(i,t,e)=>t in
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `);customElements.define("merch-addon",xe);import{html as ot,nothing as Mi}from"./lit-all.min.js";var ve,He=class He{constructor(t){l(this,"card");g(this,ve);this.card=t,this.insertVariantStyle()}getContainer(){return m(this,ve,c(this,ve)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),c(this,ve)}insertVariantStyle(){let t=this.constructor.name;if(!He.styleMap[t]){He.styleMap[t]=!0;let e=document.createElement("style");e.innerHTML=this.getGlobalCSS(),document.head.appendChild(e)}}updateCardElementMinHeight(t,e){if(!t||this.card.heightSync===!1)return;let r=`--consonant-merch-card-${this.card.variant}-${e}-height`,a=t.style.minHeight;t.style.minHeight="auto";let n=Math.max(0,parseInt(window.getComputedStyle(t).height)||0);t.style.minHeight=a;let o=this.getContainer(),s=parseInt(o.style.getPropertyValue(r))||0;n>s&&o.style.setProperty(r,`${n}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),ot`
+    `);customElements.define("merch-addon",xe);import{html as ot,nothing as Mi}from"./lit-all.min.js";var ve,He=class He{constructor(t){l(this,"card");g(this,ve);this.card=t,this.insertVariantStyle()}getContainer(){return m(this,ve,c(this,ve)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),c(this,ve)}insertVariantStyle(){let t=this.constructor.name;if(!He.styleMap[t]){He.styleMap[t]=!0;let e=document.createElement("style");e.innerHTML=this.getGlobalCSS(),document.head.appendChild(e)}}updateCardElementMinHeight(t,e){if(!t||this.card.heightSync===!1)return;let r=`--consonant-merch-card-${this.card.variant}-${e}-height`,a=Math.max(0,parseInt(window.getComputedStyle(t).height)||0),n=this.getContainer(),o=parseInt(n.style.getPropertyValue(r))||0;a>o&&n.style.setProperty(r,`${a}px`)}get badge(){let t;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(t=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),ot`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
@@ -5365,7 +5365,9 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
             margin-bottom: var(--merch-card-full-pricing-express-section-gap);
             justify-content: center;
             align-items: center;
-            min-height: var(--consonant-merch-card-full-pricing-express-price-height);
+            min-height: var(
+                --consonant-merch-card-full-pricing-express-price-height
+            );
         }
 
         :host([variant='full-pricing-express']) [slot='callout-content'] {

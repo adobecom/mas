@@ -5,7 +5,7 @@
 - install aio cli running `npm install -g @adobe/aio-cli`
 - Request access to I/O Runtime in Adobe Corp org (you can do that on #milo-dev)
 - navigate to Developer Console https://developer.adobe.com/console
-- in 'Merch at Scale Studio' project, create a workspace with your ldap
+- in 'Merch at Scale Studio' project, create a workspace with your github user id
 - in your workspace click on 'Download all' and copy the auth .json in root (/io/studio)
 - run `aio app use <filename>`
 - this should populate the `.env` and the `.aio` file in the project root (/io/studio)

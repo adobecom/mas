@@ -548,10 +548,6 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
         min-height: var(--consonant-merch-card-full-pricing-express-short-description-height);
     }
 
-    merch-card[variant="full-pricing-express"] [slot="price"] {
-        min-height: var(--consonant-merch-card-full-pricing-express-price-height);
-    }
-
     merch-card[variant="full-pricing-express"] [slot="cta"] {
         min-height: var(--consonant-merch-card-full-pricing-express-cta-height);
     }

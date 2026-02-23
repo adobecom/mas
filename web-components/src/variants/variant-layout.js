@@ -29,40 +29,22 @@ export class VariantLayout {
     }
 
     updateCardElementMinHeight(el, name) {
-        if (!el) return;
+        if (!el || this.card.heightSync === false) return;
         const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
+        const originalMinHeight = el.style.minHeight;
+        el.style.minHeight = 'auto';
         const height = Math.max(
             0,
             parseInt(window.getComputedStyle(el).height) || 0,
         );
+        el.style.minHeight = originalMinHeight;
+        const container = this.getContainer();
         const maxMinHeight =
             parseInt(
-                this.getContainer().style.getPropertyValue(
-                    elMinHeightPropertyName,
-                ),
+                container.style.getPropertyValue(elMinHeightPropertyName),
             ) || 0;
-
         if (height > maxMinHeight) {
-            this.getContainer().style.setProperty(
-                elMinHeightPropertyName,
-                `${height}px`,
-            );
-        }
-    }
-
-    updateCombinedMinHeight(slots, name) {
-        const totalHeight = slots.reduce((sum, slot) => {
-            const el = this.card.querySelector(`[slot="${slot}"]`);
-            return sum + (el ? parseInt(getComputedStyle(el).height) || 0 : 0);
-        }, 0);
-        if (totalHeight <= 0) return;
-
-        const varName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
-        const container = this.getContainer();
-        const currentMax =
-            parseInt(container.style.getPropertyValue(varName)) || 0;
-        if (totalHeight > currentMax) {
-            container.style.setProperty(varName, `${totalHeight}px`);
+            container.style.setProperty(elMinHeightPropertyName, `${height}px`);
         }
     }
 

@@ -1,6 +1,41 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from 'lit';
+import { html, css } from 'lit';
 import { CSS } from './image.css.js';
+
+export const IMAGE_AEM_FRAGMENT_MAPPING = {
+    cardName: { attribute: 'name' },
+    badge: {
+        tag: 'div',
+        slot: 'badge',
+        default: 'spectrum-yellow-300-plans',
+    },
+    badgeIcon: true,
+    borderColor: { attribute: 'border-color' },
+    allowedBadgeColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-gray-700-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
+    ],
+    allowedBorderColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
+    ],
+    ctas: { slot: 'footer', size: 'm' },
+    description: { tag: 'div', slot: 'body-xs' },
+    mnemonics: { size: 'l' },
+    prices: { tag: 'h3', slot: 'heading-xs' },
+    promoText: { tag: 'p', slot: 'promo-text' },
+    size: ['wide', 'super-wide'],
+    title: { tag: 'h3', slot: 'heading-xs' },
+    subtitle: { tag: 'p', slot: 'body-xxs' },
+    backgroundImage: { tag: 'div', slot: 'bg-image' },
+};
 
 export class Image extends VariantLayout {
     constructor(card) {
@@ -12,7 +47,10 @@ export class Image extends VariantLayout {
     }
 
     renderLayout() {
-        return html`${this.cardImage}
+        return html`<div class="image">
+                <slot name="bg-image"></slot>
+                <slot name="badge"></slot>
+            </div>
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
@@ -37,4 +75,28 @@ export class Image extends VariantLayout {
                       ${this.secureLabelFooter}
                   `}`;
     }
+
+    static variantStyle = css`
+        :host([variant='image']) {
+            min-height: 330px;
+            width: var(--consonant-merch-card-image-width);
+            background:
+                linear-gradient(white, white) padding-box,
+                var(--consonant-merch-card-border-color, #dadada) border-box;
+            border: 1px solid transparent;
+        }
+
+        :host([variant='image']) ::slotted([slot='badge']) {
+            position: absolute;
+            top: 16px;
+            right: 0px;
+        }
+
+        :host-context([dir='rtl'])
+            :host([variant='image'])
+            ::slotted([slot='badge']) {
+            left: 0px;
+            right: initial;
+        }
+    `;
 }

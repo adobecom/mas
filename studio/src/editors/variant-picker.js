@@ -16,6 +16,7 @@ export const VARIANT_NAMES = {
     PROMOTED_PLANS: 'ah-promoted-plans',
     FRIES: 'fries',
     MINI: 'mini',
+    IMAGE: 'image',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
     FULL_PRICING_EXPRESS: 'full-pricing-express',
 };
@@ -72,6 +73,11 @@ export const VARIANTS = [
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
         surface: SURFACES.CCD.name,
+    },
+    {
+        label: 'Image',
+        value: VARIANT_NAMES.IMAGE,
+        surface: SURFACES.ACOM.name,
     },
     {
         label: 'Full Pricing Express',

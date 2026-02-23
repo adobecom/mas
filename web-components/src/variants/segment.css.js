@@ -13,25 +13,25 @@ merch-card[variant="segment"] {
 .two-merch-cards.segment,
 .three-merch-cards.segment,
 .four-merch-cards.segment {
-  grid-template-columns: minmax(276px, var(--consonant-merch-card-segment-width));
+  grid-template-columns: minmax(302px, var(--consonant-merch-card-segment-width));
 }
 
 /* Mobile */
 @media screen and ${MOBILE_LANDSCAPE} {
   :root {
-    --consonant-merch-card-segment-width: 276px;
+    --consonant-merch-card-segment-width: 302px;
   }
 }
 
 @media screen and ${TABLET_UP} {
   :root {
-    --consonant-merch-card-segment-width: 276px;
+    --consonant-merch-card-segment-width: 302px;
   }
     
   .two-merch-cards.segment,
   .three-merch-cards.segment,
   .four-merch-cards.segment {
-      grid-template-columns: repeat(2, minmax(276px, var(--consonant-merch-card-segment-width)));
+      grid-template-columns: repeat(2, minmax(302px, var(--consonant-merch-card-segment-width)));
   }
 }
 
@@ -42,11 +42,11 @@ merch-card[variant="segment"] {
   }
     
   .three-merch-cards.segment {
-      grid-template-columns: repeat(3, minmax(276px, var(--consonant-merch-card-segment-width)));
+      grid-template-columns: repeat(3, minmax(302px, var(--consonant-merch-card-segment-width)));
   }
 
   .four-merch-cards.segment {
-      grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
+      grid-template-columns: repeat(4, minmax(302px, var(--consonant-merch-card-segment-width)));
   }
 }
 

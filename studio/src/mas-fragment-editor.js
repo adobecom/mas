@@ -831,10 +831,7 @@ export default class MasFragmentEditor extends LitElement {
             return null;
         }
 
-        parentData = await this.pollGroupedVariationParentReference(fragmentPath, {
-            timeoutMs: 15000,
-            intervalMs: 1000,
-        });
+        parentData = await this.pollGroupedVariationParentReference(fragmentPath);
 
         if (parentData) {
             this.groupedVariationOrphanMessage = null;
@@ -852,10 +849,7 @@ export default class MasFragmentEditor extends LitElement {
         while (Date.now() - startedAt <= timeoutMs) {
             try {
                 const parentData = await this.repository.resolveHydratedParentFragment(fragmentPath);
-                if (parentData) {
-                    this.editorContextStore.setParent(parentData);
-                    return parentData;
-                }
+                return parentData;
             } catch (error) {
                 console.debug('Grouped variation parent lookup retry failed:', error.message);
             }

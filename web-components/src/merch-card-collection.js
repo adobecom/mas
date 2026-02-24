@@ -548,14 +548,18 @@ export class MerchCardCollection extends LitElement {
             const variant = normalizeVariant(cards[0]?.fields?.variant);
             this.variant = variant;
             if (
-                (variant === 'plans' || variant === 'segment') &&
-                (cards.length === 2 || cards.length === 3) &&
+                variant === 'plans' &&
+                cards.length === 3 &&
                 !cards.some((card) => card.fields?.size?.includes('wide'))
+            ) {
+                nmbOfColumns = 'ThreeColumns';
+            } else if (
+                variant === 'segment' &&
+                (cards.length === 2 || cards.length === 3)
             ) {
                 nmbOfColumns =
                     cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
             }
-
             if (variant) {
                 this.classList.add(
                     'merch-card-collection',

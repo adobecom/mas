@@ -55,6 +55,7 @@ class AEM {
         this.cfFragmentsUrl = `${sitesUrl}/cf/fragments`;
         this.cfSearchUrl = `${this.cfFragmentsUrl}/search`;
         this.cfPublishUrl = `${this.cfFragmentsUrl}/publish`;
+        this.cfReferencedByUrl = `${this.cfFragmentsUrl}/referencedBy`;
         this.wcmcommandUrl = `${baseUrl}/bin/wcmcommand`;
         this.csrfTokenUrl = `${baseUrl}/libs/granite/csrf/token.json`;
 
@@ -1187,6 +1188,64 @@ class AEM {
         return await response.json();
     }
 
+    /**
+     * Get translations/language copies for a fragment
+     * @param {string} id - Fragment ID
+     * @returns {Promise<Object>} Translations response with locale and languageCopies array
+     */
+    async getFragmentTranslations(id) {
+        if (!id) {
+            throw new Error('Fragment ID is required');
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}/translations`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get fragment translations: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Get parent content fragment references for a fragment path.
+     * Returns which content fragments reference the given path (experience fragments excluded).
+     * @param {string} path - Fragment path
+     * @param {AbortController} [abortController] - Optional abort controller for cancellation
+     * @returns {Promise<Object>} Item with path and parentReferences: [{ type, title, path, status }]
+     */
+    async getReferencedBy(path, abortController) {
+        if (!path || typeof path !== 'string' || !path.trim()) {
+            throw new Error('Path is required and must be a non-empty string');
+        }
+
+        const response = await fetch(this.cfReferencedByUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...this.headers,
+            },
+            body: JSON.stringify({ paths: [path] }),
+            signal: abortController?.signal,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get referenced by: ${response.status} ${response.statusText}`);
+        }
+
+        const { items } = await response.json();
+        const item = items?.[0] ?? { path, parentReferences: [] };
+        const contentFragmentRefs = (item.parentReferences || []).filter((ref) => ref.type === 'content-fragment');
+        return { ...item, parentReferences: contentFragmentRefs };
+    }
+
     sites = {
         cf: {
             fragments: {
@@ -1274,6 +1333,14 @@ class AEM {
                  * @see AEM#findVariationsByName
                  */
                 findVariationsByName: this.findVariationsByName.bind(this),
+                /**
+                 * @see AEM#getFragmentTranslations
+                 */
+                getTranslations: this.getFragmentTranslations.bind(this),
+                /**
+                 * @see AEM#getReferencedBy
+                 */
+                getReferencedBy: this.getReferencedBy.bind(this),
             },
         },
     };

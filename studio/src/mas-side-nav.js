@@ -1,11 +1,11 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
-import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
-import { generateFieldLink, camelToTitle, stripHtml, previewValue } from './utils.js';
+import { generateFieldLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 
 class MasSideNav extends LitElement {
     static properties = {
@@ -74,92 +74,65 @@ class MasSideNav extends LitElement {
         }
     `;
 
-    currentPage = new StoreController(this, Store.page);
-    viewMode = new StoreController(this, Store.viewMode);
-    search = new StoreController(this, Store.search);
+    reactiveController = new ReactiveController(
+        this,
+        [Store.page, Store.search, Store.viewMode, Store.fragmentEditor.editorContext, Store.fragmentEditor.loading],
+        this.handleStoreChanges,
+    );
+
     variationDataLoading = false;
-    fragmentStoreSubscription = null;
     variationLoadingTimeout = null;
     resolvedPriceText = '';
 
     connectedCallback() {
         super.connectedCallback();
-
-        const fragmentStoreHandler = () => {
-            this.requestUpdate();
-        };
-
-        const parentStoreHandler = (fragmentStore) => {
-            if (this.fragmentStoreSubscription) {
-                const oldStore = Store.fragments.inEdit.get();
-                if (oldStore) {
-                    oldStore.unsubscribe(this.fragmentStoreSubscription);
-                }
-            }
-
-            if (fragmentStore) {
-                this.resolvedPriceText = '';
-                this.variationDataLoading = true;
-                this.setupVariationLoadingTimeout();
-                this.fragmentStoreSubscription = fragmentStoreHandler;
-                fragmentStore.subscribe(this.fragmentStoreSubscription);
-            } else {
-                this.variationDataLoading = false;
-                if (this.variationLoadingTimeout) {
-                    clearTimeout(this.variationLoadingTimeout);
-                    this.variationLoadingTimeout = null;
-                }
-            }
-
-            this.requestUpdate();
-        };
-
-        Store.fragments.inEdit.subscribe(parentStoreHandler);
-
-        const editorContextHandler = () => {
-            if (this.variationLoadingTimeout) {
-                clearTimeout(this.variationLoadingTimeout);
-                this.variationLoadingTimeout = null;
-            }
-            this.updateVariationLoadingState();
-        };
-        Store.fragmentEditor.editorContext.subscribe(editorContextHandler);
-
-        // Redirect away from the translation page when it becomes disabled
-        const searchHandler = () => {
-            if (
-                !this.isTranslationEnabled &&
-                [PAGE_NAMES.TRANSLATIONS, PAGE_NAMES.TRANSLATION_EDITOR].includes(Store.page.get())
-            ) {
-                Store.page.set(PAGE_NAMES.CONTENT);
-            }
-        };
-        Store.search.subscribe(searchHandler);
-
-        this.unsubscribe = () => {
-            Store.fragments.inEdit.unsubscribe(parentStoreHandler);
-            Store.search.unsubscribe(searchHandler);
-            Store.fragments.inEdit.unsubscribe(parentStoreHandler);
-            Store.fragmentEditor.editorContext.unsubscribe(editorContextHandler);
-            if (this.fragmentStoreSubscription) {
-                const store = Store.fragments.inEdit.get();
-                if (store) {
-                    store.unsubscribe(this.fragmentStoreSubscription);
-                }
-            }
-        };
+        Store.fragments.inEdit.subscribe(this.#handleFragmentInEditChange);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        if (this.unsubscribe) this.unsubscribe();
+        Store.fragments.inEdit.unsubscribe(this.#handleFragmentInEditChange);
         if (this.variationLoadingTimeout) {
             clearTimeout(this.variationLoadingTimeout);
             this.variationLoadingTimeout = null;
         }
     }
 
+    #handleFragmentInEditChange = (fragmentStore) => {
+        const stores = [
+            Store.page,
+            Store.search,
+            Store.viewMode,
+            Store.fragmentEditor.editorContext,
+            Store.fragmentEditor.loading,
+        ];
+        if (fragmentStore) {
+            stores.push(fragmentStore);
+            this.resolvedPriceText = '';
+            this.variationDataLoading = true;
+            this.setupVariationLoadingTimeout();
+        } else {
+            this.variationDataLoading = false;
+            if (this.variationLoadingTimeout) {
+                clearTimeout(this.variationLoadingTimeout);
+                this.variationLoadingTimeout = null;
+            }
+        }
+        this.reactiveController.updateStores(stores);
+    };
+
+    handleStoreChanges() {
+        // Redirect away from the translation page when it becomes disabled
+        if (!this.isTranslationEnabled && [PAGE_NAMES.TRANSLATIONS, PAGE_NAMES.TRANSLATION_EDITOR].includes(Store.page.get())) {
+            Store.page.set(PAGE_NAMES.CONTENT);
+        }
+        this.updateVariationLoadingState();
+    }
+
     async updateVariationLoadingState() {
+        if (!this.variationDataLoading) {
+            return;
+        }
         if (this.variationLoadingTimeout) {
             clearTimeout(this.variationLoadingTimeout);
             this.variationLoadingTimeout = null;
@@ -181,7 +154,9 @@ class MasSideNav extends LitElement {
         this.variationDataLoading = false;
         this.requestUpdate();
         this.fragmentEditor?.addEventListener(
-            'preview-updated', () => this.#resolvePricePreview(), { once: true },
+            'preview-updated',
+            () => this.#resolvePricePreview(),
+            { once: true },
         );
     }
 
@@ -200,7 +175,7 @@ class MasSideNav extends LitElement {
     }
 
     get isTranslationEnabled() {
-        const surface = this.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
         return [SURFACES.ACOM.name, SURFACES.EXPRESS.name, SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface);
     }
 
@@ -406,8 +381,7 @@ class MasSideNav extends LitElement {
     get editNavigation() {
         const fragmentId = this.fragmentEditor?.fragment?.id;
         const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
-        const loading = this.variationDataLoading;
-
+        const loading = Store.fragmentEditor.loading.get();
         return html`
             <mas-side-nav-item label="Save" ?disabled=${!Store.editor.hasChanges || loading} @nav-click="${this.saveFragment}">
                 <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
@@ -445,7 +419,7 @@ class MasSideNav extends LitElement {
     }
 
     render() {
-        const isEditMode = this.viewMode.value === 'editing';
+        const isEditMode = Store.viewMode.value === 'editing';
 
         return html`<div class="nav-container">
             <div class="nav-items">${isEditMode ? this.editNavigation : this.defaultNavigation}</div>

@@ -15,24 +15,36 @@ class MasSelectedItems extends LitElement {
             Store.translationProjects.selectedCards,
             Store.translationProjects.selectedCollections,
             Store.translationProjects.selectedPlaceholders,
+            Store.fragments.list.loading,
+            Store.placeholders.list.loading,
         ]);
     }
 
     get selectedItems() {
-        const cards = Store.translationProjects.selectedCards.value.map((path) => {
-            return Store.translationProjects.cardsByPaths.value.get(path);
-        });
-        const collections = Store.translationProjects.selectedCollections.value.map((path) => {
-            return Store.translationProjects.collectionsByPaths.value.get(path);
-        });
-        const placeholders = Store.translationProjects.selectedPlaceholders.value.map((path) => {
-            return Store.translationProjects.placeholdersByPaths.value.get(path);
-        });
+        const cards = Store.translationProjects.selectedCards.value
+            .map((path) => {
+                return Store.translationProjects.cardsByPaths.value.get(path);
+            })
+            .filter(Boolean);
+        const collections = Store.translationProjects.selectedCollections.value
+            .map((path) => {
+                return Store.translationProjects.collectionsByPaths.value.get(path);
+            })
+            .filter(Boolean);
+        const placeholders = Store.translationProjects.selectedPlaceholders.value
+            .map((path) => {
+                return Store.translationProjects.placeholdersByPaths.value.get(path);
+            })
+            .filter(Boolean);
         return [...cards, ...collections, ...placeholders];
     }
 
     get showSelected() {
         return Store.translationProjects.showSelected.value;
+    }
+
+    get isLoadingItems() {
+        return Store.fragments.list.loading.get() || Store.placeholders.list.loading.get();
     }
 
     getTitle(item) {
@@ -83,10 +95,17 @@ class MasSelectedItems extends LitElement {
                       this.selectedItems,
                       (item) => item.path,
                       (item) =>
-                          html`<li class="file">
+                          html`<li class="item">
                               <h3 class="title">${this.getTitle(item)}</h3>
                               <div class="details">${this.getDetails(item)}</div>
-                              <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item.path)}>
+                              <sp-button
+                                  class="remove-button"
+                                  variant="secondary"
+                                  size="l"
+                                  icon-only
+                                  @click=${() => this.removeItem(item.path)}
+                                  ?disabled=${this.isLoadingItems}
+                              >
                                   <sp-icon-close slot="icon"></sp-icon-close>
                               </sp-button>
                           </li>`,

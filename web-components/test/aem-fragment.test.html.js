@@ -565,6 +565,27 @@ runTests(async () => {
                 const trimmed = merchField.innerHTML.trim();
                 expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
             });
+
+            it('resolves checkReady after aem:load', async () => {
+                const merchField = document.createElement('merch-field');
+                merchField.setAttribute('field', 'promoText');
+                spTheme.append(merchField);
+
+                const readyPromise = merchField.checkReady();
+                merchField.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                promoText: '<p>Ready</p>',
+                            },
+                        },
+                    }),
+                );
+
+                await expect(readyPromise).to.eventually.equal(true);
+            });
         });
     });
 });

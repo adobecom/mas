@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { render } from 'lit';
 import Store from '../src/store.js';
 import Events from '../src/events.js';
-import { CARD_MODEL_PATH } from '../src/constants.js';
+import { CARD_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
 import '../src/mas-side-nav.js';
 
 function mockFragment(fields = []) {
@@ -246,6 +246,75 @@ describe('MasSideNav – Copy Field', () => {
             resolveParent();
             await loadingPromise;
             expect(el.variationDataLoading).to.be.false;
+        });
+
+        it('should disable loading when fragment id is missing', async () => {
+            const editor = document.createElement('div');
+            editor.fragment = {};
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            el.variationDataLoading = true;
+            el.variationLoadingTimeout = 123;
+            await el.updateVariationLoadingState();
+
+            expect(el.variationLoadingTimeout).to.equal(null);
+            expect(el.variationDataLoading).to.be.false;
+        });
+    });
+
+    describe('setupVariationLoadingTimeout', () => {
+        it('should force loading state off when timeout is hit', () => {
+            const warnStub = sandbox.stub(console, 'warn');
+            let timeoutCallback;
+            sandbox.stub(window, 'setTimeout').callsFake((cb) => {
+                timeoutCallback = cb;
+                return 999;
+            });
+
+            el.variationDataLoading = true;
+            el.setupVariationLoadingTimeout();
+            timeoutCallback();
+
+            expect(warnStub.calledOnce).to.be.true;
+            expect(el.variationDataLoading).to.be.false;
+        });
+    });
+
+    describe('lifecycle', () => {
+        it('should clear variation timeout on disconnect', () => {
+            el.variationLoadingTimeout = 321;
+
+            el.disconnectedCallback();
+
+            expect(el.variationLoadingTimeout).to.equal(null);
+        });
+
+        it('should clear loading timeout when inEdit store is reset', () => {
+            const updateStoresStub = sandbox.stub(el.reactiveController, 'updateStores');
+
+            el.variationLoadingTimeout = 456;
+            el.connectedCallback();
+
+            expect(el.variationDataLoading).to.be.false;
+            expect(el.variationLoadingTimeout).to.equal(null);
+            expect(updateStoresStub.called).to.be.true;
+            expect(updateStoresStub.firstCall.args[0]).to.have.length(5);
+
+            el.disconnectedCallback();
+        });
+    });
+
+    describe('handleStoreChanges', () => {
+        it('should redirect away from translations when disabled', () => {
+            const setPageStub = sandbox.stub(Store.page, 'set');
+            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATIONS);
+            sandbox.stub(el, 'updateVariationLoadingState');
+            sandbox.stub(el, 'isTranslationEnabled').get(() => false);
+
+            el.handleStoreChanges();
+
+            expect(setPageStub.calledOnceWithExactly(PAGE_NAMES.CONTENT)).to.be.true;
+            expect(el.updateVariationLoadingState.calledOnce).to.be.true;
         });
     });
 });

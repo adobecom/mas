@@ -13,7 +13,7 @@ merch-card[variant="segment"] {
 .two-merch-cards.segment,
 .three-merch-cards.segment,
 .four-merch-cards.segment {
-  grid-template-columns: minmax(302px, var(--consonant-merch-card-segment-width));
+  grid-template-columns: minmax(276px, var(--consonant-merch-card-segment-width));
 }
 
 /* Mobile */
@@ -38,15 +38,20 @@ merch-card[variant="segment"] {
 /* desktop */
 @media screen and ${DESKTOP_UP} {
   :root {
-    --consonant-merch-card-segment-width: 302px;
+    --consonant-merch-card-segment-width: 276px;
   }
     
   .three-merch-cards.segment {
-      grid-template-columns: repeat(3, minmax(302px, var(--consonant-merch-card-segment-width)));
+      grid-template-columns: repeat(3, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 
   .four-merch-cards.segment {
-      grid-template-columns: repeat(4, minmax(302px, var(--consonant-merch-card-segment-width)));
+      grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
+  }
+
+  .three-merch-cards.section merch-card[variant="segment"],
+  .four-merch-cards.section merch-card[variant="segment"] {
+      max-width: 302px;
   }
 }
 

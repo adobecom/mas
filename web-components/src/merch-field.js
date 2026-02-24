@@ -53,7 +53,8 @@ class MerchField extends HTMLElement {
     #unwrapSingleParagraph(html) {
         if (typeof html !== 'string') return html;
         const trimmed = html.trim();
-        const hasWrapper = trimmed.startsWith('<p>') && trimmed.endsWith('</p>');
+        const hasWrapper =
+            trimmed.startsWith('<p>') && trimmed.endsWith('</p>');
         if (!hasWrapper) return html;
         const inner = trimmed.slice('<p>'.length, -'</p>'.length);
         return inner.includes('<p>') ? html : inner;

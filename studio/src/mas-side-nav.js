@@ -153,11 +153,7 @@ class MasSideNav extends LitElement {
 
         this.variationDataLoading = false;
         this.requestUpdate();
-        this.fragmentEditor?.addEventListener(
-            'preview-updated',
-            () => this.#resolvePricePreview(),
-            { once: true },
-        );
+        this.fragmentEditor?.addEventListener('preview-updated', () => this.#resolvePricePreview(), { once: true });
     }
 
     setupVariationLoadingTimeout() {
@@ -245,13 +241,9 @@ class MasSideNav extends LitElement {
             .filter((f) => !fragment.isValueEmpty(f.values) && !MasSideNav.HIDDEN_FIELDS.has(f.name))
             .map((f) => ({
                 name: f.name,
-                displayName:
-                    MasSideNav.FIELD_DISPLAY_NAMES[f.name] ??
-                    camelToTitle(f.name),
+                displayName: MasSideNav.FIELD_DISPLAY_NAMES[f.name] ?? camelToTitle(f.name),
                 // Prices contain unresolved <inline-price> HTML — prefer cached resolved text
-                preview: f.name === 'prices'
-                    ? (this.resolvedPriceText || previewValue(f.values))
-                    : previewValue(f.values),
+                preview: f.name === 'prices' ? this.resolvedPriceText || previewValue(f.values) : previewValue(f.values),
             }));
     }
 

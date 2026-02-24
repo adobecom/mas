@@ -154,7 +154,6 @@ runTests(async () => {
                 expect(cache.has('ref456')).to.false;
                 cache.clear();
             });
-
         });
 
         describe('aem-fragment with merch-card', () => {
@@ -499,15 +498,21 @@ runTests(async () => {
 
         describe('merch-field wrapper', () => {
             afterEach(() => {
-                document.querySelectorAll('merch-field').forEach((el) => el.remove());
+                document
+                    .querySelectorAll('merch-field')
+                    .forEach((el) => el.remove());
             });
 
             it('renders field content via merch-field wrapper', async () => {
-                const [merchField] = getTemplateContent('merch-field-render-field');
+                const [merchField] = getTemplateContent(
+                    'merch-field-render-field',
+                );
                 spTheme.append(merchField);
 
                 await new Promise((resolve) => {
-                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
                 });
 
                 expect(merchField.textContent).to.include('Get Photoshop');
@@ -515,22 +520,30 @@ runTests(async () => {
             });
 
             it('renders different fields based on field attribute', async () => {
-                const [merchField] = getTemplateContent('merch-field-render-promo');
+                const [merchField] = getTemplateContent(
+                    'merch-field-render-promo',
+                );
                 spTheme.append(merchField);
 
                 await new Promise((resolve) => {
-                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
                 });
 
                 expect(merchField.textContent).to.include('Save 50%');
             });
 
             it('handles missing field gracefully', async () => {
-                const [merchField] = getTemplateContent('merch-field-render-missing-field');
+                const [merchField] = getTemplateContent(
+                    'merch-field-render-missing-field',
+                );
                 spTheme.append(merchField);
 
                 await new Promise((resolve) => {
-                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
                 });
 
                 // merch-field should still contain the aem-fragment child (field value was undefined)
@@ -538,11 +551,15 @@ runTests(async () => {
             });
 
             it('unwraps single paragraph tags', async () => {
-                const [merchField] = getTemplateContent('merch-field-render-field');
+                const [merchField] = getTemplateContent(
+                    'merch-field-render-field',
+                );
                 spTheme.append(merchField);
 
                 await new Promise((resolve) => {
-                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, { once: true });
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
                 });
 
                 const trimmed = merchField.innerHTML.trim();

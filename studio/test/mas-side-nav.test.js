@@ -95,9 +95,7 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('should use resolvedPriceText for prices when available', () => {
-            const fragment = mockFragment([
-                { name: 'prices', values: ['<span is="inline-price">placeholder</span>'] },
-            ]);
+            const fragment = mockFragment([{ name: 'prices', values: ['<span is="inline-price">placeholder</span>'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             el.resolvedPriceText = 'US$54.99/mo';
             const priceField = el.copyableFields.find((f) => f.name === 'prices');
@@ -105,9 +103,7 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('should fall back to previewValue for prices when no resolved text', () => {
-            const fragment = mockFragment([
-                { name: 'prices', values: ['<span>$9.99/mo</span>'] },
-            ]);
+            const fragment = mockFragment([{ name: 'prices', values: ['<span>$9.99/mo</span>'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             el.resolvedPriceText = '';
             const priceField = el.copyableFields.find((f) => f.name === 'prices');

@@ -286,9 +286,7 @@ export function stripHtml(value) {
 export function previewValue(values) {
     const raw = values?.[0] ?? '';
     if (!raw) return '';
-    const text = typeof raw === 'string' && raw.includes('<')
-        ? stripHtml(raw)
-        : String(raw);
+    const text = typeof raw === 'string' && raw.includes('<') ? stripHtml(raw) : String(raw);
     return text.length > PREVIEW_MAX_LENGTH ? `${text.slice(0, PREVIEW_MAX_LENGTH - 3)}...` : text;
 }
 

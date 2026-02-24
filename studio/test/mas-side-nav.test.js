@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import { render } from 'lit';
 import Store from '../src/store.js';
 import Events from '../src/events.js';
 import { CARD_MODEL_PATH } from '../src/constants.js';
@@ -155,6 +156,96 @@ describe('MasSideNav – Copy Field', () => {
             await el.copyField('prices');
             expect(clipboardStub.write.called).to.be.false;
             expect(toastStub.called).to.be.false;
+        });
+    });
+
+    describe('copyFieldButton', () => {
+        it('should disable the trigger while variation data is loading', () => {
+            el.variationDataLoading = true;
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const trigger = container.querySelector('mas-side-nav-item[label="Copy Field"]');
+            expect(trigger).to.exist;
+            expect(trigger.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should render one menu item per copyable field', () => {
+            const fragment = mockFragment([
+                { name: 'cardTitle', values: ['Creative Cloud'] },
+                { name: 'description', values: ['Great plan'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const items = container.querySelectorAll('sp-menu-item');
+            expect(items.length).to.equal(2);
+        });
+    });
+
+    describe('updateVariationLoadingState', () => {
+        let contextStore;
+        let contextIsVariationStub;
+
+        beforeEach(() => {
+            contextStore = Store.fragmentEditor.editorContext;
+            contextIsVariationStub = sandbox.stub(contextStore, 'isVariation').returns(false);
+            contextStore.parentFetchPromise = null;
+        });
+
+        afterEach(() => {
+            contextStore.parentFetchPromise = null;
+            contextIsVariationStub.restore();
+        });
+
+        it('should resolve and cache price preview after preview-updated', async () => {
+            const editor = document.createElement('div');
+            editor.fragment = { id: 'frag-123' };
+            editor.updateComplete = Promise.resolve();
+
+            const card = document.createElement('div');
+            card.checkReady = sandbox.stub().resolves(true);
+            sandbox.stub(card, 'querySelector').withArgs('span[is="inline-price"]').returns({ textContent: ' US$54.99/mo ' });
+            sandbox.stub(editor, 'querySelector').withArgs('merch-card').returns(card);
+
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+            const updateStub = sandbox.stub(el, 'requestUpdate');
+
+            el.variationDataLoading = true;
+            await el.updateVariationLoadingState();
+            editor.dispatchEvent(new Event('preview-updated'));
+            await Promise.resolve();
+            await Promise.resolve();
+
+            expect(el.variationDataLoading).to.be.false;
+            expect(card.checkReady.calledOnce).to.be.true;
+            expect(el.resolvedPriceText).to.equal('US$54.99/mo');
+            expect(updateStub.called).to.be.true;
+        });
+
+        it('should wait for parent fetch when current fragment is a variation', async () => {
+            let resolveParent;
+            contextIsVariationStub.returns(true);
+            contextStore.parentFetchPromise = new Promise((resolve) => {
+                resolveParent = resolve;
+            });
+
+            const editor = document.createElement('div');
+            editor.fragment = { id: 'frag-123' };
+            editor.updateComplete = Promise.resolve();
+            sandbox.stub(editor, 'querySelector').withArgs('merch-card').returns(null);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            el.variationDataLoading = true;
+            const loadingPromise = el.updateVariationLoadingState();
+            await Promise.resolve();
+            expect(el.variationDataLoading).to.be.true;
+
+            resolveParent();
+            await loadingPromise;
+            expect(el.variationDataLoading).to.be.false;
         });
     });
 });

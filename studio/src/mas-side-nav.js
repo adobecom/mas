@@ -80,9 +80,13 @@ class MasSideNav extends LitElement {
         this.handleStoreChanges,
     );
 
-    variationDataLoading = false;
     variationLoadingTimeout = null;
     resolvedPriceText = '';
+
+    constructor() {
+        super();
+        this.variationDataLoading = false;
+    }
 
     connectedCallback() {
         super.connectedCallback();

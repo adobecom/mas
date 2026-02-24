@@ -1510,6 +1510,7 @@ export default class MasFragmentEditor extends LitElement {
                                 storage=${attrs.storage || nothing}
                                 daa-lh=${attrs.analyticsId || nothing}
                                 ?gradient-border=${borderAttrs.gradientBorder}
+                                .heightSync=${false}
                                 style=${cssProps || nothing}
                             >
                                 <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>

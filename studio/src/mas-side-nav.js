@@ -181,7 +181,7 @@ class MasSideNav extends LitElement {
         this.variationDataLoading = false;
         this.requestUpdate();
         this.fragmentEditor?.addEventListener(
-            'preview-updated', () => this._resolvePricePreview(), { once: true },
+            'preview-updated', () => this.#resolvePricePreview(), { once: true },
         );
     }
 
@@ -245,7 +245,7 @@ class MasSideNav extends LitElement {
      * resolution), then caches the resolved price text for the Copy Field popover.
      * Uses the same checkReady() pattern as mas-card-preview.js.
      */
-    async _resolvePricePreview() {
+    async #resolvePricePreview() {
         const editor = this.fragmentEditor;
         if (!editor) return;
         // Ensure the fragment editor has rendered the merch-card
@@ -278,6 +278,35 @@ class MasSideNav extends LitElement {
                     ? (this.resolvedPriceText || previewValue(f.values))
                     : previewValue(f.values),
             }));
+    }
+
+    /** Copy Field popover listing fragment fields with preview values. */
+    get copyFieldButton() {
+        const loading = this.variationDataLoading;
+        return html`
+            <overlay-trigger placement="right" offset="8">
+                <mas-side-nav-item label="Copy Field" ?disabled=${loading} slot="trigger">
+                    <sp-icon-copy slot="icon"></sp-icon-copy>
+                </mas-side-nav-item>
+                <sp-popover slot="click-content" direction="right" tip>
+                    <sp-menu>
+                        ${this.copyableFields.map(
+                            ({ name, displayName, preview }, i) => html`
+                                ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                <sp-menu-item @click=${() => this.copyField(name)}>
+                                    ${preview
+                                        ? html`<div class="field-entry">
+                                              <span class="field-label">${displayName}</span>
+                                              <span class="field-value">${preview}</span>
+                                          </div>`
+                                        : displayName}
+                                </sp-menu-item>
+                            `,
+                        )}
+                    </sp-menu>
+                </sp-popover>
+            </overlay-trigger>
+        `;
     }
 
     /** Copies a rich link for the given field to the clipboard. */
@@ -402,29 +431,7 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Copy Code" ?disabled=${loading} @nav-click="${this.copyCode}">
                 <sp-icon-code slot="icon"></sp-icon-code>
             </mas-side-nav-item>
-            <!-- Copy Field: popover listing fragment fields with preview values -->
-            <overlay-trigger placement="right" offset="8">
-                <mas-side-nav-item label="Copy Field" ?disabled=${loading} slot="trigger">
-                    <sp-icon-copy slot="icon"></sp-icon-copy>
-                </mas-side-nav-item>
-                <sp-popover slot="click-content" direction="right" tip>
-                    <sp-menu>
-                        ${this.copyableFields.map(
-                            ({ name, displayName, preview }, i) => html`
-                                ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
-                                <sp-menu-item @click=${() => this.copyField(name)}>
-                                    ${preview
-                                        ? html`<div class="field-entry">
-                                              <span class="field-label">${displayName}</span>
-                                              <span class="field-value">${preview}</span>
-                                          </div>`
-                                        : displayName}
-                                </sp-menu-item>
-                            `,
-                        )}
-                    </sp-menu>
-                </sp-popover>
-            </overlay-trigger>
+            ${this.copyFieldButton}
             <mas-side-nav-item label="History" ?disabled=${loading} @nav-click="${this.showHistory}">
                 <sp-icon-history slot="icon"></sp-icon-history>
             </mas-side-nav-item>

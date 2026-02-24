@@ -4027,16 +4027,21 @@ merch-card[variant="segment"] {
   grid-template-columns: minmax(276px, var(--consonant-merch-card-segment-width));
 }
 
+.three-merch-cards.section merch-card[variant="segment"],
+.four-merch-cards.section merch-card[variant="segment"] {
+    max-width: 302px;
+}
+
 /* Mobile */
 @media screen and ${G} {
   :root {
-    --consonant-merch-card-segment-width: 302px;
+    --consonant-merch-card-segment-width: 276px;
   }
 }
 
 @media screen and ${q} {
   :root {
-    --consonant-merch-card-segment-width: 302px;
+    --consonant-merch-card-segment-width: 276px;
   }
     
   .two-merch-cards.segment,
@@ -4058,11 +4063,6 @@ merch-card[variant="segment"] {
 
   .four-merch-cards.segment {
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
-  }
-
-  .three-merch-cards.section merch-card[variant="segment"],
-  .four-merch-cards.section merch-card[variant="segment"] {
-      max-width: 302px;
   }
 }
 

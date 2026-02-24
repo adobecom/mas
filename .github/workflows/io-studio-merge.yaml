@@ -20,7 +20,7 @@ jobs:
         needs: deploy_stage
         uses: ./.github/workflows/io-studio-tests.yaml
         secrets:
-            workspace: ${{ secrets.AIO_NS_STAGE }}
+            workspace: ${{ secrets.AIO_STUDIO_NS_STAGE }}
 
     deploy_production:
         needs: test_stage
@@ -36,4 +36,4 @@ jobs:
         needs: deploy_production
         uses: ./.github/workflows/io-studio-tests.yaml
         secrets:
-            workspace: ${{ secrets.AIO_NS_PROD }}
+            workspace: ${{ secrets.AIO_STUDIO_NS_PROD }}

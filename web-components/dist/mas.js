@@ -4086,7 +4086,7 @@ merch-card[variant="segment"] a.spectrum-Link--secondary {
   color: inherit;
 }
 
-merch-card[variant="segment"] span[data-template="legal"] {
+merch-card[variant="segment"][id] span[data-template="legal"] {
     display: block;
     color: var(----merch-color-grey-80);
     font-size: 14px;
@@ -4095,7 +4095,7 @@ merch-card[variant="segment"] span[data-template="legal"] {
     line-height: 21px;
 }
 
-merch-card[variant="segment"] .price-unit-type:not(.disabled)::before {
+merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::before {
     content: "";
 }
 

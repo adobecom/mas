@@ -1,5 +1,6 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
+import { setCurrentTestName } from '../utils/fragment-tracker.js';
 import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
 import CCDSlicePage from '../studio/ccd/slice/slice.page.js';
@@ -50,6 +51,10 @@ const masTest = base.extend({
         // Reset clonedCardID for each test
         clonedCardID = '';
         currentTestPage = '';
+
+        // Set current test name only (no tags) so fragment title can include it (createFragment / cloneCard)
+        const nameOnly = testInfo.title.includes(',') ? testInfo.title.split(',')[0].trim() : testInfo.title;
+        setCurrentTestName(nameOnly);
 
         // Create fresh page objects for every test
         studio = new StudioPage(page);

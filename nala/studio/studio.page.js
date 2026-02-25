@@ -31,7 +31,7 @@ export default class StudioPage {
         this.tableViewPriceCell = (row) => row.locator('sp-table-cell.price');
         this.tableViewActionsMenu = (row) => row.locator('sp-table-cell.actions sp-action-menu');
         this.tableViewCreateVariationOption = (menu) => menu.locator('sp-menu-item:has-text("Create variation")');
-        this.variationDialog = page.locator('mas-variation-dialog');
+        this.variationDialog = page.locator('mas-variation-dialog > sp-dialog');
         this.variationDialogLocalePicker = this.variationDialog.locator('sp-picker[placeholder="Select a locale"]');
         this.variationDialogCreateButton = this.variationDialog.locator('sp-button:has-text("Create variation")');
         this.quickActions = page.locator('.quick-actions');
@@ -165,14 +165,17 @@ export default class StudioPage {
 
         try {
             await this.#retryOperation(async (attempt) => {
-                // Open editor (needed after each reload)
-                const card = await this.getCard(cardId);
-                await expect(card).toBeVisible();
-                await card.dblclick();
-                await this.editorPanel.waitFor({
-                    state: 'visible',
-                    timeout: 30000,
-                });
+                // Open editor only if not already visible
+                const editorAlreadyVisible = await this.editorPanel.isVisible().catch(() => false);
+                if (!editorAlreadyVisible) {
+                    const card = await this.getCard(cardId);
+                    await expect(card).toBeVisible();
+                    await card.dblclick();
+                    await this.editorPanel.waitFor({
+                        state: 'visible',
+                        timeout: 30000,
+                    });
+                }
 
                 // Wait for network to be idle to ensure all async operations complete
                 await this.page.waitForLoadState('networkidle').catch(() => {});
@@ -628,7 +631,7 @@ export default class StudioPage {
     /**
      * Create a variation - supports both table view and editor sidenav
      * @param {string} fragmentId - The fragment ID to create variation for
-     * @param {string} locale - The regional locale (e.g., 'en_AU')
+     * @param {string} locale - The regional locale (e.g., 'en_CA')
      * @returns {Promise<string>} The variation fragment ID
      */
     async createVariation(fragmentId, locale) {
@@ -694,7 +697,7 @@ export default class StudioPage {
         await this.variationDialogLocalePicker.click();
         await this.page.waitForTimeout(500);
 
-        const localeOption = this.variationDialog.locator(`sp-menu-item[value="${locale}"]`).first();
+        const localeOption = this.variationDialogLocalePicker.locator(`sp-menu-item[value="${locale}"]`).first();
         await expect(localeOption).toBeVisible();
         await localeOption.click();
         await this.page.waitForTimeout(500);
@@ -717,17 +720,15 @@ export default class StudioPage {
         });
         await this.page.waitForTimeout(1000);
 
-        await expect(this.editor.fragmentTitle).toBeVisible();
-        const titleWithRunId = getFragmentTitle();
-        await this.editor.fragmentTitle.fill(titleWithRunId);
-        await this.page.waitForTimeout(500);
-
-        await this.saveCard();
-
-        // Wait for positive toast to disappear
-        await this.toastPositive.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
-            // If toast doesn't appear or disappears quickly, continue
+        // Remove when MWPW-188484 is fixed
+        // Reload the page and wait for the editor again
+        await this.page.reload({ waitUntil: 'domcontentloaded' });
+        await this.editorPanel.waitFor({
+            state: 'visible',
+            timeout: 30000,
         });
+        await this.page.waitForTimeout(1000);
+        // ---------
 
         // Get the variation fragment ID from URL
         const currentUrl = this.page.url();

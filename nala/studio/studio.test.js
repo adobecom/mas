@@ -498,4 +498,35 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.OSI).toContainText(data.osi);
         });
     });
+
+    // @studio-load-variation - Validate loading a variation in mas studio
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio content page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Switch to table view and find cardid row', async () => {
+            await studio.switchToTableView();
+            await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
+            expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(
+                data.price,
+            );
+        });
+
+        await test.step('step-3: Expand row and verify variation exists and price visible', async () => {
+            await studio.tableViewFragmentTable(data.cardid).locator('button.expand-button').click();
+            await expect(studio.tableViewFragmentTable(data.variationid)).toBeVisible();
+            await expect(studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).toBeVisible();
+            expect(
+                await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).textContent(),
+            ).toMatch(
+                data.price, // change to regional price once MWPW-187797 is fixed
+            );
+        });
+    });
 });

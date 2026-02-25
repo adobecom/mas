@@ -30,37 +30,27 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
 
 /**
  * Slot name to display label for Headless variant (label + value only, no card).
- * Order here defines render order.
+ * Only includes fields that are authorable in the merch-card editor to avoid confusion.
+ * Labels match the editor (merch-card-editor.js). Order defines render order.
  */
 const HEADLESS_FIELDS = [
-    { slot: 'bg-image', label: 'Background image' },
+    { slot: 'bg-image', label: 'Background Image' },
     { slot: 'badge', label: 'Badge' },
-    { slot: 'icons', label: 'Icons' },
-    { slot: 'heading-xs', label: 'Heading' },
-    { slot: 'heading-m', label: 'Heading (medium)' },
-    { slot: 'heading-s', label: 'Heading (small)' },
-    { slot: 'body-xxs', label: 'Summary' },
-    { slot: 'body-xs', label: 'Body' },
-    { slot: 'body-s', label: 'Body (small)' },
-    { slot: 'body-m', label: 'Body (medium)' },
-    { slot: 'body-lower', label: 'Body lower' },
-    { slot: 'promo-text', label: 'Promo text' },
-    { slot: 'callout-content', label: 'Callout' },
-    { slot: 'short-description', label: 'Short description' },
-    { slot: 'trial-badge', label: 'Trial badge' },
-    { slot: 'price', label: 'Price' },
-    { slot: 'prices', label: 'Prices' },
-    { slot: 'annualPrice', label: 'Annual price' },
-    { slot: 'priceLabel', label: 'Price label' },
-    { slot: 'legal', label: 'Legal' },
-    { slot: 'quantity-select', label: 'Quantity' },
-    { slot: 'addon', label: 'Add-on' },
+    { slot: 'icons', label: 'Mnemonic icon' },
+    { slot: 'heading-xs', label: 'Title' },
+    { slot: 'body-xxs', label: 'Subtitle' },
+    { slot: 'body-xs', label: 'Product description' },
+    { slot: 'promo-text', label: 'Promo Text' },
+    { slot: 'callout-content', label: 'Callout text' },
+    { slot: 'short-description', label: 'Short Description' },
+    { slot: 'trial-badge', label: 'Trial Badge' },
+    { slot: 'prices', label: 'Product price' },
+    { slot: 'priceLabel', label: 'Per unit label' },
+    { slot: 'quantity-select', label: 'Quantity select' },
+    { slot: 'addon', label: 'Addon' },
     { slot: 'whats-included', label: "What's included" },
-    { slot: 'cta', label: 'CTA' },
-    { slot: 'ctas', label: 'CTAs' },
-    { slot: 'detail-bg', label: 'Detail background' },
-    { slot: 'detail-m', label: 'Detail (medium)' },
-    { slot: 'detail-s', label: 'Detail (small)' },
+    { slot: 'addon-confirmation', label: 'Addon confirmation' },
+    { slot: 'footer', label: 'CTAs' },
 ];
 
 export class Headless extends VariantLayout {
@@ -88,19 +78,13 @@ export class Headless extends VariantLayout {
                 ${this.card.secureLabel
                     ? html`
                           <div class="headless-row">
-                              <span class="headless-label">Secure</span>
+                              <span class="headless-label">Secure label</span>
                               <span class="headless-value">
                                   ${this.secureLabel}
                               </span>
                           </div>
                       `
                     : nothing}
-                <div class="headless-row headless-footer">
-                    <span class="headless-label">Footer</span>
-                    <span class="headless-value">
-                        <slot name="footer"></slot>
-                    </span>
-                </div>
             </div>
         `;
     }

@@ -5941,7 +5941,7 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
     flex-direction: column;
     padding: var(--consonant-merch-spacing-xs, 8px);
 }
-`;var Cc={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},cardTitle:{tag:"p",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},promoText:{tag:"p",slot:"promo-text"},shortDescription:{tag:"p",slot:"short-description"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},whatsIncluded:{tag:"div",slot:"whats-included"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},badge:{tag:"div",slot:"badge"},trialBadge:{tag:"div",slot:"trial-badge"},prices:{tag:"p",slot:"prices"},backgroundImage:{tag:"div",slot:"bg-image"},ctas:{slot:"footer",size:"m"},addon:!0,secureLabel:!0,borderColor:{attribute:"border-color"},backgroundColor:{attribute:"background-color"},size:[],mnemonics:{size:"m"}},Dh=[{slot:"bg-image",label:"Background image"},{slot:"badge",label:"Badge"},{slot:"icons",label:"Icons"},{slot:"heading-xs",label:"Heading"},{slot:"heading-m",label:"Heading (medium)"},{slot:"heading-s",label:"Heading (small)"},{slot:"body-xxs",label:"Summary"},{slot:"body-xs",label:"Body"},{slot:"body-s",label:"Body (small)"},{slot:"body-m",label:"Body (medium)"},{slot:"body-lower",label:"Body lower"},{slot:"promo-text",label:"Promo text"},{slot:"callout-content",label:"Callout"},{slot:"short-description",label:"Short description"},{slot:"trial-badge",label:"Trial badge"},{slot:"price",label:"Price"},{slot:"prices",label:"Prices"},{slot:"annualPrice",label:"Annual price"},{slot:"priceLabel",label:"Price label"},{slot:"legal",label:"Legal"},{slot:"quantity-select",label:"Quantity"},{slot:"addon",label:"Add-on"},{slot:"whats-included",label:"What's included"},{slot:"cta",label:"CTA"},{slot:"ctas",label:"CTAs"},{slot:"detail-bg",label:"Detail background"},{slot:"detail-m",label:"Detail (medium)"},{slot:"detail-s",label:"Detail (small)"}],Kt=class extends T{constructor(t){super(t)}getGlobalCSS(){return _c}renderLayout(){return g`
+`;var Cc={cardName:{attribute:"name"},title:{tag:"p",slot:"heading-xs"},cardTitle:{tag:"p",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},promoText:{tag:"p",slot:"promo-text"},shortDescription:{tag:"p",slot:"short-description"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},whatsIncluded:{tag:"div",slot:"whats-included"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},badge:{tag:"div",slot:"badge"},trialBadge:{tag:"div",slot:"trial-badge"},prices:{tag:"p",slot:"prices"},backgroundImage:{tag:"div",slot:"bg-image"},ctas:{slot:"footer",size:"m"},addon:!0,secureLabel:!0,borderColor:{attribute:"border-color"},backgroundColor:{attribute:"background-color"},size:[],mnemonics:{size:"m"}},Dh=[{slot:"bg-image",label:"Background Image"},{slot:"badge",label:"Badge"},{slot:"icons",label:"Mnemonic icon"},{slot:"heading-xs",label:"Title"},{slot:"body-xxs",label:"Subtitle"},{slot:"body-xs",label:"Product description"},{slot:"promo-text",label:"Promo Text"},{slot:"callout-content",label:"Callout text"},{slot:"short-description",label:"Short Description"},{slot:"trial-badge",label:"Trial Badge"},{slot:"prices",label:"Product price"},{slot:"priceLabel",label:"Per unit label"},{slot:"quantity-select",label:"Quantity select"},{slot:"addon",label:"Addon"},{slot:"whats-included",label:"What's included"},{slot:"addon-confirmation",label:"Addon confirmation"},{slot:"footer",label:"CTAs"}],Kt=class extends T{constructor(t){super(t)}getGlobalCSS(){return _c}renderLayout(){return g`
             <div class="headless">
                 ${Dh.map(({slot:t,label:r})=>g`
                         <div class="headless-row">
@@ -5953,18 +5953,12 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
                     `)}
                 ${this.card.secureLabel?g`
                           <div class="headless-row">
-                              <span class="headless-label">Secure</span>
+                              <span class="headless-label">Secure label</span>
                               <span class="headless-value">
                                   ${this.secureLabel}
                               </span>
                           </div>
                       `:E}
-                <div class="headless-row headless-footer">
-                    <span class="headless-label">Footer</span>
-                    <span class="headless-value">
-                        <slot name="footer"></slot>
-                    </span>
-                </div>
             </div>
         `}};m(Kt,"variantStyle",v`
         :host([variant='headless']) {

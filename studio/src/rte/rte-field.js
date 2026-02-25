@@ -1126,6 +1126,7 @@ class RteField extends LitElement {
             const parser = DOMParser.fromSchema(this.#editorSchema);
             const doc = parser.parse(container);
             const tr = this.editorView.state.tr.replaceWith(0, this.editorView.state.doc.content.size, doc.content);
+            tr.setMeta('initialize', true);
             this.editorView.dispatch(tr);
         } catch (error) {
             console.error('Error setting editor value:', error);
@@ -1189,7 +1190,7 @@ class RteField extends LitElement {
                 this.#boundHandlers.updateLength();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
-                const isFirstChange = this.value === null;
+                const isFirstChange = transaction.getMeta('initialize');
                 if (value !== this.value) {
                     this.#isInternalUpdate = true;
                     this.value = value === '<p></p>' ? '' : value;

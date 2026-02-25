@@ -12,6 +12,7 @@ import ACOMPlansIndividualsPage from '../studio/acom/plans/individuals/individua
 import EXPRESSFullPricingPage from '../studio/express/full-pricing/full-pricing.page.js';
 import VersionPage from '../studio/versions/versions.page.js';
 import OSTPage from '../studio/ost.page.js';
+import TranslationEditorPage from '../studio/translation-editor.page.js';
 import WebUtil from './webutil.js';
 
 // Global variables that all tests can access - recreated per test
@@ -25,6 +26,7 @@ let promotedplans;
 let individuals;
 let fullPricingExpress;
 let ost;
+let translationEditor;
 let webUtil;
 let versionPage;
 let clonedCardID = '';
@@ -67,6 +69,7 @@ const masTest = base.extend({
         individuals = new ACOMPlansIndividualsPage(page);
         fullPricingExpress = new EXPRESSFullPricingPage(page);
         ost = new OSTPage(page);
+        translationEditor = new TranslationEditorPage(page);
         webUtil = new WebUtil(page);
         versionPage = new VersionPage(page);
         // Initialize counter
@@ -116,6 +119,7 @@ export {
     individuals,
     fullPricingExpress,
     ost,
+    translationEditor,
     webUtil,
     versionPage,
     setClonedCardID,

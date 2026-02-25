@@ -16,6 +16,8 @@ import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
+import { Fragment } from '../aem/fragment.js';
+import { toAttribute } from '../aem/aem-tag-picker-field.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -64,6 +66,7 @@ class MerchCardEditor extends LitElement {
         this.isVariation = false;
         this.lastMnemonicState = null;
         this.fieldsReady = false;
+        this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
     }
 
@@ -72,7 +75,57 @@ class MerchCardEditor extends LitElement {
     }
 
     get effectiveIsVariation() {
-        return this.isVariation && this.localeDefaultFragment !== null;
+        return (this.isVariation || this.isGroupedVariation) && this.localeDefaultFragment !== null;
+    }
+
+    get isGroupedVariation() {
+        return Fragment.isGroupedVariationPath(this.fragment?.path);
+    }
+
+    get pznTagsValue() {
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).join(',');
+    }
+
+    #normalizePznTagIds(value) {
+        const rawValues = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+        return [
+            ...new Set(
+                rawValues
+                    .flatMap((entry) => (typeof entry === 'string' ? entry.split(',') : []))
+                    .map((entry) => entry.trim())
+                    .filter(Boolean)
+                    .map((entry) => toAttribute([entry]))
+                    .filter(Boolean),
+            ),
+        ];
+    }
+
+    #handlePznTagsChange = (event) => {
+        const tagPicker = event.target;
+        const normalizedTagIds = this.#normalizePznTagIds(tagPicker.value);
+        this.fragmentStore.updateField('pznTags', normalizedTagIds);
+    };
+
+    get groupedVariationTagsTemplate() {
+        if (!this.isGroupedVariation) return nothing;
+        const locale = this.fragment?.locale;
+        const isReadonly = locale !== 'en_US';
+        return html`
+            <sp-field-group id="grouped-variation-tags">
+                <sp-field-label>Grouped variation tags</sp-field-label>
+                <aem-tag-picker-field
+                    selection="checkbox-tags"
+                    display-value
+                    ?readonly=${isReadonly}
+                    label="Locale tags"
+                    namespace="/content/cq:tags/mas"
+                    top="locale"
+                    multiple
+                    value="${this.pznTagsValue}"
+                    @change=${this.#handlePznTagsChange}
+                ></aem-tag-picker-field>
+            </sp-field-group>
+        `;
     }
 
     getEffectiveFieldValue(fieldName, index = 0) {
@@ -128,24 +181,44 @@ class MerchCardEditor extends LitElement {
     }
 
     async resetTagsToParent() {
-        const parentTags = this.localeDefaultFragment?.tags || [];
-        this.fragment.tags = [...parentTags];
-        this.fragment.newTags = null;
-        this.fragmentStore.set(this.fragment);
+        const parentTagIds = this.localeDefaultFragment?.tags?.map((t) => t.id) || [];
+        this.fragmentStore.updateField('tags', parentTagIds);
         showToast('Tags restored to parent value', 'positive');
     }
 
+    static MNEMONIC_FIELDS = ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink', 'mnemonicTooltipText', 'mnemonicTooltipPlacement'];
+
+    /**
+     * Gets the combined field state for all mnemonic fields.
+     * Returns 'overridden' if ANY mnemonic field is overridden.
+     */
+    getMnemonicsFieldState() {
+        if (!this.effectiveIsVariation) return 'no-parent';
+        const isAnyOverridden = MerchCardEditor.MNEMONIC_FIELDS.some(
+            (fieldName) => this.getFieldState(fieldName) === 'overridden',
+        );
+        return isAnyOverridden ? 'overridden' : 'inherited';
+    }
+
+    async resetMnemonicsToParent() {
+        for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        }
+        showToast('Visuals restored to parent value', 'positive');
+    }
+
+    renderMnemonicsStatusIndicator() {
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getMnemonicsFieldState() !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetMnemonicsToParent());
+    }
+
     async resetFieldToParent(fieldName) {
-        await this.updateComplete;
         const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
         const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         if (success) {
             showToast('Field restored to parent value', 'positive');
-            await this.updateComplete;
-            const rteField = this.querySelector(`rte-field[data-field="${fieldName}"]`);
-            if (rteField && parentValues.length > 0) {
-                rteField.updateContent(parentValues[0]);
-            }
         }
         return success;
     }
@@ -377,9 +450,7 @@ class MerchCardEditor extends LitElement {
             const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
             this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
         }
-        const fragment = this.fragmentStore.get();
-        fragment.updateField(QUANTITY_MODEL, [html]);
-        this.fragmentStore.set(fragment);
+        this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
     };
 
     showQuantityFields(show) {
@@ -401,7 +472,9 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) {
             return;
         }
-        const variantValue = this.fragment.variant;
+        // Variations can inherit `variant` from their parent fragment.
+        // Use the effective value so template field visibility remains accurate.
+        const variantValue = this.getEffectiveFieldValue('variant');
         if (!variantValue) {
             this.fieldsReady = true;
             return;
@@ -744,11 +817,13 @@ class MerchCardEditor extends LitElement {
                     ></aem-tag-picker-field>
                     ${this.renderTagsStatusIndicator()}
                 </sp-field-group>
+                ${this.groupedVariationTagsTemplate}
                 <div class="section-title">Visuals</div>
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield
                         id="mnemonics"
                         button-label="Add visual"
+                        data-field-state="${this.getMnemonicsFieldState()}"
                         .value="${this.mnemonics}"
                         @change="${this.#updateMnemonics}"
                         @input="${this.#updateMnemonics}"
@@ -757,7 +832,7 @@ class MerchCardEditor extends LitElement {
                             <mas-mnemonic-field></mas-mnemonic-field>
                         </template>
                     </mas-multifield>
-                    ${this.renderFieldStatusIndicator('mnemonicIcon')}
+                    ${this.renderMnemonicsStatusIndicator()}
                 </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="badge">
@@ -818,7 +893,6 @@ class MerchCardEditor extends LitElement {
                         value="${this.whatsIncluded.label}"
                         @input="${this.#updateWhatsIncluded}"
                     ></sp-textfield>
-                    ${this.renderSectionStatusIndicator(['whatsIncluded'])}
                     <mas-multifield
                         button-label="Add bullet"
                         data-field-state="bullet"
@@ -1256,8 +1330,6 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateMnemonics(event) {
-        const fragment = this.fragmentStore.get();
-
         this.lastMnemonicState = {
             timestamp: Date.now(),
             mnemonicIcon: [...this.getEffectiveFieldValues('mnemonicIcon')],
@@ -1272,6 +1344,7 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = [];
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
+
         event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
@@ -1280,15 +1353,68 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
 
-        fragment.updateField('mnemonicIcon', mnemonicIcon);
-        fragment.updateField('mnemonicAlt', mnemonicAlt);
-        fragment.updateField('mnemonicLink', mnemonicLink);
-        fragment.updateField('mnemonicTooltipText', mnemonicTooltipText);
-        fragment.updateField('mnemonicTooltipPlacement', mnemonicTooltipPlacement);
-        this.fragmentStore.set(fragment);
+        // For variations: use empty string sentinel [""] to explicitly clear (vs [] which inherits)
+        // For non-variations or when values differ from parent: update normally
+        // When values match parent: auto-reset to inherited state
+        const isExplicitClear = mnemonicIcon.length === 0 && this.effectiveIsVariation;
+        const parent = this.effectiveIsVariation ? this.localeDefaultFragment : null;
 
-        const previousCount = this.lastMnemonicState.mnemonicIcon.length;
-        const newCount = mnemonicIcon.length;
+        const values = {
+            mnemonicIcon: isExplicitClear ? [''] : mnemonicIcon,
+            mnemonicAlt: isExplicitClear ? [''] : mnemonicAlt,
+            mnemonicLink: isExplicitClear ? [''] : mnemonicLink,
+            mnemonicTooltipText: isExplicitClear ? [''] : mnemonicTooltipText,
+            mnemonicTooltipPlacement: isExplicitClear ? [''] : mnemonicTooltipPlacement,
+        };
+
+        // For variations: check if ALL mnemonic values match parent before resetting
+        if (parent) {
+            // Compare against effective parent values (what would be inherited)
+            // For fields that don't exist on parent, treat default values as matching
+            const allMatchParent = MerchCardEditor.MNEMONIC_FIELDS.every((fieldName) => {
+                const newValues = values[fieldName] || [];
+                const parentField = parent.getField(fieldName);
+                const parentValues = parentField?.values || [];
+
+                // If parent has the field, compare directly
+                if (parentField && parentValues.length > 0) {
+                    return newValues.length === parentValues.length && newValues.every((v, i) => v === parentValues[i]);
+                }
+
+                // If parent doesn't have the field, check if new values are default/empty
+                // Default values: empty string for text fields, 'top' for placement
+                const isDefaultValue = newValues.every((v) => v === '' || v === 'top');
+                return isDefaultValue;
+            });
+
+            if (allMatchParent) {
+                // All values match parent - reset all mnemonic fields to inherited state
+                for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+                    this.fragment.resetFieldToParent(fieldName);
+                }
+                this.fragmentStore.notify();
+                this.fragmentStore.refreshAemFragment();
+                this.requestUpdate();
+            } else {
+                // At least one field differs from parent - update all fields
+                this.fragmentStore.updateField('mnemonicIcon', values.mnemonicIcon);
+                this.fragmentStore.updateField('mnemonicAlt', values.mnemonicAlt);
+                this.fragmentStore.updateField('mnemonicLink', values.mnemonicLink);
+                this.fragmentStore.updateField('mnemonicTooltipText', values.mnemonicTooltipText);
+                this.fragmentStore.updateField('mnemonicTooltipPlacement', values.mnemonicTooltipPlacement);
+            }
+        } else {
+            // Non-variation: update all fields normally
+            this.fragmentStore.updateField('mnemonicIcon', values.mnemonicIcon);
+            this.fragmentStore.updateField('mnemonicAlt', values.mnemonicAlt);
+            this.fragmentStore.updateField('mnemonicLink', values.mnemonicLink);
+            this.fragmentStore.updateField('mnemonicTooltipText', values.mnemonicTooltipText);
+            this.fragmentStore.updateField('mnemonicTooltipPlacement', values.mnemonicTooltipPlacement);
+        }
+
+        // Only count non-empty mnemonics (those with an icon) for toast notifications
+        const previousCount = this.lastMnemonicState.mnemonicIcon.filter((icon) => icon).length;
+        const newCount = mnemonicIcon.filter((icon) => icon).length;
         const isAdd = newCount > previousCount;
         const isRemove = newCount < previousCount;
 
@@ -1365,7 +1491,7 @@ class MerchCardEditor extends LitElement {
         this.availableColors = variant?.allowedColors || [];
         if (variant.borderColor || variant.badge?.tag) {
             this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
-            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
+            this.availableBadgeColors = SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
@@ -1748,11 +1874,11 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    #handleFragmentUpdate = (event) => {
+    #handleFragmentUpdate(event) {
         if (this.updateFragment) {
             this.updateFragment(event);
         }
-    };
+    }
 
     #handleLocReady() {
         const value = !this.fragment.getField('locReady')?.values[0];

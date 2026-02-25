@@ -1,6 +1,7 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
+import { PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 
 /**
  * @param {string} input
@@ -247,6 +248,18 @@ export function showToast(message, variant = 'info') {
 }
 
 /**
+ * Extracts the surface from a fragment path
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @returns {string | null} - The surface (e.g., 'acom') or null if not found
+ */
+export function extractSurfaceFromPath(fragmentPath) {
+    if (!fragmentPath) return null;
+    const match = fragmentPath.match(PATH_TOKENS);
+    return match?.groups?.surface ?? null;
+}
+
+/**
  * Extracts the locale code from a fragment path
  * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
  * @param {string} fragmentPath - The full AEM fragment path
@@ -259,22 +272,6 @@ export function extractLocaleFromPath(fragmentPath) {
     return parts.find((part) => localePattern.test(part)) || null;
 }
 
-/**
- * Copies text to clipboard
- * @param {Event} e - The event object
- * @param {string} text - The text to copy
- */
-export async function copyToClipboard(e, text) {
-    e.stopPropagation();
-    if (!text) {
-        showToast('No text to copy', 'negative');
-        return;
-    }
-    try {
-        await navigator.clipboard.writeText(text);
-        showToast('Copied to clipboard', 'positive');
-    } catch (err) {
-        console.error('Failed to copy:', err);
-        showToast('Failed to copy', 'negative');
-    }
+export function deepEquals(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
 }

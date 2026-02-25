@@ -94,12 +94,7 @@ async function main(params) {
         const initTime = measureTiming(context, 'init', 'start').duration;
         let timeout = context.networkConfig?.mainTimeout || 5000;
         timeout = Math.max(timeout - initTime, 0);
-        returnValue = await Promise.race([
-            mainProcess(context),
-            createTimeoutPromise(timeout, () => {
-                context.timedOut = true;
-            }),
-        ]);
+        returnValue = await Promise.race([mainProcess(context), createTimeoutPromise(timeout)]);
     } catch (error) {
         logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
         if (error.isTimeout) {
@@ -141,8 +136,6 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
-    const originalContext = context;
-
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
@@ -167,12 +160,6 @@ async function mainProcess(context) {
 
     for (const transformer of PIPELINE) {
         logDebug(() => `starting transformer ${transformer.name}`, context);
-        /* c8 ignore next 5*/
-        if (originalContext.timedOut) {
-            context.status = 504;
-            logError(`Pipeline timed out during ${transformer.name}, aborting...`, context);
-            break;
-        }
         if (context.status != 200) {
             logError(context.message, context);
             break;

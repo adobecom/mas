@@ -19,10 +19,21 @@ export class FragmentStore extends ReactiveStore {
         this.notify();
     }
 
-    updateField(name, value) {
-        this.value.updateField(name, value);
-        this.notify();
-        this.refreshAemFragment();
+    /**
+     * Updates a field's values.
+     * For variations: pass parentFragment to auto-reset to inherited when values match parent.
+     * @param {string} name - The field name to update
+     * @param {Array} value - The new values
+     * @param {Fragment|null} [parentFragment] - The parent fragment (for variations)
+     * @returns {boolean|'reset'} - true if updated, false if no change, 'reset' if reset to parent
+     */
+    updateField(name, value, parentFragment = null) {
+        const result = this.value.updateField(name, value, parentFragment);
+        if (result) {
+            this.notify();
+            this.refreshAemFragment();
+        }
+        return result;
     }
 
     updateFieldInternal(name, value) {
@@ -43,7 +54,7 @@ export class FragmentStore extends ReactiveStore {
     }
 
     resetFieldToParent(fieldName, parentValues = []) {
-        const success = this.value.resetFieldToParent(fieldName);
+        const success = this.value.resetFieldToParent(fieldName, parentValues);
         if (success) {
             this.notify();
             this.refreshAemFragment();

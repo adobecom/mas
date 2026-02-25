@@ -71,19 +71,4 @@ export const styles = css`
         flex-wrap: wrap;
         gap: 8px;
     }
-
-    .clear-all {
-        color: var(--spectrum-accent-color-900);
-        font-size: 14px;
-        cursor: pointer;
-        white-space: nowrap;
-        background: none;
-        border: none;
-        padding: 0;
-        text-decoration: none;
-    }
-
-    .clear-all:hover {
-        text-decoration: underline;
-    }
 `;

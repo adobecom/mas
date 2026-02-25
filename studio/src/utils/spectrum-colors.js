@@ -77,6 +77,22 @@ export const SPECTRUM_COLORS = [
     'spectrum-blue-800',
     'spectrum-blue-900',
 
+    // Indigo
+    'spectrum-indigo-100',
+    'spectrum-indigo-200',
+    'spectrum-indigo-300',
+    'spectrum-indigo-400',
+    'spectrum-indigo-500',
+    'spectrum-indigo-600',
+    'spectrum-indigo-700',
+    'spectrum-indigo-800',
+    'spectrum-indigo-900',
+    'spectrum-indigo-1000',
+    'spectrum-indigo-1100',
+    'spectrum-indigo-1200',
+    'spectrum-indigo-1300',
+    'spectrum-indigo-1400',
+
     // Seafoam
     'spectrum-seafoam-100',
     'spectrum-seafoam-200',

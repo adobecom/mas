@@ -30,6 +30,7 @@ nala/.auth/
 .claude/
 .specify/
 /specs/
+/agents/
 
 # IO Runtime Config
 config.json

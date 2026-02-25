@@ -452,7 +452,7 @@ export class AemFragment extends HTMLElement {
         const sanitizedMasLibs = masLibs.trim().toLowerCase();
 
         if (sanitizedMasLibs === 'local') {
-            return 'http://localhost:3030/studio/libs/fragment-client.js';
+            return 'http://localhost:3000/studio/libs/fragment-client.js';
         }
 
         // Detect current domain extension (.page or .live)

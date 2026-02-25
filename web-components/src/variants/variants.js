@@ -23,6 +23,10 @@ import {
     FullPricingExpress,
     FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
 } from './full-pricing-express.js';
+import {
+    Headless,
+    HEADLESS_AEM_FRAGMENT_MAPPING,
+} from './headless.js';
 import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
 
 // Registry for dynamic variants
@@ -94,6 +98,12 @@ registerVariant(
 );
 registerVariant('product', Product, null, Product.variantStyle);
 registerVariant('segment', Segment, null, Segment.variantStyle);
+registerVariant(
+    'headless',
+    Headless,
+    HEADLESS_AEM_FRAGMENT_MAPPING,
+    Headless.variantStyle,
+);
 registerVariant(
     'special-offers',
     SpecialOffer,

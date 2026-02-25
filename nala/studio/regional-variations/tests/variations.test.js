@@ -392,7 +392,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await editor.description.fill(data.description);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(awaitcard.locator(individuals.cardDescription)).toHaveText(data.description);
+                    await expect(await card.locator(individuals.cardDescription)).toHaveText(data.description);
                     await editor.overrideRestoreIn(editor.descriptionFieldGroup).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.description).toContainText(original.description);

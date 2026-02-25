@@ -129,7 +129,7 @@ export default {
             name: '@studio-plans-individuals-save-add-description-price-legal-disclamer',
             path: '/studio.html',
             data: {
-                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                cardid: 'c72789db-f4c0-4b72-a6ba-3b73b05ae91a',
                 osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
                 legalDisclaimer: 'par licenceAnnual, billed monthly',
                 cardLegalDisclaimer: 'par licence',

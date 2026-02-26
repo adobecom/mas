@@ -7,6 +7,9 @@ import { generateFieldLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
+const EVENT_MAS_READY = 'mas:ready';
+const PRICE_SELECTOR = 'span[is="inline-price"][data-template="price"], span[is="inline-price"]';
+
 class MasSideNav extends LitElement {
     static properties = {
         variationDataLoading: { type: Boolean, state: true },
@@ -81,6 +84,11 @@ class MasSideNav extends LitElement {
     );
 
     resolvedPriceText = '';
+    #onMerchCardReady = (event) => {
+        const card = this.#getPreviewCard();
+        if (!card || event.target !== card) return;
+        this.#updateResolvedPrice(this.#getFirstResolvedPriceText(card));
+    };
 
     constructor() {
         super();
@@ -90,11 +98,13 @@ class MasSideNav extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         Store.fragments.inEdit.subscribe(this.#handleFragmentInEditChange);
+        document.addEventListener(EVENT_MAS_READY, this.#onMerchCardReady);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.fragments.inEdit.unsubscribe(this.#handleFragmentInEditChange);
+        document.removeEventListener(EVENT_MAS_READY, this.#onMerchCardReady);
     }
 
     #handleFragmentInEditChange = (fragmentStore) => {
@@ -109,6 +119,7 @@ class MasSideNav extends LitElement {
             stores.push(fragmentStore);
             this.resolvedPriceText = '';
             this.variationDataLoading = true;
+            this.#syncPricePreview();
         } else {
             this.variationDataLoading = false;
         }
@@ -156,7 +167,6 @@ class MasSideNav extends LitElement {
 
         this.variationDataLoading = false;
         this.requestUpdate();
-        this.fragmentEditor?.addEventListener('preview-updated', () => this.#resolvePricePreview(), { once: true });
     }
 
     get fragmentEditor() {
@@ -204,26 +214,30 @@ class MasSideNav extends LitElement {
     };
     static HIDDEN_FIELDS = new Set(['quantitySelect', 'perUnitLabel']);
 
-    /**
-     * Waits for the merch-card preview to finish rendering (including WCS price
-     * resolution), then caches the resolved price text for the Copy Field popover.
-     * Uses the same checkReady() pattern as mas-card-preview.js.
-     */
-    async #resolvePricePreview() {
-        const editor = this.fragmentEditor;
-        if (!editor) return;
-        // Ensure the fragment editor has rendered the merch-card
-        await editor.updateComplete;
-        const card = editor.querySelector('merch-card');
+    #getPreviewCard() {
+        return this.fragmentEditor?.querySelector('merch-card');
+    }
+
+    #syncPricePreview() {
+        const card = this.#getPreviewCard();
         if (!card) return;
-        // Wait for the card to fully render, including WCS price resolution
-        await card.checkReady?.();
-        const price = card.querySelector('span[is="inline-price"]');
-        const text = price?.textContent.trim() ?? '';
-        if (text && text !== this.resolvedPriceText) {
-            this.resolvedPriceText = text;
-            this.requestUpdate();
+        this.#updateResolvedPrice(this.#getFirstResolvedPriceText(card));
+    }
+
+    #getFirstResolvedPriceText(card) {
+        const prices = [...card.querySelectorAll(PRICE_SELECTOR)];
+        for (const price of prices) {
+            const text = price.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+            if (text) return text;
         }
+        return '';
+    }
+
+    #updateResolvedPrice(value) {
+        const text = value?.replace(/\s+/g, ' ').trim() ?? '';
+        if (!text || text === this.resolvedPriceText) return;
+        this.resolvedPriceText = text;
+        this.requestUpdate();
     }
 
     /** Non-empty fragment fields with display names and value previews. */

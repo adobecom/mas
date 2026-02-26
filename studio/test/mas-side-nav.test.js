@@ -202,29 +202,82 @@ describe('MasSideNav – Copy Field', () => {
             contextIsVariationStub.restore();
         });
 
-        it('should resolve and cache price preview after preview-updated', async () => {
+        it('should resolve and cache price preview when merch-card dispatches mas:ready', async () => {
             const editor = document.createElement('div');
             editor.fragment = { id: 'frag-123' };
-            editor.updateComplete = Promise.resolve();
+            const card = document.createElement('merch-card');
+            editor.append(card);
+            document.body.append(el, editor);
 
-            const card = document.createElement('div');
-            card.checkReady = sandbox.stub().resolves(true);
-            sandbox.stub(card, 'querySelector').withArgs('span[is="inline-price"]').returns({ textContent: ' US$54.99/mo ' });
+            const price = document.createElement('span');
+            price.setAttribute('is', 'inline-price');
+            price.setAttribute('data-template', 'price');
+            price.textContent = ' US$54.99/mo ';
+            card.append(price);
             sandbox.stub(editor, 'querySelector').withArgs('merch-card').returns(card);
 
             editorStub.withArgs('mas-fragment-editor').returns(editor);
             const updateStub = sandbox.stub(el, 'requestUpdate');
 
-            el.variationDataLoading = true;
-            await el.updateVariationLoadingState();
-            editor.dispatchEvent(new Event('preview-updated'));
-            await Promise.resolve();
+            card.dispatchEvent(new CustomEvent('mas:ready', { bubbles: true, composed: true }));
             await Promise.resolve();
 
-            expect(el.variationDataLoading).to.be.false;
-            expect(card.checkReady.calledOnce).to.be.true;
             expect(el.resolvedPriceText).to.equal('US$54.99/mo');
             expect(updateStub.called).to.be.true;
+            el.remove();
+            editor.remove();
+        });
+
+        it('should use the first non-empty resolved inline-price text on mas:ready', async () => {
+            const editor = document.createElement('div');
+            editor.fragment = { id: 'frag-123' };
+            const card = document.createElement('merch-card');
+            editor.append(card);
+            document.body.append(el, editor);
+
+            const unresolved = document.createElement('span');
+            unresolved.setAttribute('is', 'inline-price');
+            unresolved.setAttribute('data-template', 'price');
+            unresolved.textContent = '';
+            const resolved = document.createElement('span');
+            resolved.setAttribute('is', 'inline-price');
+            resolved.textContent = ' US$9.99/mo ';
+            card.append(unresolved, resolved);
+            sandbox.stub(editor, 'querySelector').withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            card.dispatchEvent(new CustomEvent('mas:ready', { bubbles: true, composed: true }));
+            await Promise.resolve();
+
+            expect(el.resolvedPriceText).to.equal('US$9.99/mo');
+            el.remove();
+            editor.remove();
+        });
+
+        it('should update price preview when current preview merch-card dispatches mas:ready', async () => {
+            const editor = document.createElement('div');
+            editor.fragment = { id: 'frag-123' };
+            document.body.append(el, editor);
+
+            let currentCard = null;
+            sandbox.stub(editor, 'querySelector').callsFake((selector) => (selector === 'merch-card' ? currentCard : null));
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const card = document.createElement('merch-card');
+            const price = document.createElement('span');
+            price.setAttribute('is', 'inline-price');
+            price.setAttribute('data-template', 'price');
+            price.textContent = ' US$9.99/mo ';
+            card.append(price);
+            currentCard = card;
+            editor.append(card);
+
+            card.dispatchEvent(new CustomEvent('mas:ready', { bubbles: true, composed: true }));
+            await Promise.resolve();
+
+            expect(el.resolvedPriceText).to.equal('US$9.99/mo');
+            el.remove();
+            editor.remove();
         });
 
         it('should wait for parent fetch when current fragment is a variation', async () => {
@@ -285,10 +338,7 @@ describe('MasSideNav – Copy Field', () => {
 
     describe('lifecycle', () => {
         it('should unsubscribe from inEdit store on disconnect', () => {
-            const unsubscribeStub = sandbox.stub(
-                Store.fragments.inEdit,
-                'unsubscribe',
-            );
+            const unsubscribeStub = sandbox.stub(Store.fragments.inEdit, 'unsubscribe');
             el.disconnectedCallback();
             expect(unsubscribeStub.calledOnce).to.be.true;
         });

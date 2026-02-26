@@ -71,12 +71,8 @@ jobs:
                   printf '%s' "$ENV_CONTENT" > .env
                   printf '%s' "$AIO_CONTENT" > .aio
 
-            - name: Set environment paramaters (odin bucket, batch size)
-              run: |
-                  echo "Setting odin bucket to ${{ secrets.ODIN_BUCKET }}"
-                  npx aio config set ODIN_ENDPOINT "https://author-p22655-${{ secrets.ODIN_BUCKET }}.adobeaemcloud.com"
-                  echo "Setting batch size to ${{ inputs.batch_size }}"
-                  npx aio config set BATCH_SIZE "${{ inputs.batch_size }}"
-
             - name: Deploy
+              env:
+                  ODIN_ENDPOINT: 'https://author-p22655-${{ secrets.ODIN_BUCKET }}.adobeaemcloud.com'
+                  BATCH_SIZE: ${{ inputs.batch_size }}
               run: npx aio app deploy -v

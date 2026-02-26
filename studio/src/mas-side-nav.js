@@ -3,10 +3,15 @@ import router from './router.js';
 import Store from './store.js';
 import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
+import { generateFieldLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
 class MasSideNav extends LitElement {
+    static properties = {
+        variationDataLoading: { type: Boolean, state: true },
+    };
+
     static styles = css`
         :host {
             display: flex;
@@ -41,6 +46,32 @@ class MasSideNav extends LitElement {
             width: 14px;
             height: 14px;
         }
+
+        sp-menu-divider {
+            margin: 1px 0;
+            opacity: 0.4;
+        }
+
+        .field-entry {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding: 2px 0;
+        }
+
+        .field-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #999;
+        }
+
+        .field-value {
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     `;
 
     reactiveController = new ReactiveController(
@@ -48,6 +79,14 @@ class MasSideNav extends LitElement {
         [Store.page, Store.search, Store.viewMode, Store.fragmentEditor.editorContext, Store.fragmentEditor.loading],
         this.handleStoreChanges,
     );
+
+    variationLoadingTimeout = null;
+    resolvedPriceText = '';
+
+    constructor() {
+        super();
+        this.variationDataLoading = false;
+    }
 
     connectedCallback() {
         super.connectedCallback();
@@ -57,6 +96,10 @@ class MasSideNav extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.fragments.inEdit.unsubscribe(this.#handleFragmentInEditChange);
+        if (this.variationLoadingTimeout) {
+            clearTimeout(this.variationLoadingTimeout);
+            this.variationLoadingTimeout = null;
+        }
     }
 
     #handleFragmentInEditChange = (fragmentStore) => {
@@ -69,6 +112,15 @@ class MasSideNav extends LitElement {
         ];
         if (fragmentStore) {
             stores.push(fragmentStore);
+            this.resolvedPriceText = '';
+            this.variationDataLoading = true;
+            this.setupVariationLoadingTimeout();
+        } else {
+            this.variationDataLoading = false;
+            if (this.variationLoadingTimeout) {
+                clearTimeout(this.variationLoadingTimeout);
+                this.variationLoadingTimeout = null;
+            }
         }
         this.reactiveController.updateStores(stores);
     };
@@ -78,6 +130,44 @@ class MasSideNav extends LitElement {
         if (!this.isTranslationEnabled && [PAGE_NAMES.TRANSLATIONS, PAGE_NAMES.TRANSLATION_EDITOR].includes(Store.page.get())) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
+        this.updateVariationLoadingState();
+    }
+
+    async updateVariationLoadingState() {
+        if (!this.variationDataLoading) {
+            return;
+        }
+        if (this.variationLoadingTimeout) {
+            clearTimeout(this.variationLoadingTimeout);
+            this.variationLoadingTimeout = null;
+        }
+
+        const editorContextStore = Store.fragmentEditor.editorContext;
+        const fragmentId = this.fragmentEditor?.fragment?.id;
+
+        if (!fragmentId) {
+            this.variationDataLoading = false;
+            this.requestUpdate();
+            return;
+        }
+
+        if (editorContextStore.isVariation(fragmentId) && editorContextStore.parentFetchPromise) {
+            await editorContextStore.parentFetchPromise;
+        }
+
+        this.variationDataLoading = false;
+        this.requestUpdate();
+        this.fragmentEditor?.addEventListener('preview-updated', () => this.#resolvePricePreview(), { once: true });
+    }
+
+    setupVariationLoadingTimeout() {
+        this.variationLoadingTimeout = setTimeout(() => {
+            if (this.variationDataLoading) {
+                console.warn('Variation data loading timeout - forcing buttons to enable');
+                this.variationDataLoading = false;
+                this.requestUpdate();
+            }
+        }, 10000);
     }
 
     get fragmentEditor() {
@@ -112,6 +202,103 @@ class MasSideNav extends LitElement {
     async copyCode() {
         if (!this.fragmentEditor) return;
         await this.fragmentEditor.copyToUse();
+    }
+
+    // --- Copy Field config ---
+
+    static FIELD_DISPLAY_NAMES = {
+        variant: 'Template',
+        osi: 'OSI',
+        ctas: 'CTAs',
+        whatsIncluded: "What's Included",
+        originalId: 'Original ID',
+    };
+    static HIDDEN_FIELDS = new Set(['quantitySelect']);
+
+    /**
+     * Waits for the merch-card preview to finish rendering (including WCS price
+     * resolution), then caches the resolved price text for the Copy Field popover.
+     * Uses the same checkReady() pattern as mas-card-preview.js.
+     */
+    async #resolvePricePreview() {
+        const editor = this.fragmentEditor;
+        if (!editor) return;
+        // Ensure the fragment editor has rendered the merch-card
+        await editor.updateComplete;
+        const card = editor.querySelector('merch-card');
+        if (!card) return;
+        // Wait for the card to fully render, including WCS price resolution
+        await card.checkReady?.();
+        const price = card.querySelector('span[is="inline-price"]');
+        const text = price?.textContent.trim() ?? '';
+        if (text && text !== this.resolvedPriceText) {
+            this.resolvedPriceText = text;
+            this.requestUpdate();
+        }
+    }
+
+    /** Non-empty fragment fields with display names and value previews. */
+    get copyableFields() {
+        const fragment = this.fragmentEditor?.fragment;
+        if (!fragment?.fields) return [];
+        return fragment.fields
+            .filter((f) => !fragment.isValueEmpty(f.values) && !MasSideNav.HIDDEN_FIELDS.has(f.name))
+            .map((f) => ({
+                name: f.name,
+                displayName: MasSideNav.FIELD_DISPLAY_NAMES[f.name] ?? camelToTitle(f.name),
+                // Prices contain unresolved <inline-price> HTML — prefer cached resolved text
+                preview: f.name === 'prices' ? this.resolvedPriceText || previewValue(f.values) : previewValue(f.values),
+            }));
+    }
+
+    /** Copy Field popover listing fragment fields with preview values. */
+    get copyFieldButton() {
+        const loading = this.variationDataLoading;
+        return html`
+            <overlay-trigger placement="right" offset="8">
+                <mas-side-nav-item label="Copy Field" ?disabled=${loading} slot="trigger">
+                    <sp-icon-copy slot="icon"></sp-icon-copy>
+                </mas-side-nav-item>
+                <sp-popover slot="click-content" direction="right" tip>
+                    <sp-menu>
+                        ${this.copyableFields.map(
+                            ({ name, displayName, preview }, i) => html`
+                                ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                <sp-menu-item @click=${() => this.copyField(name)}>
+                                    ${preview
+                                        ? html`<div class="field-entry">
+                                              <span class="field-label">${displayName}</span>
+                                              <span class="field-value">${preview}</span>
+                                          </div>`
+                                        : displayName}
+                                </sp-menu-item>
+                            `,
+                        )}
+                    </sp-menu>
+                </sp-popover>
+            </overlay-trigger>
+        `;
+    }
+
+    /** Copies a rich link for the given field to the clipboard. */
+    async copyField(fieldName) {
+        const fragment = this.fragmentEditor?.fragment;
+        if (!fragment) return;
+        const path = Store.search.get().path;
+        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName);
+        if (!link) return;
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([link.displayText], { type: 'text/plain' }),
+                    'text/html': new Blob([link.richText], { type: 'text/html' }),
+                }),
+            ]);
+            const displayName = MasSideNav.FIELD_DISPLAY_NAMES[fieldName] ?? camelToTitle(fieldName);
+            Events.toast.emit({ variant: 'positive', content: `Copied ${displayName} field link` });
+        } catch {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy field link' });
+        }
     }
 
     async showHistory() {
@@ -214,6 +401,7 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Copy Code" ?disabled=${loading} @nav-click="${this.copyCode}">
                 <sp-icon-code slot="icon"></sp-icon-code>
             </mas-side-nav-item>
+            ${this.copyFieldButton}
             <mas-side-nav-item label="History" ?disabled=${loading} @nav-click="${this.showHistory}">
                 <sp-icon-history slot="icon"></sp-icon-history>
             </mas-side-nav-item>

@@ -109,5 +109,24 @@
                 </aem-fragment>
             </merch-card>
         </template>
+
+        <!-- Templates for merch-field wrapper tests -->
+        <template id="merch-field-render-field">
+            <merch-field field="description"
+                ><aem-fragment fragment="fragment-text-faq"></aem-fragment
+            ></merch-field>
+        </template>
+
+        <template id="merch-field-render-promo">
+            <merch-field field="promoText"
+                ><aem-fragment fragment="fragment-text-faq"></aem-fragment
+            ></merch-field>
+        </template>
+
+        <template id="merch-field-render-missing-field">
+            <merch-field field="nonexistent"
+                ><aem-fragment fragment="fragment-text-faq"></aem-fragment
+            ></merch-field>
+        </template>
     </body>
 </html>

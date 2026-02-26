@@ -230,9 +230,88 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
 
     const code = `<${webComponentName}><aem-fragment fragment="${fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
     const authorPath = `${webComponentName}: ${fragmentParts}`;
-    const href = `https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${page}&path=${path}&query=${fragment?.id}`;
+    const href = buildStudioFragmentHref({
+        webComponentName,
+        fragmentId: fragment?.id,
+        page,
+        path,
+    });
     const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
     return { authorPath, code, richText, href };
+}
+
+function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
+    const params = new URLSearchParams();
+    params.set('content-type', webComponentName);
+    if (page) params.set('page', page);
+    if (path) params.set('path', path);
+    if (fragmentId) params.set('query', fragmentId);
+    if (fieldName) params.set('field', fieldName);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
+/**
+ * Generates a rich link for a single fragment field.
+ * Used by the "Copy Field" sidebar button to produce a clipboard entry
+ * that pastes as a clickable "alias → fieldName" link in SharePoint.
+ * @param {object} fragment - The AEM content fragment
+ * @param {string} path - The current surface path (e.g. "/acom")
+ * @param {string} page - The current Studio page (e.g. "content")
+ * @param {string} fieldName - The field to link to (e.g. "prices", "description")
+ * @returns {{ displayText: string, href: string, richText: string } | null}
+ */
+export function generateFieldLink(fragment, path, page, fieldName) {
+    const resolvedFieldName = fieldName ?? page;
+    const resolvedPage = fieldName ? page : 'content';
+    const { fragmentParts } = getFragmentPartsToUse(fragment, path);
+    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    if (!webComponentName) return null;
+    const displayText = `merch-field: ${fragmentParts} → ${resolvedFieldName}`;
+    const href = buildStudioFragmentHref({
+        webComponentName,
+        fragmentId: fragment?.id,
+        page: resolvedPage,
+        path,
+        fieldName: resolvedFieldName,
+    });
+    const richText = `<a href="${href}" target="_blank">${displayText}</a>`;
+    return { displayText, href, richText };
+}
+
+// --- Copy Field display helpers ---
+
+const PREVIEW_MAX_LENGTH = 60;
+
+/**
+ * Converts a camelCase field name to Title Case.
+ * e.g. "cardTitle" → "Card Title", "borderColor" → "Border Color"
+ * @param {string} name
+ * @returns {string}
+ */
+export function camelToTitle(name) {
+    return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+}
+
+/**
+ * Strips HTML tags from a string, returning the text content.
+ * @param {string} value
+ * @returns {string}
+ */
+export function stripHtml(value) {
+    return new DOMParser().parseFromString(value, 'text/html').body.textContent || '';
+}
+
+/**
+ * Returns a truncated plain-text preview of the first value in an array.
+ * HTML is stripped; long strings are capped at 60 characters with ellipsis.
+ * @param {any[]} values
+ * @returns {string}
+ */
+export function previewValue(values) {
+    const raw = values?.[0] ?? '';
+    if (!raw) return '';
+    const text = typeof raw === 'string' && raw.includes('<') ? stripHtml(raw) : String(raw);
+    return text.length > PREVIEW_MAX_LENGTH ? `${text.slice(0, PREVIEW_MAX_LENGTH - 3)}...` : text;
 }
 
 /*

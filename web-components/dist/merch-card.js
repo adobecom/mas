@@ -6157,6 +6157,10 @@ aem-fragment {
   display: contents;
 }
 
+merch-field {
+  display: inline;
+}
+
 merch-card [slot='callout-content'] .icon-button {
   position: absolute;
   top: 3px;

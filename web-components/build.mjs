@@ -63,6 +63,11 @@ Promise.all([
         outfile: `${outfolder}/merch-sidenav.js`,
         plugins: [rewriteImportsToLibsFolder()],
     }),
+    build({
+        ...defaults,
+        entryPoints: ['./src/merch-field.js'],
+        outfile: `${outfolder}/merch-field.js`,
+    }),
     buildLitComponent('merch-card'),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),

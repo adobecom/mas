@@ -7,10 +7,12 @@ import { withWcs } from './mocks/wcs.js';
 import { withAem } from './mocks/aem.js';
 import { delay, getTemplateContent, oneEvent } from './utils.js';
 import '../src/mas.js';
+import '../src/merch-field.js';
 import {
     EVENT_MAS_ERROR,
     EVENT_MAS_READY,
     EVENT_TYPE_FAILED,
+    EVENT_AEM_LOAD,
 } from '../src/constants.js';
 
 chai.use(chaiAsPromised);
@@ -350,6 +352,26 @@ runTests(async () => {
                 expect(fragment.fetchInfo['aem-fragment:measure']).to.exist;
             });
 
+            it('deduplicates fetches using loading="cache"', async () => {
+                cache.clear();
+                const count = aemMock.count;
+                const fragment1 = addFragment('fragment-cc-all-apps');
+                const fragment2 = addFragment('fragment-cc-all-apps', 'cache');
+                const fragment3 = addFragment('fragment-cc-all-apps', 'cache');
+                await Promise.all([
+                    oneEvent(fragment1, 'aem:load'),
+                    oneEvent(fragment2, 'aem:load'),
+                    oneEvent(fragment3, 'aem:load'),
+                ]);
+                expect(aemMock.count).to.equal(count + 1);
+                expect(fragment1.data).to.exist;
+                expect(fragment2.data).to.exist;
+                expect(fragment3.data).to.exist;
+                fragment1.remove();
+                fragment2.remove();
+                fragment3.remove();
+            });
+
             it('populates the fragment cache from references', async () => {
                 const topCollection = addFragment('collection');
                 await oneEvent(topCollection, 'aem:load');
@@ -471,6 +493,130 @@ runTests(async () => {
                 expect(fetch.lastCall.firstArg).to.equal(
                     'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
+            });
+        });
+
+        describe('merch-field wrapper', () => {
+            afterEach(() => {
+                document
+                    .querySelectorAll('merch-field')
+                    .forEach((el) => el.remove());
+            });
+
+            it('renders field content via merch-field wrapper', async () => {
+                const [merchField] = getTemplateContent(
+                    'merch-field-render-field',
+                );
+                spTheme.append(merchField);
+
+                await new Promise((resolve) => {
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
+                });
+
+                expect(merchField.textContent).to.include('Get Photoshop');
+                expect(merchField.innerHTML).to.include('inline-price');
+                expect(merchField.querySelector('aem-fragment')).to.exist;
+            });
+
+            it('renders different fields based on field attribute', async () => {
+                const [merchField] = getTemplateContent(
+                    'merch-field-render-promo',
+                );
+                spTheme.append(merchField);
+
+                await new Promise((resolve) => {
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
+                });
+
+                expect(merchField.textContent).to.include('Save 50%');
+                expect(merchField.querySelector('aem-fragment')).to.exist;
+            });
+
+            it('handles missing field gracefully', async () => {
+                const [merchField] = getTemplateContent(
+                    'merch-field-render-missing-field',
+                );
+                spTheme.append(merchField);
+
+                await new Promise((resolve) => {
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
+                });
+
+                // merch-field should still contain the aem-fragment child (field value was undefined)
+                expect(merchField.querySelector('aem-fragment')).to.exist;
+            });
+
+            it('unwraps single paragraph tags', async () => {
+                const [merchField] = getTemplateContent(
+                    'merch-field-render-field',
+                );
+                spTheme.append(merchField);
+
+                await new Promise((resolve) => {
+                    merchField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
+                });
+
+                const trimmed = merchField
+                    .querySelector('span[data-role="merch-field-content"]')
+                    .innerHTML.trim();
+                expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
+            });
+
+            it('resolves checkReady after aem:load', async () => {
+                const merchField = document.createElement('merch-field');
+                merchField.setAttribute('field', 'promoText');
+                const fragment = document.createElement('aem-fragment');
+                merchField.append(fragment);
+                spTheme.append(merchField);
+
+                const readyPromise = merchField.checkReady();
+                fragment.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                promoText: '<p>Ready</p>',
+                            },
+                        },
+                    }),
+                );
+
+                await expect(readyPromise).to.eventually.equal(true);
+            });
+
+            it('resolves checkReady immediately when already loaded', async () => {
+                const merchField = document.createElement('merch-field');
+                merchField.setAttribute('field', 'promoText');
+                const fragment = document.createElement('aem-fragment');
+                merchField.append(fragment);
+                spTheme.append(merchField);
+
+                fragment.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                promoText: '<p>Ready</p>',
+                            },
+                        },
+                    }),
+                );
+
+                const result = await Promise.race([
+                    merchField.checkReady(),
+                    delay(0).then(() => 'timeout'),
+                ]);
+                expect(result).to.equal(true);
             });
         });
     });

@@ -278,8 +278,10 @@ class MasTranslationEditor extends LitElement {
             const newTranslationProject = await this.repository.createFragment(fragmentPayload, false);
             if (newTranslationProject) {
                 showToast('Translation project created successfully.', 'positive');
-                Store.translationProjects.inEdit.set(new FragmentStore(newTranslationProject));
+                const newStore = new FragmentStore(newTranslationProject);
+                Store.translationProjects.inEdit.set(newStore);
                 Store.translationProjects.translationProjectId.set(newTranslationProject.id);
+                Store.translationProjects.list.data.set((prev) => [newStore, ...prev]);
                 this.isNewTranslationProject = false;
 
                 this.storeController.hostDisconnected();

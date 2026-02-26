@@ -825,6 +825,11 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.translations,
             );
             const translationProjects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
+            translationProjects.sort((a, b) => {
+                const atA = a.get().modified?.at ? new Date(a.get().modified.at).getTime() : 0;
+                const atB = b.get().modified?.at ? new Date(b.get().modified.at).getTime() : 0;
+                return atB - atA;
+            });
             Store.translationProjects.list.data.set(translationProjects);
         } catch (error) {
             this.processError(error, 'Could not load translation projects.');

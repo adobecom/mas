@@ -723,6 +723,47 @@ describe('MasRepository dictionary helpers', () => {
                 Store.translationProjects.list.loading.set = originalLoading;
             }
         });
+
+        it('sorts translation projects by modified.at descending', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: 'acom' } };
+            const mockFragments = [
+                createFragment({
+                    id: 'oldest',
+                    path: `${ROOT_PATH}/acom/translations/project1`,
+                    modified: { at: '2026-01-01T00:00:00.000Z' },
+                }),
+                createFragment({
+                    id: 'newest',
+                    path: `${ROOT_PATH}/acom/translations/project2`,
+                    modified: { at: '2026-01-03T00:00:00.000Z' },
+                }),
+                createFragment({
+                    id: 'middle',
+                    path: `${ROOT_PATH}/acom/translations/project3`,
+                    modified: { at: '2026-01-02T00:00:00.000Z' },
+                }),
+            ];
+            repository.searchFragmentList = sandbox.stub().resolves(mockFragments);
+            const dataSetStub = sandbox.stub();
+            const originalData = Store.translationProjects.list.data.set.bind(Store.translationProjects.list.data);
+            Store.translationProjects.list.data.set = dataSetStub;
+            const originalLoading = Store.translationProjects.list.loading.set.bind(Store.translationProjects.list.loading);
+            Store.translationProjects.list.loading.set = sandbox.stub();
+            try {
+                await repository.loadTranslationProjects();
+
+                expect(dataSetStub.calledOnce).to.be.true;
+                const storedProjects = dataSetStub.firstCall.args[0];
+                expect(storedProjects).to.have.lengthOf(3);
+                expect(storedProjects[0].get().id).to.equal('newest');
+                expect(storedProjects[1].get().id).to.equal('middle');
+                expect(storedProjects[2].get().id).to.equal('oldest');
+            } finally {
+                Store.translationProjects.list.data.set = originalData;
+                Store.translationProjects.list.loading.set = originalLoading;
+            }
+        });
     });
 
     describe('searchFragments', () => {

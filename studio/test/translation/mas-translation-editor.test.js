@@ -1010,45 +1010,6 @@ describe('MasTranslationEditor', () => {
             ).to.be.true;
         });
 
-        it('should add new translation project to list at top when created', async () => {
-            const existingStore1 = new FragmentStore(
-                new Fragment(createMockFragment({ id: 'existing-1', title: 'Existing 1' })),
-            );
-            const existingStore2 = new FragmentStore(
-                new Fragment(createMockFragment({ id: 'existing-2', title: 'Existing 2' })),
-            );
-            Store.translationProjects.list.data.set([existingStore1, existingStore2]);
-
-            const newFragment = new Fragment(createMockFragment({ id: 'new-id', title: 'New Project' }));
-            const mockRepository = createMockRepository();
-            mockRepository.createFragment.resolves(newFragment);
-            querySelectorStub.callsFake((selector) => {
-                if (selector === 'mas-repository') return mockRepository;
-                return originalQuerySelector(selector);
-            });
-            Store.translationProjects.translationProjectId.set(null);
-            Store.translationProjects.targetLocales.set(['ro_RO']);
-            Store.translationProjects.selectedCards.set(['card1']);
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            await el.updateComplete;
-            const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Valid Title';
-            titleField.dispatchEvent(new Event('input', { bubbles: true }));
-            await el.updateComplete;
-            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
-            quickActions.dispatchEvent(new CustomEvent('save'));
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            await el.updateComplete;
-
-            const list = Store.translationProjects.list.data.get();
-            expect(list).to.have.lengthOf(3);
-            expect(list[0].get().id).to.equal('new-id');
-            expect(list[1].get().id).to.equal('existing-1');
-            expect(list[2].get().id).to.equal('existing-2');
-
-            Store.translationProjects.list.data.set([]);
-        });
-
         it('should handle create failure gracefully', async () => {
             const consoleErrorStub = sandbox.stub(console, 'error');
             const mockRepository = createMockRepository();

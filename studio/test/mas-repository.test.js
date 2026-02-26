@@ -724,26 +724,25 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('sorts translation projects by modified.at descending', async () => {
+        it('sorts translation projects by modifiedOrCreated descending (backend sort)', async () => {
             const repository = createFullRepository();
-            repository.search = { value: { path: 'acom' } };
-            const mockFragments = [
-                createFragment({
-                    id: 'oldest',
-                    path: `${ROOT_PATH}/acom/translations/project1`,
-                    modified: { at: '2026-01-01T00:00:00.000Z' },
-                }),
-                createFragment({
-                    id: 'newest',
-                    path: `${ROOT_PATH}/acom/translations/project2`,
-                    modified: { at: '2026-01-03T00:00:00.000Z' },
-                }),
-                createFragment({
-                    id: 'middle',
-                    path: `${ROOT_PATH}/acom/translations/project3`,
-                    modified: { at: '2026-01-02T00:00:00.000Z' },
-                }),
-            ];
+            repository.search = { value: { path: 'sandbox' } };
+            const newest = createFragment({
+                id: 'newest',
+                path: `${ROOT_PATH}/sandbox/translations/project2`,
+                modified: { at: '2026-01-03T00:00:00.000Z' },
+            });
+            const middle = createFragment({
+                id: 'middle',
+                path: `${ROOT_PATH}/sandbox/translations/project3`,
+                modified: { at: '2026-01-02T00:00:00.000Z' },
+            });
+            const oldest = createFragment({
+                id: 'oldest',
+                path: `${ROOT_PATH}/sandbox/translations/project1`,
+                modified: { at: '2026-01-01T00:00:00.000Z' },
+            });
+            const mockFragments = [newest, middle, oldest];
             repository.searchFragmentList = sandbox.stub().resolves(mockFragments);
             const dataSetStub = sandbox.stub();
             const originalData = Store.translationProjects.list.data.set.bind(Store.translationProjects.list.data);
@@ -752,6 +751,10 @@ describe('MasRepository dictionary helpers', () => {
             Store.translationProjects.list.loading.set = sandbox.stub();
             try {
                 await repository.loadTranslationProjects();
+
+                expect(repository.searchFragmentList.calledOnce).to.be.true;
+                const options = repository.searchFragmentList.firstCall.args[0];
+                expect(options.sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'DESC' }]);
 
                 expect(dataSetStub.calledOnce).to.be.true;
                 const storedProjects = dataSetStub.firstCall.args[0];

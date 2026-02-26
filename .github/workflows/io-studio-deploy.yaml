@@ -73,6 +73,6 @@ jobs:
 
             - name: Deploy
               env:
-                  ODIN_ENDPOINT: "https://author-p22655-${{ secrets.ODIN_BUCKET }}.adobeaemcloud.com"
+                  ODIN_ENDPOINT: 'https://author-p22655-${{ secrets.ODIN_BUCKET }}.adobeaemcloud.com'
                   BATCH_SIZE: ${{ inputs.batch_size }}
               run: npx aio app deploy -v

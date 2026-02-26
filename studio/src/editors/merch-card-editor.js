@@ -1732,11 +1732,7 @@ class MerchCardEditor extends LitElement {
         const element = document.createElement('merch-badge');
         if (bgColor) {
             element.setAttribute('background-color', bgColor);
-            if (
-                bgColor.includes('-green-900-') ||
-                bgColor.includes('-gray-700-') ||
-                bgColor === 'gradient-purple-blue'
-            )
+            if (bgColor.includes('-green-900-') || bgColor.includes('-gray-700-') || bgColor === 'gradient-purple-blue')
                 element.setAttribute('color', '#fff');
         }
         if (borderColor) {

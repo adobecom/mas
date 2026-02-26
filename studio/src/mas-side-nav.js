@@ -202,7 +202,7 @@ class MasSideNav extends LitElement {
         whatsIncluded: "What's Included",
         originalId: 'Original ID',
     };
-    static HIDDEN_FIELDS = new Set(['quantitySelect']);
+    static HIDDEN_FIELDS = new Set(['quantitySelect', 'perUnitLabel']);
 
     /**
      * Waits for the merch-card preview to finish rendering (including WCS price

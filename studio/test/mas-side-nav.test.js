@@ -60,15 +60,17 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.not.include('description');
         });
 
-        it('should filter out hidden fields', () => {
+        it('should filter out suppressed copy fields', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'quantitySelect', values: ['true'] },
+                { name: 'perUnitLabel', values: ['{perUnit, select, LICENSE {per lic} other {}}'] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const names = el.copyableFields.map((f) => f.name);
             expect(names).to.include('cardTitle');
             expect(names).to.not.include('quantitySelect');
+            expect(names).to.not.include('perUnitLabel');
         });
 
         it('should use FIELD_DISPLAY_NAMES for known fields', () => {

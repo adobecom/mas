@@ -122,7 +122,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             await expect(editor.derivedFromContainer).toContainText(': Default US (EN)');
         });
 
-        await test.step('step-5: verify price in editor', async () => {
+        await test.step('step-5: Verify price in editor', async () => {
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.prices).toContainText(data.price);
         });
@@ -644,9 +644,13 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         let variationId;
         const referencesUrl = (id) => `${data.referencesBaseUrl}/${id}?references=all-hydrated`;
 
+        // Count how many times the fragment ID (e.g. UUID) appears in the page body.
         const countReferencesToId = async (fragmentId) => {
             const bodyText = await page.locator('body').textContent();
-            const matches = bodyText.match(new RegExp(fragmentId.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'));
+            // Escape special regex chars (e.g. -, ., (, ), etc.) so the ID is matched literally, not as regex.
+            // Put a backslash in front of every character that is special in regex, meaning "find this exact ID string"
+            const escapedFragmentId = fragmentId.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const matches = bodyText.match(new RegExp(escapedFragmentId, 'g'));
             return matches ? matches.length : 0;
         };
 

@@ -6,7 +6,7 @@ const ROOT_PATH = '/content/dam/mas';
  */
 const searchAndDeleteFragmentsByAPI = async ({ runId, processedIds, pathFragment, rootPath }) => {
     const repo = document.querySelector('mas-repository');
-    if (!repo || !repo.aem?.sites?.cf?.fragments?.search || typeof repo.deleteFragment !== 'function') {
+    if (!repo?.aem?.sites?.cf?.fragments?.search || typeof repo.deleteFragment !== 'function') {
         return {
             success: false,
             error: 'mas-repository not ready for API search/delete',
@@ -182,7 +182,7 @@ async function cleanupClonedCards() {
                 await page.waitForFunction(
                     () => {
                         const repo = document.querySelector('mas-repository');
-                        return repo && repo.aem;
+                        return repo?.aem;
                     },
                     { timeout: 10000 },
                 );
@@ -201,9 +201,7 @@ async function cleanupClonedCards() {
                         () => {
                             const repo = document.querySelector('mas-repository');
                             return (
-                                repo &&
-                                repo.aem &&
-                                repo.aem.sites?.cf?.fragments?.search &&
+                                repo?.aem?.sites?.cf?.fragments?.search &&
                                 typeof repo.deleteFragment === 'function'
                             );
                         },

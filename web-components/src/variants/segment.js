@@ -16,20 +16,20 @@ export const SEGMENT_AEM_FRAGMENT_MAPPING = {
     planType: true,
     secureLabel: true,
     badgeIcon: true,
-    badge: { tag: 'div', slot: 'badge', default: 'spectrum-red-700-variation' },
+    badge: { tag: 'div', slot: 'badge', default: 'color-red-700-variation' },
     allowedBadgeColors: [
-        'spectrum-yellow-300-variation',
-        'spectrum-gray-300-variation',
-        'spectrum-gray-700-variation',
-        'spectrum-green-900-variation',
-        'spectrum-red-700-variation',
+        'color-yellow-300-variation',
+        'color-gray-300-variation',
+        'color-gray-700-variation',
+        'color-green-900-variation',
+        'color-red-700-variation',
         'gradient-purple-blue',
     ],
     allowedBorderColors: [
-        'spectrum-yellow-300-variation',
-        'spectrum-gray-300-variation',
-        'spectrum-green-900-variation',
-        'spectrum-red-700-variation',
+        'color-yellow-300-variation',
+        'color-gray-300-variation',
+        'color-green-900-variation',
+        'color-red-700-variation',
         'gradient-purple-blue',
     ],
     borderColor: { attribute: 'border-color' },
@@ -72,10 +72,6 @@ export class Segment extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
-    }
-
-    connectedCallbackHook() {
-        this.adjustTitleWidth();
     }
 
     async adjustLegal() {

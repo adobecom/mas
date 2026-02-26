@@ -47,6 +47,12 @@ const VARIANTS_WITH_HEIGHT_SYNC = [
     'simplified-pricing-express',
 ];
 
+const VARIANTS_WITH_WIDTH_BADGE_SYNC = [
+    'plans',
+    'segment',
+    'product',
+];
+
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
     if (!card) return options;
@@ -65,11 +71,36 @@ function registerPriceOptionsProvider(masCommerceService) {
     masCommerceService.providers.price(priceOptionsProvider);
 }
 
-const intersectionObserver = new IntersectionObserver((entries) => {
+const heightIntersectionObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
         if (entry.target.clientHeight === 0) return;
-        intersectionObserver.unobserve(entry.target);
+        heightIntersectionObserver.unobserve(entry.target);
         entry.target.requestUpdate();
+    });
+});
+
+const widthIntersectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+        if (entry.boundingClientRect.width === 0) return;
+        if (entry.target.variant === 'plans' && entry.target.querySelector('merch-icon[slot="icons"]')) {
+            widthIntersectionObserver.unobserve(entry.target);
+            return;
+        }
+
+        const cardWidth = entry.target.getBoundingClientRect().width;
+        const badgeEl = entry.target.querySelector('[slot="badge"]');
+        const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
+
+        if (cardWidth === 0 || badgeWidth === 0) {
+            widthIntersectionObserver.unobserve(entry.target);
+            return;
+        }
+        entry.target.style.setProperty(
+            '--consonant-merch-card-heading-xs-max-width',
+            `${Math.round(cardWidth - badgeWidth - 16)}px`,
+        );
+
+        widthIntersectionObserver.unobserve(entry.target);
     });
 });
 
@@ -571,7 +602,10 @@ export class MerchCard extends LitElement {
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
             if (VARIANTS_WITH_HEIGHT_SYNC.includes(this.variant)) {
-                intersectionObserver.observe(this);
+                heightIntersectionObserver.observe(this);
+            }
+            if (VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(this.variant)) {
+                widthIntersectionObserver.observe(this);
             }
             this.#hydrationPromise = undefined;
         }

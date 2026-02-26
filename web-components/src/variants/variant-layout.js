@@ -8,8 +8,6 @@ export class VariantLayout {
 
     #container;
 
-    #headingObserver;
-
     getContainer() {
         this.#container =
             this.#container ??
@@ -18,31 +16,6 @@ export class VariantLayout {
             ) ??
             this.card.parentElement;
         return this.#container;
-    }
-
-    getHeadingObserver() {
-        if (this.#headingObserver) return this.#headingObserver;
-
-        this.#headingObserver = new IntersectionObserver(([entry]) => {
-            if (entry.boundingClientRect.width === 0) return;
-
-            const cardWidth = this.card.getBoundingClientRect().width;
-            const badgeEl = this.card.querySelector('[slot="badge"]');
-            const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
-
-            if (cardWidth === 0 || badgeWidth === 0) {
-                this.#headingObserver.disconnect();
-                return;
-            }
-            this.card.style.setProperty(
-                '--consonant-merch-card-heading-xs-max-width',
-                `${Math.round(cardWidth - badgeWidth - 16)}px`, // consonant-merch-spacing-xs
-            );
-
-            this.#headingObserver.disconnect();
-        });
-        this.#headingObserver.observe(this.card);
-        return this.#headingObserver;
     }
 
     insertVariantStyle() {
@@ -143,10 +116,6 @@ export class VariantLayout {
         return html`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
         </footer>`;
-    }
-
-    adjustTitleWidth() {
-        this.getHeadingObserver();
     }
 
     async postCardUpdateHook() {

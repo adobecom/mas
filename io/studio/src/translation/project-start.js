@@ -287,6 +287,7 @@ async function main(params) {
         logger.info(`Starting translation project ${itemsToTranslate} for locales ${locales} and surface ${surface}`);
 
         const locPayload = {
+            taskName: translationData.title,
             targetLocales: locales,
             ...(translationFlow || {}),
         };

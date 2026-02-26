@@ -595,6 +595,7 @@ describe('Translation project-start', () => {
             expect(requestBody).to.deep.equal({
                 targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
                 transcreation: true,
+                taskName: 'Test Project',
             });
 
             expect(locRequestCall.args[1].headers).to.deep.include({

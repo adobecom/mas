@@ -80,7 +80,6 @@ class MasSideNav extends LitElement {
         this.handleStoreChanges,
     );
 
-    variationLoadingTimeout = null;
     resolvedPriceText = '';
 
     constructor() {
@@ -96,10 +95,6 @@ class MasSideNav extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.fragments.inEdit.unsubscribe(this.#handleFragmentInEditChange);
-        if (this.variationLoadingTimeout) {
-            clearTimeout(this.variationLoadingTimeout);
-            this.variationLoadingTimeout = null;
-        }
     }
 
     #handleFragmentInEditChange = (fragmentStore) => {
@@ -114,13 +109,8 @@ class MasSideNav extends LitElement {
             stores.push(fragmentStore);
             this.resolvedPriceText = '';
             this.variationDataLoading = true;
-            this.setupVariationLoadingTimeout();
         } else {
             this.variationDataLoading = false;
-            if (this.variationLoadingTimeout) {
-                clearTimeout(this.variationLoadingTimeout);
-                this.variationLoadingTimeout = null;
-            }
         }
         this.reactiveController.updateStores(stores);
     };
@@ -137,10 +127,6 @@ class MasSideNav extends LitElement {
         if (!this.variationDataLoading) {
             return;
         }
-        if (this.variationLoadingTimeout) {
-            clearTimeout(this.variationLoadingTimeout);
-            this.variationLoadingTimeout = null;
-        }
 
         const editorContextStore = Store.fragmentEditor.editorContext;
         const fragmentId = this.fragmentEditor?.fragment?.id;
@@ -152,22 +138,25 @@ class MasSideNav extends LitElement {
         }
 
         if (editorContextStore.isVariation(fragmentId) && editorContextStore.parentFetchPromise) {
-            await editorContextStore.parentFetchPromise;
+            const didTimeout = await Promise.race([
+                editorContextStore.parentFetchPromise
+                    .then(() => false)
+                    .catch((error) => {
+                        console.warn('Variation parent fetch failed:', error);
+                        return false;
+                    }),
+                new Promise((resolve) => {
+                    setTimeout(() => resolve(true), 10000);
+                }),
+            ]);
+            if (didTimeout) {
+                console.warn('Variation parent fetch timeout - forcing buttons to enable');
+            }
         }
 
         this.variationDataLoading = false;
         this.requestUpdate();
         this.fragmentEditor?.addEventListener('preview-updated', () => this.#resolvePricePreview(), { once: true });
-    }
-
-    setupVariationLoadingTimeout() {
-        this.variationLoadingTimeout = setTimeout(() => {
-            if (this.variationDataLoading) {
-                console.warn('Variation data loading timeout - forcing buttons to enable');
-                this.variationDataLoading = false;
-                this.requestUpdate();
-            }
-        }, 10000);
     }
 
     get fragmentEditor() {

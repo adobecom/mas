@@ -254,26 +254,27 @@ describe('MasSideNav – Copy Field', () => {
             editorStub.withArgs('mas-fragment-editor').returns(editor);
 
             el.variationDataLoading = true;
-            el.variationLoadingTimeout = 123;
             await el.updateVariationLoadingState();
 
-            expect(el.variationLoadingTimeout).to.equal(null);
             expect(el.variationDataLoading).to.be.false;
         });
-    });
 
-    describe('setupVariationLoadingTimeout', () => {
-        it('should force loading state off when timeout is hit', () => {
+        it('should force loading state off when parent fetch times out', async () => {
             const warnStub = sandbox.stub(console, 'warn');
-            let timeoutCallback;
+            contextIsVariationStub.returns(true);
+            contextStore.parentFetchPromise = new Promise(() => {});
+
+            const editor = document.createElement('div');
+            editor.fragment = { id: 'frag-123' };
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
             sandbox.stub(window, 'setTimeout').callsFake((cb) => {
-                timeoutCallback = cb;
+                cb();
                 return 999;
             });
 
             el.variationDataLoading = true;
-            el.setupVariationLoadingTimeout();
-            timeoutCallback();
+            await el.updateVariationLoadingState();
 
             expect(warnStub.calledOnce).to.be.true;
             expect(el.variationDataLoading).to.be.false;
@@ -281,22 +282,22 @@ describe('MasSideNav – Copy Field', () => {
     });
 
     describe('lifecycle', () => {
-        it('should clear variation timeout on disconnect', () => {
-            el.variationLoadingTimeout = 321;
-
+        it('should unsubscribe from inEdit store on disconnect', () => {
+            const unsubscribeStub = sandbox.stub(
+                Store.fragments.inEdit,
+                'unsubscribe',
+            );
             el.disconnectedCallback();
-
-            expect(el.variationLoadingTimeout).to.equal(null);
+            expect(unsubscribeStub.calledOnce).to.be.true;
         });
 
-        it('should clear loading timeout when inEdit store is reset', () => {
+        it('should disable loading when inEdit store is reset', () => {
             const updateStoresStub = sandbox.stub(el.reactiveController, 'updateStores');
 
-            el.variationLoadingTimeout = 456;
+            el.variationDataLoading = true;
             el.connectedCallback();
 
             expect(el.variationDataLoading).to.be.false;
-            expect(el.variationLoadingTimeout).to.equal(null);
             expect(updateStoresStub.called).to.be.true;
             expect(updateStoresStub.firstCall.args[0]).to.have.length(5);
 

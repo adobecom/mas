@@ -570,6 +570,38 @@ runTests(async () => {
                 expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
             });
 
+            it('reuses an existing merch-field content span', async () => {
+                const merchField = document.createElement('merch-field');
+                merchField.setAttribute('field', 'promoText');
+                const content = document.createElement('span');
+                content.setAttribute('data-role', 'merch-field-content');
+                const fragment = document.createElement('aem-fragment');
+                merchField.append(content, fragment);
+                spTheme.append(merchField);
+
+                fragment.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                promoText: '<p>Ready</p>',
+                            },
+                        },
+                    }),
+                );
+
+                await delay(0);
+
+                const contentElements = merchField.querySelectorAll(
+                    ':scope > span[data-role="merch-field-content"]',
+                );
+
+                expect(contentElements).to.have.length(1);
+                expect(contentElements[0]).to.equal(content);
+                expect(content.innerHTML).to.equal('Ready');
+            });
+
             it('resolves checkReady after aem:load', async () => {
                 const merchField = document.createElement('merch-field');
                 merchField.setAttribute('field', 'promoText');

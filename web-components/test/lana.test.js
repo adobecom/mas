@@ -47,6 +47,7 @@ describe('lana', () => {
                 isProdDomain: true,
                 serializableTypes: ['Array', 'Object'],
                 sampleRate: 1,
+                severity: 'e',
                 tags: 'acom',
             },
         ]);
@@ -76,6 +77,7 @@ describe('lana', () => {
                 isProdDomain: true,
                 serializableTypes: ['Array', 'Object'],
                 sampleRate: 1,
+                severity: 'e',
                 tags: 'acom',
             },
         ]);

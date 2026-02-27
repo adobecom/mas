@@ -1,5 +1,10 @@
 import { test, expect, studio, editor, miloLibs, setTestPage } from '../libs/mas-test.js';
+<<<<<<< HEAD
+=======
+import { getFragmentTitle } from '../utils/fragment-tracker.js';
+>>>>>>> upstream/main
 import StudioSpec from './studio.spec.js';
+import ACOMPlansIndividualsPage from './acom/plans/individuals/individuals.page.js';
 
 const { features } = StudioSpec;
 
@@ -426,6 +431,37 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-4: Validate card editing in table view', async () => {
             await studio.tableView.locator('mas-fragment').first().dblclick();
             await expect(await editor.panel).toBeVisible();
+        });
+    });
+
+    // @studio-load-variation - Validate loading a variation in mas studio
+    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[14];
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio content page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Switch to table view and find cardid row', async () => {
+            await studio.switchToTableView();
+            await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
+            expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(
+                data.price,
+            );
+        });
+
+        await test.step('step-3: Expand row and verify variation exists and price visible', async () => {
+            await studio.tableViewFragmentTable(data.cardid).locator('button.expand-button').click();
+            await expect(studio.tableViewFragmentTable(data.variationid)).toBeVisible();
+            await expect(studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).toBeVisible();
+            expect(
+                await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).textContent(),
+            ).toMatch(
+                data.price, // change to regional price once MWPW-187797 is fixed
+            );
         });
     });
 });

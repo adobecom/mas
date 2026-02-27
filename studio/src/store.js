@@ -22,6 +22,8 @@ const Store = {
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
+        translatedLocales: new ReactiveStore(null), // Array of locale codes like ['en_US', 'fr_FR'] or null
+        loading: new ReactiveStore(false),
         get editorContext() {
             if (!editorContextInstance) {
                 editorContextInstance = new EditorContextStore(null);
@@ -112,8 +114,25 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
-        allFragments: new ReactiveStore([]),
-        fragmentsByPaths: new ReactiveStore(new Map()),
+        prefill: new ReactiveStore(null),
+
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+
+        targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
     },
 };
@@ -207,9 +226,12 @@ export function toggleSelection(id) {
  */
 export function editFragment(store, x = 0) {
     const fragmentId = store.get().id;
+    const fragmentPath = store.get().path;
     const storeFragments = Store.fragments.list.data.get();
     const defaultInStore = storeFragments.includes(store);
-    const variationInStore = storeFragments.find((s) => s.get().references?.find((r) => r.id === fragmentId));
+    const variationInStore = storeFragments.find((s) =>
+        s.get().references?.find((r) => r.id === fragmentId || (fragmentPath && r.path === fragmentPath)),
+    );
     if (!defaultInStore && !variationInStore) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }

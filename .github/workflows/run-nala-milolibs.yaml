@@ -23,7 +23,7 @@ jobs:
             matrix:
                 node-version: [20.x]
         name: Running tests
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, X64]
         env:
             WORKFLOW_NAME: 'Milo Libs Run'
             MILO_LIBS_RUN: 'true'
@@ -54,7 +54,6 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
             - name: Install Playwright dependencies
-              if: steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install --with-deps
 
             - name: Set environment variables

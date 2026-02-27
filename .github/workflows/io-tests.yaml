@@ -28,7 +28,7 @@ jobs:
 
             - name: Run Playwright Tests
               env:
-                  TEST_URL: https://stage--milo--adobecom.aem.live/libs/features/mas/docs/ccd.html?mas-io-url=https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale
+                  TEST_URL: https://main--mas--adobecom.aem.live/web-components/docs/ccd.html?mas-io-url=https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale
                   HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
               working-directory: nala/io
               run: |

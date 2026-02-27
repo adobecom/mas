@@ -2,52 +2,77 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-selected-items.css.js';
 import Store from '../store.js';
-import StoreController from '../reactivity/store-controller.js';
-import NestedStoreController from '../reactivity/nested-store-controller.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
 
-    static properties = {
-        type: { type: String, state: true },
-    };
-
     constructor() {
         super();
-        this.translationProjectStoreController = new NestedStoreController(this, Store.translationProjects.inEdit);
-        this.showSelectedStoreController = new StoreController(this, Store.translationProjects.showSelected);
+        this.showSelectedStoreController = new ReactiveController(this, [
+            Store.translationProjects.showSelected,
+            Store.translationProjects.selectedCards,
+            Store.translationProjects.selectedCollections,
+            Store.translationProjects.selectedPlaceholders,
+            Store.fragments.list.loading,
+            Store.placeholders.list.loading,
+        ]);
     }
 
     get selectedItems() {
-        const translationProject = this.translationProjectStoreController.value;
-        if (this.type === 'fragments') {
-            return (
-                translationProject?.fields
-                    ?.find((field) => field.name === 'items')
-                    ?.values?.map((path) => Store.translationProjects.fragmentsByPaths.value.get(path)) || []
-            );
-        }
-        return [];
+        const cards = Store.translationProjects.selectedCards.value
+            .map((path) => {
+                return Store.translationProjects.cardsByPaths.value.get(path);
+            })
+            .filter(Boolean);
+        const collections = Store.translationProjects.selectedCollections.value
+            .map((path) => {
+                return Store.translationProjects.collectionsByPaths.value.get(path);
+            })
+            .filter(Boolean);
+        const placeholders = Store.translationProjects.selectedPlaceholders.value
+            .map((path) => {
+                return Store.translationProjects.placeholdersByPaths.value.get(path);
+            })
+            .filter(Boolean);
+        return [...cards, ...collections, ...placeholders];
     }
 
     get showSelected() {
         return Store.translationProjects.showSelected.value;
     }
 
+    get isLoadingItems() {
+        return Store.fragments.list.loading.get() || Store.placeholders.list.loading.get();
+    }
+
     getTitle(item) {
         if (!item) return '-';
-        if (this.type === 'fragments') {
-            return item.title || '-';
+        switch (item.model.path) {
+            case CARD_MODEL_PATH:
+                return (item.title?.length > 54 ? `${item.title.slice(0, 54)}...` : item.title) || '-';
+            case COLLECTION_MODEL_PATH:
+                return (item.title?.length > 54 ? `${item.title.slice(0, 54)}...` : item.title) || '-';
+            default:
+                return item.getFieldValue('key') || '-';
         }
-        return '-';
     }
 
     getDetails(item) {
         if (!item) return '-';
-        if (this.type === 'fragments') {
-            return item.studioPath || '-';
+        switch (item.model.path) {
+            case CARD_MODEL_PATH:
+                return item.studioPath || '-';
+            case COLLECTION_MODEL_PATH:
+                return item.studioPath || '-';
+            default:
+                return (
+                    (item.getFieldValue('value')?.length > 60
+                        ? `${item.getFieldValue('value').slice(0, 60)}...`
+                        : item.getFieldValue('value')) || '-'
+                );
         }
-        return '-';
     }
 
     removeItem(path) {
@@ -62,15 +87,25 @@ class MasSelectedItems extends LitElement {
 
     render() {
         return html`${this.showSelected && this.selectedItems.length > 0
-            ? html`<ul class="selected-items">
+            ? html`<ul
+                  class="selected-items"
+                  style="margin-left: ${this.showSelected && this.selectedItems.length > 0 ? '12px' : '0'}"
+              >
                   ${repeat(
                       this.selectedItems,
                       (item) => item.path,
                       (item) =>
-                          html`<li class="file">
+                          html`<li class="item">
                               <h3 class="title">${this.getTitle(item)}</h3>
                               <div class="details">${this.getDetails(item)}</div>
-                              <sp-button variant="secondary" size="l" icon-only @click=${() => this.removeItem(item.path)}>
+                              <sp-button
+                                  class="remove-button"
+                                  variant="secondary"
+                                  size="l"
+                                  icon-only
+                                  @click=${() => this.removeItem(item.path)}
+                                  ?disabled=${this.isLoadingItems}
+                              >
                                   <sp-icon-close slot="icon"></sp-icon-close>
                               </sp-button>
                           </li>`,

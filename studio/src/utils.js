@@ -1,6 +1,7 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
+import { PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 
 /**
  * @param {string} input
@@ -247,6 +248,18 @@ export function showToast(message, variant = 'info') {
 }
 
 /**
+ * Extracts the surface from a fragment path
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @returns {string | null} - The surface (e.g., 'acom') or null if not found
+ */
+export function extractSurfaceFromPath(fragmentPath) {
+    if (!fragmentPath) return null;
+    const match = fragmentPath.match(PATH_TOKENS);
+    return match?.groups?.surface ?? null;
+}
+
+/**
  * Extracts the locale code from a fragment path
  * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
  * @param {string} fragmentPath - The full AEM fragment path
@@ -257,4 +270,8 @@ export function extractLocaleFromPath(fragmentPath) {
     const parts = fragmentPath.split('/');
     const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
     return parts.find((part) => localePattern.test(part)) || null;
+}
+
+export function deepEquals(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
 }

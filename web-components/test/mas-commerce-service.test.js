@@ -180,6 +180,7 @@ describe('commerce service', () => {
                     ignoredProperties: ['analytics', 'literals', 'element'],
                     serializableTypes: ['Array', 'Object'],
                     sampleRate: 100,
+                    severity: 'e',
                     tags: 'ccd',
                     isProdDomain: false,
                 });

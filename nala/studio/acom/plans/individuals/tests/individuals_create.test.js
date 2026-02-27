@@ -19,12 +19,11 @@ const { features } = ACOMPlansCreateSpec;
 test.describe('M@S Studio feature test suite', () => {
     // @studio-create-fragment - Validate creating a new fragment
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[14];
+        const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}`;
         setTestPage(testPage);
         let fragmentId;
-        const runId = getCurrentRunId();
-        const expectedTitle = `MAS Nala Automation Fragment [${runId}]`;
+        const expectedTitle = getFragmentTitle();
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -33,13 +32,10 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Create fragment', async () => {
-            fragmentId = await studio.createFragment(
-                {
-                    osi: data.osi,
-                    variant: data.variant,
-                },
-                editor,
-            );
+            fragmentId = await studio.createFragment({
+                osi: data.osi,
+                variant: data.variant,
+            });
             expect(fragmentId).toBeTruthy();
             await page.waitForTimeout(3000);
         });
@@ -62,18 +58,15 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.switchToTableView();
             await page.waitForTimeout(2000);
 
-            // Find the fragment row by data-id attribute on mas-fragment-table
             const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
             await expect(fragmentRow).toBeVisible();
 
-            // Get the path cell (class "name")
             const pathCell = studio.tableViewPathCell(fragmentRow);
             const fragmentPath = await pathCell.textContent();
             expect(fragmentPath).toBeTruthy();
             expect(fragmentPath).not.toContain('undefined');
             expect(fragmentPath.trim().length).toBeGreaterThan(0);
 
-            // Get the title cell (class "title")
             const titleCell = studio.tableViewTitleCell(fragmentRow);
             const fragmentTitle = await titleCell.textContent();
             expect(fragmentTitle).toBeTruthy();
@@ -84,7 +77,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-6: Open editor from table view and verify fragment details', async () => {
             const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
             await fragmentRow.dblclick();
-            await expect(await editor.panel).toBeVisible({ timeout: 30000 });
+            await expect(await editor.panel).toBeVisible();
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', data.variant);
             await expect(await editor.OSI).toBeVisible();

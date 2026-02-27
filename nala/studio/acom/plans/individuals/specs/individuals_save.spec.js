@@ -133,8 +133,8 @@ export default {
                 osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
                 legalDisclaimer: 'par licenceAnnual, billed monthly',
                 cardLegalDisclaimer: 'par licence',
-                legalDisclaimerTax: 'par licenceTVA comprise. Annual, billed monthly',
-                cardLegalDisclaimerTax: 'par licenceTVA comprise',
+                legalDisclaimerTax: 'par licenceTTC. Annual, billed monthly',
+                cardLegalDisclaimerTax: 'par licenceTTC',
             },
             browserParams: '#locale=fr_FR&query=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
@@ -144,7 +144,7 @@ export default {
             name: '@studio-plans-individuals-save-product-icon-picker',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 productIcon: {
                     name: 'Photoshop',
                     original: {

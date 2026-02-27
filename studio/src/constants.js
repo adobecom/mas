@@ -163,7 +163,10 @@ export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedL
 
 export const VARIATION_TYPES = {
     LOCALE: 'Locale',
+    GROUPED: 'Grouped variation',
 };
+
+export const PZN_FOLDER = 'pzn';
 
 export const SURFACES = {
     ACOM: {
@@ -205,4 +208,26 @@ export const QUICK_ACTION = {
     LOCK: 'lock',
     DISCARD: 'discard',
     DELETE: 'delete',
+    LOC: 'loc',
 };
+
+export const FILTER_TYPE = {
+    TEMPLATE: 'template',
+    MARKET_SEGMENT: 'marketSegment',
+    CUSTOMER_SEGMENT: 'customerSegment',
+    PRODUCT: 'product',
+};
+
+export const FRAGMENT_STATUS = {
+    PUBLISHED: 'PUBLISHED',
+    DRAFT: 'DRAFT',
+    MODIFIED: 'MODIFIED',
+};
+
+export const TABLE_TYPE = {
+    CARDS: 'cards',
+    COLLECTIONS: 'collections',
+    PLACEHOLDERS: 'placeholders',
+};
+
+export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];

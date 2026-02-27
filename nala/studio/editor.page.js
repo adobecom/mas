@@ -7,6 +7,7 @@ export default class EditorPage {
 
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
+
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.backgroundImage = this.panel.locator('#background-image input');
 
@@ -47,6 +48,11 @@ export default class EditorPage {
         this.OSI = this.panel.locator('osi-field#osi');
         this.OSIButton = this.panel.locator('#offerSelectorToolButtonOSI');
 
+        this.localeVariationHeader = page.locator('.locale-variation-header');
+        this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
+        this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
+        this.style = this.panel.locator('#card-style');
+
         this.callout = this.panel.locator('sp-field-group#callout');
         this.calloutRTE = this.panel.locator('sp-field-group#callout div[contenteditable="true"]');
         this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
@@ -57,7 +63,7 @@ export default class EditorPage {
         this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
-        this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-icon-add');
+        this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');
         this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
@@ -66,6 +72,11 @@ export default class EditorPage {
         this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
+
+        // Missing variation panel (locale switching)
+        this.missingVariationPanel = page.locator('#missing-variation-panel');
+        this.viewSourceFragmentButton = page.locator('#view-source-fragment');
+        this.createTranslationProjectButton = page.locator('#create-translation-project');
 
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
@@ -96,6 +107,27 @@ export default class EditorPage {
         this.secondaryOutlineVariant = page.locator('sp-button[variant="secondary"][treatment="outline"]');
         this.primaryLinkVariant = page.locator('sp-link:has-text("Primary link")');
         this.secondaryLinkVariant = page.locator('sp-link[variant="secondary"]');
+
+        // Field group elements (container for each field)
+        this.cardTitleFieldGroup = this.panel.locator('sp-field-group#title');
+        this.cardBadgeFieldGroup = this.panel.locator('sp-field-group#badge');
+        this.mnemonicFieldGroup = this.panel.locator('sp-field-group#mnemonics').first();
+        this.calloutFieldGroup = this.panel.locator('sp-field-group#callout');
+        this.promoTextFieldGroup = this.panel.locator('sp-field-group#promoText');
+        this.whatsIncludedFieldGroup = this.panel.locator('sp-field-group#whatsIncluded');
+        this.badgeColorFieldGroup = this.panel.locator('sp-field-group#badgeColor');
+        this.badgeBorderColorFieldGroup = this.panel.locator('sp-field-group#badgeBorderColor');
+        this.borderColorFieldGroup = this.panel.locator('sp-field-group#border-color');
+        this.pricesFieldGroup = this.panel.locator('sp-field-group#prices');
+        this.ctasFieldGroup = this.panel.locator('sp-field-group#ctas');
+        this.osiFieldGroup = this.panel.locator('sp-field-group:has(osi-field#osi)');
+        this.tagsFieldGroup = this.panel.locator('sp-field-group#tags');
+
+        this.overrideRestoreLink = 'a:has-text("Overridden. Click to restore.")';
+    }
+
+    overrideRestoreIn(fieldGroupLocator) {
+        return fieldGroupLocator.locator(this.overrideRestoreLink);
     }
 
     async getLinkVariant(variant) {

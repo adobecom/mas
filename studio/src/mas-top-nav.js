@@ -1,13 +1,29 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, PAGE_NAMES } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES } from './constants.js';
 import { LitElement, html } from 'lit';
 import { until } from 'lit/directives/until.js';
 import Store from './store.js';
-import StoreController from './reactivity/store-controller.js';
+import ReactiveController from './reactivity/reactive-controller.js';
+import router from './router.js';
+import { extractLocaleFromPath } from './utils.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
 class MasTopNav extends LitElement {
-    page = new StoreController(this, Store.page);
+    page = Store.page;
+    inEdit = Store.fragments.inEdit;
+    editorContext = Store.fragmentEditor.editorContext;
+    search = Store.search;
+    filters = Store.filters;
+    landscape = Store.landscape;
+
+    reactiveController = new ReactiveController(this, [
+        this.page,
+        this.inEdit,
+        this.editorContext,
+        this.search,
+        this.filters,
+        this.landscape,
+    ]);
 
     createRenderRoot() {
         return this;
@@ -61,7 +77,7 @@ class MasTopNav extends LitElement {
                 e.preventDefault();
                 window.adobeIMS.signOut();
             });
-            studioContentEl.addEventListener('click', () => {
+            studioContentEl?.addEventListener('click', () => {
                 profileBody.classList.remove('show');
             });
 
@@ -80,37 +96,129 @@ class MasTopNav extends LitElement {
         showPickers: { type: Boolean, attribute: 'show-pickers' },
     };
 
+    profileTemplatePromise = null;
+
     constructor() {
         super();
         this.aemEnv = 'prod';
         this.showPickers = true;
-        Store.search.subscribe(() => {
+        this.search.subscribe(() => {
             this.requestUpdate();
         });
     }
 
-    get envIndicator() {
-        return EnvColorCode[this.aemEnv];
+    willUpdate(changedProperties) {
+        if (changedProperties.has('aemEnv')) {
+            this.profileTemplatePromise = null;
+        }
+    }
+
+    getProfileTemplate() {
+        if (!this.profileTemplatePromise) {
+            this.profileTemplatePromise = this.profileBuilder().then((profile) => html`${profile}`);
+        }
+        return this.profileTemplatePromise;
     }
 
     get shouldShowPickers() {
         return this.showPickers;
     }
 
+    get isContentPage() {
+        return this.page.value === PAGE_NAMES.CONTENT;
+    }
+
+    get isPlaceholdersPage() {
+        return this.page.value === PAGE_NAMES.PLACEHOLDERS;
+    }
+
+    get isWelcomePage() {
+        return this.page.value === PAGE_NAMES.WELCOME;
+    }
+
     get isFragmentEditorPage() {
-        return Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
+        return this.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
 
     get isTranslationEditorPage() {
-        return Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
+        return this.page.value === PAGE_NAMES.TRANSLATION_EDITOR;
     }
 
     get isTranslationsPage() {
-        return Store.page.value === PAGE_NAMES.TRANSLATIONS;
+        return this.page.value === PAGE_NAMES.TRANSLATIONS;
+    }
+
+    get isLocalePickerDisabled() {
+        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage) {
+            return false;
+        }
+        if (this.isFragmentEditorPage) {
+            // Enable picker when viewing default locale fragment (not a variation)
+            // so users can browse to locale variations
+            const fragmentId = this.inEdit.get()?.get()?.id;
+            return this.editorContext.isVariation(fragmentId);
+        }
+        return true;
     }
 
     get isDraftLandscape() {
-        return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
+        return this.landscape.value === WCS_LANDSCAPE_DRAFT;
+    }
+
+    get currentFragmentLocale() {
+        if (this.isFragmentEditorPage && this.inEdit.value) {
+            const currentFragment = this.inEdit.value.get();
+            if (currentFragment?.path) {
+                return extractLocaleFromPath(currentFragment.path);
+            }
+        }
+        return null;
+    }
+
+    async onLocaleChanged(e) {
+        const { locale, fragmentId } = e.detail;
+        if (this.isFragmentEditorPage) {
+            const currentFragment = this.inEdit.get()?.get();
+            if (fragmentId && fragmentId !== currentFragment?.id) {
+                if (currentFragment?.hasChanges) {
+                    const editor = document.querySelector('mas-fragment-editor');
+                    const confirmed = await editor?.promptDiscardChanges();
+                    if (!confirmed) {
+                        // Reset the picker to the current locale
+                        this.requestUpdate();
+                        return;
+                    }
+                }
+                // Clear the region override and update locale filter before navigating
+                Store.search.set((prev) => ({ ...prev, region: null }));
+                this.filters.set((prev) => ({ ...prev, locale }));
+                router.navigateToFragmentEditor(fragmentId);
+            } else if (fragmentId && fragmentId === currentFragment?.id) {
+                // User selected the same fragment's locale
+                Store.editor.resetChanges();
+                Store.search.set((prev) => ({ ...prev, region: null }));
+                this.filters.set((prev) => ({ ...prev, locale }));
+            } else if (!fragmentId) {
+                // If no translation exists for this locale, navigate to en_US fragment
+                // and show the "missing variation" state
+                Store.editor.resetChanges();
+                const translatedLocales = Store.fragmentEditor.translatedLocales.get();
+                const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
+                const enUsFragmentId = enUsTranslation?.id || currentFragment?.id;
+                Store.search.set((prev) => ({ ...prev, region: locale }));
+                this.filters.set((prev) => ({ ...prev, locale }));
+                router.navigateToFragmentEditor(enUsFragmentId);
+            }
+            return;
+        }
+        this.filters.set((prev) => ({ ...prev, locale }));
+    }
+
+    get environmentIndicator() {
+        if (this.aemEnv === 'prod') {
+            return html``;
+        }
+        return html` <sp-badge size="small" variant="${EnvColorCode[this.aemEnv]}"> ${this.aemEnv.toUpperCase()} </sp-badge> `;
     }
 
     render() {
@@ -136,6 +244,7 @@ class MasTopNav extends LitElement {
                         />
                     </svg>
                     <span id="mas-studio">Merch At Scale Studio</span>
+                    ${this.environmentIndicator}
                 </a>
 
                 <div class="spacer"></div>
@@ -148,15 +257,21 @@ class MasTopNav extends LitElement {
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"
-                                  @locale-changed=${(e) => {
-                                      Store.filters.set((prev) => ({ ...prev, locale: e.detail.locale }));
-                                  }}
-                                  ?disabled=${this.isFragmentEditorPage ||
-                                  this.isTranslationEditorPage ||
-                                  this.isTranslationsPage}
+                                  @locale-changed=${this.onLocaleChanged}
+                                  ?disabled=${this.isLocalePickerDisabled}
                                   surface=${Store.surface()}
+                                  locale=${Store.localeOrRegion()}
+                              ></mas-locale-picker>
+                              <sp-switch
+                                  class="landscape-switch"
+                                  size="m"
+                                  ?checked=${this.isDraftLandscape}
+                                  @change=${(e) => {
+                                      Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
+                                  }}
                               >
-                              </mas-locale-picker>
+                                  Draft landscape offer
+                              </sp-switch>
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">
@@ -168,7 +283,7 @@ class MasTopNav extends LitElement {
                               </div>
                           `
                         : ''}
-                    ${until(this.profileBuilder().then((profile) => html`${profile}`))}
+                    ${until(this.getProfileTemplate())}
                 </div>
             </nav>
         `;

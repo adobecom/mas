@@ -49,10 +49,10 @@ describe('generateFieldLink', () => {
         expect(result.href).to.include('field=description');
     });
 
-    it('uses merch-field display text and includes field name', () => {
+    it('uses mas-field display text and includes field name', () => {
         const fragment = mockFragment(CARD_MODEL_PATH);
         const result = generateFieldLink(fragment, '/acom', 'content', 'cardTitle');
-        expect(result.displayText).to.include('merch-field:');
+        expect(result.displayText).to.include('mas-field:');
         expect(result.displayText).to.include('cardTitle');
     });
 

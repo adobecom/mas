@@ -109,8 +109,8 @@ class MasSideNav extends LitElement {
         }
 
         .copy-field-scroll {
-            /* Keep a stable panel height so right-placement vertical centering is consistent across contexts. */
-            height: min(72vh, calc(100vh - 96px));
+            /* Fit to content by default; only cap height when the field list is long. */
+            max-height: min(72vh, calc(100vh - 96px));
             overflow-y: auto;
             overscroll-behavior: contain;
         }

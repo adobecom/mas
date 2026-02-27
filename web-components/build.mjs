@@ -65,8 +65,8 @@ Promise.all([
     }),
     build({
         ...defaults,
-        entryPoints: ['./src/merch-field.js'],
-        outfile: `${outfolder}/merch-field.js`,
+        entryPoints: ['./src/mas-field.js'],
+        outfile: `${outfolder}/mas-field.js`,
     }),
     buildLitComponent('merch-card'),
     buildLitComponent('merch-icon'),

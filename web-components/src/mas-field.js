@@ -1,15 +1,15 @@
 import { EVENT_AEM_LOAD } from './constants.js';
 
-const MERCH_FIELD_TAG = 'merch-field';
+const MAS_FIELD_TAG = 'mas-field';
 
 /**
  * Renders a single field from an AEM fragment inline on the page.
  * Wraps <aem-fragment> and listens for its aem:load event to extract
  * and display the specified field content.
  *
- * Usage: <merch-field field="prices"><aem-fragment fragment="id"></aem-fragment></merch-field>
+ * Usage: <mas-field field="prices"><aem-fragment fragment="id"></aem-fragment></mas-field>
  */
-class MerchField extends HTMLElement {
+class MasField extends HTMLElement {
     #field = null;
     #loaded = false;
     #fields = null;
@@ -63,13 +63,13 @@ class MerchField extends HTMLElement {
 
     #ensureContentElement() {
         if (this.#contentElement?.isConnected) return this.#contentElement;
-        const existing = this.querySelector(':scope > span[data-role="merch-field-content"]');
+        const existing = this.querySelector(':scope > span[data-role="mas-field-content"]');
         if (existing) {
             this.#contentElement = existing;
             return existing;
         }
         const content = document.createElement('span');
-        content.setAttribute('data-role', 'merch-field-content');
+        content.setAttribute('data-role', 'mas-field-content');
         this.append(content);
         this.#contentElement = content;
         return content;
@@ -105,4 +105,4 @@ class MerchField extends HTMLElement {
     }
 }
 
-customElements.define(MERCH_FIELD_TAG, MerchField);
+customElements.define(MAS_FIELD_TAG, MasField);

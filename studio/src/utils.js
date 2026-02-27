@@ -266,7 +266,7 @@ export function generateFieldLink(fragment, path, page, fieldName) {
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
     if (!webComponentName) return null;
-    const displayText = `merch-field: ${fragmentParts} → ${resolvedFieldName}`;
+    const displayText = `mas-field: ${fragmentParts} → ${resolvedFieldName}`;
     const href = buildStudioFragmentHref({
         webComponentName,
         fragmentId: fragment?.id,

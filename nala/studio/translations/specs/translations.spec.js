@@ -6,7 +6,7 @@ export default {
             name: '@studio-translations-list-load',
             path: '/studio.html',
             browserParams: '#page=translations&path=nala&locale=en_US',
-            tags: '@mas-studio @translations @smoke',
+            tags: '@mas-studio @translations',
             description: 'Verify that the Translations page loads and displays the translation projects list or empty state',
         },
     ],

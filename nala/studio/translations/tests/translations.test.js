@@ -11,7 +11,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
         translationsPage = new TranslationsPage(page);
     });
 
-    // @studio-translations-list-load - Validate translations page loads and list or empty state is displayed.
+    // @studio-translations-list-load - Validate translations page loads and list or empty state is displayed
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}`;
         setTestPage(testPage);

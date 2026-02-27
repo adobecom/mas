@@ -58,10 +58,10 @@
                         await el.updateComplete;
 
                         const rows = el.shadowRoot.querySelectorAll('mas-setting-item');
-                        expect(rows.length).to.equal(4);
+                        expect(rows.length).to.equal(3);
                         const tableText = el.shadowRoot.textContent;
                         expect(tableText).to.include('All templates selected');
-                        expect(tableText).to.include('5 templates selected');
+                        expect(tableText).to.include('2 templates selected');
                         expect(tableText).to.include('Merch card (2 selected)');
                     });
 
@@ -103,9 +103,7 @@
                         expect(afterExpand.length).to.equal(1);
                         expect(el.shadowRoot.querySelector('.override-table')).to.exist;
                         expect(el.shadowRoot.querySelectorAll('.override-table-row').length).to.equal(1);
-                        const overrideLocaleCell = el.shadowRoot.querySelector(
-                            '.override-table-row .override-locale-column',
-                        );
+                        const overrideLocaleCell = el.shadowRoot.querySelector('.override-table-row .override-locale-column');
                         expect(overrideLocaleCell.textContent.trim()).to.equal('fr_FR');
 
                         expandButton.click();
@@ -170,12 +168,7 @@
                                 element.textContent.trim(),
                             );
 
-                        expect(getLabels()).to.deep.equal([
-                            'Show Addon',
-                            'Show Badge',
-                            'Show Plan type',
-                            'Show secure transaction',
-                        ]);
+                        expect(getLabels()).to.deep.equal(['Show Addon', 'Show Plan type', 'Show secure label']);
 
                         const labelHeader = el.shadowRoot.querySelector('#label-header-cell');
                         labelHeader.dispatchEvent(
@@ -185,12 +178,7 @@
                         );
                         await el.updateComplete;
 
-                        expect(getLabels()).to.deep.equal([
-                            'Show secure transaction',
-                            'Show Plan type',
-                            'Show Badge',
-                            'Show Addon',
-                        ]);
+                        expect(getLabels()).to.deep.equal(['Show secure label', 'Show Plan type', 'Show Addon']);
                     });
 
                     it('keeps table visible and shows spinner while loading updates', async () => {

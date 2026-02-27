@@ -273,14 +273,20 @@ class MasTopNav extends LitElement {
                 { label: 'Version history' },
             ];
         }
-        if (this.page.value === PAGE_NAMES.SETTINGS_EDITOR && (this.settings.creating.get() || this.settings.fragmentId.get())) {
+        if (
+            this.page.value === PAGE_NAMES.SETTINGS_EDITOR &&
+            (this.settings.creating.get() || this.settings.fragmentId.get())
+        ) {
             return [{ label: 'Settings', handler: handlers.settings }, { label: this.settingEditorBreadcrumbLabel }];
         }
         if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
             return [{ label: 'Promotions', handler: handlers.promotions }, { label: this.promotionsEditorBreadcrumbLabel }];
         }
         if (this.page.value === PAGE_NAMES.TRANSLATION_EDITOR) {
-            return [{ label: 'Translations', handler: handlers.translations }, { label: this.translationEditorBreadcrumbLabel }];
+            return [
+                { label: 'Translations', handler: handlers.translations },
+                { label: this.translationEditorBreadcrumbLabel },
+            ];
         }
 
         return [];
@@ -293,7 +299,8 @@ class MasTopNav extends LitElement {
             <div class="nav-breadcrumbs">
                 <sp-breadcrumbs>
                     ${items.map(
-                        (item) => html`<sp-breadcrumb-item @click=${item.handler || nothing}>${item.label}</sp-breadcrumb-item>`,
+                        (item) =>
+                            html`<sp-breadcrumb-item @click=${item.handler || nothing}>${item.label}</sp-breadcrumb-item>`,
                     )}
                 </sp-breadcrumbs>
             </div>
@@ -339,8 +346,7 @@ class MasTopNav extends LitElement {
                         <span id="mas-studio">Merch At Scale Studio</span>
                         ${this.environmentIndicator}
                     </a>
-                    ${this.historyNavigationTemplate}
-                    ${this.breadcrumbsTemplate}
+                    ${this.historyNavigationTemplate} ${this.breadcrumbsTemplate}
                 </div>
 
                 <div class="spacer"></div>

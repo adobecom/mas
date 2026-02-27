@@ -9,15 +9,16 @@ describe('Settings Store Namespace', () => {
     const merchCardIds = templates.filter((template) => template.category === 'Merch card').map((template) => template.value);
     const otherTemplate = templates.find((template) => template.category !== 'Merch card');
 
-    const buildValueFields = (valueType, value) => [
+    const buildValueFields = (valueType, value, booleanValue) => [
         { name: 'textValue', values: valueType === 'text' ? [`${value ?? ''}`] : [] },
         { name: 'richTextValue', values: valueType === 'richText' ? [`${value ?? ''}`] : [] },
-        { name: 'booleanValue', values: valueType === 'boolean' ? [Boolean(value)] : [] },
+        { name: 'booleanValue', values: [Boolean(booleanValue)] },
     ];
 
     const createFragment = (id, overrides = {}) => {
         const value = overrides.value ?? true;
         const valueType = overrides.valueType || (value === true || value === false ? 'boolean' : 'text');
+        const booleanValue = overrides.booleanValue ?? (valueType === 'boolean' ? Boolean(value) : true);
         return {
             id,
             title: overrides.title || overrides.label || `Setting ${id}`,
@@ -34,7 +35,7 @@ describe('Settings Store Namespace', () => {
                 { name: 'templates', values: overrides.templates || ['catalog'] },
                 { name: 'locales', values: overrides.locales || [] },
                 { name: 'valuetype', values: [valueType] },
-                ...buildValueFields(valueType, value),
+                ...buildValueFields(valueType, value, booleanValue),
                 ...(overrides.fields || []),
             ],
         };
@@ -42,13 +43,13 @@ describe('Settings Store Namespace', () => {
 
     it('reuses row stores by fragment id', () => {
         const store = new SettingsStore();
-        store.setSettingFragments([createFragment('showAddon'), createFragment('showPlanType')]);
+        store.setSettingFragments([createFragment('showPlanType'), createFragment('displayAnnual')]);
         const firstStores = store.rows.get();
         const firstRow = firstStores[0];
 
         store.setSettingFragments([
-            createFragment('showAddon', { value: false }),
-            createFragment('showPlanType', { value: true }),
+            createFragment('showPlanType', { value: false }),
+            createFragment('displayAnnual', { value: true }),
         ]);
         const secondStores = store.rows.get();
         expect(secondStores[0]).to.equal(firstRow);
@@ -101,9 +102,9 @@ describe('Settings Store Namespace', () => {
         const store = new SettingsStore();
         let currentValue = true;
         const reference = createSettingReference({
-            id: 'setting-show-secure-transaction',
-            name: 'showSecureTransaction',
-            label: 'Show secure transaction',
+            id: 'setting-show-secure-label',
+            name: 'showSecureLabel',
+            label: 'Show secure label',
             locales: [],
             templates: ['catalog'],
             value: currentValue,
@@ -134,7 +135,7 @@ describe('Settings Store Namespace', () => {
                             status: 'PUBLISHED',
                             tags: [],
                             fields: [
-                                { name: 'name', type: 'text', multiple: false, values: ['showSecureTransaction'] },
+                                { name: 'name', type: 'text', multiple: false, values: ['showSecureLabel'] },
                                 { name: 'templates', type: 'text', multiple: true, values: ['catalog'] },
                                 { name: 'locales', type: 'text', multiple: true, values: [] },
                                 { name: 'tags', type: 'tag', multiple: true, values: [] },
@@ -159,7 +160,80 @@ describe('Settings Store Namespace', () => {
         const rowStore = store.getRowStore(reference.id);
 
         expect(rowStore.value.value).to.equal(false);
-        expect(store.toast.get().message).to.contain("'Show secure transaction' is now [Off]");
+        expect(store.toast.get().message).to.contain("'Show secure label' is now [Off]");
+    });
+
+    it('toggles text settings via booleanValue and keeps text value intact', async () => {
+        const store = new SettingsStore();
+        const reference = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'showAddon',
+            label: 'Show Addon',
+            locales: [],
+            templates: ['catalog'],
+            valueType: 'text',
+            value: '{{test-value}}',
+            booleanValue: true,
+        });
+
+        let currentEnabled = true;
+        const savedFragments = [];
+        store.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async () => ({
+                            id: 'settings-index',
+                            path: '/content/dam/mas/sandbox/settings/index',
+                            fields: [{ name: 'entries', values: [reference.path] }],
+                            references: [
+                                {
+                                    ...reference,
+                                    fields: reference.fields.map((field) =>
+                                        field.name === 'booleanValue' ? { ...field, values: [currentEnabled] } : field,
+                                    ),
+                                },
+                            ],
+                        }),
+                        getById: async () => ({
+                            id: reference.id,
+                            title: reference.title,
+                            description: '',
+                            path: reference.path,
+                            status: 'PUBLISHED',
+                            tags: [],
+                            fields: [
+                                { name: 'name', type: 'text', multiple: false, values: ['showAddon'] },
+                                { name: 'templates', type: 'text', multiple: true, values: ['catalog'] },
+                                { name: 'locales', type: 'text', multiple: true, values: [] },
+                                { name: 'tags', type: 'tag', multiple: true, values: [] },
+                                { name: 'valuetype', type: 'text', multiple: false, values: ['text'] },
+                                { name: 'textValue', type: 'text', multiple: false, values: ['{{test-value}}'] },
+                                { name: 'richTextValue', type: 'long-text', multiple: false, values: [] },
+                                { name: 'booleanValue', type: 'boolean', multiple: false, values: [currentEnabled] },
+                            ],
+                        }),
+                        save: async (fragment) => {
+                            savedFragments.push(fragment);
+                            currentEnabled = fragment.fields.find((field) => field.name === 'booleanValue').values[0];
+                            return fragment;
+                        },
+                    },
+                },
+            },
+        });
+
+        await store.loadSurface('sandbox');
+        const updated = await store.toggleSetting(reference.id, false);
+
+        expect(updated).to.equal(true);
+        expect(savedFragments).to.have.length(1);
+        const savedFields = savedFragments[0].fields;
+        expect(savedFields.find((field) => field.name === 'valuetype').values).to.deep.equal(['text']);
+        expect(savedFields.find((field) => field.name === 'textValue').values).to.deep.equal(['{{test-value}}']);
+        expect(savedFields.find((field) => field.name === 'booleanValue').values).to.deep.equal([false]);
+        expect(store.getRowStore(reference.id).value.value).to.equal('{{test-value}}');
+        expect(store.getRowStore(reference.id).value.booleanValue).to.equal(false);
     });
 
     it('loads settings index for surface and nests localized entries by fieldName and name', async () => {
@@ -474,24 +548,24 @@ describe('Settings Store Namespace', () => {
 
     it('toggles override value and updates the override fragment', async () => {
         const topLevel = createSettingReference({
-            id: 'setting-show-addon',
-            name: 'showAddon',
-            label: 'Show addon',
+            id: 'setting-show-plan-type',
+            name: 'showPlanType',
+            label: 'Show plan type',
             locales: [],
             templates: ['catalog'],
             value: true,
-            path: '/content/dam/mas/sandbox/settings/setting-show-addon',
+            path: '/content/dam/mas/sandbox/settings/setting-show-plan-type',
         });
         let currentOverrideValue = true;
         const nested = createSettingReference({
-            id: 'setting-show-addon-fr',
-            name: 'showAddon',
-            label: 'Show addon',
+            id: 'setting-show-plan-type-fr',
+            name: 'showPlanType',
+            label: 'Show plan type',
             fieldName: 'entries',
             locales: ['fr_FR'],
             templates: ['plans'],
             value: currentOverrideValue,
-            path: '/content/dam/mas/sandbox/settings/setting-show-addon-fr',
+            path: '/content/dam/mas/sandbox/settings/setting-show-plan-type-fr',
         });
 
         const getByIdCalls = [];
@@ -510,9 +584,7 @@ describe('Settings Store Namespace', () => {
                                 {
                                     ...nested,
                                     fields: nested.fields.map((field) =>
-                                        field.name === 'booleanValue'
-                                            ? { ...field, values: [currentOverrideValue] }
-                                            : field,
+                                        field.name === 'booleanValue' ? { ...field, values: [currentOverrideValue] } : field,
                                     ),
                                 },
                             ],
@@ -527,7 +599,7 @@ describe('Settings Store Namespace', () => {
                                 status: nested.status,
                                 tags: [],
                                 fields: [
-                                    { name: 'name', type: 'text', multiple: false, values: ['showAddon'] },
+                                    { name: 'name', type: 'text', multiple: false, values: ['showPlanType'] },
                                     { name: 'templates', type: 'text', multiple: true, values: ['plans'] },
                                     { name: 'locales', type: 'text', multiple: true, values: ['fr_FR'] },
                                     { name: 'tags', type: 'tag', multiple: true, values: [] },
@@ -555,6 +627,6 @@ describe('Settings Store Namespace', () => {
         expect(updated).to.equal(true);
         expect(getByIdCalls).to.deep.equal([overrideId]);
         expect(store.rows.get()[0].value.overrides[0].value).to.equal(false);
-        expect(store.toast.get().message).to.contain("'Show addon (fr_FR)' is now [Off]");
+        expect(store.toast.get().message).to.contain("'Show plan type (fr_FR)' is now [Off]");
     });
 });

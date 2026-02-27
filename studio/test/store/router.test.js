@@ -124,6 +124,105 @@ describe('Router URL parameter handling', async () => {
         expect(Store.landscape.get()).to.equal('DRAFT');
     });
 
+    it('should normalize settings-editor route without fragmentId to settings', async () => {
+        const originalPage = Store.page.get();
+        const originalFragmentId = Store.settings.fragmentId.get();
+        const originalCreating = Store.settings.creating.get();
+        const originalProfile = Store.profile.get();
+        const originalUsers = Store.users.get();
+
+        Store.profile.set({ email: 'power@adobe.com' });
+        Store.users.set([
+            {
+                userPrincipalName: 'power@adobe.com',
+                groups: ['GRP-ODIN-MAS-POWERUSERS'],
+            },
+        ]);
+        Store.settings.fragmentId.set(null);
+        Store.settings.creating.set(false);
+
+        const router = new Router({ hash: '#page=settings-editor&path=sandbox' });
+        router.start();
+        await delay(60);
+
+        expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+        expect(router.location.hash).to.include('page=settings');
+        expect(router.location.hash).to.not.include('page=settings-editor');
+        expect(router.location.hash).to.include('path=sandbox');
+
+        Store.page.set(originalPage);
+        Store.settings.fragmentId.set(originalFragmentId);
+        Store.settings.creating.set(originalCreating);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+    });
+
+    it('should redirect settings deeplink to welcome when user is not power user', async () => {
+        const originalPage = Store.page.get();
+        const originalFragmentId = Store.settings.fragmentId.get();
+        const originalCreating = Store.settings.creating.get();
+        const originalProfile = Store.profile.get();
+        const originalUsers = Store.users.get();
+
+        Store.profile.set({ email: 'viewer@adobe.com' });
+        Store.users.set([
+            {
+                userPrincipalName: 'viewer@adobe.com',
+                groups: ['GRP-OTHER'],
+            },
+        ]);
+        Store.settings.fragmentId.set('setting-1');
+        Store.settings.creating.set(true);
+
+        const router = new Router({ hash: '#page=settings&path=sandbox&fragmentId=setting-1' });
+        router.start();
+        await delay(60);
+
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        expect(Store.settings.fragmentId.get()).to.equal(undefined);
+        expect(Store.settings.creating.get()).to.equal(false);
+        expect(router.location.hash).to.not.include('page=settings');
+        expect(router.location.hash).to.not.include('fragmentId=');
+
+        Store.page.set(originalPage);
+        Store.settings.fragmentId.set(originalFragmentId);
+        Store.settings.creating.set(originalCreating);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+    });
+
+    it('should block navigateToPage settings when user is not power user', async () => {
+        const originalPage = Store.page.get();
+        const originalFragmentId = Store.settings.fragmentId.get();
+        const originalCreating = Store.settings.creating.get();
+        const originalProfile = Store.profile.get();
+        const originalUsers = Store.users.get();
+
+        Store.profile.set({ email: 'viewer@adobe.com' });
+        Store.users.set([
+            {
+                userPrincipalName: 'viewer@adobe.com',
+                groups: ['GRP-OTHER'],
+            },
+        ]);
+        Store.page.set(PAGE_NAMES.CONTENT);
+        Store.settings.fragmentId.set('setting-1');
+        Store.settings.creating.set(true);
+
+        const router = new Router({ hash: '#page=content&path=sandbox' });
+        await router.navigateToPage(PAGE_NAMES.SETTINGS)();
+
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        expect(Store.settings.fragmentId.get()).to.equal(null);
+        expect(Store.settings.creating.get()).to.equal(false);
+
+        Store.page.set(originalPage);
+        Store.settings.fragmentId.set(originalFragmentId);
+        Store.settings.creating.set(originalCreating);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+    });
+
     it('should initialize landscape store with hash parameter', async () => {
         const router = new Router({ hash: '#commerce.landscape=DRAFT' });
         const landscapeSetSpy = sandbox.spy(Store.landscape, 'set');

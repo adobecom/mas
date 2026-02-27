@@ -303,6 +303,15 @@ describe('MasTranslationEditor', () => {
     });
 
     describe('rendering', () => {
+        it('should render breadcrumbs', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const breadcrumbs = el.shadowRoot.querySelector('sp-breadcrumbs');
+            expect(breadcrumbs).to.exist;
+            const breadcrumbItems = el.shadowRoot.querySelectorAll('sp-breadcrumb-item');
+            expect(breadcrumbItems.length).to.equal(2);
+            expect(breadcrumbItems[0].textContent).to.equal('Translations');
+        });
+
         it('should render "Create new project" header for new project', async () => {
             Store.translationProjects.translationProjectId.set(null);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -484,6 +493,17 @@ describe('MasTranslationEditor', () => {
             expect(cancelled).to.be.true;
             expect(el.confirmDialogConfig).to.be.null;
             expect(el.isDialogOpen).to.be.false;
+        });
+    });
+
+    describe('breadcrumb navigation', () => {
+        it('should navigate to translations page when breadcrumb is clicked', async () => {
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const breadcrumbItem = el.shadowRoot.querySelector('sp-breadcrumb-item');
+            breadcrumbItem.click();
+            await el.updateComplete;
+            expect(navigateStub.calledWith(PAGE_NAMES.TRANSLATIONS)).to.be.true;
         });
     });
 

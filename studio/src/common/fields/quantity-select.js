@@ -111,7 +111,11 @@ export class QuantitySelectField extends LitElement {
             <div class="grid">
                 <sp-field-group>
                     <sp-field-label>Quantity selector title</sp-field-label>
-                    <sp-textfield ?disabled=${this.disabled} .value=${this.title} @input=${this.#handleTitleChange}></sp-textfield>
+                    <sp-textfield
+                        ?disabled=${this.disabled}
+                        .value=${this.title}
+                        @input=${this.#handleTitleChange}
+                    ></sp-textfield>
                 </sp-field-group>
                 <sp-field-group>
                     <sp-field-label>Start quantity</sp-field-label>
@@ -125,7 +129,12 @@ export class QuantitySelectField extends LitElement {
             </div>
             <sp-field-group>
                 <sp-field-label>Step</sp-field-label>
-                <sp-textfield ?disabled=${this.disabled} pattern="[0-9]*" .value=${this.step} @input=${this.#handleStepChange}></sp-textfield>
+                <sp-textfield
+                    ?disabled=${this.disabled}
+                    pattern="[0-9]*"
+                    .value=${this.step}
+                    @input=${this.#handleStepChange}
+                ></sp-textfield>
             </sp-field-group>
         `;
     }

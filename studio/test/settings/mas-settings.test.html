@@ -48,6 +48,7 @@
                     status: 'PUBLISHED',
                     templates: ['catalog'],
                     locales: [],
+                    value: '{{test-value}}',
                 }),
                 createSettingReference({
                     id: 'setting-show-addon-fr',
@@ -58,7 +59,7 @@
                     status: 'PUBLISHED',
                     templates: ['plans'],
                     locales: ['fr_FR'],
-                    value: false,
+                    value: '{{test-value}}',
                     path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
                 }),
                 ...defaultReferences.filter((reference) => reference.id !== 'setting-show-addon'),
@@ -93,7 +94,7 @@
 
             const setupPage = async ({
                 references = defaultReferences,
-                expectedRows = 5,
+                expectedRows = 3,
                 aem = null,
                 fragmentId = null,
                 creating = false,
@@ -102,9 +103,22 @@
                 Store.settings.destroy();
                 Store.settings.setAem(null);
 
+                Store.profile.set({ email: 'power@adobe.com' });
+                Store.users.set([
+                    {
+                        userPrincipalName: 'power@adobe.com',
+                        groups: ['GRP-ODIN-MAS-POWERUSERS'],
+                    },
+                ]);
                 Store.search.set({ path: 'acom' });
                 Store.page.set(PAGE_NAMES.SETTINGS);
                 Store.filters.set({ ...Store.filters.get(), locale: 'en_US' });
+                Store.placeholders.addons.data.set([
+                    { value: 'disabled', itemText: 'disabled' },
+                    { value: 'test-value', itemText: 'test-value' },
+                    { value: 'test-value-2', itemText: 'test-value-2' },
+                ]);
+                Store.placeholders.addons.loading.set(false);
                 Store.settings.fragmentId.set(fragmentId);
                 Store.settings.creating.set(creating);
 
@@ -127,6 +141,10 @@
                         Store.settings.setAem(null);
                         Store.settings.fragmentId.set(null);
                         Store.settings.creating.set(false);
+                        Store.profile.set({});
+                        Store.users.set([]);
+                        Store.placeholders.addons.data.set([{ value: 'disabled', itemText: 'disabled' }]);
+                        Store.placeholders.addons.loading.set(false);
                     });
 
                     after(() => {
@@ -139,7 +157,7 @@
                         expect(settingsPage.shadowRoot.querySelector('#title').textContent.trim()).to.equal('Settings');
                         expect(calls.getByPath[0].path).to.equal('/content/dam/mas/acom/settings/index');
                         expect(calls.getByPath[0].options).to.deep.equal({ references: 'direct-hydrated' });
-                        expect(table.shadowRoot.querySelectorAll('mas-setting-item').length).to.equal(5);
+                        expect(table.shadowRoot.querySelectorAll('mas-setting-item').length).to.equal(3);
                     });
 
                     it('opens create and edit dialogs from route state', async () => {
@@ -153,11 +171,40 @@
                         expect(settingsPage.shadowRoot.querySelector('#settings-editor-action-bar')).to.exist;
 
                         Store.settings.creating.set(false);
-                        Store.settings.fragmentId.set('setting-show-addon');
+                        Store.settings.fragmentId.set('setting-show-plan-type');
                         await waitForUpdates(settingsPage, 2);
                         const editEditor = settingsPage.shadowRoot.querySelector('#settings-editor-page');
                         expect(editEditor).to.exist;
+                        expect(settingsPage.shadowRoot.querySelector('[name="setting-name-page"]').value).to.equal(
+                            'showPlanType',
+                        );
+                    });
+
+                    it('renders showAddon value correctly when opening top-level setting in edit mode', async () => {
+                        const { settingsPage, table } = await setupPage();
+                        table.dispatchEvent(
+                            new CustomEvent('setting-edit', {
+                                detail: { id: 'setting-show-addon', isOverride: false },
+                                bubbles: true,
+                                composed: true,
+                            }),
+                        );
+                        for (let i = 0; i < 20; i++) {
+                            await waitForUpdates(settingsPage, 1);
+                            if (settingsPage.form.name === 'showAddon') break;
+                        }
+
                         expect(settingsPage.shadowRoot.querySelector('[name="setting-name-page"]').value).to.equal('showAddon');
+                        expect(settingsPage.form.value).to.equal('{{test-value}}');
+                        expect(settingsPage.form.addonEnabled).to.equal(true);
+
+                        const addonSwitch = settingsPage.shadowRoot.querySelector('#addon-enabled-switch');
+                        expect(addonSwitch).to.exist;
+                        expect(addonSwitch.checked).to.equal(true);
+
+                        const addonPicker = settingsPage.shadowRoot.querySelector('sp-combobox');
+                        expect(addonPicker).to.exist;
+                        expect(addonPicker.value).to.equal('test-value');
                     });
 
                     it('creates setting with expected payload', async () => {
@@ -174,12 +221,12 @@
 
                         settingsPage.form = {
                             ...settingsPage.form,
-                            name: 'showFeatureFlag',
-                            label: 'Show Feature Flag',
+                            name: 'displayAnnual',
+                            label: 'Display Annual',
                             description: 'Flag description',
                             templateIds: ['catalog'],
                             tags: ['mas:keyword/checkout'],
-                            value: 'enabled',
+                            value: false,
                         };
                         await waitForUpdates(settingsPage, 1);
 
@@ -188,13 +235,14 @@
 
                         expect(capturedPayloads.length).to.equal(1);
                         expect(capturedPayloads[0]).to.deep.equal({
-                            label: 'Show Feature Flag',
-                            name: 'showFeatureFlag',
+                            label: 'Display Annual',
+                            name: 'displayAnnual',
                             description: 'Flag description',
                             templateIds: ['catalog'],
                             tags: ['mas:keyword/checkout'],
-                            valueType: 'text',
-                            value: 'enabled',
+                            valueType: 'boolean',
+                            value: false,
+                            booleanValue: false,
                         });
                         expect(Store.settings.creating.get()).to.equal(false);
                         expect(Store.settings.fragmentId.get()).to.equal('setting-created');
@@ -211,14 +259,14 @@
                             return true;
                         };
 
-                        Store.settings.fragmentId.set('setting-show-addon');
+                        Store.settings.fragmentId.set('setting-show-plan-type');
                         await waitForUpdates(settingsPage, 4);
                         expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS_EDITOR);
                         expect(settingsPage.shadowRoot.querySelector('#settings-editor-action-bar')).to.exist;
                         settingsPage.form = {
                             ...settingsPage.form,
-                            label: 'Show Addon Updated',
-                            name: 'showAddon',
+                            label: 'Show Plan type Updated',
+                            name: 'showPlanType',
                             description: 'Updated description',
                             templateIds: ['plans'],
                             tags: ['mas:keyword/design'],
@@ -229,17 +277,61 @@
 
                         expect(capturedCalls.length).to.equal(1);
                         expect(capturedCalls[0]).to.deep.equal({
-                            fragmentId: 'setting-show-addon',
+                            fragmentId: 'setting-show-plan-type',
                             payload: {
-                                label: 'Show Addon Updated',
-                                name: 'showAddon',
+                                label: 'Show Plan type Updated',
+                                name: 'showPlanType',
                                 description: 'Updated description',
                                 templateIds: ['plans'],
                                 tags: ['mas:keyword/design'],
                                 valueType: 'boolean',
                                 value: false,
+                                booleanValue: false,
                             },
                         });
+                        Store.settings.updateSetting = originalUpdate;
+                    });
+
+                    it('prevents saving showAddon when enabled without placeholder selection', async () => {
+                        const references = defaultReferences.map((reference) =>
+                            reference.id === 'setting-show-addon'
+                                ? createSettingReference({
+                                      id: 'setting-show-addon',
+                                      title: 'Show Addon',
+                                      name: 'showAddon',
+                                      label: 'Show Addon',
+                                      status: 'PUBLISHED',
+                                      templates: [],
+                                      value: '',
+                                  })
+                                : reference,
+                        );
+                        const { settingsPage } = await setupPage({ references });
+                        const capturedCalls = [];
+                        const originalUpdate = Store.settings.updateSetting;
+                        Store.settings.updateSetting = async (fragmentId, payload) => {
+                            capturedCalls.push({ fragmentId, payload });
+                            return true;
+                        };
+
+                        Store.settings.fragmentId.set('setting-show-plan-type');
+                        await waitForUpdates(settingsPage, 4);
+
+                        settingsPage.form = {
+                            ...settingsPage.form,
+                            name: 'showAddon',
+                            valueType: 'text',
+                            addonEnabled: true,
+                            value: '',
+                        };
+                        expect(settingsPage.form.name).to.equal('showAddon');
+                        expect(settingsPage.form.addonEnabled).to.equal(true);
+                        expect(settingsPage.form.value).to.equal('');
+
+                        clickEditorAction(settingsPage, 'Save');
+                        await waitForUpdates(settingsPage, 2);
+
+                        expect(capturedCalls.length).to.equal(0);
                         Store.settings.updateSetting = originalUpdate;
                     });
 
@@ -266,14 +358,15 @@
                             locales: ['de_DE'],
                             templateIds: ['plans'],
                             tags: ['mas:keyword/design'],
-                            value: false,
+                            addonEnabled: true,
+                            value: '{{test-value}}',
                         };
                         await waitForUpdates(settingsPage, 1);
 
                         const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
                         expect(overrideDialog).to.exist;
-                        const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find((button) =>
-                            button.textContent.includes('Save as draft'),
+                        const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
+                            (button) => button.textContent.includes('Save as draft'),
                         );
                         saveDraftButton.click();
                         await waitForUpdates(settingsPage, 2);
@@ -283,8 +376,8 @@
                         expect(capturedCalls[0].payload.locales).to.deep.equal(['de_DE']);
                         expect(capturedCalls[0].payload.templateIds).to.deep.equal(['plans']);
                         expect(capturedCalls[0].payload.tags).to.deep.equal(['mas:keyword/design']);
-                        expect(capturedCalls[0].payload.valueType).to.equal('boolean');
-                        expect(capturedCalls[0].payload.value).to.equal(false);
+                        expect(capturedCalls[0].payload.valueType).to.equal('text');
+                        expect(capturedCalls[0].payload.value).to.equal('{{test-value}}');
                         Store.settings.addOverride = originalAddOverride;
                     });
 
@@ -316,7 +409,8 @@
                             locales: ['de_DE'],
                             templateIds: ['plans'],
                             tags: ['mas:keyword/design'],
-                            value: false,
+                            addonEnabled: true,
+                            value: '{{test-value}}',
                         };
                         await waitForUpdates(settingsPage, 1);
 
@@ -333,6 +427,68 @@
                         expect(calls[1]).to.deep.equal(['publish', 'new-override-id']);
                         Store.settings.addOverride = originalAddOverride;
                         Store.settings.publishOverride = originalPublishOverride;
+                    });
+
+                    it('submits text override with enabled toggle booleanValue in override dialog', async () => {
+                        const references = [
+                            createSettingReference({
+                                id: 'setting-quantity-select',
+                                title: 'Quantity Select',
+                                name: 'quantitySelect',
+                                label: 'Quantity Select',
+                                status: 'DRAFT',
+                                templates: ['catalog'],
+                                locales: [],
+                                valueType: 'text',
+                                value: '<merch-quantity-select title="Qty" min="1" step="1"></merch-quantity-select>',
+                            }),
+                        ];
+                        const { settingsPage, table } = await setupPage({ references, expectedRows: 1 });
+                        const capturedCalls = [];
+                        const originalAddOverride = Store.settings.addOverride;
+                        Store.settings.addOverride = async (rowId, payload) => {
+                            capturedCalls.push({ rowId, payload });
+                            return 'new-quantity-override-id';
+                        };
+
+                        table.dispatchEvent(
+                            new CustomEvent('setting-add-override', {
+                                detail: { id: 'setting-quantity-select' },
+                                bubbles: true,
+                                composed: true,
+                            }),
+                        );
+                        await waitForUpdates(settingsPage, 2);
+
+                        const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
+                        expect(overrideDialog).to.exist;
+                        expect(overrideDialog.textContent.includes('Enabled')).to.equal(true);
+                        expect(overrideDialog.querySelector('sp-field-group sp-switch')).to.exist;
+
+                        settingsPage.form = {
+                            ...settingsPage.form,
+                            locales: ['fr_FR'],
+                            templateIds: ['plans'],
+                            tags: ['mas:keyword/design'],
+                            value: '<merch-quantity-select title="Qty" min="2" step="2"></merch-quantity-select>',
+                            booleanValue: false,
+                        };
+                        await waitForUpdates(settingsPage, 1);
+
+                        const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
+                            (button) => button.textContent.includes('Save as draft'),
+                        );
+                        saveDraftButton.click();
+                        await waitForUpdates(settingsPage, 2);
+
+                        expect(capturedCalls.length).to.equal(1);
+                        expect(capturedCalls[0].rowId).to.equal('setting-quantity-select');
+                        expect(capturedCalls[0].payload.valueType).to.equal('text');
+                        expect(capturedCalls[0].payload.booleanValue).to.equal(false);
+                        expect(capturedCalls[0].payload.value).to.equal(
+                            '<merch-quantity-select title="Qty" min="2" step="2"></merch-quantity-select>',
+                        );
+                        Store.settings.addOverride = originalAddOverride;
                     });
 
                     it('renders name as picker and hides value type section', async () => {
@@ -364,6 +520,7 @@
                             description: 'Quantity selector setting',
                             templateIds: ['catalog'],
                             tags: [],
+                            booleanValue: true,
                         };
                         await waitForUpdates(settingsPage, 2);
 
@@ -371,7 +528,9 @@
                         expect(quantitySelect).to.exist;
                         quantitySelect.dispatchEvent(
                             new CustomEvent('change', {
-                                detail: { value: '<merch-quantity-select title="Qty" min="2" max="10" step="2"></merch-quantity-select>' },
+                                detail: {
+                                    value: '<merch-quantity-select title="Qty" min="2" max="10" step="2"></merch-quantity-select>',
+                                },
                                 bubbles: true,
                                 composed: true,
                             }),
@@ -389,6 +548,7 @@
                             tags: [],
                             valueType: 'text',
                             value: '<merch-quantity-select title="Qty" min="2" max="10" step="2"></merch-quantity-select>',
+                            booleanValue: true,
                         });
                         Store.settings.createSetting = originalCreate;
                     });
@@ -417,8 +577,8 @@
                         };
                         await waitForUpdates(settingsPage, 1);
                         const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
-                        const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find((button) =>
-                            button.textContent.includes('Save as draft'),
+                        const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
+                            (button) => button.textContent.includes('Save as draft'),
                         );
                         expect(saveDraftButton.hasAttribute('disabled')).to.equal(true);
                         saveDraftButton.click();
@@ -594,6 +754,7 @@
                                 templates: ['catalog'],
                                 locales: [],
                                 fieldName: 'entries',
+                                value: '{{test-value}}',
                             }),
                             createSettingReference({
                                 id: 'setting-show-addon-fr',
@@ -603,6 +764,7 @@
                                 templates: ['plans'],
                                 locales: ['fr_FR'],
                                 fieldName: 'entries',
+                                value: '{{test-value}}',
                                 path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
                             }),
                             createSettingReference({
@@ -613,6 +775,7 @@
                                 templates: ['mini'],
                                 locales: ['de_DE'],
                                 fieldName: 'entries',
+                                value: '{{test-value}}',
                                 path: '/content/dam/mas/acom/settings/setting-show-addon-de',
                             }),
                             createSettingReference({

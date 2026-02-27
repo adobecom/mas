@@ -1,4 +1,5 @@
 import { ReactiveStore } from '../reactivity/reactive-store.js';
+import { getSettingNameDefinition } from './setting-name-map.js';
 
 const trueValues = new Set(['true', '1', 'yes', 'on']);
 const falseValues = new Set(['false', '0', 'no', 'off']);
@@ -17,13 +18,15 @@ const normalizeBoolean = (value) => {
  */
 export const normalizeSettingFragment = (fragment) => {
     const name = `${fragment.getFieldValue('name') || ''}`;
+    const settingDefinition = getSettingNameDefinition(name);
     const label = `${fragment.title || ''}`;
     const dataField = fragment.getFieldValue('data');
     const data = dataField ? JSON.parse(dataField) : {};
-    const valueType = `${fragment.getFieldValue('valuetype') || 'text'}`;
+    const valueType = settingDefinition ? settingDefinition.valueType : `${fragment.getFieldValue('valuetype') || 'text'}`;
+    const booleanValue = normalizeBoolean(fragment.getFieldValue('booleanValue')) === true;
     const rawValue =
         valueType === 'boolean'
-            ? fragment.getFieldValue('booleanValue')
+            ? booleanValue
             : valueType === 'richText'
               ? fragment.getFieldValue('richTextValue')
               : fragment.getFieldValue('textValue');
@@ -41,7 +44,8 @@ export const normalizeSettingFragment = (fragment) => {
         locales,
         templateIds: fragment.getFieldValues('templates'),
         templateSummary: '',
-        value: normalizeBoolean(rawValue),
+        value: valueType === 'boolean' ? booleanValue : `${rawValue ?? ''}`,
+        booleanValue,
         valueType,
         data,
         overrides,
@@ -91,12 +95,15 @@ export class SettingStore extends ReactiveStore {
 
     setValue(value) {
         const normalized = normalizeBoolean(value);
+        const isBoolean = normalized === true || normalized === false;
         this.set({
             ...this.value,
             value: normalized,
+            ...(isBoolean ? { booleanValue: normalized } : {}),
             data: {
                 ...this.value.data,
                 value: normalized,
+                ...(isBoolean ? { booleanValue: normalized } : {}),
             },
         });
     }

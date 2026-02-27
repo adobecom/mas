@@ -26,15 +26,15 @@ const upsertField = (fields, field) => {
     };
 };
 
-const buildValueFields = (valueType, value) => {
+const buildValueFields = (valueType, value, booleanValue) => {
     const fields = [
         { name: 'textValue', type: 'text', multiple: false, values: [] },
         { name: 'richTextValue', type: 'long-text', multiple: false, mimeType: 'text/html', values: [] },
-        { name: 'booleanValue', type: 'boolean', multiple: false, values: [] },
+        { name: 'booleanValue', type: 'boolean', multiple: false, values: [Boolean(booleanValue)] },
     ];
 
     if (valueType === 'boolean') {
-        fields[2].values = [Boolean(value)];
+        fields[2].values = [Boolean(booleanValue)];
         return fields;
     }
 
@@ -46,6 +46,9 @@ const buildValueFields = (valueType, value) => {
     fields[0].values = [`${value ?? ''}`];
     return fields;
 };
+
+const resolveBooleanValue = (valueType, value, booleanValue) =>
+    valueType === 'boolean' ? Boolean(value) : Boolean(booleanValue);
 
 /**
  * Settings table state holder and mutator surface.
@@ -224,8 +227,9 @@ export class SettingsStore {
         const updated = await this.#updateSettingFragment(
             rowStore,
             {
-                valueType: 'boolean',
-                value: checked,
+                valueType: rowStore.value.valueType,
+                value: rowStore.value.valueType === 'boolean' ? checked : rowStore.value.value,
+                booleanValue: checked,
             },
             message,
             'Failed to update setting.',
@@ -254,7 +258,9 @@ export class SettingsStore {
             async () => {
                 const fragment = await this.aem.sites.cf.fragments.getById(override.id);
                 const fields = structuredClone(fragment.fields);
-                const valueFields = buildValueFields('boolean', checked);
+                const valueType = override.valueType || row.valueType;
+                const value = valueType === 'boolean' ? checked : override.value;
+                const valueFields = buildValueFields(valueType, value, checked);
 
                 upsertField(fields, { name: 'name', type: 'text', multiple: false, values: [row.name] });
                 upsertField(fields, {
@@ -265,7 +271,7 @@ export class SettingsStore {
                 });
                 upsertField(fields, { name: 'locales', type: 'text', multiple: true, values: override.locales });
                 upsertField(fields, { name: 'tags', type: 'tag', multiple: true, values: override.tags });
-                upsertField(fields, { name: 'valuetype', type: 'text', multiple: false, values: ['boolean'] });
+                upsertField(fields, { name: 'valuetype', type: 'text', multiple: false, values: [valueType] });
                 for (const valueField of valueFields) {
                     upsertField(fields, valueField);
                 }
@@ -298,6 +304,7 @@ export class SettingsStore {
             return null;
         }
         const valueType = override.valueType || row.valueType || (isBooleanValue(override.value) ? 'boolean' : 'text');
+        const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
         const localeSegment = locales.map((locale) => normalizeKey(locale)).join('-');
         const localeTitle = locales.join(', ');
         const fragmentName = `${normalizeKey(settingName)}-${localeSegment}-${Date.now()}`;
@@ -317,6 +324,7 @@ export class SettingsStore {
                         tags: override.tags || [],
                         valueType,
                         value: override.value,
+                        booleanValue,
                     }),
                 });
 
@@ -347,12 +355,13 @@ export class SettingsStore {
             currentOverride.valueType ||
             row.valueType ||
             (isBooleanValue(override.value) ? 'boolean' : 'text');
+        const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
 
         return this.#runMutation(
             async () => {
                 const fragment = await this.aem.sites.cf.fragments.getById(overrideId);
                 const fields = structuredClone(fragment.fields);
-                const valueFields = buildValueFields(valueType, override.value);
+                const valueFields = buildValueFields(valueType, override.value, booleanValue);
 
                 upsertField(fields, { name: 'name', type: 'text', multiple: false, values: [row.name] });
                 upsertField(fields, {
@@ -382,6 +391,7 @@ export class SettingsStore {
     async createSetting(setting) {
         const settingName = setting.name;
         const valueType = setting.valueType || (isBooleanValue(setting.value) ? 'boolean' : 'text');
+        const booleanValue = resolveBooleanValue(valueType, setting.value, setting.booleanValue);
         let createdFragmentId = null;
 
         const created = await this.#runMutation(
@@ -399,6 +409,7 @@ export class SettingsStore {
                         tags: setting.tags || [],
                         valueType,
                         value: setting.value,
+                        booleanValue,
                     }),
                 });
 
@@ -424,6 +435,7 @@ export class SettingsStore {
                 valueType:
                     setting.valueType || rowStore.value.valueType || (isBooleanValue(setting.value) ? 'boolean' : 'text'),
                 value: setting.value,
+                booleanValue: setting.booleanValue,
             },
             'Setting updated.',
             'Failed to update setting.',
@@ -531,6 +543,7 @@ export class SettingsStore {
                         tags: row.tags || [],
                         valueType: row.valueType || (isBooleanValue(row.value) ? 'boolean' : 'text'),
                         value: row.value,
+                        booleanValue: row.booleanValue,
                     }),
                 });
 
@@ -559,6 +572,7 @@ export class SettingsStore {
                   .filter((locale) => locale);
         const localeKey = locales.join('-') || 'override';
         const valueType = override.valueType || row.valueType || (isBooleanValue(override.value) ? 'boolean' : 'text');
+        const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
 
         return this.#runMutation(
             async () => {
@@ -575,6 +589,7 @@ export class SettingsStore {
                         tags: override.tags || [],
                         valueType,
                         value: override.value,
+                        booleanValue,
                     }),
                 });
 
@@ -650,7 +665,8 @@ export class SettingsStore {
                 const fragment = await this.aem.sites.cf.fragments.getById(row.id);
                 const fields = structuredClone(fragment.fields);
                 const valueType = patch.valueType || row.valueType || (isBooleanValue(patch.value) ? 'boolean' : 'text');
-                const valueFields = buildValueFields(valueType, patch.value);
+                const booleanValue = resolveBooleanValue(valueType, patch.value, patch.booleanValue);
+                const valueFields = buildValueFields(valueType, patch.value, booleanValue);
 
                 upsertField(fields, { name: 'name', type: 'text', multiple: false, values: [row.name] });
                 upsertField(fields, {
@@ -710,7 +726,7 @@ export class SettingsStore {
         await this.aem.sites.cf.fragments.save(indexFragment);
     }
 
-    #buildEntryFields({ name, templateIds, locales, tags, valueType, value }) {
+    #buildEntryFields({ name, templateIds, locales, tags, valueType, value, booleanValue }) {
         const fields = [
             { name: 'name', type: 'text', multiple: false, values: [name] },
             { name: 'templates', type: 'text', multiple: true, values: templateIds },
@@ -719,7 +735,7 @@ export class SettingsStore {
             { name: 'valuetype', type: 'text', multiple: false, values: [valueType] },
         ];
 
-        return [...fields, ...buildValueFields(valueType, value)];
+        return [...fields, ...buildValueFields(valueType, value, booleanValue)];
     }
 
     #syncRowsFromSource() {
@@ -794,6 +810,7 @@ export class SettingsStore {
             templateIds: record.templateIds,
             template: this.formatTemplateSummary(record.templateIds),
             value: record.value,
+            booleanValue: record.booleanValue,
             valueType: record.valueType,
             tags: record.tags,
             modifiedBy: record.modifiedBy,

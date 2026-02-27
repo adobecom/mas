@@ -4,12 +4,8 @@ import { createQuantitySelectValue } from '../common/fields/quantity-select.js';
  * Available setting name definitions.
  */
 export const SETTING_NAME_DEFINITIONS = [
-    { name: 'showAddon', label: 'showAddon', valueType: 'boolean', editor: 'boolean' },
+    { name: 'showAddon', label: 'showAddon', valueType: 'text', editor: 'placeholder' },
     { name: 'showPlanType', label: 'showPlanType', valueType: 'boolean', editor: 'boolean' },
-    { name: 'showSecureTransaction', label: 'showSecureTransaction', valueType: 'boolean', editor: 'boolean' },
-    { name: 'showBadge', label: 'showBadge', valueType: 'boolean', editor: 'boolean' },
-    { name: 'showAcrobatAiAssistant', label: 'showAcrobatAiAssistant', valueType: 'text', editor: 'text' },
-    { name: 'showFeatureFlag', label: 'showFeatureFlag', valueType: 'text', editor: 'text' },
     { name: 'displayAnnual', label: 'displayAnnual', valueType: 'boolean', editor: 'boolean' },
     { name: 'displayPlanType', label: 'displayPlanType', valueType: 'boolean', editor: 'boolean' },
     { name: 'showSecureLabel', label: 'showSecureLabel', valueType: 'boolean', editor: 'boolean' },
@@ -32,6 +28,7 @@ export const getSettingNameDefinition = (name) => SETTING_NAME_BY_VALUE.get(name
  */
 export const getSettingDefaultValue = (definition) => {
     if (definition.editor === 'boolean') return true;
+    if (definition.editor === 'placeholder') return '';
     if (definition.editor === 'quantity-select') {
         return createQuantitySelectValue({ title: '', min: '1', step: '1' });
     }

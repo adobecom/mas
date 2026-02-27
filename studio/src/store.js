@@ -73,7 +73,7 @@ const Store = {
         preview: new ReactiveStore(null),
     },
     settings: new SettingsStore(),
-    profile: new ReactiveStore(),
+    profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
     confirmDialogOptions: new ReactiveStore(null),

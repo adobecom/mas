@@ -1,17 +1,18 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import Store from './store.js';
-import { PAGE_NAMES, SURFACES } from './constants.js';
+import { PAGE_NAMES, SURFACES, SETTINGS_POWERUSERS_GROUP } from './constants.js';
 import Events from './events.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { isPowerUser } from './groups.js';
 
 class MasSideNav extends LitElement {
     static styles = css`
         :host {
             display: flex;
             flex-direction: column;
-            height: auto;
+            height: 100%;
             width: 68px;
             padding: 32px 12px 12px 5px;
             box-sizing: content-box;
@@ -27,10 +28,12 @@ class MasSideNav extends LitElement {
         .nav-items {
             display: flex;
             flex-direction: column;
+            height: 100%;
         }
 
-        .side-nav-support {
-            position: relative;
+        #settings-nav-item {
+            position: absolute;
+            bottom: 0px;
         }
 
         .side-nav-new-window {
@@ -44,7 +47,15 @@ class MasSideNav extends LitElement {
 
     reactiveController = new ReactiveController(
         this,
-        [Store.page, Store.search, Store.viewMode, Store.fragmentEditor.editorContext, Store.fragmentEditor.loading],
+        [
+            Store.page,
+            Store.search,
+            Store.viewMode,
+            Store.fragmentEditor.editorContext,
+            Store.fragmentEditor.loading,
+            Store.profile,
+            Store.users,
+        ],
         this.handleStoreChanges,
     );
 
@@ -65,6 +76,8 @@ class MasSideNav extends LitElement {
             Store.viewMode,
             Store.fragmentEditor.editorContext,
             Store.fragmentEditor.loading,
+            Store.profile,
+            Store.users,
         ];
         if (fragmentStore) {
             stores.push(fragmentStore);
@@ -136,6 +149,21 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.deleteFragment();
     }
 
+    get settingsItem() {
+        if (!isPowerUser()) {
+            return nothing;
+        }
+        return html`
+            <mas-side-nav-item
+                id="settings-nav-item"
+                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS || Store.page.get() === PAGE_NAMES.SETTINGS_EDITOR}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.SETTINGS)}"
+            >
+                <sp-icon-settings slot="icon" size="l"></sp-icon-settings>
+            </mas-side-nav-item>
+        `;
+    }
+
     get defaultNavigation() {
         return html`
             <mas-side-nav-item
@@ -183,13 +211,7 @@ class MasSideNav extends LitElement {
                 <sp-icon-help slot="icon"></sp-icon-help>
                 <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
             </mas-side-nav-item>
-            <mas-side-nav-item
-                id="settings-nav-item"
-                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS || Store.page.get() === PAGE_NAMES.SETTINGS_EDITOR}
-                @nav-click="${router.navigateToPage(PAGE_NAMES.SETTINGS)}"
-            >
-                <sp-icon-settings slot="icon" size="l"></sp-icon-settings>
-            </mas-side-nav-item>
+            ${this.settingsItem}
         `;
     }
 

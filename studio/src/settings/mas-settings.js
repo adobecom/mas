@@ -3,6 +3,7 @@ import Store from '../store.js';
 import { PAGE_NAMES, QUICK_ACTION } from '../constants.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
+import { isPowerUser } from '../groups.js';
 import './mas-settings-table.js';
 import '../mas-quick-actions.js';
 import '../mas-locale-picker.js';
@@ -81,12 +82,14 @@ class MasSettings extends LitElement {
 
         .settings-dialog-layout sp-textfield,
         .settings-dialog-layout sp-picker,
+        .settings-dialog-layout sp-combobox,
         .settings-dialog-layout mas-locale-picker,
         .settings-dialog-layout tree-picker-field,
         .settings-dialog-layout quantity-select-field,
         .settings-dialog-layout aem-tag-picker-field,
         .settings-form-card sp-textfield,
         .settings-form-card sp-picker,
+        .settings-form-card sp-combobox,
         .settings-form-card mas-locale-picker,
         .settings-form-card tree-picker-field,
         .settings-form-card quantity-select-field,
@@ -173,10 +176,14 @@ class MasSettings extends LitElement {
     reactiveController = new ReactiveController(this, [
         Store.search,
         Store.page,
+        Store.profile,
+        Store.users,
         Store.settings.fragmentId,
         Store.settings.creating,
         Store.settings.rows,
         Store.settings.loading,
+        Store.placeholders.addons.data,
+        Store.placeholders.addons.loading,
     ]);
 
     constructor() {
@@ -273,8 +280,25 @@ class MasSettings extends LitElement {
             tags: [],
             valueType: '',
             value: '',
+            booleanValue: false,
             locales: [],
+            addonEnabled: false,
         };
+    }
+
+    #toAddonPlaceholderKey(value) {
+        const normalizedValue = `${value ?? ''}`.trim();
+        if (!normalizedValue) return '';
+        if (!normalizedValue.startsWith('{{') || !normalizedValue.endsWith('}}')) return '';
+        const placeholderKey = normalizedValue.slice(2, -2).trim();
+        if (placeholderKey === 'disabled') return '';
+        return placeholderKey;
+    }
+
+    #toAddonValue(value) {
+        const placeholderKey = this.#toAddonPlaceholderKey(value);
+        if (!placeholderKey) return '';
+        return `{{${placeholderKey}}}`;
     }
 
     #getRowTags(row) {
@@ -286,7 +310,12 @@ class MasSettings extends LitElement {
     #normalizedForm(form) {
         const definition = getSettingNameDefinition(form.name);
         const valueType = definition ? definition.valueType : form.valueType;
-        const value = valueType === 'boolean' ? Boolean(form.value) : `${form.value || ''}`;
+        const value =
+            definition?.editor === 'placeholder'
+                ? this.#toAddonValue(form.value)
+                : valueType === 'boolean'
+                  ? Boolean(form.value)
+                  : `${form.value || ''}`;
         return {
             label: `${form.label || ''}`,
             name: `${form.name || ''}`.trim(),
@@ -295,7 +324,9 @@ class MasSettings extends LitElement {
             tags: [...form.tags],
             valueType,
             value,
+            booleanValue: Boolean(form.booleanValue),
             locales: [...(form.locales || [])].sort(),
+            addonEnabled: Boolean(form.addonEnabled),
         };
     }
 
@@ -336,6 +367,7 @@ class MasSettings extends LitElement {
     #setOverrideEditForm(row, override) {
         const settingDefinition = getSettingNameDefinition(row.name);
         const valueType = settingDefinition ? settingDefinition.valueType : row.valueType;
+        const value = settingDefinition?.editor === 'placeholder' ? this.#toAddonValue(override.value) : override.value;
         this.dialog = { type: 'override', mode: 'edit', rowId: row.id, overrideId: override.id };
         this.form = {
             label: row.label,
@@ -344,13 +376,17 @@ class MasSettings extends LitElement {
             templateIds: [...(override.templateIds || [])],
             tags: [...(override.tags || [])],
             valueType,
-            value: override.value,
+            value,
+            booleanValue: Boolean(override.booleanValue),
             locales: [...(override.locales || [])],
+            addonEnabled: settingDefinition?.editor === 'placeholder' ? Boolean(override.booleanValue) : false,
         };
         this.formBaseline = structuredClone(this.form);
     }
 
     #setTopLevelFormFromRow(row) {
+        const settingDefinition = getSettingNameDefinition(row.name);
+        const value = settingDefinition?.editor === 'placeholder' ? this.#toAddonValue(row.value) : row.value;
         this.dialog = null;
         this.form = {
             label: row.label,
@@ -359,8 +395,10 @@ class MasSettings extends LitElement {
             templateIds: [...row.templateIds],
             tags: [...this.#getRowTags(row)],
             valueType: row.valueType || '',
-            value: row.value,
+            value,
+            booleanValue: Boolean(row.booleanValue),
             locales: [],
+            addonEnabled: settingDefinition?.editor === 'placeholder' ? Boolean(row.booleanValue) : false,
         };
         this.formBaseline = structuredClone(this.form);
         this.formRouteId = row.id;
@@ -439,6 +477,7 @@ class MasSettings extends LitElement {
         const row = Store.settings.getRowStore(id).value;
         const settingDefinition = getSettingNameDefinition(row.name);
         const valueType = settingDefinition ? settingDefinition.valueType : row.valueType;
+        const value = settingDefinition?.editor === 'placeholder' ? this.#toAddonValue(row.value) : row.value;
         this.dialog = { type: 'override', rowId: id };
         this.form = {
             label: row.label,
@@ -447,8 +486,10 @@ class MasSettings extends LitElement {
             templateIds: [],
             tags: [],
             valueType,
-            value: row.value,
+            value,
+            booleanValue: Boolean(row.booleanValue),
             locales: [],
+            addonEnabled: settingDefinition?.editor === 'placeholder' ? Boolean(row.booleanValue) : false,
         };
     };
 
@@ -584,10 +625,15 @@ class MasSettings extends LitElement {
         this.formBaseline = this.#getDefaultForm();
     };
 
+    get isAddonPlaceholderMissing() {
+        return this.form.name === 'showAddon' && this.form.addonEnabled && !this.#toAddonPlaceholderKey(this.form.value);
+    }
+
     get isOverrideSaveDisabled() {
         if (Store.settings.loading.get()) return true;
         if (!this.form.locales.length) return true;
         if (Boolean(this.overrideConflict)) return true;
+        if (this.isAddonPlaceholderMissing) return true;
         return false;
     }
 
@@ -598,6 +644,10 @@ class MasSettings extends LitElement {
         }
         if (this.overrideConflict) {
             showToast('Conflict detected. Choose a different locale.', 'negative');
+            return;
+        }
+        if (this.isAddonPlaceholderMissing) {
+            showToast('Placeholder selection is required when Addon is enabled.', 'negative');
             return;
         }
 
@@ -614,6 +664,7 @@ class MasSettings extends LitElement {
             tags: [...this.form.tags],
             valueType,
             value: this.#normalizedValue(),
+            booleanValue: this.#normalizedBooleanValue(),
             status: 'DRAFT',
             modifiedBy: 'Current user',
             modifiedAt: new Date().toISOString(),
@@ -641,6 +692,12 @@ class MasSettings extends LitElement {
     #normalizedValue() {
         if (this.formValueType === 'boolean') return Boolean(this.form.value);
         return `${this.form.value || ''}`;
+    }
+
+    #normalizedBooleanValue() {
+        if (this.formValueType === 'boolean') return Boolean(this.form.value);
+        if (this.valueEditorType === 'placeholder') return Boolean(this.form.addonEnabled);
+        return Boolean(this.form.booleanValue);
     }
 
     get overrideConflict() {
@@ -720,6 +777,10 @@ class MasSettings extends LitElement {
             showToast('Unsupported setting name.', 'negative');
             return;
         }
+        if (this.isAddonPlaceholderMissing) {
+            showToast('Placeholder selection is required when Addon is enabled.', 'negative');
+            return;
+        }
 
         const payload = {
             label: this.form.label,
@@ -729,6 +790,7 @@ class MasSettings extends LitElement {
             tags: [...this.form.tags],
             valueType,
             value: this.#normalizedValue(),
+            booleanValue: this.#normalizedBooleanValue(),
         };
 
         if (this.isCreateMode) {
@@ -812,6 +874,39 @@ class MasSettings extends LitElement {
             name,
             valueType: settingDefinition.valueType,
             value: getSettingDefaultValue(settingDefinition),
+            booleanValue:
+                settingDefinition.valueType === 'boolean'
+                    ? Boolean(getSettingDefaultValue(settingDefinition))
+                    : settingDefinition.editor === 'placeholder'
+                      ? false
+                      : true,
+            addonEnabled: false,
+        };
+    };
+
+    #handleAddonToggle = (event) => {
+        const enabled = event.target.checked;
+        if (!enabled) {
+            this.form = {
+                ...this.form,
+                addonEnabled: false,
+                booleanValue: false,
+                value: '',
+            };
+            return;
+        }
+        this.form = {
+            ...this.form,
+            addonEnabled: true,
+            booleanValue: true,
+        };
+    };
+
+    #handleAddonPlaceholderChange = (event) => {
+        const placeholderKey = event.target.value;
+        this.form = {
+            ...this.form,
+            value: placeholderKey && placeholderKey !== 'disabled' ? `{{${placeholderKey}}}` : '',
         };
     };
 
@@ -832,8 +927,26 @@ class MasSettings extends LitElement {
         this.#setFormField('value', detail.value);
     };
 
+    #handleBooleanValueToggle = (event) => {
+        this.#setFormField('booleanValue', event.target.checked);
+    };
+
     get confirmDialogConfig() {
         return this.dialog.config;
+    }
+
+    get overrideBooleanToggleTemplate() {
+        if (this.dialog?.type !== 'override') return nothing;
+        if (this.formValueType === 'boolean') return nothing;
+        if (this.valueEditorType === 'placeholder') return nothing;
+        return html`
+            <sp-field-group>
+                <sp-field-label>Enabled</sp-field-label>
+                <sp-switch size="m" .checked=${Boolean(this.form.booleanValue)} @change=${this.#handleBooleanValueToggle}>
+                    ${Boolean(this.form.booleanValue) ? 'On' : 'Off'}
+                </sp-switch>
+            </sp-field-group>
+        `;
     }
 
     get valueInputTemplate() {
@@ -854,6 +967,35 @@ class MasSettings extends LitElement {
                     .value=${`${this.form.value || ''}`}
                     @change=${this.#handleQuantitySelectChange}
                 ></quantity-select-field>
+            `;
+        }
+        if (this.valueEditorType === 'placeholder') {
+            const placeholderKey = this.#toAddonPlaceholderKey(this.form.value);
+            return html`
+                <div>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;"
+                    >
+                        <sp-field-label for="addon-enabled-switch">Enable Addon</sp-field-label>
+                        <sp-switch
+                            id="addon-enabled-switch"
+                            size="m"
+                            .checked=${Boolean(this.form.addonEnabled)}
+                            @change=${this.#handleAddonToggle}
+                        ></sp-switch>
+                    </div>
+                    ${this.form.addonEnabled
+                        ? html`
+                              <sp-combobox
+                                  .options=${Store.placeholders.addons.data.get()}
+                                  .pending=${Store.placeholders.addons.loading.get()}
+                                  .value=${placeholderKey}
+                                  placeholder="Select an addon placeholder"
+                                  @change=${this.#handleAddonPlaceholderChange}
+                              ></sp-combobox>
+                          `
+                        : nothing}
+                </div>
             `;
         }
         if (!this.valueEditorType) return nothing;
@@ -927,7 +1069,7 @@ class MasSettings extends LitElement {
                             @locale-changed=${this.#handleOverrideLocaleChange}
                         ></mas-locale-picker>
                     </sp-field-group>
-                    ${this.tagsTemplate}
+                    ${this.tagsTemplate} ${this.overrideBooleanToggleTemplate}
                     <sp-field-group>
                         <sp-field-label>Value</sp-field-label>
                         ${this.valueInputTemplate}
@@ -1143,6 +1285,7 @@ class MasSettings extends LitElement {
     }
 
     render() {
+        if (!isPowerUser()) return nothing;
         return html`${this.headerTemplate}${this.tableTemplate}${this.settingsFormTemplate}${this
             .settingsEditorActionBarTemplate}${this.dialogTemplate}`;
     }

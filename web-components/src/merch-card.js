@@ -113,6 +113,7 @@ export class MerchCard extends LitElement {
         selected: { type: Boolean, attribute: 'aria-selected', reflect: true },
         storageOption: { type: String, attribute: 'storage', reflect: true },
         planType: { type: String, attribute: 'plan-type', reflect: true },
+        heightSync: { type: Boolean, attribute: 'height-sync' },
         settings: {
             type: Object,
             attribute: false,

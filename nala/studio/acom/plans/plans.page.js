@@ -1,4 +1,4 @@
-export default class ACOMPlansIndividualsPage {
+export default class ACOMPlansCardPage {
     constructor(page) {
         this.page = page;
 
@@ -29,7 +29,7 @@ export default class ACOMPlansIndividualsPage {
         this.cssProp = {
             card: {
                 'background-color': 'rgb(245, 199, 0)',
-                //'border-color': 'rgb(245, 199, 0)',
+                'background-image': 'rgb(255, 255, 255)',
             },
             icon: {
                 width: '41.5px',

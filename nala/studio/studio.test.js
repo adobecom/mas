@@ -1,10 +1,5 @@
 import { test, expect, studio, editor, miloLibs, setTestPage } from '../libs/mas-test.js';
-<<<<<<< HEAD
-=======
-import { getFragmentTitle } from '../utils/fragment-tracker.js';
->>>>>>> upstream/main
 import StudioSpec from './studio.spec.js';
-import ACOMPlansIndividualsPage from './acom/plans/individuals/individuals.page.js';
 
 const { features } = StudioSpec;
 
@@ -167,8 +162,8 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showAddOn).not.toBeVisible();
-            await expect(await editor.showQuantitySelector).not.toBeVisible();
+            await expect(await editor.addOnToggle).not.toBeVisible();
+            await expect(await editor.quantitySelectorCheckbox).not.toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
     });
@@ -211,8 +206,8 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();
             await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showAddOn).not.toBeVisible();
-            await expect(await editor.showQuantitySelector).not.toBeVisible();
+            await expect(await editor.addOnToggle).not.toBeVisible();
+            await expect(await editor.quantitySelectorCheckbox).not.toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
     });
@@ -307,8 +302,8 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await editor.whatsIncludedLabel).toBeVisible();
             await expect(await editor.promoText).toBeVisible();
             await expect(await editor.callout).toBeVisible();
-            await expect(await editor.showAddOn).toBeVisible();
-            await expect(await editor.showQuantitySelector).toBeVisible();
+            await expect(await editor.addOnToggle).toBeVisible();
+            await expect(await editor.quantitySelectorCheckbox).toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
     });
@@ -434,10 +429,78 @@ test.describe('M@S Studio feature test suite', () => {
         });
     });
 
-    // @studio-load-variation - Validate loading a variation in mas studio
+    // @studio-create-fragment - Validate creating a new fragment
     test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
         const { data } = features[14];
-        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}${data.cardid}`;
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}`;
+        setTestPage(testPage);
+        let fragmentId;
+        const expectedTitle = getFragmentTitle();
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-2: Create fragment', async () => {
+            fragmentId = await studio.createFragment({
+                osi: data.osi,
+                variant: data.variant,
+            });
+            expect(fragmentId).toBeTruthy();
+            await page.waitForTimeout(3000);
+        });
+
+        await test.step('step-3: Verify fragment is visible in content page', async () => {
+            await expect(studio.fragmentsTable).toBeVisible();
+            await studio.fragmentsTable.scrollIntoViewIfNeeded();
+            await studio.fragmentsTable.click();
+            await page.waitForTimeout(2000);
+            await expect(studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-4: Verify fragment has correct variant', async () => {
+            const createdCard = await studio.getCard(fragmentId);
+            await expect(createdCard).toBeVisible();
+            await expect(createdCard).toHaveAttribute('variant', data.variant);
+        });
+
+        await test.step('step-5: Switch to table view and verify fragment details', async () => {
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+
+            const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
+            await expect(fragmentRow).toBeVisible();
+
+            const pathCell = studio.tableViewPathCell(fragmentRow);
+            const fragmentPath = await pathCell.textContent();
+            expect(fragmentPath).toBeTruthy();
+            expect(fragmentPath).not.toContain('undefined');
+            expect(fragmentPath.trim().length).toBeGreaterThan(0);
+
+            const titleCell = studio.tableViewTitleCell(fragmentRow);
+            const fragmentTitle = await titleCell.textContent();
+            expect(fragmentTitle).toBeTruthy();
+            expect(fragmentTitle.trim().length).toBeGreaterThan(0);
+            expect(fragmentTitle.trim()).toBe(expectedTitle);
+        });
+
+        await test.step('step-6: Open editor from table view and verify fragment details', async () => {
+            const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
+            await fragmentRow.dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('value', data.variant);
+            await expect(await editor.OSI).toBeVisible();
+            await expect(await editor.OSI).toContainText(data.osi);
+        });
+    });
+
+    // @studio-load-variation - Validate loading a variation in mas studio
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio content page', async () => {

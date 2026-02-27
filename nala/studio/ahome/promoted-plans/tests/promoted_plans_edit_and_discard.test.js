@@ -58,7 +58,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         await test.step('step-2: Open card editor', async () => {
             await expect(await promotedPlansCard).toBeVisible();
             await expect(await promotedPlansCard).toHaveAttribute('variant', 'ah-promoted-plans');
-            await promotedPlansCard.dblclick();
+            await promotedplans.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await promotedPlansCard).toBeVisible();
         });

@@ -7,26 +7,32 @@ export default class EditorPage {
 
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
+        this.addOnToggle = this.panel.locator('#addon-field #input');
 
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.backgroundImage = this.panel.locator('#background-image input');
 
-        // Badge fields
         this.badge = this.panel.locator('#card-badge input');
-        this.badgeColor = this.panel.locator('sp-picker#badgeColor');
+        this.badgeFieldGroup = this.panel.locator('sp-field-group#badge');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
-        //----
-        this.borderColor = this.panel.locator('sp-picker#border-color');
-        this.prices = this.panel.locator('sp-field-group#prices');
-        this.promoText = this.panel.locator('#promo-text input');
-        this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
-        this.size = this.panel.locator('#card-size');
-        this.subtitle = this.panel.locator('#card-subtitle input');
-        this.tags = this.panel.locator('aem-tag-picker-field[label="Tags"]');
-        this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
-        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
+        this.badgeBorderColorFieldGroup = this.panel.locator('sp-field-group#badgeBorderColor');
+        this.badgeColor = this.panel.locator('sp-picker#badgeColor');
+        this.badgeColorFieldGroup = this.panel.locator('sp-field-group#badgeColor');
 
-        // Visuals fields
+        this.borderColor = this.panel.locator('sp-picker#border-color');
+        this.borderColorFieldGroup = this.panel.locator('sp-field-group#border-color');
+
+        this.calloutFieldGroup = this.panel.locator('sp-field-group#callout');
+        this.callout = this.panel.locator('sp-field-group#callout');
+        this.calloutRTE = this.panel.locator('sp-field-group#callout div[contenteditable="true"]');
+        this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
+
+        this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
+        this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
+
+        this.footer = this.panel.locator('sp-field-group#ctas');
+        this.CTA = this.panel.locator('sp-field-group#ctas a');
+
         this.mnemonicFieldGroup = this.panel.locator('sp-field-group#mnemonics');
         this.mnemonicAddVisual = this.panel.locator('#mnemonics sp-icon-add');
         this.mnemonicEditMenu = page.locator('mas-multifield#mnemonics sp-action-menu').first();
@@ -41,32 +47,44 @@ export default class EditorPage {
         this.mnemonicModalSaveButton = page.mnemonivModal.locator('sp-button[variant="accent"]');
         this.mnemonicModalCancelButton = page.mnemonivModal.locator('sp-button[variant="secondary"]');
 
-        this.footer = this.panel.locator('sp-field-group#ctas');
-        this.CTA = this.panel.locator('sp-field-group#ctas a');
-        this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
-        this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
         this.OSI = this.panel.locator('osi-field#osi');
         this.OSIButton = this.panel.locator('#offerSelectorToolButtonOSI');
+        this.OSIFieldGroup = this.panel.locator('sp-field-group:has(osi-field#osi)');
+
+        this.prices = this.panel.locator('sp-field-group#prices');
+
+        this.promoText = this.panel.locator('#promo-text input');
+        this.promoTextFieldGroup = this.panel.locator('sp-field-group#promoText');
+
+        this.quantitySelectorCheckbox = this.panel.locator('#quantitySelect sp-checkbox input');
+        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelectorTitle #title-quantity input');
+        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelectorStart #start-quantity input');
+        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
+
+        this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
+        this.size = this.panel.locator('#card-size');
+        this.subtitle = this.panel.locator('#card-subtitle input');
+
+        this.tags = this.panel.locator('aem-tag-picker-field[label="Tags"]');
+        this.tagsFieldGroup = this.panel.locator('sp-field-group#tags');
+
+        this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
+        this.titleFieldGroup = this.panel.locator('sp-field-group#title');
+
+        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
 
         this.localeVariationHeader = page.locator('.locale-variation-header');
         this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
         this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
         this.style = this.panel.locator('#card-style');
 
-        this.callout = this.panel.locator('sp-field-group#callout');
-        this.calloutRTE = this.panel.locator('sp-field-group#callout div[contenteditable="true"]');
-        this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
-        this.showAddOn = this.panel.locator('#addon-field #input');
-        this.showQuantitySelector = this.panel.locator('#quantitySelect sp-checkbox input');
-        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelectorTitle #title-quantity input');
-        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelectorStart #start-quantity input');
-        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');
         this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
+
         // this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
         // this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
         this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
@@ -107,21 +125,6 @@ export default class EditorPage {
         this.secondaryOutlineVariant = page.locator('sp-button[variant="secondary"][treatment="outline"]');
         this.primaryLinkVariant = page.locator('sp-link:has-text("Primary link")');
         this.secondaryLinkVariant = page.locator('sp-link[variant="secondary"]');
-
-        // Field group elements (container for each field)
-        this.cardTitleFieldGroup = this.panel.locator('sp-field-group#title');
-        this.cardBadgeFieldGroup = this.panel.locator('sp-field-group#badge');
-        this.mnemonicFieldGroup = this.panel.locator('sp-field-group#mnemonics').first();
-        this.calloutFieldGroup = this.panel.locator('sp-field-group#callout');
-        this.promoTextFieldGroup = this.panel.locator('sp-field-group#promoText');
-        this.whatsIncludedFieldGroup = this.panel.locator('sp-field-group#whatsIncluded');
-        this.badgeColorFieldGroup = this.panel.locator('sp-field-group#badgeColor');
-        this.badgeBorderColorFieldGroup = this.panel.locator('sp-field-group#badgeBorderColor');
-        this.borderColorFieldGroup = this.panel.locator('sp-field-group#border-color');
-        this.pricesFieldGroup = this.panel.locator('sp-field-group#prices');
-        this.ctasFieldGroup = this.panel.locator('sp-field-group#ctas');
-        this.osiFieldGroup = this.panel.locator('sp-field-group:has(osi-field#osi)');
-        this.tagsFieldGroup = this.panel.locator('sp-field-group#tags');
 
         this.overrideRestoreLink = 'a:has-text("Overridden. Click to restore.")';
     }

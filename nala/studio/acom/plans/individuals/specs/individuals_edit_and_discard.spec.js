@@ -24,16 +24,6 @@ export default {
         },
         {
             tcid: '2',
-            name: '@studio-plans-individuals-edit-discard-template-change-to-plans-v2',
-            path: '/studio.html',
-            data: {
-                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
-            },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
-        },
-        {
-            tcid: '3',
             name: '@studio-plans-individuals-edit-discard-size',
             path: '/studio.html',
             data: {
@@ -43,7 +33,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '4',
+            tcid: '3',
             name: '@studio-plans-individuals-edit-discard-title',
             path: '/studio.html',
             data: {
@@ -57,7 +47,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '5',
+            tcid: '4',
             name: '@studio-plans-individuals-edit-discard-badge',
             path: '/studio.html',
             data: {
@@ -71,7 +61,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '6',
+            tcid: '5',
             name: '@studio-plans-individuals-edit-discard-description',
             path: '/studio.html',
             data: {
@@ -85,8 +75,8 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '7',
-            name: '@studio-plans-individuals-edit-discard-visual',
+            tcid: '6',
+            name: '@studio-plans-individuals-edit-discard-visual-url',
             path: '/studio.html',
             data: {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
@@ -99,7 +89,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '8',
+            tcid: '7',
             name: '@studio-plans-individuals-edit-discard-callout',
             path: '/studio.html',
             data: {
@@ -113,7 +103,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '9',
+            tcid: '8',
             name: '@studio-plans-individuals-edit-discard-promo-text',
             path: '/studio.html',
             data: {
@@ -127,7 +117,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '10',
+            tcid: '9',
             name: '@studio-plans-individuals-edit-discard-price',
             path: '/studio.html',
             data: {
@@ -147,7 +137,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '11',
+            tcid: '10',
             name: '@studio-plans-individuals-edit-discard-osi',
             path: '/studio.html',
             data: {
@@ -173,7 +163,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '12',
+            tcid: '11',
             name: '@studio-plans-individuals-edit-discard-addon',
             path: '/studio.html',
             data: {
@@ -184,7 +174,7 @@ export default {
         },
 
         {
-            tcid: '13',
+            tcid: '12',
             name: '@studio-plans-individuals-edit-discard-quantity-selector',
             path: '/studio.html',
             data: {
@@ -202,7 +192,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '14',
+            tcid: '13',
             name: '@studio-plans-individuals-edit-discard-whats-included',
             path: '/studio.html',
             data: {
@@ -217,7 +207,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '15',
+            tcid: '14',
             name: '@studio-plans-individuals-edit-discard-badge-color',
             path: '/studio.html',
             data: {
@@ -235,7 +225,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '16',
+            tcid: '15',
             name: '@studio-plans-individuals-edit-discard-badge-border-color',
             path: '/studio.html',
             data: {
@@ -253,7 +243,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '17',
+            tcid: '16',
             name: '@studio-plans-individuals-edit-discard-card-border-color',
             path: '/studio.html',
             data: {
@@ -271,7 +261,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '18',
+            tcid: '17',
             name: '@studio-plans-individuals-edit-discard-promo-price',
             path: '/studio.html',
             data: {
@@ -285,7 +275,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '19',
+            tcid: '18',
             name: '@studio-plans-individuals-edit-discard-UPT-promo',
             path: '/studio.html',
             data: {
@@ -295,20 +285,8 @@ export default {
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
-        // move to plans education maybe?
-        // {
-        //     tcid: '19',
-        //     name: '@studio-plans-individuals-edit-discard-phone-number',
-        //     path: '/studio.html',
-        //     data: {
-        //         cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
-        //         phoneNumber: '1234567890',
-        //     },
-        //     browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-        //     tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
-        // },
         {
-            tcid: '20',
+            tcid: '19',
             name: '@studio-plans-individuals-edit-discard-cta-variant',
             path: '/studio.html',
             data: {
@@ -334,7 +312,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '21',
+            tcid: '20',
             name: '@studio-plans-individuals-edit-discard-cta-checkout-params',
             path: '/studio.html',
             data: {
@@ -350,7 +328,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '22',
+            tcid: '21',
             name: '@studio-plans-individuals-edit-discard-cta-ost',
             path: '/studio.html',
             data: {
@@ -380,7 +358,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '23',
+            tcid: '22',
             name: '@studio-plans-individuals-edit-discard-cta-label',
             path: '/studio.html',
             data: {
@@ -395,7 +373,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '24',
+            tcid: '23',
             name: '@studio-plans-individuals-edit-discard-cta-promo',
             path: '/studio.html',
             data: {
@@ -414,7 +392,7 @@ export default {
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
-            tcid: '25',
+            tcid: '24',
             name: '@studio-plans-individuals-add-description-price-legal-disclamer',
             path: '/studio.html',
             data: {
@@ -429,25 +407,24 @@ export default {
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
-        // what is the difference than above visual ?!
-        // {
-        //     tcid: '26',
-        //     name: '@studio-plans-individuals-edit-discard-product-icon-picker',
-        //     path: '/studio.html',
-        //     data: {
-        //         cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
-        //         productIcon: {
-        //             name: 'Photoshop',
-        //             original: {
-        //                 src: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
-        //             },
-        //             updated: {
-        //                 src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-        //             },
-        //         },
-        //     },
-        //     browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-        //     tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
-        // },
+        {
+            tcid: '25',
+            name: '@studio-plans-individuals-edit-discard-product-icon-picker',
+            path: '/studio.html',
+            data: {
+                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                productIcon: {
+                    name: 'Photoshop',
+                    original: {
+                        src: 'https://www.adobe.com/content/dam/shared/images/product-icons/svg/illustrator.svg',
+                    },
+                    updated: {
+                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                    },
+                },
+            },
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
+        },
     ],
 };

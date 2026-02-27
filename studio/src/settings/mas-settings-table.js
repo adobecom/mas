@@ -1,5 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
-import { createTreeSelectionSummary } from '../common/tree-selection-summary.js';
+import { createTreeSelectionSummary } from '../common/fields/tree-picker-field.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { settingsEmptyStateIcon } from '../icons.js';

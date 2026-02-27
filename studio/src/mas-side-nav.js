@@ -29,10 +29,6 @@ class MasSideNav extends LitElement {
             flex-direction: column;
         }
 
-        #settings-nav-item {
-            margin-top: auto;
-        }
-
         .side-nav-support {
             position: relative;
         }
@@ -43,11 +39,6 @@ class MasSideNav extends LitElement {
             right: 8px;
             width: 14px;
             height: 14px;
-        }
-
-        #settings-nav-item {
-            position: absolute;
-            bottom: 12px;
         }
     `;
 

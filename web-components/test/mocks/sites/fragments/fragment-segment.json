@@ -1,0 +1,49 @@
+{
+    "path": "/content/dam/mas/test/fragment-segment",
+    "name": "",
+    "title": "Merch card segment 2",
+    "id": "fragment-segment",
+    "description": "Merch card segment 2",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+    },
+    "fields": {
+        "variant": "segment",
+        "mnemonicIcon": [],
+        "mnemonicAlt": [],
+        "mnemonicLink": [],
+        "badge": {
+            "value": "<merch-badge background-color=\"color-green-900-variation\" color=\"#fff\" border-color=\"color-green-900-variation\" icon=\"sp-icon-star\" variant=\"segment\">Badge text</merch-badge>",
+            "mimeType": "text/html"
+        },
+        "trialBadge": {
+            "mimeType": "text/html"
+        },
+        "borderColor": "color-green-900-variation",
+        "cardTitle": "Segment card",
+        "cardName": "Merch card segment",
+        "prices": {
+            "value": "<p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abm\"></span></p>",
+            "mimeType": "text/html"
+        },
+        "shortDescription": {
+            "mimeType": "text/html"
+        },
+        "promoText": "<p>Green promo text</p>",
+        "description": {
+            "value": "<p>The card title and the pricing should be wrapped in h3.</p><p><a class=\"secondary-link\" href=\"https://stage--milo--adobecom.aem.page/merch/kitchen-sink?martech=off#modal-see-whats-included\" target=\"_self\">See what's included</a> | <a class=\"secondary-link\" href=\"https://www.adobe.com/creativecloud/all-apps.html\" target=\"_blank\">Learn more</a></p>",
+            "mimeType": "text/html"
+        },
+        "callout": {
+            "value": "<p>Callout text</p>",
+            "mimeType": "text/html"
+        },
+        "ctas": {
+            "value": "<a data-checkout-workflow=\"UCv3\" data-wcs-osi=\"abm\" data-template=\"checkoutUrl\" data-analytics-id=\"buy-now\">Buy now</a>",
+            "mimeType": "text/html"
+        },
+        "variations": [],
+        "tags": [],
+        "pznTags": []
+    }
+}

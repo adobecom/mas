@@ -540,12 +540,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Remove promo text field', async () => {
             await expect(await editor.promoText).toBeVisible();
-            await expect(await editor.promoText).toHaveValue(data.promoText.original);
+            await expect(await editor.promoText).toHaveText(data.promoText.original);
             await editor.promoText.fill('');
         });
 
         await test.step('step-4: Validate promo text field is removed', async () => {
-            await expect(await editor.promoText).toHaveValue('');
+            await expect(await editor.promoText).toHaveText('');
             await expect(await individuals.cardPromoText).not.toBeVisible();
         });
 
@@ -554,7 +554,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Validate promo text field updated', async () => {
-            await expect(await editor.promoText).toHaveValue(data.promoText.updated);
+            await expect(await editor.promoText).toHaveText(data.promoText.updated);
             await expect(await individuals.cardPromoText).toHaveText(data.promoText.updated);
         });
 

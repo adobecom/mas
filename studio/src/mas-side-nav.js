@@ -194,7 +194,7 @@ class MasSideNav extends LitElement {
             </mas-side-nav-item>
             <mas-side-nav-item
                 id="settings-nav-item"
-                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS}
+                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS || Store.page.get() === PAGE_NAMES.SETTINGS_EDITOR}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.SETTINGS)}"
             >
                 <sp-icon-settings slot="icon" size="l"></sp-icon-settings>

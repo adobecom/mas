@@ -143,7 +143,7 @@ class MasTopNav extends LitElement {
     }
 
     get isSettingsPage() {
-        return this.page.value === PAGE_NAMES.SETTINGS;
+        return this.page.value === PAGE_NAMES.SETTINGS || this.page.value === PAGE_NAMES.SETTINGS_EDITOR;
     }
 
     get isWelcomePage() {
@@ -273,7 +273,7 @@ class MasTopNav extends LitElement {
                 { label: 'Version history' },
             ];
         }
-        if (this.page.value === PAGE_NAMES.SETTINGS && (this.settings.creating.get() || this.settings.fragmentId.get())) {
+        if (this.page.value === PAGE_NAMES.SETTINGS_EDITOR && (this.settings.creating.get() || this.settings.fragmentId.get())) {
             return [{ label: 'Settings', handler: handlers.settings }, { label: this.settingEditorBreadcrumbLabel }];
         }
         if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {

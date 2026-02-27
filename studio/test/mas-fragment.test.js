@@ -106,13 +106,13 @@ describe('MasFragment', () => {
             expect(tableView).to.not.exist;
         });
 
-        it('renders settings table when expanded', async () => {
+        it('renders fragment variations when expanded', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
             el.expanded = true;
             await el.updateComplete;
-            const settingsTable = el.querySelector('mas-settings-table');
-            expect(settingsTable).to.exist;
+            const variations = el.querySelector('mas-fragment-variations');
+            expect(variations).to.exist;
         });
     });
 });

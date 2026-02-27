@@ -50,7 +50,9 @@ const buildValueFields = (valueType, value) => {
 /**
  * Settings table state holder and mutator surface.
  */
-export class SettingsStoreModel {
+export class SettingsStore {
+    fragmentId = new ReactiveStore(null);
+    creating = new ReactiveStore(false);
     rows = new ReactiveStore([]);
     loading = new ReactiveStore(false);
     error = new ReactiveStore(null);
@@ -187,6 +189,21 @@ export class SettingsStoreModel {
         return this.expandedRowIds.get().includes(rowId);
     }
 
+    ensureExpanded(rowId) {
+        if (this.isExpanded(rowId)) return;
+        this.expandedRowIds.set([...this.expandedRowIds.get(), rowId]);
+    }
+
+    getOverrideContext(overrideId) {
+        for (const rowStore of this.rows.get()) {
+            const row = rowStore.value;
+            const override = row.overrides.find((item) => item.id === overrideId);
+            if (!override) continue;
+            return { rowStore, row, override };
+        }
+        return null;
+    }
+
     getActiveTab(rowId) {
         return this.activeTabByRowId.get()[rowId] || 'locale';
     }
@@ -212,13 +229,59 @@ export class SettingsStoreModel {
             },
             message,
             'Failed to update setting.',
-            'info',
         );
 
         if (!updated) return false;
 
         this.toast.set({
-            variant: 'info',
+            message,
+        });
+        return true;
+    }
+
+    async toggleOverride(rowId, overrideId, checked) {
+        const rowStore = this.getRowStore(rowId);
+        if (!rowStore) return false;
+        const row = rowStore.value;
+        const override = row.overrides.find((item) => item.id === overrideId);
+        if (!override) return false;
+
+        const localeLabel = override.locales.join(', ');
+        const state = checked ? 'On' : 'Off';
+        const message = `'${row.label} (${localeLabel})' is now [${state}].`;
+
+        const updated = await this.#runMutation(
+            async () => {
+                const fragment = await this.aem.sites.cf.fragments.getById(override.id);
+                const fields = structuredClone(fragment.fields);
+                const valueFields = buildValueFields('boolean', checked);
+
+                upsertField(fields, { name: 'name', type: 'text', multiple: false, values: [row.name] });
+                upsertField(fields, {
+                    name: 'templates',
+                    type: 'text',
+                    multiple: true,
+                    values: override.templateIds,
+                });
+                upsertField(fields, { name: 'locales', type: 'text', multiple: true, values: override.locales });
+                upsertField(fields, { name: 'tags', type: 'tag', multiple: true, values: override.tags });
+                upsertField(fields, { name: 'valuetype', type: 'text', multiple: false, values: ['boolean'] });
+                for (const valueField of valueFields) {
+                    upsertField(fields, valueField);
+                }
+
+                await this.aem.sites.cf.fragments.save({
+                    ...fragment,
+                    fields,
+                });
+            },
+            message,
+            'Failed to update override.',
+        );
+
+        if (!updated) return false;
+
+        this.toast.set({
             message,
         });
         return true;
@@ -228,40 +291,100 @@ export class SettingsStoreModel {
         const rowStore = this.getRowStore(rowId);
         const row = rowStore.value;
         const settingName = row.name;
-        const locale = override.locale;
+        const locales = [...override.locales];
+        let createdOverrideId = null;
+        if (!locales.length) {
+            showToast('Locale is required for overrides.', 'negative');
+            return null;
+        }
         const valueType = override.valueType || row.valueType || (isBooleanValue(override.value) ? 'boolean' : 'text');
-        const fragmentName = `${normalizeKey(settingName)}-${normalizeKey(locale)}-${Date.now()}`;
+        const localeSegment = locales.map((locale) => normalizeKey(locale)).join('-');
+        const localeTitle = locales.join(', ');
+        const fragmentName = `${normalizeKey(settingName)}-${localeSegment}-${Date.now()}`;
 
-        return this.#runMutation(
+        const created = await this.#runMutation(
             async () => {
                 const created = await this.aem.sites.cf.fragments.create({
                     name: fragmentName,
-                    title: `${row.label} ${locale}`,
+                    title: `${row.label} ${localeTitle}`,
                     description: row.description || '',
                     parentPath: this.#settingsPath,
                     modelId: row.fragment?.model?.id || this.#entryModelId,
                     fields: this.#buildEntryFields({
                         name: settingName,
                         templateIds: override.templateIds || [],
-                        locales: [locale],
+                        locales,
                         tags: override.tags || [],
                         valueType,
                         value: override.value,
                     }),
                 });
 
+                createdOverrideId = created.id;
                 await this.#addPathsToIndex([created.path]);
             },
             'Override added.',
             'Failed to add override.',
+        );
+        if (!created) return null;
+        return createdOverrideId;
+    }
+
+    async updateOverride(rowId, overrideId, override = {}) {
+        const rowStore = this.getRowStore(rowId);
+        if (!rowStore) return false;
+        const row = rowStore.value;
+        const currentOverride = row.overrides.find((item) => item.id === overrideId);
+        if (!currentOverride) return false;
+
+        const locales = [...(override.locales || [])];
+        if (!locales.length) {
+            showToast('Locale is required for overrides.', 'negative');
+            return false;
+        }
+        const valueType =
+            override.valueType ||
+            currentOverride.valueType ||
+            row.valueType ||
+            (isBooleanValue(override.value) ? 'boolean' : 'text');
+
+        return this.#runMutation(
+            async () => {
+                const fragment = await this.aem.sites.cf.fragments.getById(overrideId);
+                const fields = structuredClone(fragment.fields);
+                const valueFields = buildValueFields(valueType, override.value);
+
+                upsertField(fields, { name: 'name', type: 'text', multiple: false, values: [row.name] });
+                upsertField(fields, {
+                    name: 'templates',
+                    type: 'text',
+                    multiple: true,
+                    values: override.templateIds || [],
+                });
+                upsertField(fields, { name: 'locales', type: 'text', multiple: true, values: locales });
+                upsertField(fields, { name: 'tags', type: 'tag', multiple: true, values: override.tags || [] });
+                upsertField(fields, { name: 'valuetype', type: 'text', multiple: false, values: [valueType] });
+                for (const valueField of valueFields) {
+                    upsertField(fields, valueField);
+                }
+
+                await this.aem.sites.cf.fragments.save({
+                    ...fragment,
+                    title: `${row.label} ${locales.join(', ')}`,
+                    fields,
+                });
+            },
+            'Override updated.',
+            'Failed to update override.',
         );
     }
 
     async createSetting(setting) {
         const settingName = setting.name;
         const valueType = setting.valueType || (isBooleanValue(setting.value) ? 'boolean' : 'text');
+        let createdFragmentId = null;
 
-        return this.#runMutation(
+        const created = await this.#runMutation(
             async () => {
                 const created = await this.aem.sites.cf.fragments.create({
                     name: normalizeKey(settingName),
@@ -279,11 +402,14 @@ export class SettingsStoreModel {
                     }),
                 });
 
+                createdFragmentId = created.id;
                 await this.#addPathsToIndex([created.path]);
             },
             'Setting created.',
             'Failed to create setting.',
         );
+        if (!created) return null;
+        return createdFragmentId;
     }
 
     async updateSetting(rowId, setting) {
@@ -308,7 +434,7 @@ export class SettingsStoreModel {
         const rowStore = this.getRowStore(rowId);
         if (!rowStore) return false;
         const row = rowStore.value;
-        if (row.locales.length === 0) {
+        if (row.locales.length === 0 && `${row.status || ''}`.toUpperCase() !== 'DRAFT') {
             showToast('Top-level settings cannot be deleted.', 'negative');
             return false;
         }
@@ -349,7 +475,7 @@ export class SettingsStoreModel {
     }
 
     editSetting() {
-        showToast('Edit action moved to dialog flow.', 'info');
+        showToast('Edit action moved to dialog flow.');
     }
 
     async publishSetting(rowId) {
@@ -360,6 +486,17 @@ export class SettingsStoreModel {
             },
             'Setting has been successfully published.',
             'Failed to publish setting.',
+        );
+    }
+
+    async publishOverride(overrideId) {
+        return this.#runMutation(
+            async () => {
+                const fragment = await this.aem.sites.cf.fragments.getWithEtag(overrideId);
+                await this.aem.sites.cf.fragments.publish(fragment);
+            },
+            'Override has been successfully published.',
+            'Failed to publish override.',
         );
     }
 
@@ -377,9 +514,9 @@ export class SettingsStoreModel {
     async duplicateSetting(rowId) {
         const rowStore = this.getRowStore(rowId);
         const row = rowStore.value;
-        const duplicatedName = `${row.name}Copy${Date.now()}`;
+        let duplicatedFragmentId = null;
 
-        return this.#runMutation(
+        const duplicated = await this.#runMutation(
             async () => {
                 const created = await this.aem.sites.cf.fragments.create({
                     name: `${normalizeKey(row.name)}-copy-${Date.now()}`,
@@ -388,7 +525,7 @@ export class SettingsStoreModel {
                     parentPath: this.#settingsPath,
                     modelId: row.fragment?.model?.id || this.#entryModelId,
                     fields: this.#buildEntryFields({
-                        name: duplicatedName,
+                        name: row.name,
                         templateIds: row.templateIds || [],
                         locales: [],
                         tags: row.tags || [],
@@ -397,11 +534,14 @@ export class SettingsStoreModel {
                     }),
                 });
 
+                duplicatedFragmentId = created.id;
                 await this.#addPathsToIndex([created.path]);
             },
             'Setting duplicated as draft.',
             'Failed to duplicate setting.',
         );
+        if (!duplicated) return null;
+        return duplicatedFragmentId;
     }
 
     async duplicateOverride(rowId, overrideId) {
@@ -484,9 +624,7 @@ export class SettingsStoreModel {
         this.toast.set(null);
     }
 
-    async #runMutation(operation, successMessage, errorMessage, successVariant = 'positive') {
-        if (!this.aem || !this.#surface) return false;
-
+    async #runMutation(operation, successMessage, errorMessage, successVariant = '') {
         this.loading.set(true);
         this.error.set(null);
 
@@ -504,7 +642,7 @@ export class SettingsStoreModel {
         }
     }
 
-    async #updateSettingFragment(rowStore, patch, successMessage, errorMessage = successMessage, successVariant = 'positive') {
+    async #updateSettingFragment(rowStore, patch, successMessage, errorMessage = successMessage, successVariant) {
         const row = rowStore.value;
 
         const updated = await this.#runMutation(
@@ -671,8 +809,3 @@ export class SettingsStoreModel {
         return summary;
     }
 }
-
-/**
- * Shared singleton settings store used by the settings UI.
- */
-export const SettingsStore = new SettingsStoreModel();

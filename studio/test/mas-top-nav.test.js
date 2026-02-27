@@ -99,7 +99,7 @@ describe('MasTopNav', () => {
 
     describe('breadcrumbs', () => {
         it('should render setting editor breadcrumbs and label for create flow', async () => {
-            Store.page.value = PAGE_NAMES.SETTINGS;
+            Store.page.value = PAGE_NAMES.SETTINGS_EDITOR;
             Store.settings.fragmentId.value = null;
             Store.settings.creating.value = true;
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
@@ -135,7 +135,7 @@ describe('MasTopNav', () => {
         });
 
         it('should navigate to settings page when first breadcrumb is clicked', async () => {
-            Store.page.value = PAGE_NAMES.SETTINGS;
+            Store.page.value = PAGE_NAMES.SETTINGS_EDITOR;
             Store.settings.fragmentId.value = null;
             Store.settings.creating.value = true;
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});

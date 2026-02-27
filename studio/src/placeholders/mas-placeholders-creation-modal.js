@@ -42,7 +42,7 @@ class MasPlaceholdersCreationModal extends LitElement {
     handleLocaleChange(event) {
         this.placeholder = {
             ...this.placeholder,
-            locale: event.target.value,
+            locale: event.detail.locale,
         };
     }
 

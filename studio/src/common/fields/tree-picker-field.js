@@ -1,12 +1,13 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { createTreeSelectionSummary } from '../tree-selection-summary.js';
 import { EVENT_CHANGE } from '../../constants.js';
 
 /**
  * Generic tree-picker field.
  *
  * Expected tree model:
- * [{ id: string, label: string, children?: TreeNode[] }]
+ * [{ name: string, label: string, children?: TreeNode[] }]
  */
 export class TreePickerField extends LitElement {
     static properties = {
@@ -37,7 +38,7 @@ export class TreePickerField extends LitElement {
 
         .trigger {
             align-items: center;
-            background: var(--spectrum-gray-50);
+            background: var(--palette-gray-25, #ffffff);
             border: 2px solid var(--spectrum-gray-300);
             border-radius: 8px;
             box-sizing: border-box;
@@ -47,6 +48,7 @@ export class TreePickerField extends LitElement {
             gap: 8px;
             height: 32px;
             justify-content: space-between;
+            overflow: hidden;
             padding: 0 10px 0 12px;
             width: 100%;
         }
@@ -62,6 +64,7 @@ export class TreePickerField extends LitElement {
             flex: 1;
             font-size: var(--spectrum-font-size-100);
             line-height: 1.3;
+            min-width: 0;
             overflow: hidden;
             text-align: left;
             text-overflow: ellipsis;
@@ -78,11 +81,18 @@ export class TreePickerField extends LitElement {
 
         sp-popover.picker-popover {
             border-radius: 10px;
+            max-height: min(80vh, 700px);
             max-width: min(420px, 90vw);
             min-width: 248px;
+            overflow: hidden;
         }
 
         .popover-content {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            max-height: min(80vh, 700px);
+            overflow: hidden;
             padding: 20px;
         }
 
@@ -95,9 +105,9 @@ export class TreePickerField extends LitElement {
             flex-direction: column;
             gap: 2px;
             margin-top: 12px;
-            max-height: 640px;
+            min-height: 0;
             overflow-y: auto;
-            width: 286px;
+            width: 100%;
         }
 
         .tree-row {
@@ -151,6 +161,7 @@ export class TreePickerField extends LitElement {
     #leafDescendantsMap;
     #rootIds;
     #leafIds;
+    #summaryHelper;
 
     constructor() {
         super();
@@ -171,6 +182,7 @@ export class TreePickerField extends LitElement {
         this.#leafDescendantsMap = new Map();
         this.#rootIds = [];
         this.#leafIds = [];
+        this.#summaryHelper = createTreeSelectionSummary([]);
     }
 
     connectedCallback() {
@@ -201,7 +213,7 @@ export class TreePickerField extends LitElement {
         const walk = (node, parentId = null) => {
             if (!node || typeof node !== 'object') return;
 
-            const nodeId = String(node.id ?? '');
+            const nodeId = String(node.name ?? '');
             if (!nodeId) return;
             if (this.#nodeMap.has(nodeId)) return;
 
@@ -218,7 +230,7 @@ export class TreePickerField extends LitElement {
             this.#parentMap.set(nodeId, parentId);
 
             children.forEach((child) => {
-                const childId = String(child?.id ?? '');
+                const childId = String(child.name ?? '');
                 if (!childId) return;
                 childIds.push(childId);
                 walk(child, nodeId);
@@ -226,7 +238,7 @@ export class TreePickerField extends LitElement {
         };
 
         (Array.isArray(this.tree) ? this.tree : []).forEach((rootNode) => {
-            const rootId = String(rootNode?.id ?? '');
+            const rootId = String(rootNode.name ?? '');
             if (!rootId) return;
             this.#rootIds.push(rootId);
             walk(rootNode);
@@ -255,6 +267,7 @@ export class TreePickerField extends LitElement {
         });
 
         this.#leafIds = this.#rootIds.flatMap((rootId) => this.#leafDescendantsMap.get(rootId) || []);
+        this.#summaryHelper = createTreeSelectionSummary(this.tree);
     }
 
     #sameSelection(a = [], b = []) {
@@ -441,33 +454,11 @@ export class TreePickerField extends LitElement {
 
     get #summary() {
         const selectedIds = this.open ? this.draftValue : this.#selectedLeafIds(this.value);
-        const selectedCount = selectedIds.length;
-
-        if (selectedCount === 0) {
-            return {
-                text: this.placeholder,
-                placeholder: true,
-            };
-        }
-
-        if (selectedCount === this.#leafIds.length && this.#leafIds.length > 0) {
-            return {
-                text: 'All selected',
-                placeholder: false,
-            };
-        }
-
-        if (selectedCount === 1) {
-            const label = this.#nodeMap.get(selectedIds[0])?.label || selectedIds[0];
-            return {
-                text: label,
-                placeholder: false,
-            };
-        }
+        const text = this.#summaryHelper.summaryForSelectedLeafIds(selectedIds, this.placeholder || 'Select');
 
         return {
-            text: `${selectedCount} selected`,
-            placeholder: false,
+            text,
+            placeholder: selectedIds.length === 0,
         };
     }
 
@@ -518,7 +509,12 @@ export class TreePickerField extends LitElement {
 
         return html`
             <div class="popover-content">
-                <sp-search @input=${this.#handleSearchInput} placeholder="Search" value="${this.searchQuery}"></sp-search>
+                <sp-search
+                    name="tree-picker-search"
+                    @input=${this.#handleSearchInput}
+                    placeholder="Search"
+                    value="${this.searchQuery}"
+                ></sp-search>
                 <div class="tree-list">
                     ${this.#rows.length === 0
                         ? html`<span class="empty-state">No matches</span>`
@@ -539,7 +535,7 @@ export class TreePickerField extends LitElement {
                 slot="trigger"
                 class="trigger"
                 type="button"
-                aria-label=${this.label || this.placeholder}
+                aria-label=${this.label || this.placeholder || 'Select'}
                 ?disabled=${this.#triggerDisabled}
             >
                 <span class="trigger-text ${summary.placeholder ? 'is-placeholder' : ''}">${summary.text}</span>
@@ -555,7 +551,7 @@ export class TreePickerField extends LitElement {
             ${this.label ? html`<span class="field-label">${this.label}</span>` : nothing}
             ${this.readonly
                 ? html`
-                      <div class="trigger" aria-label=${this.label || this.placeholder}>
+                      <div class="trigger" aria-label=${this.label || this.placeholder || 'Select'}>
                           <span class="trigger-text ${summary.placeholder ? 'is-placeholder' : ''}">${summary.text}</span>
                           <sp-icon-chevron-down size="s" class="trigger-icon"></sp-icon-chevron-down>
                       </div>

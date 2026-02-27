@@ -1,14 +1,24 @@
 import { LitElement, html, nothing } from 'lit';
+import { createTreeSelectionSummary } from '../common/tree-selection-summary.js';
+import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { styles } from './mas-settings-table.css.js';
-import { SettingsStore } from './settings-store.js';
+import { settingsEmptyStateIcon } from '../icons.js';
+import { tableStyles } from './mas-settings-table.css.js';
+import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
 import './mas-setting-item.js';
+
+const createTemplateSummary = (tree) => {
+    const { summaryText } = createTreeSelectionSummary(tree);
+    return (templateIds = [], placeholder = '-') => summaryText(templateIds, placeholder);
+};
+
+const formatTemplateSelection = createTemplateSummary(TEMPLATE_TREE_DATA);
 
 /**
  * Settings table component for expanded fragment settings view.
  */
 export class MasSettingsTable extends LitElement {
-    static styles = [styles];
+    static styles = [tableStyles];
 
     static properties = {
         loading: { type: Boolean, attribute: false },
@@ -21,7 +31,7 @@ export class MasSettingsTable extends LitElement {
         this.loading = false;
         this.sortBy = 'label';
         this.sortDirection = 'asc';
-        this.settings = SettingsStore;
+        this.settings = Store.settings;
         this.reactiveController = new ReactiveController(this, [
             this.settings.rows,
             this.settings.loading,
@@ -32,6 +42,16 @@ export class MasSettingsTable extends LitElement {
     }
 
     reactiveController;
+
+    #dispatchEvent(type, detail) {
+        this.dispatchEvent(
+            new CustomEvent(type, {
+                detail,
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
 
     #handleToggleExpand = (event) => {
         this.settings.toggleExpanded(event.detail.id);
@@ -46,6 +66,41 @@ export class MasSettingsTable extends LitElement {
         this.sortDirection = sortDirection;
     };
 
+    #handleAddOverride = (event) => {
+        this.#dispatchEvent('setting-add-override', { id: event.currentTarget.dataset.rowId });
+    };
+
+    #handleOverrideAction = (event) => {
+        const { action, rowId, overrideId } = event.currentTarget.dataset;
+        this.#dispatchEvent(action, {
+            id: overrideId,
+            parentId: rowId,
+            isOverride: true,
+        });
+    };
+
+    #handleToggleOverrideValue = (event) => {
+        const { rowId, overrideId } = event.currentTarget.dataset;
+        this.settings.toggleOverride(rowId, overrideId, event.currentTarget.checked);
+    };
+
+    #formatOverrideLocales(locales = []) {
+        if (!locales.length) return '-';
+        return locales.join(', ');
+    }
+
+    #normalizeDisplayValue(value) {
+        if (value === true) return 'On';
+        if (value === false) return 'Off';
+        if (`${value}` === '' || `${value}` === 'undefined') return '-';
+        return `${value}`;
+    }
+
+    #normalizeTags(tags = []) {
+        if (!tags.length) return [];
+        return tags.map((tag) => tag?.title || tag?.id || `${tag}`);
+    }
+
     get sortedRows() {
         const rows = [...this.settings.rows.get()];
         const direction = this.sortDirection === 'desc' ? -1 : 1;
@@ -59,6 +114,107 @@ export class MasSettingsTable extends LitElement {
         });
     }
 
+    get renderedRows() {
+        return this.sortedRows.map((rowStore) => {
+            const row = rowStore.value;
+            const overrides = row.overrides || [];
+            return {
+                key: row.id,
+                store: rowStore,
+                row,
+                expanded: this.settings.isExpanded(row.id),
+                overrides,
+            };
+        });
+    }
+
+    overridePanelTemplate(renderedRow) {
+        if (!renderedRow.expanded) return nothing;
+        const hasOverrides = renderedRow.overrides.length > 0;
+
+        return html`
+            <sp-table-row class="override-panel-row" value=${`${renderedRow.row.id}:overrides`}>
+                <sp-table-cell class="expand-column"></sp-table-cell>
+                <sp-table-cell class="override-panel-content">
+                    <div class="override-panel-toolbar">
+                        <sp-action-button size="m" data-row-id=${renderedRow.row.id} @click=${this.#handleAddOverride}>
+                            <sp-icon-add slot="icon"></sp-icon-add>
+                            Add override
+                        </sp-action-button>
+                    </div>
+                    ${hasOverrides
+                        ? html`
+                              <sp-table class="override-table" size="m">
+                                  <sp-table-head>
+                                      <sp-table-head-cell class="override-locale-column">Locale</sp-table-head-cell>
+                                      <sp-table-head-cell class="override-template-column">Template</sp-table-head-cell>
+                                      <sp-table-head-cell>Local value</sp-table-head-cell>
+                                      <sp-table-head-cell class="override-tags-column">Tag</sp-table-head-cell>
+                                      <sp-table-head-cell class="override-actions-column">Actions</sp-table-head-cell>
+                                  </sp-table-head>
+                                  <sp-table-body>
+                                      ${renderedRow.overrides.map((override) => {
+                                          const tags = this.#normalizeTags(override.tags || []);
+                                          return html`
+                                              <sp-table-row class="override-table-row" value=${override.id}>
+                                                  <sp-table-cell class="override-locale-column">
+                                                      ${this.#formatOverrideLocales(override.locales)}
+                                                  </sp-table-cell>
+                                                  <sp-table-cell class="override-template-column">
+                                                      ${formatTemplateSelection(override.templateIds, '-')}
+                                                  </sp-table-cell>
+                                                  <sp-table-cell class="override-value-cell">
+                                                      ${override.value === true || override.value === false
+                                                          ? html`<sp-switch
+                                                                size="m"
+                                                                data-row-id=${renderedRow.row.id}
+                                                                data-override-id=${override.id}
+                                                                .checked=${Boolean(override.value)}
+                                                                @change=${this.#handleToggleOverrideValue}
+                                                            ></sp-switch>`
+                                                          : nothing}
+                                                      <span>${this.#normalizeDisplayValue(override.value)}</span>
+                                                  </sp-table-cell>
+                                                  <sp-table-cell class="override-tags-cell override-tags-column">
+                                                      ${tags.length
+                                                          ? tags.map((tag) => html`<sp-tag size="s">${tag}</sp-tag>`)
+                                                          : '-'}
+                                                  </sp-table-cell>
+                                                  <sp-table-cell class="override-actions-cell override-actions-column">
+                                                      <sp-action-menu quiet size="m" placement="bottom-end">
+                                                          <sp-icon-more slot="icon"></sp-icon-more>
+                                                          <sp-menu-item
+                                                              data-action="setting-edit"
+                                                              data-row-id=${renderedRow.row.id}
+                                                              data-override-id=${override.id}
+                                                              @click=${this.#handleOverrideAction}
+                                                          >
+                                                              <sp-icon-edit slot="icon"></sp-icon-edit>
+                                                              Edit setting
+                                                          </sp-menu-item>
+                                                          <sp-menu-item
+                                                              data-action="setting-delete"
+                                                              data-row-id=${renderedRow.row.id}
+                                                              data-override-id=${override.id}
+                                                              @click=${this.#handleOverrideAction}
+                                                          >
+                                                              <sp-icon-delete slot="icon"></sp-icon-delete>
+                                                              Delete
+                                                          </sp-menu-item>
+                                                      </sp-action-menu>
+                                                  </sp-table-cell>
+                                              </sp-table-row>
+                                          `;
+                                      })}
+                                  </sp-table-body>
+                              </sp-table>
+                          `
+                        : nothing}
+                </sp-table-cell>
+            </sp-table-row>
+        `;
+    }
+
     get loadingTemplate() {
         if (!this.loading && !this.settings.loading.get()) return nothing;
         return html`
@@ -69,24 +225,10 @@ export class MasSettingsTable extends LitElement {
         `;
     }
 
-    get emptyTemplate() {
-        if (this.loading || this.settings.loading.get() || this.settings.error.get() || this.settings.rows.get().length > 0) return nothing;
+    get emptyStateContentTemplate() {
         return html`
             <div id="empty-state">
-                <svg
-                    class="empty-state-icon"
-                    width="96"
-                    height="96"
-                    viewBox="0 0 86 60"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                >
-                    <path
-                        d="M48.3984 0C59.8005 0.000264534 68.9875 9.26586 69.665 20.7988C78.7519 22.271 85.5995 30.4497 85.5996 40.1807C85.5996 50.9332 77.2322 59.7998 66.7295 59.7998C66.6998 59.7998 66.6741 59.7994 66.6543 59.7988C66.6481 59.7989 66.6419 59.7998 66.6357 59.7998H13.9287C13.8424 59.7998 13.7573 59.7928 13.6738 59.7822C6.0076 59.529 1.35973e-05 52.9961 0 45.1309C0 39.0767 3.54866 33.8386 8.67188 31.6113C8.5926 30.9557 8.54883 30.2846 8.54883 29.5996C8.5489 20.4499 15.6727 12.8828 24.6406 12.8828C26.0812 12.8828 27.476 13.0831 28.8027 13.4531C32.0422 5.58222 39.5594 0 48.3984 0ZM48.3984 4C40.7472 4 34.1852 9.23211 31.9248 16.584C31.7578 17.1272 31.3675 17.5742 30.8516 17.8125C30.3357 18.0507 29.7425 18.058 29.2207 17.833C27.8047 17.2223 26.2609 16.8828 24.6406 16.8828C18.0438 16.8828 12.5489 22.4935 12.5488 29.5996C12.5488 30.5834 12.667 31.5473 12.876 32.4912C13.1046 33.5236 12.4902 34.5558 11.4736 34.8467C7.21448 36.0651 4 40.1637 4 45.1309C4.00001 51.0418 8.5235 55.6961 13.9629 55.79C14.0152 55.7909 14.0669 55.795 14.1182 55.7998H66.6016C66.6162 55.7996 66.6308 55.7978 66.6455 55.7979C66.6758 55.798 66.7022 55.7983 66.7207 55.7988C66.7264 55.799 66.7322 55.7986 66.7373 55.7988C74.8655 55.7946 81.5996 48.887 81.5996 40.1807C81.5995 31.7791 75.3213 25.0462 67.5791 24.5889C66.5068 24.5256 65.6759 23.6267 65.6973 22.5527C65.7022 22.305 65.707 22.3002 65.707 22.166C65.7069 12.0506 57.8767 4.00028 48.3984 4Z"
-                        fill="currentColor"
-                    />
-                </svg>
+                ${settingsEmptyStateIcon}
                 <div class="empty-state-copy">
                     <p class="empty-state-title">No settings created yet</p>
                     <p class="empty-state-description">Click the button above to begin creating a setting list.</p>
@@ -95,9 +237,19 @@ export class MasSettingsTable extends LitElement {
         `;
     }
 
+    get emptyStateRowTemplate() {
+        if (this.loading || this.settings.loading.get() || this.settings.error.get() || this.renderedRows.length > 0)
+            return nothing;
+        return html`
+            <sp-table-row class="empty-state-row" value="empty-state">
+                <sp-table-cell class="expand-column"></sp-table-cell>
+                <sp-table-cell class="empty-state-content">${this.emptyStateContentTemplate}</sp-table-cell>
+            </sp-table-row>
+        `;
+    }
+
     get tableTemplate() {
-        const rows = this.sortedRows;
-        if (!rows.length) return nothing;
+        const rows = this.renderedRows;
 
         return html`
             <sp-table id="settings-table" size="m">
@@ -121,30 +273,29 @@ export class MasSettingsTable extends LitElement {
                     <sp-table-head-cell>Status</sp-table-head-cell>
                     <sp-table-head-cell>Actions</sp-table-head-cell>
                 </sp-table-head>
-                <sp-table-body>
-                    ${rows.map(
-                        (rowStore) => html`
-                            <mas-setting-item
-                                .store=${rowStore}
-                                .expanded=${this.settings.isExpanded(rowStore.value.id)}
-                                @setting-toggle-expand=${this.#handleToggleExpand}
-                                @setting-toggle-value=${this.#handleToggleValue}
-                            ></mas-setting-item>
-                        `,
-                    )}
+                <sp-table-body
+                    @setting-toggle-expand=${this.#handleToggleExpand}
+                    @setting-toggle-value=${this.#handleToggleValue}
+                >
+                    ${rows.length
+                        ? rows.map(
+                              (renderedRow) => html`
+                                  <mas-setting-item
+                                      .store=${renderedRow.store}
+                                      .expanded=${renderedRow.expanded}
+                                  ></mas-setting-item>
+                                  ${this.overridePanelTemplate(renderedRow)}
+                              `,
+                          )
+                        : nothing}
+                    ${this.emptyStateRowTemplate}
                 </sp-table-body>
             </sp-table>
         `;
     }
 
     render() {
-        return html`
-            <div id="settings-content">
-                ${this.tableTemplate}
-                ${this.emptyTemplate}
-                ${this.loadingTemplate}
-            </div>
-        `;
+        return html` <div id="settings-content">${this.tableTemplate} ${this.loadingTemplate}</div> `;
     }
 }
 

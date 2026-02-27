@@ -1,81 +1,16 @@
 import { LitElement, css, html, nothing } from 'lit';
 import Store from '../store.js';
-import { PAGE_NAMES } from '../constants.js';
+import { PAGE_NAMES, QUICK_ACTION } from '../constants.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
-import { SettingsStore } from './settings-store.js';
 import './mas-settings-table.js';
+import '../mas-quick-actions.js';
+import '../mas-locale-picker.js';
 import '../aem/aem-tag-picker-field.js';
 import '../common/fields/tree-picker-field.js';
-
-const TEMPLATE_TREE_TEST_DATA = [
-    { id: 'blade', label: 'Blade' },
-    {
-        id: 'catalog-group',
-        label: 'Catalog',
-        children: [
-            { id: 'catalog', label: 'Catalog' },
-            { id: 'comp-chart', label: 'Comp chart' },
-            { id: 'countdown-timer', label: 'Countdown timer' },
-            { id: 'fries', label: 'Fries' },
-            { id: 'catalog-mini', label: 'Mini' },
-            { id: 'catalog-special-offers', label: 'Special offers' },
-            { id: 'catalog-other', label: 'Other' },
-        ],
-    },
-    {
-        id: 'gnav-bar-group',
-        label: 'Gnav bar',
-        children: [
-            { id: 'gnav-bar', label: 'Gnav bar' },
-            { id: 'gnav-bar-catalog', label: 'Gnav bar' },
-            { id: 'gnav-bar-mini-comp-chart', label: 'Gnav bar' },
-            { id: 'gnav-bar-plans', label: 'Gnav bar' },
-            { id: 'gnav-bar-special-offers', label: 'Gnav bar' },
-        ],
-    },
-    {
-        id: 'global-group',
-        label: 'Global',
-        children: [
-            { id: 'marquee', label: 'Marquee' },
-            { id: 'modal', label: 'Modal' },
-            { id: 'promo-bar', label: 'Promo bar' },
-            {
-                id: 'merch-card-group',
-                label: 'Merch card',
-                children: [
-                    { id: 'merch-card-badge-banner', label: 'Merch card' },
-                    { id: 'merch-card-catalog', label: 'Merch card' },
-                    { id: 'merch-card-gnav', label: 'Merch card' },
-                    { id: 'merch-card-mini-compare-chart', label: 'Merch card' },
-                    { id: 'merch-card-plans', label: 'Merch card' },
-                    { id: 'merch-card-product', label: 'Merch card' },
-                    { id: 'merch-card-segment', label: 'Merch card' },
-                    { id: 'merch-card-special-offers', label: 'Merch card' },
-                ],
-            },
-        ],
-    },
-    { id: 'homepage-pod', label: 'Homepage pod' },
-    { id: 'mini', label: 'Mini' },
-    { id: 'mpp-promo-element', label: 'MPP Promo element' },
-    {
-        id: 'plans-group',
-        label: 'Plans',
-        children: [
-            { id: 'plans', label: 'Plans' },
-            { id: 'simplified-pricing-express', label: 'Simplified pricing Express' },
-            { id: 'special-offers', label: 'Special offers' },
-            { id: 'sticky-banner', label: 'Sticky banner' },
-            { id: 'suggested', label: 'Suggested' },
-            { id: 'terms-and-conditions', label: 'Terms & Conditions' },
-        ],
-    },
-    { id: 'try-buy-widget', label: 'Try buy widget' },
-    { id: 'twp-subscription-panel', label: 'TwP Subscription panel' },
-    { id: 'other', label: 'Other' },
-];
+import '../common/fields/quantity-select.js';
+import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
+import { SETTING_NAME_DEFINITIONS, getSettingDefaultValue, getSettingNameDefinition } from './setting-name-map.js';
 
 class MasSettings extends LitElement {
     static styles = css`
@@ -83,6 +18,14 @@ class MasSettings extends LitElement {
             display: block;
             box-sizing: border-box;
             padding: 32px;
+
+            --mod-table-border-radius: 0;
+        }
+
+        :host *,
+        :host *::before,
+        :host *::after {
+            box-sizing: border-box;
         }
 
         #header {
@@ -108,37 +51,47 @@ class MasSettings extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 20px;
-            min-width: 500px;
-            max-width: 500px;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .override-dialog {
+            width: 508px;
+            max-width: 100%;
+            border-radius: 16px;
+        }
+
+        sp-underlay:not([open]) + sp-dialog.override-dialog {
+            display: none;
+        }
+
+        sp-underlay + sp-dialog.override-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 508px;
+            max-width: calc(100vw - 32px);
+            border-radius: 16px;
+            background: var(--spectrum-white, #ffffff);
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
         }
 
         .settings-dialog-layout sp-textfield,
         .settings-dialog-layout sp-picker,
+        .settings-dialog-layout mas-locale-picker,
         .settings-dialog-layout tree-picker-field,
+        .settings-dialog-layout quantity-select-field,
         .settings-dialog-layout aem-tag-picker-field,
         .settings-form-card sp-textfield,
         .settings-form-card sp-picker,
+        .settings-form-card mas-locale-picker,
         .settings-form-card tree-picker-field,
+        .settings-form-card quantity-select-field,
         .settings-form-card aem-tag-picker-field {
             width: 100%;
-        }
-
-        .value-definition {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .value-type-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .value-type-button[variant='accent'] {
-            --spectrum-button-m-textonly-fill-background-color-default: var(--spectrum-gray-900);
-            --spectrum-button-m-textonly-fill-text-color-default: var(--spectrum-white);
         }
 
         .override-conflict {
@@ -150,6 +103,11 @@ class MasSettings extends LitElement {
             background: var(--spectrum-red-100);
         }
 
+        .override-conflict span {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
         .override-conflict-title {
             display: flex;
             align-items: center;
@@ -158,40 +116,45 @@ class MasSettings extends LitElement {
             font-weight: 700;
         }
 
-        .confirm-dialog-layout {
-            min-width: 420px;
-            max-width: 420px;
+        .override-actions {
             display: flex;
-            flex-direction: column;
-            gap: 16px;
+            justify-content: flex-end;
+            gap: 12px;
         }
 
-        .confirm-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .confirm-header h3 {
+        .confirm-title {
             margin: 0;
             line-height: 1.3;
             font-size: 22px;
         }
 
-        .confirm-copy {
-            margin: 0;
+        .confirm-title.with-icon {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .confirm-body {
+            margin: 16px 0 0 0;
             font-size: 16px;
             line-height: 1.5;
             color: var(--spectrum-alias-content-color-default);
         }
 
         .settings-form-card {
-            width: 468px;
+            width: min(680px, 100%);
             box-sizing: border-box;
             padding: 0;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 16px;
+        }
+
+        .settings-editor-page {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            width: min(920px, 100%);
         }
     `;
 
@@ -209,12 +172,11 @@ class MasSettings extends LitElement {
 
     reactiveController = new ReactiveController(this, [
         Store.search,
-        Store.filters,
         Store.page,
         Store.settings.fragmentId,
         Store.settings.creating,
-        SettingsStore.rows,
-        SettingsStore.loading,
+        Store.settings.rows,
+        Store.settings.loading,
     ]);
 
     constructor() {
@@ -247,24 +209,33 @@ class MasSettings extends LitElement {
         return Store.page.get() === PAGE_NAMES.SETTINGS;
     }
 
+    get isSettingsEditorPage() {
+        return Store.page.get() === PAGE_NAMES.SETTINGS_EDITOR;
+    }
+
+    get isSettingsPage() {
+        return this.isSettingsListPage || this.isSettingsEditorPage;
+    }
+
     get isCreateMode() {
         return this.isCreating;
     }
 
     get isSettingsFormPage() {
-        return this.isSettingsListPage && (this.isCreateMode || Boolean(this.fragmentId));
+        return this.isSettingsEditorPage && (this.isCreateMode || Boolean(this.fragmentId));
     }
 
     get isSettingsFormReady() {
         if (!this.isSettingsFormPage) return false;
         if (this.isCreateMode) return true;
-        if (SettingsStore.loading.get()) return false;
-        return Boolean(this.currentSettingRow);
+        if (this.currentSettingRow) return true;
+        if (Store.settings.loading.get() && this.formRouteId === this.fragmentId) return true;
+        return false;
     }
 
     get currentSettingRow() {
         if (!this.fragmentId || this.isCreateMode) return null;
-        return SettingsStore.getRowStore(this.fragmentId)?.value || null;
+        return Store.settings.getRowStore(this.fragmentId)?.value || null;
     }
 
     update(changedProperties) {
@@ -283,12 +254,12 @@ class MasSettings extends LitElement {
 
     #loadSettings() {
         const surface = this.surface;
-        if (this.aem) SettingsStore.setAem(this.aem);
-        if (!this.aem) SettingsStore.initAem(this.bucket, this.baseUrl);
-        const aem = SettingsStore.aem;
+        if (this.aem) Store.settings.setAem(this.aem);
+        if (!this.aem) Store.settings.initAem(this.bucket, this.baseUrl);
+        const aem = Store.settings.aem;
         if (surface === this.loadedSurface && aem === this.#loadedAem) return;
 
-        SettingsStore.loadSurface(surface);
+        Store.settings.loadSurface(surface);
         this.loadedSurface = surface;
         this.#loadedAem = aem;
     }
@@ -300,9 +271,9 @@ class MasSettings extends LitElement {
             description: '',
             templateIds: [],
             tags: [],
-            valueType: 'boolean',
-            value: true,
-            locale: '',
+            valueType: '',
+            value: '',
+            locales: [],
         };
     }
 
@@ -313,7 +284,8 @@ class MasSettings extends LitElement {
     }
 
     #normalizedForm(form) {
-        const valueType = form.valueType || 'boolean';
+        const definition = getSettingNameDefinition(form.name);
+        const valueType = definition ? definition.valueType : form.valueType;
         const value = valueType === 'boolean' ? Boolean(form.value) : `${form.value || ''}`;
         return {
             label: `${form.label || ''}`,
@@ -323,18 +295,13 @@ class MasSettings extends LitElement {
             tags: [...form.tags],
             valueType,
             value,
-            locale: `${form.locale || ''}`,
+            locales: [...(form.locales || [])].sort(),
         };
     }
 
     get hasUnsavedChanges() {
         if (!this.isSettingsFormPage) return false;
         return JSON.stringify(this.#normalizedForm(this.form)) !== JSON.stringify(this.#normalizedForm(this.formBaseline));
-    }
-
-    #valueTypeFromValue(value) {
-        if (value === true || value === false) return 'boolean';
-        return 'text';
     }
 
     #setFormField(field, value) {
@@ -344,8 +311,63 @@ class MasSettings extends LitElement {
         };
     }
 
+    get settingDefinition() {
+        return getSettingNameDefinition(this.form.name);
+    }
+
+    get formValueType() {
+        if (this.dialog?.type === 'override') return this.form.valueType;
+        if (this.settingDefinition) return this.settingDefinition.valueType;
+        return this.currentSettingRow?.valueType || this.form.valueType;
+    }
+
+    get valueEditorType() {
+        if (this.dialog?.type === 'override') {
+            if (this.settingDefinition?.editor === 'quantity-select') return 'quantity-select';
+            return this.formValueType === 'boolean' ? 'boolean' : 'text';
+        }
+        if (this.settingDefinition?.editor) return this.settingDefinition.editor;
+        if (!this.isCreateMode && this.formValueType) {
+            return this.formValueType === 'boolean' ? 'boolean' : 'text';
+        }
+        return '';
+    }
+
+    #setOverrideEditForm(row, override) {
+        const settingDefinition = getSettingNameDefinition(row.name);
+        const valueType = settingDefinition ? settingDefinition.valueType : row.valueType;
+        this.dialog = { type: 'override', mode: 'edit', rowId: row.id, overrideId: override.id };
+        this.form = {
+            label: row.label,
+            name: row.name,
+            description: row.description,
+            templateIds: [...(override.templateIds || [])],
+            tags: [...(override.tags || [])],
+            valueType,
+            value: override.value,
+            locales: [...(override.locales || [])],
+        };
+        this.formBaseline = structuredClone(this.form);
+    }
+
+    #setTopLevelFormFromRow(row) {
+        this.dialog = null;
+        this.form = {
+            label: row.label,
+            name: row.name,
+            description: row.description,
+            templateIds: [...row.templateIds],
+            tags: [...this.#getRowTags(row)],
+            valueType: row.valueType || '',
+            value: row.value,
+            locales: [],
+        };
+        this.formBaseline = structuredClone(this.form);
+        this.formRouteId = row.id;
+    }
+
     #syncFormFromRoute() {
-        if (!this.isSettingsListPage) {
+        if (!this.isSettingsPage) {
             this.formRouteId = null;
             return;
         }
@@ -357,6 +379,10 @@ class MasSettings extends LitElement {
         }
 
         if (this.isCreateMode) {
+            if (this.isSettingsListPage) {
+                Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
+                return;
+            }
             if (this.formRouteId === 'create') return;
             this.dialog = null;
             this.form = this.#getDefaultForm();
@@ -372,50 +398,153 @@ class MasSettings extends LitElement {
         if (fragmentId === this.formRouteId) return;
 
         const row = this.currentSettingRow;
-        if (!row) return;
+        if (row) {
+            if (this.isSettingsListPage) {
+                Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
+                return;
+            }
+            this.#setTopLevelFormFromRow(row);
+            return;
+        }
 
-        this.dialog = null;
-        this.form = {
-            label: row.label,
-            name: row.name,
-            description: row.description,
-            templateIds: [...row.templateIds],
-            tags: [...this.#getRowTags(row)],
-            valueType: row.valueType || this.#valueTypeFromValue(row.value),
-            value: row.value,
-            locale: '',
-        };
-        this.formBaseline = structuredClone(this.form);
+        const overrideContext = Store.settings.getOverrideContext(fragmentId);
+        if (!overrideContext) return;
+        if (this.isSettingsEditorPage) {
+            Store.page.set(PAGE_NAMES.SETTINGS);
+            return;
+        }
+        Store.settings.ensureExpanded(overrideContext.row.id);
+        this.#setOverrideEditForm(overrideContext.row, overrideContext.override);
         this.formRouteId = fragmentId;
     }
 
     #handleCreateSetting = () => {
         Store.settings.fragmentId.set(null);
         Store.settings.creating.set(true);
+        Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
     };
 
-    #handleEditSettingDialog = ({ detail: { id } }) => {
+    #handleEditSettingDialog = ({ detail: { id, parentId, isOverride } }) => {
+        if (isOverride) {
+            Store.settings.creating.set(false);
+            Store.settings.fragmentId.set(id);
+            return;
+        }
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(id);
+        Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
     };
 
     #handleAddOverrideDialog = ({ detail: { id } }) => {
-        const row = SettingsStore.getRowStore(id).value;
+        const row = Store.settings.getRowStore(id).value;
+        const settingDefinition = getSettingNameDefinition(row.name);
+        const valueType = settingDefinition ? settingDefinition.valueType : row.valueType;
         this.dialog = { type: 'override', rowId: id };
         this.form = {
             label: row.label,
             name: row.name,
             description: row.description,
-            templateIds: [...row.templateIds],
+            templateIds: [],
             tags: [],
-            valueType: row.valueType || this.#valueTypeFromValue(row.value),
+            valueType,
             value: row.value,
-            locale: '',
+            locales: [],
         };
     };
 
+    #buildConfirmDialogConfig(action, rowId, overrideId = null) {
+        const row = Store.settings.getRowStore(rowId).value;
+        const settingLabel = row.label;
+
+        if (action === 'duplicate') {
+            return {
+                title: 'Duplicate this setting?',
+                body: [
+                    `Are you sure you want to duplicate '${settingLabel}'?`,
+                    'A new draft setting will be created with the same configuration.',
+                ],
+                confirmLabel: 'Duplicate',
+                showIcon: true,
+                variant: 'primary',
+            };
+        }
+
+        if (action === 'duplicate-override') {
+            const override = row.overrides.find((item) => item.id === overrideId);
+            const localeLabel = override.locales?.length ? ` (${override.locales.join(', ')})` : '';
+            return {
+                title: 'Duplicate this setting?',
+                body: [
+                    `Are you sure you want to duplicate '${settingLabel}${localeLabel}'?`,
+                    'A new draft setting will be created with the same configuration.',
+                ],
+                confirmLabel: 'Duplicate',
+                showIcon: true,
+                variant: 'primary',
+            };
+        }
+
+        if (action === 'delete-override') {
+            const override = row.overrides.find((item) => item.id === overrideId);
+            const localeLabel = override.locales?.length ? override.locales.join(', ') : override.locale;
+            return {
+                title: 'Delete this setting override?',
+                body: [
+                    `Are you sure you want to delete '${settingLabel} (${localeLabel})'?`,
+                    'This action cannot be undone, and the override will be permanently removed.',
+                ],
+                confirmLabel: 'Delete',
+                showIcon: false,
+                variant: 'negative',
+            };
+        }
+
+        if (action === 'publish') {
+            return {
+                title: 'Publish this setting?',
+                body: [
+                    `Are you sure you want to publish '${settingLabel}'?`,
+                    'Once published, these changes will be applied to the selected cards. Please note that it may take up to 15 minutes for the updates to appear.',
+                ],
+                confirmLabel: 'Publish',
+                showIcon: true,
+                variant: 'primary',
+            };
+        }
+
+        if (action === 'unpublish') {
+            return {
+                title: 'Unpublish this setting?',
+                body: [
+                    `Are you sure you want to unpublish '${settingLabel}'?`,
+                    'This will remove the setting from all associated cards. It may take up to 15 minutes for the changes to take effect.',
+                ],
+                confirmLabel: 'Unpublish',
+                showIcon: true,
+                variant: 'primary',
+            };
+        }
+
+        return {
+            title: 'Delete this setting?',
+            body: [
+                `Are you sure you want to delete '${settingLabel}'?`,
+                'This action cannot be undone, and the setting will be permanently removed from all cards.',
+            ],
+            confirmLabel: 'Delete',
+            showIcon: false,
+            variant: 'negative',
+        };
+    }
+
     #openConfirmDialog(action, rowId, overrideId = null) {
-        this.dialog = { type: 'confirm', action, rowId, overrideId };
+        this.dialog = {
+            type: 'confirm',
+            action,
+            rowId,
+            overrideId,
+            config: this.#buildConfirmDialogConfig(action, rowId, overrideId),
+        };
     }
 
     #handlePublishDialog = ({ detail: { id } }) => {
@@ -431,37 +560,111 @@ class MasSettings extends LitElement {
             this.#openConfirmDialog('delete-override', parentId, id);
             return;
         }
-        const row = SettingsStore.getRowStore(id)?.value;
+        const row = Store.settings.getRowStore(id)?.value;
         if (!row) return;
-        if (row.locales.length === 0) {
+        if (row.locales.length === 0 && `${row.status || ''}`.toUpperCase() !== 'DRAFT') {
             showToast('Top-level settings cannot be deleted.', 'negative');
             return;
         }
         this.#openConfirmDialog('delete', id);
     };
 
+    #handleDuplicateDialog = ({ detail: { id, parentId, isOverride } }) => {
+        if (!isOverride) return;
+        this.#openConfirmDialog('duplicate-override', parentId, id);
+    };
+
     #handleDialogCancel = () => {
         const resetForm = this.dialog?.type === 'override';
         this.dialog = null;
         if (!resetForm) return;
+        Store.settings.fragmentId.set(null);
+        this.formRouteId = null;
         this.form = this.#getDefaultForm();
+        this.formBaseline = this.#getDefaultForm();
     };
 
+    get isOverrideSaveDisabled() {
+        if (Store.settings.loading.get()) return true;
+        if (!this.form.locales.length) return true;
+        if (Boolean(this.overrideConflict)) return true;
+        return false;
+    }
+
+    #submitOverride = async (publish = false) => {
+        if (!this.form.locales.length) {
+            showToast('Locale is required for overrides.', 'negative');
+            return;
+        }
+        if (this.overrideConflict) {
+            showToast('Conflict detected. Choose a different locale.', 'negative');
+            return;
+        }
+
+        const settingDefinition = getSettingNameDefinition(this.form.name);
+        const valueType = settingDefinition ? settingDefinition.valueType : this.form.valueType;
+        if (!valueType) {
+            showToast('Unsupported setting name.', 'negative');
+            return;
+        }
+
+        const payload = {
+            locales: [...this.form.locales],
+            templateIds: [...this.form.templateIds],
+            tags: [...this.form.tags],
+            valueType,
+            value: this.#normalizedValue(),
+            status: 'DRAFT',
+            modifiedBy: 'Current user',
+            modifiedAt: new Date().toISOString(),
+        };
+
+        let overrideId = this.dialog.overrideId;
+        const saved =
+            this.dialog.mode === 'edit'
+                ? await Store.settings.updateOverride(this.dialog.rowId, this.dialog.overrideId, payload)
+                : Boolean((overrideId = await Store.settings.addOverride(this.dialog.rowId, payload)));
+        if (!saved) return;
+
+        if (publish) {
+            const published = await Store.settings.publishOverride(overrideId);
+            if (!published) return;
+        }
+
+        this.#handleDialogCancel();
+    };
+
+    #handleOverrideSaveDraft = () => this.#submitOverride(false);
+
+    #handleOverridePublish = () => this.#submitOverride(true);
+
     #normalizedValue() {
-        if (this.form.valueType === 'boolean') return Boolean(this.form.value);
+        if (this.formValueType === 'boolean') return Boolean(this.form.value);
         return `${this.form.value || ''}`;
     }
 
     get overrideConflict() {
         if (this.dialog?.type !== 'override') return null;
-        if (!this.form.locale) return null;
-        const row = SettingsStore.getRowStore(this.dialog.rowId).value;
-        return row.overrides.find((override) => override.locale === this.form.locale) || null;
+        if (!this.form.locales.length) return null;
+        const row = Store.settings.getRowStore(this.dialog.rowId).value;
+        return (
+            row.overrides.find((override) => {
+                if (this.dialog.mode === 'edit' && override.id === this.dialog.overrideId) return false;
+                const overrideLocales = override.locales?.length
+                    ? override.locales
+                    : `${override.locale || ''}`
+                          .split(',')
+                          .map((locale) => locale.trim())
+                          .filter(Boolean);
+                return overrideLocales.some((locale) => this.form.locales.includes(locale));
+            }) || null
+        );
     }
 
     #closeSettingsFormPage() {
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
+        Store.page.set(PAGE_NAMES.SETTINGS);
         this.formRouteId = null;
         this.form = this.#getDefaultForm();
         this.formBaseline = this.#getDefaultForm();
@@ -506,6 +709,17 @@ class MasSettings extends LitElement {
             showToast('Name is required.', 'negative');
             return;
         }
+        const settingDefinition = getSettingNameDefinition(this.form.name);
+        if (this.isCreateMode && !settingDefinition) {
+            showToast('Unsupported setting name.', 'negative');
+            return;
+        }
+        const row = this.currentSettingRow;
+        const valueType = settingDefinition ? settingDefinition.valueType : row?.valueType;
+        if (!valueType) {
+            showToast('Unsupported setting name.', 'negative');
+            return;
+        }
 
         const payload = {
             label: this.form.label,
@@ -513,70 +727,91 @@ class MasSettings extends LitElement {
             description: this.form.description,
             templateIds: [...this.form.templateIds],
             tags: [...this.form.tags],
-            valueType: this.form.valueType,
+            valueType,
             value: this.#normalizedValue(),
         };
 
         if (this.isCreateMode) {
-            const created = await SettingsStore.createSetting(payload);
-            if (created) {
+            const createdId = await Store.settings.createSetting(payload);
+            if (createdId) {
                 this.formBaseline = this.#normalizedForm(this.form);
-                this.#closeSettingsFormPage();
+                Store.settings.creating.set(false);
+                Store.settings.fragmentId.set(createdId);
             }
             return;
         }
 
+        if (!row) return;
+        const updated = await Store.settings.updateSetting(row.id, payload);
+        if (updated) {
+            const refreshedRow = Store.settings.getRowStore(row.id)?.value;
+            if (refreshedRow) this.#setTopLevelFormFromRow(refreshedRow);
+        }
+    };
+
+    #handleEditorSave = () => this.#handleFormSave();
+
+    #handleEditorDuplicate = async () => {
+        const row = this.currentSettingRow;
+        this.#openConfirmDialog('duplicate', row.id);
+    };
+
+    #handleEditorPublish = () => {
         const row = this.currentSettingRow;
         if (!row) return;
-        const updated = await SettingsStore.updateSetting(row.id, payload);
-        if (updated) {
-            this.formBaseline = this.#normalizedForm(this.form);
-            this.#closeSettingsFormPage();
-        }
+        this.#openConfirmDialog('publish', row.id);
+    };
+
+    #handleEditorCancel = () => this.#handleFormCancel();
+
+    #handleEditorDelete = () => {
+        const row = this.currentSettingRow;
+        if (!row) return;
+        this.#handleDeleteDialog({
+            detail: {
+                id: row.id,
+                isOverride: false,
+            },
+        });
     };
 
     #handleDialogConfirm = async () => {
-        if (this.dialog.type === 'override') {
-            if (!this.form.locale) {
-                showToast('Locale is required for overrides.', 'negative');
-                return;
-            }
-            if (this.overrideConflict) {
-                showToast('Conflict detected. Choose a different locale.', 'negative');
-                return;
-            }
-            const created = await SettingsStore.addOverride(this.dialog.rowId, {
-                locale: this.form.locale,
-                templateIds: [...this.form.templateIds],
-                tags: [...this.form.tags],
-                valueType: this.form.valueType,
-                value: this.#normalizedValue(),
-                status: 'DRAFT',
-                modifiedBy: 'Current user',
-                modifiedAt: new Date().toISOString(),
-            });
-            if (created) this.#handleDialogCancel();
-            return;
-        }
-
         if (this.dialog.type === 'confirm') {
+            const action = this.dialog.action;
             let success = false;
-            if (this.dialog.action === 'publish') success = await SettingsStore.publishSetting(this.dialog.rowId);
-            if (this.dialog.action === 'unpublish') success = await SettingsStore.unpublishSetting(this.dialog.rowId);
-            if (this.dialog.action === 'delete') success = await SettingsStore.removeSetting(this.dialog.rowId);
-            if (this.dialog.action === 'delete-override') {
-                success = await SettingsStore.removeOverride(this.dialog.rowId, this.dialog.overrideId);
+            let duplicatedId = null;
+            if (action === 'duplicate') {
+                duplicatedId = await Store.settings.duplicateSetting(this.dialog.rowId);
+                success = Boolean(duplicatedId);
             }
-            if (success) this.#handleDialogCancel();
+            if (action === 'publish') success = await Store.settings.publishSetting(this.dialog.rowId);
+            if (action === 'unpublish') success = await Store.settings.unpublishSetting(this.dialog.rowId);
+            if (action === 'delete') success = await Store.settings.removeSetting(this.dialog.rowId);
+            if (action === 'duplicate-override') {
+                success = await Store.settings.duplicateOverride(this.dialog.rowId, this.dialog.overrideId);
+            }
+            if (action === 'delete-override') {
+                success = await Store.settings.removeOverride(this.dialog.rowId, this.dialog.overrideId);
+            }
+            if (success) {
+                this.#handleDialogCancel();
+                if (action === 'duplicate' && duplicatedId) {
+                    Store.settings.creating.set(false);
+                    Store.settings.fragmentId.set(duplicatedId);
+                }
+            }
         }
     };
 
-    #handleValueType = (valueType) => {
-        const value = valueType === 'boolean' ? Boolean(this.form.value) : `${this.form.value || ''}`;
+    #handleSettingNameChange = (event) => {
+        const name = event.target.value;
+        const settingDefinition = getSettingNameDefinition(name);
+        if (!settingDefinition) return;
         this.form = {
             ...this.form,
-            valueType,
-            value,
+            name,
+            valueType: settingDefinition.valueType,
+            value: getSettingDefaultValue(settingDefinition),
         };
     };
 
@@ -589,91 +824,47 @@ class MasSettings extends LitElement {
         this.#setFormField('templateIds', [...event.target.value]);
     };
 
-    get localeOptions() {
-        const locale = Store.filters.get().locale || 'en_US';
-        const rows = SettingsStore.rows.get();
-        const overrideLocales = rows.flatMap((rowStore) => rowStore.value.overrides.map((override) => override.locale));
-        return [...new Set([locale, ...overrideLocales])];
-    }
+    #handleOverrideLocaleChange = ({ detail }) => {
+        this.#setFormField('locales', [...detail.locales]);
+    };
+
+    #handleQuantitySelectChange = ({ detail }) => {
+        this.#setFormField('value', detail.value);
+    };
 
     get confirmDialogConfig() {
-        const row = SettingsStore.getRowStore(this.dialog.rowId).value;
-        const settingLabel = row.label;
-        if (this.dialog.action === 'delete-override') {
-            const override = row.overrides.find((item) => item.id === this.dialog.overrideId);
-            return {
-                title: 'Delete this setting override?',
-                body: [
-                    `Are you sure you want to delete '${override.label} (${override.locale})'?`,
-                    'This action cannot be undone, and the override will be permanently removed.',
-                ],
-                confirmLabel: 'Delete',
-                showIcon: false,
-                variant: 'negative',
-            };
-        }
-        if (this.dialog.action === 'publish') {
-            return {
-                title: 'Publish this setting?',
-                body: [
-                    `Are you sure you want to publish '${settingLabel}'?`,
-                    'Once published, these changes will be applied to the selected cards. Please note that it may take up to 15 minutes for the updates to appear.',
-                ],
-                confirmLabel: 'Publish',
-                showIcon: true,
-                variant: 'primary',
-            };
-        }
-        if (this.dialog.action === 'unpublish') {
-            return {
-                title: 'Unpublish this setting?',
-                body: [
-                    `Are you sure you want to unpublish '${settingLabel}'?`,
-                    'This will remove the setting from all associated cards. It may take up to 15 minutes for the changes to take effect.',
-                ],
-                confirmLabel: 'Unpublish',
-                showIcon: true,
-                variant: 'primary',
-            };
-        }
-        return {
-            title: 'Delete this setting?',
-            body: [
-                `Are you sure you want to delete '${settingLabel}'?`,
-                'This action cannot be undone, and the setting will be permanently removed from all cards.',
-            ],
-            confirmLabel: 'Delete',
-            showIcon: false,
-            variant: 'negative',
-        };
+        return this.dialog.config;
     }
 
     get valueInputTemplate() {
-        if (this.form.valueType === 'boolean') {
+        if (this.valueEditorType === 'boolean') {
             return html`
-                <sp-field-group>
-                    <sp-field-label>Value</sp-field-label>
-                    <sp-switch
-                        size="m"
-                        .checked=${Boolean(this.form.value)}
-                        @change=${(event) => this.#setFormField('value', event.target.checked)}
-                    >
-                        ${Boolean(this.form.value) ? 'On' : 'Off'}
-                    </sp-switch>
-                </sp-field-group>
+                <sp-switch
+                    size="m"
+                    .checked=${Boolean(this.form.value)}
+                    @change=${(event) => this.#setFormField('value', event.target.checked)}
+                >
+                    ${Boolean(this.form.value) ? 'On' : 'Off'}
+                </sp-switch>
             `;
         }
-        return html`
-            <sp-field-group>
-                <sp-field-label>Value</sp-field-label>
-                <sp-textfield
-                    name="setting-value"
-                    multiline
+        if (this.valueEditorType === 'quantity-select') {
+            return html`
+                <quantity-select-field
                     .value=${`${this.form.value || ''}`}
-                    @input=${(event) => this.#setFormField('value', event.target.value)}
-                    placeholder="Enter value"
-                ></sp-textfield>
-            </sp-field-group>
+                    @change=${this.#handleQuantitySelectChange}
+                ></quantity-select-field>
+            `;
+        }
+        if (!this.valueEditorType) return nothing;
+        return html`
+            <sp-textfield
+                name="setting-value"
+                multiline
+                .value=${`${this.form.value || ''}`}
+                @input=${(event) => this.#setFormField('value', event.target.value)}
+                placeholder="Enter value"
+            ></sp-textfield>
         `;
     }
 
@@ -693,19 +884,14 @@ class MasSettings extends LitElement {
 
     get addOverrideDialogTemplate() {
         if (this.dialog?.type !== 'override') return nothing;
-        const row = SettingsStore.getRowStore(this.dialog.rowId).value;
+        const row = Store.settings.getRowStore(this.dialog.rowId).value;
+        const conflict = this.overrideConflict;
         return html`
-            <sp-dialog-wrapper
-                open
-                underlay
-                .headline=${`Add override for '${row.label}'`}
-                confirm-label="Add override"
-                cancel-label="Cancel"
-                @confirm=${this.#handleDialogConfirm}
-                @cancel=${this.#handleDialogCancel}
-            >
+            <sp-underlay open @click=${this.#handleDialogCancel}></sp-underlay>
+            <sp-dialog class="override-dialog" open @click=${(event) => event.stopPropagation()}>
+                <h2 slot="heading">Add override for '${row.label}'</h2>
                 <div class="settings-dialog-layout">
-                    ${this.overrideConflict
+                    ${conflict
                         ? html`
                               <div class="override-conflict">
                                   <div class="override-conflict-title">
@@ -713,8 +899,8 @@ class MasSettings extends LitElement {
                                       <span>Conflict detected</span>
                                   </div>
                                   <span>
-                                      This override is in conflict with an existing setting '${this.overrideConflict.label}
-                                      (${this.overrideConflict.locale})'.
+                                      This override is in conflict with an existing setting '${conflict.label}
+                                      (${conflict.locale})'.
                                   </span>
                                   <span>View an existing setting or adjust your selection.</span>
                               </div>
@@ -723,7 +909,7 @@ class MasSettings extends LitElement {
                     <sp-field-group>
                         <sp-field-label>Template</sp-field-label>
                         <tree-picker-field
-                            .tree=${TEMPLATE_TREE_TEST_DATA}
+                            .tree=${TEMPLATE_TREE_DATA}
                             .value=${this.form.templateIds}
                             placeholder="Select template"
                             @change=${this.#handleTemplateChange}
@@ -731,38 +917,40 @@ class MasSettings extends LitElement {
                     </sp-field-group>
                     <sp-field-group>
                         <sp-field-label>Locale</sp-field-label>
-                        <sp-picker
-                            name="setting-override-locale"
-                            .value=${this.form.locale}
-                            @change=${(event) => this.#setFormField('locale', event.target.value)}
-                        >
-                            <sp-menu-item value="">Select locale</sp-menu-item>
-                            ${this.localeOptions.map(
-                                (locale) => html`<sp-menu-item value=${locale}>${locale.replace('_', ' (')})</sp-menu-item>`,
-                            )}
-                        </sp-picker>
+                        <mas-locale-picker
+                            surface=${this.surface}
+                            selection="checkbox"
+                            mode="region"
+                            display-value
+                            selection-label="Select locale"
+                            .locale=${this.form.locales.join(',')}
+                            @locale-changed=${this.#handleOverrideLocaleChange}
+                        ></mas-locale-picker>
                     </sp-field-group>
                     ${this.tagsTemplate}
                     <sp-field-group>
-                        <sp-field-label>Local value</sp-field-label>
-                        <div class="value-type-row">
-                            ${['boolean', 'text', 'richText', 'placeholder'].map(
-                                (type) => html`
-                                    <sp-button
-                                        size="s"
-                                        class="value-type-button"
-                                        variant=${this.form.valueType === type ? 'accent' : 'secondary'}
-                                        @click=${() => this.#handleValueType(type)}
-                                    >
-                                        ${type === 'richText' ? 'Rich text' : type.charAt(0).toUpperCase() + type.slice(1)}
-                                    </sp-button>
-                                `,
-                            )}
-                        </div>
+                        <sp-field-label>Value</sp-field-label>
                         ${this.valueInputTemplate}
                     </sp-field-group>
                 </div>
-            </sp-dialog-wrapper>
+                <sp-button slot="button" variant="secondary" @click=${this.#handleDialogCancel}>Cancel</sp-button>
+                <sp-button
+                    slot="button"
+                    variant="secondary"
+                    ?disabled=${this.isOverrideSaveDisabled}
+                    @click=${this.#handleOverrideSaveDraft}
+                >
+                    Save as draft
+                </sp-button>
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    ?disabled=${this.isOverrideSaveDisabled}
+                    @click=${this.#handleOverridePublish}
+                >
+                    Publish
+                </sp-button>
+            </sp-dialog>
         `;
     }
 
@@ -779,13 +967,11 @@ class MasSettings extends LitElement {
                 @confirm=${this.#handleDialogConfirm}
                 @cancel=${this.#handleDialogCancel}
             >
-                <div class="confirm-dialog-layout">
-                    <div class="confirm-header">
-                        ${config.showIcon ? html`<sp-icon-alert></sp-icon-alert>` : nothing}
-                        <h3>${config.title}</h3>
-                    </div>
-                    ${config.body.map((line) => html`<p class="confirm-copy">${line}</p>`)}
-                </div>
+                <h3 class=${config.showIcon ? 'confirm-title with-icon' : 'confirm-title'}>
+                    ${config.showIcon ? html`<sp-icon-alert></sp-icon-alert>` : nothing}
+                    <span>${config.title}</span>
+                </h3>
+                ${config.body.map((line) => html`<p class="confirm-body">${line}</p>`)}
             </sp-dialog-wrapper>
         `;
     }
@@ -793,40 +979,27 @@ class MasSettings extends LitElement {
     get discardConfirmationDialog() {
         if (!this.showDiscardDialog) return nothing;
         return html`
-            <sp-underlay open @click=${this.cancelDiscard}></sp-underlay>
-            <sp-dialog
+            <sp-dialog-wrapper
+                id="discard-confirmation-dialog"
                 open
-                variant="confirmation"
-                @sp-dialog-confirm=${this.discardConfirmed}
-                @sp-dialog-dismiss=${this.cancelDiscard}
+                underlay
+                variant="negative"
+                confirm-label="Discard"
+                cancel-label="Cancel"
+                @confirm=${this.discardConfirmed}
+                @cancel=${this.cancelDiscard}
             >
-                <h1 slot="heading">Confirm Discard</h1>
-                <p>Are you sure you want to discard changes? This action cannot be undone.</p>
-                <sp-button slot="button" variant="secondary" @click=${this.cancelDiscard}>Cancel</sp-button>
-                <sp-button slot="button" variant="accent" id="btn-discard-setting" @click=${this.discardConfirmed}>
-                    Discard
-                </sp-button>
-            </sp-dialog>
+                <h3 class="confirm-title">Confirm Discard</h3>
+                <p class="confirm-body">Are you sure you want to discard changes? This action cannot be undone.</p>
+            </sp-dialog-wrapper>
         `;
     }
 
     get settingsFormTemplate() {
         if (!this.isSettingsFormReady) return nothing;
 
-        const heading = this.isCreateMode ? 'Create new setting' : 'Edit setting';
-        const saveLabel = this.isCreateMode ? 'Create setting' : 'Save setting';
-
         return html`
-            <sp-dialog-wrapper
-                class="settings-editor-dialog"
-                open
-                underlay
-                .headline=${heading}
-                .confirmLabel=${saveLabel}
-                cancel-label="Cancel"
-                @confirm=${this.#handleFormSave}
-                @cancel=${this.#handleFormCancel}
-            >
+            <section id="settings-editor-page" class="settings-editor-page">
                 <div class="settings-form-card">
                     <sp-field-group>
                         <sp-field-label>Label</sp-field-label>
@@ -839,13 +1012,19 @@ class MasSettings extends LitElement {
                     </sp-field-group>
                     <sp-field-group>
                         <sp-field-label>Name *</sp-field-label>
-                        <sp-textfield
+                        <sp-picker
                             name="setting-name-page"
-                            ?readonly=${!this.isCreateMode}
                             .value=${this.form.name}
-                            placeholder="Enter name"
-                            @input=${(event) => this.#setFormField('name', event.target.value)}
-                        ></sp-textfield>
+                            placeholder="Select name"
+                            ?disabled=${!this.isCreateMode}
+                            @change=${this.#handleSettingNameChange}
+                        >
+                            ${SETTING_NAME_DEFINITIONS.map(
+                                (definition) => html`
+                                    <sp-menu-item value=${definition.name}>${definition.label}</sp-menu-item>
+                                `,
+                            )}
+                        </sp-picker>
                     </sp-field-group>
                     <sp-field-group>
                         <sp-field-label>Description *</sp-field-label>
@@ -860,33 +1039,73 @@ class MasSettings extends LitElement {
                     <sp-field-group>
                         <sp-field-label>Template</sp-field-label>
                         <tree-picker-field
-                            .tree=${TEMPLATE_TREE_TEST_DATA}
+                            .tree=${TEMPLATE_TREE_DATA}
                             .value=${this.form.templateIds}
                             placeholder="Select template"
                             @change=${this.#handleTemplateChange}
                         ></tree-picker-field>
                     </sp-field-group>
                     ${this.tagsTemplate}
-                    <div class="value-definition">
-                        <sp-field-label>Value type *</sp-field-label>
-                        <div class="value-type-row">
-                            ${['boolean', 'text', 'richText', 'placeholder'].map(
-                                (type) => html`
-                                    <sp-button
-                                        size="s"
-                                        class="value-type-button"
-                                        variant=${this.form.valueType === type ? 'accent' : 'secondary'}
-                                        @click=${() => this.#handleValueType(type)}
-                                    >
-                                        ${type === 'richText' ? 'Rich text' : type.charAt(0).toUpperCase() + type.slice(1)}
-                                    </sp-button>
-                                `,
-                            )}
-                        </div>
-                        ${this.valueInputTemplate}
-                    </div>
+                    ${this.valueEditorType
+                        ? html`
+                              <sp-field-group>
+                                  <sp-field-label>Value</sp-field-label>
+                                  ${this.valueInputTemplate}
+                              </sp-field-group>
+                          `
+                        : nothing}
                 </div>
-            </sp-dialog-wrapper>
+            </section>
+        `;
+    }
+
+    get settingsEditorActions() {
+        return [QUICK_ACTION.SAVE, QUICK_ACTION.DUPLICATE, QUICK_ACTION.PUBLISH, QUICK_ACTION.CANCEL, QUICK_ACTION.DELETE];
+    }
+
+    get disabledSettingsEditorActions() {
+        const disabled = new Set();
+        if (Store.settings.loading.get()) {
+            disabled.add(QUICK_ACTION.SAVE);
+            disabled.add(QUICK_ACTION.DUPLICATE);
+            disabled.add(QUICK_ACTION.PUBLISH);
+            disabled.add(QUICK_ACTION.CANCEL);
+            disabled.add(QUICK_ACTION.DELETE);
+            return disabled;
+        }
+        if (!this.hasUnsavedChanges) {
+            disabled.add(QUICK_ACTION.SAVE);
+            disabled.add(QUICK_ACTION.CANCEL);
+        }
+
+        const row = this.currentSettingRow;
+        if (!row) {
+            disabled.add(QUICK_ACTION.DUPLICATE);
+            disabled.add(QUICK_ACTION.PUBLISH);
+            disabled.add(QUICK_ACTION.DELETE);
+            return disabled;
+        }
+
+        const status = `${row.status || ''}`.toUpperCase();
+        if (status === 'PUBLISHED') disabled.add(QUICK_ACTION.PUBLISH);
+        const canDelete = row.locales.length > 0 || status === 'DRAFT';
+        if (!canDelete) disabled.add(QUICK_ACTION.DELETE);
+        return disabled;
+    }
+
+    get settingsEditorActionBarTemplate() {
+        if (!this.isSettingsFormReady) return nothing;
+        return html`
+            <mas-quick-actions
+                id="settings-editor-action-bar"
+                .actions=${this.settingsEditorActions}
+                .disabled=${this.disabledSettingsEditorActions}
+                @save=${this.#handleEditorSave}
+                @duplicate=${this.#handleEditorDuplicate}
+                @publish=${this.#handleEditorPublish}
+                @cancel=${this.#handleEditorCancel}
+                @delete=${this.#handleEditorDelete}
+            ></mas-quick-actions>
         `;
     }
 
@@ -918,12 +1137,14 @@ class MasSettings extends LitElement {
                 @setting-publish=${this.#handlePublishDialog}
                 @setting-unpublish=${this.#handleUnpublishDialog}
                 @setting-delete=${this.#handleDeleteDialog}
+                @setting-duplicate=${this.#handleDuplicateDialog}
             ></mas-settings-table>
         `;
     }
 
     render() {
-        return html`${this.headerTemplate}${this.tableTemplate}${this.settingsFormTemplate}${this.dialogTemplate}`;
+        return html`${this.headerTemplate}${this.tableTemplate}${this.settingsFormTemplate}${this
+            .settingsEditorActionBarTemplate}${this.dialogTemplate}`;
     }
 }
 

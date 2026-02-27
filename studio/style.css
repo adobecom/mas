@@ -91,9 +91,9 @@ sp-sidenav-item sp-icon {
     flex-direction: column;
     height: auto;
     margin-block-start: 16px;
-    margin-block-end: 20px;
+    margin-block-end: 0;
     margin-inline: 12px;
-    border-radius: 16px;
+    border-radius: 16px 16px 0 0;
     background: var(--spectrum-white);
     border: 1px solid var(--spectrum-gray-75, #f3f3f3);
     box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);

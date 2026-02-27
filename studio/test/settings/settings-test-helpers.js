@@ -1,0 +1,164 @@
+const defaultModified = {
+    by: 'Mr Bean',
+    at: '2025-10-16T11:14:00.000Z',
+};
+
+const buildValueFields = (valueType, value) => [
+    { name: 'textValue', values: valueType === 'text' ? [`${value ?? ''}`] : [] },
+    { name: 'richTextValue', values: valueType === 'richText' ? [`${value ?? ''}`] : [] },
+    { name: 'booleanValue', values: valueType === 'boolean' ? [Boolean(value)] : [] },
+];
+
+/**
+ * Creates a settings reference fragment payload.
+ * @param {object} overrides Override fields for this reference.
+ * @returns {object} Settings reference payload.
+ */
+export const createSettingReference = (overrides = {}) => {
+    const value = overrides.value ?? true;
+    const valueType = overrides.valueType || (value === true || value === false ? 'boolean' : 'text');
+    const id = overrides.id || 'setting-unknown';
+    const name = overrides.name || id;
+    const label = overrides.label || overrides.title || id;
+    const templates = overrides.templates || [];
+    const locales = overrides.locales || [];
+
+    return {
+        id,
+        title: overrides.title || label,
+        fieldName: overrides.fieldName || 'entries',
+        status: overrides.status || 'PUBLISHED',
+        modified: overrides.modified || defaultModified,
+        path: overrides.path || `/content/dam/mas/acom/settings/${id}`,
+        tags: overrides.tags || [],
+        fields: [
+            { name: 'name', values: [name] },
+            { name: 'label', values: [label] },
+            { name: 'templates', values: templates },
+            { name: 'locales', values: locales },
+            { name: 'valuetype', values: [valueType] },
+            ...buildValueFields(valueType, value),
+            ...(overrides.fields || []),
+        ],
+    };
+};
+
+/**
+ * Builds common settings references used by settings page/table tests.
+ * @returns {object[]} Settings references.
+ */
+export const createDefaultSettingsReferences = () => [
+    createSettingReference({
+        id: 'setting-show-addon',
+        title: 'Show Addon',
+        name: 'showAddon',
+        label: 'Show Addon',
+        status: 'PUBLISHED',
+        templates: [],
+        tags: [{ id: 'mas:keyword/checkout', title: 'Checkout' }],
+    }),
+    createSettingReference({
+        id: 'setting-show-plan-type',
+        title: 'Show Plan type',
+        name: 'showPlanType',
+        label: 'Show Plan type',
+        status: 'DRAFT',
+        modified: { by: 'Mr Bean', at: '2025-10-14T09:11:00.000Z' },
+        templates: ['catalog', 'mini'],
+    }),
+    createSettingReference({
+        id: 'setting-show-secure-transaction',
+        title: 'Show secure transaction',
+        name: 'showSecureTransaction',
+        label: 'Show secure transaction',
+        status: 'PUBLISHED',
+        modified: { by: 'Mr Bean', at: '2025-10-14T09:11:00.000Z' },
+        templates: ['catalog', 'plans'],
+    }),
+    createSettingReference({
+        id: 'setting-show-badge',
+        title: 'Show Badge',
+        name: 'showBadge',
+        label: 'Show badge',
+        status: 'PUBLISHED',
+        modified: { by: 'Mr Bean', at: '2025-10-13T09:11:00.000Z' },
+        templates: ['catalog', 'plans', 'mini', 'ccd-slice', 'special-offers'],
+    }),
+    createSettingReference({
+        id: 'setting-acrobat-ai-assistant',
+        title: 'Acrobat AI assistant',
+        name: 'showAcrobatAiAssistant',
+        label: 'Acrobat AI assistant',
+        status: 'PUBLISHED',
+        modified: { by: 'Mr Bean', at: '2025-10-12T10:25:00.000Z' },
+        value:
+            'Add AI Assistant to your free Reader app for US$59.88/yr. Add AI Assistant to your free Reader app for US$4.99/mo.',
+        templates: [],
+        tags: [{ id: 'mas:keyword/all', title: 'All' }],
+    }),
+];
+
+/**
+ * Creates an AEM mock that serves settings index content and records calls.
+ * @param {object} options Mock options.
+ * @param {object[]} [options.references=[]] References returned by the index.
+ * @returns {{aem: object, calls: object, state: object}} AEM mock and trackers.
+ */
+export const createSettingsIndexAemMock = ({ references = [] } = {}) => {
+    const state = {
+        references: [...references],
+    };
+    const calls = {
+        getByPath: [],
+    };
+
+    const aem = {
+        sites: {
+            cf: {
+                fragments: {
+                    getByPath: async (path, options) => {
+                        calls.getByPath.push({ path, options });
+                        return {
+                            id: 'settings-index',
+                            path,
+                            fields: [{ name: 'entries', values: state.references.map((reference) => reference.path) }],
+                            references: state.references,
+                        };
+                    },
+                },
+            },
+        },
+    };
+
+    return { aem, calls, state };
+};
+
+/**
+ * Waits until the expected number of setting rows render in the table.
+ * @param {HTMLElement} table Settings table element.
+ * @param {number} expectedCount Expected row count.
+ * @returns {Promise<void>} Resolves when the expected count is reached.
+ */
+export const waitForSettingRows = async (table, expectedCount) => {
+    let attempts = 0;
+    while (attempts < 20) {
+        await table.updateComplete;
+        const count = table.shadowRoot.querySelectorAll('mas-setting-item').length;
+        if (count === expectedCount) return;
+        attempts++;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+};
+
+/**
+ * Wraps fetch to mock AEM querybuilder tag responses.
+ * @param {Function} originalFetch Native fetch implementation.
+ * @returns {Function} Wrapped fetch implementation.
+ */
+export const createQueryBuilderFetchMock = (originalFetch) => async (input, init) => {
+    const requestUrl = typeof input === 'string' ? input : input.url;
+    if (requestUrl.includes('/bin/querybuilder.json')) {
+        return originalFetch('/test/mocks/tags.json');
+    }
+    return originalFetch(input, init);
+};

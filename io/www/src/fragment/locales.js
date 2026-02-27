@@ -470,6 +470,32 @@ export function getDefaultLocales(surface) {
 }
 
 /**
+ * Get all locales for a given surface, including default locales and region variants.
+ * @param {string} surface e.g. 'acom'
+ * @returns {{ lang: string, country: string }[]}
+ */
+export function getSurfaceLocales(surface) {
+    const locales = [];
+    const localeCodes = new Set();
+    for (const defaultLocale of getDefaultLocales(surface)) {
+        const defaultLocaleCode = getLocaleCode(defaultLocale);
+        if (!localeCodes.has(defaultLocaleCode)) {
+            locales.push({ lang: defaultLocale.lang, country: defaultLocale.country });
+            localeCodes.add(defaultLocaleCode);
+        }
+        for (const region of defaultLocale.regions ?? []) {
+            const regionLocale = { lang: defaultLocale.lang, country: region };
+            const regionLocaleCode = getLocaleCode(regionLocale);
+            if (!localeCodes.has(regionLocaleCode)) {
+                locales.push(regionLocale);
+                localeCodes.add(regionLocaleCode);
+            }
+        }
+    }
+    return locales;
+}
+
+/**
  * get region locales for a given surface and a given default locale.
  * acom: will return 'en_AU', 'en_IN' for 'en_GB', because for acom 'en_GB' is a default language.
  * ccd: will return 'en_GB', 'en_AU', 'en_IN' for 'en_US', because for ccd 'en_GB' is NOT a default language.

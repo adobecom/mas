@@ -17,8 +17,12 @@ describe('SettingStore', () => {
             { name: 'name', values: ['showSecureTransaction'] },
             { name: 'label', values: ['Show secure transaction'] },
             { name: 'description', values: ["Show/hide the security lock icon and label near the card's checkout button."] },
-            { name: 'variant', values: ['catalog'] },
-            { name: 'value', values: [true] },
+            { name: 'templates', values: ['catalog'] },
+            { name: 'tags', values: ['mas:keyword/legal'] },
+            { name: 'valuetype', values: ['boolean'] },
+            { name: 'booleanValue', values: [true] },
+            { name: 'textValue', values: [] },
+            { name: 'richTextValue', values: [] },
             { name: 'overrides', values: ['[{"id":"o1","label":"Show secure transaction","locale":"FR (FR)"}]'] },
         ],
     };
@@ -30,7 +34,7 @@ describe('SettingStore', () => {
         expect(store.value.label).to.equal('Show secure transaction');
         expect(store.value.value).to.equal(true);
         expect(store.value.templateIds).to.deep.equal(['catalog']);
-        expect(store.value.tags).to.deep.equal(['Legal']);
+        expect(store.value.tags).to.deep.equal(['mas:keyword/legal']);
         expect(store.value.overrides).to.have.length(1);
     });
 

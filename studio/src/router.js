@@ -97,6 +97,15 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.SETTINGS_EDITOR: {
+                const editor = document.querySelector('mas-settings');
+                const hasUnsavedChanges = editor && editor.hasUnsavedChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             default:
                 return { editor: null, hasChanges: false, shouldCheckUnsavedChanges: false };
         }
@@ -140,7 +149,11 @@ export class Router extends EventTarget {
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
                         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
                     }
-                    if (value !== PAGE_NAMES.SETTINGS) {
+                    if (Store.page.value === PAGE_NAMES.SETTINGS_EDITOR && value === PAGE_NAMES.SETTINGS) {
+                        Store.settings.creating.set(false);
+                        Store.settings.fragmentId.set(null);
+                    }
+                    if (value !== PAGE_NAMES.SETTINGS && value !== PAGE_NAMES.SETTINGS_EDITOR) {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
                     }

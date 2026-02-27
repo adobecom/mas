@@ -106,7 +106,7 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     SETTINGS: 'settings',
-    SETTING_EDITOR: 'setting-editor',
+    SETTINGS_EDITOR: 'settings-editor',
     CONTENT: 'content',
     VERSION: 'version',
     FRAGMENT_EDITOR: 'fragment-editor',

@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
-import { SettingsStoreModel } from '../../src/settings/settings-store.js';
+import { SettingsStore } from '../../src/settings/settings-store.js';
 import { getTemplates } from '../../src/editors/variant-picker.js';
+import { createSettingReference } from './settings-test-helpers.js';
 
 describe('Settings Store Namespace', () => {
     const templates = getTemplates().filter((template) => template.value !== 'all');
@@ -39,91 +40,68 @@ describe('Settings Store Namespace', () => {
         };
     };
 
-    const createIndexReference = (id, overrides = {}) => ({
-        id,
-        fieldName: overrides.fieldName || 'entries',
-        title: overrides.title || overrides.label || id,
-        description: overrides.description || '',
-        status: overrides.status || 'PUBLISHED',
-        modified: {
-            by: 'Mr Bean',
-            at: '2025-10-16T11:14:00.000Z',
-        },
-        tags: [],
-        path: `/content/dam/mas/sandbox/settings/${id}`,
-        fields: [
-            { name: 'name', values: [overrides.name || id] },
-            { name: 'label', values: [overrides.label || id] },
-            { name: 'templates', values: overrides.templates || ['catalog'] },
-            { name: 'locales', values: overrides.locales || [] },
-            { name: 'valuetype', values: ['boolean'] },
-            { name: 'textValue', values: [] },
-            { name: 'richTextValue', values: [] },
-            { name: 'booleanValue', values: [Boolean(overrides.value ?? true)] },
-        ],
-    });
-
     it('reuses row stores by fragment id', () => {
-        const orchestrator = new SettingsStoreModel();
-        orchestrator.setSettingFragments([createFragment('showAddon'), createFragment('showPlanType')]);
-        const firstStores = orchestrator.rows.get();
+        const store = new SettingsStore();
+        store.setSettingFragments([createFragment('showAddon'), createFragment('showPlanType')]);
+        const firstStores = store.rows.get();
         const firstRow = firstStores[0];
 
-        orchestrator.setSettingFragments([
+        store.setSettingFragments([
             createFragment('showAddon', { value: false }),
             createFragment('showPlanType', { value: true }),
         ]);
-        const secondStores = orchestrator.rows.get();
+        const secondStores = store.rows.get();
         expect(secondStores[0]).to.equal(firstRow);
         expect(secondStores[0].value.value).to.equal(false);
     });
 
     it('disposes removed rows', () => {
-        const orchestrator = new SettingsStoreModel();
-        orchestrator.setSettingFragments([createFragment('showAddon'), createFragment('showPlanType')]);
-        const removedStore = orchestrator.getRowStore('showPlanType');
+        const store = new SettingsStore();
+        store.setSettingFragments([createFragment('showAddon'), createFragment('showPlanType')]);
+        const removedStore = store.getRowStore('showPlanType');
 
-        orchestrator.setSettingFragments([createFragment('showAddon')]);
+        store.setSettingFragments([createFragment('showAddon')]);
 
         expect(removedStore.getMeta('disposed')).to.equal(true);
-        expect(orchestrator.getRowStore('showPlanType')).to.equal(null);
+        expect(store.getRowStore('showPlanType')).to.equal(null);
     });
 
     it('shows "All templates selected" when nothing is selected', () => {
-        const orchestrator = new SettingsStoreModel();
-        expect(orchestrator.formatTemplateSummary([])).to.equal('All templates selected');
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary([])).to.equal('All templates selected');
     });
 
     it('shows "All templates selected" when all templates are selected', () => {
-        const orchestrator = new SettingsStoreModel();
-        expect(orchestrator.formatTemplateSummary(allTemplateIds)).to.equal('All templates selected');
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary(allTemplateIds)).to.equal('All templates selected');
     });
 
     it('shows "All templates selected" when selected ids are invalid', () => {
-        const orchestrator = new SettingsStoreModel();
-        expect(orchestrator.formatTemplateSummary(['missing-template-id'])).to.equal('All templates selected');
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary(['missing-template-id'])).to.equal('All templates selected');
     });
 
     it('shows "All templates selected" when selected ids are empty values', () => {
-        const orchestrator = new SettingsStoreModel();
-        expect(orchestrator.formatTemplateSummary(['', null, undefined])).to.equal('All templates selected');
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary(['', null, undefined])).to.equal('All templates selected');
     });
 
     it('shows category summary when selected templates are all from one category', () => {
-        const orchestrator = new SettingsStoreModel();
-        expect(orchestrator.formatTemplateSummary(['catalog'])).to.equal('Merch card (1 selected)');
-        expect(orchestrator.formatTemplateSummary(['catalog', 'plans', 'plans'])).to.equal('Merch card (2 selected)');
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary(['catalog'])).to.equal('Merch card (1 selected)');
+        expect(store.formatTemplateSummary(['catalog', 'plans', 'plans'])).to.equal('Merch card (2 selected)');
     });
 
     it('shows count summary when selected templates span multiple categories', () => {
-        const orchestrator = new SettingsStoreModel();
-        expect(orchestrator.formatTemplateSummary([merchCardIds[0], otherTemplate.value])).to.equal('2 templates selected');
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary([merchCardIds[0], otherTemplate.value])).to.equal('2 templates selected');
     });
 
     it('toggles a setting and updates toast state', async () => {
-        const orchestrator = new SettingsStoreModel();
+        const store = new SettingsStore();
         let currentValue = true;
-        const reference = createIndexReference('setting-show-secure-transaction', {
+        const reference = createSettingReference({
+            id: 'setting-show-secure-transaction',
             name: 'showSecureTransaction',
             label: 'Show secure transaction',
             locales: [],
@@ -131,7 +109,7 @@ describe('Settings Store Namespace', () => {
             value: currentValue,
         });
 
-        orchestrator.setAem({
+        store.setAem({
             sites: {
                 cf: {
                     fragments: {
@@ -175,23 +153,25 @@ describe('Settings Store Namespace', () => {
             },
         });
 
-        await orchestrator.loadSurface('sandbox');
+        await store.loadSurface('sandbox');
 
-        await orchestrator.toggleSetting(reference.id, false);
-        const store = orchestrator.getRowStore(reference.id);
+        await store.toggleSetting(reference.id, false);
+        const rowStore = store.getRowStore(reference.id);
 
-        expect(store.value.value).to.equal(false);
-        expect(orchestrator.toast.get().message).to.contain("'Show secure transaction' is now [Off]");
+        expect(rowStore.value.value).to.equal(false);
+        expect(store.toast.get().message).to.contain("'Show secure transaction' is now [Off]");
     });
 
     it('loads settings index for surface and nests localized entries by fieldName and name', async () => {
-        const topLevel = createIndexReference('setting-show-secure-label', {
+        const topLevel = createSettingReference({
+            id: 'setting-show-secure-label',
             name: 'showSecureLabel',
             label: 'Show secure label',
             locales: [],
             templates: ['catalog', 'plans'],
         });
-        const nestedByName = createIndexReference('setting-show-secure-label-fr', {
+        const nestedByName = createSettingReference({
+            id: 'setting-show-secure-label-fr',
             name: 'showSecureLabel',
             label: 'Show secure label',
             fieldName: 'entries',
@@ -199,7 +179,8 @@ describe('Settings Store Namespace', () => {
             templates: [],
             value: false,
         });
-        const nestedByFieldName = createIndexReference('setting-show-secure-label-de', {
+        const nestedByFieldName = createSettingReference({
+            id: 'setting-show-secure-label-de',
             name: 'showSecureLabel-de',
             label: 'Show secure label',
             fieldName: 'showSecureLabel',
@@ -208,8 +189,8 @@ describe('Settings Store Namespace', () => {
             value: false,
         });
 
-        const orchestrator = new SettingsStoreModel();
-        orchestrator.setAem({
+        const store = new SettingsStore();
+        store.setAem({
             sites: {
                 cf: {
                     fragments: {
@@ -224,30 +205,80 @@ describe('Settings Store Namespace', () => {
             },
         });
 
-        await orchestrator.loadSurface('sandbox');
+        await store.loadSurface('sandbox');
 
-        const [row] = orchestrator.rows.get();
-        expect(orchestrator.rows.get().length).to.equal(1);
+        const [row] = store.rows.get();
+        expect(store.rows.get().length).to.equal(1);
         expect(row.value.name).to.equal('showSecureLabel');
         expect(row.value.locales).to.deep.equal([]);
         expect(row.value.overrides.length).to.equal(2);
         expect(row.value.overrides.map((override) => override.locale)).to.deep.equal(['fr_FR', 'de_DE']);
     });
 
+    it('returns override context by override fragment id', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'showAddon',
+            label: 'Show addon',
+            locales: [],
+        });
+        const nested = createSettingReference({
+            id: 'setting-show-addon-fr',
+            name: 'showAddon',
+            label: 'Show addon',
+            fieldName: 'entries',
+            locales: ['fr_FR'],
+        });
+
+        const store = new SettingsStore();
+        store.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async () => ({
+                            id: 'settings-index',
+                            path: '/content/dam/mas/sandbox/settings/index',
+                            fields: [{ name: 'entries', values: [topLevel.path, nested.path] }],
+                            references: [topLevel, nested],
+                        }),
+                    },
+                },
+            },
+        });
+
+        await store.loadSurface('sandbox');
+
+        const context = store.getOverrideContext('setting-show-addon-fr');
+        expect(context.row.id).to.equal('setting-show-addon');
+        expect(context.override.id).to.equal('setting-show-addon-fr');
+    });
+
+    it('ensures a row is expanded once', async () => {
+        const store = new SettingsStore();
+        store.expandedRowIds.set([]);
+
+        store.ensureExpanded('setting-show-addon');
+        store.ensureExpanded('setting-show-addon');
+
+        expect(store.expandedRowIds.get()).to.deep.equal(['setting-show-addon']);
+    });
+
     it('only keeps top-level rows with empty locales', async () => {
-        const topLevel = createIndexReference('setting-show-plan-type', {
+        const topLevel = createSettingReference({
+            id: 'setting-show-plan-type',
             name: 'showPlanType',
             label: 'Show plan type',
             locales: [],
         });
-        const nestedOnly = createIndexReference('setting-show-plan-type-fr', {
+        const nestedOnly = createSettingReference({
+            id: 'setting-show-plan-type-fr',
             name: 'showPlanType',
             label: 'Show plan type',
             locales: ['fr_FR'],
         });
 
-        const orchestrator = new SettingsStoreModel();
-        orchestrator.setAem({
+        const store = new SettingsStore();
+        store.setAem({
             sites: {
                 cf: {
                     fragments: {
@@ -262,17 +293,18 @@ describe('Settings Store Namespace', () => {
             },
         });
 
-        await orchestrator.loadSurface('sandbox');
+        await store.loadSurface('sandbox');
 
-        const [row] = orchestrator.rows.get();
-        expect(orchestrator.rows.get().length).to.equal(1);
+        const [row] = store.rows.get();
+        expect(store.rows.get().length).to.equal(1);
         expect(row.value.locales).to.deep.equal([]);
         expect(row.value.overrides.length).to.equal(1);
         expect(row.value.overrides[0].locale).to.equal('fr_FR');
     });
 
     it('does not delete top-level settings', async () => {
-        const topLevel = createIndexReference('setting-show-plan-type', {
+        const topLevel = createSettingReference({
+            id: 'setting-show-plan-type',
             name: 'showPlanType',
             label: 'Show plan type',
             locales: [],
@@ -283,8 +315,8 @@ describe('Settings Store Namespace', () => {
         let deleteCalls = 0;
         let saveCalls = 0;
 
-        const orchestrator = new SettingsStoreModel();
-        orchestrator.setAem({
+        const store = new SettingsStore();
+        store.setAem({
             sites: {
                 cf: {
                     fragments: {
@@ -313,9 +345,9 @@ describe('Settings Store Namespace', () => {
             },
         });
 
-        await orchestrator.loadSurface('sandbox');
+        await store.loadSurface('sandbox');
         const callsBeforeDelete = getByPathCalls;
-        const deleted = await orchestrator.removeSetting(topLevel.id);
+        const deleted = await store.removeSetting(topLevel.id);
 
         expect(deleted).to.equal(false);
         expect(getByPathCalls).to.equal(callsBeforeDelete);
@@ -325,13 +357,15 @@ describe('Settings Store Namespace', () => {
     });
 
     it('deletes only the targeted override', async () => {
-        const topLevel = createIndexReference('setting-show-plan-type', {
+        const topLevel = createSettingReference({
+            id: 'setting-show-plan-type',
             name: 'showPlanType',
             label: 'Show plan type',
             locales: [],
             path: '/content/dam/mas/sandbox/settings/setting-show-plan-type',
         });
-        const nested = createIndexReference('setting-show-plan-type-fr', {
+        const nested = createSettingReference({
+            id: 'setting-show-plan-type-fr',
             name: 'showPlanType',
             label: 'Show plan type',
             fieldName: 'entries',
@@ -342,8 +376,8 @@ describe('Settings Store Namespace', () => {
         let indexEntries = [topLevel.path, nested.path];
         const deletedIds = [];
 
-        const orchestrator = new SettingsStoreModel();
-        orchestrator.setAem({
+        const store = new SettingsStore();
+        store.setAem({
             sites: {
                 cf: {
                     fragments: {
@@ -366,24 +400,26 @@ describe('Settings Store Namespace', () => {
             },
         });
 
-        await orchestrator.loadSurface('sandbox');
-        const rowId = orchestrator.rows.get()[0].value.id;
-        const overrideId = orchestrator.rows.get()[0].value.overrides[0].id;
-        const removed = await orchestrator.removeOverride(rowId, overrideId);
+        await store.loadSurface('sandbox');
+        const rowId = store.rows.get()[0].value.id;
+        const overrideId = store.rows.get()[0].value.overrides[0].id;
+        const removed = await store.removeOverride(rowId, overrideId);
 
         expect(removed).to.equal(true);
         expect(deletedIds).to.deep.equal([nested.id]);
     });
 
     it('duplicates override as a localized override', async () => {
-        const topLevel = createIndexReference('setting-show-plan-type', {
+        const topLevel = createSettingReference({
+            id: 'setting-show-plan-type',
             name: 'showPlanType',
             label: 'Show plan type',
             locales: [],
             templates: ['catalog'],
             path: '/content/dam/mas/sandbox/settings/setting-show-plan-type',
         });
-        const nested = createIndexReference('setting-show-plan-type-fr', {
+        const nested = createSettingReference({
+            id: 'setting-show-plan-type-fr',
             name: 'showPlanType',
             label: 'Show plan type',
             fieldName: 'entries',
@@ -396,8 +432,8 @@ describe('Settings Store Namespace', () => {
         let indexEntries = [topLevel.path, nested.path];
         const createPayloads = [];
 
-        const orchestrator = new SettingsStoreModel();
-        orchestrator.setAem({
+        const store = new SettingsStore();
+        store.setAem({
             sites: {
                 cf: {
                     fragments: {
@@ -420,10 +456,10 @@ describe('Settings Store Namespace', () => {
             },
         });
 
-        await orchestrator.loadSurface('sandbox');
-        const rowId = orchestrator.rows.get()[0].value.id;
-        const overrideId = orchestrator.rows.get()[0].value.overrides[0].id;
-        const duplicated = await orchestrator.duplicateOverride(rowId, overrideId);
+        await store.loadSurface('sandbox');
+        const rowId = store.rows.get()[0].value.id;
+        const overrideId = store.rows.get()[0].value.overrides[0].id;
+        const duplicated = await store.duplicateOverride(rowId, overrideId);
 
         expect(duplicated).to.equal(true);
         expect(createPayloads.length).to.equal(1);
@@ -434,5 +470,91 @@ describe('Settings Store Namespace', () => {
 
         expect(localesField.values).to.deep.equal(['fr_FR']);
         expect(nameField.values).to.deep.equal(['showPlanType']);
+    });
+
+    it('toggles override value and updates the override fragment', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'showAddon',
+            label: 'Show addon',
+            locales: [],
+            templates: ['catalog'],
+            value: true,
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon',
+        });
+        let currentOverrideValue = true;
+        const nested = createSettingReference({
+            id: 'setting-show-addon-fr',
+            name: 'showAddon',
+            label: 'Show addon',
+            fieldName: 'entries',
+            locales: ['fr_FR'],
+            templates: ['plans'],
+            value: currentOverrideValue,
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon-fr',
+        });
+
+        const getByIdCalls = [];
+
+        const store = new SettingsStore();
+        store.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async (path) => ({
+                            id: 'settings-index',
+                            path,
+                            fields: [{ name: 'entries', values: [topLevel.path, nested.path] }],
+                            references: [
+                                topLevel,
+                                {
+                                    ...nested,
+                                    fields: nested.fields.map((field) =>
+                                        field.name === 'booleanValue'
+                                            ? { ...field, values: [currentOverrideValue] }
+                                            : field,
+                                    ),
+                                },
+                            ],
+                        }),
+                        getById: async (id) => {
+                            getByIdCalls.push(id);
+                            return {
+                                id,
+                                title: nested.title,
+                                description: nested.description,
+                                path: nested.path,
+                                status: nested.status,
+                                tags: [],
+                                fields: [
+                                    { name: 'name', type: 'text', multiple: false, values: ['showAddon'] },
+                                    { name: 'templates', type: 'text', multiple: true, values: ['plans'] },
+                                    { name: 'locales', type: 'text', multiple: true, values: ['fr_FR'] },
+                                    { name: 'tags', type: 'tag', multiple: true, values: [] },
+                                    { name: 'valuetype', type: 'text', multiple: false, values: ['boolean'] },
+                                    { name: 'textValue', type: 'text', multiple: false, values: [] },
+                                    { name: 'richTextValue', type: 'long-text', multiple: false, values: [] },
+                                    { name: 'booleanValue', type: 'boolean', multiple: false, values: [currentOverrideValue] },
+                                ],
+                            };
+                        },
+                        save: async (fragment) => {
+                            currentOverrideValue = fragment.fields.find((field) => field.name === 'booleanValue').values[0];
+                            return fragment;
+                        },
+                    },
+                },
+            },
+        });
+
+        await store.loadSurface('sandbox');
+        const rowId = store.rows.get()[0].value.id;
+        const overrideId = store.rows.get()[0].value.overrides[0].id;
+        const updated = await store.toggleOverride(rowId, overrideId, false);
+
+        expect(updated).to.equal(true);
+        expect(getByIdCalls).to.deep.equal([overrideId]);
+        expect(store.rows.get()[0].value.overrides[0].value).to.equal(false);
+        expect(store.toast.get().message).to.contain("'Show addon (fr_FR)' is now [Off]");
     });
 });

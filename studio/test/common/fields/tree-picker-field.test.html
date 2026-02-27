@@ -35,21 +35,21 @@
 
             const TREE_MODEL = [
                 {
-                    id: 'global',
+                    name: 'global',
                     label: 'Global',
                     children: [
                         {
-                            id: 'merch',
+                            name: 'merch',
                             label: 'Merch card',
                             children: [
-                                { id: 'marquee', label: 'Marquee' },
-                                { id: 'modal', label: 'Modal' },
+                                { name: 'marquee', label: 'Marquee' },
+                                { name: 'modal', label: 'Modal' },
                             ],
                         },
-                        { id: 'plans', label: 'Plans' },
+                        { name: 'plans', label: 'Plans' },
                     ],
                 },
-                { id: 'blade', label: 'Blade' },
+                { name: 'blade', label: 'Blade' },
             ];
 
             async function initPicker(templateId, testTitle) {
@@ -70,6 +70,14 @@
                         expect(label).to.not.be.null;
                         expect(label.textContent.trim()).to.equal('Template');
                         expect(triggerText.textContent.trim()).to.equal('Select template');
+                        expect(triggerText.classList.contains('is-placeholder')).to.be.true;
+                    });
+
+                    it('renders default placeholder text when no placeholder is provided', async function () {
+                        const picker = await initPicker('treePickerDefault', this.test.title);
+                        const triggerText = picker.shadowRoot.querySelector('.trigger-text');
+
+                        expect(triggerText.textContent.trim()).to.equal('Select');
                         expect(triggerText.classList.contains('is-placeholder')).to.be.true;
                     });
 
@@ -149,6 +157,33 @@
                         expect(picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="modal"]')).to.not.be.null;
                         expect(picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="marquee"]')).to.be.null;
                     });
+
+                    it('shows branch summary in trigger text when all descendants of a node are selected', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const overlayTrigger = picker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.dispatchEvent(new Event('sp-opened'));
+                        await picker.updateComplete;
+
+                        picker.shadowRoot.querySelector('button[data-tree-toggle="global"]').click();
+                        await picker.updateComplete;
+
+                        const merchCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="merch"]');
+                        merchCheckbox.checked = true;
+                        merchCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
+                            'Merch card(2 selected)',
+                        );
+
+                        const listener = oneEvent(picker, 'change');
+                        overlayTrigger.dispatchEvent(new Event('sp-closed'));
+                        await listener;
+
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
+                            'Merch card(2 selected)',
+                        );
+                    });
                 });
             });
         </script>
@@ -157,6 +192,9 @@
         </main>
         <template id="treePicker1">
             <tree-picker-field label="Template" placeholder="Select template"></tree-picker-field>
+        </template>
+        <template id="treePickerDefault">
+            <tree-picker-field label="Template"></tree-picker-field>
         </template>
     </body>
 </html>

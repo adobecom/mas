@@ -149,7 +149,7 @@ class MasStudio extends LitElement {
     }
 
     get settings() {
-        if (this.page.value !== PAGE_NAMES.SETTINGS) return nothing;
+        if (this.page.value !== PAGE_NAMES.SETTINGS && this.page.value !== PAGE_NAMES.SETTINGS_EDITOR) return nothing;
         return html`<mas-settings bucket=${this.bucket} base-url=${this.baseUrl}></mas-settings>`;
     }
 
@@ -239,7 +239,7 @@ class MasStudio extends LitElement {
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
-                          ${this.editorPanel}
+                          ${this.editorPanel} ${this.settings}
                       </div>`
                     : nothing}
             </div>

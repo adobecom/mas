@@ -117,6 +117,9 @@ class MasSideNav extends LitElement {
         ];
         if (fragmentStore) {
             stores.push(fragmentStore);
+            if (fragmentStore.previewStore) {
+                stores.push(fragmentStore.previewStore);
+            }
             this.resolvedPriceText = '';
             this.variationDataLoading = true;
             this.#syncPricePreview();
@@ -240,6 +243,16 @@ class MasSideNav extends LitElement {
         this.requestUpdate();
     }
 
+    #hasDisplayValue(values) {
+        return values?.some((v) => v !== '' && v !== null && v !== undefined);
+    }
+
+    #getDisplayValues(field) {
+        const previewFragment = this.fragmentEditor?.fragmentStore?.previewStore?.value;
+        const previewField = previewFragment?.fields?.find((f) => f.name === field.name);
+        return this.#hasDisplayValue(previewField?.values) ? previewField.values : field.values;
+    }
+
     /** Non-empty fragment fields with display names and value previews. */
     get copyableFields() {
         const fragment = this.fragmentEditor?.fragment;
@@ -249,8 +262,10 @@ class MasSideNav extends LitElement {
             .map((f) => ({
                 name: f.name,
                 displayName: MasSideNav.FIELD_DISPLAY_NAMES[f.name] ?? camelToTitle(f.name),
-                // Prices contain unresolved <inline-price> HTML — prefer cached resolved text
-                preview: f.name === 'prices' ? this.resolvedPriceText || previewValue(f.values) : previewValue(f.values),
+                preview:
+                    f.name === 'prices'
+                        ? this.resolvedPriceText || previewValue(this.#getDisplayValues(f))
+                        : previewValue(this.#getDisplayValues(f)),
             }));
     }
 

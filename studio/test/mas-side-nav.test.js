@@ -18,8 +18,12 @@ function mockFragment(fields = []) {
     };
 }
 
-function mockEditor(fragment = null) {
-    return { fragment, editorContextStore: { isVariation: () => false } };
+function mockEditor(fragment = null, previewFragment = null) {
+    return {
+        fragment,
+        fragmentStore: previewFragment ? { previewStore: { value: previewFragment } } : null,
+        editorContextStore: { isVariation: () => false },
+    };
 }
 
 describe('MasSideNav – Copy Field', () => {
@@ -103,6 +107,34 @@ describe('MasSideNav – Copy Field', () => {
             el.resolvedPriceText = 'US$54.99/mo';
             const priceField = el.copyableFields.find((f) => f.name === 'prices');
             expect(priceField.preview).to.equal('US$54.99/mo');
+        });
+
+        it('should use resolved preview-store value for placeholder-backed fields', () => {
+            const sourceFragment = mockFragment([{ name: 'callout', values: ['{{checkout-now}}'] }]);
+            const previewFragment = mockFragment([{ name: 'callout', values: ['Buy now'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(sourceFragment, previewFragment));
+
+            const calloutField = el.copyableFields.find((f) => f.name === 'callout');
+            expect(calloutField.preview).to.equal('Buy now');
+        });
+
+        it('should fall back to source values when preview-store field is missing', () => {
+            const sourceFragment = mockFragment([{ name: 'callout', values: ['{{checkout-now}}'] }]);
+            const previewFragment = mockFragment([{ name: 'description', values: ['Resolved description'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(sourceFragment, previewFragment));
+
+            const calloutField = el.copyableFields.find((f) => f.name === 'callout');
+            expect(calloutField.preview).to.equal('{{checkout-now}}');
+        });
+
+        it('should prefer resolvedPriceText over preview-store values for prices', () => {
+            const sourceFragment = mockFragment([{ name: 'prices', values: ['<span is="inline-price">raw</span>'] }]);
+            const previewFragment = mockFragment([{ name: 'prices', values: ['<span is="inline-price">US$39.99/mo</span>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(sourceFragment, previewFragment));
+            el.resolvedPriceText = 'US$9.99/mo';
+
+            const priceField = el.copyableFields.find((f) => f.name === 'prices');
+            expect(priceField.preview).to.equal('US$9.99/mo');
         });
 
         it('should fall back to previewValue for prices when no resolved text', () => {
@@ -353,6 +385,21 @@ describe('MasSideNav – Copy Field', () => {
             expect(updateStoresStub.called).to.be.true;
             expect(updateStoresStub.firstCall.args[0]).to.have.length(5);
 
+            el.disconnectedCallback();
+        });
+
+        it('should subscribe to previewStore updates when fragment enters edit', () => {
+            const updateStoresStub = sandbox.stub(el.reactiveController, 'updateStores');
+            const previewStore = { value: { id: 'frag-123', fields: [] } };
+            const fragmentStore = { previewStore };
+
+            el.connectedCallback();
+            Store.fragments.inEdit.set(fragmentStore);
+
+            const updatedStores = updateStoresStub.lastCall.args[0];
+            expect(updatedStores).to.include(previewStore);
+
+            Store.fragments.inEdit.set(null);
             el.disconnectedCallback();
         });
     });

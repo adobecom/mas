@@ -47,7 +47,7 @@ const VARIANTS_WITH_HEIGHT_SYNC = [
     'simplified-pricing-express',
 ];
 
-const VARIANTS_WITH_WIDTH_BADGE_SYNC = ['segment', 'product'];
+const VARIANTS_WITH_WIDTH_BADGE_SYNC = ['segment'];
 
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);

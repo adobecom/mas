@@ -35,8 +35,8 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
     expect(heading).toBe('Enter your password');
     await page.locator('#PasswordPage-PasswordField').fill(process.env.IMS_PASS);
     await page.locator('[data-id=PasswordPage-ContinueButton]').click();
-    await page.waitForURL((url) => url.href.startsWith(baseURL) && url.pathname.endsWith('/studio.html'));
-    await expect(page).toHaveURL((url) => url.href.startsWith(baseURL) && url.pathname.endsWith('/studio.html'));
+    await page.waitForURL((url) => url.href.startsWith(baseURL + '/studio.html'));
+    await expect(page).toHaveURL((url) => url.href.startsWith(baseURL + '/studio.html'));
 
     await expect(async () => {
         const response = await page.request.get(`${baseURL}/studio.html`);

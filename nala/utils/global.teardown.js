@@ -200,10 +200,7 @@ async function cleanupClonedCards() {
                     await page.waitForFunction(
                         () => {
                             const repo = document.querySelector('mas-repository');
-                            return (
-                                repo?.aem?.sites?.cf?.fragments?.search &&
-                                typeof repo.deleteFragment === 'function'
-                            );
+                            return repo?.aem?.sites?.cf?.fragments?.search && typeof repo.deleteFragment === 'function';
                         },
                         { timeout: 5000 },
                     );

@@ -1533,16 +1533,17 @@ export class MasRepository extends LitElement {
         if (!surface) {
             throw new Error('Could not determine surface from parent path');
         }
-        const fragmentName = this.generateGroupedVariationName(fragment, pznTags);
+        let fragmentName = this.generateGroupedVariationName(fragment, pznTags);
         const targetFolder = `${ROOT_PATH}/${surface}/en_US/${productArrangementCode}/${PZN_FOLDER}`;
 
         await this.aem.sites.cf.fragments.ensureFolderExists(targetFolder);
 
-        let targetPath = `${targetFolder}/${fragmentName}`;
-        const existingFragment = await this.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        const existingFragment = await this.aem.sites.cf.fragments
+            .getByPath(`${targetFolder}/${fragmentName}`)
+            .catch(() => null);
         if (existingFragment) {
             const suffix = Array.from({ length: 4 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('');
-            targetPath = `${targetFolder}/${fragmentName}-${suffix}`;
+            fragmentName = `${fragmentName}-${suffix}`;
         }
 
         const newFragment = await this.aem.sites.cf.fragments.create({

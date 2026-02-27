@@ -27,8 +27,8 @@
             <merch-card>
                 <aem-fragment fragment="fragment-segment"></aem-fragment>
             </merch-card>
-        </template> 
-     
+        </template>
+
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
@@ -54,10 +54,14 @@
                         await card.checkReady();
                         expect(card).to.exist;
                         expect(card.title).to.equal('Segment card');
-                        expect(card.description.includes('The card title and the pricing should be wrapped in h3')).to.be.true;
+                        expect(
+                            card.description.includes(
+                                'The card title and the pricing should be wrapped in h3',
+                            ),
+                        ).to.be.true;
                         expect(card.ctas.length).to.equal(1);
                         expect(card.ctas[0].textContent).to.equal('Buy now');
-                    });                  
+                    });
                 });
             });
         </script>

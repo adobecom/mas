@@ -6,23 +6,27 @@ import Events from '../src/events.js';
 import { CARD_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
 import '../src/mas-side-nav.js';
 
-function mockFragment(fields = []) {
-    return {
+function mockFragment(fields = [], overrides = {}) {
+    const fragment = {
         id: 'frag-123',
         model: { path: CARD_MODEL_PATH },
         title: 'Test Card',
-        fields,
-        isValueEmpty: (val) => !val || val.length === 0 || val.every((v) => !v),
-        getField: (name) => fields.find((f) => f.name === name) || null,
-        getTagTitle: () => null,
+        ...overrides,
     };
+    fragment.fields = overrides.fields ?? fields;
+    fragment.isValueEmpty = (val) => !val || val.length === 0 || val.every((v) => !v);
+    fragment.getField = (name) => fragment.fields.find((f) => f.name === name) || null;
+    fragment.getTagTitle = () => null;
+    return fragment;
 }
 
-function mockEditor(fragment = null, previewFragment = null) {
+function mockEditor(fragment = null, previewFragment = null, options = {}) {
+    const { isVariation = false, localeDefaultFragment = null } = options;
     return {
         fragment,
         fragmentStore: previewFragment ? { previewStore: { value: previewFragment } } : null,
-        editorContextStore: { isVariation: () => false },
+        localeDefaultFragment,
+        editorContextStore: { isVariation: () => isVariation },
     };
 }
 
@@ -144,17 +148,92 @@ describe('MasSideNav – Copy Field', () => {
             const priceField = el.copyableFields.find((f) => f.name === 'prices');
             expect(priceField.preview).to.equal('$9.99/mo');
         });
+
+        it('should include non-empty inherited base fields for variations', () => {
+            const sourceFragment = mockFragment(
+                [
+                    { name: 'cardTitle', values: ['Creative Cloud ARG'] },
+                    { name: 'showSecureLabel', values: ['true'] },
+                ],
+                { id: 'variation-123' },
+            );
+            const baseFragment = mockFragment(
+                [
+                    { name: 'cardTitle', values: ['Creative Cloud'] },
+                    { name: 'subtitle', values: ['creativity and design'] },
+                    { name: 'callout', values: ['{{secure-label}}'] },
+                ],
+                { id: 'base-123' },
+            );
+            const previewFragment = mockFragment(
+                [
+                    { name: 'subtitle', values: ['creativity and design'] },
+                    { name: 'callout', values: ['Secure transaction'] },
+                ],
+                { id: 'variation-123' },
+            );
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(
+                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
+                );
+
+            const fields = el.copyableFields;
+            const inheritedNames = fields.filter((f) => f.source === 'inherited').map((f) => f.name);
+            expect(inheritedNames).to.include('subtitle');
+            expect(inheritedNames).to.include('callout');
+            expect(inheritedNames).to.not.include('cardTitle');
+            expect(fields.find((f) => f.name === 'callout').preview).to.equal('Secure transaction');
+        });
+
+        it('should exclude hidden inherited fields', () => {
+            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Variation title'] }], { id: 'variation-123' });
+            const baseFragment = mockFragment(
+                [
+                    { name: 'quantitySelect', values: ['true'] },
+                    { name: 'perUnitLabel', values: ['per license'] },
+                    { name: 'showPlanType', values: ['true'] },
+                ],
+                { id: 'base-123' },
+            );
+            const previewFragment = mockFragment([{ name: 'showPlanType', values: ['true'] }], { id: 'variation-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(
+                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
+                );
+
+            const names = el.copyableFields.map((f) => f.name);
+            expect(names).to.include('showPlanType');
+            expect(names).to.not.include('quantitySelect');
+            expect(names).to.not.include('perUnitLabel');
+        });
     });
 
     describe('copyField', () => {
         let clipboardStub;
         let toastStub;
+        let clipboardItem;
 
         beforeEach(() => {
             clipboardStub = { write: sandbox.stub().resolves() };
             Object.defineProperty(navigator, 'clipboard', { value: clipboardStub, configurable: true });
             toastStub = sandbox.stub(Events.toast, 'emit');
             sandbox.stub(Store.search, 'get').returns({ path: '/acom' });
+            clipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+
+                async getType(type) {
+                    return this.data[type];
+                }
+            };
+        });
+
+        afterEach(() => {
+            globalThis.ClipboardItem = clipboardItem;
         });
 
         it('should copy rich link to clipboard and show positive toast', async () => {
@@ -191,6 +270,34 @@ describe('MasSideNav – Copy Field', () => {
             expect(clipboardStub.write.called).to.be.false;
             expect(toastStub.called).to.be.false;
         });
+
+        it('should copy inherited field links using the base fragment id', async () => {
+            const currentFragment = mockFragment([{ name: 'subtitle', values: ['Variation subtitle'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([{ name: 'subtitle', values: ['Base subtitle'] }], { id: 'base-123' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(currentFragment));
+
+            await el.copyField('subtitle', baseFragment);
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const htmlText = await (await item.getType('text/html')).text();
+            expect(htmlText).to.include('query=base-123');
+            expect(htmlText).to.not.include('query=variation-123');
+        });
+
+        it('should keep current row copy links targeting the current fragment id', async () => {
+            const currentFragment = mockFragment([{ name: 'subtitle', values: ['Variation subtitle'] }], {
+                id: 'variation-123',
+            });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(currentFragment));
+
+            await el.copyField('subtitle', currentFragment);
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const htmlText = await (await item.getType('text/html')).text();
+            expect(htmlText).to.include('query=variation-123');
+        });
     });
 
     describe('copyFieldButton', () => {
@@ -216,6 +323,130 @@ describe('MasSideNav – Copy Field', () => {
 
             const items = container.querySelectorAll('sp-menu-item');
             expect(items.length).to.equal(2);
+        });
+
+        it('should render copy field menu inside a scroll container', () => {
+            const fragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const scrollContainer = container.querySelector('.copy-field-scroll');
+            expect(scrollContainer).to.exist;
+            expect(scrollContainer.querySelector('sp-menu')).to.exist;
+        });
+
+        it('should render inherited fields under an inherited section for variations', () => {
+            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], { id: 'base-123' });
+            const previewFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], {
+                id: 'variation-123',
+            });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(
+                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
+                );
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const inheritedSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find((item) =>
+                item.textContent.includes('Inherited from base fragment'),
+            );
+            expect(inheritedSection).to.exist;
+            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find((item) =>
+                item.textContent.includes('Overridden in this variation'),
+            );
+            expect(overriddenSection).to.exist;
+
+            const overriddenRows = container.querySelectorAll('.field-entry-overridden');
+            expect(overriddenRows.length).to.equal(1);
+        });
+
+        it('should clear default focused menu item when opened by pointer', async () => {
+            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], { id: 'base-123' });
+            const previewFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], {
+                id: 'variation-123',
+            });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(
+                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
+                );
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const trigger = container.querySelector('mas-side-nav-item[label="Copy Field"]');
+            const overlay = container.querySelector('overlay-trigger');
+            const focusedItem = container.querySelector('sp-menu-item:not([disabled])');
+            focusedItem.setAttribute('focused', '');
+            focusedItem.blur = sandbox.stub();
+
+            trigger.dispatchEvent(new Event('pointerdown', { bubbles: true, composed: true }));
+            overlay.dispatchEvent(new Event('sp-opened'));
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+
+            expect(focusedItem.hasAttribute('focused')).to.be.false;
+            expect(focusedItem.blur.calledOnce).to.be.true;
+        });
+
+        it('should keep focused menu item when opened without pointer interaction', async () => {
+            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], { id: 'base-123' });
+            const previewFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], {
+                id: 'variation-123',
+            });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(
+                    mockEditor(sourceFragment, previewFragment, { isVariation: true, localeDefaultFragment: baseFragment }),
+                );
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const overlay = container.querySelector('overlay-trigger');
+            const focusedItem = container.querySelector('sp-menu-item:not([disabled])');
+            focusedItem.setAttribute('focused', '');
+            focusedItem.blur = sandbox.stub();
+
+            overlay.dispatchEvent(new Event('sp-opened'));
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+
+            expect(focusedItem.hasAttribute('focused')).to.be.true;
+            expect(focusedItem.blur.called).to.be.false;
+        });
+
+        it('should not render inherited section for non-variation fragments', () => {
+            const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
+            const previewFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }]);
+            const baseFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], { id: 'base-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(
+                    mockEditor(sourceFragment, previewFragment, { isVariation: false, localeDefaultFragment: baseFragment }),
+                );
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const inheritedSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find((item) =>
+                item.textContent.includes('Inherited from base fragment'),
+            );
+            expect(inheritedSection).to.not.exist;
+            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find((item) =>
+                item.textContent.includes('Overridden in this variation'),
+            );
+            expect(overriddenSection).to.not.exist;
+            expect(container.querySelectorAll('.field-entry-overridden').length).to.equal(0);
         });
     });
 

@@ -9,6 +9,12 @@ import ReactiveController from './reactivity/reactive-controller.js';
 
 const EVENT_MAS_READY = 'mas:ready';
 const PRICE_SELECTOR = 'span[is="inline-price"][data-template="price"], span[is="inline-price"]';
+const FIELD_SOURCE = {
+    CURRENT: 'current',
+    INHERITED: 'inherited',
+};
+const OVERRIDDEN_SECTION_LABEL = 'Overridden in this variation';
+const INHERITED_SECTION_LABEL = 'Inherited from base fragment';
 
 class MasSideNav extends LitElement {
     static properties = {
@@ -62,6 +68,53 @@ class MasSideNav extends LitElement {
             padding: 2px 0;
         }
 
+        .field-entry-overridden {
+            border-inline-start: 2px solid #7da0ff;
+            padding-inline-start: 8px;
+        }
+
+        .copy-section-item {
+            --mod-menu-item-min-height: 28px;
+            --mod-menu-item-top-edge-to-text: 6px;
+            --mod-menu-item-bottom-edge-to-text: 6px;
+        }
+
+        .copy-section-item.overridden-section {
+            --mod-menu-item-background-color-default: #eef4ff;
+            --mod-menu-item-label-content-color-disabled: #2c5fda;
+        }
+
+        .copy-section-item.inherited-section {
+            --mod-menu-item-background-color-default: #f3f5f7;
+            --mod-menu-item-label-content-color-disabled: #5b6676;
+        }
+
+        .copy-section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .copy-section-label::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: currentColor;
+            opacity: 0.85;
+        }
+
+        .copy-field-scroll {
+            /* Keep a stable panel height so right-placement vertical centering is consistent across contexts. */
+            height: min(72vh, calc(100vh - 96px));
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
         .field-label {
             font-size: 10px;
             text-transform: uppercase;
@@ -84,10 +137,28 @@ class MasSideNav extends LitElement {
     );
 
     resolvedPriceText = '';
+    #copyFieldMenuOpenedByPointer = false;
     #onMerchCardReady = (event) => {
         const card = this.#getPreviewCard();
         if (!card || event.target !== card) return;
         this.#updateResolvedPrice(this.#getFirstResolvedPriceText(card));
+    };
+    #onCopyFieldTriggerPointerDown = () => {
+        this.#copyFieldMenuOpenedByPointer = true;
+    };
+    #onCopyFieldMenuOpened = (event) => {
+        if (!this.#copyFieldMenuOpenedByPointer) return;
+        this.#copyFieldMenuOpenedByPointer = false;
+        const overlayTrigger = event.currentTarget;
+        requestAnimationFrame(() => {
+            const menu = overlayTrigger.querySelector('sp-menu');
+            const focusedItem = menu?.querySelector('sp-menu-item[focused]');
+            focusedItem?.blur();
+            focusedItem?.removeAttribute('focused');
+        });
+    };
+    #onCopyFieldMenuClosed = () => {
+        this.#copyFieldMenuOpenedByPointer = false;
     };
 
     constructor() {
@@ -253,54 +324,125 @@ class MasSideNav extends LitElement {
         return this.#hasDisplayValue(previewField?.values) ? previewField.values : field.values;
     }
 
+    #isVariationFragment(fragmentId) {
+        return !!fragmentId && !!this.fragmentEditor?.editorContextStore?.isVariation?.(fragmentId);
+    }
+
+    #buildCopyableField(field, source, sourceFragment) {
+        const preview =
+            field.name === 'prices'
+                ? this.resolvedPriceText || previewValue(this.#getDisplayValues(field))
+                : previewValue(this.#getDisplayValues(field));
+
+        return {
+            name: field.name,
+            displayName: MasSideNav.FIELD_DISPLAY_NAMES[field.name] ?? camelToTitle(field.name),
+            preview,
+            source,
+            sourceFragment,
+        };
+    }
+
     /** Non-empty fragment fields with display names and value previews. */
     get copyableFields() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
-        return fragment.fields
+        const currentFields = fragment.fields
             .filter((f) => !fragment.isValueEmpty(f.values) && !MasSideNav.HIDDEN_FIELDS.has(f.name))
-            .map((f) => ({
-                name: f.name,
-                displayName: MasSideNav.FIELD_DISPLAY_NAMES[f.name] ?? camelToTitle(f.name),
-                preview:
-                    f.name === 'prices'
-                        ? this.resolvedPriceText || previewValue(this.#getDisplayValues(f))
-                        : previewValue(this.#getDisplayValues(f)),
-            }));
+            .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment));
+
+        const fragmentId = fragment?.id;
+        if (!this.#isVariationFragment(fragmentId)) {
+            return currentFields;
+        }
+
+        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
+        if (!baseFragment?.fields?.length) {
+            return currentFields;
+        }
+
+        const currentFieldNames = new Set(currentFields.map((field) => field.name));
+        const inheritedFields = baseFragment.fields
+            .filter((f) => !MasSideNav.HIDDEN_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
+            .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment))
+            .filter((f) => !!f.preview);
+
+        return [...currentFields, ...inheritedFields];
     }
 
     /** Copy Field popover listing fragment fields with preview values. */
     get copyFieldButton() {
         const loading = this.variationDataLoading;
+        const isVariation = this.#isVariationFragment(this.fragmentEditor?.fragment?.id);
+        const currentFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.CURRENT);
+        const inheritedFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.INHERITED);
+        const showOverriddenSection = isVariation && currentFields.length;
+        const showInheritedSection = inheritedFields.length;
+        const renderRow = ({ name, displayName, preview, source, sourceFragment }) => html`
+            <sp-menu-item @click=${() => this.copyField(name, sourceFragment)}>
+                ${preview
+                    ? html`<div
+                          class="field-entry ${isVariation && source === FIELD_SOURCE.CURRENT ? 'field-entry-overridden' : ''}"
+                      >
+                          <span class="field-label">${displayName}</span>
+                          <span class="field-value">${preview}</span>
+                      </div>`
+                    : displayName}
+            </sp-menu-item>
+        `;
         return html`
-            <overlay-trigger placement="right" offset="8">
-                <mas-side-nav-item label="Copy Field" ?disabled=${loading} slot="trigger">
+            <overlay-trigger
+                placement="right"
+                offset="8"
+                @sp-opened=${this.#onCopyFieldMenuOpened}
+                @sp-closed=${this.#onCopyFieldMenuClosed}
+            >
+                <mas-side-nav-item
+                    label="Copy Field"
+                    ?disabled=${loading}
+                    slot="trigger"
+                    @pointerdown=${this.#onCopyFieldTriggerPointerDown}
+                >
                     <sp-icon-copy slot="icon"></sp-icon-copy>
                 </mas-side-nav-item>
                 <sp-popover slot="click-content" direction="right" tip>
-                    <sp-menu>
-                        ${this.copyableFields.map(
-                            ({ name, displayName, preview }, i) => html`
-                                ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
-                                <sp-menu-item @click=${() => this.copyField(name)}>
-                                    ${preview
-                                        ? html`<div class="field-entry">
-                                              <span class="field-label">${displayName}</span>
-                                              <span class="field-value">${preview}</span>
-                                          </div>`
-                                        : displayName}
-                                </sp-menu-item>
-                            `,
-                        )}
-                    </sp-menu>
+                    <div class="copy-field-scroll">
+                        <sp-menu>
+                            ${showOverriddenSection
+                                ? html`<sp-menu-item disabled class="copy-section-item overridden-section">
+                                      <span class="copy-section-label">${OVERRIDDEN_SECTION_LABEL}</span>
+                                  </sp-menu-item>`
+                                : nothing}
+                            ${currentFields.map(
+                                (field, i) =>
+                                    html`${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}${renderRow(field)}`,
+                            )}
+                            ${showInheritedSection
+                                ? html`
+                                      ${currentFields.length || showOverriddenSection
+                                          ? html`<sp-menu-divider></sp-menu-divider>`
+                                          : nothing}
+                                      <sp-menu-item disabled class="copy-section-item inherited-section">
+                                          <span class="copy-section-label">${INHERITED_SECTION_LABEL}</span>
+                                      </sp-menu-item>
+                                      ${inheritedFields.map(
+                                          (field, i) =>
+                                              html`${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}${renderRow(
+                                                  field,
+                                              )}`,
+                                      )}
+                                  `
+                                : nothing}
+                        </sp-menu>
+                    </div>
                 </sp-popover>
             </overlay-trigger>
         `;
     }
 
     /** Copies a rich link for the given field to the clipboard. */
-    async copyField(fieldName) {
-        const fragment = this.fragmentEditor?.fragment;
+    async copyField(fieldName, sourceFragment = this.fragmentEditor?.fragment) {
+        const fragment = sourceFragment;
         if (!fragment) return;
         const path = Store.search.get().path;
         const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName);

@@ -392,7 +392,7 @@ export class Router extends EventTarget {
         this.currentParams = new URLSearchParams(this.location.hash.slice(1));
         this.previousHash = this.location.hash;
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
-        this.linkStoreToHash(Store.search, ['path', 'query'], {});
+        this.linkStoreToHash(Store.search, ['path', 'query'], { path: 'sandbox' });
         this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
             locale: 'en_US',
         });

@@ -23,7 +23,7 @@ export default {
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
         },
         {
-            tcid: '5',
+            tcid: '2',
             name: '@studio-slice-edit-discard-image',
             path: '/studio.html',
             data: {
@@ -36,6 +36,5 @@ export default {
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-slice @ccd-slice-edit',
         },
-
     ],
 };

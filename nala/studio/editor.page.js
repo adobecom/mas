@@ -7,38 +7,46 @@ export default class EditorPage {
 
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
-        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
-        this.size = this.panel.locator('#card-size');
-        this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
-        this.subtitle = this.panel.locator('#card-subtitle input');
+        this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
+        this.backgroundImage = this.panel.locator('#background-image input');
+
+        // Badge fields
         this.badge = this.panel.locator('#card-badge input');
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
-        this.cardBorderColor = this.panel.locator('sp-picker#border-color');
+        //----
         this.borderColor = this.panel.locator('sp-picker#border-color');
-        this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
-        this.mnemonicEditMenu = page.locator('mas-multifield sp-action-menu').first();
+        this.prices = this.panel.locator('sp-field-group#prices');
+        this.promoText = this.panel.locator('#promo-text input');
+        this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
+        this.size = this.panel.locator('#card-size');
+        this.subtitle = this.panel.locator('#card-subtitle input');
+        this.tags = this.panel.locator('aem-tag-picker-field[label="Tags"]');
+        this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
+        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
+
+        // Visuals fields
+        this.mnemonicFieldGroup = this.panel.locator('sp-field-group#mnemonics');
+        this.mnemonicAddVisual = this.panel.locator('#mnemonics sp-icon-add');
+        this.mnemonicEditMenu = page.locator('mas-multifield#mnemonics sp-action-menu').first();
         this.mnemonicEditButton = page.locator('sp-menu sp-menu-item:has-text("Edit")');
         this.mnemonicDeleteButton = page.locator('sp-menu sp-menu-item:has-text("Delete")');
-        this.mnemonicProductTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="product-icon"]');
-        this.mnemonicUrlTab = page.locator('mas-mnemonic-modal[open] sp-tab[value="url"]');
-        this.mnemonicUrlIconInput = page.locator('mas-mnemonic-modal[open] #url-icon >> input');
-        this.mnemonicUrlAltInput = page.locator('mas-mnemonic-modal[open] #url-alt >> input');
-        this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal[open] #url-link >> input');
-        this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="accent"]');
-        this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="secondary"]');
-        this.promoText = this.panel.locator('#promo-text input');
-        this.backgroundImage = this.panel.locator('#background-image input');
-        this.prices = this.panel.locator('sp-field-group#prices');
+        this.mnemonivModal = page.locator('mas-mnemonic-modal[open]');
+        this.mnemonicProductTab = page.mnemonivModal.locator('sp-tab[value="product-icon"]');
+        this.mnemonicUrlTab = page.mnemonivModal.locator('sp-tab[value="url"]');
+        this.mnemonicUrlIconInput = page.mnemonivModal.locator('#url-icon >> input');
+        this.mnemonicUrlAltInput = page.mnemonivModal.locator('#url-alt >> input');
+        this.mnemonicUrlLinkInput = page.mnemonivModal.locator('#url-link >> input');
+        this.mnemonicModalSaveButton = page.mnemonivModal.locator('sp-button[variant="accent"]');
+        this.mnemonicModalCancelButton = page.mnemonivModal.locator('sp-button[variant="secondary"]');
+
         this.footer = this.panel.locator('sp-field-group#ctas');
         this.CTA = this.panel.locator('sp-field-group#ctas a');
         this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
         this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');
-        this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
         this.OSI = this.panel.locator('osi-field#osi');
         this.OSIButton = this.panel.locator('#offerSelectorToolButtonOSI');
-        this.tags = this.panel.locator('aem-tag-picker-field[label="Tags"]');
-        this.CTAClassSecondary = this.panel.locator('sp-field-group#ctas a.secondary');
+
         this.callout = this.panel.locator('sp-field-group#callout');
         this.calloutRTE = this.panel.locator('sp-field-group#callout div[contenteditable="true"]');
         this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');

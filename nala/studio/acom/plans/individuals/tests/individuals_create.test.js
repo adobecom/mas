@@ -17,8 +17,6 @@ import ACOMPlansCreateSpec from '../specs/individuals_create.spec.js';
 const { features } = ACOMPlansCreateSpec;
 
 test.describe('M@S Studio feature test suite', () => {
-
-    
     // @studio-create-fragment - Validate creating a new fragment
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[14];

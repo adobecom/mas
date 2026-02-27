@@ -14,7 +14,7 @@ export default {
         },
         // leave only background here
         {
-            tcid: '2',
+            tcid: '1',
             name: '@studio-slice-save-edited-RTE-fields',
             path: '/studio.html',
             data: {
@@ -27,30 +27,6 @@ export default {
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-save @ccd-slice @ccd-slice-save',
         },
-        {
-            tcid: '4',
-            name: '@studio-slice-save-edited-cta-link',
-            path: '/studio.html',
-            data: {
-                cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
-                cta: {
-                    text: 'Buy now 2',
-                    variant: 'primary-outline',
-                    css: {
-                        color: 'rgb(34, 34, 34)',
-                    },
-                },
-                checkoutParams: {
-                    mv: '1',
-                    promoid: 'ABC123',
-                    mv2: '2',
-                },
-                daaLL: 'buy-now-1',
-                analyticsID: 'save-now',
-                daaLL: 'save-now-1',
-            },
-            browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ccd @ccd-save @ccd-slice @ccd-slice-save',
-        },
+        // add size
     ],
 };

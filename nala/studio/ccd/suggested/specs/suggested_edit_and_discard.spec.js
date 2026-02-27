@@ -13,7 +13,7 @@ export default {
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
         },
         {
-            tcid: '2',
+            tcid: '1',
             name: '@studio-suggested-edit-discard-eyebrow',
             path: '/studio.html',
             data: {
@@ -27,7 +27,7 @@ export default {
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
         },
         {
-            tcid: '5',
+            tcid: '2',
             name: '@studio-suggested-edit-discard-background',
             path: '/studio.html',
             data: {

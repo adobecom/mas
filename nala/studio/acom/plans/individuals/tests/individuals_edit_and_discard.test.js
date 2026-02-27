@@ -17,115 +17,106 @@ import ACOMPlansIndividualsSpec from '../specs/individuals_edit_and_discard.spec
 const { features } = ACOMPlansIndividualsSpec;
 
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
-    // @studio-plans-individuals-edit-discard-variant-change-to-suggested - Validate variant change for plans individuals card to suggested in mas studio
+    // @studio-plans-individuals-edit-discard-variant-change-to-plans-students - Validate variant change for plans individuals card to plans students in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
-            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
         });
 
-        await test.step('step-3: Change variant', async () => {
+        await test.step('step-2: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('value', 'plans');
+            await expect(await editor.variant).toHaveAttribute('value', 'plans-students');
             await editor.variant.click();
-            await page.getByRole('option', { name: 'suggested' }).click();
+            await page.getByRole('option', { name: 'plans-students' }).click();
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
+        await test.step('step-3: Validate editor fields rendering after variant change', async () => {
+            await expect(await editor.variant).toHaveAttribute('value', 'plans-students');
             await expect(await editor.size).not.toBeVisible();
             await expect(await editor.title).toBeVisible();
-            await expect(await editor.subtitle).toBeVisible();
+            await expect(await editor.subtitle).not.toBeVisible();
             await expect(await editor.badge).toBeVisible();
+            await expect(await editor.backgroundImage).not.toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditMenu).toBeVisible();
-            await expect(await editor.backgroundImage).toBeVisible();
+            await expect(await editor.mnemonicFieldGroup).toBeVisible();
+            await expect(await editor.mnemonicAddVisual).toBeVisible();
             await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
-            await expect(await editor.promoText).not.toBeVisible();
-            await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showAddOn).not.toBeVisible();
+            await expect(await editor.promoText).toBeVisible();
+            await expect(await editor.callout).toBeVisible();
+            await expect(await editor.showAddOn).toBeVisible();
             await expect(await editor.showQuantitySelector).not.toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
 
-        await test.step('step-5: Validate new variant of the card', async () => {
+        await test.step('step-4: Validate new variant of the card', async () => {
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'plans');
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
-            await expect(await suggested.cardTitle).toBeVisible();
-            await expect(await suggested.cardDescription).toBeVisible();
-            await expect(await suggested.cardPrice).toBeVisible();
-            await expect(await suggested.cardIcon).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans-students');
+            await expect(await individuals.cardTitle).toBeVisible();
+            await expect(await individuals.cardDescription).toBeVisible();
+            await expect(await individuals.cardPrice).toBeVisible();
+            await expect(await individuals.cardIcon).toBeVisible();
             await expect(await individuals.cardWhatsIncluded).not.toBeVisible();
-            await expect(await individuals.cardPromoText).not.toBeVisible();
-            await expect(await individuals.cardCallout).not.toBeVisible();
-            await expect(await individuals.cardStockCheckbox).not.toBeVisible();
+            await expect(await individuals.cardPromoText).toBeVisible();
+            await expect(await individuals.cardCallout).toBeVisible();
             await expect(await individuals.cardQuantitySelector).not.toBeVisible();
-            await expect(await individuals.cardSecureTransaction).not.toBeVisible();
+            await expect(await individuals.cardSecureTransaction).toBeVisible();
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify there is no changes of the card', async () => {
+        await test.step('step-6: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
-            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-suggested');
+            await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'plans-students');
         });
     });
 
-    // @studio-plans-individuals-edit-discard-variant-change-to-slice - Validate variant change for plans individuals card to slice in mas studio
+    // @studio-plans-individuals-edit-discard-variant-change-to-plans-education - Validate variant change for plans individuals card to plans education in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
-            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
         });
 
         await test.step('step-3: Change variant', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', 'plans');
             await editor.variant.click();
-            await page.getByRole('option', { name: 'slice' }).click();
+            await page.getByRole('option', { name: 'plans-education' }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-4: Validate editor fields rendering after variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
-            await expect(await editor.size).toBeVisible();
-            await expect(await editor.title).not.toBeVisible();
-            await expect(await editor.subtitle).not.toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('value', 'plans-education');
+            await expect(await editor.size).not.toBeVisible();
+            await expect(await editor.title).toBeVisible();
+            await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditMenu).toBeVisible();
-            await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.prices).not.toBeVisible();
+            await expect(await editor.mnemonicFieldGroup).toBeVisible();
+            await expect(await editor.mnemonicAddVisual).toBeVisible();
+            await expect(await editor.backgroundImage).not.toBeVisible();
+            await expect(await editor.prices).toBeVisible();
             await expect(await editor.footer).toBeVisible();
             await expect(await editor.whatsIncludedLabel).not.toBeVisible();
             await expect(await editor.promoText).not.toBeVisible();

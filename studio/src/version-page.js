@@ -67,6 +67,7 @@ class VersionPage extends LitElement {
         addon: { label: 'Addon', visible: false },
         addonConfirmation: { label: 'Addon confirmation', visible: false },
         variations: { label: 'Variations', visible: false },
+        groupedVariationTags: { label: 'Grouped variation tags', visible: false },
         product: { label: 'Product', visible: false },
         tags: { label: 'Tags', visible: false },
         locReady: { label: 'Loc ready', visible: false },
@@ -412,8 +413,13 @@ class VersionPage extends LitElement {
     updated(changedProperties) {
         super.updated(changedProperties);
 
-        // Load version history when fragmentId changes or when repository becomes available
-        if (this.fragmentId.value && this.repository && !this.loading && !this.fragment) {
+        // Load version history when fragmentId is set and we don't have data for it yet (or fragmentId changed)
+        const needsLoad =
+            this.fragmentId.value &&
+            this.repository &&
+            !this.loading &&
+            (!this.fragment || this.fragment.id !== this.fragmentId.value);
+        if (needsLoad) {
             this.loadVersionHistory();
         }
 

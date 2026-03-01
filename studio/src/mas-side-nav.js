@@ -140,6 +140,7 @@ class MasSideNav extends LitElement {
     get defaultNavigation() {
         return html`
             <mas-side-nav-item
+                id="home"
                 label="Home"
                 ?selected=${Store.page.get() === PAGE_NAMES.WELCOME}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.WELCOME)}"
@@ -147,22 +148,24 @@ class MasSideNav extends LitElement {
                 <sp-icon-home slot="icon"></sp-icon-home>
             </mas-side-nav-item>
             <mas-side-nav-item
+                id="fragments"
                 label="Fragments"
                 ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.CONTENT)}"
             >
                 <sp-icon-apps slot="icon"></sp-icon-apps>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Collections" disabled>
+            <mas-side-nav-item id="collections" label="Collections" disabled>
                 <sp-icon-aspect-ratio slot="icon"></sp-icon-aspect-ratio>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Promotions" disabled>
+            <mas-side-nav-item id="promotions" label="Promotions" disabled>
                 <sp-icon-promote slot="icon"></sp-icon-promote>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Offers" disabled>
+            <mas-side-nav-item id="offers" label="Offers" disabled>
                 <sp-icon-market slot="icon"></sp-icon-market>
             </mas-side-nav-item>
             <mas-side-nav-item
+                id="placeholders"
                 label="Placeholders"
                 ?selected=${Store.page.get() === PAGE_NAMES.PLACEHOLDERS}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.PLACEHOLDERS)}"
@@ -170,6 +173,7 @@ class MasSideNav extends LitElement {
                 <sp-icon-bookmark slot="icon"></sp-icon-bookmark>
             </mas-side-nav-item>
             <mas-side-nav-item
+                id="translations"
                 label="Translations"
                 ?selected=${Store.page.get() === PAGE_NAMES.TRANSLATIONS}
                 @nav-click=${this.isTranslationEnabled ? router.navigateToPage(PAGE_NAMES.TRANSLATIONS) : nothing}
@@ -177,6 +181,7 @@ class MasSideNav extends LitElement {
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
             <mas-side-nav-item
+                id="support"
                 class="side-nav-support"
                 label="Support"
                 @nav-click="${() => window.open('https://adobe.enterprise.slack.com/archives/C02RZERR9CH', '_blank')}"
@@ -192,35 +197,50 @@ class MasSideNav extends LitElement {
         const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
         const loading = Store.fragmentEditor.loading.get();
         return html`
-            <mas-side-nav-item label="Save" ?disabled=${!Store.editor.hasChanges || loading} @nav-click="${this.saveFragment}">
+            <mas-side-nav-item
+                id="save"
+                label="Save"
+                ?disabled=${!Store.editor.hasChanges || loading}
+                @nav-click="${this.saveFragment}"
+            >
                 <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
             </mas-side-nav-item>
             ${!isVariation
                 ? html`
-                      <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
+                      <mas-side-nav-item
+                          id="create-variation"
+                          label="Create Variation"
+                          ?disabled=${loading}
+                          @nav-click="${this.createVariant}"
+                      >
                           <sp-icon-add slot="icon"></sp-icon-add>
                       </mas-side-nav-item>
-                      <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
+                      <mas-side-nav-item
+                          id="duplicate"
+                          label="Duplicate"
+                          ?disabled=${loading}
+                          @nav-click="${this.duplicateFragment}"
+                      >
                           <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                       </mas-side-nav-item>
                   `
                 : ''}
-            <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
+            <mas-side-nav-item id="publish" label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Unpublish" disabled>
+            <mas-side-nav-item id="unpublish" label="Unpublish" disabled>
                 <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Copy Code" ?disabled=${loading} @nav-click="${this.copyCode}">
+            <mas-side-nav-item id="copy-code" label="Copy Code" ?disabled=${loading} @nav-click="${this.copyCode}">
                 <sp-icon-code slot="icon"></sp-icon-code>
             </mas-side-nav-item>
-            <mas-side-nav-item label="History" ?disabled=${loading} @nav-click="${this.showHistory}">
+            <mas-side-nav-item id="history" label="History" ?disabled=${loading} @nav-click="${this.showHistory}">
                 <sp-icon-history slot="icon"></sp-icon-history>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Unlock" @nav-click="${this.unlockFragment}" disabled>
+            <mas-side-nav-item id="unlock" label="Unlock" @nav-click="${this.unlockFragment}" disabled>
                 <sp-icon-settings slot="icon"></sp-icon-settings>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Delete" ?disabled=${loading} @nav-click="${this.deleteFragment}">
+            <mas-side-nav-item id="delete" label="Delete" ?disabled=${loading} @nav-click="${this.deleteFragment}">
                 <sp-icon-delete slot="icon"></sp-icon-delete>
             </mas-side-nav-item>
         `;

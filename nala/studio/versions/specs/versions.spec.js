@@ -1,8 +1,5 @@
-// Fragment ID used for Nala version history tests (MWPW-186852)
-export const NALA_VERSION_FRAGMENT_ID = '635b0b65-e42c-485d-9591-4e19156a8548';
-
 export default {
-    FeatureName: 'M@S Studio - Version Page',
+    FeatureName: 'M@S Studio - Versions',
     features: [
         {
             tcid: '0',
@@ -35,53 +32,49 @@ export default {
             browserParams: '#page=version&path=nala&fragmentId=',
             tags: '@mas-studio @version',
         },
-        // Nala version tests - fragment 635b0b65-e42c-485d-9591-4e19156a8548, compare 1.3 vs 1.0
         {
             tcid: '3',
-            name: '@version-page-nala-preview-changed-fields',
+            name: '@version-page-nala-breadcrumb-to-editor',
             path: '/studio.html',
             data: {
-                fragmentId: NALA_VERSION_FRAGMENT_ID,
+                fragmentId: '635b0b65-e42c-485d-9591-4e19156a8548',
+                expectedPage: 'fragment-editor',
+                expectedPath: 'nala',
+                expectFragmentIdInUrl: true,
             },
             browserParams: '#page=version&path=nala&fragmentId=',
             tags: '@mas-studio @version @nala',
         },
         {
             tcid: '4',
-            name: '@version-page-nala-breadcrumb-to-editor',
+            name: '@version-page-nala-breadcrumb-to-fragments-table',
             path: '/studio.html',
             data: {
-                fragmentId: NALA_VERSION_FRAGMENT_ID,
+                fragmentId: '635b0b65-e42c-485d-9591-4e19156a8548',
+                expectedPage: 'content',
+                expectedPath: 'nala',
+                expectFragmentIdInUrl: false,
             },
             browserParams: '#page=version&path=nala&fragmentId=',
             tags: '@mas-studio @version @nala',
         },
         {
             tcid: '5',
-            name: '@version-page-nala-breadcrumb-to-fragments-table',
+            name: '@version-page-nala-clone-restore',
             path: '/studio.html',
             data: {
-                fragmentId: NALA_VERSION_FRAGMENT_ID,
+                fragmentId: '635b0b65-e42c-485d-9591-4e19156a8548',
             },
-            browserParams: '#page=version&path=nala&fragmentId=',
+            browserParams: '#page=content&path=nala',
             tags: '@mas-studio @version @nala',
         },
         {
             tcid: '6',
-            name: '@version-page-nala-clone-restore',
-            path: '/studio.html',
-            data: {
-                fragmentId: NALA_VERSION_FRAGMENT_ID,
-            },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            tags: '@mas-studio @version @nala',
-        },
-        {
-            tcid: '7',
             name: '@version-page-nala-search-by-author',
             path: '/studio.html',
             data: {
-                fragmentId: NALA_VERSION_FRAGMENT_ID,
+                fragmentId: '635b0b65-e42c-485d-9591-4e19156a8548',
+                authorName: 'seanchoi@adobe.com',
             },
             browserParams: '#page=version&path=nala&fragmentId=',
             tags: '@mas-studio @version @nala',

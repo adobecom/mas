@@ -6,7 +6,7 @@ export default class VersionPage {
         this.versionPage = page.locator('version-page');
         this.versionPageWrapper = page.locator('version-page .version-page-wrapper');
 
-        // Breadcrumbs (version page breadcrumbs are in main layout .breadcrumbs-container, not inside version-page)
+        // Breadcrumbs
         this.breadcrumbs = page.locator('version-page sp-breadcrumbs');
         this.breadcrumbItems = page.locator('version-page sp-breadcrumb-item');
         this.breadcrumbHome = page.locator('version-page sp-breadcrumb-item').first();
@@ -201,25 +201,17 @@ export default class VersionPage {
     }
 
     /**
-     * Find version item index by version title (e.g. '1.0', '1.3')
+     * Select a version by its title (e.g. '1.0', '1.3')
      */
-    async getVersionIndexByTitle(title) {
+    async selectVersionByTitle(title) {
         const count = await this.versionItems.count();
         for (let i = 0; i < count; i++) {
             const item = this.versionItems.nth(i);
             const text = await item.textContent();
-            if (text && text.includes(title)) return i;
-        }
-        return -1;
-    }
-
-    /**
-     * Select a version by its title (e.g. '1.0', '1.3')
-     */
-    async selectVersionByTitle(title) {
-        const index = await this.getVersionIndexByTitle(title);
-        if (index >= 0) {
-            await this.selectVersionByIndex(index);
+            if (text && text.includes(title)) {
+                await this.selectVersionByIndex(i);
+                return;
+            }
         }
     }
 

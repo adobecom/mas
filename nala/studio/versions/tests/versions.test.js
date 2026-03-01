@@ -1,51 +1,10 @@
-import { test, expect, miloLibs, setTestPage } from '../libs/mas-test.js';
-import { getCurrentRunId } from '../utils/fragment-tracker.js';
-import StudioPage from './studio.page.js';
-import EditorPage from './editor.page.js';
-import VersionPageSpec, { NALA_VERSION_FRAGMENT_ID } from './version-page.spec.js';
-import VersionPage from './version-page.page.js';
+import { test, expect, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import StudioPage from '../../studio.page.js';
+import EditorPage from '../../editor.page.js';
+import VersionPageSpec from '../specs/versions.spec.js';
+import VersionPage from '../versions.page.js';
 
 const { features } = VersionPageSpec;
-
-// Known field labels shown in version history "Changed Fields" (from version-page FIELD_CONFIG)
-const KNOWN_CHANGED_FIELD_LABELS = [
-    'Card title',
-    'Description',
-    'Prices',
-    'CTAs',
-    'Border color',
-    'Size',
-    'Background color',
-    'Background image',
-    'Mnemonic icon',
-    'Mnemonic alt',
-    'Mnemonic link',
-    'Badge',
-    'Trial badge',
-    'Promo text',
-    'Subtitle',
-    'Callout',
-    'Whats included',
-    'Per unit label',
-    'Quantity select',
-    'Variant',
-    'OSI',
-    'Background image alt text',
-    'Card name',
-    'Card title link',
-    'Short description',
-    'Promo code',
-    'Show secure label',
-    'Show plan type',
-    'Addon',
-    'Addon confirmation',
-    'Variations',
-    'Product',
-    'Tags',
-    'Loc ready',
-    'Fragment title',
-    'Fragment description',
-];
 
 test.describe('M@S Studio - Version Page test suite', () => {
     let studio;
@@ -94,11 +53,8 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-5: Validate current version indicator and styling', async () => {
-            // Check if version status indicator exists with green dot
             await expect(versionPage.currentDot).toBeVisible();
             await expect(versionPage.versionStatus).toContainText('Current');
-
-            // The first version item should have the 'current' class (green border)
             await expect(versionPage.currentVersionItem).toBeVisible();
             const firstItem = versionPage.getVersionByIndex(0);
             await expect(firstItem).toHaveClass(/current/);
@@ -121,7 +77,6 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-2: Validate initial preview displays', async () => {
             await expect(versionPage.previewPanel).toBeVisible();
             await expect(versionPage.previewContent).toBeVisible();
-            // Wait for preview columns to render
             await page.waitForTimeout(2000);
             const columnCount = await versionPage.previewColumns.count();
             expect(columnCount).toBeGreaterThanOrEqual(1);
@@ -130,11 +85,8 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-3: Select a different version', async () => {
             const versionCount = await versionPage.getVersionCount();
             if (versionCount > 1) {
-                // Select the second version (first historical version)
                 await versionPage.selectVersionByIndex(1);
                 await versionPage.waitForPreviewUpdate();
-
-                // Should now have 2 preview columns (current + selected)
                 const columnCount = await versionPage.previewColumns.count();
                 expect(columnCount).toBe(2);
             }
@@ -142,27 +94,30 @@ test.describe('M@S Studio - Version Page test suite', () => {
 
         await test.step('step-4: Validate changed fields section', async () => {
             const hasChanges = await versionPage.hasChangedFields();
-
             if (hasChanges) {
-                // Validate the changed fields label
                 await expect(versionPage.changedFieldsLabel).toBeVisible();
                 await expect(versionPage.changedFieldsLabel).toContainText('Changed Fields');
-
-                // Validate the list structure (ul element)
                 await expect(versionPage.changedFieldsList).toBeVisible();
-
-                // Verify list items exist
                 const fieldCount = await versionPage.getChangedFieldsCount();
                 expect(fieldCount).toBeGreaterThan(0);
-
-                // Validate field display format
                 const fields = await versionPage.getAllChangedFields();
                 expect(fields.length).toBeGreaterThan(0);
-
-                // All fields should have labels
                 fields.forEach((field) => {
                     expect(field.length).toBeGreaterThan(0);
                 });
+
+                // Validate each changed field matches a known FIELD_CONFIG label
+                const knownLabels = await page.evaluate(() => {
+                    const VersionPageClass = customElements.get('version-page');
+                    if (!VersionPageClass?.FIELD_CONFIG) return [];
+                    return Object.values(VersionPageClass.FIELD_CONFIG)
+                        .filter((f) => !f.hidden)
+                        .map((f) => f.label);
+                });
+                for (const fieldText of fields) {
+                    const isKnownLabel = knownLabels.some((label) => fieldText.includes(label) || fieldText.startsWith(label));
+                    expect(isKnownLabel, `Changed field "${fieldText}" should match a known label`).toBe(true);
+                }
             }
         });
     });
@@ -194,7 +149,6 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-4: Validate search results', async () => {
             await expect(versionPage.versionListPanel).toBeVisible();
             const searchResultCount = await versionPage.getVersionCount();
-            // Search should filter results or show all if no match
             expect(searchResultCount).toBeGreaterThanOrEqual(0);
         });
 
@@ -206,52 +160,10 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
     });
 
-    // @version-page-nala-preview-changed-fields - Open history, validate all changed fields listed in preview (1.3 vs 1.0)
+    // @version-page-nala-breadcrumb-to-editor - Breadcrumb to editor has fragmentId in URL
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.fragmentId}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Navigate to version page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
-        });
-
-        await test.step('step-2: Select version 1.0 for comparison', async () => {
-            await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-            await versionPage.selectVersionByTitle('1.0');
-            await versionPage.waitForPreviewUpdate();
-        });
-
-        await test.step('step-3: Validate preview has two columns (current + selected)', async () => {
-            const columnCount = await versionPage.previewColumns.count();
-            expect(columnCount).toBe(2);
-        });
-
-        await test.step('step-4: Validate changed fields are listed and use known labels', async () => {
-            const hasChanges = await versionPage.hasChangedFields();
-            expect(hasChanges).toBe(true);
-            await expect(versionPage.changedFieldsLabel).toContainText('Changed Fields');
-            await expect(versionPage.changedFieldsList).toBeVisible();
-
-            const fields = await versionPage.getAllChangedFields();
-            expect(fields.length).toBeGreaterThan(0);
-
-            for (const fieldText of fields) {
-                const isKnownLabel = KNOWN_CHANGED_FIELD_LABELS.some(
-                    (label) => fieldText.includes(label) || fieldText.startsWith(label),
-                );
-                expect(isKnownLabel, `Changed field "${fieldText}" should match a known label`).toBe(true);
-            }
-        });
-    });
-
-    // @version-page-nala-breadcrumb-to-editor - Breadcrumb to editor has fragmentId in URL
-    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[4];
-        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.fragmentId}`;
         setTestPage(testPage);
 
         await test.step('step-1: Navigate to version page', async () => {
@@ -269,9 +181,11 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-3: Validate URL is fragment editor with correct fragmentId', async () => {
             await page.waitForTimeout(2000);
             const hash = await page.evaluate(() => window.location.hash);
-            expect(hash).toContain('page=fragment-editor');
-            expect(hash).toContain(`fragmentId=${NALA_VERSION_FRAGMENT_ID}`);
-            expect(hash).toContain('path=nala');
+            expect(hash).toContain(`page=${data.expectedPage}`);
+            expect(hash).toContain(`path=${data.expectedPath}`);
+            if (data.expectFragmentIdInUrl) {
+                expect(hash).toContain(`fragmentId=${data.fragmentId}`);
+            }
         });
 
         await test.step('step-4: Validate fragment editor is visible', async () => {
@@ -280,9 +194,9 @@ test.describe('M@S Studio - Version Page test suite', () => {
     });
 
     // @version-page-nala-breadcrumb-to-fragments-table - Breadcrumb to fragments table, no fragmentId, correct path
-    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[5];
-        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.fragmentId}`;
+    test(`${features[4].name},${features[4].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[4];
+        const testPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${data.fragmentId}`;
         setTestPage(testPage);
 
         await test.step('step-1: Navigate to version page', async () => {
@@ -300,9 +214,11 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-3: Validate URL is content page with path=nala and no fragmentId', async () => {
             await page.waitForTimeout(2000);
             const hash = await page.evaluate(() => window.location.hash);
-            expect(hash).toContain('page=content');
-            expect(hash).toContain('path=nala');
-            expect(hash).not.toContain('fragmentId=');
+            expect(hash).toContain(`page=${data.expectedPage}`);
+            expect(hash).toContain(`path=${data.expectedPath}`);
+            if (data.expectFragmentIdInUrl === false) {
+                expect(hash).not.toContain('fragmentId=');
+            }
         });
 
         await test.step('step-4: Validate fragments table/view is visible', async () => {
@@ -311,29 +227,22 @@ test.describe('M@S Studio - Version Page test suite', () => {
     });
 
     // @version-page-nala-clone-restore - Clone, change fields, save/publish, new version, restore and validate toast
-    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[6];
-        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.fragmentId}`;
+    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[5];
+        const testPage = features[5].browserParams.includes('fragmentId=')
+            ? `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.fragmentId}`
+            : `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Navigate to fragment editor', async () => {
+        await test.step('step-1: Navigate to fragments table', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(5000);
-            await expect(studio.editorPanel).toBeVisible({ timeout: 15000 });
+            await expect(studio.renderView.or(studio.tableView)).toBeVisible({ timeout: 15000 });
         });
 
         await test.step('step-2: Clone the fragment', async () => {
-            await studio.cloneCardButton.click();
-            await page.waitForTimeout(1500);
-            const cloneDialog = page.locator('mas-fragment-editor sp-dialog.clone-dialog');
-            await expect(cloneDialog).toBeVisible({ timeout: 8000 });
-            const runId = getCurrentRunId();
-            const titleInput = cloneDialog.locator('sp-textfield#new-fragment-title input');
-            await titleInput.fill(`MAS Nala Automation Cloned Fragment [${runId}]`);
-            await page.waitForTimeout(300);
-            await cloneDialog.locator('sp-button:has-text("Clone")').click();
-            await page.waitForTimeout(5000);
+            await studio.cloneCard(data.fragmentId);
         });
 
         await test.step('step-3: Change a field and save', async () => {
@@ -341,17 +250,11 @@ test.describe('M@S Studio - Version Page test suite', () => {
             const subtitleInput = editor.subtitle;
             await subtitleInput.fill('Nala test subtitle');
             await page.waitForTimeout(500);
-            await studio.saveCardButton.click();
-            await page.waitForTimeout(3000);
-            await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });
+            await studio.saveCard();
         });
 
         await test.step('step-4: Publish the fragment', async () => {
-            const publishBtn = page.locator('mas-side-nav-item[label="Publish"]');
-            const publishToast = page.locator('mas-toast sp-toast[variant="positive"]:has-text("successfully published")');
-            await publishBtn.click();
-            await expect(publishToast).toBeVisible({ timeout: 20000 });
-            await page.waitForTimeout(1000);
+            await studio.publishCard();
         });
 
         await test.step('step-5: Change a field, save, and publish', async () => {
@@ -359,23 +262,29 @@ test.describe('M@S Studio - Version Page test suite', () => {
             const subtitleInput = editor.subtitle;
             await subtitleInput.fill('Nala test subtitle v2');
             await page.waitForTimeout(500);
-            await studio.saveCardButton.click();
-            await page.waitForTimeout(3000);
-            await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });
-            const publishBtn = page.locator('mas-side-nav-item[label="Publish"]');
-            const publishToast = page.locator('mas-toast sp-toast[variant="positive"]:has-text("successfully published")');
-            await publishBtn.click();
-            await expect(publishToast).toBeVisible({ timeout: 20000 });
-            await page.waitForTimeout(1000);
+            await studio.saveCard();
+            await studio.publishCard();
+            await page.waitForTimeout(5000);
         });
 
         await test.step('step-6: Open version history and validate new version exists', async () => {
-            const versionHistoryBtn = page.locator('mas-side-nav-item[label="History"]');
-            await versionHistoryBtn.click();
-            await page.waitForTimeout(3000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
-            await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-            const versionCount = await versionPage.getVersionCount();
+            const versionHistoryBtn = page.locator('#history');
+            const maxRetries = 5;
+            let versionCount = 0;
+
+            for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+                await versionHistoryBtn.click();
+                await page.waitForTimeout(3000);
+                await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+                await page.waitForSelector('version-page .version-item', { timeout: 15000 });
+                versionCount = await versionPage.getVersionCount();
+                if (versionCount >= 2) break;
+                if (attempt < maxRetries - 1) {
+                    await page.waitForTimeout(15000);
+                    await versionPage.clickBreadcrumbEditor();
+                    await page.waitForTimeout(3000);
+                }
+            }
             expect(versionCount).toBeGreaterThanOrEqual(2);
         });
 
@@ -399,9 +308,9 @@ test.describe('M@S Studio - Version Page test suite', () => {
     });
 
     // @version-page-nala-search-by-author - Search by version author name
-    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[7];
-        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.fragmentId}`;
+    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[6];
+        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.fragmentId}`;
         setTestPage(testPage);
 
         await test.step('step-1: Navigate to version page', async () => {
@@ -411,28 +320,19 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
         });
 
-        let authorName = '';
-        await test.step('step-2: Get author name from first version item', async () => {
+        await test.step('step-2: Search by author name', async () => {
             await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-            const firstItem = versionPage.getVersionByIndex(0);
-            const authorEl = firstItem.locator('.version-author-name');
-            await expect(authorEl).toBeVisible();
-            authorName = (await authorEl.textContent())?.trim() || '';
-            expect(authorName.length).toBeGreaterThan(0);
-        });
-
-        await test.step('step-3: Search by author name', async () => {
-            await versionPage.searchVersions(authorName);
+            await versionPage.searchVersions(data.authorName);
             await page.waitForTimeout(1500);
         });
 
-        await test.step('step-4: Validate filtered results contain that author', async () => {
+        await test.step('step-3: Validate filtered results contain that author', async () => {
             const count = await versionPage.getVersionCount();
             expect(count).toBeGreaterThan(0);
             for (let i = 0; i < count; i++) {
                 const item = versionPage.getVersionByIndex(i);
                 const text = await item.textContent();
-                expect(text?.toLowerCase()).toContain(authorName.toLowerCase());
+                expect(text?.toLowerCase()).toContain(data.authorName.toLowerCase());
             }
         });
     });

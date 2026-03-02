@@ -4,7 +4,7 @@ export const Defaults = Object.freeze({
     checkoutClientId: 'adobe_com',
     checkoutWorkflowStep: CheckoutWorkflowStep.EMAIL,
     country: 'US',
-    displayOldPrice: false,
+    displayOldPrice: true,
     displayPerUnit: false,
     displayRecurrence: true,
     displayTax: false,

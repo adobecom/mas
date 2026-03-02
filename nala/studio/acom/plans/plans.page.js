@@ -1,29 +1,31 @@
 export default class ACOMPlansCardPage {
     constructor(page) {
         this.page = page;
+        this.card = page.locator('merch-card');
 
         // Card element selectors
-        this.cardIcon = page.locator('merch-icon').first();
-        this.cardTitle = page.locator('h3[slot="heading-xs"]');
-        this.cardBadge = page.locator('merch-badge');
-        this.cardBadgeLabel = page.locator('.plans-badge');
-        this.cardDescription = page.locator('div[slot="body-xs"] p');
-        this.cardLegalLink = page.locator('a.modal-Link');
-        this.cardPhoneLink = page.locator('div[slot="body-xs"] a[href^="tel:"]');
-        this.cardPrice = page.locator('p[slot="heading-m"] span[data-template="price"]');
-        this.cardPriceStrikethrough = page.locator('p[slot="heading-m"] span.price-strikethrough');
-        this.cardPriceLegal = page.locator('span[is="inline-price"][data-template="legal"]');
-        this.cardCTA = page.locator('div[slot="footer"] > a[is="checkout-link"]');
-        this.cardPromoText = page.locator('p[slot="promo-text"]');
-        this.cardStockCheckbox = page.locator('[id="stock-checkbox"]');
-        this.cardStockCheckboxIcon = page.locator('[id="stock-checkbox"] > span');
-        this.cardCallout = page.locator('div[slot="callout-content"] > p');
-        this.cardSecureTransaction = page.locator('.secure-transaction-label');
-        this.cardQuantitySelector = page.locator('merch-quantity-select');
-        this.cardWhatsIncluded = page.locator('div[slot="whats-included"]');
-        this.cardWhatsIncludedLabel = page.locator('merch-whats-included div[slot="heading"]');
-        this.cardWhatsIncludedIcon = page.locator('merch-whats-included div[slot="content"] merch-icon');
-        this.cardWhatsIncludedIconLabel = page.locator('merch-whats-included p[slot="description"]');
+        this.cardIcon = this.card.locator('merch-icon').first();
+        this.cardTitle = this.card.locator('h3[slot="heading-xs"]');
+        this.cardBadge = this.card.locator('merch-badge');
+        this.cardBadgeLabel = this.card.locator('.plans-badge');
+        this.cardDescription = this.card.locator('div[slot="body-xs"] p');
+        this.cardLegalLink = this.card.locator('a.modal-Link');
+        this.cardPhoneLink = this.card.locator('div[slot="body-xs"] a[href^="tel:"]');
+        this.cardPrice = this.card.locator('p[slot="heading-m"] span[data-template="price"]');
+        this.cardPriceStrikethrough = this.card.locator('p[slot="heading-m"] span.price-strikethrough');
+        this.cardPriceLegal = this.card.locator('span[is="inline-price"][data-template="legal"]');
+        this.cardCTA = this.card.locator('div[slot="footer"] > a[is="checkout-link"]');
+        this.cardPromoText = this.card.locator('p[slot="promo-text"]');
+        this.cardStockCheckbox = this.card.locator('[id="stock-checkbox"]');
+        this.cardStockCheckboxIcon = this.card.locator('[id="stock-checkbox"] > span');
+        this.cardCallout = this.card.locator('div[slot="callout-content"] > p');
+        this.cardSecureTransaction = this.card.locator('.secure-transaction-label');
+        this.cardQuantitySelector = this.card.locator('merch-quantity-select');
+        this.cardWhatsIncluded = this.card.locator('div[slot="whats-included"]');
+        this.cardWhatsIncludedLabel = this.card.locator('merch-whats-included div[slot="heading"]');
+        this.cardWhatsIncludedIcon = this.card.locator('merch-whats-included div[slot="content"] merch-icon');
+        this.cardWhatsIncludedIconLabel = this.card.locator('merch-whats-included p[slot="description"]');
+        this.cardUptLink = this.card.locator('a.upt-link');
 
         // Plans individual card properties:
         this.cssProp = {

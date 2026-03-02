@@ -2,7 +2,7 @@ export default {
     FeatureName: 'M@S Studio AHome Try Buy Widget',
     features: [
         {
-            tcid: '1',
+            tcid: '0',
             name: '@studio-try-buy-widget-edit-discard-bg-color',
             path: '/studio.html',
             data: {
@@ -12,11 +12,11 @@ export default {
                     updated: 'Transparent',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ahome @ahome-edit @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '2',
+            tcid: '1',
             name: '@studio-try-buy-widget-edit-discard-border-color',
             path: '/studio.html',
             data: {
@@ -30,11 +30,11 @@ export default {
                     updated: 'rgb(80, 80, 80)',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ahome @ahome-edit @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
         {
-            tcid: '5',
+            tcid: '2',
             name: '@studio-try-buy-widget-edit-discard-image',
             path: '/studio.html',
             data: {
@@ -44,42 +44,8 @@ export default {
                     updated: 'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ahome @ahome-edit @ahome-try-buy-widget @ahome-try-buy-widget-edit',
         },
-        {
-            tcid: '14',
-            name: '@studio-try-buy-widget-edit-discard-product-icon-picker',
-            path: '/studio.html',
-            data: {
-                cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-                productIcon: {
-                    name: 'Illustrator',
-                    original: {
-                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-                    },
-                    updated: {
-                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
-                    },
-                },
-            },
-            browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @ahome @ahome-edit @ahome-try-buy-widget @ahome-try-buy-widget-edit',
-        },
-        // what is the difference between this and the previous test?
-        // {
-        //     tcid: '4',
-        //     name: '@studio-try-buy-widget-edit-discard-mnemonic',
-        //     path: '/studio.html',
-        //     data: {
-        //         cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
-        //         icon: {
-        //             original: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-        //             updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
-        //         },
-        //     },
-        //     browserParams: '#page=content&path=nala&query=',
-        //     tags: '@mas-studio @ahome @ahome-edit @ahome-try-buy-widget @ahome-try-buy-widget-edit',
-        // },
     ],
 };

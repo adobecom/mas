@@ -9,7 +9,7 @@ export default {
                 cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -23,7 +23,7 @@ export default {
                     updated: 'Change subtitle',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
         },
         {
@@ -35,7 +35,7 @@ export default {
                 newBackgroundURL:
                     'https://milo.adobe.com/assets/img/commerce/media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ccd @ccd-edit @ccd-suggested @ccd-suggested-edit',
         },
     ],

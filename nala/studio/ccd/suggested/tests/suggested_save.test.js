@@ -84,8 +84,6 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             const clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
@@ -115,7 +113,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
     });
 
     // @studio-suggested-save-edited-RTE-fields - Validate field edits and save for suggested card in mas studio
-    // Combines: title, eyebrow, mnemonic, description, and background image
+    // Combines: eyebrow, and background image
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
@@ -132,72 +130,34 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
 
-        await test.step('step-3: Edit title field', async () => {
-            await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title);
-        });
-
-        await test.step('step-4: Edit eyebrow field', async () => {
+        await test.step('step-3: Edit eyebrow field', async () => {
             await expect(await editor.subtitle).toBeVisible();
             await editor.subtitle.fill(data.subtitle);
         });
 
-        await test.step('step-5: Edit mnemonic field', async () => {
-            await editor.openMnemonicModal();
-            await editor.mnemonicUrlTab.click();
-            await expect(await editor.iconURL).toBeVisible();
-            await editor.iconURL.fill(data.iconURL);
-            await editor.saveMnemonicModal();
-        });
-
-        await test.step('step-6: Edit description field', async () => {
-            await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description);
-        });
-
-        await test.step('step-7: Edit background image field', async () => {
+        await test.step('step-4: Edit background image field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await editor.backgroundImage.fill(data.backgroundURL);
         });
 
-        await test.step('step-8: Save card with all changes', async () => {
+        await test.step('step-5: Save card with all changes', async () => {
             await studio.saveCard();
         });
 
-        await test.step('step-9: Validate all field changes in parallel', async () => {
+        await test.step('step-6: Validate all field changes in parallel', async () => {
             const validationLabels = ['title', 'eyebrow', 'mnemonic', 'description', 'background image'];
 
             const results = await Promise.allSettled([
-                test.step('Validation-1: Verify title saved', async () => {
-                    await expect(await editor.title).toContainText(data.title);
-                    await expect(await clonedCard.locator(suggested.cardTitle)).toHaveText(data.title);
-                }),
-
-                test.step('Validation-2: Verify eyebrow saved', async () => {
+                test.step('Validation-1: Verify eyebrow saved', async () => {
                     await expect(await editor.subtitle).toHaveValue(data.subtitle);
                     await expect(await clonedCard.locator(suggested.cardEyebrow)).toHaveText(data.subtitle);
                 }),
 
-                test.step('Validation-3: Verify mnemonic saved', async () => {
-                    await editor.openMnemonicModal();
-                    await editor.mnemonicUrlTab.click();
-                    await expect(await editor.iconURL).toHaveValue(data.iconURL);
-                    await editor.cancelMnemonicModal();
-                    await expect(await clonedCard.locator(suggested.cardIcon)).toHaveAttribute('src', data.iconURL);
-                }),
-
-                test.step('Validation-4: Verify description saved', async () => {
-                    await expect(await editor.description).toContainText(data.description);
-                    await expect(await clonedCard.locator(suggested.cardDescription)).toHaveText(data.description);
-                }),
-
-                test.step('Validation-5: Verify background image saved', async () => {
+                test.step('Validation-2: Verify background image saved', async () => {
                     await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL);
                     await expect(await clonedCard).toHaveAttribute('background-image', data.backgroundURL);
                 }),

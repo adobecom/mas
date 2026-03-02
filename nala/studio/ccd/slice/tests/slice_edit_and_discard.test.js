@@ -22,21 +22,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
+            await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
-        await test.step('step-3: Edit card variant', async () => {
+        await test.step('step-2: Edit card variant', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
             await editor.variant.click();
@@ -44,7 +39,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Validate editor fields rendering after variant change', async () => {
+        await test.step('step-3: Validate editor fields rendering after variant change', async () => {
             await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await expect(await editor.size).not.toBeVisible();
             await expect(await editor.title).toBeVisible();
@@ -57,7 +52,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await expect(await editor.footer).toBeVisible();
         });
 
-        await test.step('step-5: Validate card variant change', async () => {
+        await test.step('step-4: Validate card variant change', async () => {
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(await (await studio.getCard(data.cardid)).locator(suggested.cardCTA)).toHaveAttribute(
@@ -70,11 +65,11 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             );
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify there is no changes of the card', async () => {
+        await test.step('step-6: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-suggested');
         });
@@ -86,21 +81,16 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
+            await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
         });
 
-        await test.step('step-3: Edit size field', async () => {
+        await test.step('step-2: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'wide');
             await editor.size.scrollIntoViewIfNeeded();
@@ -109,15 +99,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Validate new size of the card', async () => {
+        await test.step('step-3: Validate new size of the card', async () => {
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('size', 'wide');
         });
 
-        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-4: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-6: Verify there is no changes of the card', async () => {
+        await test.step('step-5: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
         });
@@ -129,51 +119,47 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
-            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
         });
 
-        await test.step('step-3: Remove background URL field', async () => {
+        await test.step('step-2: Remove background URL field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL.original);
             await editor.backgroundImage.fill('');
         });
 
-        await test.step('step-4: Validate edited background image url field in Editor panel', async () => {
+        await test.step('step-3: Validate edited background image url field in Editor panel', async () => {
             await expect(await editor.backgroundImage).toHaveValue('');
         });
 
-        await test.step('step-5: Validate image is removed from the card', async () => {
+        await test.step('step-4: Validate image is removed from the card', async () => {
             await expect(await slice.cardImage).not.toBeVisible();
         });
 
-        await test.step('step-6: Enter new value in the background URL field', async () => {
+        await test.step('step-5: Enter new value in the background URL field', async () => {
             await editor.backgroundImage.fill(data.backgroundURL.updated);
         });
 
-        await test.step('step-7: Validate edited background image url field in Editor panel', async () => {
+        await test.step('step-6: Validate edited background image url field in Editor panel', async () => {
             await expect(await editor.backgroundImage).toHaveValue(data.backgroundURL.updated);
         });
 
-        await test.step('step-8: Validate new image on the card', async () => {
+        await test.step('step-7: Validate new image on the card', async () => {
             await expect(await slice.cardImage).toBeVisible();
             await expect(await slice.cardImage).toHaveAttribute('src', data.backgroundURL.updated);
         });
 
-        await test.step('step-9: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-8: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-10: Verify there is no changes of the card', async () => {
+        await test.step('step-9: Verify there is no changes of the card', async () => {
             await expect(await slice.cardImage).toBeVisible();
             await expect(await slice.cardImage).toHaveAttribute('src', data.backgroundURL.original);
         });

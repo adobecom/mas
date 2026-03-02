@@ -55,6 +55,8 @@ export default class EditorPage {
 
         this.promoText = this.panel.locator('#promo-text input');
         this.promoTextFieldGroup = this.panel.locator('sp-field-group#promoText');
+        this.promoCode = this.panel.locator('#promo-code input');
+        this.promoCodeFieldGroup = this.panel.locator('sp-field-group#promoCode');
 
         this.quantitySelectorCheckbox = this.panel.locator('#quantitySelect sp-checkbox input');
         this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelectorTitle #title-quantity input');
@@ -63,6 +65,7 @@ export default class EditorPage {
 
         this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
         this.size = this.panel.locator('#card-size');
+        this.style = this.panel.locator('#card-style');
         this.subtitle = this.panel.locator('#card-subtitle input');
 
         this.tags = this.panel.locator('aem-tag-picker-field[label="Tags"]');
@@ -73,58 +76,60 @@ export default class EditorPage {
 
         this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
 
-        this.localeVariationHeader = page.locator('.locale-variation-header');
-        this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
-        this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
-        this.style = this.panel.locator('#card-style');
-
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
-        this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');
         this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
+        this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
 
+        // Discard dialog
         // this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
         // this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
+        this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
         this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
-        this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
-
-        // Missing variation panel (locale switching)
-        this.missingVariationPanel = page.locator('#missing-variation-panel');
-        this.viewSourceFragmentButton = page.locator('#view-source-fragment');
-        this.createTranslationProjectButton = page.locator('#create-translation-project');
 
         // Price templates
+        this.legalDisclaimer = page.locator('span[is="inline-price"][data-template="legal"]');
+        this.promoStrikethroughPrice = page.locator('span[is="inline-price"][data-template="price"] > .price-strikethrough');
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');
-        this.promoStrikethroughPrice = page.locator('span[is="inline-price"][data-template="price"] > .price-strikethrough');
-        this.legalDisclaimer = page.locator('span[is="inline-price"][data-template="legal"]');
 
         // RTE content
         this.phoneLink = page.locator('a[href^="tel:"]');
+        this.uptLink = this.panel.locator('a.upt-link');
 
         // RTE panel toolbar
-        this.linkEdit = page.locator('#linkEditorButton');
         this.addIcon = page.locator('#addIconButton');
+        this.linkEdit = page.locator('#linkEditorButton');
         this.OSTButton = page.locator('#offerSelectorToolButton');
+        this.UPTButton = page.locator('#uptLinkButton');
 
         // Edit Link Panel
+        this.analyticsId = page.locator('sp-picker#analyticsId');
+        this.accentVariant = page.locator('sp-button[variant="accent"]');
         this.checkoutParameters = page.locator('#checkoutParameters input');
         this.linkText = page.locator('#linkText input');
-        this.analyticsId = page.locator('sp-picker#analyticsId');
-        this.phoneLinkTab = page.locator('#linkTypeNav sp-tab[value="phone"]');
-        this.phoneLinkText = page.locator('#phoneNumber input');
         this.linkSave = page.locator('#saveButton');
         this.linkVariant = page.locator('#linkVariant');
-        this.accentVariant = page.locator('sp-button[variant="accent"]');
+        this.phoneLinkTab = page.locator('#linkTypeNav sp-tab[value="phone"]');
+        this.phoneLinkText = page.locator('#phoneNumber input');
+        this.primaryLinkVariant = page.locator('sp-link:has-text("Primary link")');
         this.primaryVariant = page.locator('sp-button[variant="primary"]:not([treatment="outline"])');
         this.primaryOutlineVariant = page.locator('sp-button[variant="primary"][treatment="outline"]');
         this.secondaryVariant = page.locator('sp-button[variant="secondary"]:not([treatment="outline"])');
         this.secondaryOutlineVariant = page.locator('sp-button[variant="secondary"][treatment="outline"]');
-        this.primaryLinkVariant = page.locator('sp-link:has-text("Primary link")');
         this.secondaryLinkVariant = page.locator('sp-link[variant="secondary"]');
+
+        // Regional variation
+        this.localeVariationHeader = page.locator('.locale-variation-header');
+        this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
+        this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
+        // Missing variation panel (locale switching)
+        this.missingVariationPanel = page.locator('#missing-variation-panel');
+        this.viewSourceFragmentButton = page.locator('#view-source-fragment');
+        this.createTranslationProjectButton = page.locator('#create-translation-project');
 
         this.overrideRestoreLink = 'a:has-text("Overridden. Click to restore.")';
     }

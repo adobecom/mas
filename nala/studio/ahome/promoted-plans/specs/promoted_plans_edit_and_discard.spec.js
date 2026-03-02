@@ -2,7 +2,7 @@ export default {
     FeatureName: 'M@S Studio AHome Promoted Plans',
     features: [
         {
-            tcid: '1',
+            tcid: '0',
             name: '@studio-promoted-plans-edit-discard-gradient-border',
             path: '/studio.html',
             data: {
@@ -17,9 +17,9 @@ export default {
                     cssColor: 'spectrum-red-900',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ahome @ahome-edit @ahome-promoted-plans @ahome-promoted-plans-edit',
         },
-        // any other specific fields to add?
+        // add for background image field once MWPW-184740 is fixed
     ],
 };

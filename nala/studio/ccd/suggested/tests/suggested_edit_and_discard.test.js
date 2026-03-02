@@ -22,20 +22,15 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
-            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
         });
 
-        await test.step('step-3: Edit card variant', async () => {
+        await test.step('step-2: Edit card variant', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await editor.variant.click();
@@ -43,7 +38,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-4: Validate editor fields rendering after variant change', async () => {
+        await test.step('step-3: Validate editor fields rendering after variant change', async () => {
             await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).not.toBeVisible();
@@ -56,7 +51,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await editor.footer).toBeVisible();
         });
 
-        await test.step('step-5: Validate card variant change', async () => {
+        await test.step('step-4: Validate card variant change', async () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-suggested');
             await expect(await suggested.cardTitle).not.toBeVisible();
@@ -65,11 +60,11 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
             await expect(await slice.cardCTA).toHaveAttribute('is', 'checkout-button');
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify there is no changes of the card', async () => {
+        await test.step('step-6: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('variant', 'ccd-slice');
             await (await studio.getCard(data.cardid)).dblclick();
@@ -85,38 +80,33 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
-            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
         });
 
-        await test.step('step-3: Edit eyebrow field', async () => {
+        await test.step('step-2: Edit eyebrow field', async () => {
             await expect(await editor.subtitle).toBeVisible();
             await expect(await editor.subtitle).toHaveValue(data.subtitle.original);
             await editor.subtitle.fill(data.subtitle.updated);
         });
 
-        await test.step('step-4: Validate edited eyebrow/subtitle field in Editor panel', async () => {
+        await test.step('step-3: Validate edited eyebrow/subtitle field in Editor panel', async () => {
             await expect(await editor.subtitle).toHaveValue(data.subtitle.updated);
         });
 
-        await test.step('step-5: Validate edited eyebrow field on the card', async () => {
+        await test.step('step-4: Validate edited eyebrow field on the card', async () => {
             await expect(await suggested.cardEyebrow).toHaveText(data.subtitle.updated);
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify there is no changes of the card', async () => {
+        await test.step('step-6: Verify there is no changes of the card', async () => {
             await expect(await suggested.cardEyebrow).toHaveText(data.subtitle.original);
         });
     });
@@ -127,38 +117,33 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
-        await test.step('step-1: Go to MAS Studio test page', async () => {
+        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
-            await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
         });
 
-        await test.step('step-3: Edit background URL field', async () => {
+        await test.step('step-2: Edit background URL field', async () => {
             await expect(await editor.backgroundImage).toBeVisible();
             await expect(await editor.backgroundImage).toHaveValue('');
             await editor.backgroundImage.fill(data.newBackgroundURL);
         });
 
-        await test.step('step-4: Validate edited background image URL field in Editor panel', async () => {
+        await test.step('step-3: Validate edited background image URL field in Editor panel', async () => {
             await expect(await editor.backgroundImage).toHaveValue(data.newBackgroundURL);
         });
 
-        await test.step('step-5: Validate edited background image URL field on the card', async () => {
+        await test.step('step-4: Validate edited background image URL field on the card', async () => {
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('background-image', data.newBackgroundURL);
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-5: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify there is no changes of the card', async () => {
+        await test.step('step-6: Verify there is no changes of the card', async () => {
             await expect(await studio.getCard(data.cardid)).not.toHaveAttribute('background-image', data.newBackgroundURL);
         });
     });

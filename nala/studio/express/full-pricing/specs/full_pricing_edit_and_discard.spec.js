@@ -2,7 +2,7 @@ export default {
     FeatureName: 'M@S Studio EXPRESS Full Pricing',
     features: [
         {
-            tcid: '1',
+            tcid: '0',
             name: '@studio-full-pricing-express-edit-discard-mnemonic-title',
             path: '/studio.html',
             data: {
@@ -12,11 +12,11 @@ export default {
                     updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@express-full-pricing @mas-studio @express @express-edit',
         },
         {
-            tcid: '2',
+            tcid: '1',
             name: '@studio-full-pricing-express-edit-discard-shortDescription',
             path: '/studio.html',
             data: {
@@ -26,11 +26,11 @@ export default {
                     updated: 'Updated additional details for testing.',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@express-full-pricing @mas-studio @express @express-edit',
         },
         {
-            tcid: '4',
+            tcid: '2',
             name: '@studio-full-pricing-express-edit-discard-product-icon-picker',
             path: '/studio.html',
             data: {
@@ -45,7 +45,7 @@ export default {
                     },
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@express-full-pricing @mas-studio @express @express-edit',
         },
     ],

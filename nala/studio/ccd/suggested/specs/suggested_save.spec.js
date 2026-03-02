@@ -8,7 +8,7 @@ export default {
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ccd @ccd-save @ccd-suggested @ccd-suggested-save @nopr', // enable when the preview is fixed
         },
         {
@@ -19,10 +19,9 @@ export default {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ccd @ccd-save @ccd-suggested @ccd-suggested-save',
         },
-        // ostavi eyebrow
         {
             tcid: '3',
             name: '@studio-suggested-save-edited-RTE-fields',
@@ -35,7 +34,7 @@ export default {
                 description: 'New Test Description',
                 backgroundURL: 'https://milo.adobe.com/assets/img/commerce/media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ccd @ccd-save @ccd-suggested @ccd-suggested-save',
         },
     ],

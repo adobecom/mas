@@ -280,7 +280,9 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
-                phoneNumber: '1234567890',
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                promoCode: 'UMRM2MUSPr501YOC',
+                uptLinkUrl: 'https://www.adobe.com/offers/promo-terms.html',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',

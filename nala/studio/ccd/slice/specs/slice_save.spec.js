@@ -9,10 +9,9 @@ export default {
                 cardid: '478f4f3f-0db4-461b-bf89-a7059fb9655c',
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ccd @ccd-save @ccd-slice @ccd-slice-save',
         },
-        // leave only background here
         {
             tcid: '1',
             name: '@studio-slice-save-edited-RTE-fields',
@@ -24,9 +23,8 @@ export default {
                 iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
                 backgroundURL: 'https://milo.adobe.com/assets/img/commerce/media_158c1c22b1322dd28d7912d30fb27f29aa79f79b1.png',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @ccd @ccd-save @ccd-slice @ccd-slice-save',
         },
-        // add size
     ],
 };

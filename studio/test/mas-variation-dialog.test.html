@@ -161,7 +161,7 @@
                             await dialog.updateComplete;
 
                             const availableLocales = dialog.availableTargetLocales;
-                            expect(availableLocales.length).to.be.equal(22);
+                            expect(availableLocales.length).to.be.equal(21);
                             const enKW = availableLocales.find((l) => l.lang === 'en' && l.country === 'KW');
                             expect(enKW?.disabled).to.be.true;
                         });

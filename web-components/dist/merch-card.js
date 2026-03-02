@@ -3704,6 +3704,20 @@ merch-card-collection.simplified-pricing-express p {
     font-size: inherit;
 }
 
+merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:has(mas-mnemonic) {
+    padding-top: 16px;
+}
+
+@supports not selector(:has(*)) {
+    merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:last-child {
+        padding-top: 16px;
+    }
+}
+
+merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2) {
+    padding-top: 16px;
+}
+
 /* Desktop - 3 columns */
 @media screen and ${u} {
     merch-card-collection.simplified-pricing-express {
@@ -3722,7 +3736,6 @@ merch-card-collection.simplified-pricing-express p {
     /* Push paragraph with mnemonics to the bottom using :has() */
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:has(mas-mnemonic) {
         margin-top: auto;
-        padding-top: 16px;
         min-height: var(--consonant-merch-card-simplified-pricing-express-icons-height);
     }
 
@@ -3730,14 +3743,12 @@ merch-card-collection.simplified-pricing-express p {
     @supports not selector(:has(*)) {
         merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:last-child {
             margin-top: auto;
-            padding-top: 16px;
         }
     }
 
     /* Additional fallback - if second paragraph exists, assume it has mnemonics */
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2) {
         margin-top: auto;
-        padding-top: 16px;
     }
 
     merch-card[variant="simplified-pricing-express"] [slot="price"] {

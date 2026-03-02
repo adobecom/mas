@@ -709,6 +709,24 @@
                         expect(settingsPage.shadowRoot.querySelector('#discard-confirmation-dialog')).to.equal(null);
                     });
 
+                    it('does not show discard confirmation when form is unchanged', async () => {
+                        const { settingsPage, table } = await setupPage();
+                        table.dispatchEvent(
+                            new CustomEvent('setting-edit', {
+                                detail: { id: 'setting-show-plan-type', isOverride: false },
+                                bubbles: true,
+                                composed: true,
+                            }),
+                        );
+                        await waitForUpdates(settingsPage, 2);
+
+                        const confirmed = await settingsPage.promptDiscardChanges();
+                        await waitForUpdates(settingsPage, 1);
+
+                        expect(confirmed).to.equal(true);
+                        expect(settingsPage.shadowRoot.querySelector('#discard-confirmation-dialog')).to.equal(null);
+                    });
+
                     it('does not render edit dialog until row data is loaded', async () => {
                         let resolveIndex;
                         const delayedAem = {

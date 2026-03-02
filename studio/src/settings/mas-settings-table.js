@@ -21,14 +21,14 @@ export class MasSettingsTable extends LitElement {
     static styles = [tableStyles];
 
     static properties = {
-        loading: { type: Boolean, attribute: false },
         sortBy: { type: String, attribute: false },
         sortDirection: { type: String, attribute: false },
     };
 
+    #renderedRows = [];
+
     constructor() {
         super();
-        this.loading = false;
         this.sortBy = 'label';
         this.sortDirection = 'asc';
         this.settings = Store.settings;
@@ -114,8 +114,8 @@ export class MasSettingsTable extends LitElement {
         });
     }
 
-    get renderedRows() {
-        return this.sortedRows.map((rowStore) => {
+    willUpdate() {
+        this.#renderedRows = this.sortedRows.map((rowStore) => {
             const row = rowStore.value;
             const overrides = row.overrides || [];
             return {
@@ -236,7 +236,7 @@ export class MasSettingsTable extends LitElement {
     }
 
     get emptyStateRowTemplate() {
-        if (this.loading || this.settings.loading.get() || this.settings.error.get() || this.renderedRows.length > 0)
+        if (this.settings.loading.get() || this.settings.error.get() || this.#renderedRows.length > 0)
             return nothing;
         return html`
             <sp-table-row class="empty-state-row" value="empty-state">
@@ -247,7 +247,7 @@ export class MasSettingsTable extends LitElement {
     }
 
     get tableTemplate() {
-        const rows = this.renderedRows;
+        const rows = this.#renderedRows;
 
         return html`
             <sp-table id="settings-table" size="m">

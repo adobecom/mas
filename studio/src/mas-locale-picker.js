@@ -336,15 +336,22 @@ export class MasLocalePicker extends LitElement {
         });
     }
 
+    #tempSelectedSet = new Set();
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('locale')) {
+            const found = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
+            if (!found) this.locale = 'en_US';
+        }
+        if (changedProperties.has('tempSelectedLocales')) {
+            this.#tempSelectedSet = new Set(this.tempSelectedLocales);
+        }
+    }
+
     /** can only be one of default languages, not regional ones */
     get currentLocale() {
-        const locale = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
-        if (locale) {
-            return locale;
-        } else {
-            this.locale = 'en_US';
-            return getDefaultLocale(this.surface, this.locale);
-        }
+        return this.getLocales().find((l) => getLocaleCode(l) === this.locale)
+            || getDefaultLocale(this.surface, this.locale);
     }
 
     get searchField() {
@@ -421,13 +428,13 @@ export class MasLocalePicker extends LitElement {
     get allFilteredSelected() {
         const filteredCodes = this.filteredLocaleCodes;
         if (!filteredCodes.length) return false;
-        return filteredCodes.every((code) => this.tempSelectedLocales.includes(code));
+        return filteredCodes.every((code) => this.#tempSelectedSet.has(code));
     }
 
     get someFilteredSelected() {
         const filteredCodes = this.filteredLocaleCodes;
         if (!filteredCodes.length) return false;
-        return filteredCodes.some((code) => this.tempSelectedLocales.includes(code));
+        return filteredCodes.some((code) => this.#tempSelectedSet.has(code));
     }
 
     get selectionCountLabel() {
@@ -522,7 +529,7 @@ export class MasLocalePicker extends LitElement {
             <sp-checkbox
                 class="checkbox-item"
                 value=${code}
-                ?checked=${this.tempSelectedLocales.includes(code)}
+                ?checked=${this.#tempSelectedSet.has(code)}
                 @change=${this.handleCheckboxSelection}
             >
                 ${localeLabel}

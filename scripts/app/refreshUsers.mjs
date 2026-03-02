@@ -156,7 +156,8 @@ function extractGroupsFromMemberOfResponse(data) {
 
                     return null;
                 })
-                .filter(Boolean),
+                .filter(Boolean)
+                .filter((name) => /-MAS-/.test(name)),
         ),
     ).sort();
 }
@@ -228,7 +229,7 @@ async function main() {
         const token = await getAccessToken();
         const users = await fetchLdapMembers(token);
         const usersWithGroups = await fetchMemberOfGroups(users, token);
-        await sendToEndpoint(users, token);
+        await sendToEndpoint(usersWithGroups, token);
         console.log(`Successfully processed ${usersWithGroups.length} unique users`);
     } catch (error) {
         console.error('Error:', error.message);

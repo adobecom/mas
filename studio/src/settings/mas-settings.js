@@ -266,9 +266,13 @@ class MasSettings extends LitElement {
         const aem = Store.settings.aem;
         if (surface === this.loadedSurface && aem === this.#loadedAem) return;
 
-        Store.settings.loadSurface(surface);
         this.loadedSurface = surface;
         this.#loadedAem = aem;
+        Store.settings.loadSurface(surface).then(() => {
+            if (this.surface !== surface) {
+                this.#loadSettings();
+            }
+        });
     }
 
     #getDefaultForm() {
@@ -815,6 +819,7 @@ class MasSettings extends LitElement {
 
     #handleEditorDuplicate = async () => {
         const row = this.currentSettingRow;
+        if (!row) return;
         this.#openConfirmDialog('duplicate', row.id);
     };
 

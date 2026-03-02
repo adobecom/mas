@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import Store from './store.js';
-import { PAGE_NAMES, SURFACES, SETTINGS_POWERUSERS_GROUP } from './constants.js';
+import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';

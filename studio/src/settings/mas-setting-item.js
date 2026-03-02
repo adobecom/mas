@@ -1,4 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
+import ReactiveController from '../reactivity/reactive-controller.js';
 
 /**
  * Single top-level row renderer for settings table items.
@@ -16,6 +17,16 @@ export class MasSettingItem extends LitElement {
 
     createRenderRoot() {
         return this;
+    }
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('store') && this.store) {
+            if (this.storeController) {
+                this.storeController.updateStores([this.store]);
+            } else {
+                this.storeController = new ReactiveController(this, [this.store]);
+            }
+        }
     }
 
     get row() {

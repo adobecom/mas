@@ -296,6 +296,7 @@ export class TreePickerField extends LitElement {
     #rootIds;
     #leafIds;
     #summaryHelper;
+    #draftValueSet = new Set();
 
     constructor() {
         super();
@@ -323,6 +324,12 @@ export class TreePickerField extends LitElement {
         super.connectedCallback();
         this.#rebuildTreeIndex();
         this.#syncDraftFromValue();
+    }
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('draftValue')) {
+            this.#draftValueSet = new Set(this.draftValue || []);
+        }
     }
 
     updated(changedProperties) {
@@ -453,14 +460,13 @@ export class TreePickerField extends LitElement {
     }
 
     #getNodeSelectionState(nodeId) {
-        const selectedSet = new Set(this.draftValue || []);
         const leafDescendants = this.#leafDescendantsMap.get(nodeId) || [];
 
         if (leafDescendants.length === 0) {
             return 'none';
         }
 
-        const selectedCount = leafDescendants.reduce((count, leafId) => count + (selectedSet.has(leafId) ? 1 : 0), 0);
+        const selectedCount = leafDescendants.reduce((count, leafId) => count + (this.#draftValueSet.has(leafId) ? 1 : 0), 0);
 
         if (selectedCount === 0) return 'none';
         if (selectedCount === leafDescendants.length) return 'checked';
@@ -524,37 +530,33 @@ export class TreePickerField extends LitElement {
             return rows;
         }
 
-        const visitWithSearch = (nodeId, depth = 0) => {
+        const visitWithSearch = (nodeId, depth = 0, targetRows = rows) => {
+            const startIndex = targetRows.length;
             const node = this.#nodeMap.get(nodeId);
-            if (!node) return { matched: false, rows: [] };
+            if (!node) return false;
 
             const children = this.#childrenMap.get(nodeId) || [];
-            const labelMatch = node.label.toLowerCase().includes(query);
+            let matched = node.label.toLowerCase().includes(query);
+            targetRows.push({ nodeId, depth, node, hasChildren: children.length > 0 });
 
-            let matchedChildRows = [];
-            let hasMatchingChild = false;
-
-            children.forEach((childId) => {
-                const result = visitWithSearch(childId, depth + 1);
-                if (!result.matched) return;
-                hasMatchingChild = true;
-                matchedChildRows = matchedChildRows.concat(result.rows);
-            });
-
-            if (!labelMatch && !hasMatchingChild) {
-                return { matched: false, rows: [] };
+            for (const childId of children) {
+                if (visitWithSearch(childId, depth + 1, targetRows)) {
+                    matched = true;
+                }
             }
 
-            return {
-                matched: true,
-                rows: [{ nodeId, depth, node, hasChildren: children.length > 0 }, ...matchedChildRows],
-            };
+            // Roll back rows from this subtree when there is no match.
+            if (!matched) {
+                targetRows.length = startIndex;
+                return false;
+            }
+
+            return true;
         };
 
-        this.#rootIds.forEach((rootId) => {
-            const result = visitWithSearch(rootId, 0);
-            if (result.matched) rows.push(...result.rows);
-        });
+        for (const rootId of this.#rootIds) {
+            visitWithSearch(rootId, 0, rows);
+        }
 
         return rows;
     }

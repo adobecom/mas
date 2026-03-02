@@ -199,7 +199,7 @@ class MasStudio extends LitElement {
 
         function rtePriceProvider(element, options) {
             if (element.dataset.template !== 'legal') return;
-            if (!element.getRootNode()?.host?.nodeName === 'RTE-FIELD') return;
+            if (element.getRootNode()?.host?.nodeName !== 'RTE-FIELD') return;
             options.displayPlanType = true;
         }
         if (typeof this.commerceService.providers?.price === 'function') {

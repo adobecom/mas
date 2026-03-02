@@ -74,7 +74,6 @@ export class SettingsStore {
     constructor(bucket = '', baseUrl = '') {
         this.bucket = bucket;
         this.baseUrl = baseUrl;
-        this.aem = new AEM(this.bucket, this.baseUrl);
     }
 
     get sourceFragment() {
@@ -220,6 +219,7 @@ export class SettingsStore {
 
     async toggleSetting(rowId, checked) {
         const rowStore = this.getRowStore(rowId);
+        if (!rowStore) return false;
         const state = checked ? 'On' : 'Off';
         const templatePhrase = this.#templateSummaryToSentence(rowStore.value.templateSummary);
         const message = `'${rowStore.value.label}' is now [${state}]. The change has been applied to ${templatePhrase} for all locales.`;
@@ -455,12 +455,13 @@ export class SettingsStore {
 
         return this.#runMutation(
             async () => {
+                await Promise.all(
+                    fragmentIds.map(async (id) => {
+                        const fragment = await this.aem.sites.cf.fragments.getById(id);
+                        await this.aem.sites.cf.fragments.delete(fragment);
+                    }),
+                );
                 await this.#removePathsFromIndex(fragmentPaths);
-
-                for (const fragmentId of fragmentIds) {
-                    const fragment = await this.aem.sites.cf.fragments.getById(fragmentId);
-                    await this.aem.sites.cf.fragments.delete(fragment);
-                }
             },
             'Setting deleted.',
             'Failed to delete setting.',
@@ -607,7 +608,6 @@ export class SettingsStore {
             variant: 'positive',
             message: 'Setting has been successfully published.',
         });
-        showToast('Setting has been successfully published.', 'positive');
     }
 
     formatTemplateSummary(selectedTemplateIds) {

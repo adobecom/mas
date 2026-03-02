@@ -4,6 +4,7 @@ import './mas-fragment-status.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { cardSkeleton } from './mas-content.js';
 
 class MasFragmentRender extends LitElement {
     static properties = {
@@ -116,11 +117,7 @@ class MasFragmentRender extends LitElement {
     }
 
     get placeholder() {
-        return html`<div class="render-fragment-placeholder">
-            <div class="skeleton-element skeleton-title"></div>
-            <div class="skeleton-element skeleton-body"></div>
-            <div class="skeleton-element skeleton-footer"></div>
-        </div>`;
+        return cardSkeleton();
     }
 
     get unknown() {

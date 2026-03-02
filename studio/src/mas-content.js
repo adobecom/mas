@@ -8,6 +8,27 @@ import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
+
+export const cardSkeleton = () =>
+    html`<div class="render-fragment-placeholder">
+        <div class="skeleton-element skeleton-title"></div>
+        <div class="skeleton-element skeleton-body"></div>
+        <div class="skeleton-element skeleton-footer"></div>
+    </div>`;
+
+const tableSkeletonRow = () =>
+    html`<sp-table-row class="skeleton-row">
+        <sp-table-cell class="expand-cell"></sp-table-cell>
+        <sp-table-cell class="name"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="title"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="offer-id"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="offer-type"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="last-modified-by"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="price"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="status"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="actions"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="preview"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+    </sp-table-row>`;
 class MasContent extends LitElement {
     createRenderRoot() {
         return this;
@@ -82,17 +103,7 @@ class MasContent extends LitElement {
 
     get renderView() {
         if (!this.firstPageLoaded.value) {
-            return html`<div id="render">
-                ${Array.from(
-                    { length: 8 },
-                    () =>
-                        html`<div class="render-fragment-placeholder">
-                            <div class="skeleton-element skeleton-title"></div>
-                            <div class="skeleton-element skeleton-body"></div>
-                            <div class="skeleton-element skeleton-footer"></div>
-                        </div>`,
-                )}
-            </div>`;
+            return html`<div id="render">${Array.from({ length: 8 }, cardSkeleton)}</div>`;
         }
         return html`
             <div id="render">
@@ -117,6 +128,23 @@ class MasContent extends LitElement {
     }
 
     get tableView() {
+        if (!this.firstPageLoaded.value) {
+            return html`<sp-table emphasized scroller>
+                <sp-table-head>
+                    <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
+                    <sp-table-head-cell class="name">Path</sp-table-head-cell>
+                    <sp-table-head-cell class="title">Fragment Title</sp-table-head-cell>
+                    <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
+                    <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
+                    <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
+                    <sp-table-head-cell class="price">Price</sp-table-head-cell>
+                    <sp-table-head-cell class="status">Status</sp-table-head-cell>
+                    <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
+                    <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
+                </sp-table-head>
+                <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
+            </sp-table>`;
+        }
         return html`<sp-table
             emphasized
             scroller
@@ -142,23 +170,20 @@ class MasContent extends LitElement {
                     (fragmentStore) => fragmentStore.get().path,
                     (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
                 )}
+                ${this.tableLoadingSkeletons}
             </sp-table-body>
         </sp-table>`;
     }
 
+    get tableLoadingSkeletons() {
+        if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
+        return html`${Array.from({ length: 4 }, tableSkeletonRow)}`;
+    }
+
     get pageLoadingSkeletons() {
         if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
-        return html`<div id="render" class="next-page-skeletons">
-            ${Array.from(
-                { length: 4 },
-                () =>
-                    html`<div class="render-fragment-placeholder">
-                        <div class="skeleton-element skeleton-title"></div>
-                        <div class="skeleton-element skeleton-body"></div>
-                        <div class="skeleton-element skeleton-footer"></div>
-                    </div>`,
-            )}
-        </div>`;
+        if (this.renderMode.value === 'table') return nothing;
+        return html`<div id="render" class="next-page-skeletons">${Array.from({ length: 4 }, cardSkeleton)}</div>`;
     }
 
     render() {

@@ -189,7 +189,6 @@ export class PlansV2 extends VariantLayout {
         if (!this.card.isConnected) return;
 
         this.adaptForMedia();
-        this.adjustTitleWidth();
         this.adjustAddon();
         this.adjustCallout();
         this.updateShortDescriptionVisibility();

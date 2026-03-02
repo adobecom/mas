@@ -143,7 +143,7 @@ describe('commerce service', () => {
                     checkoutClientId: 'adobe_com',
                     checkoutWorkflowStep: 'email',
                     country: 'US',
-                    displayOldPrice: false,
+                    displayOldPrice: true,
                     displayPerUnit: false,
                     displayRecurrence: true,
                     displayTax: false,

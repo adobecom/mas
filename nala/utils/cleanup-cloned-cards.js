@@ -39,7 +39,7 @@ async function cleanupClonedCards(options = {}) {
         daysBack = 2,
         dryRun = false,
         verbose = false,
-        user = 'cod23684+masautomation@adobetest.com',
+        user = process.env.IMS_EMAIL || 'cod23684+masautomation@adobetest.com',
     } = options;
 
     console.log('🧹 MAS Studio Fragment Cleanup Utility');
@@ -76,17 +76,141 @@ async function cleanupClonedCards(options = {}) {
                 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
             });
 
+            // Same API-based search as global teardown. Browser function receives all data via payload (no Node refs).
+            const searchAndDeleteClonedCardsByAPI = async ({
+                rootPath,
+                pathFragment,
+                cutoffDate,
+                targetUser,
+                processedIds,
+                isDryRun,
+                isVerbose,
+            }) => {
+                const repo = document.querySelector('mas-repository');
+                if (!repo?.aem?.sites?.cf?.fragments?.search || typeof repo.deleteFragment !== 'function') {
+                    return {
+                        success: false,
+                        error: 'mas-repository not ready for API search/delete',
+                        deletedCount: 0,
+                        failedCount: 0,
+                        totalAttempted: 0,
+                        fragmentsFound: 0,
+                    };
+                }
+                const params = new URLSearchParams(pathFragment.replace(/^#/, ''));
+                const path = params.get('path') || 'nala';
+                const locale = params.get('locale') || 'en_US';
+                const apiPath = `${rootPath}/${path}/${locale}`;
+                const toDelete = [];
+                try {
+                    const cursor = repo.aem.sites.cf.fragments.search(
+                        { path: apiPath, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
+                        null,
+                        null,
+                    );
+                    for await (const items of cursor) {
+                        for (const item of items || []) {
+                            if (!item?.id || processedIds.includes(item.id)) continue;
+                            const createdBy = item.created?.by;
+                            const createdAt = item.created?.at;
+                            if (createdBy !== targetUser || !createdAt) continue;
+                            const fragmentDate = String(createdAt).split('T')[0];
+                            if (fragmentDate < cutoffDate) continue;
+                            toDelete.push({
+                                id: item.id,
+                                title: item.title ?? '',
+                                created: createdAt,
+                                path: item.path,
+                            });
+                            if (isVerbose) {
+                                console.log(`  Found: ${item.title ?? item.id} (${createdAt})`);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: (error?.message || String(error)).substring(0, 200),
+                        deletedCount: 0,
+                        failedCount: 0,
+                        totalAttempted: 0,
+                        fragmentsFound: 0,
+                    };
+                }
+                if (toDelete.length === 0) {
+                    return {
+                        success: true,
+                        deletedCount: 0,
+                        deletedIds: [],
+                        failedCount: 0,
+                        totalAttempted: 0,
+                        fragmentsFound: 0,
+                        processedIds: [],
+                    };
+                }
+                if (isDryRun) {
+                    return {
+                        success: true,
+                        deletedCount: 0,
+                        deletedIds: [],
+                        failedCount: 0,
+                        totalAttempted: toDelete.length,
+                        fragmentsFound: toDelete.length,
+                        processedIds: toDelete.map((f) => f.id),
+                        dryRunFragments: toDelete.map((f) => ({ id: f.id, title: f.title, created: f.created })),
+                    };
+                }
+                const deleteOptions = { startToast: false, endToast: false };
+                const results = await Promise.allSettled(
+                    toDelete.map((item) =>
+                        repo
+                            .deleteFragment({ id: item.id }, deleteOptions)
+                            .then(() => ({ id: item.id, success: true }))
+                            .catch((err) => ({
+                                id: item.id,
+                                success: false,
+                                error: (err?.message || String(err)).substring(0, 200),
+                                path: item.path,
+                            })),
+                    ),
+                );
+                const successful = results.filter((r) => r.status === 'fulfilled' && r.value?.success).map((r) => r.value.id);
+                const failed = results
+                    .filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value?.success))
+                    .map((r) => ({
+                        id: r.status === 'fulfilled' ? r.value?.id : 'unknown',
+                        error:
+                            r.status === 'fulfilled'
+                                ? r.value?.error
+                                : (r.reason?.message || String(r.reason)).substring(0, 200),
+                        path: r.status === 'fulfilled' ? r.value?.path : undefined,
+                    }));
+                return {
+                    success: failed.length === 0,
+                    deletedCount: successful.length,
+                    deletedIds: successful,
+                    failedCount: failed.length,
+                    failedFragments: failed,
+                    totalAttempted: toDelete.length,
+                    fragmentsFound: toDelete.length,
+                    processedIds: toDelete.map((i) => i.id),
+                };
+            };
+
             // Define paths to check for fragments (different locales/views)
             const pathsToCheck = [
-                '#page=content&path=nala', // Default path
-                '#locale=fr_FR&page=content&path=nala', // French locale path
+                '#page=content&path=nala',
+                '#locale=fr_FR&page=content&path=nala',
+                '#locale=en_CA&page=content&path=nala',
+                '#locale=en_GB&page=content&path=nala',
+                '#locale=en_AU&page=content&path=nala',
             ];
 
             let totalFragmentsFound = 0;
             let totalFragmentsDeleted = 0;
-            let allFailedFragments = [];
+            const allFailedFragments = [];
             const processedFragmentIds = new Set();
-            // Navigate to studio home first to warm up the session
+
             if (verbose) {
                 console.log('🏠 Navigating to studio home...');
             }
@@ -94,7 +218,6 @@ async function cleanupClonedCards(options = {}) {
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(3000);
 
-            // Check each path for fragments
             for (const pathFragment of pathsToCheck) {
                 console.log(`📍 Checking path: \x1b[33m${pathFragment}\x1b[0m`);
 
@@ -104,155 +227,23 @@ async function cleanupClonedCards(options = {}) {
                 await page.waitForFunction(
                     () => {
                         const repo = document.querySelector('mas-repository');
-                        return repo && repo.aem && repo.aem.deleteFragment;
+                        return repo?.aem?.sites?.cf?.fragments?.search && typeof repo.deleteFragment === 'function';
                     },
                     { timeout: 5000 },
                 );
 
-                // Wait for fragments to load
-                try {
-                    await page.waitForSelector('mas-fragment-render', { timeout: 8000, state: 'attached' });
-                    await page.waitForTimeout(2000);
-                } catch (error) {
-                    // No fragments found within timeout, continue anyway
-                }
+                await page.waitForTimeout(1000);
 
-                const cleanupResult = await page.evaluate(
-                    ({ cutoffDate, targetUser, processedIds, isDryRun, isVerbose }) => {
-                        const repo = document.querySelector('mas-repository');
-                        if (!repo || !repo.aem || !repo.aem.deleteFragment) {
-                            return {
-                                success: false,
-                                error: 'mas-repository not ready for deletion',
-                                deletedCount: 0,
-                                failedCount: 0,
-                                totalAttempted: 0,
-                            };
-                        }
-
-                        // Find fragments matching criteria
-                        const cache = document.createElement('aem-fragment').cache;
-                        const masFragmentRenderElements = [...document.querySelectorAll('mas-fragment-render')];
-                        const matchingFragments = [];
-
-                        masFragmentRenderElements.forEach((element) => {
-                            const dataId = element.getAttribute('data-id');
-                            if (!dataId) return;
-
-                            // Skip if already processed in a previous path
-                            if (processedIds.includes(dataId)) return;
-
-                            if (cache) {
-                                const fragmentData = cache.get(dataId);
-                                if (fragmentData) {
-                                    // Check if fragment matches criteria:
-                                    // 1. Created by target user
-                                    // 2. Created after cutoff date
-                                    const createdBy = fragmentData.created?.by;
-                                    const createdAt = fragmentData.created?.at;
-
-                                    if (createdBy === targetUser && createdAt) {
-                                        // Extract date from ISO string (e.g., "2025-03-21T10:30:00.000Z")
-                                        const fragmentDate = createdAt.split('T')[0];
-
-                                        if (fragmentDate >= cutoffDate) {
-                                            matchingFragments.push({
-                                                id: dataId,
-                                                title: fragmentData.title,
-                                                created: createdAt,
-                                                fragment: fragmentData,
-                                            });
-
-                                            if (isVerbose) {
-                                                console.log(`  Found: ${fragmentData.title} (${createdAt})`);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        });
-
-                        if (matchingFragments.length === 0) {
-                            return {
-                                success: true,
-                                deletedCount: 0,
-                                deletedIds: [],
-                                failedCount: 0,
-                                totalAttempted: 0,
-                                message: 'No fragments found matching criteria',
-                                fragmentsFound: 0,
-                            };
-                        }
-
-                        // If dry run, just return what would be deleted
-                        if (isDryRun) {
-                            return {
-                                success: true,
-                                deletedCount: 0,
-                                deletedIds: [],
-                                failedCount: 0,
-                                totalAttempted: matchingFragments.length,
-                                fragmentsFound: matchingFragments.length,
-                                processedIds: matchingFragments.map((f) => f.id),
-                                dryRunFragments: matchingFragments.map((f) => ({
-                                    id: f.id,
-                                    title: f.title,
-                                    created: f.created,
-                                })),
-                            };
-                        }
-
-                        // Delete each fragment
-                        const deletePromises = matchingFragments.map(async (fragmentInfo) => {
-                            try {
-                                await repo.aem.deleteFragment(fragmentInfo.fragment);
-                                return { id: fragmentInfo.id, success: true };
-                            } catch (error) {
-                                const errorMessage = error.message || error.toString();
-                                // Treat 404 errors as success (fragment already deleted)
-                                if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
-                                    return { id: fragmentInfo.id, success: true, wasAlreadyDeleted: true };
-                                }
-                                return { id: fragmentInfo.id, success: false, error: errorMessage };
-                            }
-                        });
-
-                        return Promise.allSettled(deletePromises).then((results) => {
-                            const successful = results
-                                .filter((result) => result.status === 'fulfilled' && result.value.success)
-                                .map((result) => result.value.id);
-
-                            const failed = results
-                                .filter(
-                                    (result) =>
-                                        result.status === 'rejected' ||
-                                        (result.status === 'fulfilled' && !result.value.success),
-                                )
-                                .map((result) => ({
-                                    id: result.status === 'fulfilled' ? result.value.id : 'unknown',
-                                    error: result.status === 'fulfilled' ? result.value.error : result.reason.message,
-                                }));
-
-                            return {
-                                success: failed.length === 0,
-                                deletedCount: successful.length,
-                                deletedIds: successful,
-                                failedCount: failed.length,
-                                failedFragments: failed,
-                                totalAttempted: matchingFragments.length,
-                                fragmentsFound: matchingFragments.length,
-                                processedIds: matchingFragments.map((f) => f.id),
-                            };
-                        });
-                    },
-                    {
-                        cutoffDate: cutoffDateStr,
-                        targetUser: user,
-                        processedIds: Array.from(processedFragmentIds),
-                        isDryRun: dryRun,
-                        isVerbose: verbose,
-                    },
-                );
+                const apiPayload = {
+                    rootPath: '/content/dam/mas',
+                    pathFragment,
+                    cutoffDate: cutoffDateStr,
+                    targetUser: user,
+                    processedIds: Array.from(processedFragmentIds),
+                    isDryRun: dryRun,
+                    isVerbose: verbose,
+                };
+                const cleanupResult = await page.evaluate(searchAndDeleteClonedCardsByAPI, apiPayload);
 
                 // Log results for this specific path
                 if (cleanupResult.fragmentsFound > 0) {
@@ -264,9 +255,24 @@ async function cleanupClonedCards(options = {}) {
                             });
                         }
                     } else {
-                        console.log(
-                            `  \x1b[32m✓\x1b[0m Found ${cleanupResult.fragmentsFound} fragments, deleted ${cleanupResult.deletedCount}`,
-                        );
+                        const failedCount = cleanupResult.failedCount || 0;
+                        if (failedCount > 0) {
+                            console.log(
+                                `  \x1b[33m⚠\x1b[0m Found ${cleanupResult.fragmentsFound} fragments, deleted ${cleanupResult.deletedCount}, failed ${failedCount}`,
+                            );
+                            if (cleanupResult.failedFragments) {
+                                cleanupResult.failedFragments.forEach((frag) => {
+                                    const pathInfo = frag.path ? ` (path: ${frag.path})` : '';
+                                    console.log(
+                                        `      \x1b[31m✘\x1b[0m Failed: ${frag.id}${pathInfo} - ${frag.error || 'Unknown error'}`,
+                                    );
+                                });
+                            }
+                        } else {
+                            console.log(
+                                `  \x1b[32m✓\x1b[0m Found ${cleanupResult.fragmentsFound} fragments, deleted ${cleanupResult.deletedCount}`,
+                            );
+                        }
                     }
                 } else {
                     console.log(`  ➖ No fragments found in this path`);
@@ -287,7 +293,7 @@ async function cleanupClonedCards(options = {}) {
             }
 
             // Print summary
-            console.log('\n' + '='.repeat(42));
+            console.log(`\n${'='.repeat(42)}`);
             console.log('Summary:');
             console.log(`  Total fragments found      : ${totalFragmentsFound}`);
             if (dryRun) {
@@ -296,12 +302,11 @@ async function cleanupClonedCards(options = {}) {
                 console.log(`  \x1b[32m✓\x1b[0m Successfully deleted     : ${totalFragmentsDeleted}`);
                 if (allFailedFragments.length > 0) {
                     console.log(`  \x1b[31m✘\x1b[0m Failed to delete         : ${allFailedFragments.length}`);
-                    if (verbose) {
-                        console.log('\nFailed fragments:');
-                        allFailedFragments.forEach((fragment) => {
-                            console.log(`  - ${fragment.id}: ${fragment.error}`);
-                        });
-                    }
+                    console.log('\nFailed fragments:');
+                    allFailedFragments.forEach((fragment) => {
+                        const pathInfo = fragment.path ? ` (path: ${fragment.path})` : '';
+                        console.log(`  \x1b[31m✘\x1b[0m ${fragment.id}${pathInfo}: ${fragment.error || 'Unknown error'}`);
+                    });
                 }
             }
             console.log('='.repeat(42));
@@ -347,7 +352,7 @@ Usage:
 Options:
   --days <number>   Number of days back to clean (default: 2)
   --url <url>       Base URL to clean (default: from env or main--mas--adobecom.aem.live)
-  --user <email>    Target user email (default: cod23684+masautomation@adobetest.com)
+  --user <email>    Target user email (default: IMS_EMAIL env var or cod23684+masautomation@adobetest.com)
   --dry-run         Preview what would be deleted without actually deleting
   --verbose, -v     Show detailed output
   --help, -h        Show this help message

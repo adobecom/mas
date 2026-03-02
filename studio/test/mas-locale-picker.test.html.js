@@ -157,7 +157,6 @@ runTests(async () => {
                     'ko_KR',
                     'nb_NO',
                     'nl_NL',
-                    'pt_PT',
                     'pt_BR',
                     'es_ES',
                     'sv_SE',

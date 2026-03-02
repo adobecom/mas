@@ -1,11 +1,13 @@
 import { expect } from '@playwright/test';
-import { getCurrentRunId } from '../utils/fragment-tracker.js';
+import { getFragmentTitle } from '../utils/fragment-tracker.js';
 import OSTPage from './ost.page';
+import EditorPage from './editor.page';
 
 export default class StudioPage {
     constructor(page) {
         this.page = page;
         this.ost = new OSTPage(page);
+        this.editor = new EditorPage(page);
 
         this.quickActions = page.locator('.quick-actions');
         this.recentlyUpdated = page.locator('.recently-updated');
@@ -26,6 +28,12 @@ export default class StudioPage {
         this.tableViewRowByFragmentId = (fragmentId) => this.tableView.locator(`sp-table-row[value="${fragmentId}"]`);
         this.tableViewPathCell = (row) => row.locator('sp-table-cell.name');
         this.tableViewTitleCell = (row) => row.locator('sp-table-cell.title');
+        this.tableViewPriceCell = (row) => row.locator('sp-table-cell.price');
+        this.tableViewActionsMenu = (row) => row.locator('sp-table-cell.actions sp-action-menu');
+        this.tableViewCreateVariationOption = (menu) => menu.locator('sp-menu-item:has-text("Create variation")');
+        this.variationDialog = page.locator('mas-variation-dialog > sp-dialog');
+        this.variationDialogLocalePicker = this.variationDialog.locator('sp-picker[placeholder="Select a locale"]');
+        this.variationDialogCreateButton = this.variationDialog.locator('sp-button:has-text("Create variation")');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('mas-fragment-editor > #fragment-editor #editor-content');
         this.confirmationDialog = page.locator('sp-dialog[variant="confirmation"]');
@@ -55,6 +63,7 @@ export default class StudioPage {
         this.fragmentsTable = page.locator('.breadcrumbs-container sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
+        this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
         this.deleteCardButton = this.sideNav.locator('mas-side-nav-item[label="Delete"]');
         this.saveCardButton = this.sideNav.locator('mas-side-nav-item[label="Save"]');
@@ -167,35 +176,58 @@ export default class StudioPage {
 
         try {
             await this.#retryOperation(async (attempt) => {
-                // Open editor (needed after each reload)
-                const card = await this.getCard(cardId);
-                await expect(card).toBeVisible();
-                await card.dblclick();
-                await this.editorPanel.waitFor({
-                    state: 'visible',
-                    timeout: 30000,
-                });
-                await this.page.waitForTimeout(1000); // Give editor time to stabilize
+                // Open editor only if not already visible
+                const editorAlreadyVisible = await this.editorPanel.isVisible().catch(() => false);
+                if (!editorAlreadyVisible) {
+                    const card = await this.getCard(cardId);
+                    await expect(card).toBeVisible();
+                    await card.dblclick();
+                    await this.editorPanel.waitFor({
+                        state: 'visible',
+                        timeout: 30000,
+                    });
+                }
 
-                // Wait for clone button and ensure it's enabled
-                await expect(this.cloneCardButton).toBeVisible();
-                await expect(this.cloneCardButton).toBeEnabled();
+                // Wait for network to be idle to ensure all async operations complete
+                await this.page.waitForLoadState('networkidle').catch(() => {});
+                await this.page.waitForTimeout(1500); // Give editor time to stabilize
+
+                await expect(this.cloneCardButton).toBeVisible({ timeout: 10000 });
+                await expect(this.cloneCardButton).toBeEnabled({ timeout: 15000 });
 
                 await this.cloneCardButton.scrollIntoViewIfNeeded();
                 await this.page.waitForTimeout(500);
 
-                await this.cloneCardButton.click({ force: true });
+                // Hover over the button to ensure it's interactive and ready
+                await this.cloneCardButton.hover({ timeout: 5000 });
+                await this.page.waitForTimeout(300);
+
+                // Verify button is still enabled after hover
+                const isEnabled = await this.cloneCardButton.isEnabled();
+                if (!isEnabled) {
+                    throw new Error('[BUTTON_DISABLED] Clone button is not enabled after hover');
+                }
+
+                // Click the button - try normal click first, then force if needed
+                try {
+                    await this.cloneCardButton.click({ timeout: 5000 });
+                } catch (clickError) {
+                    await this.cloneCardButton.click({ force: true });
+                }
 
                 // Wait for fragment title dialog and enter title
-                await this.page.waitForSelector('sp-dialog[variant="confirmation"]', {
-                    state: 'visible',
-                    timeout: 15000,
-                });
+                await this.page
+                    .waitForSelector('sp-dialog[variant="confirmation"]', {
+                        state: 'visible',
+                        timeout: 15000,
+                    })
+                    .catch(() => {
+                        throw new Error('[CLICK_FAILED] Clone button click did not trigger confirmation dialog');
+                    });
 
                 // Enter fragment title with run ID
-                const runId = getCurrentRunId();
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
-                await titleInput.fill(`MAS Nala Automation Cloned Fragment [${runId}]`);
+                await titleInput.fill(getFragmentTitle());
 
                 await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 
@@ -227,6 +259,16 @@ export default class StudioPage {
                 await this.toastPositive.waitFor({ timeout: 15000 }).catch(() => {
                     throw new Error('[NO_RESPONSE] Clone operation failed - no success toast shown');
                 });
+
+                // Wait for toast to disappear to ensure operation is fully complete
+                // This prevents failures on subsequent operations that might be affected by lingering toasts
+                const anyToast = this.page.locator('mas-toast >> sp-toast');
+                const isToastVisible = await anyToast.isVisible().catch(() => false);
+                if (isToastVisible) {
+                    await anyToast.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+                    // Give a bit more time after toast disappears for UI to stabilize
+                    await this.page.waitForTimeout(500);
+                }
             }, true);
         } catch (e) {
             // On failure, collect all attempt errors and console logs
@@ -475,6 +517,14 @@ export default class StudioPage {
      * Switch to table view
      */
     async switchToTableView() {
+        // Check if already in table view
+        const isTableViewVisible = await this.tableView.isVisible().catch(() => false);
+        if (isTableViewVisible) {
+            // Already in table view, no need to switch
+            return;
+        }
+
+        // Switch to table view
         await expect(this.previewMenu).toBeVisible({ timeout: 10000 });
         await this.previewMenu.scrollIntoViewIfNeeded();
         await this.previewMenu.click();
@@ -491,10 +541,9 @@ export default class StudioPage {
      * @param {Object} options - Configuration options
      * @param {string} options.osi - OSI to search and select
      * @param {string} options.variant - Variant type to select in the editor (e.g., 'ccd-suggested', 'ccd-slice', 'plans', 'ah-try-buy-widget')
-     * @param {EditorPage} editor - Editor page object instance
      * @returns {Promise<string>} The fragment ID of the created card
      */
-    async createFragment({ osi, variant }, editor) {
+    async createFragment({ osi, variant }) {
         if (!osi) {
             throw new Error('osi is required parameter');
         }
@@ -512,8 +561,7 @@ export default class StudioPage {
         await this.page.waitForTimeout(500);
 
         await expect(this.createDialogTitleInput).toBeVisible({ timeout: 10000 });
-        const runId = getCurrentRunId();
-        const titleWithRunId = `MAS Nala Automation Fragment [${runId}]`;
+        const titleWithRunId = getFragmentTitle();
         await this.createDialogTitleInput.fill(titleWithRunId);
 
         await expect(this.createDialogOSIButton).toBeVisible({ timeout: 10000 });
@@ -543,23 +591,20 @@ export default class StudioPage {
         });
         await this.page.waitForTimeout(1000);
 
-        await expect(editor.variant).toBeVisible({ timeout: 10000 });
-        await editor.variant.click();
+        await expect(this.editor.variant).toBeVisible({ timeout: 10000 });
+        await this.editor.variant.click();
         await this.page.locator(`sp-menu-item[value="${variant}"]`).first().click();
         await this.page.waitForTimeout(1000);
 
-        // Wait for sidenav elements to be enabled before interacting with card fields
-        // This ensures the variant has been fully processed
-        // Check that the disabled attribute is not present (mas-side-nav-item uses disabled attribute)
         await expect(this.deleteCardButton).not.toHaveAttribute('disabled', { timeout: 30000 });
         await expect(this.saveCardButton).not.toHaveAttribute('disabled', { timeout: 30000 });
 
         // Enter card title (auto-generated with run ID, same as fragment title)
-        await expect(editor.title).toBeVisible({ timeout: 10000 });
-        await editor.title.fill(titleWithRunId);
+        await expect(this.editor.title).toBeVisible({ timeout: 10000 });
+        await this.editor.title.fill(titleWithRunId);
 
-        await expect(editor.prices).toBeVisible({ timeout: 10000 });
-        const pricesOSTButton = editor.prices.locator(editor.OSTButton);
+        await expect(this.editor.prices).toBeVisible({ timeout: 10000 });
+        const pricesOSTButton = this.editor.prices.locator(this.editor.OSTButton);
         await expect(pricesOSTButton).toBeVisible({ timeout: 10000 });
         await pricesOSTButton.click();
 
@@ -592,5 +637,128 @@ export default class StudioPage {
         }
 
         return fragmentId;
+    }
+
+    /**
+     * Create a variation - supports both table view and editor sidenav
+     * @param {string} fragmentId - The fragment ID to create variation for
+     * @param {string} locale - The regional locale (e.g., 'en_CA')
+     * @returns {Promise<string>} The variation fragment ID
+     */
+    async createVariation(fragmentId, locale) {
+        if (!fragmentId) {
+            throw new Error('fragmentId is required parameter');
+        }
+        if (!locale) {
+            throw new Error('locale is required parameter');
+        }
+
+        // Check if we're in the editor (editor panel is visible)
+        const isInEditor = await this.editorPanel.isVisible().catch(() => false);
+
+        if (isInEditor) {
+            // Create variation from editor sidenav
+            // Wait for network to be idle to ensure all async operations complete
+            await this.page.waitForLoadState('networkidle').catch(() => {});
+            await this.page.waitForTimeout(500);
+
+            await expect(this.createVariationButton).toBeVisible({ timeout: 10000 });
+            await expect(this.createVariationButton).toBeEnabled({ timeout: 15000 });
+
+            await this.createVariationButton.scrollIntoViewIfNeeded();
+            await this.page.waitForTimeout(500);
+
+            // Hover over the button to ensure it's interactive and ready
+            await this.createVariationButton.hover({ timeout: 5000 });
+            await this.page.waitForTimeout(300);
+
+            // Verify button is still enabled after hover
+            const isEnabled = await this.createVariationButton.isEnabled();
+            if (!isEnabled) {
+                throw new Error('[BUTTON_DISABLED] Create variation button is not enabled after hover');
+            }
+
+            // Click the button - try normal click first, then force if needed
+            try {
+                await this.createVariationButton.click({ timeout: 5000 });
+            } catch (clickError) {
+                // If normal click fails, try with force
+                await this.createVariationButton.click({ force: true });
+            }
+        } else {
+            // Create variation from table view
+            await this.switchToTableView();
+
+            const fragmentRow = this.tableViewRowByFragmentId(fragmentId);
+            await expect(fragmentRow).toBeVisible();
+
+            const actionsMenu = this.tableViewActionsMenu(fragmentRow);
+            await expect(actionsMenu).toBeVisible();
+            await actionsMenu.click();
+
+            const createVariationOption = this.tableViewCreateVariationOption(actionsMenu);
+            await expect(createVariationOption).toBeVisible();
+            await createVariationOption.click();
+        }
+
+        await expect(this.variationDialog).toBeVisible();
+        await this.page.waitForTimeout(500);
+
+        await expect(this.variationDialogLocalePicker).toBeVisible();
+        await this.variationDialogLocalePicker.click();
+        await this.page.waitForTimeout(500);
+
+        const localeOption = this.variationDialogLocalePicker.locator(`sp-menu-item[value="${locale}"]`).first();
+        await expect(localeOption).toBeVisible();
+        await localeOption.click();
+        await this.page.waitForTimeout(500);
+
+        await expect(this.variationDialogCreateButton).toBeEnabled();
+        await this.variationDialogCreateButton.click();
+
+        // Wait for positive toast to appear and disappear
+        await this.toastPositive.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {
+            // If toast doesn't appear, continue
+        });
+        await this.toastPositive.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
+            // If toast disappears quickly or doesn't appear, continue
+        });
+
+        // Wait for editor to open (if not already open)
+        await this.editorPanel.waitFor({
+            state: 'visible',
+            timeout: 30000,
+        });
+        await this.page.waitForTimeout(1000);
+
+        // Remove when MWPW-188484 is fixed
+        // Reload the page and wait for the editor again
+        await this.page.reload({ waitUntil: 'domcontentloaded' });
+        await this.editorPanel.waitFor({
+            state: 'visible',
+            timeout: 30000,
+        });
+        await this.page.waitForTimeout(1000);
+        // ---------
+
+        // Get the variation fragment ID from URL
+        const currentUrl = this.page.url();
+        const variationIdMatch = currentUrl.match(/fragment=([^&]+)/);
+        let variationId = variationIdMatch ? variationIdMatch[1] : null;
+
+        if (!variationId) {
+            // Try to get from card preview in editor
+            variationId = await this.page
+                .locator('aem-fragment[fragment]')
+                .first()
+                .getAttribute('fragment')
+                .catch(() => null);
+        }
+
+        if (!variationId) {
+            throw new Error('Failed to retrieve variation fragment ID from URL or card preview');
+        }
+
+        return variationId;
     }
 }

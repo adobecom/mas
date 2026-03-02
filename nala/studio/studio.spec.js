@@ -1,3 +1,5 @@
+import { PRICE_PATTERN } from '../utils/commerce.js';
+
 export default {
     FeatureName: 'M@S Studio',
     features: [
@@ -136,6 +138,18 @@ export default {
                 variant: 'plans',
             },
             tags: '@mas-studio',
+        },
+        {
+            tcid: '15',
+            name: '@studio-load-variation',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala&query=',
+            data: {
+                cardid: '481a2002-9a4e-447b-a990-b3e56fdb2d14',
+                variationid: '287ef7ee-b0e3-4d95-a689-578de492ceae',
+                price: PRICE_PATTERN.US.mo,
+            },
+            tags: '@mas-studio @regional-variations',
         },
     ],
 };

@@ -1,5 +1,5 @@
 export default {
-    FeatureName: 'M@S Studio ACOM Full Pricing Express CSS',
+    FeatureName: 'M@S Studio EXPRESS Full Pricing CSS',
     features: [
         {
             tcid: '0',

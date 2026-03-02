@@ -7,7 +7,8 @@ export default {
             path: '/studio.html',
             browserParams: '#page=translations&path=nala&locale=en_US',
             tags: '@mas-studio @translations',
-            description: 'Verify that the Translations page loads and displays the translation projects list sorted newest first',
+            description:
+                'Verify that the Translations page loads and displays the translation projects list sorted newest first',
         },
         {
             tcid: '1',

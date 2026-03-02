@@ -1,13 +1,47 @@
 import { expect } from '@esm-bundle/chai';
 import { SettingsStore } from '../../src/settings/settings-store.js';
-import { getTemplates } from '../../src/editors/variant-picker.js';
+import { TEMPLATE_TREE_DATA } from '../../src/settings/template-tree-data.js';
 import { createSettingReference } from './settings-test-helpers.js';
 
+const collectTemplateLeafMeta = (tree = TEMPLATE_TREE_DATA) => {
+    const allTemplateIds = [];
+    const branchByTemplateId = new Map();
+    const templateIdsByBranch = new Map();
+
+    const visitNode = (node, branchLabel = '') => {
+        const templateId = `${node.name}`;
+        if (!templateId) return;
+
+        const children = node.children || [];
+        if (!children.length) {
+            allTemplateIds.push(templateId);
+            const normalizedBranch = branchLabel || `${node.label || templateId}`;
+            branchByTemplateId.set(templateId, normalizedBranch);
+            if (!templateIdsByBranch.has(normalizedBranch)) {
+                templateIdsByBranch.set(normalizedBranch, []);
+            }
+            templateIdsByBranch.get(normalizedBranch).push(templateId);
+            return;
+        }
+
+        const nextBranchLabel = `${node.label || branchLabel}`;
+        for (const child of children) {
+            visitNode(child, nextBranchLabel);
+        }
+    };
+
+    for (const rootNode of tree) {
+        visitNode(rootNode, '');
+    }
+
+    return { allTemplateIds, branchByTemplateId, templateIdsByBranch };
+};
+
 describe('Settings Store Namespace', () => {
-    const templates = getTemplates().filter((template) => template.value !== 'all');
-    const allTemplateIds = templates.map((template) => template.value);
-    const merchCardIds = templates.filter((template) => template.category === 'Merch card').map((template) => template.value);
-    const otherTemplate = templates.find((template) => template.category !== 'Merch card');
+    const { allTemplateIds, branchByTemplateId, templateIdsByBranch } = collectTemplateLeafMeta();
+    const merchCardIds = allTemplateIds.filter((templateId) => branchByTemplateId.get(templateId) === 'Merch card');
+    const otherTemplateId = allTemplateIds.find((templateId) => branchByTemplateId.get(templateId) !== 'Merch card');
+    const crossBranchTemplateIds = [...templateIdsByBranch.values()].flatMap((ids) => ids.slice(0, 1));
 
     const buildValueFields = (valueType, value, booleanValue) => [
         { name: 'textValue', values: valueType === 'text' ? [`${value ?? ''}`] : [] },
@@ -87,15 +121,36 @@ describe('Settings Store Namespace', () => {
         expect(store.formatTemplateSummary(['', null, undefined])).to.equal('All templates selected');
     });
 
-    it('shows category summary when selected templates are all from one category', () => {
+    it('shows branch summary when selected templates are all from one branch', () => {
         const store = new SettingsStore();
-        expect(store.formatTemplateSummary(['catalog'])).to.equal('Merch card (1 selected)');
-        expect(store.formatTemplateSummary(['catalog', 'plans', 'plans'])).to.equal('Merch card (2 selected)');
+        expect(store.formatTemplateSummary(['merch-card-plans'])).to.equal('Merch card (1 selected)');
+        expect(store.formatTemplateSummary(['merch-card-plans', 'merch-card-product', 'merch-card-product'])).to.equal(
+            'Merch card (2 selected)',
+        );
     });
 
     it('shows count summary when selected templates span multiple categories', () => {
         const store = new SettingsStore();
-        expect(store.formatTemplateSummary([merchCardIds[0], otherTemplate.value])).to.equal('2 templates selected');
+        expect(store.formatTemplateSummary([merchCardIds[0], otherTemplateId])).to.equal('2 templates selected');
+    });
+
+    it('shows "5 templates selected" when five templates are selected across branches', () => {
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary(crossBranchTemplateIds.slice(0, 5))).to.equal('5 templates selected');
+    });
+
+    it('ignores invalid values and still shows branch summary for a single branch', () => {
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary(['merch-card-plans', 'missing-template-id', '', null])).to.equal(
+            'Merch card (1 selected)',
+        );
+    });
+
+    it('ignores invalid values and duplicates when all templates are effectively selected', () => {
+        const store = new SettingsStore();
+        expect(store.formatTemplateSummary([...allTemplateIds, 'missing-template-id', allTemplateIds[0]])).to.equal(
+            'All templates selected',
+        );
     });
 
     it('toggles a setting and updates toast state', async () => {

@@ -4,6 +4,12 @@ import { debounce } from './utils.js';
 import { isPowerUser } from './groups.js';
 
 export class Router extends EventTarget {
+    #isWatchingSandboxSettingsRoute = false;
+
+    #sandboxSettingsRouteWatcher = () => {
+        this.#resolveSandboxSettingsRoute();
+    };
+
     constructor(location = window.location) {
         super();
         this.location = location;
@@ -437,6 +443,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        this.#resolveSandboxSettingsRoute();
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
@@ -466,6 +473,7 @@ export class Router extends EventTarget {
 
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(this.location.hash.slice(1));
+            this.#resolveSandboxSettingsRoute();
             if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
@@ -550,6 +558,37 @@ export class Router extends EventTarget {
         this.currentParams.delete('fragmentId');
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
+        return true;
+    }
+
+    #startWatchingSandboxSettingsRoute() {
+        if (this.#isWatchingSandboxSettingsRoute) return;
+        this.#isWatchingSandboxSettingsRoute = true;
+        Store.profile.subscribe(this.#sandboxSettingsRouteWatcher);
+        Store.users.subscribe(this.#sandboxSettingsRouteWatcher);
+    }
+
+    #stopWatchingSandboxSettingsRoute() {
+        if (!this.#isWatchingSandboxSettingsRoute) return;
+        this.#isWatchingSandboxSettingsRoute = false;
+        Store.profile.unsubscribe(this.#sandboxSettingsRouteWatcher);
+        Store.users.unsubscribe(this.#sandboxSettingsRouteWatcher);
+    }
+
+    #resolveSandboxSettingsRoute() {
+        const params = new URLSearchParams(this.location.hash.slice(1));
+        const page = params.get('page');
+        const path = params.get('path');
+        if (page || path !== 'sandbox') {
+            this.#stopWatchingSandboxSettingsRoute();
+            return false;
+        }
+        if (!isPowerUser()) {
+            this.#startWatchingSandboxSettingsRoute();
+            return false;
+        }
+        Store.page.set(PAGE_NAMES.SETTINGS);
+        this.#stopWatchingSandboxSettingsRoute();
         return true;
     }
 }

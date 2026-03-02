@@ -2,11 +2,10 @@ import { AEM } from '../aem/aem.js';
 import { Fragment } from '../aem/fragment.js';
 import { ROOT_PATH } from '../constants.js';
 import { ReactiveStore } from '../reactivity/reactive-store.js';
-import { getTemplates } from '../editors/variant-picker.js';
 import { showToast, normalizeKey } from '../utils.js';
 import { SettingStore, normalizeSettingFragment } from './setting-store.js';
+import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
 
-const inferCategory = (template) => template.category || template.surfaceLabel;
 const INDEX_REFERENCES_FIELD = 'entries';
 const INDEX_NOT_FOUND_MESSAGES = ['404', 'Fragment not found'];
 const SETTINGS_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5';
@@ -51,6 +50,40 @@ const resolveBooleanValue = (valueType, value, booleanValue) =>
     valueType === 'boolean' ? Boolean(value) : Boolean(booleanValue);
 
 /**
+ * Flattens template tree leaves and maps each leaf to its immediate branch label.
+ *
+ * @param {Array<{name: string, label?: string, children?: Array}>} tree
+ * @returns {{leafIds: Set<string>, branchByLeafId: Map<string, string>}}
+ */
+const buildTemplateLeafIndex = (tree = TEMPLATE_TREE_DATA) => {
+    const leafIds = new Set();
+    const branchByLeafId = new Map();
+
+    const visitNode = (node, branchLabel = '') => {
+        const nodeId = `${node.name}`;
+        if (!nodeId) return;
+
+        const children = node.children || [];
+        if (!children.length) {
+            leafIds.add(nodeId);
+            branchByLeafId.set(nodeId, branchLabel || `${node.label || nodeId}`);
+            return;
+        }
+
+        const nextBranchLabel = `${node.label || branchLabel}`;
+        for (const child of children) {
+            visitNode(child, nextBranchLabel);
+        }
+    };
+
+    for (const rootNode of tree) {
+        visitNode(rootNode, '');
+    }
+
+    return { leafIds, branchByLeafId };
+};
+
+/**
  * Settings table state holder and mutator surface.
  */
 export class SettingsStore {
@@ -67,7 +100,7 @@ export class SettingsStore {
     baseUrl = '';
     aem = null;
 
-    #templates = getTemplates();
+    #templateLeafIndex = buildTemplateLeafIndex();
     #sourceFragment = null;
     #surface = '';
 
@@ -610,19 +643,38 @@ export class SettingsStore {
         });
     }
 
+    /**
+     * Summarizes selected template IDs for settings table display.
+     *
+     * Rules:
+     * 1. When no valid template IDs are selected, returns `All templates selected`.
+     * 2. When all valid templates are selected, returns `All templates selected`.
+     * 3. When all selected templates belong to the same branch/category, returns
+     *    `<Branch label> (<count> selected)`.
+     * 4. Otherwise, returns `<count> templates selected`.
+     *
+     * Edge-case handling:
+     * - Duplicate template IDs are de-duplicated before counting.
+     * - Unknown/invalid template IDs are ignored.
+     *
+     * @param {string[]} selectedTemplateIds
+     * @returns {string}
+     */
     formatTemplateSummary(selectedTemplateIds) {
-        const templates = this.#templates.filter((template) => template.value !== 'all');
         const selected = [...new Set(selectedTemplateIds.filter((id) => id))];
-        const normalizedSelected = selected.filter((id) => templates.some((template) => template.value === id));
+        const normalizedSelected = selected.filter((id) => this.#templateLeafIndex.leafIds.has(id));
 
-        if (normalizedSelected.length === 0 || normalizedSelected.length === templates.length) {
+        if (normalizedSelected.length === 0 || normalizedSelected.length === this.#templateLeafIndex.leafIds.size) {
             return 'All templates selected';
         }
 
-        const selectedTemplates = templates.filter((template) => normalizedSelected.includes(template.value));
-        const categories = [...new Set(selectedTemplates.map(inferCategory))];
-        if (categories.length === 1) {
-            return `${categories[0]} (${normalizedSelected.length} selected)`;
+        const selectedBranches = [
+            ...new Set(
+                normalizedSelected.map((id) => this.#templateLeafIndex.branchByLeafId.get(id) || `${id}`),
+            ),
+        ];
+        if (selectedBranches.length === 1) {
+            return `${selectedBranches[0]} (${normalizedSelected.length} selected)`;
         }
 
         return `${normalizedSelected.length} templates selected`;

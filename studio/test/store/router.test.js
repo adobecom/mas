@@ -157,6 +157,38 @@ describe('Router URL parameter handling', async () => {
         Store.users.set(originalUsers);
     });
 
+    it('should redirect sandbox deep link to settings after users load for power user', async () => {
+        const originalPage = Store.page.get();
+        const originalProfile = Store.profile.get();
+        const originalUsers = Store.users.get();
+
+        Store.page.set(PAGE_NAMES.WELCOME);
+        Store.profile.set({});
+        Store.users.set([]);
+
+        const router = new Router({ hash: '#path=sandbox' });
+        router.start();
+        await delay(60);
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+
+        Store.profile.set({ email: 'power@adobe.com' });
+        Store.users.set([
+            {
+                userPrincipalName: 'power@adobe.com',
+                groups: ['Grp-ODIN-MAS-POWERUSERS'],
+            },
+        ]);
+        await delay(60);
+
+        expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+        expect(router.location.hash).to.include('path=sandbox');
+        expect(router.location.hash).to.include('page=settings');
+
+        Store.page.set(originalPage);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+    });
+
     it('should redirect settings deeplink to welcome when user is not power user', async () => {
         const originalPage = Store.page.get();
         const originalFragmentId = Store.settings.fragmentId.get();

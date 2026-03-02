@@ -286,7 +286,17 @@ class MasSideNav extends LitElement {
         whatsIncluded: "What's Included",
         originalId: 'Original ID',
     };
-    static HIDDEN_FIELDS = new Set(['quantitySelect', 'perUnitLabel']);
+    static SHOW_FIELDS = new Set([
+        'prices',
+        'cardTitle',
+        'title',
+        'description',
+        'ctas',
+        'shortDescription',
+        'promoText',
+        'callout',
+        'subtitle',
+    ]);
 
     #getPreviewCard() {
         return this.fragmentEditor?.querySelector('merch-card');
@@ -348,7 +358,7 @@ class MasSideNav extends LitElement {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
         const currentFields = fragment.fields
-            .filter((f) => !fragment.isValueEmpty(f.values) && !MasSideNav.HIDDEN_FIELDS.has(f.name))
+            .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !fragment.isValueEmpty(f.values))
             .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment));
 
         const fragmentId = fragment?.id;
@@ -363,7 +373,7 @@ class MasSideNav extends LitElement {
 
         const currentFieldNames = new Set(currentFields.map((field) => field.name));
         const inheritedFields = baseFragment.fields
-            .filter((f) => !MasSideNav.HIDDEN_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
+            .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
             .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment))
             .filter((f) => !!f.preview);
 

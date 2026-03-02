@@ -68,20 +68,42 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.not.include('description');
         });
 
-        it('should filter out suppressed copy fields', () => {
+        it('should include only allowlisted copy fields', () => {
             const fragment = mockFragment([
+                { name: 'prices', values: ['US$9.99/mo'] },
                 { name: 'cardTitle', values: ['Creative Cloud'] },
+                { name: 'title', values: ['Creative Cloud Collection'] },
+                { name: 'description', values: ['Create anything'] },
+                { name: 'shortDescription', values: ['Short summary'] },
+                { name: 'promoText', values: ['Save 50%'] },
+                { name: 'callout', values: ['Limited time'] },
+                { name: 'subtitle', values: ['For teams'] },
+                { name: 'ctas', values: ['<a>Buy</a>'] },
+                { name: 'cta', values: ['Buy now'] },
                 { name: 'quantitySelect', values: ['true'] },
                 { name: 'perUnitLabel', values: ['{perUnit, select, LICENSE {per lic} other {}}'] },
+                { name: 'variant', values: ['plans'] },
+                { name: 'osi', values: ['K79yhO4'] },
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const names = el.copyableFields.map((f) => f.name);
+            expect(names).to.include('prices');
             expect(names).to.include('cardTitle');
+            expect(names).to.include('title');
+            expect(names).to.include('description');
+            expect(names).to.include('shortDescription');
+            expect(names).to.include('promoText');
+            expect(names).to.include('callout');
+            expect(names).to.include('subtitle');
+            expect(names).to.include('ctas');
+            expect(names).to.not.include('cta');
             expect(names).to.not.include('quantitySelect');
             expect(names).to.not.include('perUnitLabel');
+            expect(names).to.not.include('variant');
+            expect(names).to.not.include('osi');
         });
 
-        it('should use FIELD_DISPLAY_NAMES for known fields', () => {
+        it('should use FIELD_DISPLAY_NAMES for allowlisted known fields', () => {
             const fragment = mockFragment([
                 { name: 'variant', values: ['plans'] },
                 { name: 'osi', values: ['K79yhO4'] },
@@ -89,9 +111,9 @@ describe('MasSideNav – Copy Field', () => {
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
-            expect(map.variant).to.equal('Template');
-            expect(map.osi).to.equal('OSI');
             expect(map.ctas).to.equal('CTAs');
+            expect(map.variant).to.be.undefined;
+            expect(map.osi).to.be.undefined;
         });
 
         it('should fall back to camelToTitle for unmapped fields', () => {
@@ -102,7 +124,7 @@ describe('MasSideNav – Copy Field', () => {
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
             expect(map.cardTitle).to.equal('Card Title');
-            expect(map.borderColor).to.equal('Border Color');
+            expect(map.borderColor).to.be.undefined;
         });
 
         it('should use resolvedPriceText for prices when available', () => {
@@ -114,21 +136,21 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('should use resolved preview-store value for placeholder-backed fields', () => {
-            const sourceFragment = mockFragment([{ name: 'callout', values: ['{{checkout-now}}'] }]);
-            const previewFragment = mockFragment([{ name: 'callout', values: ['Buy now'] }]);
+            const sourceFragment = mockFragment([{ name: 'description', values: ['{{checkout-now}}'] }]);
+            const previewFragment = mockFragment([{ name: 'description', values: ['Buy now'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(sourceFragment, previewFragment));
 
-            const calloutField = el.copyableFields.find((f) => f.name === 'callout');
-            expect(calloutField.preview).to.equal('Buy now');
+            const descriptionField = el.copyableFields.find((f) => f.name === 'description');
+            expect(descriptionField.preview).to.equal('Buy now');
         });
 
         it('should fall back to source values when preview-store field is missing', () => {
-            const sourceFragment = mockFragment([{ name: 'callout', values: ['{{checkout-now}}'] }]);
-            const previewFragment = mockFragment([{ name: 'description', values: ['Resolved description'] }]);
+            const sourceFragment = mockFragment([{ name: 'description', values: ['{{checkout-now}}'] }]);
+            const previewFragment = mockFragment([{ name: 'ctas', values: ['<a>Buy now</a>'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(sourceFragment, previewFragment));
 
-            const calloutField = el.copyableFields.find((f) => f.name === 'callout');
-            expect(calloutField.preview).to.equal('{{checkout-now}}');
+            const descriptionField = el.copyableFields.find((f) => f.name === 'description');
+            expect(descriptionField.preview).to.equal('{{checkout-now}}');
         });
 
         it('should prefer resolvedPriceText over preview-store values for prices', () => {
@@ -160,18 +182,15 @@ describe('MasSideNav – Copy Field', () => {
             const baseFragment = mockFragment(
                 [
                     { name: 'cardTitle', values: ['Creative Cloud'] },
+                    { name: 'description', values: ['{{secure-label}}'] },
+                    { name: 'ctas', values: ['<strong><a href="/plans">Buy now</a></strong>'] },
                     { name: 'subtitle', values: ['creativity and design'] },
-                    { name: 'callout', values: ['{{secure-label}}'] },
                 ],
                 { id: 'base-123' },
             );
-            const previewFragment = mockFragment(
-                [
-                    { name: 'subtitle', values: ['creativity and design'] },
-                    { name: 'callout', values: ['Secure transaction'] },
-                ],
-                { id: 'variation-123' },
-            );
+            const previewFragment = mockFragment([{ name: 'description', values: ['Secure transaction'] }], {
+                id: 'variation-123',
+            });
             editorStub
                 .withArgs('mas-fragment-editor')
                 .returns(
@@ -180,23 +199,28 @@ describe('MasSideNav – Copy Field', () => {
 
             const fields = el.copyableFields;
             const inheritedNames = fields.filter((f) => f.source === 'inherited').map((f) => f.name);
+            expect(inheritedNames).to.include('description');
+            expect(inheritedNames).to.include('ctas');
             expect(inheritedNames).to.include('subtitle');
-            expect(inheritedNames).to.include('callout');
             expect(inheritedNames).to.not.include('cardTitle');
-            expect(fields.find((f) => f.name === 'callout').preview).to.equal('Secure transaction');
+            expect(fields.find((f) => f.name === 'description').preview).to.equal('Secure transaction');
+            expect(fields.find((f) => f.name === 'subtitle').preview).to.equal('creativity and design');
         });
 
-        it('should exclude hidden inherited fields', () => {
+        it('should exclude non-allowlisted inherited fields', () => {
             const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Variation title'] }], { id: 'variation-123' });
             const baseFragment = mockFragment(
                 [
+                    { name: 'description', values: ['Included description'] },
                     { name: 'quantitySelect', values: ['true'] },
                     { name: 'perUnitLabel', values: ['per license'] },
                     { name: 'showPlanType', values: ['true'] },
                 ],
                 { id: 'base-123' },
             );
-            const previewFragment = mockFragment([{ name: 'showPlanType', values: ['true'] }], { id: 'variation-123' });
+            const previewFragment = mockFragment([{ name: 'description', values: ['Resolved description'] }], {
+                id: 'variation-123',
+            });
             editorStub
                 .withArgs('mas-fragment-editor')
                 .returns(
@@ -204,9 +228,10 @@ describe('MasSideNav – Copy Field', () => {
                 );
 
             const names = el.copyableFields.map((f) => f.name);
-            expect(names).to.include('showPlanType');
+            expect(names).to.include('description');
             expect(names).to.not.include('quantitySelect');
             expect(names).to.not.include('perUnitLabel');
+            expect(names).to.not.include('showPlanType');
         });
     });
 
@@ -341,8 +366,10 @@ describe('MasSideNav – Copy Field', () => {
             const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
                 id: 'variation-123',
             });
-            const baseFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], { id: 'base-123' });
-            const previewFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], {
+            const baseFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
+                id: 'base-123',
+            });
+            const previewFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
                 id: 'variation-123',
             });
             editorStub
@@ -370,8 +397,10 @@ describe('MasSideNav – Copy Field', () => {
             const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
                 id: 'variation-123',
             });
-            const baseFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], { id: 'base-123' });
-            const previewFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], {
+            const baseFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
+                id: 'base-123',
+            });
+            const previewFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
                 id: 'variation-123',
             });
             editorStub
@@ -401,8 +430,10 @@ describe('MasSideNav – Copy Field', () => {
             const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud ARG'] }], {
                 id: 'variation-123',
             });
-            const baseFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], { id: 'base-123' });
-            const previewFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], {
+            const baseFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
+                id: 'base-123',
+            });
+            const previewFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
                 id: 'variation-123',
             });
             editorStub
@@ -428,8 +459,10 @@ describe('MasSideNav – Copy Field', () => {
 
         it('should not render inherited section for non-variation fragments', () => {
             const sourceFragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
-            const previewFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }]);
-            const baseFragment = mockFragment([{ name: 'subtitle', values: ['creativity and design'] }], { id: 'base-123' });
+            const previewFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }]);
+            const baseFragment = mockFragment([{ name: 'description', values: ['creativity and design'] }], {
+                id: 'base-123',
+            });
             editorStub
                 .withArgs('mas-fragment-editor')
                 .returns(

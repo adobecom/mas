@@ -1046,15 +1046,15 @@ class MerchCardEditor extends LitElement {
                 </div>
                 <sp-field-group class="toggle" id="promoText">
                     <sp-field-label for="promo-text">Promo Text</sp-field-label>
-                    <sp-textfield
-                        placeholder="Enter promo text"
+                    <rte-field
                         id="promo-text"
+                        link
                         data-field="promoText"
                         data-field-state="${this.getFieldState('promoText')}"
-                        value="${form.promoText?.values[0]}"
-                        @input="${this.#handleFragmentUpdate}"
-                        ?disabled=${this.disabled}
-                    ></sp-textfield>
+                        .osi=${form.osi.values[0]}
+                        .value=${form.promoText?.values[0] || ''}
+                        @change="${this.#handleFragmentUpdate}"
+                    ></rte-field>
                     ${this.renderFieldStatusIndicator('promoText')}
                 </sp-field-group>
                 <sp-field-group>
@@ -1491,7 +1491,7 @@ class MerchCardEditor extends LitElement {
         this.availableColors = variant?.allowedColors || [];
         if (variant.borderColor || variant.badge?.tag) {
             this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
-            this.availableBadgeColors = SPECTRUM_COLORS;
+            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
@@ -1732,11 +1732,7 @@ class MerchCardEditor extends LitElement {
         const element = document.createElement('merch-badge');
         if (bgColor) {
             element.setAttribute('background-color', bgColor);
-            if (
-                bgColor === 'spectrum-green-900-plans' ||
-                bgColor === 'spectrum-gray-700-plans' ||
-                bgColor === 'gradient-purple-blue'
-            )
+            if (bgColor.includes('-green-900-') || bgColor.includes('-gray-700-') || bgColor === 'gradient-purple-blue')
                 element.setAttribute('color', '#fff');
         }
         if (borderColor) {
@@ -1818,7 +1814,7 @@ class MerchCardEditor extends LitElement {
 
     #formatColorName(color) {
         return color
-            .replace(/(spectrum|global|color|plans|-)/gi, ' ')
+            .replace(/(spectrum|global|color|plans|variation|-)/gi, ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase())
             .replace(/\s+/g, ' ')
             .trim();

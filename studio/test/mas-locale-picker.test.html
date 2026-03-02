@@ -321,6 +321,49 @@
                             expect(trigger.textContent).to.include('Select locales');
                         });
 
+                        it('should render empty-selection-label as placeholder text in region checkbox mode', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionEmptyLabelRegion', this.test.title);
+                            await el.updateComplete;
+
+                            const triggerLabel = el.shadowRoot.querySelector('.selection-trigger-label');
+                            expect(triggerLabel).to.exist;
+                            expect(triggerLabel.textContent.trim()).to.equal('All locales');
+                            expect(triggerLabel.classList.contains('is-placeholder')).to.equal(true);
+                        });
+
+                        it('should clear placeholder class after selecting locales', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionEmptyLabelRegion', this.test.title);
+                            await el.updateComplete;
+
+                            const trigger = el.shadowRoot.querySelector('.selection-trigger');
+                            trigger.click();
+                            await el.updateComplete;
+
+                            const deCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="de_DE"]');
+                            deCheckbox.checked = true;
+                            deCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await el.updateComplete;
+
+                            const applyButton = [...el.shadowRoot.querySelectorAll('sp-button[slot="button"]')].find(
+                                (button) => button.textContent.trim() === 'Apply',
+                            );
+                            applyButton.click();
+                            await el.updateComplete;
+
+                            const triggerLabel = el.shadowRoot.querySelector('.selection-trigger-label');
+                            expect(triggerLabel.classList.contains('is-placeholder')).to.equal(false);
+                            expect(triggerLabel.textContent).to.include('de_DE');
+                        });
+
+                        it('should treat empty selection as value when empty-selection-is-value is enabled', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionEmptyValueIsSelection', this.test.title);
+                            await el.updateComplete;
+
+                            const triggerLabel = el.shadowRoot.querySelector('.selection-trigger-label');
+                            expect(triggerLabel.textContent.trim()).to.equal('All locales');
+                            expect(triggerLabel.classList.contains('is-placeholder')).to.equal(false);
+                        });
+
                         it('should render language labels in dialog by default', async function () {
                             const el = initElementFromTemplate('checkboxSelectionLanguageDefault', this.test.title);
                             await el.updateComplete;
@@ -680,6 +723,37 @@
                                     mode="region"
                                     display-value
                                     locale="de_DE,fr_FR"
+                                    selection-label="Select locale"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p>
+                                <strong>Checkbox + Modal:</strong> Uses custom empty placeholder label for region mode
+                            </p>
+                            <template id="checkboxSelectionEmptyLabelRegion">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    mode="region"
+                                    display-value
+                                    empty-selection-label="All locales"
+                                    selection-label="Select locale"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p>
+                                <strong>Checkbox + Modal:</strong> Treats empty selection as a real value
+                            </p>
+                            <template id="checkboxSelectionEmptyValueIsSelection">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    mode="region"
+                                    display-value
+                                    empty-selection-label="All locales"
+                                    empty-selection-is-value
                                     selection-label="Select locale"
                                 ></mas-locale-picker>
                             </template>

@@ -62,23 +62,31 @@
 
             runTests(async () => {
                 describe('tree-picker-field', async () => {
-                    it('renders label and default all-templates summary in trigger', async function () {
+                    it('renders label and placeholder text in trigger when no templates are selected', async function () {
                         const picker = await initPicker('treePicker1', this.test.title);
                         const label = picker.shadowRoot.querySelector('.field-label');
                         const triggerText = picker.shadowRoot.querySelector('.trigger-text');
 
                         expect(label).to.not.be.null;
                         expect(label.textContent.trim()).to.equal('Template');
-                        expect(triggerText.textContent.trim()).to.equal('All templates selected');
+                        expect(triggerText.textContent.trim()).to.equal('Select template');
                         expect(triggerText.classList.contains('is-placeholder')).to.be.true;
                     });
 
-                    it('renders all-templates summary when no placeholder is provided', async function () {
+                    it('renders "All templates" placeholder when no explicit placeholder is provided', async function () {
                         const picker = await initPicker('treePickerDefault', this.test.title);
                         const triggerText = picker.shadowRoot.querySelector('.trigger-text');
 
-                        expect(triggerText.textContent.trim()).to.equal('All templates selected');
+                        expect(triggerText.textContent.trim()).to.equal('All templates');
                         expect(triggerText.classList.contains('is-placeholder')).to.be.true;
+                    });
+
+                    it('treats empty selection as value when empty-value-is-selection is enabled', async function () {
+                        const picker = await initPicker('treePickerEdit', this.test.title);
+                        const triggerText = picker.shadowRoot.querySelector('.trigger-text');
+
+                        expect(triggerText.textContent.trim()).to.equal('All templates');
+                        expect(triggerText.classList.contains('is-placeholder')).to.be.false;
                     });
 
                     it('supports expand and collapse', async function () {
@@ -217,6 +225,9 @@
         </template>
         <template id="treePickerDefault">
             <tree-picker-field label="Template"></tree-picker-field>
+        </template>
+        <template id="treePickerEdit">
+            <tree-picker-field label="Template" placeholder="All templates" empty-value-is-selection></tree-picker-field>
         </template>
     </body>
 </html>

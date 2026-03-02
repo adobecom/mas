@@ -508,6 +508,97 @@
                             expect(settingsPage.shadowRoot.textContent.includes('Value type')).to.equal(false);
                         });
 
+                        it('shows template placeholders for create/edit top-level and override add/edit flows', async () => {
+                            const overrideWithNoTemplates = [
+                                createSettingReference({
+                                    id: 'setting-show-addon',
+                                    title: 'Show Addon',
+                                    name: 'showAddon',
+                                    label: 'Show Addon',
+                                    locales: [],
+                                    templates: [],
+                                }),
+                                createSettingReference({
+                                    id: 'setting-show-addon-fr',
+                                    title: 'Show Addon FR',
+                                    name: 'showAddon',
+                                    label: 'Show Addon',
+                                    locales: ['fr_FR'],
+                                    templates: [],
+                                    fieldName: 'entries',
+                                    path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
+                                }),
+                            ];
+                            const { settingsPage, table } = await setupPage({
+                                references: overrideWithNoTemplates,
+                                expectedRows: 1,
+                            });
+
+                            settingsPage.shadowRoot.querySelector('#create-setting-button').click();
+                            await waitForUpdates(settingsPage, 2);
+                            let formPicker = settingsPage.shadowRoot.querySelector('#settings-editor-page tree-picker-field');
+                            let triggerText = formPicker.shadowRoot.querySelector('.trigger-text');
+                            expect(triggerText.textContent.trim()).to.equal('Select template');
+                            expect(triggerText.classList.contains('is-placeholder')).to.equal(true);
+
+                            Store.settings.creating.set(false);
+                            Store.page.set(PAGE_NAMES.SETTINGS);
+                            Store.settings.fragmentId.set('setting-show-addon');
+                            await waitForUpdates(settingsPage, 2);
+                            formPicker = settingsPage.shadowRoot.querySelector('#settings-editor-page tree-picker-field');
+                            triggerText = formPicker.shadowRoot.querySelector('.trigger-text');
+                            expect(triggerText.textContent.trim()).to.equal('All templates');
+                            expect(triggerText.classList.contains('is-placeholder')).to.equal(false);
+
+                            Store.settings.fragmentId.set(null);
+                            Store.page.set(PAGE_NAMES.SETTINGS);
+                            await waitForUpdates(settingsPage, 2);
+                            const listTable = settingsPage.shadowRoot.querySelector('#settings-table');
+                            listTable.dispatchEvent(
+                                new CustomEvent('setting-add-override', {
+                                    detail: { id: 'setting-show-addon' },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+                            let overridePicker = settingsPage.shadowRoot.querySelector(
+                                'sp-dialog.override-dialog tree-picker-field',
+                            );
+                            triggerText = overridePicker.shadowRoot.querySelector('.trigger-text');
+                            expect(triggerText.textContent.trim()).to.equal('Select template');
+                            expect(triggerText.classList.contains('is-placeholder')).to.equal(true);
+                            let localePicker = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog mas-locale-picker');
+                            let localeTriggerLabel = localePicker.shadowRoot.querySelector('.selection-trigger-label');
+                            expect(localeTriggerLabel.textContent.trim()).to.equal('Select locale');
+                            expect(localeTriggerLabel.classList.contains('is-placeholder')).to.equal(true);
+
+                            settingsPage.dialog = null;
+                            Store.page.set(PAGE_NAMES.SETTINGS);
+                            await waitForUpdates(settingsPage, 2);
+                            const listTableForEdit = settingsPage.shadowRoot.querySelector('#settings-table');
+                            listTableForEdit.dispatchEvent(
+                                new CustomEvent('setting-edit', {
+                                    detail: {
+                                        id: 'setting-show-addon-fr',
+                                        parentId: 'setting-show-addon',
+                                        isOverride: true,
+                                    },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+                            overridePicker = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog tree-picker-field');
+                            triggerText = overridePicker.shadowRoot.querySelector('.trigger-text');
+                            expect(triggerText.textContent.trim()).to.equal('All templates');
+                            expect(triggerText.classList.contains('is-placeholder')).to.equal(false);
+                            localePicker = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog mas-locale-picker');
+                            localeTriggerLabel = localePicker.shadowRoot.querySelector('.selection-trigger-label');
+                            expect(localePicker.getAttribute('empty-selection-label')).to.equal('All locales');
+                            expect(localeTriggerLabel.classList.contains('is-placeholder')).to.equal(false);
+                        });
+
                         it('renders quantity select custom value editor when mapped name is quantitySelect', async () => {
                             const { settingsPage } = await setupPage();
                             const capturedPayloads = [];

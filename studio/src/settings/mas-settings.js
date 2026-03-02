@@ -1058,7 +1058,8 @@ class MasSettings extends LitElement {
                         <tree-picker-field
                             .tree=${TEMPLATE_TREE_DATA}
                             .value=${this.form.templateIds}
-                            placeholder="Select template"
+                            .emptyValueIsSelection=${this.dialog?.mode === 'edit'}
+                            placeholder=${this.dialog?.mode === 'edit' ? 'All templates' : 'Select template'}
                             @change=${this.#handleTemplateChange}
                         ></tree-picker-field>
                     </sp-field-group>
@@ -1070,6 +1071,8 @@ class MasSettings extends LitElement {
                             mode="region"
                             display-value
                             selection-label="Select locale"
+                            empty-selection-label=${this.dialog?.mode === 'edit' ? 'All locales' : 'Select locale'}
+                            .emptySelectionIsValue=${this.dialog?.mode === 'edit'}
                             .locale=${this.form.locales.join(',')}
                             @locale-changed=${this.#handleOverrideLocaleChange}
                         ></mas-locale-picker>
@@ -1188,7 +1191,8 @@ class MasSettings extends LitElement {
                         <tree-picker-field
                             .tree=${TEMPLATE_TREE_DATA}
                             .value=${this.form.templateIds}
-                            placeholder="Select template"
+                            .emptyValueIsSelection=${!this.isCreateMode}
+                            placeholder=${this.isCreateMode ? 'Select template' : 'All templates'}
                             @change=${this.#handleTemplateChange}
                         ></tree-picker-field>
                     </sp-field-group>

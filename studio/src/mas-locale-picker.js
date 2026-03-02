@@ -22,6 +22,8 @@ export class MasLocalePicker extends LitElement {
         mode: { type: String }, // can be 'region' or 'language'
         selection: { type: String }, // can be 'checkbox' or default action-menu
         selectionLabel: { type: String, attribute: 'selection-label' },
+        emptySelectionLabel: { type: String, attribute: 'empty-selection-label' },
+        emptySelectionIsValue: { type: Boolean, attribute: 'empty-selection-is-value' },
         searchDisabled: { type: Boolean },
         searchPlaceholder: { type: String },
         searchQuery: { type: String },
@@ -165,6 +167,10 @@ export class MasLocalePicker extends LitElement {
             white-space: nowrap;
         }
 
+        .selection-trigger-label.is-placeholder {
+            color: var(--spectrum-gray-600);
+        }
+
         .selection-trigger-chevron {
             color: var(--palette-gray-700, #505050);
             flex-shrink: 0;
@@ -233,6 +239,8 @@ export class MasLocalePicker extends LitElement {
         this.searchQuery = '';
         this.selection = '';
         this.selectionLabel = '';
+        this.emptySelectionLabel = '';
+        this.emptySelectionIsValue = false;
         this.displayValue = false;
         this.dialogOpen = false;
         this.selectedLocales = [];
@@ -406,6 +414,10 @@ export class MasLocalePicker extends LitElement {
         return this.selectionLabel || this.label || 'Select languages';
     }
 
+    get localizedEmptySelectionLabel() {
+        return this.emptySelectionLabel || this.localizedSelectionLabel;
+    }
+
     get selectedSummary() {
         const count = this.selectedLocales.length;
         if (!count) return '';
@@ -414,9 +426,13 @@ export class MasLocalePicker extends LitElement {
 
     get selectionTriggerText() {
         if (!this.selectedLocales.length) {
-            return this.localizedSelectionLabel;
+            return this.localizedEmptySelectionLabel;
         }
         return this.selectedLocales.map((localeCode) => this.formatLocaleLabel(localeCode)).join(', ');
+    }
+
+    get selectionTriggerIsPlaceholder() {
+        return this.selectedLocales.length === 0 && !this.emptySelectionIsValue;
     }
 
     get filteredLocaleCodes() {
@@ -581,7 +597,9 @@ export class MasLocalePicker extends LitElement {
                     ?disabled=${this.disabled}
                     @click=${this.handleSelectionDialogOpen}
                 >
-                    <span class="selection-trigger-label">${this.selectionTriggerText}</span>
+                    <span class="selection-trigger-label ${this.selectionTriggerIsPlaceholder ? 'is-placeholder' : ''}">
+                        ${this.selectionTriggerText}
+                    </span>
                     <sp-icon-chevron-down class="selection-trigger-chevron"></sp-icon-chevron-down>
                 </button>
                 ${this.renderSelectionDialog}

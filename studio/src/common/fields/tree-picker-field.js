@@ -203,6 +203,7 @@ export class TreePickerField extends LitElement {
         searchQuery: { type: String, state: true },
         draftValue: { type: Array, state: true },
         expandedPaths: { type: Object, state: true },
+        emptyValueIsSelection: { type: Boolean, attribute: 'empty-value-is-selection' },
         disabled: { type: Boolean, reflect: true },
         readonly: { type: Boolean, reflect: true },
     };
@@ -256,7 +257,7 @@ export class TreePickerField extends LitElement {
         }
 
         .trigger-text.is-placeholder {
-            color: var(--spectrum-gray-700);
+            color: var(--spectrum-gray-600);
         }
 
         .trigger-icon {
@@ -351,13 +352,14 @@ export class TreePickerField extends LitElement {
     constructor() {
         super();
         this.label = '';
-        this.placeholder = 'Select';
+        this.placeholder = 'All templates';
         this.tree = [];
         this.value = [];
         this.open = false;
         this.searchQuery = '';
         this.draftValue = [];
         this.expandedPaths = new Set();
+        this.emptyValueIsSelection = false;
         this.disabled = false;
         this.readonly = false;
 
@@ -578,11 +580,13 @@ export class TreePickerField extends LitElement {
 
     get #summary() {
         const selectedIds = this.open ? this.draftValue : this.#selectedLeafIds(this.value);
-        const text = this.#summaryHelper.templateSummaryForSelectedLeafIds(selectedIds);
+        const text = selectedIds.length
+            ? this.#summaryHelper.templateSummaryForSelectedLeafIds(selectedIds)
+            : this.placeholder || 'All templates';
 
         return {
             text,
-            placeholder: text === 'All templates selected',
+            placeholder: selectedIds.length === 0 && !this.emptyValueIsSelection,
         };
     }
 

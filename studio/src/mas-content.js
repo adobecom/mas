@@ -81,6 +81,19 @@ class MasContent extends LitElement {
     }
 
     get renderView() {
+        if (!this.firstPageLoaded.value) {
+            return html`<div id="render">
+                ${Array.from(
+                    { length: 8 },
+                    () =>
+                        html`<div class="render-fragment-placeholder">
+                            <div class="skeleton-element skeleton-title"></div>
+                            <div class="skeleton-element skeleton-body"></div>
+                            <div class="skeleton-element skeleton-footer"></div>
+                        </div>`,
+                )}
+            </div>`;
+        }
         return html`
             <div id="render">
                 ${repeat(
@@ -133,16 +146,19 @@ class MasContent extends LitElement {
         </sp-table>`;
     }
 
-    /** main spinner to show while loading the first page */
-    get firstPageLoadingSpinner() {
-        if (!this.loading.value || this.firstPageLoaded.value) return nothing;
-        return html`<sp-progress-circle class="fragments" indeterminate size="l"></sp-progress-circle>`;
-    }
-
-    /** spinner to show at the bottom of the page if next page is being loaded */
-    get pageLoadingSpinner() {
+    get pageLoadingSkeletons() {
         if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
-        return html`<sp-progress-circle class="next-page" indeterminate size="l"></sp-progress-circle>`;
+        return html`<div id="render" class="next-page-skeletons">
+            ${Array.from(
+                { length: 4 },
+                () =>
+                    html`<div class="render-fragment-placeholder">
+                        <div class="skeleton-element skeleton-title"></div>
+                        <div class="skeleton-element skeleton-body"></div>
+                        <div class="skeleton-element skeleton-footer"></div>
+                    </div>`,
+            )}
+        </div>`;
     }
 
     render() {
@@ -157,8 +173,8 @@ class MasContent extends LitElement {
             default:
                 view = this.renderView;
         }
-        return html`<div id="content">${view} ${this.firstPageLoadingSpinner}</div>
-            ${this.pageLoadingSpinner}`;
+        return html`<div id="content">${view}</div>
+            ${this.pageLoadingSkeletons}`;
     }
 }
 

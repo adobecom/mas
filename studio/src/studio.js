@@ -135,10 +135,12 @@ class MasStudio extends LitElement {
 
     get content() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
-        return html`<div id="content-container">
-            <mas-toolbar></mas-toolbar>
-            <mas-content></mas-content>
-        </div> `;
+        return html`<div class="main-container">
+            <div id="content-container">
+                <mas-toolbar></mas-toolbar>
+                <mas-content></mas-content>
+            </div>
+        </div>`;
     }
 
     get placeholders() {
@@ -277,10 +279,10 @@ class MasStudio extends LitElement {
             ${this.topNav}
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
-                ${this.sideNav} ${this.breadcrumbs}
+                ${this.sideNav} ${this.breadcrumbs} ${this.content}
                 ${this.masJsReady
                     ? html`<div class="main-container">
-                          ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
+                          ${this.splashScreen} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
                           ${this.editorPanel}
                       </div>`

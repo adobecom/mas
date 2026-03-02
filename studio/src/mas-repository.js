@@ -262,7 +262,9 @@ export class MasRepository extends LitElement {
         }
 
         Store.fragments.list.loading.set(true);
-        Store.fragments.list.firstPageLoaded.set(false);
+        if (!dataStore.get()?.length) {
+            Store.fragments.list.firstPageLoaded.set(false);
+        }
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -331,7 +333,7 @@ export class MasRepository extends LitElement {
                     const surface = fragmentFolder?.toLowerCase();
                     applyCorrectorToFragment(fragmentData, surface);
                     const fragment = await this.#addToCache(fragmentData);
-                    const sourceStore = generateFragmentStore(fragment);
+                    const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                     dataStore.set([sourceStore]);
 
                     // Update the search path to the fragment's folder
@@ -353,7 +355,7 @@ export class MasRepository extends LitElement {
                         // Apply corrector transformer before caching
                         applyCorrectorToFragment(item, surface);
                         const fragment = await this.#addToCache(item);
-                        const sourceStore = generateFragmentStore(fragment);
+                        const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                         fragmentStores.push(sourceStore);
                     }
                     dataStore.set([...fragmentStores]);
@@ -407,7 +409,7 @@ export class MasRepository extends LitElement {
                 // Apply corrector transformer before caching
                 applyCorrectorToFragment(item, surface);
                 const fragment = await this.#addToCache(item);
-                const sourceStore = generateFragmentStore(fragment);
+                const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                 fragmentStores.push(sourceStore);
             }
             dataStore.set(fragmentStores);

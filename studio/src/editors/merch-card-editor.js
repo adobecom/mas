@@ -1491,7 +1491,7 @@ class MerchCardEditor extends LitElement {
         this.availableColors = variant?.allowedColors || [];
         if (variant.borderColor || variant.badge?.tag) {
             this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
-            this.availableBadgeColors = SPECTRUM_COLORS;
+            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
@@ -1732,13 +1732,7 @@ class MerchCardEditor extends LitElement {
         const element = document.createElement('merch-badge');
         if (bgColor) {
             element.setAttribute('background-color', bgColor);
-            if (
-                bgColor === 'spectrum-green-900-plans' ||
-                bgColor === 'spectrum-gray-700-plans' ||
-                bgColor === 'spectrum-green-900-variation' ||
-                bgColor === 'spectrum-gray-700-variation' ||
-                bgColor === 'gradient-purple-blue'
-            )
+            if (bgColor.includes('-green-900-') || bgColor.includes('-gray-700-') || bgColor === 'gradient-purple-blue')
                 element.setAttribute('color', '#fff');
         }
         if (borderColor) {

@@ -2881,7 +2881,7 @@ merch-card[variant="product"] a.spectrum-Link--secondary {
   color: inherit;
 }
 
-merch-card[variant="product"] span[data-template="legal"] {
+merch-card[variant="product"][id] span[data-template="legal"] {
     display: block;
     color: var(----merch-color-grey-80);
     font-size: 14px;
@@ -2890,7 +2890,7 @@ merch-card[variant="product"] span[data-template="legal"] {
     line-height: 21px;
 }
 
-merch-card[variant="product"] .price-unit-type:not(.disabled)::before {
+merch-card[variant="product"][id] .price-unit-type:not(.disabled)::before {
     content: "";
 }
 
@@ -2986,17 +2986,7 @@ merch-card[variant="product"] {
     }
 }
 
-merch-card[variant="product"] span[data-template="legal"] {
-    display: block;
-    color: var(----merch-color-grey-80);
-    font-size: 14px;
-    font-style: italic;
-    font-weight: 400;
-    line-height: 21px;
-    margin-top: 8px;
-}
-
-`;var xa={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-variation"},allowedBadgeColors:["spectrum-yellow-300-variation","spectrum-gray-300-variation","spectrum-gray-700-variation","spectrum-green-900-variation","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-variation","spectrum-gray-300-variation","spectrum-green-900-variation","gradient-purple-blue"],borderColor:{attribute:"border-color"},whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},Oe=class extends N{constructor(t){super(t),this.postCardUpdateHook=this.postCardUpdateHook.bind(this),this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}getGlobalCSS(){return ga}priceOptionsProvider(t,r){t.dataset.template===Me&&(r.displayPlanType=this.card?.settings?.displayPlanType??!1,(t.dataset.template==="strikethrough"||t.dataset.template==="price")&&(r.displayPerUnit=!1))}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(r=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${r}"]`),r))}renderLayout(){return Kr` ${this.badge}
+`;var xa={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},prices:{tag:"p",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},callout:{tag:"div",slot:"callout-content"},quantitySelect:{tag:"div",slot:"quantity-select"},secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"color-yellow-300-variation"},allowedBadgeColors:["color-yellow-300-variation","color-gray-300-variation","color-gray-700-variation","color-green-900-variation","gradient-purple-blue"],allowedBorderColors:["color-yellow-300-variation","color-gray-300-variation","color-green-900-variation","gradient-purple-blue"],borderColor:{attribute:"border-color"},whatsIncluded:{tag:"div",slot:"whats-included"},ctas:{slot:"footer",size:"m"},style:"consonant",perUnitLabel:{tag:"span",slot:"per-unit-label"}},Oe=class extends N{constructor(t){super(t),this.postCardUpdateHook=this.postCardUpdateHook.bind(this),this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}getGlobalCSS(){return ga}priceOptionsProvider(t,r){t.dataset.template===Me&&(r.displayPlanType=this.card?.settings?.displayPlanType??!1,(t.dataset.template==="strikethrough"||t.dataset.template==="price")&&(r.displayPerUnit=!1))}adjustProductBodySlots(){if(this.card.getBoundingClientRect().width===0)return;["heading-xs","body-xxs","body-xs","promo-text","callout-content","addon","body-lower"].forEach(r=>this.updateCardElementMinHeight(this.card.shadowRoot.querySelector(`slot[name="${r}"]`),r))}renderLayout(){return Kr` ${this.badge}
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
@@ -3053,7 +3043,7 @@ merch-card[variant="product"] span[data-template="legal"] {
             display: none;
         }
 
-        :host([variant='product']) ::slotted([slot='heading-xs']) {
+        :host([variant='product']) ::slotted(h3[slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
 

@@ -29,7 +29,7 @@ merch-card[variant="product"] a.spectrum-Link--secondary {
   color: inherit;
 }
 
-merch-card[variant="product"] span[data-template="legal"] {
+merch-card[variant="product"][id] span[data-template="legal"] {
     display: block;
     color: var(----merch-color-grey-80);
     font-size: 14px;
@@ -38,7 +38,7 @@ merch-card[variant="product"] span[data-template="legal"] {
     line-height: 21px;
 }
 
-merch-card[variant="product"] .price-unit-type:not(.disabled)::before {
+merch-card[variant="product"][id] .price-unit-type:not(.disabled)::before {
     content: "";
 }
 
@@ -132,16 +132,6 @@ merch-card[variant="product"] {
     merch-whats-included [slot="heading"] {
         width: 100%;
     }
-}
-
-merch-card[variant="product"] span[data-template="legal"] {
-    display: block;
-    color: var(----merch-color-grey-80);
-    font-size: 14px;
-    font-style: italic;
-    font-weight: 400;
-    line-height: 21px;
-    margin-top: 8px;
 }
 
 `;

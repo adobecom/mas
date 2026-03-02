@@ -190,6 +190,116 @@
                         expect(getLabels()).to.deep.equal(['Show secure label', 'Show Plan type', 'Show Addon']);
                     });
 
+                    it('uses id as tie-breaker when labels are identical', async () => {
+                        Store.settings.destroy();
+                        state.references = [
+                            createSettingReference({
+                                id: 'setting-zeta',
+                                title: 'Same Label',
+                                label: 'Same Label',
+                                name: 'settingZeta',
+                                locales: [],
+                            }),
+                            createSettingReference({
+                                id: 'setting-alpha',
+                                title: 'Same Label',
+                                label: 'Same Label',
+                                name: 'settingAlpha',
+                                locales: [],
+                            }),
+                        ];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const rowIds = [...el.shadowRoot.querySelectorAll('mas-setting-item')].map((row) => row.store.value.id);
+                        expect(rowIds).to.deep.equal(['setting-alpha', 'setting-zeta']);
+                    });
+
+                    it('calls toggleSetting when setting-toggle-value is emitted', async () => {
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+                        const originalToggleSetting = Store.settings.toggleSetting;
+                        const calls = [];
+                        Store.settings.toggleSetting = async (...args) => {
+                            calls.push(args);
+                            return true;
+                        };
+
+                        const body = el.shadowRoot.querySelector('sp-table-body');
+                        body.dispatchEvent(
+                            new CustomEvent('setting-toggle-value', {
+                                detail: { id: 'setting-show-addon', checked: false },
+                                bubbles: true,
+                                composed: true,
+                            }),
+                        );
+                        await el.updateComplete;
+
+                        expect(calls).to.deep.equal([['setting-show-addon', false]]);
+                        Store.settings.toggleSetting = originalToggleSetting;
+                    });
+
+                    it('dispatches add-override and toggles override values from expanded panel', async () => {
+                        Store.settings.destroy();
+                        state.references = [
+                            createSettingReference({
+                                id: 'setting-show-addon',
+                                title: 'Show Addon',
+                                name: 'showAddon',
+                                label: 'Show Addon',
+                                locales: [],
+                                fieldName: 'entries',
+                            }),
+                            createSettingReference({
+                                id: 'setting-show-addon-fr',
+                                title: 'Show Addon FR',
+                                name: 'showAddon',
+                                label: 'Show Addon',
+                                locales: ['fr_FR'],
+                                fieldName: 'entries',
+                                path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
+                                fields: [{ name: 'tags', values: ['mas:keyword/legal'] }],
+                            }),
+                        ];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const expandButton = el.shadowRoot.querySelector('mas-setting-item .expand-button');
+                        expandButton.click();
+                        await el.updateComplete;
+
+                        const addOverrideEvent = new Promise((resolve) => {
+                            el.addEventListener('setting-add-override', resolve, { once: true });
+                        });
+                        el.shadowRoot.querySelector('.override-panel-toolbar sp-action-button').click();
+                        const event = await addOverrideEvent;
+                        expect(event.detail).to.deep.equal({ id: 'setting-show-addon' });
+
+                        const originalToggleOverride = Store.settings.toggleOverride;
+                        const calls = [];
+                        Store.settings.toggleOverride = async (...args) => {
+                            calls.push(args);
+                            return true;
+                        };
+
+                        const overrideSwitch = el.shadowRoot.querySelector('.override-table-row sp-switch');
+                        overrideSwitch.checked = false;
+                        overrideSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await el.updateComplete;
+
+                        expect(calls).to.deep.equal([['setting-show-addon', 'setting-show-addon-fr', false]]);
+                        expect(el.shadowRoot.querySelector('.override-tags-cell sp-tag').textContent.trim()).to.equal(
+                            'mas:keyword/legal',
+                        );
+                        Store.settings.toggleOverride = originalToggleOverride;
+                    });
+
                     it('keeps table visible and shows spinner while loading updates', async () => {
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;

@@ -55,4 +55,20 @@ describe('SettingStore', () => {
         expect(store.value.overrides).to.have.length(1);
         expect(store.value.overrides[0].id).to.equal('o2');
     });
+
+    it('updates templates, overrides, and non-boolean values', () => {
+        const store = new SettingStore(new Fragment(settingFragment));
+
+        store.setTemplates(['catalog', 'plans']);
+        expect(store.value.templateIds).to.deep.equal(['catalog', 'plans']);
+
+        store.setOverrides([{ id: 'o3', label: 'Override 3' }]);
+        expect(store.value.overrides).to.deep.equal([{ id: 'o3', label: 'Override 3' }]);
+
+        store.setValue('unset');
+        expect(store.value.value).to.equal('unset');
+        expect(store.value.data.value).to.equal('unset');
+        expect(store.value.booleanValue).to.equal(true);
+        expect(store.value.data.booleanValue).to.equal(undefined);
+    });
 });

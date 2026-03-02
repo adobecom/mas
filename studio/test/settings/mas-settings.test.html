@@ -29,7 +29,7 @@
             import '../../src/swc.js';
             import '../../src/settings/mas-settings.js';
             import Store from '../../src/store.js';
-            import { PAGE_NAMES } from '../../src/constants.js';
+            import { PAGE_NAMES, QUICK_ACTION } from '../../src/constants.js';
             import {
                 createDefaultSettingsReferences,
                 createQueryBuilderFetchMock,
@@ -769,6 +769,413 @@
                             });
                             await waitForUpdates(settingsPage, 3);
                             expect(settingsPage.shadowRoot.querySelector('#settings-editor-page')).to.exist;
+                        });
+
+                        it('re-runs settings load when surface changes during an in-flight request', async () => {
+                            const { settingsPage } = await setupPage();
+                            const originalLoadSurface = Store.settings.loadSurface;
+                            const calls = [];
+                            let resolveFirstLoad;
+
+                            Store.settings.loadSurface = (surface) => {
+                                calls.push(surface);
+                                if (calls.length === 1) {
+                                    return new Promise((resolve) => {
+                                        resolveFirstLoad = resolve;
+                                    });
+                                }
+                                return Promise.resolve();
+                            };
+
+                            Store.search.set({ path: 'sandbox' });
+                            await waitForUpdates(settingsPage, 1);
+                            Store.search.set({ path: 'stage' });
+                            await waitForUpdates(settingsPage, 1);
+
+                            resolveFirstLoad();
+                            await waitForUpdates(settingsPage, 2);
+
+                            expect(calls).to.deep.equal(['sandbox', 'stage']);
+                            Store.settings.loadSurface = originalLoadSurface;
+                        });
+
+                        it('handles create-route and override-route synchronization', async () => {
+                            const { settingsPage } = await setupPage({ references: referencesWithOverride });
+                            Store.settings.fragmentId.set('setting-show-addon-fr');
+                            Store.settings.creating.set(true);
+                            await waitForUpdates(settingsPage, 2);
+
+                            expect(Store.settings.creating.get()).to.equal(false);
+
+                            Store.settings.fragmentId.set(null);
+                            Store.settings.creating.set(true);
+                            Store.page.set(PAGE_NAMES.SETTINGS);
+                            await waitForUpdates(settingsPage, 2);
+                            expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS_EDITOR);
+
+                            Store.settings.creating.set(false);
+                            Store.page.set(PAGE_NAMES.SETTINGS);
+                            Store.settings.fragmentId.set('setting-show-addon-fr');
+                            await waitForUpdates(settingsPage, 2);
+
+                            expect(settingsPage.dialog?.type).to.equal('override');
+                            expect(settingsPage.dialog?.mode).to.equal('edit');
+                            expect(settingsPage.dialog?.rowId).to.equal('setting-show-addon');
+                            expect(settingsPage.dialog?.overrideId).to.equal('setting-show-addon-fr');
+                            expect(Store.settings.isExpanded('setting-show-addon')).to.equal(true);
+
+                            Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
+                            Store.settings.fragmentId.set(null);
+                            await waitForUpdates(settingsPage, 1);
+                            Store.settings.fragmentId.set('setting-show-addon-fr');
+                            await waitForUpdates(settingsPage, 2);
+                            expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+                        });
+
+                        it('handles override edit events and create mode save guards', async () => {
+                            const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
+                            table.dispatchEvent(
+                                new CustomEvent('setting-edit', {
+                                    detail: {
+                                        id: 'setting-show-addon-fr',
+                                        parentId: 'setting-show-addon',
+                                        isOverride: true,
+                                    },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+                            expect(Store.settings.fragmentId.get()).to.equal('setting-show-addon-fr');
+                            expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+
+                            const originalCreateSetting = Store.settings.createSetting;
+                            const createCalls = [];
+                            Store.settings.createSetting = async (payload) => {
+                                createCalls.push(payload);
+                                return 'created-id';
+                            };
+
+                            settingsPage.shadowRoot.querySelector('#create-setting-button').click();
+                            await waitForUpdates(settingsPage, 2);
+
+                            clickEditorAction(settingsPage, 'Save');
+                            await waitForUpdates(settingsPage, 1);
+
+                            settingsPage.form = {
+                                ...settingsPage.form,
+                                name: 'unsupportedSetting',
+                                label: 'Unsupported',
+                                description: 'Unsupported setting',
+                            };
+                            await waitForUpdates(settingsPage, 1);
+                            clickEditorAction(settingsPage, 'Save');
+                            await waitForUpdates(settingsPage, 1);
+
+                            expect(createCalls.length).to.equal(0);
+                            Store.settings.createSetting = originalCreateSetting;
+                        });
+
+                        it('covers override save guard branches and locale fallback conflict parsing', async () => {
+                            const fallbackLocaleReferences = [
+                                createSettingReference({
+                                    id: 'setting-show-addon',
+                                    title: 'Show Addon',
+                                    name: 'showAddon',
+                                    label: 'Show Addon',
+                                    locales: [],
+                                }),
+                                createSettingReference({
+                                    id: 'setting-show-addon-fr',
+                                    title: 'Show Addon FR',
+                                    name: 'showAddon',
+                                    label: 'Show Addon',
+                                    locales: ['fr_FR'],
+                                    fieldName: 'entries',
+                                    path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
+                                }),
+                            ];
+                            const { settingsPage, table } = await setupPage({ references: fallbackLocaleReferences });
+                            const rowStore = Store.settings.getRowStore('setting-show-addon');
+                            rowStore.value.overrides[0].locales = [];
+                            rowStore.value.overrides[0].locale = 'fr_FR, de_DE';
+
+                            const addOverrideCalls = [];
+                            const originalAddOverride = Store.settings.addOverride;
+                            Store.settings.addOverride = async (...args) => {
+                                addOverrideCalls.push(args);
+                                return 'override-created';
+                            };
+
+                            table.dispatchEvent(
+                                new CustomEvent('setting-add-override', {
+                                    detail: { id: 'setting-show-addon' },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+
+                            const saveDraftButton = [...settingsPage.shadowRoot.querySelectorAll('sp-button[slot="button"]')].find(
+                                (button) => button.textContent.includes('Save as draft'),
+                            );
+
+                            saveDraftButton.disabled = false;
+                            saveDraftButton.click();
+                            await waitForUpdates(settingsPage, 1);
+
+                            settingsPage.form = { ...settingsPage.form, locales: ['fr_FR'] };
+                            await waitForUpdates(settingsPage, 1);
+                            saveDraftButton.disabled = false;
+                            saveDraftButton.click();
+                            await waitForUpdates(settingsPage, 1);
+
+                            settingsPage.form = {
+                                ...settingsPage.form,
+                                locales: ['it_IT'],
+                                addonEnabled: true,
+                                value: '',
+                            };
+                            await waitForUpdates(settingsPage, 1);
+                            saveDraftButton.disabled = false;
+                            saveDraftButton.click();
+                            await waitForUpdates(settingsPage, 1);
+
+                            settingsPage.form = {
+                                ...settingsPage.form,
+                                locales: ['it_IT'],
+                                name: 'unsupportedSetting',
+                                valueType: '',
+                                addonEnabled: false,
+                            };
+                            await waitForUpdates(settingsPage, 1);
+                            saveDraftButton.disabled = false;
+                            saveDraftButton.click();
+                            await waitForUpdates(settingsPage, 1);
+
+                            expect(addOverrideCalls.length).to.equal(0);
+                            Store.settings.addOverride = originalAddOverride;
+                        });
+
+                        it('handles cancelDiscard, editor action guards, and duplicate confirm path', async () => {
+                            const { settingsPage, table } = await setupPage();
+                            settingsPage.shadowRoot.querySelector('#create-setting-button').click();
+                            await waitForUpdates(settingsPage, 2);
+
+                            settingsPage.form = { ...settingsPage.form, name: 'showAddon' };
+                            await waitForUpdates(settingsPage, 1);
+
+                            const firstPrompt = settingsPage.promptDiscardChanges();
+                            const secondPrompt = settingsPage.promptDiscardChanges();
+                            expect(firstPrompt).to.equal(secondPrompt);
+                            await waitForUpdates(settingsPage, 1);
+
+                            settingsPage.shadowRoot.querySelector('#discard-confirmation-dialog').dispatchEvent(new Event('cancel'));
+                            const discardConfirmed = await firstPrompt;
+                            expect(discardConfirmed).to.equal(false);
+
+                            clickEditorAction(settingsPage, 'Duplicate');
+                            clickEditorAction(settingsPage, 'Publish');
+                            clickEditorAction(settingsPage, 'Delete');
+                            await waitForUpdates(settingsPage, 1);
+                            expect(settingsPage.shadowRoot.querySelector('sp-dialog-wrapper')).to.equal(null);
+
+                            table.dispatchEvent(
+                                new CustomEvent('setting-delete', {
+                                    detail: { id: 'setting-show-addon', isOverride: false },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 1);
+                            expect(settingsPage.shadowRoot.querySelector('sp-dialog-wrapper')).to.equal(null);
+
+                            Store.settings.creating.set(false);
+                            Store.settings.fragmentId.set('setting-show-plan-type');
+                            await waitForUpdates(settingsPage, 2);
+
+                            clickEditorAction(settingsPage, 'Publish');
+                            await waitForUpdates(settingsPage, 1);
+                            expect(settingsPage.shadowRoot.querySelector('.confirm-title').textContent.trim()).to.equal(
+                                'Publish this setting?',
+                            );
+                            settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('cancel'));
+                            await waitForUpdates(settingsPage, 1);
+
+                            clickEditorAction(settingsPage, 'Delete');
+                            await waitForUpdates(settingsPage, 1);
+                            expect(settingsPage.shadowRoot.querySelector('.confirm-title').textContent.trim()).to.equal(
+                                'Delete this setting?',
+                            );
+                            settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('cancel'));
+                            await waitForUpdates(settingsPage, 1);
+
+                            const originalDuplicateSetting = Store.settings.duplicateSetting;
+                            Store.settings.duplicateSetting = async () => 'setting-show-plan-type-copy';
+                            clickEditorAction(settingsPage, 'Duplicate');
+                            await waitForUpdates(settingsPage, 1);
+                            settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+                            await waitForUpdates(settingsPage, 2);
+                            expect(Store.settings.fragmentId.get()).to.equal('setting-show-plan-type-copy');
+                            expect(Store.settings.creating.get()).to.equal(false);
+                            Store.settings.duplicateSetting = originalDuplicateSetting;
+                        });
+
+                        it('uses fallback valueEditorType for legacy settings and blocks save without valueType', async () => {
+                            const legacyReferences = [
+                                createSettingReference({
+                                    id: 'setting-legacy-text',
+                                    title: 'Legacy Text',
+                                    name: 'legacyTextSetting',
+                                    label: 'Legacy Text',
+                                    valueType: 'text',
+                                    value: 'legacy value',
+                                    locales: [],
+                                }),
+                                createSettingReference({
+                                    id: 'setting-legacy-boolean',
+                                    title: 'Legacy Boolean',
+                                    name: 'legacyBooleanSetting',
+                                    label: 'Legacy Boolean',
+                                    valueType: 'boolean',
+                                    value: true,
+                                    locales: [],
+                                }),
+                            ];
+                            const { settingsPage } = await setupPage({ references: legacyReferences, expectedRows: 2 });
+                            const originalUpdateSetting = Store.settings.updateSetting;
+                            const updateCalls = [];
+                            Store.settings.updateSetting = async (...args) => {
+                                updateCalls.push(args);
+                                return true;
+                            };
+
+                            Store.settings.fragmentId.set('setting-legacy-text');
+                            await waitForUpdates(settingsPage, 2);
+                            Store.settings.fragmentId.set(null);
+                            Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
+                            settingsPage.form = {
+                                ...settingsPage.form,
+                                name: 'legacyTextSetting',
+                                valueType: 'text',
+                            };
+                            await waitForUpdates(settingsPage, 1);
+                            expect(settingsPage.valueEditorType).to.equal('text');
+
+                            Store.settings.fragmentId.set('setting-legacy-text');
+                            await waitForUpdates(settingsPage, 2);
+
+                            const legacyTextRow = Store.settings.getRowStore('setting-legacy-text').value;
+                            legacyTextRow.valueType = '';
+                            settingsPage.form = {
+                                ...settingsPage.form,
+                                name: 'legacyTextSetting',
+                                valueType: '',
+                            };
+                            await waitForUpdates(settingsPage, 1);
+                            clickEditorAction(settingsPage, 'Save');
+                            await waitForUpdates(settingsPage, 1);
+                            expect(updateCalls.length).to.equal(0);
+
+                            Store.settings.fragmentId.set('setting-legacy-boolean');
+                            await waitForUpdates(settingsPage, 2);
+                            expect(settingsPage.valueEditorType).to.equal('boolean');
+                            Store.settings.updateSetting = originalUpdateSetting;
+                        });
+
+                        it('handles form field events and loading-based action disabling', async () => {
+                            const quantityReferences = [
+                                createSettingReference({
+                                    id: 'setting-quantity-select',
+                                    title: 'Quantity Select',
+                                    name: 'quantitySelect',
+                                    label: 'Quantity Select',
+                                    locales: [],
+                                    valueType: 'text',
+                                    value: '<merch-quantity-select title="Qty" min="2" step="2"></merch-quantity-select>',
+                                }),
+                            ];
+                            const { settingsPage, table } = await setupPage({ references: quantityReferences, expectedRows: 1 });
+
+                            settingsPage.shadowRoot.querySelector('#create-setting-button').click();
+                            await waitForUpdates(settingsPage, 2);
+
+                            const namePicker = settingsPage.shadowRoot.querySelector('sp-picker[name="setting-name-page"]');
+                            namePicker.value = 'showAddon';
+                            namePicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await waitForUpdates(settingsPage, 1);
+
+                            const addonSwitch = settingsPage.shadowRoot.querySelector('#addon-enabled-switch');
+                            addonSwitch.checked = true;
+                            addonSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await waitForUpdates(settingsPage, 1);
+
+                            const addonPicker = settingsPage.shadowRoot.querySelector('sp-combobox');
+                            addonPicker.value = 'test-value';
+                            addonPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await waitForUpdates(settingsPage, 1);
+
+                            addonSwitch.checked = false;
+                            addonSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await waitForUpdates(settingsPage, 1);
+
+                            const tagPicker = settingsPage.shadowRoot.querySelector('aem-tag-picker-field');
+                            tagPicker.setAttribute('value', 'mas:keyword/design,mas:keyword/legal');
+                            tagPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await waitForUpdates(settingsPage, 1);
+
+                            const templatePicker = settingsPage.shadowRoot.querySelector('tree-picker-field');
+                            templatePicker.value = ['plans'];
+                            templatePicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await waitForUpdates(settingsPage, 1);
+
+                            expect(settingsPage.form.tags).to.deep.equal(['mas:keyword/design', 'mas:keyword/legal']);
+                            expect(settingsPage.form.templateIds).to.deep.equal(['plans']);
+                            expect(settingsPage.form.value).to.equal('');
+                            expect(settingsPage.form.booleanValue).to.equal(false);
+
+                            Store.settings.creating.set(false);
+                            Store.settings.fragmentId.set('setting-quantity-select');
+                            await waitForUpdates(settingsPage, 2);
+
+                            table.dispatchEvent(
+                                new CustomEvent('setting-add-override', {
+                                    detail: { id: 'setting-quantity-select' },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+
+                            const localePicker = settingsPage.shadowRoot.querySelector('mas-locale-picker');
+                            localePicker.dispatchEvent(
+                                new CustomEvent('locale-changed', {
+                                    detail: { locales: ['de_DE'] },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 1);
+
+                            const overrideEnabledSwitch = settingsPage.shadowRoot.querySelector(
+                                '.override-dialog .settings-dialog-layout sp-field-group sp-switch',
+                            );
+                            overrideEnabledSwitch.checked = false;
+                            overrideEnabledSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await waitForUpdates(settingsPage, 1);
+
+                            expect(settingsPage.form.locales).to.deep.equal(['de_DE']);
+                            expect(settingsPage.form.booleanValue).to.equal(false);
+
+                            Store.settings.loading.set(true);
+                            await waitForUpdates(settingsPage, 1);
+                            const disabledActions = settingsPage.disabledSettingsEditorActions;
+                            expect(disabledActions.has(QUICK_ACTION.SAVE)).to.equal(true);
+                            expect(disabledActions.has(QUICK_ACTION.DUPLICATE)).to.equal(true);
+                            expect(disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
+                            expect(disabledActions.has(QUICK_ACTION.CANCEL)).to.equal(true);
+                            expect(disabledActions.has(QUICK_ACTION.DELETE)).to.equal(true);
+                            Store.settings.loading.set(false);
                         });
                     });
                 });

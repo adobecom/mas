@@ -291,6 +291,62 @@ describe('Settings Store Namespace', () => {
         expect(store.toast.get().message).to.contain("'Show secure label' is now [Off]");
     });
 
+    it('keeps plain template count wording in toggle toast for cross-branch templates', async () => {
+        const store = new SettingsStore();
+        const templateIds = crossBranchTemplateIds.slice(0, 2);
+        let currentValue = true;
+        const reference = createSettingReference({
+            id: 'setting-cross-branch',
+            name: 'showSecureLabel',
+            label: 'Show secure label',
+            locales: [],
+            templates: templateIds,
+            value: currentValue,
+        });
+
+        store.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async () => ({
+                            id: 'settings-index',
+                            path: '/content/dam/mas/sandbox/settings/index',
+                            fields: [{ name: 'entries', values: [reference.path] }],
+                            references: [reference],
+                        }),
+                        getById: async () => ({
+                            id: reference.id,
+                            title: reference.title,
+                            description: '',
+                            path: reference.path,
+                            status: 'PUBLISHED',
+                            tags: [],
+                            fields: [
+                                { name: 'name', type: 'text', multiple: false, values: ['showSecureLabel'] },
+                                { name: 'templates', type: 'text', multiple: true, values: templateIds },
+                                { name: 'locales', type: 'text', multiple: true, values: [] },
+                                { name: 'tags', type: 'tag', multiple: true, values: [] },
+                                { name: 'valuetype', type: 'text', multiple: false, values: ['boolean'] },
+                                { name: 'textValue', type: 'text', multiple: false, values: [] },
+                                { name: 'richTextValue', type: 'long-text', multiple: false, values: [] },
+                                { name: 'booleanValue', type: 'boolean', multiple: false, values: [currentValue] },
+                            ],
+                        }),
+                        save: async (fragment) => {
+                            currentValue = fragment.fields.find((field) => field.name === 'booleanValue').values[0];
+                            return fragment;
+                        },
+                    },
+                },
+            },
+        });
+
+        await store.loadSurface('sandbox');
+        await store.toggleSetting(reference.id, false);
+
+        expect(store.toast.get().message).to.contain('applied to 2 templates selected for all locales');
+    });
+
     it('toggles text settings via booleanValue and keeps text value intact', async () => {
         const store = new SettingsStore();
         const reference = createSettingReference({

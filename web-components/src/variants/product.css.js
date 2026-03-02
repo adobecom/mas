@@ -9,8 +9,8 @@ merch-card[variant="product"] {
     width: var(--consonant-merch-card-product-width);
 }
 
-merch-card[variant="product"] [slot='callout-content'] > div > div,
-merch-card[variant="product"] [slot="callout-content"] > p {
+merch-card[variant="product"][id] [slot='callout-content'] > div > div,
+merch-card[variant="product"][id] [slot="callout-content"] > p {
     position: relative;
     padding: 2px 10px 3px;
     background: #D9D9D9;

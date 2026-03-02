@@ -16,6 +16,9 @@ export const CHECKOUT_CTA_TEXTS = {
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
     'get-for-free': 'Get for free',
+    'seven-day-trial': 'Start 7-day free trial',
+    'fourteen-day-trial': 'Start 14-day free trial',
+    'thirty-day-trial': 'Start 30-day free trial',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
 export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
@@ -39,6 +42,9 @@ export const ANALYTICS_LINK_IDS = [
     'upgrade-now',
     'what-is-included',
     'get-for-free',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {

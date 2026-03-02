@@ -1,6 +1,7 @@
 import { test, expect, studio, editor, miloLibs, setTestPage } from '../libs/mas-test.js';
-import { getCurrentRunId } from '../utils/fragment-tracker.js';
+import { getFragmentTitle } from '../utils/fragment-tracker.js';
 import StudioSpec from './studio.spec.js';
+import ACOMPlansIndividualsPage from './acom/plans/individuals/individuals.page.js';
 
 const { features } = StudioSpec;
 
@@ -436,8 +437,7 @@ test.describe('M@S Studio feature test suite', () => {
         const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}`;
         setTestPage(testPage);
         let fragmentId;
-        const runId = getCurrentRunId();
-        const expectedTitle = `MAS Nala Automation Fragment [${runId}]`;
+        const expectedTitle = getFragmentTitle();
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
@@ -446,13 +446,10 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Create fragment', async () => {
-            fragmentId = await studio.createFragment(
-                {
-                    osi: data.osi,
-                    variant: data.variant,
-                },
-                editor,
-            );
+            fragmentId = await studio.createFragment({
+                osi: data.osi,
+                variant: data.variant,
+            });
             expect(fragmentId).toBeTruthy();
             await page.waitForTimeout(3000);
         });
@@ -475,18 +472,15 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.switchToTableView();
             await page.waitForTimeout(2000);
 
-            // Find the fragment row by data-id attribute on mas-fragment-table
             const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
             await expect(fragmentRow).toBeVisible();
 
-            // Get the path cell (class "name")
             const pathCell = studio.tableViewPathCell(fragmentRow);
             const fragmentPath = await pathCell.textContent();
             expect(fragmentPath).toBeTruthy();
             expect(fragmentPath).not.toContain('undefined');
             expect(fragmentPath.trim().length).toBeGreaterThan(0);
 
-            // Get the title cell (class "title")
             const titleCell = studio.tableViewTitleCell(fragmentRow);
             const fragmentTitle = await titleCell.textContent();
             expect(fragmentTitle).toBeTruthy();
@@ -497,11 +491,42 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-6: Open editor from table view and verify fragment details', async () => {
             const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
             await fragmentRow.dblclick();
-            await expect(await editor.panel).toBeVisible({ timeout: 30000 });
+            await expect(await editor.panel).toBeVisible();
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', data.variant);
             await expect(await editor.OSI).toBeVisible();
             await expect(await editor.OSI).toContainText(data.osi);
+        });
+    });
+
+    // @studio-load-variation - Validate loading a variation in mas studio
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio content page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Switch to table view and find cardid row', async () => {
+            await studio.switchToTableView();
+            await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
+            expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(
+                data.price,
+            );
+        });
+
+        await test.step('step-3: Expand row and verify variation exists and price visible', async () => {
+            await studio.tableViewFragmentTable(data.cardid).locator('button.expand-button').click();
+            await expect(studio.tableViewFragmentTable(data.variationid)).toBeVisible();
+            await expect(studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).toBeVisible();
+            expect(
+                await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).textContent(),
+            ).toMatch(
+                data.price, // change to regional price once MWPW-187797 is fixed
+            );
         });
     });
 });

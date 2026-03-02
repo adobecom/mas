@@ -225,7 +225,6 @@ export class Plans extends VariantLayout {
 
     async postCardUpdateHook() {
         this.adaptForMedia();
-        this.adjustTitleWidth();
         this.adjustAddon();
         this.adjustCallout();
         if (!this.legalAdjusted) {

@@ -60,7 +60,10 @@ function getSettings(config = {}, service) {
         CheckoutWorkflowStep,
         Defaults.checkoutWorkflowStep,
     );
-    const displayOldPrice = Defaults.displayOldPrice;
+    const displayOldPrice = toBoolean(
+        getParameter('displayOldPrice', commerce),
+        Defaults.displayOldPrice,
+    );
 
     const displayPerUnit = Defaults.displayPerUnit;
 

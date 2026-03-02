@@ -313,6 +313,10 @@ export class MerchCard extends LitElement {
             ?.assignedElements()[0];
     }
 
+    get iconButton() {
+        return this.querySelector('[slot="callout-content"] .icon-button');
+    }
+
     get price() {
         return this.headingmMSlot?.querySelector(SELECTOR_MAS_INLINE_PRICE);
     }
@@ -446,6 +450,30 @@ export class MerchCard extends LitElement {
         this.filters = newFilters;
     }
 
+    handleInfoIconEvents() {
+        if (this.iconButton) {
+            ['mouseenter', 'focus'].forEach((eventName) =>
+                this.iconButton.addEventListener(
+                    eventName,
+                    (e) => this.iconButton.classList.add('visible'),
+                    false,
+                ),
+            );
+            ['mouseleave', 'blur'].forEach((eventName) =>
+                this.iconButton.addEventListener(
+                    eventName,
+                    (e) => this.iconButton.classList.remove('visible'),
+                    false,
+                ),
+            );
+            this.iconButton.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.iconButton.classList.remove('visible');
+                }
+            });
+        }
+    }
+
     /* c8 ignore next 3 */
     includes(text) {
         return this.textContent.match(new RegExp(text, 'i')) !== null;
@@ -488,6 +516,7 @@ export class MerchCard extends LitElement {
         this.addEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
         this.addEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
         this.addEventListener('change', this.changeHandler);
+        this.handleInfoIconEvents();
 
         if (this.variantLayout) {
             this.variantLayout.connectedCallbackHook();

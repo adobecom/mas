@@ -2,20 +2,7 @@ import { css, html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { EVENT_CHANGE } from '../../constants.js';
 
-/**
- * Builds selection helpers for tree data and provides consistent summary text formatting.
- *
- * @param {Array<{name: string, label: string, children?: Array}>} tree
- * @returns {{
- *   leafIds: string[],
- *   selectedLeafIds: (value?: Array<string>) => string[],
- *   summaryText: (value?: Array<string>, placeholder?: string) => string,
- *   summaryForSelectedLeafIds: (selectedIds?: Array<string>, placeholder?: string) => string,
- *   templateSummaryForSelectedLeafIds: (selectedIds?: Array<string>) => string,
- *   templateSummaryText: (value?: Array<string>) => string
- * }}
- */
-export const createTreeSelectionSummary = (tree = []) => {
+const buildTreeIndex = (tree = []) => {
     const nodeMap = new Map();
     const childrenMap = new Map();
     const parentMap = new Map();
@@ -27,7 +14,7 @@ export const createTreeSelectionSummary = (tree = []) => {
         const nodeId = `${node.name}`;
         if (!nodeId || nodeMap.has(nodeId)) return;
 
-        const children = node.children || [];
+        const children = node.children ?? [];
         const childIds = [];
         nodeMap.set(nodeId, {
             id: nodeId,
@@ -75,18 +62,30 @@ export const createTreeSelectionSummary = (tree = []) => {
         leafIds.push(...(leafDescendantsMap.get(rootId) || []));
     }
 
-    const selectedLeafIds = (value = []) => {
-        const selected = new Set();
-        for (const rawId of value) {
-            const id = `${rawId}`;
-            const descendants = leafDescendantsMap.get(id);
-            if (!descendants) continue;
-            for (const leafId of descendants) {
-                selected.add(leafId);
-            }
-        }
-        return [...selected];
+    return {
+        nodeMap,
+        childrenMap,
+        parentMap,
+        leafDescendantsMap,
+        rootIds,
+        leafIds,
     };
+};
+
+const selectedLeafIdsFromValue = (value = [], leafDescendantsMap) => {
+    const selected = new Set();
+    for (const rawId of value) {
+        const descendants = leafDescendantsMap.get(`${rawId}`);
+        if (!descendants) continue;
+        for (const leafId of descendants) {
+            selected.add(leafId);
+        }
+    }
+    return [...selected];
+};
+
+const createSelectionSummaryForIndex = ({ nodeMap, parentMap, leafDescendantsMap, leafIds }) => {
+    const selectedLeafIds = (value = []) => selectedLeafIdsFromValue(value, leafDescendantsMap);
 
     const selectedBranchSummary = (selectedIds) => {
         const selectedSet = new Set(selectedIds);
@@ -172,6 +171,21 @@ export const createTreeSelectionSummary = (tree = []) => {
         templateSummaryText,
     };
 };
+
+/**
+ * Builds selection helpers for tree data and provides consistent summary text formatting.
+ *
+ * @param {Array<{name: string, label: string, children?: Array}>} tree
+ * @returns {{
+ *   leafIds: string[],
+ *   selectedLeafIds: (value?: Array<string>) => string[],
+ *   summaryText: (value?: Array<string>, placeholder?: string) => string,
+ *   summaryForSelectedLeafIds: (selectedIds?: Array<string>, placeholder?: string) => string,
+ *   templateSummaryForSelectedLeafIds: (selectedIds?: Array<string>) => string,
+ *   templateSummaryText: (value?: Array<string>) => string
+ * }}
+ */
+export const createTreeSelectionSummary = (tree = []) => createSelectionSummaryForIndex(buildTreeIndex(tree));
 
 /**
  * Generic tree-picker field.
@@ -364,7 +378,7 @@ export class TreePickerField extends LitElement {
 
     willUpdate(changedProperties) {
         if (changedProperties.has('draftValue')) {
-            this.#draftValueSet = new Set(this.draftValue || []);
+            this.#draftValueSet = new Set(this.draftValue);
         }
     }
 
@@ -380,71 +394,14 @@ export class TreePickerField extends LitElement {
     }
 
     #rebuildTreeIndex() {
-        this.#nodeMap = new Map();
-        this.#childrenMap = new Map();
-        this.#parentMap = new Map();
-        this.#leafDescendantsMap = new Map();
-        this.#rootIds = [];
-        this.#leafIds = [];
-
-        const walk = (node, parentId = null) => {
-            if (!node || typeof node !== 'object') return;
-
-            const nodeId = String(node.name ?? '');
-            if (!nodeId) return;
-            if (this.#nodeMap.has(nodeId)) return;
-
-            const label = String(node.label ?? nodeId);
-            const children = Array.isArray(node.children) ? node.children : [];
-            const childIds = [];
-
-            this.#nodeMap.set(nodeId, {
-                id: nodeId,
-                label,
-                hasChildren: children.length > 0,
-            });
-            this.#childrenMap.set(nodeId, childIds);
-            this.#parentMap.set(nodeId, parentId);
-
-            children.forEach((child) => {
-                const childId = String(child.name ?? '');
-                if (!childId) return;
-                childIds.push(childId);
-                walk(child, nodeId);
-            });
-        };
-
-        (Array.isArray(this.tree) ? this.tree : []).forEach((rootNode) => {
-            const rootId = String(rootNode.name ?? '');
-            if (!rootId) return;
-            this.#rootIds.push(rootId);
-            walk(rootNode);
-        });
-
-        const collectLeafDescendants = (nodeId) => {
-            if (!this.#nodeMap.has(nodeId)) return [];
-            const children = this.#childrenMap.get(nodeId) || [];
-
-            if (children.length === 0) {
-                this.#leafDescendantsMap.set(nodeId, [nodeId]);
-                return [nodeId];
-            }
-
-            const descendantLeaves = [];
-            children.forEach((childId) => {
-                descendantLeaves.push(...collectLeafDescendants(childId));
-            });
-
-            this.#leafDescendantsMap.set(nodeId, descendantLeaves);
-            return descendantLeaves;
-        };
-
-        this.#rootIds.forEach((rootId) => {
-            collectLeafDescendants(rootId);
-        });
-
-        this.#leafIds = this.#rootIds.flatMap((rootId) => this.#leafDescendantsMap.get(rootId) || []);
-        this.#summaryHelper = createTreeSelectionSummary(this.tree);
+        const treeIndex = buildTreeIndex(this.tree);
+        this.#nodeMap = treeIndex.nodeMap;
+        this.#childrenMap = treeIndex.childrenMap;
+        this.#parentMap = treeIndex.parentMap;
+        this.#leafDescendantsMap = treeIndex.leafDescendantsMap;
+        this.#rootIds = treeIndex.rootIds;
+        this.#leafIds = treeIndex.leafIds;
+        this.#summaryHelper = createSelectionSummaryForIndex(treeIndex);
     }
 
     #sameSelection(a = [], b = []) {
@@ -453,19 +410,16 @@ export class TreePickerField extends LitElement {
         return a.every((value) => bSet.has(value));
     }
 
+    #sameSet(a, b) {
+        if (a.size !== b.size) return false;
+        for (const value of a) {
+            if (!b.has(value)) return false;
+        }
+        return true;
+    }
+
     #selectedLeafIds(value = this.value) {
-        const selected = new Set();
-        const valueArray = Array.isArray(value) ? value : [];
-
-        valueArray.forEach((nodeId) => {
-            const id = String(nodeId);
-            const leafDescendants = this.#leafDescendantsMap.get(id);
-            if (leafDescendants) {
-                leafDescendants.forEach((leafId) => selected.add(leafId));
-            }
-        });
-
-        return [...selected];
+        return selectedLeafIdsFromValue(value, this.#leafDescendantsMap);
     }
 
     #syncDraftFromValue() {
@@ -477,20 +431,18 @@ export class TreePickerField extends LitElement {
     }
 
     #syncExpandedPathsFromSelection(selectedLeafIds = this.draftValue) {
-        const currentExpanded = this.expandedPaths || new Set();
+        const currentExpanded = this.expandedPaths;
         const nextExpanded = new Set(currentExpanded);
 
-        selectedLeafIds.forEach((leafId) => {
+        for (const leafId of selectedLeafIds) {
             let parentId = this.#parentMap.get(leafId);
             while (parentId) {
                 nextExpanded.add(parentId);
                 parentId = this.#parentMap.get(parentId);
             }
-        });
-
-        if (nextExpanded.size === currentExpanded.size && [...nextExpanded].every((path) => currentExpanded.has(path))) {
-            return;
         }
+
+        if (this.#sameSet(nextExpanded, currentExpanded)) return;
 
         this.expandedPaths = nextExpanded;
     }
@@ -511,11 +463,11 @@ export class TreePickerField extends LitElement {
 
     #toggleExpand(event) {
         event.stopPropagation();
-        const target = event.composedPath?.()[0] || event.target;
-        const nodeId = target?.dataset?.treeToggle;
+        const target = event.currentTarget;
+        const nodeId = target.dataset.treeToggle;
         if (!nodeId) return;
 
-        const nextExpanded = new Set(this.expandedPaths || []);
+        const nextExpanded = new Set(this.expandedPaths);
         if (nextExpanded.has(nodeId)) nextExpanded.delete(nodeId);
         else nextExpanded.add(nodeId);
         this.expandedPaths = nextExpanded;
@@ -523,83 +475,83 @@ export class TreePickerField extends LitElement {
 
     #toggleCheckbox(event) {
         event.stopPropagation();
-        const target = event.composedPath?.()[0] || event.target;
-        const nodeId = target?.value || target?.getAttribute?.('value');
+        const target = event.currentTarget;
+        const nodeId = target.value || target.getAttribute('value');
         if (!nodeId) return;
 
         const leafDescendants = this.#leafDescendantsMap.get(nodeId) || [];
         if (leafDescendants.length === 0) return;
 
-        const nextDraft = new Set(this.draftValue || []);
-        if (target.checked) leafDescendants.forEach((leafId) => nextDraft.add(leafId));
-        else leafDescendants.forEach((leafId) => nextDraft.delete(leafId));
+        const nextDraft = new Set(this.draftValue);
+        if (target.checked) {
+            for (const leafId of leafDescendants) nextDraft.add(leafId);
+        } else {
+            for (const leafId of leafDescendants) nextDraft.delete(leafId);
+        }
 
         this.draftValue = [...nextDraft];
-        this.#syncExpandedPathsFromSelection(this.draftValue);
+        this.#syncExpandedPathsFromSelection(nextDraft);
     }
 
     #handleSearchInput(event) {
-        const target = event.composedPath?.()[0] || event.target;
-        this.searchQuery = target?.value || '';
+        this.searchQuery = event.currentTarget.value;
     }
 
-    #getRows() {
-        if (!this.#rootIds.length) return [];
-
+    #collectExpandedRows() {
         const rows = [];
-        const query = this.searchQuery.trim().toLowerCase();
+        const expandedPaths = this.expandedPaths;
 
-        if (!query) {
-            const visit = (nodeId, depth = 0) => {
-                const node = this.#nodeMap.get(nodeId);
-                if (!node) return;
-
-                const children = this.#childrenMap.get(nodeId) || [];
-                rows.push({ nodeId, depth, node, hasChildren: children.length > 0 });
-
-                if (children.length && (this.expandedPaths || new Set()).has(nodeId)) {
-                    children.forEach((childId) => visit(childId, depth + 1));
-                }
-            };
-
-            this.#rootIds.forEach((rootId) => visit(rootId, 0));
-            return rows;
-        }
-
-        const visitWithSearch = (nodeId, depth = 0, targetRows = rows) => {
-            const startIndex = targetRows.length;
+        const visit = (nodeId, depth = 0) => {
             const node = this.#nodeMap.get(nodeId);
-            if (!node) return false;
-
             const children = this.#childrenMap.get(nodeId) || [];
-            let matched = node.label.toLowerCase().includes(query);
-            targetRows.push({ nodeId, depth, node, hasChildren: children.length > 0 });
-
+            rows.push({ nodeId, depth, node, hasChildren: children.length > 0 });
+            if (children.length === 0 || !expandedPaths.has(nodeId)) return;
             for (const childId of children) {
-                if (visitWithSearch(childId, depth + 1, targetRows)) {
-                    matched = true;
-                }
+                visit(childId, depth + 1);
             }
-
-            // Roll back rows from this subtree when there is no match.
-            if (!matched) {
-                targetRows.length = startIndex;
-                return false;
-            }
-
-            return true;
         };
 
         for (const rootId of this.#rootIds) {
-            visitWithSearch(rootId, 0, rows);
+            visit(rootId, 0);
         }
-
         return rows;
+    }
+
+    #collectSearchRows(query) {
+        const rows = [];
+
+        const visit = (nodeId, depth = 0) => {
+            const startIndex = rows.length;
+            const node = this.#nodeMap.get(nodeId);
+            const children = this.#childrenMap.get(nodeId) || [];
+            let matched = node.label.toLowerCase().includes(query);
+            rows.push({ nodeId, depth, node, hasChildren: children.length > 0 });
+
+            for (const childId of children) {
+                if (visit(childId, depth + 1)) matched = true;
+            }
+
+            if (matched) return true;
+            rows.length = startIndex;
+            return false;
+        };
+
+        for (const rootId of this.#rootIds) {
+            visit(rootId, 0);
+        }
+        return rows;
+    }
+
+    #getRows() {
+        if (this.#rootIds.length === 0) return [];
+        const query = this.searchQuery.trim().toLowerCase();
+        if (!query) return this.#collectExpandedRows();
+        return this.#collectSearchRows(query);
     }
 
     #commitSelection() {
         const currentSelection = this.#selectedLeafIds(this.value);
-        const nextSelection = [...new Set(this.draftValue || [])];
+        const nextSelection = [...new Set(this.draftValue)];
         if (this.#sameSelection(currentSelection, nextSelection)) return;
 
         this.value = nextSelection;
@@ -638,12 +590,8 @@ export class TreePickerField extends LitElement {
         return this.disabled || this.readonly || this.#leafIds.length === 0;
     }
 
-    get #rows() {
-        return this.#getRows();
-    }
-
     #renderTreeRow({ nodeId, depth, node, hasChildren }) {
-        const expanded = (this.expandedPaths || new Set()).has(nodeId);
+        const expanded = this.expandedPaths.has(nodeId);
         const state = this.#getNodeSelectionState(nodeId);
         const descendantLeaves = this.#leafDescendantsMap.get(nodeId) || [];
         const count = hasChildren ? descendantLeaves.length : 0;
@@ -678,6 +626,7 @@ export class TreePickerField extends LitElement {
 
     get #popoverContent() {
         if (!this.open) return nothing;
+        const rows = this.#getRows();
 
         return html`
             <div class="popover-content">
@@ -688,10 +637,10 @@ export class TreePickerField extends LitElement {
                     value="${this.searchQuery}"
                 ></sp-search>
                 <div class="tree-list">
-                    ${this.#rows.length === 0
+                    ${rows.length === 0
                         ? html`<span class="empty-state">No matches</span>`
                         : repeat(
-                              this.#rows,
+                              rows,
                               ({ nodeId }) => nodeId,
                               (row) => this.#renderTreeRow(row),
                           )}

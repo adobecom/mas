@@ -409,6 +409,26 @@
                             expect(el.tempSelectedLocales.length).to.equal(filteredCount);
                             expect(selectionCount.textContent.trim()).to.equal(`${filteredCount} locales selected`);
                         });
+
+                        it('should preserve comma-separated locales in checkbox mode', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionMultipleLocales', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.locale).to.equal('de_DE,fr_FR');
+                            expect(el.selectedLocales).to.deep.equal(['de_DE', 'fr_FR']);
+
+                            const trigger = el.shadowRoot.querySelector('.selection-trigger');
+                            expect(trigger.textContent).to.include('de_DE');
+                            expect(trigger.textContent).to.include('fr_FR');
+
+                            trigger.click();
+                            await el.updateComplete;
+
+                            const deCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="de_DE"]');
+                            const frCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="fr_FR"]');
+                            expect(deCheckbox.checked).to.be.true;
+                            expect(frCheckbox.checked).to.be.true;
+                        });
                     });
 
                     describe('Combined configurations', () => {
@@ -648,6 +668,19 @@
                                     selection="checkbox"
                                     display-value
                                     selection-label="Pick languages"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p><strong>Checkbox + Modal:</strong> Preserves comma-separated locale values</p>
+                            <template id="checkboxSelectionMultipleLocales">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    mode="region"
+                                    display-value
+                                    locale="de_DE,fr_FR"
+                                    selection-label="Select locale"
                                 ></mas-locale-picker>
                             </template>
                         </div>

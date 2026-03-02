@@ -339,7 +339,7 @@ export class MasLocalePicker extends LitElement {
     #tempSelectedSet = new Set();
 
     willUpdate(changedProperties) {
-        if (changedProperties.has('locale')) {
+        if (!this.isCheckboxSelection && changedProperties.has('locale')) {
             const found = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
             if (!found) this.locale = 'en_US';
         }
@@ -350,8 +350,7 @@ export class MasLocalePicker extends LitElement {
 
     /** can only be one of default languages, not regional ones */
     get currentLocale() {
-        return this.getLocales().find((l) => getLocaleCode(l) === this.locale)
-            || getDefaultLocale(this.surface, this.locale);
+        return this.getLocales().find((l) => getLocaleCode(l) === this.locale) || getDefaultLocale(this.surface, this.locale);
     }
 
     get searchField() {

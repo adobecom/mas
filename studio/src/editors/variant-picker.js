@@ -84,19 +84,6 @@ export const VARIANTS = [
     },
 ];
 
-/**
- * Returns normalized template metadata used by settings table summary logic.
- */
-export function getTemplates() {
-    return VARIANTS.map((variant) => ({
-        label: variant.label,
-        value: variant.value,
-        surface: variant.surface,
-        surfaceLabel: Object.values(SURFACES).find((surface) => surface.name === variant.surface)?.label || 'Unknown',
-        category: variant.surface === SURFACES.ACOM.name ? 'Merch card' : 'Other',
-    }));
-}
-
 class VariantPicker extends LitElement {
     static styles = css`
         :host {

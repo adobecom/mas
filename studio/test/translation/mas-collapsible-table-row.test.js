@@ -176,7 +176,8 @@ describe('MasCollapsibleTableRow', () => {
 
         it('should add has-connector class when groupedVariation tab is selected and has variation paths', async () => {
             const topLevelCard = createMockTopLevelCard({ variationPaths: ['/path/v1'] });
-            setupCardVariationsInStore(topLevelCard.path, []);
+            const mockVariation = { path: '/path/v1', title: 'Var 1' };
+            setupCardVariationsInStore(topLevelCard.path, [mockVariation]);
             const el = await fixture(
                 html`<mas-collapsible-table-row
                     .topLevelCard=${topLevelCard}
@@ -186,6 +187,20 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
             const nestedContent = el.shadowRoot.querySelector('.nested-content');
             expect(nestedContent?.classList.contains('has-connector')).to.be.true;
+        });
+
+        it('should not add has-connector class when groupedVariation tab is selected and has no variation paths', async () => {
+            const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const nestedContent = el.shadowRoot.querySelector('.nested-content');
+            expect(nestedContent?.classList.contains('has-connector')).to.be.false;
         });
     });
 
@@ -825,25 +840,14 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('lifecycle', () => {
-        it('should clean up resize observer on disconnect', async () => {
+        it('should remove the resize observer on disconnect', async () => {
             const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
             setupCardVariationsInStore(topLevelCard.path, []);
             const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                ></mas-collapsible-table-row>`,
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
-            await el.updateComplete;
-            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); // wait for #observeResize
-            const disconnectSpy = sandbox.spy();
-            if (el.resizeObserver) {
-                el.resizeObserver.disconnect = disconnectSpy;
-                el.remove();
-                expect(disconnectSpy.called).to.be.true;
-            } else {
-                el.remove(); // should not throw when no observer
-            }
+            el.remove();
+            expect(el.resizeObserver).to.be.null;
         });
 
         it('should set value attribute from topLevelCard path in connectedCallback', async () => {

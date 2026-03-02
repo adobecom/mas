@@ -191,7 +191,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     #hasConnector(tab) {
-        return tab?.key === 'groupedVariation' && this.variationPaths.length > 0;
+        return tab?.key === 'groupedVariation' && this.topLevelCardVariationsByPaths.size > 0;
     }
 
     /** Updates the bottom position of the connector between the nested content and the last row of the selected tab panel */

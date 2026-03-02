@@ -37,6 +37,105 @@ const collectTemplateLeafMeta = (tree = TEMPLATE_TREE_DATA) => {
     return { allTemplateIds, branchByTemplateId, templateIdsByBranch };
 };
 
+const createMutationHarness = ({ topLevel, overrides = [] }) => {
+    let references = [topLevel, ...overrides];
+    let indexEntries = references.map((reference) => reference.path);
+    const byId = new Map(references.map((reference) => [reference.id, reference]));
+    const calls = {
+        create: [],
+        save: [],
+        delete: [],
+        getById: [],
+        getByPath: [],
+        getWithEtag: [],
+        publish: [],
+        unpublish: [],
+    };
+
+    const aem = {
+        sites: {
+            cf: {
+                fragments: {
+                    getByPath: async (path) => {
+                        calls.getByPath.push(path);
+                        return {
+                            id: 'settings-index',
+                            path,
+                            fields: [{ name: 'entries', values: [...indexEntries] }],
+                            references: references.filter((reference) => indexEntries.includes(reference.path)),
+                        };
+                    },
+                    getById: async (id) => {
+                        calls.getById.push(id);
+                        const fragment = byId.get(id);
+                        if (!fragment) throw new Error(`Missing fragment ${id}`);
+                        return structuredClone(fragment);
+                    },
+                    getWithEtag: async (id) => {
+                        calls.getWithEtag.push(id);
+                        return { id, etag: 'test-etag' };
+                    },
+                    create: async (payload) => {
+                        calls.create.push(payload);
+                        const created = {
+                            id: payload.name,
+                            title: payload.title,
+                            description: payload.description,
+                            fieldName: 'entries',
+                            status: 'DRAFT',
+                            modified: { by: 'Test', at: '2025-10-16T11:14:00.000Z' },
+                            path: `${payload.parentPath}/${payload.name}`,
+                            tags: payload.tags || [],
+                            fields: payload.fields,
+                        };
+
+                        byId.set(created.id, created);
+                        references = [...references, created];
+                        return structuredClone(created);
+                    },
+                    save: async (fragment) => {
+                        calls.save.push(fragment);
+                        const entriesField = fragment.fields?.find((field) => field.name === 'entries');
+                        if (entriesField) {
+                            indexEntries = [...entriesField.values];
+                            return structuredClone(fragment);
+                        }
+
+                        const updated = {
+                            ...(byId.get(fragment.id) || {}),
+                            ...fragment,
+                            fieldName: 'entries',
+                        };
+                        byId.set(updated.id, updated);
+                        const referenceIndex = references.findIndex((reference) => reference.id === updated.id);
+                        if (referenceIndex !== -1) references[referenceIndex] = updated;
+                        return structuredClone(updated);
+                    },
+                    delete: async (fragment) => {
+                        calls.delete.push(fragment.id);
+                        byId.delete(fragment.id);
+                        references = references.filter((reference) => reference.id !== fragment.id);
+                        indexEntries = indexEntries.filter((path) => path !== fragment.path);
+                    },
+                    publish: async (fragment) => {
+                        calls.publish.push(fragment.id);
+                    },
+                    unpublish: async (fragment) => {
+                        calls.unpublish.push(fragment.id);
+                    },
+                },
+            },
+        },
+    };
+
+    return {
+        aem,
+        calls,
+        getIndexEntries: () => [...indexEntries],
+        getReferences: () => [...references],
+    };
+};
+
 describe('Settings Store Namespace', () => {
     const { allTemplateIds, branchByTemplateId, templateIdsByBranch } = collectTemplateLeafMeta();
     const merchCardIds = allTemplateIds.filter((templateId) => branchByTemplateId.get(templateId) === 'Merch card');
@@ -657,5 +756,306 @@ describe('Settings Store Namespace', () => {
         expect(getByIdCalls).to.deep.equal([overrideId]);
         expect(store.rows.get()[0].value.overrides[0].value).to.equal(false);
         expect(store.toast.get().message).to.contain("'Show plan type (fr_FR)' is now [Off]");
+    });
+
+    it('loads empty settings when index is missing and sets error for generic failures', async () => {
+        const missingStore = new SettingsStore();
+        missingStore.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async () => {
+                            throw new Error('404 Not Found');
+                        },
+                    },
+                },
+            },
+        });
+
+        await missingStore.loadSurface('sandbox');
+        expect(missingStore.rows.get()).to.deep.equal([]);
+        expect(missingStore.error.get()).to.equal(null);
+
+        const failedStore = new SettingsStore();
+        failedStore.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async () => {
+                            throw new Error('something unexpected');
+                        },
+                    },
+                },
+            },
+        });
+
+        await failedStore.loadSurface('sandbox');
+        expect(failedStore.rows.get()).to.deep.equal([]);
+        expect(failedStore.error.get()).to.equal('Failed to load settings.');
+    });
+
+    it('updates source-driven rows and active tab state', () => {
+        const store = new SettingsStore();
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'showAddon',
+            label: 'Show addon',
+            locales: [],
+        });
+
+        expect(store.getActiveTab('setting-show-addon')).to.equal('locale');
+        store.setActiveTab('setting-show-addon', 'template');
+        expect(store.getActiveTab('setting-show-addon')).to.equal('template');
+
+        store.setSourceFragment(null);
+        expect(store.rows.get()).to.deep.equal([]);
+        expect(store.sourceFragment).to.equal(null);
+
+        store.setSourceFragment({ references: [] });
+        expect(store.rows.get()).to.deep.equal([]);
+
+        store.setSourceFragment({ references: [topLevel] });
+        expect(store.rows.get()).to.have.length(1);
+        expect(store.sourceFragment.references).to.have.length(1);
+    });
+
+    it('reuses existing AEM client for matching bucket/baseUrl', () => {
+        const store = new SettingsStore('bucket-a', 'https://example.com');
+        store.initAem('bucket-a', 'https://example.com');
+        const firstAem = store.aem;
+
+        store.initAem('bucket-a', 'https://example.com');
+        expect(store.aem).to.equal(firstAem);
+    });
+
+    it('adds and updates overrides including rich text valueType', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-display-plan-type',
+            name: 'displayPlanType',
+            label: 'Display plan type',
+            locales: [],
+            valueType: 'text',
+            value: 'default',
+            path: '/content/dam/mas/sandbox/settings/setting-display-plan-type',
+        });
+        const existingOverride = createSettingReference({
+            id: 'setting-display-plan-type-fr',
+            name: 'displayPlanType',
+            label: 'Display plan type',
+            locales: ['fr_FR'],
+            valueType: 'text',
+            value: 'bonjour',
+            fieldName: 'entries',
+            path: '/content/dam/mas/sandbox/settings/setting-display-plan-type-fr',
+        });
+
+        const harness = createMutationHarness({ topLevel, overrides: [existingOverride] });
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
+
+        const rowId = store.rows.get()[0].value.id;
+        const missingLocale = await store.addOverride(rowId, {
+            locales: [],
+            templateIds: ['catalog'],
+            valueType: 'richText',
+            value: '<p>hello</p>',
+            booleanValue: true,
+        });
+        expect(missingLocale).to.equal(null);
+
+        const createdId = await store.addOverride(rowId, {
+            locales: ['de_DE'],
+            templateIds: ['catalog'],
+            valueType: 'richText',
+            value: '<p>hello</p>',
+            booleanValue: false,
+            tags: ['mas:keyword/checkout'],
+        });
+
+        expect(createdId).to.be.a('string');
+        expect(harness.calls.create.length).to.be.greaterThan(0);
+        const createFields = harness.calls.create[harness.calls.create.length - 1].fields;
+        expect(createFields.find((field) => field.name === 'richTextValue').values).to.deep.equal(['<p>hello</p>']);
+        expect(createFields.find((field) => field.name === 'valuetype').values).to.deep.equal(['richText']);
+
+        const overrideId = store.rows.get()[0].value.overrides.find((item) => item.id === existingOverride.id).id;
+        const localeRequired = await store.updateOverride(rowId, overrideId, {
+            locales: [],
+            value: 'updated',
+        });
+        expect(localeRequired).to.equal(false);
+
+        const updated = await store.updateOverride(rowId, overrideId, {
+            locales: ['it_IT'],
+            templateIds: ['plans'],
+            tags: ['mas:keyword/renewal'],
+            valueType: 'text',
+            value: 'updated',
+            booleanValue: true,
+        });
+        expect(updated).to.equal(true);
+        const savedOverride = harness.calls.save.find((fragment) => fragment.id === overrideId);
+        expect(savedOverride.title).to.equal('Display plan type it_IT');
+    });
+
+    it('creates and updates settings, including sparse legacy fragment fields', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-secure-label',
+            name: 'showSecureLabel',
+            label: 'Show secure label',
+            locales: [],
+            valueType: 'text',
+            value: 'old-value',
+            path: '/content/dam/mas/sandbox/settings/setting-show-secure-label',
+        });
+        const harness = createMutationHarness({ topLevel, overrides: [] });
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
+
+        const createdId = await store.createSetting({
+            name: 'showAddon',
+            label: 'Show Addon',
+            description: 'new setting',
+            templateIds: ['catalog'],
+            tags: ['mas:keyword/checkout'],
+            valueType: 'boolean',
+            value: true,
+            booleanValue: true,
+        });
+        expect(createdId).to.be.a('string');
+
+        harness.aem.sites.cf.fragments.getById = async (id) => {
+            if (id === topLevel.id) {
+                return {
+                    id,
+                    path: topLevel.path,
+                    title: topLevel.title,
+                    description: topLevel.description,
+                    fields: [],
+                };
+            }
+            const fragment = harness.getReferences().find((reference) => reference.id === id);
+            return structuredClone(fragment);
+        };
+
+        const updated = await store.updateSetting(topLevel.id, {
+            label: 'Show secure label updated',
+            description: 'updated description',
+            templateIds: ['plans'],
+            tags: ['mas:keyword/renewal'],
+            valueType: 'text',
+            value: '{{placeholder}}',
+            booleanValue: false,
+        });
+        expect(updated).to.equal(true);
+        const latestSave = harness.calls.save[harness.calls.save.length - 1];
+        expect(latestSave.fields.find((field) => field.name === 'name').values).to.deep.equal(['showSecureLabel']);
+        expect(latestSave.fields.find((field) => field.name === 'textValue').values).to.deep.equal(['{{placeholder}}']);
+    });
+
+    it('removes draft settings and supports publish/unpublish paths', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'showAddon',
+            label: 'Show Addon',
+            status: 'DRAFT',
+            locales: [],
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon',
+        });
+        const override = createSettingReference({
+            id: 'setting-show-addon-fr',
+            name: 'showAddon',
+            label: 'Show Addon',
+            locales: ['fr_FR'],
+            fieldName: 'entries',
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon-fr',
+        });
+        const harness = createMutationHarness({ topLevel, overrides: [override] });
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
+
+        const removed = await store.removeSetting(topLevel.id);
+        expect(removed).to.equal(true);
+        expect(harness.calls.delete).to.include(topLevel.id);
+        expect(harness.calls.delete).to.include(override.id);
+        expect(harness.getIndexEntries()).to.deep.equal([]);
+
+        const publishSettingResult = await store.publishSetting('setting-show-addon');
+        const publishOverrideResult = await store.publishOverride('setting-show-addon-fr');
+        const unpublishResult = await store.unpublishSetting('setting-show-addon');
+        expect(publishSettingResult).to.equal(true);
+        expect(publishOverrideResult).to.equal(true);
+        expect(unpublishResult).to.equal(true);
+        expect(harness.calls.publish).to.deep.equal(['setting-show-addon', 'setting-show-addon-fr']);
+        expect(harness.calls.unpublish).to.deep.equal(['setting-show-addon']);
+    });
+
+    it('duplicates settings and overrides using fallback locale parsing', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-display-plan-type',
+            name: 'displayPlanType',
+            label: 'Display plan type',
+            locales: [],
+            valueType: 'text',
+            value: 'default',
+            path: '/content/dam/mas/sandbox/settings/setting-display-plan-type',
+        });
+        const override = createSettingReference({
+            id: 'setting-display-plan-type-multi',
+            name: 'displayPlanType',
+            label: 'Display plan type',
+            locales: ['de_DE'],
+            fieldName: 'entries',
+            valueType: 'text',
+            value: 'regional',
+            path: '/content/dam/mas/sandbox/settings/setting-display-plan-type-multi',
+        });
+
+        const harness = createMutationHarness({ topLevel, overrides: [override] });
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
+
+        const duplicatedSettingId = await store.duplicateSetting(topLevel.id);
+        expect(duplicatedSettingId).to.be.a('string');
+
+        const row = store.rows.get()[0].value;
+        row.overrides[0].locales = [];
+        row.overrides[0].locale = 'de_DE, fr_FR';
+        const duplicatedOverride = await store.duplicateOverride(row.id, row.overrides[0].id);
+        expect(duplicatedOverride).to.equal(true);
+        const lastCreatePayload = harness.calls.create[harness.calls.create.length - 1];
+        expect(lastCreatePayload.fields.find((field) => field.name === 'locales').values).to.deep.equal(['de_DE', 'fr_FR']);
+    });
+
+    it('handles duplicate setting failure, markPublished and edit action', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'showAddon',
+            label: 'Show Addon',
+            status: 'DRAFT',
+            locales: [],
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon',
+        });
+        const harness = createMutationHarness({ topLevel, overrides: [] });
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
+
+        harness.aem.sites.cf.fragments.create = async () => {
+            throw new Error('create failed');
+        };
+        const duplicated = await store.duplicateSetting(topLevel.id);
+        expect(duplicated).to.equal(null);
+        expect(store.error.get()).to.equal('Failed to duplicate setting.');
+
+        store.markPublished(topLevel.id);
+        expect(store.getRowStore(topLevel.id).value.data.published).to.equal(true);
+        expect(store.toast.get().variant).to.equal('positive');
+
+        store.editSetting();
     });
 });

@@ -12,7 +12,7 @@ import ACOMPlansIndividualsPage from '../studio/acom/plans/individuals/individua
 import EXPRESSFullPricingPage from '../studio/express/full-pricing/full-pricing.page.js';
 import VersionPage from '../studio/versions/versions.page.js';
 import OSTPage from '../studio/ost.page.js';
-import TranslationEditorPage from '../studio/translation-editor.page.js';
+import TranslationEditorPage from '../studio/translations/translation-editor.page.js';
 import WebUtil from './webutil.js';
 
 // Global variables that all tests can access - recreated per test

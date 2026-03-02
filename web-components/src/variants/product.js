@@ -80,7 +80,6 @@ export class Product extends VariantLayout {
         if (!Media.isMobile) {
             this.adjustProductBodySlots();
         }
-        this.adjustTitleWidth();
     }
 
     get headingXSSlot() {

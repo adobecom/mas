@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Merch Card Segment variant test page</title>
+        <style>
+            main {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                flex-direction: column;
+                padding-top: 80px;
+            }
+            mas-commerce-service {
+                display: none;
+            }
+        </style>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+    </head>
+
+    <body>
+        <main>
+            <div class="two-merch-cards segment"></div>
+        </main>
+        <template id="fragment-segment">
+            <merch-card>
+                <aem-fragment fragment="fragment-segment"></aem-fragment>
+            </merch-card>
+        </template>
+
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { mockFetch } from './mocks/fetch.js';
+            import { mockIms } from './mocks/ims.js';
+            import { withWcs } from './mocks/wcs.js';
+            import { withAem } from './mocks/aem.js';
+            import { delay, getTemplateContent, oneEvent } from './utils.js';
+            import '../src/mas.js';
+
+            runTests(async () => {
+                mockIms();
+                await mockFetch(withWcs, withAem);
+                const container = document.querySelector('main > div');
+
+                describe('merch-card web component with segment variant', () => {
+                    beforeEach(() => {
+                        container.innerHTML = '';
+                    });
+                    it('should exist in the HTML document', async () => {
+                        const [card] = getTemplateContent('fragment-segment');
+                        container.append(card);
+                        await card.checkReady();
+                        expect(card).to.exist;
+                        expect(card.title).to.equal('Segment card');
+                        expect(
+                            card.description.includes(
+                                'The card title and the pricing should be wrapped in h3',
+                            ),
+                        ).to.be.true;
+                        expect(card.ctas.length).to.equal(1);
+                        expect(card.ctas[0].textContent).to.equal('Buy now');
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

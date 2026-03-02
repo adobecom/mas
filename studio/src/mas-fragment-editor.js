@@ -849,7 +849,11 @@ export default class MasFragmentEditor extends LitElement {
         while (Date.now() - startedAt <= timeoutMs) {
             try {
                 const parentData = await this.repository.resolveHydratedParentFragment(fragmentPath);
-                return parentData;
+                if (parentData) {
+                    this.editorContextStore?.setParent(parentData);
+                    this.groupedVariationOrphanMessage = null;
+                    return parentData;
+                }
             } catch (error) {
                 console.debug('Grouped variation parent lookup retry failed:', error.message);
             }

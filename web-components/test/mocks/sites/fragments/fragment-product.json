@@ -13,14 +13,8 @@
             "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg",
             "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/aero.svg"
         ],
-        "mnemonicAlt": [
-            "",
-            ""
-        ],
-        "mnemonicLink": [
-            "",
-            ""
-        ],
+        "mnemonicAlt": ["", ""],
+        "mnemonicLink": ["", ""],
         "badge": {
             "value": "<merch-badge background-color=\"color-yellow-300-variation\" border-color=\"color-yellow-300-variation\" icon=\"sp-icon-star\" variant=\"product\">Product badge</merch-badge>",
             "mimeType": "text/html"

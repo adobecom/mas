@@ -55,11 +55,8 @@
                         expect(card).to.exist;
                         expect(card.quantitySelect).to.exist;
                         expect(card.title).to.equal('Test Product Card');
-                        expect(
-                            card.description.includes(
-                                'Product description',
-                            ),
-                        ).to.be.true;
+                        expect(card.description.includes('Product description'))
+                            .to.be.true;
                         expect(card.ctas.length).to.equal(2);
                         expect(card.ctas[0].textContent).to.equal('Free trial');
                         expect(card.ctas[1].textContent).to.equal('Buy now');

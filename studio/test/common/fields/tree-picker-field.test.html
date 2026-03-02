@@ -172,13 +172,17 @@
                         merchCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await picker.updateComplete;
 
-                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal('Merch card (2 selected)');
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
+                            'Merch card (2 selected)',
+                        );
 
                         const listener = oneEvent(picker, 'change');
                         overlayTrigger.dispatchEvent(new Event('sp-closed'));
                         await listener;
 
-                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal('Merch card (2 selected)');
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
+                            'Merch card (2 selected)',
+                        );
                     });
 
                     it('shows count summary when selected templates span branches', async function () {
@@ -198,7 +202,9 @@
                         plansCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await picker.updateComplete;
 
-                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal('2 templates selected');
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
+                            '2 templates selected',
+                        );
                     });
                 });
             });

@@ -420,9 +420,9 @@
                             await waitForUpdates(settingsPage, 1);
 
                             const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
-                            const publishButton = [
-                                ...overrideDialog.querySelectorAll('sp-button[slot="button"]'),
-                            ].find((button) => button.textContent.includes('Publish'));
+                            const publishButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
+                                (button) => button.textContent.includes('Publish'),
+                            );
                             publishButton.click();
                             await waitForUpdates(settingsPage, 2);
 
@@ -916,9 +916,9 @@
                             );
                             await waitForUpdates(settingsPage, 2);
 
-                            const saveDraftButton = [...settingsPage.shadowRoot.querySelectorAll('sp-button[slot="button"]')].find(
-                                (button) => button.textContent.includes('Save as draft'),
-                            );
+                            const saveDraftButton = [
+                                ...settingsPage.shadowRoot.querySelectorAll('sp-button[slot="button"]'),
+                            ].find((button) => button.textContent.includes('Save as draft'));
 
                             saveDraftButton.disabled = false;
                             saveDraftButton.click();
@@ -970,7 +970,9 @@
                             expect(firstPrompt).to.equal(secondPrompt);
                             await waitForUpdates(settingsPage, 1);
 
-                            settingsPage.shadowRoot.querySelector('#discard-confirmation-dialog').dispatchEvent(new Event('cancel'));
+                            settingsPage.shadowRoot
+                                .querySelector('#discard-confirmation-dialog')
+                                .dispatchEvent(new Event('cancel'));
                             const discardConfirmed = await firstPrompt;
                             expect(discardConfirmed).to.equal(false);
 
@@ -1095,7 +1097,10 @@
                                     value: '<merch-quantity-select title="Qty" min="2" step="2"></merch-quantity-select>',
                                 }),
                             ];
-                            const { settingsPage, table } = await setupPage({ references: quantityReferences, expectedRows: 1 });
+                            const { settingsPage, table } = await setupPage({
+                                references: quantityReferences,
+                                expectedRows: 1,
+                            });
 
                             settingsPage.shadowRoot.querySelector('#create-setting-button').click();
                             await waitForUpdates(settingsPage, 2);

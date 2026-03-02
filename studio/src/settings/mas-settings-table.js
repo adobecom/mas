@@ -227,8 +227,7 @@ export class MasSettingsTable extends LitElement {
     }
 
     get emptyStateRowTemplate() {
-        if (this.settings.loading.get() || this.settings.error.get() || this.#renderedRows.length > 0)
-            return nothing;
+        if (this.settings.loading.get() || this.settings.error.get() || this.#renderedRows.length > 0) return nothing;
         return html`
             <sp-table-row class="empty-state-row" value="empty-state">
                 <sp-table-cell class="expand-column"></sp-table-cell>

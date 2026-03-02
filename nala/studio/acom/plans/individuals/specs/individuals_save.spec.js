@@ -144,7 +144,7 @@ export default {
             name: '@studio-plans-individuals-save-product-icon-picker',
             path: '/studio.html',
             data: {
-                cardid: '2cbfced4-111c-4099-ae9e-65e2c16d8e69',
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 productIcon: {
                     name: 'Photoshop',
                     original: {

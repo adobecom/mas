@@ -106,6 +106,14 @@
                         expect(el.shadowRoot.querySelectorAll('.override-table-row').length).to.equal(1);
                         const overrideLocaleCell = el.shadowRoot.querySelector('.override-table-row .override-locale-column');
                         expect(overrideLocaleCell.textContent.trim()).to.equal('fr_FR');
+                        const rowStore = Store.settings.getRowStore('setting-show-addon');
+                        const expectedTemplateSummary = Store.settings.formatTemplateSummary(
+                            rowStore.value.overrides[0].templateIds,
+                        );
+                        const overrideTemplateCell = el.shadowRoot.querySelector(
+                            '.override-table-row .override-template-column',
+                        );
+                        expect(overrideTemplateCell.textContent.trim()).to.equal(expectedTemplateSummary);
 
                         expandButton.click();
                         await el.updateComplete;

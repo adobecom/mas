@@ -10,7 +10,9 @@ import { EVENT_CHANGE } from '../../constants.js';
  *   leafIds: string[],
  *   selectedLeafIds: (value?: Array<string>) => string[],
  *   summaryText: (value?: Array<string>, placeholder?: string) => string,
- *   summaryForSelectedLeafIds: (selectedIds?: Array<string>, placeholder?: string) => string
+ *   summaryForSelectedLeafIds: (selectedIds?: Array<string>, placeholder?: string) => string,
+ *   templateSummaryForSelectedLeafIds: (selectedIds?: Array<string>) => string,
+ *   templateSummaryText: (value?: Array<string>) => string
  * }}
  */
 export const createTreeSelectionSummary = (tree = []) => {
@@ -129,11 +131,45 @@ export const createTreeSelectionSummary = (tree = []) => {
         return summaryForSelectedLeafIds(selectedIds, placeholder);
     };
 
+    /**
+     * Template summary rules:
+     * 1. No valid selections -> `All templates selected`
+     * 2. All leaves selected -> `All templates selected`
+     * 3. Single branch selected -> `<Branch label> (<count> selected)`
+     * 4. Cross-branch selection -> `<count> templates selected`
+     */
+    const templateSummaryForSelectedLeafIds = (selectedIds = []) => {
+        const selectedCount = selectedIds.length;
+        if (selectedCount === 0 || (leafIds.length > 0 && selectedCount === leafIds.length)) {
+            return 'All templates selected';
+        }
+
+        const selectedBranches = new Set();
+        for (const selectedId of selectedIds) {
+            const branchId = parentMap.get(selectedId);
+            const branchLabel = nodeMap.get(branchId)?.label || nodeMap.get(selectedId)?.label || `${selectedId}`;
+            selectedBranches.add(branchLabel);
+        }
+
+        if (selectedBranches.size === 1) {
+            return `${[...selectedBranches][0]} (${selectedCount} selected)`;
+        }
+
+        return `${selectedCount} templates selected`;
+    };
+
+    const templateSummaryText = (value = []) => {
+        const selectedIds = selectedLeafIds(value);
+        return templateSummaryForSelectedLeafIds(selectedIds);
+    };
+
     return {
         leafIds,
         selectedLeafIds,
         summaryText,
         summaryForSelectedLeafIds,
+        templateSummaryForSelectedLeafIds,
+        templateSummaryText,
     };
 };
 
@@ -590,11 +626,11 @@ export class TreePickerField extends LitElement {
 
     get #summary() {
         const selectedIds = this.open ? this.draftValue : this.#selectedLeafIds(this.value);
-        const text = this.#summaryHelper.summaryForSelectedLeafIds(selectedIds, this.placeholder || 'Select');
+        const text = this.#summaryHelper.templateSummaryForSelectedLeafIds(selectedIds);
 
         return {
             text,
-            placeholder: selectedIds.length === 0,
+            placeholder: text === 'All templates selected',
         };
     }
 

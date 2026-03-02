@@ -1,18 +1,9 @@
 import { LitElement, html, nothing } from 'lit';
-import { createTreeSelectionSummary } from '../common/fields/tree-picker-field.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { settingsEmptyStateIcon } from '../icons.js';
 import { tableStyles } from './mas-settings-table.css.js';
-import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
 import './mas-setting-item.js';
-
-const createTemplateSummary = (tree) => {
-    const { summaryText } = createTreeSelectionSummary(tree);
-    return (templateIds = [], placeholder = '-') => summaryText(templateIds, placeholder);
-};
-
-const formatTemplateSelection = createTemplateSummary(TEMPLATE_TREE_DATA);
 
 /**
  * Settings table component for expanded fragment settings view.
@@ -161,7 +152,7 @@ export class MasSettingsTable extends LitElement {
                                                       ${this.#formatOverrideLocales(override.locales)}
                                                   </sp-table-cell>
                                                   <sp-table-cell class="override-template-column">
-                                                      ${formatTemplateSelection(override.templateIds, '-')}
+                                                      ${this.settings.formatTemplateSummary(override.templateIds)}
                                                   </sp-table-cell>
                                                   <sp-table-cell class="override-value-cell">
                                                       <sp-switch

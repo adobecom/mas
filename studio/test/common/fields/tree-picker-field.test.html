@@ -62,22 +62,22 @@
 
             runTests(async () => {
                 describe('tree-picker-field', async () => {
-                    it('renders label and placeholder summary in trigger', async function () {
+                    it('renders label and default all-templates summary in trigger', async function () {
                         const picker = await initPicker('treePicker1', this.test.title);
                         const label = picker.shadowRoot.querySelector('.field-label');
                         const triggerText = picker.shadowRoot.querySelector('.trigger-text');
 
                         expect(label).to.not.be.null;
                         expect(label.textContent.trim()).to.equal('Template');
-                        expect(triggerText.textContent.trim()).to.equal('Select template');
+                        expect(triggerText.textContent.trim()).to.equal('All templates selected');
                         expect(triggerText.classList.contains('is-placeholder')).to.be.true;
                     });
 
-                    it('renders default placeholder text when no placeholder is provided', async function () {
+                    it('renders all-templates summary when no placeholder is provided', async function () {
                         const picker = await initPicker('treePickerDefault', this.test.title);
                         const triggerText = picker.shadowRoot.querySelector('.trigger-text');
 
-                        expect(triggerText.textContent.trim()).to.equal('Select');
+                        expect(triggerText.textContent.trim()).to.equal('All templates selected');
                         expect(triggerText.classList.contains('is-placeholder')).to.be.true;
                     });
 
@@ -172,17 +172,33 @@
                         merchCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await picker.updateComplete;
 
-                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
-                            'Merch card(2 selected)',
-                        );
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal('Merch card (2 selected)');
 
                         const listener = oneEvent(picker, 'change');
                         overlayTrigger.dispatchEvent(new Event('sp-closed'));
                         await listener;
 
-                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
-                            'Merch card(2 selected)',
-                        );
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal('Merch card (2 selected)');
+                    });
+
+                    it('shows count summary when selected templates span branches', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const overlayTrigger = picker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.dispatchEvent(new Event('sp-opened'));
+                        await picker.updateComplete;
+
+                        picker.shadowRoot.querySelector('button[data-tree-toggle="global"]').click();
+                        await picker.updateComplete;
+
+                        const bladeCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="blade"]');
+                        bladeCheckbox.checked = true;
+                        bladeCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        const plansCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="plans"]');
+                        plansCheckbox.checked = true;
+                        plansCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal('2 templates selected');
                     });
                 });
             });

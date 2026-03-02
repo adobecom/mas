@@ -3,6 +3,7 @@ import { Fragment } from '../aem/fragment.js';
 import { ROOT_PATH } from '../constants.js';
 import { ReactiveStore } from '../reactivity/reactive-store.js';
 import { showToast, normalizeKey } from '../utils.js';
+import { createTreeSelectionSummary } from '../common/fields/tree-picker-field.js';
 import { SettingStore, normalizeSettingFragment } from './setting-store.js';
 import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
 
@@ -49,39 +50,7 @@ const buildValueFields = (valueType, value, booleanValue) => {
 const resolveBooleanValue = (valueType, value, booleanValue) =>
     valueType === 'boolean' ? Boolean(value) : Boolean(booleanValue);
 
-/**
- * Flattens template tree leaves and maps each leaf to its immediate branch label.
- *
- * @param {Array<{name: string, label?: string, children?: Array}>} tree
- * @returns {{leafIds: Set<string>, branchByLeafId: Map<string, string>}}
- */
-const buildTemplateLeafIndex = (tree = TEMPLATE_TREE_DATA) => {
-    const leafIds = new Set();
-    const branchByLeafId = new Map();
-
-    const visitNode = (node, branchLabel = '') => {
-        const nodeId = `${node.name}`;
-        if (!nodeId) return;
-
-        const children = node.children || [];
-        if (!children.length) {
-            leafIds.add(nodeId);
-            branchByLeafId.set(nodeId, branchLabel || `${node.label || nodeId}`);
-            return;
-        }
-
-        const nextBranchLabel = `${node.label || branchLabel}`;
-        for (const child of children) {
-            visitNode(child, nextBranchLabel);
-        }
-    };
-
-    for (const rootNode of tree) {
-        visitNode(rootNode, '');
-    }
-
-    return { leafIds, branchByLeafId };
-};
+const templateSummaryHelper = createTreeSelectionSummary(TEMPLATE_TREE_DATA);
 
 /**
  * Settings table state holder and mutator surface.
@@ -100,7 +69,6 @@ export class SettingsStore {
     baseUrl = '';
     aem = null;
 
-    #templateLeafIndex = buildTemplateLeafIndex();
     #sourceFragment = null;
     #surface = '';
 
@@ -661,23 +629,7 @@ export class SettingsStore {
      * @returns {string}
      */
     formatTemplateSummary(selectedTemplateIds) {
-        const selected = [...new Set(selectedTemplateIds.filter((id) => id))];
-        const normalizedSelected = selected.filter((id) => this.#templateLeafIndex.leafIds.has(id));
-
-        if (normalizedSelected.length === 0 || normalizedSelected.length === this.#templateLeafIndex.leafIds.size) {
-            return 'All templates selected';
-        }
-
-        const selectedBranches = [
-            ...new Set(
-                normalizedSelected.map((id) => this.#templateLeafIndex.branchByLeafId.get(id) || `${id}`),
-            ),
-        ];
-        if (selectedBranches.length === 1) {
-            return `${selectedBranches[0]} (${normalizedSelected.length} selected)`;
-        }
-
-        return `${normalizedSelected.length} templates selected`;
+        return templateSummaryHelper.templateSummaryText(selectedTemplateIds);
     }
 
     destroy() {

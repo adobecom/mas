@@ -1327,6 +1327,41 @@ describe('MasRepository dictionary helpers', () => {
             expect(result).to.deep.equal(createdFragment);
         });
 
+        it('appends a random suffix to fragment name when path already exists', async () => {
+            const repository = createRepository();
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+
+            const getByPathStub = sandbox.stub().callsFake(async (path) => {
+                if (path === createdFragment.path) return createdFragment;
+                if (path.startsWith('/content/dam/mas/sandbox/en_US/pac/pzn/')) return { id: 'existing' };
+                return null;
+            });
+
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: getByPathStub,
+                    ensureFolderExists: sandbox.stub().resolves(),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            await repository.createGroupedVariation(parentFragment.id, ['mas:locale/EG/ar_EG'], {
+                productArrangementCode: 'pac',
+            });
+
+            const createCall = createStub.firstCall.args[0];
+            expect(createCall.name).to.match(/-[a-z]{4}$/);
+        });
+
         it('throws when grouped source has no parent reference', async () => {
             const repository = createRepository();
             const groupedSource = {

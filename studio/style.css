@@ -362,7 +362,6 @@ mas-fragment-render[selected] .render-fragment {
     outline: 2px solid var(--spectrum-blue-600);
 }
 
-
 mas-fragment-render:not(.has-tooltip) merch-card ~ sp-tooltip,
 mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
@@ -441,19 +440,46 @@ mas-content {
 }
 
 .skeleton-element {
-    background: linear-gradient(90deg, var(--spectrum-global-color-gray-200, var(--spectrum-gray-200, #e6e6e6)) 25%, var(--spectrum-global-color-gray-100, var(--spectrum-gray-100, #f5f5f5)) 50%, var(--spectrum-global-color-gray-200, var(--spectrum-gray-200, #e6e6e6)) 75%);
+    background: linear-gradient(
+        90deg,
+        var(--spectrum-global-color-gray-200, var(--spectrum-gray-200, #e6e6e6)) 25%,
+        var(--spectrum-global-color-gray-100, var(--spectrum-gray-100, #f5f5f5)) 50%,
+        var(--spectrum-global-color-gray-200, var(--spectrum-gray-200, #e6e6e6)) 75%
+    );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
     border-radius: 4px;
 }
 
-.skeleton-title { height: 24px; width: 60%; }
-.skeleton-body { height: 120px; flex: 1; }
-.skeleton-footer { height: 32px; width: 40%; }
+.skeleton-title {
+    height: 24px;
+    width: 60%;
+}
+.skeleton-body {
+    height: 120px;
+    flex: 1;
+}
+.skeleton-footer {
+    height: 32px;
+    width: 40%;
+}
+
+.skeleton-row sp-table-cell {
+    padding: 16px 20px;
+}
+.skeleton-table-cell {
+    height: 18px;
+    width: 80%;
+    border-radius: 4px;
+}
 
 @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 sp-table-row {

@@ -171,6 +171,75 @@ describe('MasSideNav – Copy Field', () => {
             expect(priceField.preview).to.equal('$9.99/mo');
         });
 
+        it('should resolve inline-price tokens inside description from rendered preview card', () => {
+            const sourceFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: ['<p>Save <span is="inline-price" data-template="price" data-wcs-osi="abc"></span>/mo</p>'],
+                },
+            ]);
+            const previewFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: ['<p>Save <span is="inline-price" data-template="price" data-wcs-osi="abc"></span>/mo</p>'],
+                },
+            ]);
+            const editor = mockEditor(sourceFragment, previewFragment);
+            const card = document.createElement('merch-card');
+            const resolvedPrice = document.createElement('span');
+            resolvedPrice.setAttribute('is', 'inline-price');
+            resolvedPrice.setAttribute('data-template', 'price');
+            resolvedPrice.setAttribute('data-wcs-osi', 'abc');
+            resolvedPrice.textContent = 'US$99.99';
+            card.append(resolvedPrice);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const descriptionField = el.copyableFields.find((f) => f.name === 'description');
+            expect(descriptionField.preview).to.equal('Save US$99.99/mo');
+        });
+
+        it('should resolve multiple inline-price tokens by attributes, not DOM order', () => {
+            const sourceFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: [
+                        '<p><span is="inline-price" data-template="strikethrough" data-wcs-osi="abc"></span> then <span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>',
+                    ],
+                },
+            ]);
+            const previewFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: [
+                        '<p><span is="inline-price" data-template="strikethrough" data-wcs-osi="abc"></span> then <span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>',
+                    ],
+                },
+            ]);
+            const editor = mockEditor(sourceFragment, previewFragment);
+            const card = document.createElement('merch-card');
+
+            // Intentionally reverse order to ensure matching is attribute-based.
+            const currentPrice = document.createElement('span');
+            currentPrice.setAttribute('is', 'inline-price');
+            currentPrice.setAttribute('data-template', 'price');
+            currentPrice.setAttribute('data-wcs-osi', 'abc');
+            currentPrice.textContent = 'US$99.99';
+
+            const oldPrice = document.createElement('span');
+            oldPrice.setAttribute('is', 'inline-price');
+            oldPrice.setAttribute('data-template', 'strikethrough');
+            oldPrice.setAttribute('data-wcs-osi', 'abc');
+            oldPrice.textContent = 'US$199.99';
+
+            card.append(currentPrice, oldPrice);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const descriptionField = el.copyableFields.find((f) => f.name === 'description');
+            expect(descriptionField.preview).to.equal('US$199.99 then US$99.99');
+        });
+
         it('should include non-empty inherited base fields for variations', () => {
             const sourceFragment = mockFragment(
                 [

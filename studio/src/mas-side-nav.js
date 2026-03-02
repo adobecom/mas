@@ -8,7 +8,7 @@ import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
 const EVENT_MAS_READY = 'mas:ready';
-const PRICE_SELECTOR = 'span[is="inline-price"][data-template="price"], span[is="inline-price"]';
+const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
 const FIELD_SOURCE = {
     CURRENT: 'current',
     INHERITED: 'inherited',
@@ -299,7 +299,7 @@ class MasSideNav extends LitElement {
     ]);
 
     #getPreviewCard() {
-        return this.fragmentEditor?.querySelector('merch-card');
+        return this.fragmentEditor?.querySelector?.('merch-card');
     }
 
     #syncPricePreview() {
@@ -308,20 +308,103 @@ class MasSideNav extends LitElement {
         this.#updateResolvedPrice(this.#getFirstResolvedPriceText(card));
     }
 
+    #normalizePreviewText(value) {
+        return value?.replace(/\s+/g, ' ').trim() ?? '';
+    }
+
     #getFirstResolvedPriceText(card) {
-        const prices = [...card.querySelectorAll(PRICE_SELECTOR)];
+        const prices = [...card.querySelectorAll(INLINE_PRICE_SELECTOR)];
+        let fallbackText = '';
+
         for (const price of prices) {
-            const text = price.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-            if (text) return text;
+            const text = this.#normalizePreviewText(price.textContent);
+            if (!text) continue;
+            if (price.getAttribute('data-template') === 'price') return text;
+            if (!fallbackText) fallbackText = text;
         }
-        return '';
+
+        return fallbackText;
     }
 
     #updateResolvedPrice(value) {
-        const text = value?.replace(/\s+/g, ' ').trim() ?? '';
+        const text = this.#normalizePreviewText(value);
         if (!text || text === this.resolvedPriceText) return;
         this.resolvedPriceText = text;
         this.requestUpdate();
+    }
+
+    #getInlinePriceAttributes(el) {
+        const attrs = new Map();
+        for (const attr of [...el.attributes]) {
+            attrs.set(attr.name, attr.value ?? '');
+        }
+        return attrs;
+    }
+
+    #getResolvedInlinePriceCandidates(card = this.#getPreviewCard()) {
+        if (!card) return [];
+        return [...card.querySelectorAll(INLINE_PRICE_SELECTOR)]
+            .map((el) => ({
+                attrs: this.#getInlinePriceAttributes(el),
+                text: this.#normalizePreviewText(el.textContent),
+            }))
+            .filter(({ text }) => !!text);
+    }
+
+    #matchesInlinePriceAttrs(sourceAttrs, candidateAttrs) {
+        for (const [name, value] of sourceAttrs) {
+            if (name === 'class' || name === 'style') continue;
+            if (candidateAttrs.get(name) !== value) return false;
+        }
+        return true;
+    }
+
+    #findInlinePriceCandidate(sourceAttrs, candidates, usedIndices) {
+        // 1) Best match: source attrs are a subset of candidate attrs.
+        let idx = candidates.findIndex(
+            (candidate, i) => !usedIndices.has(i) && this.#matchesInlinePriceAttrs(sourceAttrs, candidate.attrs),
+        );
+        if (idx !== -1) return idx;
+
+        // 2) Fallback: match by common commerce identity attrs.
+        const sourceTemplate = sourceAttrs.get('data-template');
+        const sourceOsi = sourceAttrs.get('data-wcs-osi');
+        if (sourceTemplate || sourceOsi) {
+            idx = candidates.findIndex((candidate, i) => {
+                if (usedIndices.has(i)) return false;
+                const templateMatches = !sourceTemplate || candidate.attrs.get('data-template') === sourceTemplate;
+                const osiMatches = !sourceOsi || candidate.attrs.get('data-wcs-osi') === sourceOsi;
+                return templateMatches && osiMatches;
+            });
+            if (idx !== -1) return idx;
+        }
+
+        // 3) Last fallback: preserve ordering by using first unresolved candidate.
+        return candidates.findIndex((_, i) => !usedIndices.has(i));
+    }
+
+    #resolveInlinePricesInHtml(value, resolvedInlinePrices) {
+        if (typeof value !== 'string' || !value.includes('inline-price') || !resolvedInlinePrices?.length) {
+            return value;
+        }
+        const doc = new DOMParser().parseFromString(value, 'text/html');
+        const inlinePrices = [...doc.body.querySelectorAll(INLINE_PRICE_SELECTOR)];
+        if (!inlinePrices.length) return value;
+
+        const usedIndices = new Set();
+        inlinePrices.forEach((inlinePrice) => {
+            const sourceAttrs = this.#getInlinePriceAttributes(inlinePrice);
+            const candidateIdx = this.#findInlinePriceCandidate(sourceAttrs, resolvedInlinePrices, usedIndices);
+            if (candidateIdx === -1) return;
+            usedIndices.add(candidateIdx);
+            inlinePrice.replaceWith(resolvedInlinePrices[candidateIdx].text);
+        });
+        return doc.body.innerHTML;
+    }
+
+    #resolveInlinePricesInValues(values, resolvedInlinePrices) {
+        if (!Array.isArray(values) || !values.length) return values;
+        return values.map((value) => this.#resolveInlinePricesInHtml(value, resolvedInlinePrices));
     }
 
     #hasDisplayValue(values) {
@@ -338,11 +421,10 @@ class MasSideNav extends LitElement {
         return !!fragmentId && !!this.fragmentEditor?.editorContextStore?.isVariation?.(fragmentId);
     }
 
-    #buildCopyableField(field, source, sourceFragment) {
+    #buildCopyableField(field, source, sourceFragment, resolvedInlinePrices) {
+        const displayValues = this.#resolveInlinePricesInValues(this.#getDisplayValues(field), resolvedInlinePrices);
         const preview =
-            field.name === 'prices'
-                ? this.resolvedPriceText || previewValue(this.#getDisplayValues(field))
-                : previewValue(this.#getDisplayValues(field));
+            field.name === 'prices' ? this.resolvedPriceText || previewValue(displayValues) : previewValue(displayValues);
 
         return {
             name: field.name,
@@ -357,9 +439,10 @@ class MasSideNav extends LitElement {
     get copyableFields() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return [];
+        const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
         const currentFields = fragment.fields
             .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !fragment.isValueEmpty(f.values))
-            .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment));
+            .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.CURRENT, fragment, resolvedInlinePrices));
 
         const fragmentId = fragment?.id;
         if (!this.#isVariationFragment(fragmentId)) {
@@ -374,7 +457,7 @@ class MasSideNav extends LitElement {
         const currentFieldNames = new Set(currentFields.map((field) => field.name));
         const inheritedFields = baseFragment.fields
             .filter((f) => MasSideNav.SHOW_FIELDS.has(f.name) && !currentFieldNames.has(f.name))
-            .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment))
+            .map((f) => this.#buildCopyableField(f, FIELD_SOURCE.INHERITED, baseFragment, resolvedInlinePrices))
             .filter((f) => !!f.preview);
 
         return [...currentFields, ...inheritedFields];

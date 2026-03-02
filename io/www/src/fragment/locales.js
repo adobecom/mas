@@ -77,7 +77,6 @@ const ACOM = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'BE',
             'CA',
             'EG',
@@ -144,7 +143,6 @@ const CCD = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'AU',
             'BE',
             'CA',
@@ -201,7 +199,6 @@ const EXPRESS = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'BE',
             'CA',
             'EG',
@@ -249,7 +246,6 @@ const ADOBE_HOME = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'AU',
             'BE',
             'CA',
@@ -305,7 +301,6 @@ const COMMERCE = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'AU',
             'BE',
             'CA',

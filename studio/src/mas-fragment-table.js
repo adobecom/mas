@@ -1,7 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { extractLocaleFromPath, generateCodeToUse, getService, showToast } from './utils.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
+import { getFragmentName } from './translation/translation-utils.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH } from './constants.js';
@@ -52,12 +52,6 @@ class MasFragmentTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.loadOfferData();
-    }
-
-    getFragmentName(data) {
-        const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
-        const fragmentParts = getFragmentPartsToUse(Store, data).fragmentParts;
-        return `${webComponentName}: ${fragmentParts}`;
     }
 
     get data() {
@@ -201,7 +195,7 @@ class MasFragmentTable extends LitElement {
                     ${this.nested
                         ? html`${data.locale}`
                         : html`<div class="icon">${this.icon}</div>
-                              ${this.getFragmentName(data)}`}
+                              ${getFragmentName(data)}`}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>
                 <sp-table-cell class="offer-id">

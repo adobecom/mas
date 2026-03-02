@@ -129,7 +129,7 @@ describe('MasTranslation', () => {
         it('should render loading indicator when loading', async () => {
             Store.translationProjects.list.loading.value = true;
             const el = await fixture(html`<mas-translation></mas-translation>`);
-            const loadingContainer = el.shadowRoot.querySelector('.loading-container');
+            const loadingContainer = el.shadowRoot.querySelector('.loading-container--absolute');
             const progressCircle = el.shadowRoot.querySelector('sp-progress-circle');
             expect(loadingContainer).to.exist;
             expect(progressCircle).to.exist;
@@ -138,7 +138,7 @@ describe('MasTranslation', () => {
         it('should not render loading indicator when not loading', async () => {
             Store.translationProjects.list.loading.value = false;
             const el = await fixture(html`<mas-translation></mas-translation>`);
-            const loadingContainer = el.shadowRoot.querySelector('.loading-container');
+            const loadingContainer = el.shadowRoot.querySelector('.loading-container--absolute');
             expect(loadingContainer).to.be.null;
         });
     });

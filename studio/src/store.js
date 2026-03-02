@@ -121,6 +121,8 @@ const Store = {
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
         offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()),
+        groupedVariationsData: new ReactiveStore(new Map()),
 
         allCollections: new ReactiveStore([]),
         collectionsByPaths: new ReactiveStore(new Map()),

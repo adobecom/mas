@@ -13,6 +13,16 @@ export default class TranslationsPage {
             actions: translationHost.locator('sp-table-head-cell:has-text("Actions")'),
         };
         this.emptyState = translationHost.locator('.translation-empty-state');
+
+        this.tableRows = translationHost.locator('sp-table.translation-table sp-table-row');
+        this.sentOnHeader = translationHost.locator('sp-table-head-cell.sentOn');
+
+        this.firstRow = translationHost.locator('sp-table.translation-table sp-table-row').first();
+        this.firstRowTitleCell = this.firstRow.locator('sp-table-cell').nth(0);
+        this.firstRowActionMenu = this.firstRow.locator('sp-action-menu');
+
+        this.deleteConfirmDialog = page.getByRole('dialog', { name: 'Delete Translation Project' });
+        this.deleteConfirmButton = this.deleteConfirmDialog.getByRole('button', { name: 'Delete' });
     }
 
     async waitForListToLoad(timeout = 15000) {
@@ -25,5 +35,23 @@ export default class TranslationsPage {
 
     async hasProjects() {
         return await this.translationTable.isVisible();
+    }
+
+    async getSentOnColumnTexts() {
+        const rows = this.tableRows;
+        const count = await rows.count();
+        const texts = [];
+        for (let i = 0; i < count; i++) {
+            const cell = rows.nth(i).locator('sp-table-cell').nth(2);
+            texts.push(await cell.textContent());
+        }
+        return texts;
+    }
+
+    static parseSentOnText(text) {
+        const t = (text || '').trim();
+        if (!t || t === 'N/A') return 0;
+        const d = new Date(t);
+        return Number.isNaN(d.getTime()) ? 0 : d.getTime();
     }
 }

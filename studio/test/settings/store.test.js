@@ -43,47 +43,18 @@ describe('Settings Store Namespace', () => {
     const otherTemplateId = allTemplateIds.find((templateId) => branchByTemplateId.get(templateId) !== 'Merch card');
     const crossBranchTemplateIds = [...templateIdsByBranch.values()].flatMap((ids) => ids.slice(0, 1));
 
-    const buildValueFields = (valueType, value, booleanValue) => [
-        { name: 'textValue', values: valueType === 'text' ? [`${value ?? ''}`] : [] },
-        { name: 'richTextValue', values: valueType === 'richText' ? [`${value ?? ''}`] : [] },
-        { name: 'booleanValue', values: [Boolean(booleanValue)] },
-    ];
-
-    const createFragment = (id, overrides = {}) => {
-        const value = overrides.value ?? true;
-        const valueType = overrides.valueType || (value === true || value === false ? 'boolean' : 'text');
-        const booleanValue = overrides.booleanValue ?? (valueType === 'boolean' ? Boolean(value) : true);
-        return {
-            id,
-            title: overrides.title || overrides.label || `Setting ${id}`,
-            description: overrides.description || '',
-            status: overrides.status || 'PUBLISHED',
-            modified: {
-                by: 'Mr Bean',
-                at: '2025-10-16T11:14:00.000Z',
-            },
-            tags: [],
-            path: `/content/dam/mas/acom/en_US/${id}`,
-            fields: [
-                { name: 'name', values: [id] },
-                { name: 'templates', values: overrides.templates || ['catalog'] },
-                { name: 'locales', values: overrides.locales || [] },
-                { name: 'valuetype', values: [valueType] },
-                ...buildValueFields(valueType, value, booleanValue),
-                ...(overrides.fields || []),
-            ],
-        };
-    };
-
     it('reuses row stores by fragment id', () => {
         const store = new SettingsStore();
-        store.setSettingFragments([createFragment('showPlanType'), createFragment('displayAnnual')]);
+        store.setSettingFragments([
+            createSettingReference({ id: 'showPlanType', templates: ['catalog'], value: true }),
+            createSettingReference({ id: 'displayAnnual', templates: ['catalog'], value: true }),
+        ]);
         const firstStores = store.rows.get();
         const firstRow = firstStores[0];
 
         store.setSettingFragments([
-            createFragment('showPlanType', { value: false }),
-            createFragment('displayAnnual', { value: true }),
+            createSettingReference({ id: 'showPlanType', templates: ['catalog'], value: false }),
+            createSettingReference({ id: 'displayAnnual', templates: ['catalog'], value: true }),
         ]);
         const secondStores = store.rows.get();
         expect(secondStores[0]).to.equal(firstRow);
@@ -92,10 +63,13 @@ describe('Settings Store Namespace', () => {
 
     it('disposes removed rows', () => {
         const store = new SettingsStore();
-        store.setSettingFragments([createFragment('showAddon'), createFragment('showPlanType')]);
+        store.setSettingFragments([
+            createSettingReference({ id: 'showAddon', templates: ['catalog'], value: true }),
+            createSettingReference({ id: 'showPlanType', templates: ['catalog'], value: true }),
+        ]);
         const removedStore = store.getRowStore('showPlanType');
 
-        store.setSettingFragments([createFragment('showAddon')]);
+        store.setSettingFragments([createSettingReference({ id: 'showAddon', templates: ['catalog'], value: true })]);
 
         expect(removedStore.getMeta('disposed')).to.equal(true);
         expect(store.getRowStore('showPlanType')).to.equal(null);

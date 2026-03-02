@@ -27,6 +27,7 @@ export const createSettingReference = (overrides = {}) => {
     return {
         id,
         title: overrides.title || label,
+        description: overrides.description || '',
         fieldName: overrides.fieldName || 'entries',
         status: overrides.status || 'PUBLISHED',
         modified: overrides.modified || defaultModified,

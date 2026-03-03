@@ -98,6 +98,43 @@ describe('MasTopNav', () => {
     });
 
     describe('breadcrumbs', () => {
+        it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
+                item.textContent.trim(),
+            );
+
+            expect(items).to.deep.equal(['Fragments table', 'Editor']);
+            el.querySelector('.nav-breadcrumbs sp-breadcrumb-item').click();
+            expect(navigateStub.calledWith(PAGE_NAMES.CONTENT)).to.be.true;
+        });
+
+        it('should render version breadcrumbs and navigate to editor from second crumb', async () => {
+            Store.page.value = PAGE_NAMES.VERSION;
+            Store.version.fragmentId.value = 'fragment-1';
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            const items = breadcrumbs.map((item) => item.textContent.trim());
+
+            expect(items).to.deep.equal(['Fragments table', 'Editor', 'Version history']);
+            breadcrumbs[1].click();
+            expect(navigateSpy.calledWith('fragment-1')).to.be.true;
+        });
+
+        it('should not navigate to editor from version breadcrumb when fragmentId is empty', async () => {
+            Store.page.value = PAGE_NAMES.VERSION;
+            Store.version.fragmentId.value = null;
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+
+            breadcrumbs[1].click();
+            expect(navigateSpy.called).to.be.false;
+        });
+
         it('should render setting editor breadcrumbs and label for create flow', async () => {
             Store.page.value = PAGE_NAMES.SETTINGS_EDITOR;
             Store.settings.fragmentId.value = null;
@@ -109,6 +146,27 @@ describe('MasTopNav', () => {
             expect(items).to.deep.equal(['Settings', 'Create new setting']);
         });
 
+        it('should render setting editor breadcrumbs and label for edit flow', async () => {
+            Store.page.value = PAGE_NAMES.SETTINGS_EDITOR;
+            Store.settings.fragmentId.value = 'setting-1';
+            Store.settings.creating.value = false;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
+                item.textContent.trim(),
+            );
+
+            expect(items).to.deep.equal(['Settings', 'Edit setting']);
+        });
+
+        it('should not render settings breadcrumbs when no setting id and not creating', async () => {
+            Store.page.value = PAGE_NAMES.SETTINGS_EDITOR;
+            Store.settings.fragmentId.value = null;
+            Store.settings.creating.value = false;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = el.querySelector('.nav-breadcrumbs');
+            expect(breadcrumbs).to.not.exist;
+        });
+
         it('should render promotions editor breadcrumbs and label for edit flow', async () => {
             Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
             Store.promotions.promotionId.value = 'promo-1';
@@ -117,6 +175,27 @@ describe('MasTopNav', () => {
                 item.textContent.trim(),
             );
             expect(items).to.deep.equal(['Promotions', 'Edit project']);
+        });
+
+        it('should render promotions editor breadcrumbs and label for create flow', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
+            Store.promotions.promotionId.value = null;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
+                item.textContent.trim(),
+            );
+            expect(items).to.deep.equal(['Promotions', 'Create new project']);
+        });
+
+        it('should navigate to promotions page when promotions breadcrumb is clicked', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
+            Store.promotions.promotionId.value = 'promo-1';
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const firstBreadcrumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+
+            firstBreadcrumb.click();
+            expect(navigateStub.calledWith(PAGE_NAMES.PROMOTIONS)).to.be.true;
         });
 
         it('should render translation editor breadcrumbs and readonly label', async () => {
@@ -132,6 +211,43 @@ describe('MasTopNav', () => {
                 item.textContent.trim(),
             );
             expect(items).to.deep.equal(['Translations', 'Translation Project']);
+        });
+
+        it('should render translation editor breadcrumbs and edit label when project has no submission date', async () => {
+            Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
+            Store.translationProjects.translationProjectId.value = 'project-1';
+            Store.translationProjects.inEdit.value = {
+                get: () => ({
+                    getFieldValue: () => null,
+                }),
+            };
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
+                item.textContent.trim(),
+            );
+            expect(items).to.deep.equal(['Translations', 'Edit project']);
+        });
+
+        it('should render translation editor breadcrumbs and create label when no project id exists', async () => {
+            Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
+            Store.translationProjects.translationProjectId.value = null;
+            Store.translationProjects.inEdit.value = null;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
+                item.textContent.trim(),
+            );
+            expect(items).to.deep.equal(['Translations', 'Create new project']);
+        });
+
+        it('should navigate to translations page when translations breadcrumb is clicked', async () => {
+            Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
+            Store.translationProjects.translationProjectId.value = 'project-1';
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const firstBreadcrumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+
+            firstBreadcrumb.click();
+            expect(navigateStub.calledWith(PAGE_NAMES.TRANSLATIONS)).to.be.true;
         });
 
         it('should navigate to settings page when first breadcrumb is clicked', async () => {

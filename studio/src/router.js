@@ -315,7 +315,6 @@ export class Router extends EventTarget {
     syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
         this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
-        const hashUpdated = false;
 
         for (const key of keysArray) {
             if (this.currentParams.has(key)) {
@@ -341,11 +340,6 @@ export class Router extends EventTarget {
                     newValue = defaultVal;
                 }
             }
-        }
-
-        // Update hash if invalid parameters were removed
-        if (hashUpdated) {
-            this.updateHistory();
         }
 
         if (JSON.stringify(store.value) !== JSON.stringify(newValue)) {

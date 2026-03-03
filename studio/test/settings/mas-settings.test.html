@@ -568,7 +568,9 @@
                             triggerText = overridePicker.shadowRoot.querySelector('.trigger-text');
                             expect(triggerText.textContent.trim()).to.equal('Select template');
                             expect(triggerText.classList.contains('is-placeholder')).to.equal(true);
-                            let localePicker = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog mas-locale-picker');
+                            let localePicker = settingsPage.shadowRoot.querySelector(
+                                'sp-dialog.override-dialog mas-locale-picker',
+                            );
                             let localeTriggerLabel = localePicker.shadowRoot.querySelector('.selection-trigger-label');
                             expect(localeTriggerLabel.textContent.trim()).to.equal('Select locale');
                             expect(localeTriggerLabel.classList.contains('is-placeholder')).to.equal(true);
@@ -589,7 +591,9 @@
                                 }),
                             );
                             await waitForUpdates(settingsPage, 2);
-                            overridePicker = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog tree-picker-field');
+                            overridePicker = settingsPage.shadowRoot.querySelector(
+                                'sp-dialog.override-dialog tree-picker-field',
+                            );
                             triggerText = overridePicker.shadowRoot.querySelector('.trigger-text');
                             expect(triggerText.textContent.trim()).to.equal('All templates');
                             expect(triggerText.classList.contains('is-placeholder')).to.equal(false);

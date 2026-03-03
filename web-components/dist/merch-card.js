@@ -4840,25 +4840,25 @@ merch-card[variant="full-pricing-express"] [slot="price"] > p span[is="inline-pr
     margin-right: 8px;
 }
 
-merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"] {
-    font-size: var(--merch-card-full-pricing-express-price-font-size);
-    line-height: var(--merch-card-full-pricing-express-price-line-height);
-}
-
 merch-card[variant="full-pricing-express"] [slot="price"] span[is="inline-price"][data-template="optical"] {
     font-size: var(--merch-card-full-pricing-express-price-font-size);
     color: var(--spectrum-gray-800);
 }
 
-merch-card[variant="full-pricing-express"] [slot="price"] .price-integer,
-merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals-delimiter,
-merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals {
+merch-card[variant="full-pricing-express"] [slot="price"] .price-strikethrough .price-integer,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-strikethrough .price-decimals-delimiter,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-strikethrough .price-decimals {
     font-size: 28px;
     font-weight: 700;
     line-height: 36.4px;
 }
 
-merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol {
+merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-integer,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals-delimiter,
+merch-card[variant="full-pricing-express"] [slot="price"] price-currency-space,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-price-decimals {
     font-size: var(--merch-card-full-pricing-express-price-font-size);
     font-weight: var(--merch-card-full-pricing-express-price-font-weight);
     line-height: var(--merch-card-full-pricing-express-price-line-height);
@@ -4916,6 +4916,10 @@ merch-card[variant="full-pricing-express"] [slot="callout-content"] {
     margin: 0;
 }
 
+merch-card[variant="full-pricing-express"] [slot="callout-content"] span[is='inline-price'] {
+    font-weight: inherit;
+}
+
 merch-card[variant="full-pricing-express"] [slot="callout-content"] > p {
     background: transparent;
     font-size: 12px;
@@ -4939,7 +4943,6 @@ merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template
     text-decoration: none;
     font-size: 12px;
     line-height: 15.6px;
-    font-weight: 700;
 }
 
 merch-card[variant="full-pricing-express"] span[is="inline-price"][data-template='strikethrough'] .price,

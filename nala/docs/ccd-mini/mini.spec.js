@@ -107,9 +107,9 @@ export const features = [
         data: {
             fragment: '77e049ee-c611-437b-bbeb-c54cf72605b1',
             title: 'CCD Apps: Photoshop Promo',
-            regularPrice: '157,14 €/an',
+            regularPrice: '314,35 €/an',
+            promoPrice: '157,14 €/an',
             unitText: '',
-            promoPrice: undefined,
             promotionCode: 'PCEMAP50CCDC2',
             planTypeText: "Annuel, facturé à l'avance",
             recurrenceText: '/an',

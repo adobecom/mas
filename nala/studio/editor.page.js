@@ -38,14 +38,14 @@ export default class EditorPage {
         this.mnemonicEditMenu = page.locator('mas-multifield#mnemonics sp-action-menu').first();
         this.mnemonicEditButton = page.locator('sp-menu sp-menu-item:has-text("Edit")');
         this.mnemonicDeleteButton = page.locator('sp-menu sp-menu-item:has-text("Delete")');
-        this.mnemonivModal = page.locator('mas-mnemonic-modal[open]');
-        this.mnemonicProductTab = page.mnemonivModal.locator('sp-tab[value="product-icon"]');
-        this.mnemonicUrlTab = page.mnemonivModal.locator('sp-tab[value="url"]');
-        this.mnemonicUrlIconInput = page.mnemonivModal.locator('#url-icon >> input');
-        this.mnemonicUrlAltInput = page.mnemonivModal.locator('#url-alt >> input');
-        this.mnemonicUrlLinkInput = page.mnemonivModal.locator('#url-link >> input');
-        this.mnemonicModalSaveButton = page.mnemonivModal.locator('sp-button[variant="accent"]');
-        this.mnemonicModalCancelButton = page.mnemonivModal.locator('sp-button[variant="secondary"]');
+        this.mnemonicModal = page.locator('mas-mnemonic-modal[open]');
+        this.mnemonicProductTab = this.mnemonicModal.locator('sp-tab[value="product-icon"]');
+        this.mnemonicUrlTab = this.mnemonicModal.locator('sp-tab[value="url"]');
+        this.mnemonicUrlIconInput = this.mnemonicModal.locator('#url-icon >> input');
+        this.mnemonicUrlAltInput = this.mnemonicModal.locator('#url-alt >> input');
+        this.mnemonicUrlLinkInput = this.mnemonicModal.locator('#url-link >> input');
+        this.mnemonicModalSaveButton = this.mnemonicModal.locator('sp-button[variant="accent"]');
+        this.mnemonicModalCancelButton = this.mnemonicModal.locator('sp-button[variant="secondary"]');
 
         this.OSI = this.panel.locator('osi-field#osi');
         this.OSIButton = this.panel.locator('#offerSelectorToolButtonOSI');

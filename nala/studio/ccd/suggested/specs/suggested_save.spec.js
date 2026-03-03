@@ -23,7 +23,7 @@ export default {
             tags: '@mas-studio @ccd @ccd-save @ccd-suggested @ccd-suggested-save',
         },
         {
-            tcid: '3',
+            tcid: '2',
             name: '@studio-suggested-save-edited-RTE-fields',
             path: '/studio.html',
             data: {

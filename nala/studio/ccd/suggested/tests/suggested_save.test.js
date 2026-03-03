@@ -114,9 +114,9 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
 
     // @studio-suggested-save-edited-RTE-fields - Validate field edits and save for suggested card in mas studio
     // Combines: eyebrow, and background image
-    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
+    test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[2];
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         setTestPage(testPage);
         let clonedCard;
 

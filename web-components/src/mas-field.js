@@ -63,7 +63,9 @@ class MasField extends HTMLElement {
 
     #ensureContentElement() {
         if (this.#contentElement?.isConnected) return this.#contentElement;
-        const existing = this.querySelector(':scope > span[data-role="mas-field-content"]');
+        const existing = this.querySelector(
+            ':scope > span[data-role="mas-field-content"]',
+        );
         if (existing) {
             this.#contentElement = existing;
             return existing;
@@ -76,7 +78,8 @@ class MasField extends HTMLElement {
     }
 
     #normalizeFieldValue(value) {
-        if (value && typeof value === 'object' && 'value' in value) return value.value;
+        if (value && typeof value === 'object' && 'value' in value)
+            return value.value;
         return value;
     }
 

@@ -504,9 +504,7 @@ runTests(async () => {
             });
 
             it('renders field content via mas-field wrapper', async () => {
-                const [masField] = getTemplateContent(
-                    'mas-field-render-field',
-                );
+                const [masField] = getTemplateContent('mas-field-render-field');
                 spTheme.append(masField);
 
                 await new Promise((resolve) => {
@@ -521,9 +519,7 @@ runTests(async () => {
             });
 
             it('renders different fields based on field attribute', async () => {
-                const [masField] = getTemplateContent(
-                    'mas-field-render-promo',
-                );
+                const [masField] = getTemplateContent('mas-field-render-promo');
                 spTheme.append(masField);
 
                 await new Promise((resolve) => {
@@ -553,9 +549,7 @@ runTests(async () => {
             });
 
             it('unwraps single paragraph tags', async () => {
-                const [masField] = getTemplateContent(
-                    'mas-field-render-field',
-                );
+                const [masField] = getTemplateContent('mas-field-render-field');
                 spTheme.append(masField);
 
                 await new Promise((resolve) => {

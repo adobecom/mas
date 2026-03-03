@@ -335,7 +335,7 @@ describe('Translation project-start', () => {
             expect(result.statusCode).to.equal(200);
             expect(result.body.message).to.equal('Translation project started');
             expect(result.body.submissionDate).to.equal('2026-02-04T11:00:00Z');
-            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Successfully sent \d+ loc requests/));
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Successfully sent loc request/));
         });
 
         it('should handle unexpected errors and return 500', async () => {
@@ -442,17 +442,15 @@ describe('Translation project-start', () => {
     });
 
     describe('Batch processing with retry logic', () => {
-        it('should process items in batches', async () => {
+        it('should send translation items as single batch (cfPaths array)', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            // Create 15 items to test batching (BATCH_SIZE is 10)
             const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: items,
             });
 
-            const { callCounts } = setupFetchStub({
+            const { stub, callCounts } = setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
                 '/adobe/sites/cf/fragments?path=': responses.notFound(),
                 '/bin/sendToLocalisationAsync': { ok: true },
@@ -461,23 +459,53 @@ describe('Translation project-start', () => {
             const result = await projectStart.main(baseParams);
 
             expect(result.statusCode).to.equal(200);
-            expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(15);
-            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(15);
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
+            const locCall = stub.getCalls().find((call) => call.args[0].includes('/bin/sendToLocalisationAsync'));
+            expect(locCall).to.exist;
+            const requestBody = JSON.parse(locCall.args[1].body);
+            expect(requestBody.cfPaths).to.be.an('array').with.lengthOf(15);
+            expect(requestBody.cfPaths).to.deep.equal(items);
         });
 
-        it('should process items with custom batch size when batchSize param is provided', async () => {
+        it('should process versioning in batches', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
-            // Create 30 items to test batching with custom batch size of 25
-            const items = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
-
+            // 15 fragments × 1 locale = 15 itemsToVersion (batch size 10 → 2 batches)
+            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: items,
             });
 
             const { callCounts } = setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
+                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
+                '/versions': { ok: true },
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const result = await projectStart.main(baseParams);
+
+            expect(result.statusCode).to.equal(200);
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
+            expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(15);
+            expect(callCounts['/versions']).to.equal(15);
+        });
+
+        it('should process versioning with custom batch size when batchSize param is provided', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            // 30 fragments × 1 locale = 30 itemsToVersion (batch size 25 → 2 batches)
+            const items = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: items,
+            });
+
+            const { callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
+                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
+                '/versions': { ok: true },
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
@@ -489,8 +517,9 @@ describe('Translation project-start', () => {
             const result = await projectStart.main(params);
 
             expect(result.statusCode).to.equal(200);
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
             expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(30);
-            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(30);
+            expect(callCounts['/versions']).to.equal(30);
         });
 
         it('should retry failed requests up to 3 times', async () => {
@@ -535,7 +564,7 @@ describe('Translation project-start', () => {
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
-            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Failed to send loc request for fragment/));
+            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Failed to send loc request/));
         });
 
         it('should handle network errors with retry', async () => {
@@ -589,61 +618,20 @@ describe('Translation project-start', () => {
             const locRequestCall = stub.getCalls().find((call) => call.args[0].includes('/bin/sendToLocalisationAsync'));
 
             expect(locRequestCall).to.exist;
-            expect(locRequestCall.args[0]).to.include('/bin/sendToLocalisationAsync?path=/content/dam/mas/foo/en_US/fragment1');
+            expect(locRequestCall.args[0]).to.include('/bin/sendToLocalisationAsync');
 
             const requestBody = JSON.parse(locRequestCall.args[1].body);
             expect(requestBody).to.deep.equal({
                 targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
                 transcreation: true,
+                cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],
+                taskName: 'Test Project',
             });
 
             expect(locRequestCall.args[1].headers).to.deep.include({
                 Authorization: 'Bearer token',
                 'Content-Type': 'application/json',
             });
-        });
-    });
-
-    describe('Mixed success and failure scenarios', () => {
-        it('should report partial failures when some requests fail', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
-            const mockProjectCF = setProjectFields(createMockProjectCF(), {
-                fragments: [
-                    '/content/dam/mas/foo/en_US/fragment1',
-                    '/content/dam/mas/foo/en_US/fragment2',
-                    '/content/dam/mas/foo/en_US/fragment3',
-                ],
-            });
-
-            // Use a function handler to control which fragment succeeds/fails
-            let fragment2CallCount = 0;
-            const { stub } = createFetchStub({});
-            stub.callsFake(async (url) => {
-                if (url.includes('/adobe/sites/cf/fragments/test-project-id') && !url.includes('?path=')) {
-                    return responses.ok(mockProjectCF, '"test-etag"');
-                }
-                if (url.includes('/adobe/sites/cf/fragments?path=')) {
-                    return responses.notFound();
-                }
-                if (url.includes('/bin/sendToLocalisationAsync')) {
-                    // fragment1 and fragment3 succeed, fragment2 always fails
-                    if (url.includes('fragment2')) {
-                        fragment2CallCount++;
-                        return responses.error(500, 'Error');
-                    }
-                    return { ok: true };
-                }
-                return { ok: true };
-            });
-            global.fetch = stub;
-
-            const result = await projectStart.main(baseParams);
-
-            expect(result).to.have.property('error');
-            expect(result.error.statusCode).to.equal(500);
-            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/1 request\(s\) failed after retries/));
-            expect(fragment2CallCount).to.equal(3); // 3 retry attempts
         });
     });
 

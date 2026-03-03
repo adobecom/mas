@@ -440,7 +440,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await expect(await card.locator(individuals.cardPromoText)).toHaveText(data.promoText);
                     await editor.overrideRestoreIn(editor.promoTextFieldGroup).first().click();
                     await page.waitForTimeout(300);
-                    await expect(await editor.promoText).toHaveValue(original.promoText);
+                    await expect(await editor.promoText).toHaveText(original.promoText);
                     await expect((await studio.getCard(data.cardid)).locator(individuals.cardPromoText)).not.toBeVisible();
                 }),
             () =>

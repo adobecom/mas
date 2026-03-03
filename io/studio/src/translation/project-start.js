@@ -229,22 +229,22 @@ async function main(params) {
     }
 
     // Helper function to send a single request with retry logic
-    async function sendLocRequestWithRetry(item, config) {
+    async function sendLocRequestWithRetry(config) {
         try {
             const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
-            logger.info(`Sending loc request for fragment ${item}`);
+            logger.info('Sending loc request');
             const success = await postToOdinWithRetry(
                 odinEndpoint,
-                `/bin/sendToLocalisationAsync?path=${item}`,
+                '/bin/sendToLocalisationAsync',
                 authToken,
                 locPayload,
                 maxRetries,
             );
-            return { success, item };
+            return { success };
         } catch (error) {
             const lastError = error.message || error.toString();
-            logger.error(`Failed to send loc request for fragment ${item} after retries: ${lastError}`);
-            return { success: false, item, error: lastError };
+            logger.error(`Failed to send loc request after retries: ${lastError}`);
+            return { success: false, error: lastError };
         }
     }
 
@@ -287,6 +287,8 @@ async function main(params) {
         logger.info(`Starting translation project ${itemsToTranslate} for locales ${locales} and surface ${surface}`);
 
         const locPayload = {
+            taskName: translationData.title,
+            cfPaths: itemsToTranslate,
             targetLocales: locales,
             ...(translationFlow || {}),
         };
@@ -300,21 +302,13 @@ async function main(params) {
             maxRetries: 3,
         };
 
-        // Process items in batches to respect RPS limit
-        const results = await processBatchWithConcurrency(itemsToTranslate, batchSize, (item) =>
-            sendLocRequestWithRetry(item, config),
-        );
-
-        // Check if any requests failed after all retries
-        const failures = results.filter((result) => !result.success);
-        if (failures.length > 0) {
-            logger.error(
-                `${failures.length} request(s) failed after retries: ${failures.map((failure) => failure.item).join(', ')}`,
-            );
+        const result = await sendLocRequestWithRetry(config);
+        if (!result.success) {
+            logger.error(`Failed to send loc request: ${result.error}`);
             return false;
         }
 
-        logger.info(`Successfully sent ${results.length} loc requests`);
+        logger.info(`Successfully sent loc request`);
         return true;
     }
 

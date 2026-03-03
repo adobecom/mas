@@ -727,7 +727,7 @@ merch-card [slot='callout-content'] .icon-button::before {
   width: max-content;
 }
 
-merch-card [slot='callout-content'] .icon-button.visible::before {
+merch-card [slot='callout-content'] .icon-button.tooltip-visible::before {
     display: block;
 }
 
@@ -744,7 +744,7 @@ merch-card [slot='callout-content'] .icon-button::after {
   z-index: 10;
 }
 
-merch-card [slot='callout-content'] .icon-button.visible::after {
+merch-card [slot='callout-content'] .icon-button.tooltip-visible::after {
     display: block;
 }
 

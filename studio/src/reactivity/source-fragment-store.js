@@ -9,6 +9,9 @@ export class SourceFragmentStore extends FragmentStore {
     /** @type {Fragment | null} */
     parentFragment = null;
 
+    /** @type {boolean} Flag to skip variation detection on next editor init (set after copy) */
+    skipVariationDetection = false;
+
     /**
      * @param {Fragment} sourceFragment - The raw fragment data (for editing)
      * @param {PreviewFragmentStore} previewStore - The preview store (with merged parent values)

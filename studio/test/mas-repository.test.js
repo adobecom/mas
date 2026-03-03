@@ -1168,7 +1168,11 @@ describe('MasRepository dictionary helpers', () => {
             const repository = createRepository();
             const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
             const parentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
-            const parentByPath = { id: 'parent-id', path: parentPath };
+            const parentByPath = {
+                id: 'parent-id',
+                path: parentPath,
+                fields: [{ name: 'variations', values: [sourcePath] }],
+            };
             const hydratedParent = { ...parentByPath, references: [{ id: 'ref-1' }] };
 
             repository.aem = createAemMock({
@@ -1210,12 +1214,57 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
         });
 
-        it('falls back to parent fetched by path when hydration by id fails', async () => {
+        it('selects the parent whose variations field contains the fragment path', async () => {
             const repository = createRepository();
             const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
-            const parentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
-            const parentByPath = { id: 'parent-id', path: parentPath };
-            const consoleDebugStub = sandbox.stub(console, 'debug');
+            const wrongParentPath = '/content/dam/mas/sandbox/en_US/pac/unrelated-fragment';
+            const correctParentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
+            const wrongParent = {
+                id: 'wrong-id',
+                path: wrongParentPath,
+                fields: [{ name: 'variations', values: ['/content/dam/mas/sandbox/en_US/pac/pzn/other-variation'] }],
+            };
+            const correctParent = {
+                id: 'correct-id',
+                path: correctParentPath,
+                fields: [{ name: 'variations', values: [sourcePath] }],
+            };
+            const hydratedCorrectParent = { ...correctParent, references: [{ id: 'ref-1' }] };
+
+            const getByPathStub = sandbox.stub();
+            getByPathStub.withArgs(wrongParentPath).resolves(wrongParent);
+            getByPathStub.withArgs(correctParentPath).resolves(correctParent);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getReferencedBy: sandbox.stub().resolves({
+                        path: sourcePath,
+                        parentReferences: [
+                            { type: 'content-fragment', path: wrongParentPath },
+                            { type: 'content-fragment', path: correctParentPath },
+                        ],
+                    }),
+                    getByPath: getByPathStub,
+                    getById: sandbox.stub().resolves(hydratedCorrectParent),
+                },
+            });
+
+            const result = await repository.resolveHydratedParentFragment(sourcePath);
+
+            expect(repository.aem.sites.cf.fragments.getByPath.calledTwice).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('correct-id')).to.be.true;
+            expect(result).to.deep.equal(hydratedCorrectParent);
+        });
+
+        it('returns null when no parent has the fragment path in its variations', async () => {
+            const repository = createRepository();
+            const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
+            const parentPath = '/content/dam/mas/sandbox/en_US/pac/unrelated-fragment';
+            const parentByPath = {
+                id: 'parent-id',
+                path: parentPath,
+                fields: [{ name: 'variations', values: ['/content/dam/mas/sandbox/en_US/pac/pzn/other-variation'] }],
+            };
 
             repository.aem = createAemMock({
                 fragments: {
@@ -1224,14 +1273,13 @@ describe('MasRepository dictionary helpers', () => {
                         parentReferences: [{ type: 'content-fragment', path: parentPath }],
                     }),
                     getByPath: sandbox.stub().resolves(parentByPath),
-                    getById: sandbox.stub().rejects(new Error('Hydration failed')),
                 },
             });
 
             const result = await repository.resolveHydratedParentFragment(sourcePath);
 
-            expect(result).to.deep.equal(parentByPath);
-            expect(consoleDebugStub.calledWithMatch('Failed to hydrate parent fragment references:')).to.be.true;
+            expect(result).to.be.null;
+            expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
         });
     });
 

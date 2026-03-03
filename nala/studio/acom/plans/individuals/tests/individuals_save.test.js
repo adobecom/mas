@@ -240,7 +240,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 }),
 
                 test.step('Validation-6: Verify promo text saved', async () => {
-                    await expect(await editor.promoText).toHaveValue(data.promoText);
+                    await expect(await editor.promoText).toHaveText(data.promoText);
                     await expect(await clonedCard.locator(individuals.cardPromoText)).toHaveText(data.promoText);
                 }),
 

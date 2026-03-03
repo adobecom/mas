@@ -28,6 +28,9 @@ const VARIANT_CLASSES = {
     product: ['four-merch-cards'],
     productTwoColumns: ['two-merch-cards'],
     productThreeColumns: ['three-merch-cards'],
+    segment: ['four-merch-cards'],
+    segmentTwoColumns: ['two-merch-cards'],
+    segmentThreeColumns: ['three-merch-cards'],
     'special-offers': ['three-merch-cards'],
     image: ['three-merch-cards'],
 };
@@ -548,11 +551,14 @@ export class MerchCardCollection extends LitElement {
             const variant = normalizeVariant(cards[0]?.fields?.variant);
             this.variant = variant;
             if (
-                (variant === 'plans' ||
-                    variant === 'segment' ||
-                    variant === 'product') &&
-                (cards.length === 2 || cards.length === 3) &&
+                variant === 'plans' &&
+                cards.length === 3 &&
                 !cards.some((card) => card.fields?.size?.includes('wide'))
+            ) {
+                nmbOfColumns = 'ThreeColumns';
+            } else if (
+                (variant === 'segment' || variant === 'product') &&
+                (cards.length === 2 || cards.length === 3)
             ) {
                 nmbOfColumns =
                     cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';

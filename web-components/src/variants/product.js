@@ -137,7 +137,6 @@ export class Product extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
-        this.adjustTitleWidth();
     }
 
     async adjustLegal() {

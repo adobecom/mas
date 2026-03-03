@@ -407,6 +407,7 @@ merch-card [slot='callout-content'] {
 }
 
 merch-card[variant='product'] [slot='badge'],
+merch-card[variant='segment'] [slot='badge'],
 merch-card[variant^='plans'] [slot='badge'],
 merch-card[variant='special-offers'] [slot='badge'] {
     position: absolute;

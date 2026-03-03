@@ -118,17 +118,6 @@ export class VariantLayout {
         </footer>`;
     }
 
-    async adjustTitleWidth() {
-        const cardWidth = this.card.getBoundingClientRect().width;
-        const badgeWidth =
-            this.card.badgeElement?.getBoundingClientRect().width || 0;
-        if (cardWidth === 0 || badgeWidth === 0) return;
-        this.card.style.setProperty(
-            '--consonant-merch-card-heading-xs-max-width',
-            `${Math.round(cardWidth - badgeWidth - 16)}px`, // consonant-merch-spacing-xs
-        );
-    }
-
     async postCardUpdateHook() {
         //nothing to do by default
     }

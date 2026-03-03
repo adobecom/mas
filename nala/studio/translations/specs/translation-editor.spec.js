@@ -28,5 +28,13 @@ export default {
             description:
                 'Select languages: verify empty state, modal, select all, toggle, remove language, Cancel discards changes',
         },
+        {
+            tcid: '3',
+            name: '@translation-editor-select-items',
+            path: '/studio.html',
+            browserParams: '#page=translation-editor&path=nala',
+            tags: '@mas-studio @translation-editor @translation-editor-items',
+            description: 'Select items: verify empty state after languages selected',
+        },
     ],
 };

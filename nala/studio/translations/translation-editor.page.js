@@ -21,6 +21,9 @@ export default class TranslationEditorPage {
         this.editLanguagesButton = page.locator('.selected-langs-header sp-action-button');
 
         // Selected items section
+        this.itemsEmptyState = page.locator('.items-empty-state');
+        this.itemsEmptyStateIcon = page.locator('.items-empty-state .icon sp-icon-add[label="Add Items"]');
+        this.itemsEmptyStateLabel = page.locator('.items-empty-state .label');
         this.selectedFilesHeader = page.locator('.selected-files-header h2');
         this.selectedItemsHeader = page.locator('.selected-items-header h2');
         this.selectedFilesTable = page.locator('mas-select-fragments-table');

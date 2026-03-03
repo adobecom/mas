@@ -158,4 +158,33 @@ test.describe('M@S Studio Translation Editor test suite', () => {
             await expect(selectedLangsList).not.toContainText(removedLocale);
         });
     });
+
+    test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}`;
+        setTestPage(testPage);
+
+        const addLangsDialog = page.locator('mas-translation-editor >> .add-langs-dialog');
+
+        await test.step('step-1: Go to MAS Studio translation editor page (new project)', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(translationEditor.form).toBeVisible({ timeout: 10000 });
+        });
+
+        await test.step('step-2: Add one language to reach Select items section', async () => {
+            await translationEditor.addLanguagesButton.click();
+            await expect(addLangsDialog).toBeVisible({ timeout: 5000 });
+            const langCheckbox = addLangsDialog.locator('sp-checkbox').first();
+            await langCheckbox.click();
+            await addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
+            await expect(translationEditor.selectedLangsSection).toBeVisible({ timeout: 5000 });
+        });
+
+        await test.step('step-3: Verify Select items empty state - plus icon, Add Items, and helper text', async () => {
+            await expect(translationEditor.itemsEmptyState).toBeVisible();
+            await expect(translationEditor.itemsEmptyStateIcon).toBeVisible();
+            await expect(translationEditor.itemsEmptyStateLabel).toContainText('Add Items');
+            await expect(translationEditor.itemsEmptyStateLabel).toContainText('Choose items that need to be translated.');
+        });
+    });
 });

@@ -326,6 +326,7 @@
                             const event = await eventPromise;
                             expect(event).to.exist;
                             expect(event.detail.fragment).to.deep.equal(mockCreatedVariation);
+                            expect(event.detail.parentFragment).to.deep.equal(mockFragment);
                         });
 
                         it('should submit grouped locale tag IDs with productArrangementCode from offer', async () => {

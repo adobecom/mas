@@ -749,6 +749,7 @@ merch-card merch-whats-included[has-bullets] [slot="content"] {
 }
 
 merch-badge[background-color="spectrum-red-700-plans"],
+merch-badge[background-color="spectrum-green-900-plans"],
 merch-badge[background-color="spectrum-green-900-special-offers"] {
   color: #FFFFFF;
 }

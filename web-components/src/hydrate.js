@@ -432,6 +432,9 @@ export function processDescription(fields, merchCard, mapping) {
     appendSlot('callout', fields, merchCard, mapping);
     appendSlot('quantitySelect', fields, merchCard, mapping);
     appendSlot('whatsIncluded', fields, merchCard, mapping);
+    if (mapping.perUnitLabel) {
+        appendSlot('perUnitLabel', fields, merchCard, mapping);
+    }
 }
 
 export function processAddon(fields, merchCard, mapping) {

@@ -22,16 +22,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
     ctas: { slot: 'footer', size: 'm' },
     addon: true,
     secureLabel: true,
-    planType: true,
-    perUnitLabel: { tag: 'span', slot: 'priceLabel' },
-    badgeIcon: true,
     borderColor: { attribute: 'border-color' },
-    allowedBorderColors: [
-        'spectrum-yellow-300-plans',
-        'spectrum-gray-300-plans',
-        'spectrum-green-900-plans',
-        'spectrum-red-700-plans',
-    ],
     backgroundColor: { attribute: 'background-color' },
     size: [],
     mnemonics: { size: 'm' },
@@ -54,7 +45,6 @@ const HEADLESS_FIELDS = [
     { slot: 'short-description', label: 'Short Description' },
     { slot: 'trial-badge', label: 'Trial Badge' },
     { slot: 'prices', label: 'Product price' },
-    { slot: 'priceLabel', label: 'Per unit label' },
     { slot: 'quantity-select', label: 'Quantity select' },
     { slot: 'addon', label: 'Addon' },
     { slot: 'whats-included', label: "What's included" },
@@ -103,9 +93,6 @@ export class Headless extends VariantLayout {
             border: none;
             background: transparent;
             box-shadow: none;
-        }
-        :host([variant='headless'][border-color]) {
-            border: 1px solid var(--consonant-merch-card-border-color, #eaeaea);
         }
         :host([variant='headless']) .headless {
             display: flex;

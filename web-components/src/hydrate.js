@@ -432,9 +432,6 @@ export function processDescription(fields, merchCard, mapping) {
     appendSlot('callout', fields, merchCard, mapping);
     appendSlot('quantitySelect', fields, merchCard, mapping);
     appendSlot('whatsIncluded', fields, merchCard, mapping);
-    if (mapping.perUnitLabel) {
-        appendSlot('perUnitLabel', fields, merchCard, mapping);
-    }
 }
 
 export function processAddon(fields, merchCard, mapping) {
@@ -794,11 +791,11 @@ export async function hydrate(fragment, merchCard) {
         merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);
-    processBadge(fields, merchCard, mapping);
     processTrialBadge(fields, merchCard, mapping);
     processSize(fields, merchCard, mapping.size);
     processCardName(fields, merchCard);
     processTitle(fields, merchCard, mapping.title);
+    processBadge(fields, merchCard, mapping);
     processSubtitle(fields, merchCard, mapping);
     processPrices(fields, merchCard, mapping);
     processBackgroundImage(fields, merchCard, mapping.backgroundImage);

@@ -302,16 +302,26 @@ export function stripHtml(value) {
 }
 
 /**
- * Returns a truncated plain-text preview of the first value in an array.
- * HTML is stripped; long strings are capped at 60 characters with ellipsis.
+ * Returns a truncated preview of the first value in an array.
+ * HTML is stripped except {@html <s>} tags (strikethrough prices).
+ * Long strings are capped at 60 visible characters with ellipsis.
  * @param {any[]} values
  * @returns {string}
  */
 export function previewValue(values) {
     const raw = values?.[0] ?? '';
     if (!raw) return '';
-    const text = typeof raw === 'string' && raw.includes('<') ? stripHtml(raw) : String(raw);
-    return text.length > PREVIEW_MAX_LENGTH ? `${text.slice(0, PREVIEW_MAX_LENGTH - 3)}...` : text;
+    if (typeof raw !== 'string' || !raw.includes('<')) {
+        const text = String(raw);
+        return text.length > PREVIEW_MAX_LENGTH ? `${text.slice(0, PREVIEW_MAX_LENGTH - 3)}...` : text;
+    }
+    // Strip all HTML except <s> tags used for strikethrough prices.
+    const preview = raw.replace(/<(?!\/?s\b)[^>]+>/g, '');
+    const plainLength = preview.replace(/<\/?s>/g, '').length;
+    if (plainLength <= PREVIEW_MAX_LENGTH) return preview;
+    // Fall back to plain text for truncation to avoid breaking <s> tags.
+    const plain = stripHtml(raw);
+    return plain.slice(0, PREVIEW_MAX_LENGTH - 3) + '...';
 }
 
 /*

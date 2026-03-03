@@ -237,7 +237,7 @@ describe('MasSideNav – Copy Field', () => {
             editorStub.withArgs('mas-fragment-editor').returns(editor);
 
             const descriptionField = el.copyableFields.find((f) => f.name === 'description');
-            expect(descriptionField.preview).to.equal('US$199.99 then US$99.99');
+            expect(descriptionField.preview).to.equal('<s>US$199.99</s> then US$99.99');
         });
 
         it('should include non-empty inherited base fields for variations', () => {

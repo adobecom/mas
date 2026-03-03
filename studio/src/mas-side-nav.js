@@ -16,6 +16,15 @@ const FIELD_SOURCE = {
 const OVERRIDDEN_SECTION_LABEL = 'Overridden in this variation';
 const INHERITED_SECTION_LABEL = 'Inherited from base fragment';
 
+/** Renders a preview string, converting <s>…</s> segments to Lit <s> elements. */
+function renderPreview(preview) {
+    if (!preview?.includes('<s>')) return preview;
+    return preview.split(/(<s>.*?<\/s>)/).map((part) => {
+        const match = part.match(/^<s>(.*)<\/s>$/);
+        return match ? html`<s>${match[1]}</s>` : part;
+    });
+}
+
 class MasSideNav extends LitElement {
     static properties = {
         variationDataLoading: { type: Boolean, state: true },
@@ -311,12 +320,19 @@ class MasSideNav extends LitElement {
         return value?.replace(/\s+/g, ' ').trim() ?? '';
     }
 
+    /** Returns visible text from an element, excluding sr-only aria labels. */
+    #getVisibleText(el) {
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll('sr-only').forEach((n) => n.remove());
+        return this.#normalizePreviewText(clone.textContent);
+    }
+
     #getFirstResolvedPriceText(card) {
         const prices = [...card.querySelectorAll(INLINE_PRICE_SELECTOR)];
         let fallbackText = '';
 
         for (const price of prices) {
-            const text = this.#normalizePreviewText(price.textContent);
+            const text = this.#getVisibleText(price);
             if (!text) continue;
             if (price.getAttribute('data-template') === 'price') return text;
             if (!fallbackText) fallbackText = text;
@@ -345,7 +361,7 @@ class MasSideNav extends LitElement {
         return [...card.querySelectorAll(INLINE_PRICE_SELECTOR)]
             .map((el) => ({
                 attrs: this.#getInlinePriceAttributes(el),
-                text: this.#normalizePreviewText(el.textContent),
+                text: this.#getVisibleText(el),
             }))
             .filter(({ text }) => !!text);
     }
@@ -396,7 +412,15 @@ class MasSideNav extends LitElement {
             const candidateIdx = this.#findInlinePriceCandidate(sourceAttrs, resolvedInlinePrices, usedIndices);
             if (candidateIdx === -1) return;
             usedIndices.add(candidateIdx);
-            inlinePrice.replaceWith(resolvedInlinePrices[candidateIdx].text);
+            const text = resolvedInlinePrices[candidateIdx].text;
+            const template = sourceAttrs.get('data-template');
+            if (template === 'strikethrough' || template === 'priceStrikethrough') {
+                const s = doc.createElement('s');
+                s.textContent = text;
+                inlinePrice.replaceWith(s);
+            } else {
+                inlinePrice.replaceWith(text);
+            }
         });
         return doc.body.innerHTML;
     }
@@ -477,7 +501,7 @@ class MasSideNav extends LitElement {
                           class="field-entry ${isVariation && source === FIELD_SOURCE.CURRENT ? 'field-entry-overridden' : ''}"
                       >
                           <span class="field-label">${displayName}</span>
-                          <span class="field-value">${preview}</span>
+                          <span class="field-value">${renderPreview(preview)}</span>
                       </div>`
                     : displayName}
             </sp-menu-item>

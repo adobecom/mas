@@ -95,7 +95,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.include('promoText');
             expect(names).to.include('callout');
             expect(names).to.include('subtitle');
-            expect(names).to.include('ctas');
+            expect(names).to.not.include('ctas');
             expect(names).to.not.include('cta');
             expect(names).to.not.include('quantitySelect');
             expect(names).to.not.include('perUnitLabel');
@@ -103,7 +103,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.not.include('osi');
         });
 
-        it('should use FIELD_DISPLAY_NAMES for allowlisted known fields', () => {
+        it('should not include mapped fields that are not allowlisted', () => {
             const fragment = mockFragment([
                 { name: 'variant', values: ['plans'] },
                 { name: 'osi', values: ['K79yhO4'] },
@@ -111,7 +111,7 @@ describe('MasSideNav – Copy Field', () => {
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
-            expect(map.ctas).to.equal('CTAs');
+            expect(map.ctas).to.be.undefined;
             expect(map.variant).to.be.undefined;
             expect(map.osi).to.be.undefined;
         });
@@ -269,7 +269,7 @@ describe('MasSideNav – Copy Field', () => {
             const fields = el.copyableFields;
             const inheritedNames = fields.filter((f) => f.source === 'inherited').map((f) => f.name);
             expect(inheritedNames).to.include('description');
-            expect(inheritedNames).to.include('ctas');
+            expect(inheritedNames).to.not.include('ctas');
             expect(inheritedNames).to.include('subtitle');
             expect(inheritedNames).to.not.include('cardTitle');
             expect(fields.find((f) => f.name === 'description').preview).to.equal('Secure transaction');

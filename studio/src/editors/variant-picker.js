@@ -19,6 +19,7 @@ export const VARIANT_NAMES = {
     IMAGE: 'image',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
     FULL_PRICING_EXPRESS: 'full-pricing-express',
+    HEADLESS: 'headless',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -83,6 +84,11 @@ export const VARIANTS = [
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
         surface: SURFACES.EXPRESS.name,
+    },
+    {
+        label: 'Headless',
+        value: VARIANT_NAMES.HEADLESS,
+        surface: SURFACES.SANDBOX.name,
     },
 ];
 

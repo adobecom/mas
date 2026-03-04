@@ -211,7 +211,7 @@ export class MasVariationDialog extends LitElement {
 
                 this.dispatchEvent(
                     new CustomEvent('fragment-copied', {
-                        detail: { fragment: variationFragment },
+                        detail: { fragment: variationFragment, parentFragment: this.fragment },
                         bubbles: true,
                         composed: true,
                     }),
@@ -230,7 +230,7 @@ export class MasVariationDialog extends LitElement {
 
                 this.dispatchEvent(
                     new CustomEvent('fragment-copied', {
-                        detail: { fragment: variationFragment },
+                        detail: { fragment: variationFragment, parentFragment: this.fragment },
                         bubbles: true,
                         composed: true,
                     }),

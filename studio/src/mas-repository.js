@@ -115,6 +115,7 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #searchCursor = null;
     /** @type {AEM} */
     aem;
 
@@ -248,7 +249,15 @@ export class MasRepository extends LitElement {
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
 
-        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
+        const currentTags = dataStore.getMeta('tags');
+        const tagsString = this.filters.value.tags || '';
+        if (
+            currentData?.length > 0 &&
+            currentPath === path &&
+            currentQuery === query &&
+            currentLocale === locale &&
+            currentTags === tagsString
+        ) {
             const filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
@@ -308,6 +317,7 @@ export class MasRepository extends LitElement {
 
         try {
             if (this.#abortControllers.search) this.#abortControllers.search.abort();
+            this.#searchCursor = null;
             this.#abortControllers.search = new AbortController();
 
             if (isUUID(this.search.value.query)) {
@@ -346,33 +356,54 @@ export class MasRepository extends LitElement {
                 }
             } else {
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
-                const fragmentStores = [];
-                // Extract surface from path for corrector
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
-                for await (const result of cursor) {
-                    for await (const item of result) {
-                        if (this.skipVariant(variants, item)) continue;
-                        // Apply corrector transformer before caching
-                        applyCorrectorToFragment(item, surface);
-                        const fragment = await this.#addToCache(item);
-                        const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
-                        fragmentStores.push(sourceStore);
-                    }
-                    dataStore.set([...fragmentStores]);
+                const fragmentStores = [];
+                const firstPage = await cursor.next();
+                if (!firstPage.done) {
+                    await this.#processPage(firstPage.value, variants, surface, fragmentStores);
                     Store.fragments.list.firstPageLoaded.set(true);
                 }
+                this.#searchCursor = firstPage.done ? null : { cursor, variants, surface, fragmentStores };
+                Store.fragments.list.hasMore.set(!firstPage.done);
             }
 
             dataStore.setMeta('path', path);
             dataStore.setMeta('query', query);
             dataStore.setMeta('locale', locale);
-            dataStore.setMeta('tags', tags);
+            dataStore.setMeta('tags', this.filters.value.tags || '');
 
             this.#abortControllers.search = null;
         } catch (error) {
             this.processError(error, 'Could not load fragments.');
         }
 
+        Store.fragments.list.loading.set(false);
+    }
+
+    async #processPage(items, variants, surface, fragmentStores) {
+        for await (const item of items) {
+            if (this.skipVariant(variants, item)) continue;
+            applyCorrectorToFragment(item, surface);
+            const fragment = await this.#addToCache(item);
+            fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
+        }
+        Store.fragments.list.data.set([...fragmentStores]);
+    }
+
+    async loadNextPage() {
+        if (!this.#searchCursor) return;
+        Store.fragments.list.loading.set(true);
+        const { cursor, variants, surface, fragmentStores } = this.#searchCursor;
+        try {
+            const page = await cursor.next();
+            if (!page.done) await this.#processPage(page.value, variants, surface, fragmentStores);
+            if (page.done) {
+                this.#searchCursor = null;
+                Store.fragments.list.hasMore.set(false);
+            }
+        } catch (error) {
+            this.processError(error, 'Could not load next page.');
+        }
         Store.fragments.list.loading.set(false);
     }
 

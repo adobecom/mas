@@ -43,6 +43,7 @@ class MasContent extends LitElement {
     loading = new StoreController(this, Store.fragments.list.loading);
     firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
     fragments = new StoreController(this, Store.fragments.list.data);
+    hasMore = new StoreController(this, Store.fragments.list.hasMore);
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
@@ -63,12 +64,22 @@ class MasContent extends LitElement {
                 this.requestUpdate();
             }),
         );
+
+        this.scrollObserver = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting && this.hasMore.value && !this.loading.value) {
+                    document.querySelector('mas-repository')?.loadNextPage();
+                }
+            },
+            { rootMargin: '200px' },
+        );
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Events.fragmentAdded.unsubscribe(this.goToFragment);
         Events.fragmentDeleted.unsubscribe(this.onFragmentDeleted);
+        this.scrollObserver?.disconnect();
 
         if (this.subscriptions && this.subscriptions.length) {
             this.subscriptions.forEach((subscription) => {
@@ -186,6 +197,18 @@ class MasContent extends LitElement {
         return html`<div id="render" class="next-page-skeletons">${Array.from({ length: 4 }, cardSkeleton)}</div>`;
     }
 
+    updated() {
+        const sentinel = this.querySelector('.scroll-sentinel');
+        if (sentinel && sentinel !== this.observedSentinel) {
+            this.scrollObserver?.disconnect();
+            this.scrollObserver?.observe(sentinel);
+            this.observedSentinel = sentinel;
+        } else if (!sentinel) {
+            this.scrollObserver?.disconnect();
+            this.observedSentinel = null;
+        }
+    }
+
     render() {
         let view = nothing;
         switch (this.renderMode.value) {
@@ -199,7 +222,7 @@ class MasContent extends LitElement {
                 view = this.renderView;
         }
         return html`<div id="content">${view}</div>
-            ${this.pageLoadingSkeletons}`;
+            ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.pageLoadingSkeletons}`;
     }
 }
 

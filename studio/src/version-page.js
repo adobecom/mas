@@ -414,7 +414,8 @@ class VersionPage extends LitElement {
 
         // Load version history when fragmentId changes or when repository becomes available
         if (this.fragmentId.value && this.repository && !this.loading && !this.fragment) {
-
+            this.loadVersionHistory();
+        }
         // Process pending card hydrations after DOM is updated
         if (this.pendingHydrations.size > 0) {
             const hydrations = Array.from(this.pendingHydrations.entries());

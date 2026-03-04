@@ -257,7 +257,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
             let versionCount = 0;
 
             for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-                await versionPage.versionHistoryButton.click();
+                await studio.versionHistoryButton.click();
                 await page.waitForTimeout(3000);
                 await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
                 await page.waitForSelector('version-page .version-item', { timeout: 15000 });

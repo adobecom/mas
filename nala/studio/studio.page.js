@@ -68,6 +68,7 @@ export default class StudioPage {
         this.saveCardButton = this.sideNav.locator('mas-side-nav-item[label="Save"]');
         this.publishCardButton = this.sideNav.locator('mas-side-nav-item[label="Publish"]');
         this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
+        this.versionHistoryButton = this.sideNav.locator('mas-side-nav-item[label="History"]');
         this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
         this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
         this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');

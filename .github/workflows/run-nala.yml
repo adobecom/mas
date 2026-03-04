@@ -175,11 +175,10 @@ jobs:
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh
 
-            # Same as io-tests: set MAS_IO_URL from secrets.workspace (repo secret "workspace" = IO runtime namespace)
             - name: Set MAS_IO_URL when io/www has changes
               if: steps.filter.outputs.io-www == 'true'
               run: |
-                  echo "MAS_IO_URL=?mas-io-url=https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  echo "MAS_IO_URL=?mas-io-url=https://${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
 
             - name: Run Nala Docs Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh

@@ -53,7 +53,7 @@ class VersionPage extends LitElement {
         perUnitLabel: { label: 'Per unit label', visible: true },
         quantitySelect: { label: 'Quantity select', visible: true },
         // Not visible on card
-        variant: { label: 'Variant', visible: false },
+        variant: { label: 'Template', visible: false },
         osi: { label: 'OSI', visible: false },
         mnemonicAlt: { label: 'Mnemonic alt', visible: false },
         mnemonicLink: { label: 'Mnemonic link', visible: false },

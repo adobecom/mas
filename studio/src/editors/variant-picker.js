@@ -132,7 +132,7 @@ class VariantPicker extends LitElement {
 
     render() {
         return html`<sp-picker
-            label="Card Variant"
+            label="Card Template"
             size="m"
             value=${this.value ?? this.defaultValue}
             .value=${this.value ?? this.defaultValue}

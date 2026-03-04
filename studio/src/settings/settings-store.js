@@ -4,7 +4,7 @@ import { ROOT_PATH } from '../constants.js';
 import { ReactiveStore } from '../reactivity/reactive-store.js';
 import { showToast, normalizeKey } from '../utils.js';
 import { createTreeSelectionSummary } from '../common/fields/tree-picker-field.js';
-import { SettingStore, normalizeSettingFragment } from './setting-store.js';
+import { getSettingNameDefinition } from './setting-name-map.js';
 import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
 
 const INDEX_REFERENCES_FIELD = 'entries';
@@ -16,6 +16,61 @@ const TOP_LEVEL_CONFLICT_MESSAGE = 'A top-level setting already exists for this 
 const TOP_LEVEL_DUPLICATE_BLOCKED_MESSAGE = 'Top-level setting duplication is not allowed.';
 
 const isBooleanValue = (value) => value === true || value === false;
+
+const trueValues = new Set(['true', '1', 'yes', 'on']);
+const falseValues = new Set(['false', '0', 'no', 'off']);
+
+const normalizeBoolean = (value) => {
+    const normalized = `${value}`.trim().toLowerCase();
+    if (trueValues.has(normalized)) return true;
+    if (falseValues.has(normalized)) return false;
+    return value;
+};
+
+/**
+ * Normalizes a settings fragment into a UI row record.
+ * @param {import('../aem/fragment.js').Fragment} fragment
+ * @returns {object}
+ */
+export const normalizeSettingFragment = (fragment) => {
+    const name = `${fragment.getFieldValue('name') || ''}`;
+    const settingDefinition = getSettingNameDefinition(name);
+    const label = `${fragment.title || ''}`;
+    const dataField = fragment.getFieldValue('data');
+    const data = dataField ? JSON.parse(dataField) : {};
+    const valueType = settingDefinition ? settingDefinition.valueType : `${fragment.getFieldValue('valuetype') || 'text'}`;
+    const booleanValue = normalizeBoolean(fragment.getFieldValue('booleanValue')) === true;
+    const rawValue =
+        valueType === 'boolean'
+            ? booleanValue
+            : valueType === 'richText'
+              ? fragment.getFieldValue('richTextValue')
+              : fragment.getFieldValue('textValue');
+    const overridesField = fragment.getFieldValue('overrides');
+    const overrides = overridesField ? JSON.parse(overridesField) : [];
+    const locales = fragment.getFieldValues('locales');
+    const tags = fragment.getFieldValues('tags');
+
+    return {
+        id: fragment.id,
+        name,
+        label,
+        description: `${fragment.description || ''}`,
+        locales,
+        templateIds: fragment.getFieldValues('templates'),
+        templateSummary: '',
+        value: valueType === 'boolean' ? booleanValue : `${rawValue ?? ''}`,
+        booleanValue,
+        valueType,
+        data,
+        overrides,
+        tags,
+        modifiedBy: fragment.modified?.by || '',
+        modifiedAt: fragment.modified?.at || '',
+        status: fragment.status,
+        fragment,
+    };
+};
 
 const upsertField = (fields, field) => {
     const existingIndex = fields.findIndex((item) => item.name === field.name);
@@ -170,19 +225,15 @@ export class SettingsStore {
 
             const existingStore = currentRowsById.get(id);
             const record = recordOverrides.get(id);
-            const rowStore = existingStore || new SettingStore(fragment, record);
-            if (existingStore && record) existingStore.refreshFromRecord(record);
-            if (existingStore && !record) existingStore.refreshFromFragment(fragment);
+            const rowStore = existingStore || new ReactiveStore(record || normalizeSettingFragment(fragment));
+            if (existingStore && record) existingStore.set({ ...existingStore.value, ...record });
+            if (existingStore && !record) existingStore.set({ ...existingStore.value, ...normalizeSettingFragment(fragment) });
             currentRowsById.delete(id);
 
             if (!record) {
-                rowStore.setTemplateSummary(this.formatTemplateSummary(rowStore.value.templateIds));
+                rowStore.set({ ...rowStore.value, templateSummary: this.formatTemplateSummary(rowStore.value.templateIds) });
             }
             nextRows.push(rowStore);
-        }
-
-        for (const [, store] of currentRowsById) {
-            store.dispose();
         }
 
         this.expandedRowIds.set(this.expandedRowIds.get().filter((id) => nextIds.has(id)));
@@ -609,7 +660,7 @@ export class SettingsStore {
 
     markPublished(rowId) {
         const rowStore = this.getRowStore(rowId);
-        rowStore.patchData({ published: true });
+        rowStore.set({ ...rowStore.value, data: { ...rowStore.value.data, published: true } });
         this.toast.set({
             variant: 'positive',
             message: 'Setting has been successfully published.',
@@ -638,10 +689,6 @@ export class SettingsStore {
     }
 
     destroy() {
-        for (const store of this.rows.get()) {
-            store.dispose();
-        }
-
         this.rows.set([]);
         this.expandedRowIds.set([]);
         this.activeTabByRowId.set({});

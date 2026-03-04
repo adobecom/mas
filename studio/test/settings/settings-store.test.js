@@ -178,7 +178,6 @@ describe('Settings Store Namespace', () => {
 
         store.setSettingFragments([createSettingReference({ id: 'showAddon', templates: ['catalog'], value: true })]);
 
-        expect(removedStore.getMeta('disposed')).to.equal(true);
         expect(store.getRowStore('showPlanType')).to.equal(null);
     });
 

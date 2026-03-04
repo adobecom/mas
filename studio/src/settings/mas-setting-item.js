@@ -133,7 +133,7 @@ export class MasSettingItem extends LitElement {
                 <sp-table-cell class="name-cell setting-label" title=${this.row.description || ''}
                     >${this.row.label}</sp-table-cell
                 >
-                <sp-table-cell>${this.row.locale || 'All'}</sp-table-cell>
+                <sp-table-cell>${this.row.locales?.join(', ') || 'All'}</sp-table-cell>
                 <sp-table-cell class="template-cell">${this.row.templateSummary}</sp-table-cell>
                 ${this.valueCellTemplate}
                 <sp-table-cell class="tags-cell">${this.tagsTemplate}</sp-table-cell>

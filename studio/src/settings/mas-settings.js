@@ -555,7 +555,7 @@ class MasSettings extends LitElement {
 
         if (action === 'delete-override') {
             const override = row.overrides.find((item) => item.id === overrideId);
-            const localeLabel = override.locales?.length ? override.locales.join(', ') : override.locale;
+            const localeLabel = override.locales?.join(', ');
             return {
                 title: 'Delete this setting override?',
                 body: [
@@ -730,12 +730,7 @@ class MasSettings extends LitElement {
         return (
             row.overrides.find((override) => {
                 if (this.dialog.mode === 'edit' && override.id === this.dialog.overrideId) return false;
-                const overrideLocales = override.locales?.length
-                    ? override.locales
-                    : `${override.locale || ''}`
-                          .split(',')
-                          .map((locale) => locale.trim())
-                          .filter(Boolean);
+                const overrideLocales = override.locales || [];
                 return overrideLocales.some((locale) => this.form.locales.includes(locale));
             }) || null
         );
@@ -1061,7 +1056,7 @@ class MasSettings extends LitElement {
                                   </div>
                                   <span>
                                       This override is in conflict with an existing setting '${conflict.label}
-                                      (${conflict.locale})'.
+                                      (${conflict.locales?.join(', ')})'.
                                   </span>
                                   <span>View an existing setting or adjust your selection.</span>
                               </div>

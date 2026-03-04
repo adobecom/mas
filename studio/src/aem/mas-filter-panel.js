@@ -277,7 +277,7 @@ class MasFilterPanel extends LitElement {
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="variant"
-                    label="Variant"
+                    label="Template"
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.variant)}

@@ -135,7 +135,7 @@ export class SettingStore extends ReactiveStore {
     removeOverride(overrideId) {
         this.set({
             ...this.value,
-            overrides: this.value.overrides.filter((override, index) => override.id !== overrideId && index !== overrideId),
+            overrides: this.value.overrides.filter((override) => override.id !== overrideId),
         });
     }
 

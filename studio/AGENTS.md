@@ -21,7 +21,8 @@ Rules for AI agents working in this codebase.
     - Use reactive properties (`static properties`) with appropriate defaults.
     - Use `render()` for declarative templates — no imperative DOM manipulation.
     - Keep components small and composable.
-    - Use CSS custom properties and `static styles` for styling.
+    - Use CSS custom properties and `static styles` for styling — avoid inline styles in templates.
+    - When dynamic styles are necessary, use Lit directives like `styleMap` or `classMap` instead of template literal interpolation.
     - Dispatch custom events (not callbacks) for child-to-parent communication.
     - Use **getters** (e.g., `get headerTemplate()`) for rendering HTML sections — not `renderXyz()` methods.
     - Only use per-item render functions when iterating over a list (e.g., `renderItem(item)`).

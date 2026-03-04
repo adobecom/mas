@@ -1049,6 +1049,87 @@ describe('Settings Store Namespace', () => {
         expect(harness.calls.unpublish).to.deep.equal(['setting-show-addon']);
     });
 
+    it('removes settings index entries before deleting draft top-level settings', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'showAddon',
+            label: 'Show Addon',
+            status: 'DRAFT',
+            locales: [],
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon',
+        });
+        const override = createSettingReference({
+            id: 'setting-show-addon-fr',
+            name: 'showAddon',
+            label: 'Show Addon',
+            locales: ['fr_FR'],
+            fieldName: 'entries',
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon-fr',
+        });
+        const harness = createMutationHarness({ topLevel, overrides: [override] });
+
+        let indexSaved = false;
+        let deletedBeforeIndexUpdate = false;
+        const originalSave = harness.aem.sites.cf.fragments.save;
+        const originalDelete = harness.aem.sites.cf.fragments.delete;
+
+        harness.aem.sites.cf.fragments.save = async (fragment) => {
+            if (fragment?.id === 'settings-index') indexSaved = true;
+            return originalSave(fragment);
+        };
+
+        harness.aem.sites.cf.fragments.delete = async (fragment) => {
+            if (!indexSaved) deletedBeforeIndexUpdate = true;
+            return originalDelete(fragment);
+        };
+
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
+
+        const removed = await store.removeSetting(topLevel.id);
+        expect(removed).to.equal(true);
+        expect(deletedBeforeIndexUpdate).to.equal(false);
+    });
+
+    it('restores undeleted index entries when draft setting deletion fails', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'showAddon',
+            label: 'Show Addon',
+            status: 'DRAFT',
+            locales: [],
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon',
+        });
+        const override = createSettingReference({
+            id: 'setting-show-addon-fr',
+            name: 'showAddon',
+            label: 'Show Addon',
+            locales: ['fr_FR'],
+            fieldName: 'entries',
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon-fr',
+        });
+        const harness = createMutationHarness({ topLevel, overrides: [override] });
+        const originalDelete = harness.aem.sites.cf.fragments.delete;
+
+        harness.aem.sites.cf.fragments.delete = async (fragment) => {
+            if (fragment.id === topLevel.id) {
+                throw new Error('top-level delete failed');
+            }
+            return originalDelete(fragment);
+        };
+
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
+
+        const removed = await store.removeSetting(topLevel.id);
+        expect(removed).to.equal(false);
+        expect(harness.calls.delete).to.include(override.id);
+        expect(harness.calls.delete).to.not.include(topLevel.id);
+        expect(harness.getIndexEntries()).to.deep.equal([topLevel.path]);
+    });
+
     it('duplicates settings and overrides using fallback locale parsing', async () => {
         const topLevel = createSettingReference({
             id: 'setting-display-plan-type',

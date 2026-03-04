@@ -154,7 +154,6 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-
             expect(items).to.deep.equal(['Settings', 'Edit setting']);
         });
 
@@ -259,6 +258,25 @@ describe('MasTopNav', () => {
             const firstBreadcrumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
             firstBreadcrumb.click();
             expect(navigateStub.calledWith(PAGE_NAMES.SETTINGS)).to.be.true;
+        });
+
+        it('repairs hidden first breadcrumb in settings editor transitions', async () => {
+            Store.page.value = PAGE_NAMES.SETTINGS_EDITOR;
+            Store.settings.fragmentId.value = 'setting-1';
+            Store.settings.creating.value = false;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const firstBreadcrumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            expect(firstBreadcrumb).to.exist;
+            firstBreadcrumb.setAttribute('hidden', '');
+
+            Store.settings.creating.value = true;
+            Store.settings.fragmentId.value = null;
+            await el.updateComplete;
+            await delay(0);
+            await delay(0);
+
+            const repairedFirstBreadcrumb = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            expect(repairedFirstBreadcrumb.hasAttribute('hidden')).to.equal(false);
         });
 
         it('should not render breadcrumbs on content page', async () => {

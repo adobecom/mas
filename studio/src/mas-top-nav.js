@@ -107,6 +107,7 @@ class MasTopNav extends LitElement {
     };
 
     profileTemplatePromise = null;
+    #breadcrumbRepairFrame = null;
 
     constructor() {
         super();
@@ -121,6 +122,36 @@ class MasTopNav extends LitElement {
         if (changedProperties.has('aemEnv')) {
             this.profileTemplatePromise = null;
         }
+    }
+
+    updated() {
+        this.#repairSettingsBreadcrumbOverflow();
+    }
+
+    disconnectedCallback() {
+        if (this.#breadcrumbRepairFrame !== null) {
+            cancelAnimationFrame(this.#breadcrumbRepairFrame);
+            this.#breadcrumbRepairFrame = null;
+        }
+        super.disconnectedCallback();
+    }
+
+    #repairSettingsBreadcrumbOverflow() {
+        if (this.page.value !== PAGE_NAMES.SETTINGS_EDITOR) return;
+        if (this.#breadcrumbRepairFrame !== null) cancelAnimationFrame(this.#breadcrumbRepairFrame);
+
+        this.#breadcrumbRepairFrame = requestAnimationFrame(() => {
+            this.#breadcrumbRepairFrame = null;
+            const breadcrumbs = this.querySelector('.nav-breadcrumbs sp-breadcrumbs');
+            if (!breadcrumbs) return;
+            const items = [...breadcrumbs.querySelectorAll('sp-breadcrumb-item')];
+            if (items.length <= 2) {
+                items.forEach((item) => item.removeAttribute('hidden'));
+            }
+            if (typeof breadcrumbs.adjustOverflow === 'function') {
+                breadcrumbs.adjustOverflow();
+            }
+        });
     }
 
     getProfileTemplate() {

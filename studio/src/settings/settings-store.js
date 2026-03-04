@@ -451,18 +451,34 @@ export class SettingsStore {
             showToast('Top-level settings cannot be deleted.', 'negative');
             return false;
         }
-        const fragmentIds = [row.id, ...row.overrides.map((override) => override.id)];
         const fragmentPaths = [row.fragment.path, ...row.overrides.map((override) => override.path)];
+        const deleteTargets = [
+            ...row.overrides.map((override) => ({ id: override.id, path: override.path })),
+            { id: row.id, path: row.fragment.path },
+        ];
 
         return this.#runMutation(
             async () => {
-                await Promise.all(
-                    fragmentIds.map(async (id) => {
-                        const fragment = await this.aem.sites.cf.fragments.getById(id);
+                let indexUpdated = false;
+                const deletedPaths = new Set();
+                try {
+                    await this.#removePathsFromIndex(fragmentPaths);
+                    indexUpdated = true;
+
+                    for (const target of deleteTargets) {
+                        const fragment = await this.aem.sites.cf.fragments.getById(target.id);
                         await this.aem.sites.cf.fragments.delete(fragment);
-                    }),
-                );
-                await this.#removePathsFromIndex(fragmentPaths);
+                        deletedPaths.add(target.path);
+                    }
+                } catch (error) {
+                    if (indexUpdated) {
+                        const pathsToRestore = fragmentPaths.filter((path) => !deletedPaths.has(path));
+                        if (pathsToRestore.length > 0) {
+                            await this.#addPathsToIndex(pathsToRestore);
+                        }
+                    }
+                    throw error;
+                }
             },
             'Setting deleted.',
             'Failed to delete setting.',

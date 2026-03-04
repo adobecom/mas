@@ -5,9 +5,14 @@ import { isPowerUser } from './groups.js';
 
 export class Router extends EventTarget {
     #isWatchingSandboxSettingsRoute = false;
+    #isWatchingSettingsAccessRoute = false;
 
     #sandboxSettingsRouteWatcher = () => {
         this.#resolveSandboxSettingsRoute();
+    };
+
+    #settingsAccessRouteWatcher = () => {
+        this.#resolveSettingsAccessRoute();
     };
 
     constructor(location = window.location) {
@@ -95,15 +100,7 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
                 };
             }
-            case PAGE_NAMES.SETTINGS: {
-                const editor = document.querySelector('mas-settings');
-                const hasUnsavedChanges = editor && editor.hasUnsavedChanges;
-                return {
-                    editor,
-                    hasChanges: hasUnsavedChanges,
-                    shouldCheckUnsavedChanges: hasUnsavedChanges,
-                };
-            }
+            case PAGE_NAMES.SETTINGS:
             case PAGE_NAMES.SETTINGS_EDITOR: {
                 const editor = document.querySelector('mas-settings');
                 const hasUnsavedChanges = editor && editor.hasUnsavedChanges;
@@ -472,7 +469,8 @@ export class Router extends EventTarget {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
             const page = this.currentParams.get('page');
-            if (!page && Store.page.value) {
+            const isSandboxRouteWithoutPage = !page && this.currentParams.get('path') === 'sandbox';
+            if (!page && Store.page.value && !isSandboxRouteWithoutPage) {
                 this.currentParams.set('page', Store.page.value);
             }
             const path = this.currentParams.get('path');
@@ -530,6 +528,7 @@ export class Router extends EventTarget {
 
     #getAuthorizedPage(page) {
         if (!this.#isSettingsPage(page)) return page;
+        if (!Store.users.getMeta('loaded')) return page;
         if (isPowerUser()) return page;
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
@@ -547,12 +546,45 @@ export class Router extends EventTarget {
     #enforceSettingsAccessFromParams() {
         const page = this.currentParams.get('page');
         if (!this.#isSettingsPage(page)) return false;
+        if (!Store.users.getMeta('loaded')) {
+            this.#startWatchingSettingsAccessRoute();
+            return false;
+        }
+        this.#stopWatchingSettingsAccessRoute();
         if (isPowerUser()) return false;
         this.currentParams.set('page', PAGE_NAMES.WELCOME);
         this.currentParams.delete('fragmentId');
+        Store.page.set(PAGE_NAMES.WELCOME);
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
         return true;
+    }
+
+    #startWatchingSettingsAccessRoute() {
+        if (this.#isWatchingSettingsAccessRoute) return;
+        this.#isWatchingSettingsAccessRoute = true;
+        Store.profile.subscribe(this.#settingsAccessRouteWatcher);
+        Store.users.subscribe(this.#settingsAccessRouteWatcher);
+    }
+
+    #stopWatchingSettingsAccessRoute() {
+        if (!this.#isWatchingSettingsAccessRoute) return;
+        this.#isWatchingSettingsAccessRoute = false;
+        Store.profile.unsubscribe(this.#settingsAccessRouteWatcher);
+        Store.users.unsubscribe(this.#settingsAccessRouteWatcher);
+    }
+
+    #resolveSettingsAccessRoute() {
+        this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
+        if (!this.#isSettingsPage(this.currentParams.get('page'))) {
+            this.#stopWatchingSettingsAccessRoute();
+            return false;
+        }
+        const redirected = this.#enforceSettingsAccessFromParams();
+        if (redirected) {
+            this.updateHistory();
+        }
+        return redirected;
     }
 
     #startWatchingSandboxSettingsRoute() {
@@ -570,9 +602,9 @@ export class Router extends EventTarget {
     }
 
     #resolveSandboxSettingsRoute() {
-        const params = new URLSearchParams(this.location.hash.slice(1));
-        const page = params.get('page');
-        const path = params.get('path');
+        this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
+        const page = this.currentParams.get('page');
+        const path = this.currentParams.get('path');
         if (page || path !== 'sandbox') {
             this.#stopWatchingSandboxSettingsRoute();
             return false;

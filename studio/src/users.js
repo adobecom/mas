@@ -33,9 +33,7 @@ export async function initUsers() {
         const profile = await window.adobeIMS.getProfile();
         Store.profile.set(profile);
         const uniqueEditors = await loadUsers();
-        if (uniqueEditors.length > 0) {
-            Store.users.set(uniqueEditors);
-        }
+        Store.users.set(uniqueEditors);
 
         Store.search.subscribe(async ({ path }) => {
             if (path !== 'sandbox') return;
@@ -48,5 +46,8 @@ export async function initUsers() {
         });
     } catch (e) {
         console.error('Error initializing users', e);
+        Store.users.set([]);
+    } finally {
+        Store.users.setMeta('loaded', true);
     }
 }

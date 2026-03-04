@@ -295,6 +295,56 @@
                             Store.settings.updateSetting = originalUpdate;
                         });
 
+                        it('returns to settings table after deleting from editor page', async () => {
+                            const draftTopLevel = createSettingReference({
+                                id: 'setting-show-plan-type',
+                                title: 'Show plan type',
+                                name: 'showPlanType',
+                                label: 'Show plan type',
+                                status: 'DRAFT',
+                                templates: ['catalog'],
+                                locales: [],
+                                value: true,
+                                path: '/content/dam/mas/acom/settings/setting-show-plan-type',
+                            });
+                            const references = [
+                                draftTopLevel,
+                                ...defaultReferences.filter((reference) => reference.id !== 'setting-show-plan-type'),
+                            ];
+                            const { settingsPage, table } = await setupPage({ references });
+                            const removedIds = [];
+                            const originalRemoveSetting = Store.settings.removeSetting;
+                            Store.settings.removeSetting = async (rowId) => {
+                                removedIds.push(rowId);
+                                return true;
+                            };
+
+                            table.dispatchEvent(
+                                new CustomEvent('setting-edit', {
+                                    detail: { id: 'setting-show-plan-type', isOverride: false },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+                            expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS_EDITOR);
+
+                            clickEditorAction(settingsPage, 'Delete');
+                            await waitForUpdates(settingsPage, 2);
+                            const dialog = settingsPage.shadowRoot.querySelector('sp-dialog-wrapper');
+                            expect(dialog).to.exist;
+                            dialog.dispatchEvent(new Event('confirm'));
+                            await waitForUpdates(settingsPage, 2);
+
+                            expect(removedIds).to.deep.equal(['setting-show-plan-type']);
+                            expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+                            expect(Store.settings.fragmentId.get()).to.equal(null);
+                            expect(Store.settings.creating.get()).to.equal(false);
+                            expect(settingsPage.shadowRoot.querySelector('#settings-editor-page')).to.equal(null);
+                            expect(settingsPage.shadowRoot.querySelector('#settings-table')).to.exist;
+                            Store.settings.removeSetting = originalRemoveSetting;
+                        });
+
                         it('prevents saving showAddon when enabled without placeholder selection', async () => {
                             const references = defaultReferences.map((reference) =>
                                 reference.id === 'setting-show-addon'

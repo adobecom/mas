@@ -97,6 +97,14 @@ class MasSettings extends LitElement {
             width: 100%;
         }
 
+        .addon-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
         .override-conflict {
             display: flex;
             flex-direction: column;
@@ -466,15 +474,19 @@ class MasSettings extends LitElement {
         Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
     };
 
+    #openEditorForSetting(settingId) {
+        Store.settings.fragmentId.set(settingId);
+        Store.settings.creating.set(false);
+        Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
+    }
+
     #handleEditSettingDialog = ({ detail: { id, parentId, isOverride } }) => {
         if (isOverride) {
             Store.settings.creating.set(false);
             Store.settings.fragmentId.set(id);
             return;
         }
-        Store.settings.creating.set(false);
-        Store.settings.fragmentId.set(id);
-        Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
+        this.#openEditorForSetting(id);
     };
 
     #handleAddOverrideDialog = ({ detail: { id } }) => {
@@ -801,8 +813,7 @@ class MasSettings extends LitElement {
             const createdId = await Store.settings.createSetting(payload);
             if (createdId) {
                 this.formBaseline = this.#normalizedForm(this.form);
-                Store.settings.creating.set(false);
-                Store.settings.fragmentId.set(createdId);
+                this.#openEditorForSetting(createdId);
             }
             return;
         }
@@ -863,8 +874,10 @@ class MasSettings extends LitElement {
             if (success) {
                 this.#handleDialogCancel();
                 if (action === 'duplicate' && duplicatedId) {
-                    Store.settings.creating.set(false);
-                    Store.settings.fragmentId.set(duplicatedId);
+                    this.#openEditorForSetting(duplicatedId);
+                }
+                if (action === 'delete' && this.isSettingsEditorPage) {
+                    this.#closeSettingsFormPage();
                 }
             }
         }
@@ -978,9 +991,7 @@ class MasSettings extends LitElement {
             const placeholderKey = this.#toAddonPlaceholderKey(this.form.value);
             return html`
                 <div>
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;"
-                    >
+                    <div class="addon-toggle-row">
                         <sp-field-label for="addon-enabled-switch">Enable Addon</sp-field-label>
                         <sp-switch
                             id="addon-enabled-switch"

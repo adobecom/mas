@@ -1,5 +1,6 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { EVENT_CHANGE } from '../../constants.js';
 
 const buildTreeIndex = (tree = []) => {
@@ -601,7 +602,7 @@ export class TreePickerField extends LitElement {
         const count = hasChildren ? descendantLeaves.length : 0;
 
         return html`
-            <div class="tree-row" style="--tree-depth:${depth}" data-tree-path="${nodeId}">
+            <div class="tree-row" style=${styleMap({ '--tree-depth': depth })} data-tree-path="${nodeId}">
                 <button
                     class="tree-toggle ${hasChildren ? '' : 'is-spacer'}"
                     ?disabled=${!hasChildren}

@@ -130,6 +130,7 @@ describe('Router URL parameter handling', async () => {
         const originalCreating = Store.settings.creating.get();
         const originalProfile = Store.profile.get();
         const originalUsers = Store.users.get();
+        const originalUsersLoadedMeta = Store.users.getMeta('loaded');
 
         Store.profile.set({ email: 'power@adobe.com' });
         Store.users.set([
@@ -138,6 +139,7 @@ describe('Router URL parameter handling', async () => {
                 groups: ['GRP-ODIN-MAS-POWERUSERS'],
             },
         ]);
+        Store.users.setMeta('loaded', true);
         Store.settings.fragmentId.set(null);
         Store.settings.creating.set(false);
 
@@ -155,16 +157,19 @@ describe('Router URL parameter handling', async () => {
         Store.settings.creating.set(originalCreating);
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
     it('should redirect sandbox deep link to settings after users load for power user', async () => {
         const originalPage = Store.page.get();
         const originalProfile = Store.profile.get();
         const originalUsers = Store.users.get();
+        const originalUsersLoadedMeta = Store.users.getMeta('loaded');
 
         Store.page.set(PAGE_NAMES.WELCOME);
         Store.profile.set({});
         Store.users.set([]);
+        Store.users.setMeta('loaded', false);
 
         const router = new Router({ hash: '#path=sandbox' });
         router.start();
@@ -178,6 +183,7 @@ describe('Router URL parameter handling', async () => {
                 groups: ['Grp-ODIN-MAS-POWERUSERS'],
             },
         ]);
+        Store.users.setMeta('loaded', true);
         await delay(60);
 
         expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
@@ -187,6 +193,50 @@ describe('Router URL parameter handling', async () => {
         Store.page.set(originalPage);
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
+    });
+
+    it('should preserve a page-less sandbox hash on hashchange until users resolve', async () => {
+        const originalPage = Store.page.get();
+        const originalProfile = Store.profile.get();
+        const originalUsers = Store.users.get();
+        const originalUsersLoadedMeta = Store.users.getMeta('loaded');
+
+        Store.page.set(PAGE_NAMES.CONTENT);
+        Store.profile.set({});
+        Store.users.set([]);
+        Store.users.setMeta('loaded', false);
+
+        const router = new Router({ hash: '#page=content&path=cards' });
+        router.start();
+        await delay(60);
+
+        router.location.hash = '#path=sandbox';
+        window.dispatchEvent(new Event('hashchange'));
+        await delay(60);
+
+        expect(router.location.hash).to.include('path=sandbox');
+        expect(router.location.hash).to.not.include('page=');
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+
+        Store.profile.set({ email: 'power@adobe.com' });
+        Store.users.set([
+            {
+                userPrincipalName: 'power@adobe.com',
+                groups: ['GRP-ODIN-MAS-POWERUSERS'],
+            },
+        ]);
+        Store.users.setMeta('loaded', true);
+        await delay(60);
+
+        expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+        expect(router.location.hash).to.include('path=sandbox');
+        expect(router.location.hash).to.include('page=settings');
+
+        Store.page.set(originalPage);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
     it('should redirect settings deeplink to welcome when user is not power user', async () => {
@@ -195,6 +245,7 @@ describe('Router URL parameter handling', async () => {
         const originalCreating = Store.settings.creating.get();
         const originalProfile = Store.profile.get();
         const originalUsers = Store.users.get();
+        const originalUsersLoadedMeta = Store.users.getMeta('loaded');
 
         Store.profile.set({ email: 'viewer@adobe.com' });
         Store.users.set([
@@ -203,6 +254,7 @@ describe('Router URL parameter handling', async () => {
                 groups: ['GRP-OTHER'],
             },
         ]);
+        Store.users.setMeta('loaded', true);
         Store.settings.fragmentId.set('setting-1');
         Store.settings.creating.set(true);
 
@@ -221,6 +273,7 @@ describe('Router URL parameter handling', async () => {
         Store.settings.creating.set(originalCreating);
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
     it('should block navigateToPage settings when user is not power user', async () => {
@@ -229,6 +282,7 @@ describe('Router URL parameter handling', async () => {
         const originalCreating = Store.settings.creating.get();
         const originalProfile = Store.profile.get();
         const originalUsers = Store.users.get();
+        const originalUsersLoadedMeta = Store.users.getMeta('loaded');
 
         Store.profile.set({ email: 'viewer@adobe.com' });
         Store.users.set([
@@ -237,6 +291,7 @@ describe('Router URL parameter handling', async () => {
                 groups: ['GRP-OTHER'],
             },
         ]);
+        Store.users.setMeta('loaded', true);
         Store.page.set(PAGE_NAMES.CONTENT);
         Store.settings.fragmentId.set('setting-1');
         Store.settings.creating.set(true);
@@ -253,6 +308,7 @@ describe('Router URL parameter handling', async () => {
         Store.settings.creating.set(originalCreating);
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
     it('should initialize landscape store with hash parameter', async () => {

@@ -27,6 +27,7 @@ describe('Router', () => {
     let originalSettingsFragmentId;
     let originalProfile;
     let originalUsers;
+    let originalUsersLoadedMeta;
 
     const createMockFragment = (hasChanges = false) => {
         const fragment = new Fragment({ id: 'test-id', fields: [] });
@@ -72,6 +73,8 @@ describe('Router', () => {
         originalSettingsFragmentId = Store.settings.fragmentId.get();
         originalProfile = structuredClone(Store.profile.get());
         originalUsers = structuredClone(Store.users.get());
+        originalUsersLoadedMeta = Store.users.getMeta('loaded');
+        Store.users.setMeta('loaded', true);
         Store.fragments.inEdit.set(null);
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.selectedCards.set([]);
@@ -98,6 +101,7 @@ describe('Router', () => {
         Store.settings.fragmentId.set(originalSettingsFragmentId);
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
         document.querySelectorAll('mas-fragment-editor, mas-translation-editor, mas-settings').forEach((el) => el.remove());
     });
 

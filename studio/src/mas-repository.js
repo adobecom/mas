@@ -1028,8 +1028,8 @@ export class MasRepository extends LitElement {
 
             const sourceStore = generateFragmentStore(newFragment);
             sourceStore.get().hasChanges = false;
+            sourceStore.skipVariationDetection = true;
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
-            this.skipVariationDetection = true;
 
             // Reset changes on the current fragment to prevent discard prompt during navigation
             Store.editor.resetChanges();
@@ -1478,26 +1478,31 @@ export class MasRepository extends LitElement {
 
     /**
      * Resolves the parent fragment for the provided fragment path and hydrates references.
-     * Flow: referencedBy -> parent path -> getByPath -> getById (hydrated)
+     * Finds the parent whose variations field contains fragmentPath.
+     * Flow: referencedBy -> filter by variations field -> getById (hydrated)
      * @param {string} fragmentPath
      * @returns {Promise<Object|null>}
      */
     async resolveHydratedParentFragment(fragmentPath) {
         const references = await this.aem.sites.cf.fragments.getReferencedBy(fragmentPath);
-        const parentRefPath = references?.parentReferences?.[0]?.path;
-        if (!parentRefPath) return null;
+        const parentRefs = references?.parentReferences || [];
+        if (!parentRefs.length) return null;
 
-        const parentFragment = await this.aem.sites.cf.fragments.getByPath(parentRefPath);
-        if (!parentFragment) return null;
-        if (!parentFragment.id) return parentFragment;
+        for (const ref of parentRefs) {
+            const candidate = await this.aem.sites.cf.fragments.getByPath(ref.path);
+            if (!candidate) continue;
 
-        try {
-            const hydratedParent = await this.aem.sites.cf.fragments.getById(parentFragment.id);
-            return hydratedParent || parentFragment;
-        } catch (error) {
-            console.debug('Failed to hydrate parent fragment references:', error.message);
-            return parentFragment;
+            const variationsField = candidate.fields?.find((f) => f.name === 'variations');
+            const variations = variationsField?.values || [];
+            if (!variations.includes(fragmentPath)) continue;
+
+            if (!candidate.id) return candidate;
+
+            const hydrated = await this.aem.sites.cf.fragments.getById(candidate.id);
+            return hydrated || candidate;
         }
+
+        return null;
     }
 
     /**

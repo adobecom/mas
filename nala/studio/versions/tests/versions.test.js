@@ -1,22 +1,9 @@
-import { test, expect, miloLibs, setTestPage } from '../../../libs/mas-test.js';
-import StudioPage from '../../studio.page.js';
-import EditorPage from '../../editor.page.js';
+import { test, expect, studio, editor, versionPage, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import VersionPageSpec from '../specs/versions.spec.js';
-import VersionPage from '../versions.page.js';
 
 const { features } = VersionPageSpec;
 
 test.describe('M@S Studio - Version Page test suite', () => {
-    let studio;
-    let editor;
-    let versionPage;
-
-    test.beforeEach(async ({ page }) => {
-        studio = new StudioPage(page);
-        editor = new EditorPage(page);
-        versionPage = new VersionPage(page);
-    });
-
     // @version-page-load - Validate version page loads correctly
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
@@ -189,7 +176,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-4: Validate fragment editor is visible', async () => {
-            await expect(studio.editorPanel).toBeVisible({ timeout: 10000 });
+            await expect(editor.panel).toBeVisible({ timeout: 10000 });
         });
     });
 
@@ -229,9 +216,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
     // @version-page-nala-clone-restore - Clone, change fields, save/publish, new version, restore and validate toast
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const { data } = features[5];
-        const testPage = features[5].browserParams.includes('fragmentId=')
-            ? `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.fragmentId}`
-            : `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
+        const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
         setTestPage(testPage);
 
         await test.step('step-1: Navigate to fragments table', async () => {
@@ -246,9 +231,9 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-3: Change a field and save', async () => {
-            await expect(studio.editorPanel).toBeVisible({ timeout: 10000 });
+            await expect(editor.panel).toBeVisible({ timeout: 10000 });
             const subtitleInput = editor.subtitle;
-            await subtitleInput.fill('Nala test subtitle');
+            await subtitleInput.fill(data.subtitle);
             await page.waitForTimeout(500);
             await studio.saveCard();
         });
@@ -258,9 +243,9 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-5: Change a field, save, and publish', async () => {
-            await expect(studio.editorPanel).toBeVisible({ timeout: 10000 });
+            await expect(editor.panel).toBeVisible({ timeout: 10000 });
             const subtitleInput = editor.subtitle;
-            await subtitleInput.fill('Nala test subtitle v2');
+            await subtitleInput.fill(data.subtitleV2);
             await page.waitForTimeout(500);
             await studio.saveCard();
             await studio.publishCard();
@@ -268,12 +253,11 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-6: Open version history and validate new version exists', async () => {
-            const versionHistoryBtn = page.locator('#history');
             const maxRetries = 5;
             let versionCount = 0;
 
             for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-                await versionHistoryBtn.click();
+                await versionPage.versionHistoryButton.click();
                 await page.waitForTimeout(3000);
                 await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
                 await page.waitForSelector('version-page .version-item', { timeout: 15000 });
@@ -294,9 +278,8 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await versionPage.openVersionMenu(1);
             await versionPage.clickRestoreThisVersion();
             await page.waitForTimeout(500);
-            const confirmRestore = page.getByRole('button', { name: 'Restore' });
-            await expect(confirmRestore).toBeVisible({ timeout: 5000 });
-            await confirmRestore.click();
+            await expect(versionPage.confirmRestoreButton).toBeVisible({ timeout: 5000 });
+            await versionPage.confirmRestoreButton.click();
             await page.waitForTimeout(5000);
         });
 

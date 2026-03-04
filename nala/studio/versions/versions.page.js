@@ -64,6 +64,12 @@ export default class VersionPage {
         // Empty states
         this.noFragmentMessage = page.locator('version-page .no-fragment-message');
         this.noDataMessage = page.locator('version-page .no-data-message');
+
+        // Version history entry (editor toolbar or side nav) and restore confirmation
+        this.versionHistoryButton = page.locator(
+            'sp-action-button[value="version-history"], mas-side-nav-item[label="History"]',
+        );
+        this.confirmRestoreButton = page.locator('mas-confirm-dialog >> sp-dialog-wrapper >> sp-button:has-text("Restore")');
     }
 
     /**

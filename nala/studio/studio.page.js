@@ -63,18 +63,18 @@ export default class StudioPage {
         this.fragmentsTable = page.locator('.breadcrumbs-container sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
-        this.cloneCardButton = this.sideNav.locator('#duplicate');
-        this.deleteCardButton = this.sideNav.locator('#delete');
-        this.saveCardButton = this.sideNav.locator('#save');
-        this.publishCardButton = this.sideNav.locator('#publish');
-        this.createVariationButton = this.sideNav.locator('#create-variation');
-        this.homeButton = this.sideNav.locator('#home');
-        this.offersButton = this.sideNav.locator('#offers');
-        this.fragmentsButton = this.sideNav.locator('#fragments');
-        this.promotionsButton = this.sideNav.locator('#promotions');
-        this.collectionsButton = this.sideNav.locator('#collections');
-        this.placeholdersButton = this.sideNav.locator('#placeholders');
-        this.supportButton = this.sideNav.locator('#support');
+        this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
+        this.deleteCardButton = this.sideNav.locator('mas-side-nav-item[label="Delete"]');
+        this.saveCardButton = this.sideNav.locator('mas-side-nav-item[label="Save"]');
+        this.publishCardButton = this.sideNav.locator('mas-side-nav-item[label="Publish"]');
+        this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
+        this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
+        this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
+        this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');
+        this.promotionsButton = this.sideNav.locator('mas-side-nav-item[label="Promotions"]');
+        this.collectionsButton = this.sideNav.locator('mas-side-nav-item[label="Collections"]');
+        this.placeholdersButton = this.sideNav.locator('mas-side-nav-item[label="Placeholders"]');
+        this.supportButton = this.sideNav.locator('mas-side-nav-item[label="Support"]');
         // Create dialog elements
         this.createButton = page.locator('sp-button:has-text("Create")').first();
         this.createDialog = page.locator('mas-create-dialog');

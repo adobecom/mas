@@ -54,10 +54,57 @@ export function getFragmentSummary() {
     };
 }
 
+let currentTestName = null;
+
+/**
+ * Set the current test name or tag (used when generating fragment title).
+ * Called from test fixture so getFragmentTitle() can include it.
+ * @param {string} name - Test title (e.g. from test.info().title)
+ */
+export function setCurrentTestName(name) {
+    currentTestName = name || null;
+}
+
+/**
+ * Get the current test name if set.
+ * @returns {string|null}
+ */
+export function getCurrentTestName() {
+    return currentTestName;
+}
+
+/**
+ * Sanitize test name for use in fragment title (remove/replace chars unsafe for titles).
+ * @param {string} name
+ * @returns {string}
+ */
+function sanitizeTestName(name) {
+    if (!name || typeof name !== 'string') return '';
+    return name
+        .replace(/[/\\:*?"<>|,@]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 80);
+}
+
+/**
+ * Generate fragment title with run ID and optional test name/tag
+ * @returns {string} Fragment title in format "MAS Nala Automation Fragment [runId]" or with " - TestName" when set
+ */
+export function getFragmentTitle() {
+    const runId = getCurrentRunId();
+    const base = `MAS Nala Automation Fragment [${runId}]`;
+    const testName = sanitizeTestName(getCurrentTestName());
+    return testName ? `${base} - ${testName}` : base;
+}
+
 // Default export for backward compatibility
 export default {
     createRunId,
     getCurrentRunId,
     clearRunId,
     getFragmentSummary,
+    setCurrentTestName,
+    getCurrentTestName,
+    getFragmentTitle,
 };

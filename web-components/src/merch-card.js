@@ -47,6 +47,8 @@ const VARIANTS_WITH_HEIGHT_SYNC = [
     'simplified-pricing-express',
 ];
 
+const VARIANTS_WITH_WIDTH_BADGE_SYNC = ['segment'];
+
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
     if (!card) return options;
@@ -67,9 +69,28 @@ function registerPriceOptionsProvider(masCommerceService) {
 
 const intersectionObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
-        if (entry.target.clientHeight === 0) return;
-        intersectionObserver.unobserve(entry.target);
-        entry.target.requestUpdate();
+        const card = entry.target;
+        if (VARIANTS_WITH_HEIGHT_SYNC.includes(card.variant)) {
+            if (card.clientHeight === 0) return;
+            intersectionObserver.unobserve(card);
+            card.requestUpdate();
+            return;
+        }
+        if (VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(card.variant)) {
+            if (entry.boundingClientRect.width === 0) return;
+            const cardWidth = card.getBoundingClientRect().width;
+            const badgeEl = card.querySelector('[slot="badge"]');
+            const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
+            if (cardWidth === 0 || badgeWidth === 0) {
+                intersectionObserver.unobserve(card);
+                return;
+            }
+            card.style.setProperty(
+                '--consonant-merch-card-heading-xs-max-width',
+                `${Math.round(cardWidth - badgeWidth - 16)}px`,
+            );
+            intersectionObserver.unobserve(card);
+        }
     });
 });
 
@@ -570,7 +591,10 @@ export class MerchCard extends LitElement {
         if (!this.isConnected) return;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
-            if (VARIANTS_WITH_HEIGHT_SYNC.includes(this.variant)) {
+            if (
+                VARIANTS_WITH_HEIGHT_SYNC.includes(this.variant) ||
+                VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(this.variant)
+            ) {
                 intersectionObserver.observe(this);
             }
             this.#hydrationPromise = undefined;

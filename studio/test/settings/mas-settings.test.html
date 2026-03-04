@@ -174,14 +174,14 @@
                             expect(createActionBar.actions).to.not.include('duplicate');
 
                             Store.settings.creating.set(false);
-                            Store.settings.fragmentId.set('setting-show-plan-type');
+                            Store.settings.fragmentId.set('setting-display-plan-type');
                             await waitForUpdates(settingsPage, 2);
                             const editEditor = settingsPage.shadowRoot.querySelector('#settings-editor-page');
                             expect(editEditor).to.exist;
                             const editActionBar = settingsPage.shadowRoot.querySelector('#settings-editor-action-bar');
                             expect(editActionBar.actions).to.not.include('duplicate');
                             expect(settingsPage.shadowRoot.querySelector('[name="setting-name-page"]').value).to.equal(
-                                'showPlanType',
+                                'displayPlanType',
                             );
                         });
 
@@ -266,14 +266,14 @@
                                 return true;
                             };
 
-                            Store.settings.fragmentId.set('setting-show-plan-type');
+                            Store.settings.fragmentId.set('setting-display-plan-type');
                             await waitForUpdates(settingsPage, 4);
                             expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS_EDITOR);
                             expect(settingsPage.shadowRoot.querySelector('#settings-editor-action-bar')).to.exist;
                             settingsPage.form = {
                                 ...settingsPage.form,
-                                label: 'Show Plan type Updated',
-                                name: 'showPlanType',
+                                label: 'Display Plan type Updated',
+                                name: 'displayPlanType',
                                 description: 'Updated description',
                                 templateIds: ['plans'],
                                 tags: ['mas:keyword/design'],
@@ -284,10 +284,10 @@
 
                             expect(capturedCalls.length).to.equal(1);
                             expect(capturedCalls[0]).to.deep.equal({
-                                fragmentId: 'setting-show-plan-type',
+                                fragmentId: 'setting-display-plan-type',
                                 payload: {
-                                    label: 'Show Plan type Updated',
-                                    name: 'showPlanType',
+                                    label: 'Display Plan type Updated',
+                                    name: 'displayPlanType',
                                     description: 'Updated description',
                                     templateIds: ['plans'],
                                     tags: ['mas:keyword/design'],
@@ -301,19 +301,19 @@
 
                         it('returns to settings table after deleting from editor page', async () => {
                             const draftTopLevel = createSettingReference({
-                                id: 'setting-show-plan-type',
-                                title: 'Show plan type',
-                                name: 'showPlanType',
-                                label: 'Show plan type',
+                                id: 'setting-display-plan-type',
+                                title: 'Display Plan type',
+                                name: 'displayPlanType',
+                                label: 'Display Plan type',
                                 status: 'DRAFT',
                                 templates: ['catalog'],
                                 locales: [],
                                 value: true,
-                                path: '/content/dam/mas/acom/settings/setting-show-plan-type',
+                                path: '/content/dam/mas/acom/settings/setting-display-plan-type',
                             });
                             const references = [
                                 draftTopLevel,
-                                ...defaultReferences.filter((reference) => reference.id !== 'setting-show-plan-type'),
+                                ...defaultReferences.filter((reference) => reference.id !== 'setting-display-plan-type'),
                             ];
                             const { settingsPage, table } = await setupPage({ references });
                             const removedIds = [];
@@ -325,7 +325,7 @@
 
                             table.dispatchEvent(
                                 new CustomEvent('setting-edit', {
-                                    detail: { id: 'setting-show-plan-type', isOverride: false },
+                                    detail: { id: 'setting-display-plan-type', isOverride: false },
                                     bubbles: true,
                                     composed: true,
                                 }),
@@ -340,7 +340,7 @@
                             dialog.dispatchEvent(new Event('confirm'));
                             await waitForUpdates(settingsPage, 2);
 
-                            expect(removedIds).to.deep.equal(['setting-show-plan-type']);
+                            expect(removedIds).to.deep.equal(['setting-display-plan-type']);
                             expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
                             expect(Store.settings.fragmentId.get()).to.equal(null);
                             expect(Store.settings.creating.get()).to.equal(false);
@@ -371,7 +371,7 @@
                                 return true;
                             };
 
-                            Store.settings.fragmentId.set('setting-show-plan-type');
+                            Store.settings.fragmentId.set('setting-display-plan-type');
                             await waitForUpdates(settingsPage, 4);
 
                             settingsPage.form = {
@@ -594,10 +594,9 @@
                                 item.getAttribute('value'),
                             );
                             expect(optionValues).to.not.include('showAddon');
-                            expect(optionValues).to.not.include('showPlanType');
+                            expect(optionValues).to.not.include('displayPlanType');
                             expect(optionValues).to.not.include('showSecureLabel');
                             expect(optionValues).to.include('displayAnnual');
-                            expect(optionValues).to.include('displayPlanType');
                             expect(optionValues).to.include('quantitySelect');
                             expect(settingsPage.shadowRoot.textContent.includes('Value type')).to.equal(false);
                         });
@@ -922,7 +921,7 @@
                             const { settingsPage, table } = await setupPage();
                             table.dispatchEvent(
                                 new CustomEvent('setting-edit', {
-                                    detail: { id: 'setting-show-plan-type', isOverride: false },
+                                    detail: { id: 'setting-display-plan-type', isOverride: false },
                                     bubbles: true,
                                     composed: true,
                                 }),
@@ -1186,7 +1185,7 @@
                             expect(settingsPage.shadowRoot.querySelector('sp-dialog-wrapper')).to.equal(null);
 
                             Store.settings.creating.set(false);
-                            Store.settings.fragmentId.set('setting-show-plan-type');
+                            Store.settings.fragmentId.set('setting-display-plan-type');
                             await waitForUpdates(settingsPage, 2);
 
                             clickEditorAction(settingsPage, 'Publish');
@@ -1381,10 +1380,10 @@
                                 path: '/content/dam/mas/acom/settings/setting-show-addon-de',
                             }),
                             createSettingReference({
-                                id: 'setting-show-plan-type',
-                                title: 'Show Plan type',
-                                name: 'showPlanType',
-                                label: 'Show Plan type',
+                                id: 'setting-display-plan-type',
+                                title: 'Display Plan type',
+                                name: 'displayPlanType',
+                                label: 'Display Plan type',
                                 templates: ['catalog'],
                                 locales: [],
                                 fieldName: 'entries',
@@ -1398,8 +1397,8 @@
 
                         const rows = [...table.shadowRoot.querySelectorAll('mas-setting-item')];
                         expect(rows.length).to.equal(2);
-                        expect(rows[0].querySelector('.setting-label').textContent.trim()).to.equal('Show Addon');
-                        expect(rows[1].querySelector('.setting-label').textContent.trim()).to.equal('Show Plan type');
+                        expect(rows[0].querySelector('.setting-label').textContent.trim()).to.equal('Display Plan type');
+                        expect(rows[1].querySelector('.setting-label').textContent.trim()).to.equal('Show Addon');
 
                         const overrideTable = table.shadowRoot.querySelector('.override-table');
                         expect(overrideTable).to.exist;

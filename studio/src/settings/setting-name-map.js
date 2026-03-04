@@ -5,7 +5,6 @@ import { createQuantitySelectValue } from '../common/fields/quantity-select.js';
  */
 export const SETTING_NAME_DEFINITIONS = [
     { name: 'showAddon', label: 'showAddon', valueType: 'text', editor: 'placeholder' },
-    { name: 'showPlanType', label: 'showPlanType', valueType: 'boolean', editor: 'boolean' },
     { name: 'displayAnnual', label: 'displayAnnual', valueType: 'boolean', editor: 'boolean' },
     { name: 'displayPlanType', label: 'displayPlanType', valueType: 'boolean', editor: 'boolean' },
     { name: 'showSecureLabel', label: 'showSecureLabel', valueType: 'boolean', editor: 'boolean' },

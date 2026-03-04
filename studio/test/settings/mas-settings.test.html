@@ -1203,7 +1203,6 @@
                             );
                             settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('cancel'));
                             await waitForUpdates(settingsPage, 1);
-
                         });
 
                         it('uses fallback valueEditorType for legacy settings and blocks save without valueType', async () => {

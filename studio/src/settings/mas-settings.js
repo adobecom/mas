@@ -361,8 +361,7 @@ class MasSettings extends LitElement {
     get createSettingNameOptions() {
         if (!this.isCreateMode) return SETTING_NAME_DEFINITIONS;
         const existingTopLevelNames = new Set(
-            Store.settings
-                .rows
+            Store.settings.rows
                 .get()
                 .map((rowStore) => rowStore.value?.name)
                 .filter(Boolean),

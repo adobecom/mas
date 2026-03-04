@@ -321,8 +321,8 @@
                         const publishedRow = [...el.shadowRoot.querySelectorAll('mas-setting-item')].find(
                             (row) => row.querySelector('.setting-label')?.textContent?.trim() === 'Show Addon',
                         );
-                        const rowActions = [...publishedRow.querySelectorAll('.actions-cell sp-menu-item')].map(
-                            (item) => item.textContent.trim(),
+                        const rowActions = [...publishedRow.querySelectorAll('.actions-cell sp-menu-item')].map((item) =>
+                            item.textContent.trim(),
                         );
 
                         expect(rowActions.some((action) => action.includes('Delete'))).to.equal(false);

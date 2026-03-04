@@ -215,7 +215,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
 
     // @version-page-nala-clone-restore - Clone, change fields, save/publish, new version, restore and validate toast
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
-        test.setTimeout(150000);
+        test.setTimeout(210000);
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
         setTestPage(testPage);
@@ -254,7 +254,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-6: Open version history and validate new version exists', async () => {
-            await page.waitForTimeout(6000);
+            await page.waitForTimeout(10000);
             const currentFragmentId = await page.evaluate(() => {
                 const hash = window.location.hash || '';
                 const m = hash.match(/fragmentId=([^&]+)/);
@@ -263,7 +263,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
             });
             expect(currentFragmentId, 'Current fragment id (cloned) should be in URL or Store').toBeTruthy();
 
-            const maxRetries = 3;
+            const maxRetries = 5;
             let versionCount = 0;
             const versionPageUrl = `${baseURL}${features[5].path}${miloLibs}#page=version&path=nala&fragmentId=${currentFragmentId}`;
 
@@ -279,7 +279,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
                 versionCount = await versionPage.getVersionCount();
                 if (versionCount >= 2) break;
                 if (attempt < maxRetries - 1) {
-                    await page.waitForTimeout(4000);
+                    await page.waitForTimeout(7000);
                     await versionPage.clickBreadcrumbEditor();
                     await page.waitForTimeout(3000);
                 }

@@ -177,7 +177,7 @@
                                 element.textContent.trim(),
                             );
 
-                        expect(getLabels()).to.deep.equal(['Show Addon', 'Display Plan type', 'Show secure label']);
+                        expect(getLabels()).to.deep.equal(['Display Plan type', 'Show Addon', 'Show secure label']);
 
                         const labelHeader = el.shadowRoot.querySelector('#label-header-cell');
                         labelHeader.dispatchEvent(
@@ -187,7 +187,7 @@
                         );
                         await el.updateComplete;
 
-                        expect(getLabels()).to.deep.equal(['Show secure label', 'Display Plan type', 'Show Addon']);
+                        expect(getLabels()).to.deep.equal(['Show secure label', 'Show Addon', 'Display Plan type']);
                     });
 
                     it('uses id as tie-breaker when labels are identical', async () => {
@@ -318,9 +318,11 @@
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
 
-                        const firstRow = el.shadowRoot.querySelector('mas-setting-item');
-                        const rowActions = [...firstRow.querySelectorAll('.actions-cell sp-menu-item')].map((item) =>
-                            item.textContent.trim(),
+                        const publishedRow = [...el.shadowRoot.querySelectorAll('mas-setting-item')].find(
+                            (row) => row.querySelector('.setting-label')?.textContent?.trim() === 'Show Addon',
+                        );
+                        const rowActions = [...publishedRow.querySelectorAll('.actions-cell sp-menu-item')].map(
+                            (item) => item.textContent.trim(),
                         );
 
                         expect(rowActions.some((action) => action.includes('Delete'))).to.equal(false);

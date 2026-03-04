@@ -24,8 +24,11 @@ const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 20000;
 const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
     plans: ['four-merch-cards'],
-    segment: ['four-merch-cards'],
     plansThreeColumns: ['three-merch-cards'],
+    product: ['four-merch-cards'],
+    productTwoColumns: ['two-merch-cards'],
+    productThreeColumns: ['three-merch-cards'],
+    segment: ['four-merch-cards'],
     segmentTwoColumns: ['two-merch-cards'],
     segmentThreeColumns: ['three-merch-cards'],
     'special-offers': ['three-merch-cards'],
@@ -554,12 +557,13 @@ export class MerchCardCollection extends LitElement {
             ) {
                 nmbOfColumns = 'ThreeColumns';
             } else if (
-                variant === 'segment' &&
+                (variant === 'segment' || variant === 'product') &&
                 (cards.length === 2 || cards.length === 3)
             ) {
                 nmbOfColumns =
                     cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
             }
+
             if (variant) {
                 this.classList.add(
                     'merch-card-collection',

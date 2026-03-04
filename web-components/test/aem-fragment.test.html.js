@@ -7,10 +7,12 @@ import { withWcs } from './mocks/wcs.js';
 import { withAem } from './mocks/aem.js';
 import { delay, getTemplateContent, oneEvent } from './utils.js';
 import '../src/mas.js';
+import '../src/mas-field.js';
 import {
     EVENT_MAS_ERROR,
     EVENT_MAS_READY,
     EVENT_TYPE_FAILED,
+    EVENT_AEM_LOAD,
 } from '../src/constants.js';
 
 chai.use(chaiAsPromised);
@@ -350,6 +352,26 @@ runTests(async () => {
                 expect(fragment.fetchInfo['aem-fragment:measure']).to.exist;
             });
 
+            it('deduplicates fetches using loading="cache"', async () => {
+                cache.clear();
+                const count = aemMock.count;
+                const fragment1 = addFragment('fragment-cc-all-apps');
+                const fragment2 = addFragment('fragment-cc-all-apps', 'cache');
+                const fragment3 = addFragment('fragment-cc-all-apps', 'cache');
+                await Promise.all([
+                    oneEvent(fragment1, 'aem:load'),
+                    oneEvent(fragment2, 'aem:load'),
+                    oneEvent(fragment3, 'aem:load'),
+                ]);
+                expect(aemMock.count).to.equal(count + 1);
+                expect(fragment1.data).to.exist;
+                expect(fragment2.data).to.exist;
+                expect(fragment3.data).to.exist;
+                fragment1.remove();
+                fragment2.remove();
+                fragment3.remove();
+            });
+
             it('populates the fragment cache from references', async () => {
                 const topCollection = addFragment('collection');
                 await oneEvent(topCollection, 'aem:load');
@@ -471,6 +493,188 @@ runTests(async () => {
                 expect(fetch.lastCall.firstArg).to.equal(
                     'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
+            });
+        });
+
+        describe('mas-field wrapper', () => {
+            afterEach(() => {
+                document
+                    .querySelectorAll('mas-field')
+                    .forEach((el) => el.remove());
+            });
+
+            it('renders field content via mas-field wrapper', async () => {
+                const [masField] = getTemplateContent('mas-field-render-field');
+                spTheme.append(masField);
+
+                await new Promise((resolve) => {
+                    masField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
+                });
+
+                expect(masField.textContent).to.include('Get Photoshop');
+                expect(masField.innerHTML).to.include('inline-price');
+                expect(masField.querySelector('aem-fragment')).to.exist;
+            });
+
+            it('renders different fields based on field attribute', async () => {
+                const [masField] = getTemplateContent('mas-field-render-promo');
+                spTheme.append(masField);
+
+                await new Promise((resolve) => {
+                    masField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
+                });
+
+                expect(masField.textContent).to.include('Save 50%');
+                expect(masField.querySelector('aem-fragment')).to.exist;
+            });
+
+            it('handles missing field gracefully', async () => {
+                const [masField] = getTemplateContent(
+                    'mas-field-render-missing-field',
+                );
+                spTheme.append(masField);
+
+                await new Promise((resolve) => {
+                    masField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
+                });
+
+                // mas-field should still contain the aem-fragment child (field value was undefined)
+                expect(masField.querySelector('aem-fragment')).to.exist;
+            });
+
+            it('unwraps single paragraph tags', async () => {
+                const [masField] = getTemplateContent('mas-field-render-field');
+                spTheme.append(masField);
+
+                await new Promise((resolve) => {
+                    masField.addEventListener(EVENT_AEM_LOAD, resolve, {
+                        once: true,
+                    });
+                });
+
+                const trimmed = masField
+                    .querySelector('span[data-role="mas-field-content"]')
+                    .innerHTML.trim();
+                expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
+            });
+
+            it('keeps strikethrough styling for resolved inline price markup', async () => {
+                const masField = document.createElement('mas-field');
+                masField.setAttribute('field', 'description');
+                const fragment = document.createElement('aem-fragment');
+                masField.append(fragment);
+                spTheme.append(masField);
+
+                fragment.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                description:
+                                    '<p><span is="inline-price" data-template="strikethrough" class="placeholder-resolved"><span class="price price-strikethrough">US$59.99/mo</span></span> <span is="inline-price" data-template="price" class="placeholder-resolved"><span class="price">US$9.99/mo</span></span></p>',
+                            },
+                        },
+                    }),
+                );
+
+                await delay(0);
+
+                const strike = masField.querySelector(
+                    '.price.price-strikethrough',
+                );
+                expect(strike).to.exist;
+                const style = getComputedStyle(strike);
+                const decoration =
+                    style.textDecorationLine || style.textDecoration;
+                expect(decoration).to.include('line-through');
+            });
+
+            it('reuses an existing mas-field content span', async () => {
+                const masField = document.createElement('mas-field');
+                masField.setAttribute('field', 'promoText');
+                const content = document.createElement('span');
+                content.setAttribute('data-role', 'mas-field-content');
+                const fragment = document.createElement('aem-fragment');
+                masField.append(content, fragment);
+                spTheme.append(masField);
+
+                fragment.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                promoText: '<p>Ready</p>',
+                            },
+                        },
+                    }),
+                );
+
+                await delay(0);
+
+                const contentElements = masField.querySelectorAll(
+                    ':scope > span[data-role="mas-field-content"]',
+                );
+
+                expect(contentElements).to.have.length(1);
+                expect(contentElements[0]).to.equal(content);
+                expect(content.innerHTML).to.equal('Ready');
+            });
+
+            it('resolves checkReady after aem:load', async () => {
+                const masField = document.createElement('mas-field');
+                masField.setAttribute('field', 'promoText');
+                const fragment = document.createElement('aem-fragment');
+                masField.append(fragment);
+                spTheme.append(masField);
+
+                const readyPromise = masField.checkReady();
+                fragment.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                promoText: '<p>Ready</p>',
+                            },
+                        },
+                    }),
+                );
+
+                await expect(readyPromise).to.eventually.equal(true);
+            });
+
+            it('resolves checkReady immediately when already loaded', async () => {
+                const masField = document.createElement('mas-field');
+                masField.setAttribute('field', 'promoText');
+                const fragment = document.createElement('aem-fragment');
+                masField.append(fragment);
+                spTheme.append(masField);
+
+                fragment.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                promoText: '<p>Ready</p>',
+                            },
+                        },
+                    }),
+                );
+
+                const result = await Promise.race([
+                    masField.checkReady(),
+                    delay(0).then(() => 'timeout'),
+                ]);
+                expect(result).to.equal(true);
             });
         });
     });

@@ -8,6 +8,7 @@ export const VARIANT_NAMES = {
     PLANS_V2: 'plans-v2',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
+    PRODUCT: 'product',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -40,6 +41,11 @@ export const VARIANTS = [
     {
         label: 'Plans Education',
         value: VARIANT_NAMES.PLANS_EDUCATION,
+        surface: SURFACES.ACOM.name,
+    },
+    {
+        label: 'Product',
+        value: VARIANT_NAMES.PRODUCT,
         surface: SURFACES.ACOM.name,
     },
     { label: 'Segment', value: VARIANT_NAMES.SEGMENT, surface: SURFACES.ACOM.name },

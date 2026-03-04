@@ -134,7 +134,7 @@ export class MasSettingItem extends LitElement {
                     >${this.row.label}</sp-table-cell
                 >
                 <sp-table-cell>${this.row.locale || 'All'}</sp-table-cell>
-                <sp-table-cell class="template-cell">${this.row.templateSummary || 'All templates selected'}</sp-table-cell>
+                <sp-table-cell class="template-cell">${this.row.templateSummary}</sp-table-cell>
                 ${this.valueCellTemplate}
                 <sp-table-cell class="tags-cell">${this.tagsTemplate}</sp-table-cell>
                 <sp-table-cell>${this.row.modifiedBy || '-'}</sp-table-cell>

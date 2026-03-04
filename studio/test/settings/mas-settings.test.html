@@ -424,6 +424,8 @@
 
                             const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
                             expect(overrideDialog).to.exist;
+                            expect(overrideDialog.querySelector('#addon-enabled-switch')).to.exist;
+                            expect(overrideDialog.querySelector('sp-combobox')).to.exist;
                             const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
                                 (button) => button.textContent.includes('Save as draft'),
                             );

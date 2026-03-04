@@ -1225,7 +1225,7 @@ describe('Settings Store Namespace', () => {
         expect(harness.getIndexEntries()).to.deep.equal([topLevel.path]);
     });
 
-    it('duplicates settings and overrides using fallback locale parsing', async () => {
+    it('duplicates override with multiple locales', async () => {
         const topLevel = createSettingReference({
             id: 'setting-display-plan-type',
             name: 'displayPlanType',
@@ -1239,7 +1239,7 @@ describe('Settings Store Namespace', () => {
             id: 'setting-display-plan-type-multi',
             name: 'displayPlanType',
             label: 'Display plan type',
-            locales: ['de_DE'],
+            locales: ['de_DE', 'fr_FR'],
             fieldName: 'entries',
             valueType: 'text',
             value: 'regional',
@@ -1256,8 +1256,6 @@ describe('Settings Store Namespace', () => {
         expect(harness.calls.create).to.deep.equal([]);
 
         const row = store.rows.get()[0].value;
-        row.overrides[0].locales = [];
-        row.overrides[0].locale = 'de_DE, fr_FR';
         const duplicatedOverride = await store.duplicateOverride(row.id, row.overrides[0].id);
         expect(duplicatedOverride).to.equal(true);
         const lastCreatePayload = harness.calls.create[0];

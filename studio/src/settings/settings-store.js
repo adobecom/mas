@@ -572,12 +572,7 @@ export class SettingsStore {
         const override = row.overrides.find((item) => item.id === overrideId);
         if (!override) return false;
 
-        const locales = override.locales?.length
-            ? override.locales
-            : `${override.locale || ''}`
-                  .split(',')
-                  .map((locale) => locale.trim())
-                  .filter((locale) => locale);
+        const locales = override.locales?.length ? override.locales : [];
         const valueType = override.valueType || row.valueType || (isBooleanValue(override.value) ? 'boolean' : 'text');
         const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
         const fragmentName = await this.#resolveUniqueFragmentName({
@@ -590,7 +585,7 @@ export class SettingsStore {
             async () => {
                 const created = await this.aem.sites.cf.fragments.create({
                     name: fragmentName,
-                    title: `${override.label || row.label} ${override.locale || ''} copy`.trim(),
+                    title: `${override.label || row.label} ${override.locales?.join(', ') || ''} copy`.trim(),
                     description: row.description || '',
                     parentPath: this.#settingsPath,
                     modelId: row.fragment?.model?.id || this.#entryModelId,
@@ -860,7 +855,6 @@ export class SettingsStore {
 
             const rowRecord = {
                 ...topRecord,
-                locale: 'All',
                 locales: [],
                 overrides,
                 templateSummary: this.formatTemplateSummary(topRecord.templateIds),

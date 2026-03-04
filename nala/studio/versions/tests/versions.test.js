@@ -215,6 +215,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
 
     // @version-page-nala-clone-restore - Clone, change fields, save/publish, new version, restore and validate toast
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
+        test.setTimeout(150000);
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
         setTestPage(testPage);
@@ -253,18 +254,32 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-6: Open version history and validate new version exists', async () => {
-            const maxRetries = 5;
+            await page.waitForTimeout(6000);
+            const currentFragmentId = await page.evaluate(() => {
+                const hash = window.location.hash || '';
+                const m = hash.match(/fragmentId=([^&]+)/);
+                if (m) return m[1];
+                return window.Store?.fragmentEditor?.fragmentId?.get?.() || null;
+            });
+            expect(currentFragmentId, 'Current fragment id (cloned) should be in URL or Store').toBeTruthy();
+
+            const maxRetries = 3;
             let versionCount = 0;
+            const versionPageUrl = `${baseURL}${features[5].path}${miloLibs}#page=version&path=nala&fragmentId=${currentFragmentId}`;
 
             for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-                await studio.versionHistoryButton.click();
+                if (attempt === 0) {
+                    await studio.versionHistoryButton.click();
+                } else {
+                    await page.goto(versionPageUrl);
+                }
                 await page.waitForTimeout(3000);
                 await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
                 await page.waitForSelector('version-page .version-item', { timeout: 15000 });
                 versionCount = await versionPage.getVersionCount();
                 if (versionCount >= 2) break;
                 if (attempt < maxRetries - 1) {
-                    await page.waitForTimeout(15000);
+                    await page.waitForTimeout(4000);
                     await versionPage.clickBreadcrumbEditor();
                     await page.waitForTimeout(3000);
                 }

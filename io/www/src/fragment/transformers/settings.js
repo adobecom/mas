@@ -169,7 +169,6 @@ function applyCollectionSettings(context, locale, settings) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
             if (ref && ref.type === 'content-fragment') {
-                applySettings(ref.value, locale, settings);
             }
         });
     }

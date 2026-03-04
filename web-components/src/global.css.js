@@ -406,6 +406,7 @@ merch-card [slot='callout-content'] {
     gap: var(--consonant-merch-card-callout-spacing-xxs);
 }
 
+merch-card[variant='product'] [slot='badge'],
 merch-card[variant='segment'] [slot='badge'],
 merch-card[variant^='plans'] [slot='badge'],
 merch-card[variant='special-offers'] [slot='badge'] {
@@ -705,7 +706,6 @@ mas-field {
 
 merch-card [slot='callout-content'] .icon-button {
   position: absolute;
-  top: 3px;
   text-decoration: none;
   border-bottom: none;
   min-width: 18px;
@@ -730,13 +730,17 @@ merch-card [slot='callout-content'] .icon-button::before {
   background: #0469E3;
   color: #fff;
   text-align: left;
-  display: block;
+  display: none;
   z-index: 10;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: 16px;
   width: max-content;
+}
+
+merch-card [slot='callout-content'] .icon-button.tooltip-visible::before {
+    display: block;
 }
 
 merch-card [slot='callout-content'] .icon-button::after {
@@ -748,8 +752,12 @@ merch-card [slot='callout-content'] .icon-button::after {
   transform: translateY(-50%);
   border: 8px solid #0469E3;
   border-color: transparent #0469E3 transparent transparent;
-  display: block;
+  display: none;
   z-index: 10;
+}
+
+merch-card [slot='callout-content'] .icon-button.tooltip-visible::after {
+    display: block;
 }
 
 merch-card [slot='callout-content'] .icon-button.hide-tooltip::before,

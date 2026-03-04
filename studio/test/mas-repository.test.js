@@ -497,6 +497,37 @@ describe('MasRepository dictionary helpers', () => {
                 Store.folders.data.set = originalStoreData;
             }
         });
+
+        it('should set search path to sandbox when current path is not in folders and no query', async () => {
+            const repository = createRepository();
+            const mockChildren = [{ name: 'acom' }, { name: 'express' }, { name: 'sandbox' }];
+            repository.aem = createAemMock({
+                folders: {
+                    list: sandbox.stub().resolves({ children: mockChildren }),
+                },
+            });
+            repository.search = { value: { path: undefined, query: undefined } };
+            repository.filters = { value: { locale: 'en_US' } };
+            const searchSetSpy = sandbox.stub(Store.search, 'set');
+            const originalStoreLoaded = Store.folders.loaded.set.bind(Store.folders.loaded);
+            const originalStoreData = Store.folders.data.set.bind(Store.folders.data);
+            const mockFoldersLoaded = { set: sandbox.stub() };
+            const mockFoldersData = { set: sandbox.stub() };
+            Store.folders.loaded.set = mockFoldersLoaded.set;
+            Store.folders.data.set = mockFoldersData.set;
+            sandbox.stub(window.localStorage, 'getItem').returns(null);
+            try {
+                await repository.loadFolders();
+                expect(searchSetSpy.calledOnce).to.be.true;
+                const setArg = searchSetSpy.firstCall.args[0];
+                expect(setArg).to.be.a('function');
+                expect(setArg({})).to.deep.equal({ path: SURFACES.SANDBOX.name });
+            } finally {
+                searchSetSpy.restore();
+                Store.folders.loaded.set = originalStoreLoaded;
+                Store.folders.data.set = originalStoreData;
+            }
+        });
     });
 
     describe('getTranslationsPath', () => {

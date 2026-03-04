@@ -45,13 +45,6 @@ describe('Router URL parameter handling', async () => {
         });
     });
 
-    it('should default search path to sandbox', async () => {
-        const router = new Router({ hash: '' });
-        router.start();
-        await delay(50);
-        expect(Store.search.get()).to.deep.include({ path: 'sandbox' });
-    });
-
     it('should update hash when store values change', async () => {
         const router = new Router({
             pathname: '/',

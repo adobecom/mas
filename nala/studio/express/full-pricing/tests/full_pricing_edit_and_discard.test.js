@@ -22,7 +22,7 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
             const variant = await card.getAttribute('variant');
             expect(['full-pricing-express', 'simplified-pricing-express']).toContain(variant);
             await card.dblclick();
-            await expect(await editor.panel).toBeVisible({ timeout: 20000 });
+            await expect(await editor.panel).toBeVisible({ timeout: 10000 });
             await expect(await card).toBeVisible();
         });
 

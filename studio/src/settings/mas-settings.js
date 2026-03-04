@@ -358,6 +358,18 @@ class MasSettings extends LitElement {
         return getSettingNameDefinition(this.form.name);
     }
 
+    get createSettingNameOptions() {
+        if (!this.isCreateMode) return SETTING_NAME_DEFINITIONS;
+        const existingTopLevelNames = new Set(
+            Store.settings
+                .rows
+                .get()
+                .map((rowStore) => rowStore.value?.name)
+                .filter(Boolean),
+        );
+        return SETTING_NAME_DEFINITIONS.filter((definition) => !existingTopLevelNames.has(definition.name));
+    }
+
     get formValueType() {
         if (this.dialog?.type === 'override') return this.form.valueType;
         if (this.settingDefinition) return this.settingDefinition.valueType;
@@ -647,17 +659,12 @@ class MasSettings extends LitElement {
 
     get isOverrideSaveDisabled() {
         if (Store.settings.loading.get()) return true;
-        if (!this.form.locales.length) return true;
         if (Boolean(this.overrideConflict)) return true;
         if (this.isAddonPlaceholderMissing) return true;
         return false;
     }
 
     #submitOverride = async (publish = false) => {
-        if (!this.form.locales.length) {
-            showToast('Locale is required for overrides.', 'negative');
-            return;
-        }
         if (this.overrideConflict) {
             showToast('Conflict detected. Choose a different locale.', 'negative');
             return;
@@ -828,12 +835,6 @@ class MasSettings extends LitElement {
 
     #handleEditorSave = () => this.#handleFormSave();
 
-    #handleEditorDuplicate = async () => {
-        const row = this.currentSettingRow;
-        if (!row) return;
-        this.#openConfirmDialog('duplicate', row.id);
-    };
-
     #handleEditorPublish = () => {
         const row = this.currentSettingRow;
         if (!row) return;
@@ -941,8 +942,10 @@ class MasSettings extends LitElement {
         this.#setFormField('locales', [...detail.locales]);
     };
 
-    #handleQuantitySelectChange = ({ detail }) => {
-        this.#setFormField('value', detail.value);
+    #handleQuantitySelectChange = (event) => {
+        const value = event.detail?.value ?? event.currentTarget?.value;
+        if (typeof value !== 'string') return;
+        this.#setFormField('value', value);
     };
 
     #handleBooleanValueToggle = (event) => {
@@ -1180,7 +1183,7 @@ class MasSettings extends LitElement {
                             ?disabled=${!this.isCreateMode}
                             @change=${this.#handleSettingNameChange}
                         >
-                            ${SETTING_NAME_DEFINITIONS.map(
+                            ${this.createSettingNameOptions.map(
                                 (definition) => html`
                                     <sp-menu-item value=${definition.name}>${definition.label}</sp-menu-item>
                                 `,
@@ -1222,14 +1225,13 @@ class MasSettings extends LitElement {
     }
 
     get settingsEditorActions() {
-        return [QUICK_ACTION.SAVE, QUICK_ACTION.DUPLICATE, QUICK_ACTION.PUBLISH, QUICK_ACTION.CANCEL, QUICK_ACTION.DELETE];
+        return [QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH, QUICK_ACTION.CANCEL, QUICK_ACTION.DELETE];
     }
 
     get disabledSettingsEditorActions() {
         const disabled = new Set();
         if (Store.settings.loading.get()) {
             disabled.add(QUICK_ACTION.SAVE);
-            disabled.add(QUICK_ACTION.DUPLICATE);
             disabled.add(QUICK_ACTION.PUBLISH);
             disabled.add(QUICK_ACTION.CANCEL);
             disabled.add(QUICK_ACTION.DELETE);
@@ -1242,7 +1244,6 @@ class MasSettings extends LitElement {
 
         const row = this.currentSettingRow;
         if (!row) {
-            disabled.add(QUICK_ACTION.DUPLICATE);
             disabled.add(QUICK_ACTION.PUBLISH);
             disabled.add(QUICK_ACTION.DELETE);
             return disabled;
@@ -1263,7 +1264,6 @@ class MasSettings extends LitElement {
                 .actions=${this.settingsEditorActions}
                 .disabled=${this.disabledSettingsEditorActions}
                 @save=${this.#handleEditorSave}
-                @duplicate=${this.#handleEditorDuplicate}
                 @publish=${this.#handleEditorPublish}
                 @cancel=${this.#handleEditorCancel}
                 @delete=${this.#handleEditorDelete}

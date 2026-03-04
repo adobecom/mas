@@ -106,6 +106,10 @@ export class QuantitySelectField extends LitElement {
         this.#dispatchChange();
     };
 
+    #suppressNativeChange = (event) => {
+        event.stopPropagation();
+    };
+
     render() {
         return html`
             <div class="grid">
@@ -114,6 +118,7 @@ export class QuantitySelectField extends LitElement {
                     <sp-textfield
                         ?disabled=${this.disabled}
                         .value=${this.title}
+                        @change=${this.#suppressNativeChange}
                         @input=${this.#handleTitleChange}
                     ></sp-textfield>
                 </sp-field-group>
@@ -123,6 +128,7 @@ export class QuantitySelectField extends LitElement {
                         ?disabled=${this.disabled}
                         pattern="[0-9]*"
                         .value=${this.min}
+                        @change=${this.#suppressNativeChange}
                         @input=${this.#handleMinChange}
                     ></sp-textfield>
                 </sp-field-group>
@@ -133,6 +139,7 @@ export class QuantitySelectField extends LitElement {
                     ?disabled=${this.disabled}
                     pattern="[0-9]*"
                     .value=${this.step}
+                    @change=${this.#suppressNativeChange}
                     @input=${this.#handleStepChange}
                 ></sp-textfield>
             </sp-field-group>

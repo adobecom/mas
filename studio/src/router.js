@@ -23,6 +23,13 @@ export class Router extends EventTarget {
         this.isNavigating = false;
     }
 
+    #shouldPreserveDefaultParam(key, paramValue, hadParamBeforeUpdate = false) {
+        if (key !== 'page') return false;
+        if (paramValue !== PAGE_NAMES.WELCOME) return false;
+        if (!hadParamBeforeUpdate) return false;
+        return this.currentParams?.get('path') === 'sandbox';
+    }
+
     updateHistory() {
         // Sort the parameters by name
         const sortedParams = new URLSearchParams();
@@ -373,6 +380,7 @@ export class Router extends EventTarget {
             self.currentParams ??= new URLSearchParams(self.location.hash.slice(1));
 
             for (const key of keysArray) {
+                const hadParamBeforeUpdate = self.currentParams.has(key);
                 const storeValue = isObject ? value?.[key] : value;
 
                 if (Array.isArray(storeValue) && storeValue.length === 0) {
@@ -397,7 +405,11 @@ export class Router extends EventTarget {
 
                 const defaultValue = getDefaultValue();
                 const defaultValueToCompare = isObject ? defaultValue?.[key] : defaultValue;
-                if (self.currentParams.get(key) === defaultValueToCompare) {
+                const currentParamValue = self.currentParams.get(key);
+                if (
+                    currentParamValue === String(defaultValueToCompare) &&
+                    !self.#shouldPreserveDefaultParam(key, currentParamValue, hadParamBeforeUpdate)
+                ) {
                     self.currentParams.delete(key);
                 }
             }

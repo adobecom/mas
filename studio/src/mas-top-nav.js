@@ -147,6 +147,7 @@ class MasTopNav extends LitElement {
             const items = [...breadcrumbs.querySelectorAll('sp-breadcrumb-item')];
             if (items.length <= 2) {
                 items.forEach((item) => item.removeAttribute('hidden'));
+                breadcrumbs.maxVisibleItems = Math.max(4, items.length);
             }
             if (typeof breadcrumbs.adjustOverflow === 'function') {
                 breadcrumbs.adjustOverflow();
@@ -295,11 +296,11 @@ class MasTopNav extends LitElement {
         };
 
         if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
-            return [{ label: 'Fragments table', handler: handlers.content }, { label: 'Editor' }];
+            return [{ label: 'Fragments', handler: handlers.content }, { label: 'Editor' }];
         }
         if (this.page.value === PAGE_NAMES.VERSION) {
             return [
-                { label: 'Fragments table', handler: handlers.content },
+                { label: 'Fragments', handler: handlers.content },
                 { label: 'Editor', handler: handlers.editor },
                 { label: 'Version history' },
             ];

@@ -10,6 +10,10 @@ import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
 const INDEX_REFERENCES_FIELD = 'entries';
 const INDEX_NOT_FOUND_MESSAGES = ['404', 'Fragment not found'];
 const SETTINGS_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5';
+const FRAGMENT_SUFFIX_LENGTH = 4;
+const FRAGMENT_NAME_COLLISION_LIMIT = 20;
+const TOP_LEVEL_CONFLICT_MESSAGE = 'A top-level setting already exists for this setting name.';
+const TOP_LEVEL_DUPLICATE_BLOCKED_MESSAGE = 'Top-level setting duplication is not allowed.';
 
 const isBooleanValue = (value) => value === true || value === false;
 
@@ -49,6 +53,16 @@ const buildValueFields = (valueType, value, booleanValue) => {
 
 const resolveBooleanValue = (valueType, value, booleanValue) =>
     valueType === 'boolean' ? Boolean(value) : Boolean(booleanValue);
+
+const normalizedStringList = (values = []) =>
+    [...new Set(values.map((value) => `${value}`.trim()).filter((value) => value))].sort();
+
+const areStringListsEqual = (left = [], right = []) => {
+    const leftList = normalizedStringList(left);
+    const rightList = normalizedStringList(right);
+    if (leftList.length !== rightList.length) return false;
+    return leftList.every((value, index) => value === rightList[index]);
+};
 
 const templateSummaryHelper = createTreeSelectionSummary(TEMPLATE_TREE_DATA);
 
@@ -298,23 +312,22 @@ export class SettingsStore {
         const rowStore = this.getRowStore(rowId);
         const row = rowStore.value;
         const settingName = row.name;
-        const locales = [...override.locales];
+        const locales = [...(override.locales || [])];
         let createdOverrideId = null;
-        if (!locales.length) {
-            showToast('Locale is required for overrides.', 'negative');
-            return null;
-        }
         const valueType = override.valueType || row.valueType || (isBooleanValue(override.value) ? 'boolean' : 'text');
         const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
-        const localeSegment = locales.map((locale) => normalizeKey(locale)).join('-');
         const localeTitle = locales.join(', ');
-        const fragmentName = `${normalizeKey(settingName)}-${localeSegment}-${Date.now()}`;
+        const fragmentName = await this.#resolveUniqueFragmentName({
+            settingName,
+            locales,
+            templateIds: override.templateIds || [],
+        });
 
         const created = await this.#runMutation(
             async () => {
                 const created = await this.aem.sites.cf.fragments.create({
                     name: fragmentName,
-                    title: `${row.label} ${localeTitle}`,
+                    title: `${row.label} ${localeTitle}`.trim(),
                     description: row.description || '',
                     parentPath: this.#settingsPath,
                     modelId: row.fragment?.model?.id || this.#entryModelId,
@@ -347,10 +360,6 @@ export class SettingsStore {
         if (!currentOverride) return false;
 
         const locales = [...(override.locales || [])];
-        if (!locales.length) {
-            showToast('Locale is required for overrides.', 'negative');
-            return false;
-        }
         const valueType =
             override.valueType ||
             currentOverride.valueType ||
@@ -380,7 +389,7 @@ export class SettingsStore {
 
                 await this.aem.sites.cf.fragments.save({
                     ...fragment,
-                    title: `${row.label} ${locales.join(', ')}`,
+                    title: `${row.label} ${locales.join(', ')}`.trim(),
                     fields,
                 });
             },
@@ -391,14 +400,24 @@ export class SettingsStore {
 
     async createSetting(setting) {
         const settingName = setting.name;
+        const hasConflict = await this.#hasTopLevelSettingNameConflict(settingName);
+        if (hasConflict) {
+            showToast(TOP_LEVEL_CONFLICT_MESSAGE, 'negative');
+            return null;
+        }
         const valueType = setting.valueType || (isBooleanValue(setting.value) ? 'boolean' : 'text');
         const booleanValue = resolveBooleanValue(valueType, setting.value, setting.booleanValue);
+        const fragmentName = await this.#resolveUniqueFragmentName({
+            settingName,
+            locales: [],
+            templateIds: setting.templateIds || [],
+        });
         let createdFragmentId = null;
 
         const created = await this.#runMutation(
             async () => {
                 const created = await this.aem.sites.cf.fragments.create({
-                    name: normalizeKey(settingName),
+                    name: fragmentName,
                     title: setting.label || settingName,
                     description: setting.description || '',
                     parentPath: this.#settingsPath,
@@ -542,37 +561,8 @@ export class SettingsStore {
     }
 
     async duplicateSetting(rowId) {
-        const rowStore = this.getRowStore(rowId);
-        const row = rowStore.value;
-        let duplicatedFragmentId = null;
-
-        const duplicated = await this.#runMutation(
-            async () => {
-                const created = await this.aem.sites.cf.fragments.create({
-                    name: `${normalizeKey(row.name)}-copy-${Date.now()}`,
-                    title: `${row.label} copy`,
-                    description: row.description || '',
-                    parentPath: this.#settingsPath,
-                    modelId: row.fragment?.model?.id || this.#entryModelId,
-                    fields: this.#buildEntryFields({
-                        name: row.name,
-                        templateIds: row.templateIds || [],
-                        locales: [],
-                        tags: row.tags || [],
-                        valueType: row.valueType || (isBooleanValue(row.value) ? 'boolean' : 'text'),
-                        value: row.value,
-                        booleanValue: row.booleanValue,
-                    }),
-                });
-
-                duplicatedFragmentId = created.id;
-                await this.#addPathsToIndex([created.path]);
-            },
-            'Setting duplicated as draft.',
-            'Failed to duplicate setting.',
-        );
-        if (!duplicated) return null;
-        return duplicatedFragmentId;
+        showToast(TOP_LEVEL_DUPLICATE_BLOCKED_MESSAGE, 'negative');
+        return null;
     }
 
     async duplicateOverride(rowId, overrideId) {
@@ -588,14 +578,18 @@ export class SettingsStore {
                   .split(',')
                   .map((locale) => locale.trim())
                   .filter((locale) => locale);
-        const localeKey = locales.join('-') || 'override';
         const valueType = override.valueType || row.valueType || (isBooleanValue(override.value) ? 'boolean' : 'text');
         const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
+        const fragmentName = await this.#resolveUniqueFragmentName({
+            settingName: row.name,
+            locales,
+            templateIds: override.templateIds || [],
+        });
 
         return this.#runMutation(
             async () => {
                 const created = await this.aem.sites.cf.fragments.create({
-                    name: `${normalizeKey(row.name)}-${normalizeKey(localeKey)}-copy-${Date.now()}`,
+                    name: fragmentName,
                     title: `${override.label || row.label} ${override.locale || ''} copy`.trim(),
                     description: row.description || '',
                     parentPath: this.#settingsPath,
@@ -746,6 +740,52 @@ export class SettingsStore {
         await this.aem.sites.cf.fragments.save(indexFragment);
     }
 
+    #buildFragmentName({ settingName, locales = [], templateIds = [] }) {
+        const baseName = normalizeKey(settingName);
+        const normalizedLocales = [...new Set(locales.map((locale) => normalizeKey(`${locale}`)).filter((locale) => locale))];
+        const normalizedTemplates = [...new Set(templateIds.map((id) => normalizeKey(`${id}`)).filter((id) => id))];
+        const localeSegment = normalizedLocales.length ? normalizedLocales.join('-') : 'all';
+        const templateSegment = normalizedTemplates.length ? normalizedTemplates.join('-') : 'all';
+
+        return `${baseName}-${localeSegment}-${templateSegment}`;
+    }
+
+    #randomFragmentSuffix(length = FRAGMENT_SUFFIX_LENGTH) {
+        const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let suffix = '';
+        for (let index = 0; index < length; index += 1) {
+            suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
+        }
+        return suffix;
+    }
+
+    async #fragmentPathExists(path) {
+        try {
+            await this.aem.sites.cf.fragments.getByPath(path);
+            return true;
+        } catch (error) {
+            const message = `${error?.message || ''}`;
+            if (INDEX_NOT_FOUND_MESSAGES.some((marker) => message.includes(marker))) {
+                return false;
+            }
+            throw error;
+        }
+    }
+
+    async #resolveUniqueFragmentName({ settingName, locales = [], templateIds = [] }) {
+        const baseName = this.#buildFragmentName({ settingName, locales, templateIds });
+        let candidate = baseName;
+
+        for (let attempt = 0; attempt <= FRAGMENT_NAME_COLLISION_LIMIT; attempt += 1) {
+            const existingPath = `${this.#settingsPath}/${candidate}`;
+            const exists = await this.#fragmentPathExists(existingPath);
+            if (!exists) return candidate;
+            candidate = `${baseName}-${this.#randomFragmentSuffix()}`;
+        }
+
+        throw new Error(`Unable to find available fragment name for ${baseName}`);
+    }
+
     #buildEntryFields({ name, templateIds, locales, tags, valueType, value, booleanValue }) {
         const fields = [
             { name: 'name', type: 'text', multiple: false, values: [name] },
@@ -776,7 +816,8 @@ export class SettingsStore {
     #setRowsFromIndex(indexFragmentData) {
         const references = indexFragmentData.references || [];
         const topLevelByName = new Map();
-        const nestedByKey = new Map();
+        const nestedByFieldKey = new Map();
+        const nestedByNameKey = new Map();
 
         for (const reference of references) {
             const fragment = new Fragment(reference);
@@ -784,25 +825,38 @@ export class SettingsStore {
             const hasLocales = record.locales.length > 0;
             const fieldName = reference.fieldName || INDEX_REFERENCES_FIELD;
 
-            if (fieldName === INDEX_REFERENCES_FIELD && !hasLocales && !topLevelByName.has(record.name)) {
-                topLevelByName.set(record.name, fragment);
-                continue;
+            if (fieldName === INDEX_REFERENCES_FIELD && !hasLocales) {
+                if (!topLevelByName.has(record.name)) {
+                    topLevelByName.set(record.name, fragment);
+                    continue;
+                }
+
+                const retainedTopLevel = normalizeSettingFragment(topLevelByName.get(record.name));
+                if (areStringListsEqual(record.templateIds, retainedTopLevel.templateIds)) continue;
             }
 
-            if (!hasLocales) continue;
+            const nestedNameKey = fieldName === INDEX_REFERENCES_FIELD ? record.name : fieldName;
+            if (!nestedByNameKey.has(nestedNameKey)) nestedByNameKey.set(nestedNameKey, []);
+            nestedByNameKey.get(nestedNameKey).push(fragment);
 
-            const nestedKey = fieldName === INDEX_REFERENCES_FIELD ? record.name : fieldName;
-            if (!nestedByKey.has(nestedKey)) nestedByKey.set(nestedKey, []);
-            nestedByKey.get(nestedKey).push(fragment);
+            if (!nestedByFieldKey.has(fieldName)) nestedByFieldKey.set(fieldName, []);
+            nestedByFieldKey.get(fieldName).push(fragment);
         }
 
-        const topLevelFragments = [];
         const recordOverrides = new Map();
 
         for (const [name, fragment] of topLevelByName) {
             const topRecord = normalizeSettingFragment(fragment);
-            const nestedFragments = [...(nestedByKey.get(name) || []), ...(nestedByKey.get(fragment.id) || [])];
-            const overrides = nestedFragments.map((nestedFragment) => this.#createOverride(nestedFragment, topRecord.label));
+            const nestedFragments = [...(nestedByNameKey.get(name) || []), ...(nestedByFieldKey.get(fragment.id) || [])];
+
+            const overrideIds = new Set();
+            const overrides = nestedFragments
+                .filter((nestedFragment) => {
+                    if (overrideIds.has(nestedFragment.id)) return false;
+                    overrideIds.add(nestedFragment.id);
+                    return true;
+                })
+                .map((nestedFragment) => this.#createOverride(nestedFragment, topRecord.label));
 
             const rowRecord = {
                 ...topRecord,
@@ -812,11 +866,36 @@ export class SettingsStore {
                 templateSummary: this.formatTemplateSummary(topRecord.templateIds),
             };
 
-            topLevelFragments.push(fragment);
             recordOverrides.set(fragment.id, rowRecord);
         }
 
-        this.setSettingFragments(topLevelFragments, recordOverrides);
+        this.setSettingFragments([...topLevelByName.values()], recordOverrides);
+    }
+
+    async #hasTopLevelSettingNameConflict(settingName) {
+        const normalizedSettingName = normalizeKey(settingName);
+        let indexFragmentData = null;
+
+        try {
+            indexFragmentData = await this.aem.sites.cf.fragments.getByPath(this.#indexPath, {
+                references: 'direct-hydrated',
+            });
+        } catch (error) {
+            if (INDEX_NOT_FOUND_MESSAGES.some((message) => `${error?.message || ''}`.includes(message))) {
+                return false;
+            }
+            throw error;
+        }
+
+        const references = indexFragmentData.references || [];
+        return references.some((reference) => {
+            const fragment = new Fragment(reference);
+            const record = normalizeSettingFragment(fragment);
+            const hasLocales = record.locales.length > 0;
+            const fieldName = reference.fieldName || INDEX_REFERENCES_FIELD;
+            if (fieldName !== INDEX_REFERENCES_FIELD || hasLocales) return false;
+            return normalizeKey(record.name) === normalizedSettingName;
+        });
     }
 
     #createOverride(fragment, fallbackLabel) {

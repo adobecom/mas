@@ -196,6 +196,37 @@ describe('Router URL parameter handling', async () => {
         Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
+    it('should preserve page=welcome for sandbox when navigating home from settings', async () => {
+        const originalPage = Store.page.get();
+        const originalProfile = Store.profile.get();
+        const originalUsers = Store.users.get();
+        const originalUsersLoadedMeta = Store.users.getMeta('loaded');
+
+        Store.profile.set({ email: 'power@adobe.com' });
+        Store.users.set([
+            {
+                userPrincipalName: 'power@adobe.com',
+                groups: ['GRP-ODIN-MAS-POWERUSERS'],
+            },
+        ]);
+        Store.users.setMeta('loaded', true);
+
+        const router = new Router({ hash: '#page=settings&path=sandbox' });
+        router.start();
+        await delay(60);
+        await router.navigateToPage(PAGE_NAMES.WELCOME)();
+        await delay(60);
+
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        expect(router.location.hash).to.include('path=sandbox');
+        expect(router.location.hash).to.include('page=welcome');
+
+        Store.page.set(originalPage);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
+    });
+
     it('should preserve a page-less sandbox hash on hashchange until users resolve', async () => {
         const originalPage = Store.page.get();
         const originalProfile = Store.profile.get();

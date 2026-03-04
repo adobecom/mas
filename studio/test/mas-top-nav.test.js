@@ -106,7 +106,7 @@ describe('MasTopNav', () => {
                 item.textContent.trim(),
             );
 
-            expect(items).to.deep.equal(['Fragments table', 'Editor']);
+            expect(items).to.deep.equal(['Fragments', 'Editor']);
             el.querySelector('.nav-breadcrumbs sp-breadcrumb-item').click();
             expect(navigateStub.calledWith(PAGE_NAMES.CONTENT)).to.be.true;
         });
@@ -119,7 +119,7 @@ describe('MasTopNav', () => {
             const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
             const items = breadcrumbs.map((item) => item.textContent.trim());
 
-            expect(items).to.deep.equal(['Fragments table', 'Editor', 'Version history']);
+            expect(items).to.deep.equal(['Fragments', 'Editor', 'Version history']);
             breadcrumbs[1].click();
             expect(navigateSpy.calledWith('fragment-1')).to.be.true;
         });

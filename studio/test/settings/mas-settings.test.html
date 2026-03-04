@@ -169,13 +169,17 @@
                             const createEditor = settingsPage.shadowRoot.querySelector('#settings-editor-page');
                             expect(createEditor).to.exist;
                             expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS_EDITOR);
-                            expect(settingsPage.shadowRoot.querySelector('#settings-editor-action-bar')).to.exist;
+                            const createActionBar = settingsPage.shadowRoot.querySelector('#settings-editor-action-bar');
+                            expect(createActionBar).to.exist;
+                            expect(createActionBar.actions).to.not.include('duplicate');
 
                             Store.settings.creating.set(false);
                             Store.settings.fragmentId.set('setting-show-plan-type');
                             await waitForUpdates(settingsPage, 2);
                             const editEditor = settingsPage.shadowRoot.querySelector('#settings-editor-page');
                             expect(editEditor).to.exist;
+                            const editActionBar = settingsPage.shadowRoot.querySelector('#settings-editor-action-bar');
+                            expect(editActionBar.actions).to.not.include('duplicate');
                             expect(settingsPage.shadowRoot.querySelector('[name="setting-name-page"]').value).to.equal(
                                 'showPlanType',
                             );
@@ -436,6 +440,37 @@
                             Store.settings.addOverride = originalAddOverride;
                         });
 
+                        it('allows creating overrides without selecting locales', async () => {
+                            const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
+                            const capturedCalls = [];
+                            const originalAddOverride = Store.settings.addOverride;
+                            Store.settings.addOverride = async (rowId, payload) => {
+                                capturedCalls.push({ rowId, payload });
+                                return 'new-override-id';
+                            };
+
+                            table.dispatchEvent(
+                                new CustomEvent('setting-add-override', {
+                                    detail: { id: 'setting-show-addon' },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+
+                            const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
+                            const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
+                                (button) => button.textContent.includes('Save as draft'),
+                            );
+                            saveDraftButton.click();
+                            await waitForUpdates(settingsPage, 2);
+
+                            expect(capturedCalls.length).to.equal(1);
+                            expect(capturedCalls[0].rowId).to.equal('setting-show-addon');
+                            expect(capturedCalls[0].payload.locales).to.deep.equal([]);
+                            Store.settings.addOverride = originalAddOverride;
+                        });
+
                         it('publishes override from dialog publish action', async () => {
                             const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
                             const originalAddOverride = Store.settings.addOverride;
@@ -555,6 +590,15 @@
 
                             const namePicker = settingsPage.shadowRoot.querySelector('sp-picker[name="setting-name-page"]');
                             expect(namePicker).to.exist;
+                            const optionValues = [...namePicker.querySelectorAll('sp-menu-item')].map((item) =>
+                                item.getAttribute('value'),
+                            );
+                            expect(optionValues).to.not.include('showAddon');
+                            expect(optionValues).to.not.include('showPlanType');
+                            expect(optionValues).to.not.include('showSecureLabel');
+                            expect(optionValues).to.include('displayAnnual');
+                            expect(optionValues).to.include('displayPlanType');
+                            expect(optionValues).to.include('quantitySelect');
                             expect(settingsPage.shadowRoot.textContent.includes('Value type')).to.equal(false);
                         });
 
@@ -678,6 +722,15 @@
 
                             const quantitySelect = settingsPage.shadowRoot.querySelector('quantity-select-field');
                             expect(quantitySelect).to.exist;
+                            expect(() =>
+                                quantitySelect.dispatchEvent(
+                                    new Event('change', {
+                                        bubbles: true,
+                                        composed: true,
+                                    }),
+                                ),
+                            ).to.not.throw();
+                            await waitForUpdates(settingsPage, 1);
                             quantitySelect.dispatchEvent(
                                 new CustomEvent('change', {
                                     detail: {
@@ -1065,10 +1118,6 @@
                                 ...settingsPage.shadowRoot.querySelectorAll('sp-button[slot="button"]'),
                             ].find((button) => button.textContent.includes('Save as draft'));
 
-                            saveDraftButton.disabled = false;
-                            saveDraftButton.click();
-                            await waitForUpdates(settingsPage, 1);
-
                             settingsPage.form = { ...settingsPage.form, locales: ['fr_FR'] };
                             await waitForUpdates(settingsPage, 1);
                             saveDraftButton.disabled = false;
@@ -1102,7 +1151,7 @@
                             Store.settings.addOverride = originalAddOverride;
                         });
 
-                        it('handles cancelDiscard, editor action guards, and duplicate confirm path', async () => {
+                        it('handles cancelDiscard and editor action guards', async () => {
                             const { settingsPage, table } = await setupPage();
                             settingsPage.shadowRoot.querySelector('#create-setting-button').click();
                             await waitForUpdates(settingsPage, 2);
@@ -1121,7 +1170,6 @@
                             const discardConfirmed = await firstPrompt;
                             expect(discardConfirmed).to.equal(false);
 
-                            clickEditorAction(settingsPage, 'Duplicate');
                             clickEditorAction(settingsPage, 'Publish');
                             clickEditorAction(settingsPage, 'Delete');
                             await waitForUpdates(settingsPage, 1);
@@ -1157,15 +1205,6 @@
                             settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('cancel'));
                             await waitForUpdates(settingsPage, 1);
 
-                            const originalDuplicateSetting = Store.settings.duplicateSetting;
-                            Store.settings.duplicateSetting = async () => 'setting-show-plan-type-copy';
-                            clickEditorAction(settingsPage, 'Duplicate');
-                            await waitForUpdates(settingsPage, 1);
-                            settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
-                            await waitForUpdates(settingsPage, 2);
-                            expect(Store.settings.fragmentId.get()).to.equal('setting-show-plan-type-copy');
-                            expect(Store.settings.creating.get()).to.equal(false);
-                            Store.settings.duplicateSetting = originalDuplicateSetting;
                         });
 
                         it('uses fallback valueEditorType for legacy settings and blocks save without valueType', async () => {
@@ -1242,7 +1281,7 @@
                                     value: '<merch-quantity-select title="Qty" min="2" step="2"></merch-quantity-select>',
                                 }),
                             ];
-                            const { settingsPage, table } = await setupPage({
+                            const { settingsPage } = await setupPage({
                                 references: quantityReferences,
                                 expectedRows: 1,
                             });
@@ -1288,30 +1327,7 @@
                             Store.settings.fragmentId.set('setting-quantity-select');
                             await waitForUpdates(settingsPage, 2);
 
-                            table.dispatchEvent(
-                                new CustomEvent('setting-add-override', {
-                                    detail: { id: 'setting-quantity-select' },
-                                    bubbles: true,
-                                    composed: true,
-                                }),
-                            );
-                            await waitForUpdates(settingsPage, 2);
-
-                            const localePicker = settingsPage.shadowRoot.querySelector('mas-locale-picker');
-                            localePicker.dispatchEvent(
-                                new CustomEvent('locale-changed', {
-                                    detail: { locales: ['de_DE'] },
-                                    bubbles: true,
-                                    composed: true,
-                                }),
-                            );
-                            await waitForUpdates(settingsPage, 1);
-
-                            const overrideEnabledSwitch = settingsPage.shadowRoot.querySelector(
-                                '.override-dialog .settings-dialog-layout sp-field-group sp-switch',
-                            );
-                            overrideEnabledSwitch.checked = false;
-                            overrideEnabledSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            settingsPage.form = { ...settingsPage.form, locales: ['de_DE'], booleanValue: false };
                             await waitForUpdates(settingsPage, 1);
 
                             expect(settingsPage.form.locales).to.deep.equal(['de_DE']);
@@ -1321,7 +1337,6 @@
                             await waitForUpdates(settingsPage, 1);
                             const disabledActions = settingsPage.disabledSettingsEditorActions;
                             expect(disabledActions.has(QUICK_ACTION.SAVE)).to.equal(true);
-                            expect(disabledActions.has(QUICK_ACTION.DUPLICATE)).to.equal(true);
                             expect(disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
                             expect(disabledActions.has(QUICK_ACTION.CANCEL)).to.equal(true);
                             expect(disabledActions.has(QUICK_ACTION.DELETE)).to.equal(true);

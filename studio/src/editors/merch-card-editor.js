@@ -396,8 +396,9 @@ class MerchCardEditor extends LitElement {
         return !!this.fragmentQuantityValue.trim();
     }
 
-    #handleQuantityFieldChange = ({ detail }) => {
-        const html = detail.value;
+    #handleQuantityFieldChange = (event) => {
+        const html = event.detail?.value ?? event.currentTarget?.value;
+        if (typeof html !== 'string') return;
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
     };

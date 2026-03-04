@@ -41,6 +41,8 @@ const createMutationHarness = ({ topLevel, overrides = [] }) => {
     let references = [topLevel, ...overrides];
     let indexEntries = references.map((reference) => reference.path);
     const byId = new Map(references.map((reference) => [reference.id, reference]));
+    const settingsPath = topLevel.path.split('/').slice(0, -1).join('/');
+    const indexPath = `${settingsPath}/index`;
     const calls = {
         create: [],
         save: [],
@@ -58,6 +60,12 @@ const createMutationHarness = ({ topLevel, overrides = [] }) => {
                 fragments: {
                     getByPath: async (path) => {
                         calls.getByPath.push(path);
+                        if (path !== indexPath) {
+                            const reference = references.find((item) => item.path === path);
+                            if (reference) return structuredClone(reference);
+                            throw new Error('404');
+                        }
+
                         return {
                             id: 'settings-index',
                             path,
@@ -560,6 +568,54 @@ describe('Settings Store Namespace', () => {
         expect(row.value.overrides[0].locale).to.equal('fr_FR');
     });
 
+    it('keeps first top-level fragment when names are duplicated', async () => {
+        const topLevelA = createSettingReference({
+            id: 'setting-quantity-select-a',
+            name: 'quantitySelect',
+            label: 'Quantity Select A',
+            locales: [],
+            path: '/content/dam/mas/sandbox/settings/quantityselect-all-all',
+        });
+        const topLevelB = createSettingReference({
+            id: 'setting-quantity-select-b',
+            name: 'quantitySelect',
+            label: 'Quantity Select B',
+            locales: [],
+            path: '/content/dam/mas/sandbox/settings/quantityselect-all-all-abqp',
+        });
+        const nestedByName = createSettingReference({
+            id: 'setting-quantity-select-fr',
+            name: 'quantitySelect',
+            label: 'Quantity Select Override',
+            fieldName: 'entries',
+            locales: ['fr_FR'],
+            path: '/content/dam/mas/sandbox/settings/quantityselect-fr',
+        });
+
+        const store = new SettingsStore();
+        store.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async () => ({
+                            id: 'settings-index',
+                            path: '/content/dam/mas/sandbox/settings/index',
+                            fields: [{ name: 'entries', values: [topLevelA.path, topLevelB.path, nestedByName.path] }],
+                            references: [topLevelA, topLevelB, nestedByName],
+                        }),
+                    },
+                },
+            },
+        });
+
+        await store.loadSurface('sandbox');
+
+        const rows = store.rows.get().map((rowStore) => rowStore.value);
+        expect(rows.length).to.equal(1);
+        expect(rows.map((row) => row.id)).to.deep.equal(['setting-quantity-select-a']);
+        expect(rows[0].overrides.map((override) => override.id)).to.deep.equal(['setting-quantity-select-fr']);
+    });
+
     it('does not delete top-level settings', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-plan-type',
@@ -689,18 +745,22 @@ describe('Settings Store Namespace', () => {
 
         let indexEntries = [topLevel.path, nested.path];
         const createPayloads = [];
+        const indexPath = '/content/dam/mas/sandbox/settings/index';
 
         const store = new SettingsStore();
         store.setAem({
             sites: {
                 cf: {
                     fragments: {
-                        getByPath: async (path) => ({
-                            id: 'settings-index',
-                            path,
-                            fields: [{ name: 'entries', values: [...indexEntries] }],
-                            references: [topLevel, nested].filter((reference) => indexEntries.includes(reference.path)),
-                        }),
+                        getByPath: async (path) => {
+                            if (path !== indexPath) throw new Error('404');
+                            return {
+                                id: 'settings-index',
+                                path,
+                                fields: [{ name: 'entries', values: [...indexEntries] }],
+                                references: [topLevel, nested].filter((reference) => indexEntries.includes(reference.path)),
+                            };
+                        },
                         create: async (payload) => {
                             createPayloads.push(payload);
                             return { path: '/content/dam/mas/sandbox/settings/duplicated-override' };
@@ -728,6 +788,7 @@ describe('Settings Store Namespace', () => {
 
         expect(localesField.values).to.deep.equal(['fr_FR']);
         expect(nameField.values).to.deep.equal(['showPlanType']);
+        expect(createPayloads[0].name).to.equal('showplantype-frfr-plans');
     });
 
     it('toggles override value and updates the override fragment', async () => {
@@ -911,14 +972,17 @@ describe('Settings Store Namespace', () => {
         await store.loadSurface('sandbox');
 
         const rowId = store.rows.get()[0].value.id;
-        const missingLocale = await store.addOverride(rowId, {
+        const allLocalesId = await store.addOverride(rowId, {
             locales: [],
             templateIds: ['catalog'],
             valueType: 'richText',
             value: '<p>hello</p>',
             booleanValue: true,
         });
-        expect(missingLocale).to.equal(null);
+        expect(allLocalesId).to.be.a('string');
+        expect(harness.calls.create.length).to.equal(1);
+        expect(harness.calls.create[0].name).to.equal('displayplantype-all-catalog');
+        expect(harness.calls.create[0].fields.find((field) => field.name === 'locales').values).to.deep.equal([]);
 
         const createdId = await store.addOverride(rowId, {
             locales: ['de_DE'],
@@ -931,16 +995,19 @@ describe('Settings Store Namespace', () => {
 
         expect(createdId).to.be.a('string');
         expect(harness.calls.create.length).to.be.greaterThan(0);
+        expect(harness.calls.create[harness.calls.create.length - 1].name).to.equal('displayplantype-dede-catalog');
         const createFields = harness.calls.create[harness.calls.create.length - 1].fields;
         expect(createFields.find((field) => field.name === 'richTextValue').values).to.deep.equal(['<p>hello</p>']);
         expect(createFields.find((field) => field.name === 'valuetype').values).to.deep.equal(['richText']);
 
         const overrideId = store.rows.get()[0].value.overrides.find((item) => item.id === existingOverride.id).id;
-        const localeRequired = await store.updateOverride(rowId, overrideId, {
+        const updatedAllLocales = await store.updateOverride(rowId, overrideId, {
             locales: [],
+            templateIds: ['plans'],
             value: 'updated',
         });
-        expect(localeRequired).to.equal(false);
+        expect(updatedAllLocales).to.equal(true);
+        expect(harness.calls.save.find((fragment) => fragment.id === overrideId).title).to.equal('Display plan type');
 
         const updated = await store.updateOverride(rowId, overrideId, {
             locales: ['it_IT'],
@@ -951,7 +1018,7 @@ describe('Settings Store Namespace', () => {
             booleanValue: true,
         });
         expect(updated).to.equal(true);
-        const savedOverride = harness.calls.save.find((fragment) => fragment.id === overrideId);
+        const savedOverride = harness.calls.save.filter((fragment) => fragment.id === overrideId).at(-1);
         expect(savedOverride.title).to.equal('Display plan type it_IT');
     });
 
@@ -981,6 +1048,7 @@ describe('Settings Store Namespace', () => {
             booleanValue: true,
         });
         expect(createdId).to.be.a('string');
+        expect(harness.calls.create[0].name).to.equal('showaddon-all-catalog');
 
         harness.aem.sites.cf.fragments.getById = async (id) => {
             if (id === topLevel.id) {
@@ -1009,6 +1077,33 @@ describe('Settings Store Namespace', () => {
         const latestSave = harness.calls.save[harness.calls.save.length - 1];
         expect(latestSave.fields.find((field) => field.name === 'name').values).to.deep.equal(['showSecureLabel']);
         expect(latestSave.fields.find((field) => field.name === 'textValue').values).to.deep.equal(['{{placeholder}}']);
+    });
+
+    it('blocks create when top-level setting with same name already exists', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon-existing',
+            name: 'showAddon',
+            label: 'Show Addon',
+            locales: [],
+            templates: ['catalog'],
+            path: '/content/dam/mas/sandbox/settings/showaddon-all-catalog',
+        });
+        const harness = createMutationHarness({ topLevel, overrides: [] });
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
+
+        const createdId = await store.createSetting({
+            name: 'showAddon',
+            label: 'Show Addon',
+            templateIds: ['catalog'],
+            valueType: 'boolean',
+            value: true,
+            booleanValue: true,
+        });
+
+        expect(createdId).to.equal(null);
+        expect(harness.calls.create).to.deep.equal([]);
     });
 
     it('removes draft settings and supports publish/unpublish paths', async () => {
@@ -1157,18 +1252,20 @@ describe('Settings Store Namespace', () => {
         await store.loadSurface('sandbox');
 
         const duplicatedSettingId = await store.duplicateSetting(topLevel.id);
-        expect(duplicatedSettingId).to.be.a('string');
+        expect(duplicatedSettingId).to.equal(null);
+        expect(harness.calls.create).to.deep.equal([]);
 
         const row = store.rows.get()[0].value;
         row.overrides[0].locales = [];
         row.overrides[0].locale = 'de_DE, fr_FR';
         const duplicatedOverride = await store.duplicateOverride(row.id, row.overrides[0].id);
         expect(duplicatedOverride).to.equal(true);
-        const lastCreatePayload = harness.calls.create[harness.calls.create.length - 1];
+        const lastCreatePayload = harness.calls.create[0];
         expect(lastCreatePayload.fields.find((field) => field.name === 'locales').values).to.deep.equal(['de_DE', 'fr_FR']);
+        expect(lastCreatePayload.name).to.equal('displayplantype-dede-frfr-all');
     });
 
-    it('handles duplicate setting failure, markPublished and edit action', async () => {
+    it('handles duplicate setting block, markPublished and edit action', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
             name: 'showAddon',
@@ -1182,12 +1279,9 @@ describe('Settings Store Namespace', () => {
         store.setAem(harness.aem);
         await store.loadSurface('sandbox');
 
-        harness.aem.sites.cf.fragments.create = async () => {
-            throw new Error('create failed');
-        };
         const duplicated = await store.duplicateSetting(topLevel.id);
         expect(duplicated).to.equal(null);
-        expect(store.error.get()).to.equal('Failed to duplicate setting.');
+        expect(store.error.get()).to.equal(null);
 
         store.markPublished(topLevel.id);
         expect(store.getRowStore(topLevel.id).value.data.published).to.equal(true);

@@ -127,12 +127,11 @@ describe('MasSideNav – Copy Field', () => {
             expect(map.borderColor).to.be.undefined;
         });
 
-        it('should use resolvedPriceText for prices when available', () => {
+        it('should use previewValue pipeline for prices like other fields', () => {
             const fragment = mockFragment([{ name: 'prices', values: ['<span is="inline-price">placeholder</span>'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
-            el.resolvedPriceText = 'US$54.99/mo';
             const priceField = el.copyableFields.find((f) => f.name === 'prices');
-            expect(priceField.preview).to.equal('US$54.99/mo');
+            expect(priceField.preview).to.equal('placeholder');
         });
 
         it('should use resolved preview-store value for placeholder-backed fields', () => {
@@ -153,14 +152,13 @@ describe('MasSideNav – Copy Field', () => {
             expect(descriptionField.preview).to.equal('{{checkout-now}}');
         });
 
-        it('should prefer resolvedPriceText over preview-store values for prices', () => {
+        it('should use preview-store values for prices like other fields', () => {
             const sourceFragment = mockFragment([{ name: 'prices', values: ['<span is="inline-price">raw</span>'] }]);
             const previewFragment = mockFragment([{ name: 'prices', values: ['<span is="inline-price">US$39.99/mo</span>'] }]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(sourceFragment, previewFragment));
-            el.resolvedPriceText = 'US$9.99/mo';
 
             const priceField = el.copyableFields.find((f) => f.name === 'prices');
-            expect(priceField.preview).to.equal('US$9.99/mo');
+            expect(priceField.preview).to.equal('US$39.99/mo');
         });
 
         it('should fall back to previewValue for prices when no resolved text', () => {
@@ -224,13 +222,19 @@ describe('MasSideNav – Copy Field', () => {
             currentPrice.setAttribute('is', 'inline-price');
             currentPrice.setAttribute('data-template', 'price');
             currentPrice.setAttribute('data-wcs-osi', 'abc');
-            currentPrice.textContent = 'US$99.99';
+            const currentInner = document.createElement('span');
+            currentInner.className = 'price price-alternative';
+            currentInner.textContent = 'US$99.99';
+            currentPrice.append(currentInner);
 
             const oldPrice = document.createElement('span');
             oldPrice.setAttribute('is', 'inline-price');
             oldPrice.setAttribute('data-template', 'strikethrough');
             oldPrice.setAttribute('data-wcs-osi', 'abc');
-            oldPrice.textContent = 'US$199.99';
+            const oldInner = document.createElement('span');
+            oldInner.className = 'price price-strikethrough';
+            oldInner.textContent = 'US$199.99';
+            oldPrice.append(oldInner);
 
             card.append(currentPrice, oldPrice);
             editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);

@@ -327,6 +327,26 @@ class MasSideNav extends LitElement {
         return this.#normalizePreviewText(clone.textContent);
     }
 
+    /**
+     * Extracts price text from a rendered inline-price element, wrapping
+     * strikethrough portions in <s> tags based on the rendered DOM classes.
+     */
+    #getFormattedPriceText(el) {
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll('sr-only').forEach((n) => n.remove());
+        const priceSpans = [...clone.querySelectorAll('.price')];
+        if (!priceSpans.length) return this.#getVisibleText(el);
+        const parts = [];
+        for (const span of priceSpans) {
+            const text = this.#normalizePreviewText(span.textContent);
+            if (!text) continue;
+            const isStrikethrough =
+                span.classList.contains('price-strikethrough') || span.classList.contains('price-promo-strikethrough');
+            parts.push(isStrikethrough ? `<s>${text}</s>` : text);
+        }
+        return parts.join(' ');
+    }
+
     #getFirstResolvedPriceText(card) {
         const prices = [...card.querySelectorAll(INLINE_PRICE_SELECTOR)];
         let fallbackText = '';
@@ -362,6 +382,7 @@ class MasSideNav extends LitElement {
             .map((el) => ({
                 attrs: this.#getInlinePriceAttributes(el),
                 text: this.#getVisibleText(el),
+                formattedText: this.#getFormattedPriceText(el),
             }))
             .filter(({ text }) => !!text);
     }
@@ -412,15 +433,11 @@ class MasSideNav extends LitElement {
             const candidateIdx = this.#findInlinePriceCandidate(sourceAttrs, resolvedInlinePrices, usedIndices);
             if (candidateIdx === -1) return;
             usedIndices.add(candidateIdx);
-            const text = resolvedInlinePrices[candidateIdx].text;
-            const template = sourceAttrs.get('data-template');
-            if (template === 'strikethrough' || template === 'priceStrikethrough') {
-                const s = doc.createElement('s');
-                s.textContent = text;
-                inlinePrice.replaceWith(s);
-            } else {
-                inlinePrice.replaceWith(text);
-            }
+            const candidate = resolvedInlinePrices[candidateIdx];
+            // formattedText already contains <s> wrappers based on rendered DOM classes.
+            const temp = doc.createElement('span');
+            temp.innerHTML = candidate.formattedText;
+            inlinePrice.replaceWith(...temp.childNodes);
         });
         return doc.body.innerHTML;
     }
@@ -445,9 +462,14 @@ class MasSideNav extends LitElement {
     }
 
     #buildCopyableField(field, source, sourceFragment, resolvedInlinePrices) {
-        const displayValues = this.#resolveInlinePricesInValues(this.#getDisplayValues(field), resolvedInlinePrices);
-        const preview =
-            field.name === 'prices' ? this.resolvedPriceText || previewValue(displayValues) : previewValue(displayValues);
+        const displayValues = this.#getDisplayValues(field);
+        // If the previewStore resolved inline-prices to text, fall back to the original
+        // field values which preserve data-template attributes for strikethrough detection.
+        const displayHasInlinePrices = displayValues?.some((v) => typeof v === 'string' && v.includes('inline-price'));
+        const sourceHasInlinePrices = field.values?.some((v) => typeof v === 'string' && v.includes('inline-price'));
+        const resolveSource = displayHasInlinePrices || !sourceHasInlinePrices ? displayValues : field.values;
+        const resolvedValues = this.#resolveInlinePricesInValues(resolveSource, resolvedInlinePrices);
+        const preview = previewValue(resolvedValues);
 
         return {
             name: field.name,

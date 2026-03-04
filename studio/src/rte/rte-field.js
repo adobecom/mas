@@ -1037,6 +1037,8 @@ class RteField extends LitElement {
 
         const icon = document.createElement('span');
         icon.setAttribute('class', 'icon-button');
+        icon.setAttribute('tabindex', '0');
+        icon.setAttribute('role', 'button');
         if (tooltipText) {
             icon.dataset.tooltip = tooltipText;
         }

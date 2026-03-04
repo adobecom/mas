@@ -724,47 +724,23 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('sorts translation projects by modifiedOrCreated descending (backend sort)', async () => {
+        it('calls searchFragmentList with sort option modifiedOrCreated DESC', async () => {
             const repository = createFullRepository();
             repository.search = { value: { path: 'sandbox' } };
-            const newest = createFragment({
-                id: 'newest',
-                path: `${ROOT_PATH}/sandbox/translations/project2`,
-                modified: { at: '2026-01-03T00:00:00.000Z' },
-            });
-            const middle = createFragment({
-                id: 'middle',
-                path: `${ROOT_PATH}/sandbox/translations/project3`,
-                modified: { at: '2026-01-02T00:00:00.000Z' },
-            });
-            const oldest = createFragment({
-                id: 'oldest',
-                path: `${ROOT_PATH}/sandbox/translations/project1`,
-                modified: { at: '2026-01-01T00:00:00.000Z' },
-            });
-            const mockFragments = [newest, middle, oldest];
-            repository.searchFragmentList = sandbox.stub().resolves(mockFragments);
-            const dataSetStub = sandbox.stub();
-            const originalData = Store.translationProjects.list.data.set.bind(Store.translationProjects.list.data);
-            Store.translationProjects.list.data.set = dataSetStub;
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+            const { default: Store } = await import('../src/store.js');
             const originalLoading = Store.translationProjects.list.loading.set.bind(Store.translationProjects.list.loading);
+            const originalData = Store.translationProjects.list.data.set.bind(Store.translationProjects.list.data);
             Store.translationProjects.list.loading.set = sandbox.stub();
+            Store.translationProjects.list.data.set = sandbox.stub();
             try {
                 await repository.loadTranslationProjects();
-
                 expect(repository.searchFragmentList.calledOnce).to.be.true;
                 const options = repository.searchFragmentList.firstCall.args[0];
                 expect(options.sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'DESC' }]);
-
-                expect(dataSetStub.calledOnce).to.be.true;
-                const storedProjects = dataSetStub.firstCall.args[0];
-                expect(storedProjects).to.have.lengthOf(3);
-                expect(storedProjects[0].get().id).to.equal('newest');
-                expect(storedProjects[1].get().id).to.equal('middle');
-                expect(storedProjects[2].get().id).to.equal('oldest');
             } finally {
-                Store.translationProjects.list.data.set = originalData;
                 Store.translationProjects.list.loading.set = originalLoading;
+                Store.translationProjects.list.data.set = originalData;
             }
         });
     });

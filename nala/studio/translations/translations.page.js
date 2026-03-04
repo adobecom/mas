@@ -23,6 +23,24 @@ export default class TranslationsPage {
 
         this.deleteConfirmDialog = page.getByRole('dialog', { name: 'Delete Translation Project' });
         this.deleteConfirmButton = this.deleteConfirmDialog.getByRole('button', { name: 'Delete' });
+
+        this.createProjectButton = translationHost.locator('sp-button.create-button');
+    }
+
+    getRow(index) {
+        return this.tableRows.nth(index);
+    }
+
+    async getProjectTitleFromRow(index) {
+        const row = this.getRow(index);
+        const cell = row.locator('sp-table-cell').first();
+        return (await cell.textContent())?.trim() ?? '';
+    }
+
+    async clickEditForRow(index) {
+        const row = this.getRow(index);
+        await row.locator('sp-action-menu').click();
+        await this.page.getByRole('menuitem', { name: 'Edit' }).click();
     }
 
     async waitForListToLoad(timeout = 15000) {
@@ -31,10 +49,6 @@ export default class TranslationsPage {
             this.translationTable.waitFor({ state: 'visible', timeout }),
             this.emptyState.waitFor({ state: 'visible', timeout }),
         ]);
-    }
-
-    async hasProjects() {
-        return await this.translationTable.isVisible();
     }
 
     async getSentOnColumnTexts() {

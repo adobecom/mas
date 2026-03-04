@@ -24,7 +24,7 @@ export default {
             path: '/studio.html',
             browserParams: '#page=translations&path=nala&locale=en_US',
             tags: '@mas-studio @translations',
-            description: 'Verify Sent on column is sortable (click header, table remains intact)',
+            description: 'Verify Sent on column is sortable',
         },
         {
             tcid: '3',
@@ -33,6 +33,22 @@ export default {
             browserParams: '#page=translations&path=nala&locale=en_US',
             tags: '@mas-studio @translations',
             description: 'Verify Actions dropdown shows Edit, Duplicate, Archive, Delete, Cancel',
+        },
+        {
+            tcid: '4',
+            name: '@studio-translations-edit-opens-editor',
+            path: '/studio.html',
+            browserParams: '#page=translations&path=nala&locale=en_US',
+            tags: '@mas-studio @translations',
+            description: 'Edit action opens translation editor page with project id in URL',
+        },
+        {
+            tcid: '5',
+            name: '@studio-translations-create-project-opens-editor',
+            path: '/studio.html',
+            browserParams: '#page=translations&path=nala&locale=en_US',
+            tags: '@mas-studio @translations',
+            description: 'Create project button opens translation editor with no project id in URL',
         },
     ],
 };

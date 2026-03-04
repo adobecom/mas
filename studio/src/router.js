@@ -4,9 +4,6 @@ import { debounce } from './utils.js';
 import { isPowerUser } from './groups.js';
 
 export class Router extends EventTarget {
-    #isWatchingSandboxSettingsRoute = false;
-    #isWatchingSettingsAccessRoute = false;
-
     #sandboxSettingsRouteWatcher = () => {
         this.#resolveSandboxSettingsRoute();
     };
@@ -573,15 +570,11 @@ export class Router extends EventTarget {
     }
 
     #startWatchingSettingsAccessRoute() {
-        if (this.#isWatchingSettingsAccessRoute) return;
-        this.#isWatchingSettingsAccessRoute = true;
         Store.profile.subscribe(this.#settingsAccessRouteWatcher);
         Store.users.subscribe(this.#settingsAccessRouteWatcher);
     }
 
     #stopWatchingSettingsAccessRoute() {
-        if (!this.#isWatchingSettingsAccessRoute) return;
-        this.#isWatchingSettingsAccessRoute = false;
         Store.profile.unsubscribe(this.#settingsAccessRouteWatcher);
         Store.users.unsubscribe(this.#settingsAccessRouteWatcher);
     }
@@ -600,15 +593,11 @@ export class Router extends EventTarget {
     }
 
     #startWatchingSandboxSettingsRoute() {
-        if (this.#isWatchingSandboxSettingsRoute) return;
-        this.#isWatchingSandboxSettingsRoute = true;
         Store.profile.subscribe(this.#sandboxSettingsRouteWatcher);
         Store.users.subscribe(this.#sandboxSettingsRouteWatcher);
     }
 
     #stopWatchingSandboxSettingsRoute() {
-        if (!this.#isWatchingSandboxSettingsRoute) return;
-        this.#isWatchingSandboxSettingsRoute = false;
         Store.profile.unsubscribe(this.#sandboxSettingsRouteWatcher);
         Store.users.unsubscribe(this.#sandboxSettingsRouteWatcher);
     }

@@ -4,7 +4,7 @@ import '../src/mas-fragment-editor.js';
 import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
-import { FragmentStore } from '../src/reactivity/fragment-store.js';
+import generateFragmentStore, { SourceFragmentStore } from '../src/reactivity/source-fragment-store.js';
 import { PAGE_NAMES, CARD_MODEL_PATH } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
@@ -179,6 +179,35 @@ describe('MasFragmentEditor', () => {
     describe('initFragment', () => {
         let el;
         let mockRepo;
+        let originalStoreState;
+
+        const fragmentPath = (locale, slug) => `/content/dam/mas/s/${locale}/${slug}`;
+        const createFragmentData = ({ id, locale = 'en_US', slug = 'fragment' } = {}) => ({
+            id,
+            path: fragmentPath(locale, slug),
+            fields: [],
+            references: [],
+            model: { path: CARD_MODEL_PATH },
+        });
+
+        const createEditorContextStore = () => ({
+            localeDefaultFragment: null,
+            defaultLocaleId: null,
+            parentFetchPromise: null,
+            loadFragmentContext: sandbox.stub().resolves(),
+            isVariation: sandbox.stub().returns(false),
+            setParent(parentData) {
+                if (!parentData) return;
+                this.localeDefaultFragment = parentData;
+                this.defaultLocaleId = parentData.id;
+                this.parentFetchPromise = Promise.resolve(parentData);
+            },
+            getLocaleDefaultFragmentAsync: sandbox.stub().resolves(null),
+        });
+
+        const disposePreviewStore = (store) => {
+            store?.previewStore?.dispose?.();
+        };
 
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
@@ -197,44 +226,192 @@ describe('MasFragmentEditor', () => {
                 },
             };
             sandbox.stub(el, 'repository').get(() => mockRepo);
+            sandbox.stub(el.reactiveController, 'updateStores');
+            sandbox.stub(el, 'dispatchFragmentLoaded');
+            sandbox.stub(el, 'updateTranslatedLocalesStore').resolves();
+            el.editorContextStore = createEditorContextStore();
 
-            // Mock Store.set to avoid structuredClone errors with class instances
-            sandbox.stub(Store.fragments.inEdit, 'set').callsFake((val) => {
-                Store.fragments.inEdit.value = val;
-            });
+            originalStoreState = {
+                listData: Store.fragments.list.data.get(),
+                inEdit: Store.fragments.inEdit.get(),
+                fragmentId: Store.fragmentEditor.fragmentId.get(),
+                loading: Store.fragmentEditor.loading.get(),
+                search: structuredClone(Store.search.get()),
+                filters: structuredClone(Store.filters.get()),
+                translatedLocales: Store.fragmentEditor.translatedLocales.get(),
+            };
+
+            Store.fragments.list.data.value = [];
+            Store.fragments.inEdit.value = null;
+            Store.fragmentEditor.fragmentId.value = null;
+            Store.fragmentEditor.loading.value = false;
+            Store.search.value = {};
+            Store.filters.value = { locale: 'en_US' };
+            Store.fragmentEditor.translatedLocales.value = null;
         });
 
-        it('initializes with existing store', async () => {
-            const fragment = new Fragment({ id: 'test-id', path: '/content/dam/mas/s/en_US/f' });
-            const fragmentStore = new FragmentStore(fragment);
-            // Ensure previewStore exists to avoid ReactiveController errors
-            fragmentStore.previewStore = { subscribe: sandbox.stub(), unsubscribe: sandbox.stub() };
+        afterEach(() => {
+            disposePreviewStore(Store.fragments.inEdit.get());
+            Store.fragments.list.data.get().forEach((store) => disposePreviewStore(store));
 
-            Store.fragments.list.data.value = [fragmentStore];
-            Store.fragmentEditor.fragmentId.value = 'test-id';
+            Store.fragments.list.data.value = originalStoreState.listData;
+            Store.fragments.inEdit.value = originalStoreState.inEdit;
+            Store.fragmentEditor.fragmentId.value = originalStoreState.fragmentId;
+            Store.fragmentEditor.loading.value = originalStoreState.loading;
+            Store.search.value = originalStoreState.search;
+            Store.filters.value = originalStoreState.filters;
+            Store.fragmentEditor.translatedLocales.value = originalStoreState.translatedLocales;
+        });
+
+        it('returns early when no fragment ID exists', async () => {
+            const consoleErrorStub = sandbox.stub(console, 'error');
+
+            await el.initFragment();
+
+            expect(consoleErrorStub.calledOnceWith('No fragment ID in store')).to.be.true;
+            expect(mockRepo.aem.sites.cf.fragments.getById.called).to.be.false;
+            expect(Store.fragmentEditor.loading.get()).to.equal(false);
+            expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.IDLE);
+        });
+
+        it('reuses existing store and updates locale/filter state', async () => {
+            const existingData = createFragmentData({ id: 'existing-id', locale: 'fr_FR', slug: 'existing' });
+            const existingStore = generateFragmentStore(new Fragment(existingData));
+            existingStore.previewStore.resolved = true;
+            Store.fragments.list.data.value = [existingStore];
+            Store.fragmentEditor.fragmentId.value = 'existing-id';
 
             await el.initFragment();
 
             expect(mockRepo.refreshFragment.calledOnce).to.be.true;
-            expect(el.inEdit.get()).to.equal(fragmentStore);
-            expect(el.initState).to.equal('ready');
+            expect(el.editorContextStore.loadFragmentContext.calledOnceWith('existing-id', existingData.path)).to.be.true;
+            expect(el.inEdit.get()).to.equal(existingStore);
+            expect(existingStore.previewStore.resolved).to.equal(false);
+            expect(Store.search.get().region).to.equal('fr_FR');
+            expect(el.updateTranslatedLocalesStore.calledOnceWith(false)).to.be.true;
+            expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
+            expect(Store.fragmentEditor.loading.get()).to.equal(false);
         });
 
-        it('initializes with new fragment', async () => {
-            const fragmentData = {
-                id: 'new-id',
-                path: '/content/dam/mas/s/en_US/f',
-                fields: [],
-                model: { path: CARD_MODEL_PATH },
-            };
+        it('reattaches parent for existing variation when resolved parent changes', async () => {
+            const oldParent = new Fragment(createFragmentData({ id: 'old-parent-id', locale: 'en_US', slug: 'default-old' }));
+            const existingVariationData = createFragmentData({
+                id: 'existing-variation-id',
+                locale: 'fr_FR',
+                slug: 'variation',
+            });
+            const existingStore = generateFragmentStore(new Fragment(existingVariationData), oldParent);
+            const refreshPreviewSpy = sandbox.spy(existingStore.previewStore, 'refreshFrom');
+            const newParentData = createFragmentData({ id: 'new-parent-id', locale: 'en_US', slug: 'default-new' });
+
+            el.editorContextStore.isVariation.returns(true);
+            sandbox.stub(el, 'resolveVariationParentFragment').resolves(newParentData);
+
+            Store.fragments.list.data.value = [existingStore];
+            Store.fragmentEditor.fragmentId.value = 'existing-variation-id';
+
+            await el.initFragment();
+
+            expect(el.resolveVariationParentFragment.calledOnceWith(existingVariationData.path)).to.be.true;
+            expect(existingStore.parentFragment.id).to.equal('new-parent-id');
+            expect(refreshPreviewSpy.calledOnce).to.be.true;
+            expect(el.editorContextStore.localeDefaultFragment.id).to.equal('new-parent-id');
+            expect(el.updateTranslatedLocalesStore.calledOnceWith(true)).to.be.true;
+        });
+
+        it('initializes a new non-variation fragment and adds it to the list', async () => {
+            const fragmentData = createFragmentData({ id: 'new-id', locale: 'en_US', slug: 'fresh' });
             mockRepo.aem.sites.cf.fragments.getById.resolves(fragmentData);
-            Store.fragments.list.data.value = [];
             Store.fragmentEditor.fragmentId.value = 'new-id';
 
             await el.initFragment();
 
+            expect(mockRepo.loadPreviewPlaceholders.calledOnce).to.be.true;
+            expect(el.editorContextStore.loadFragmentContext.calledOnceWith('new-id', fragmentData.path)).to.be.true;
+            expect(Store.fragments.list.data.get()).to.have.lengthOf(1);
+            expect(Store.fragments.list.data.get()[0].id).to.equal('new-id');
             expect(el.inEdit.get().id).to.equal('new-id');
-            expect(el.initState).to.equal('ready');
+            expect(el.updateTranslatedLocalesStore.calledOnceWith(false)).to.be.true;
+            expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
+        });
+
+        it('skips parent lookup when store skipVariationDetection flag is set', async () => {
+            const fragmentData = createFragmentData({ id: 'variation-id', locale: 'fr_FR', slug: 'variation' });
+            const fragment = new Fragment(fragmentData);
+            const sourceStore = generateFragmentStore(fragment);
+            sourceStore.skipVariationDetection = true;
+            Store.fragments.list.data.set([sourceStore]);
+
+            el.editorContextStore.isVariation.returns(true);
+            const resolveParentStub = sandbox.stub(el, 'resolveVariationParentFragment').resolves(null);
+
+            Store.fragmentEditor.fragmentId.value = 'variation-id';
+
+            await el.initFragment();
+
+            expect(resolveParentStub.called).to.be.false;
+            expect(sourceStore.skipVariationDetection).to.equal(false);
+            expect(el.inEdit.get().id).to.equal('variation-id');
+            expect(el.updateTranslatedLocalesStore.calledOnceWith(true)).to.be.true;
+        });
+
+        it('reloads locale placeholders for variations when active locale differs', async () => {
+            const fragmentData = createFragmentData({ id: 'variation-id', locale: 'fr_FR', slug: 'variation' });
+            const resolvePreviewSpy = sandbox.spy(SourceFragmentStore.prototype, 'resolvePreviewFragment');
+
+            Store.filters.value = { locale: 'tr_TR' };
+            mockRepo.aem.sites.cf.fragments.getById.resolves(fragmentData);
+            el.editorContextStore.isVariation.returns(true);
+            sandbox.stub(el, 'resolveVariationParentFragment').resolves(null);
+            Store.fragmentEditor.fragmentId.value = 'variation-id';
+
+            await el.initFragment();
+
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
+            expect(resolvePreviewSpy.calledOnce).to.be.true;
+            expect(Store.search.get().region).to.equal('fr_FR');
+        });
+
+        it('uses pending parent from create variation event when context is not ready', async () => {
+            const parentData = createFragmentData({ id: 'parent-id', locale: 'en_US', slug: 'parent' });
+            const variationData = createFragmentData({ id: 'new-variation-id', locale: 'fr_FR', slug: 'variation' });
+            const parentFragment = new Fragment(parentData);
+
+            mockRepo.aem.sites.cf.fragments.getById.resolves(variationData);
+            el.editorContextStore.isVariation.returns(false);
+            const resolveParentStub = sandbox.stub(el, 'resolveVariationParentFragment').resolves(null);
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
+
+            el.handleFragmentCopied({
+                detail: {
+                    fragment: { id: 'new-variation-id', path: variationData.path },
+                    parentFragment,
+                },
+            });
+
+            expect(navigateSpy.calledOnceWith('new-variation-id')).to.be.true;
+
+            Store.fragmentEditor.fragmentId.value = 'new-variation-id';
+            await el.initFragment();
+
+            expect(resolveParentStub.called).to.be.false;
+            expect(Store.fragments.list.data.get()).to.have.lengthOf(0);
+            expect(el.inEdit.get().parentFragment.id).to.equal('parent-id');
+            expect(el.editorContextStore.localeDefaultFragment.id).to.equal('parent-id');
+            expect(el.updateTranslatedLocalesStore.calledOnceWith(true)).to.be.true;
+        });
+
+        it('sets idle state when new fragment fetch fails', async () => {
+            const consoleErrorStub = sandbox.stub(console, 'error');
+            mockRepo.aem.sites.cf.fragments.getById.rejects(new Error('boom'));
+            Store.fragmentEditor.fragmentId.value = 'broken-id';
+
+            await el.initFragment();
+
+            expect(consoleErrorStub.called).to.be.true;
+            expect(el.updateTranslatedLocalesStore.called).to.be.false;
+            expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.IDLE);
+            expect(Store.fragmentEditor.loading.get()).to.equal(false);
         });
     });
 

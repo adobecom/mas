@@ -564,6 +564,38 @@ runTests(async () => {
                 expect(trimmed).to.not.match(/^<p>.*<\/p>$/s);
             });
 
+            it('keeps strikethrough styling for resolved inline price markup', async () => {
+                const masField = document.createElement('mas-field');
+                masField.setAttribute('field', 'description');
+                const fragment = document.createElement('aem-fragment');
+                masField.append(fragment);
+                spTheme.append(masField);
+
+                fragment.dispatchEvent(
+                    new CustomEvent(EVENT_AEM_LOAD, {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            fields: {
+                                description:
+                                    '<p><span is="inline-price" data-template="strikethrough" class="placeholder-resolved"><span class="price price-strikethrough">US$59.99/mo</span></span> <span is="inline-price" data-template="price" class="placeholder-resolved"><span class="price">US$9.99/mo</span></span></p>',
+                            },
+                        },
+                    }),
+                );
+
+                await delay(0);
+
+                const strike = masField.querySelector(
+                    '.price.price-strikethrough',
+                );
+                expect(strike).to.exist;
+                const style = getComputedStyle(strike);
+                const decoration =
+                    style.textDecorationLine || style.textDecoration;
+                expect(decoration).to.include('line-through');
+            });
+
             it('reuses an existing mas-field content span', async () => {
                 const masField = document.createElement('mas-field');
                 masField.setAttribute('field', 'promoText');

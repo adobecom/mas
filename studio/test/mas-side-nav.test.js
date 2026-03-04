@@ -244,6 +244,102 @@ describe('MasSideNav – Copy Field', () => {
             expect(descriptionField.preview).to.equal('<s>US$199.99</s> then US$99.99');
         });
 
+        it('should preserve strikethrough preview segments when old price is resolved', () => {
+            const sourceFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: [
+                        '<p><span is="inline-price" data-template="strikethrough" data-wcs-osi="abc"></span> and <span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>',
+                    ],
+                },
+            ]);
+            const previewFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: [
+                        '<p><span is="inline-price" data-template="strikethrough" data-wcs-osi="abc"></span> and <span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>',
+                    ],
+                },
+            ]);
+            const editor = mockEditor(sourceFragment, previewFragment);
+            const card = document.createElement('merch-card');
+
+            const oldPrice = document.createElement('span');
+            oldPrice.setAttribute('is', 'inline-price');
+            oldPrice.setAttribute('data-template', 'strikethrough');
+            oldPrice.setAttribute('data-wcs-osi', 'abc');
+            const oldInner = document.createElement('span');
+            oldInner.className = 'price price-strikethrough';
+            oldInner.textContent = 'US$199.99';
+            oldPrice.append(oldInner);
+
+            const currentPrice = document.createElement('span');
+            currentPrice.setAttribute('is', 'inline-price');
+            currentPrice.setAttribute('data-template', 'price');
+            currentPrice.setAttribute('data-wcs-osi', 'abc');
+            const currentInner = document.createElement('span');
+            currentInner.className = 'price';
+            currentInner.textContent = 'US$99.99';
+            currentPrice.append(currentInner);
+
+            card.append(oldPrice, currentPrice);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const descriptionField = el.copyableFields.find((f) => f.name === 'description');
+            expect(descriptionField.preview).to.equal('<s>US$199.99</s> and US$99.99');
+        });
+
+        it('should not include accessibility aria labels from inline-price in description preview', () => {
+            const sourceFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: [
+                        '<p><span is="inline-price" data-template="strikethrough" data-wcs-osi="abc"></span> then <span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>',
+                    ],
+                },
+            ]);
+            const previewFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: [
+                        '<p><span is="inline-price" data-template="strikethrough" data-wcs-osi="abc"></span> then <span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>',
+                    ],
+                },
+            ]);
+            const editor = mockEditor(sourceFragment, previewFragment);
+            const card = document.createElement('merch-card');
+
+            const oldPrice = document.createElement('span');
+            oldPrice.setAttribute('is', 'inline-price');
+            oldPrice.setAttribute('data-template', 'strikethrough');
+            oldPrice.setAttribute('data-wcs-osi', 'abc');
+            const oldPriceAria = document.createElement('sr-only');
+            oldPriceAria.className = 'strikethrough-aria-label';
+            oldPriceAria.textContent = 'Regularly at ';
+            const oldPriceVisible = document.createElement('span');
+            oldPriceVisible.className = 'price price-strikethrough';
+            oldPriceVisible.textContent = 'US$199.99';
+            oldPrice.append(oldPriceAria, oldPriceVisible);
+
+            const currentPrice = document.createElement('span');
+            currentPrice.setAttribute('is', 'inline-price');
+            currentPrice.setAttribute('data-template', 'price');
+            currentPrice.setAttribute('data-wcs-osi', 'abc');
+            const currentPriceVisible = document.createElement('span');
+            currentPriceVisible.className = 'price';
+            currentPriceVisible.textContent = 'US$99.99';
+            currentPrice.append(currentPriceVisible);
+
+            card.append(oldPrice, currentPrice);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const descriptionField = el.copyableFields.find((f) => f.name === 'description');
+            expect(descriptionField.preview).to.equal('<s>US$199.99</s> then US$99.99');
+            expect(descriptionField.preview).to.not.include('Regularly at');
+        });
+
         it('should include non-empty inherited base fields for variations', () => {
             const sourceFragment = mockFragment(
                 [
@@ -464,6 +560,56 @@ describe('MasSideNav – Copy Field', () => {
 
             const overriddenRows = container.querySelectorAll('.field-entry-overridden');
             expect(overriddenRows.length).to.equal(1);
+        });
+
+        it('should render strikethrough text in overlay previews for old-price content', () => {
+            const sourceFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: [
+                        '<p><span is="inline-price" data-template="strikethrough" data-wcs-osi="abc"></span> then <span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>',
+                    ],
+                },
+            ]);
+            const previewFragment = mockFragment([
+                {
+                    name: 'description',
+                    values: [
+                        '<p><span is="inline-price" data-template="strikethrough" data-wcs-osi="abc"></span> then <span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>',
+                    ],
+                },
+            ]);
+            const editor = mockEditor(sourceFragment, previewFragment);
+            const card = document.createElement('merch-card');
+
+            const currentPrice = document.createElement('span');
+            currentPrice.setAttribute('is', 'inline-price');
+            currentPrice.setAttribute('data-template', 'price');
+            currentPrice.setAttribute('data-wcs-osi', 'abc');
+            const currentInner = document.createElement('span');
+            currentInner.className = 'price';
+            currentInner.textContent = 'US$99.99';
+            currentPrice.append(currentInner);
+
+            const oldPrice = document.createElement('span');
+            oldPrice.setAttribute('is', 'inline-price');
+            oldPrice.setAttribute('data-template', 'strikethrough');
+            oldPrice.setAttribute('data-wcs-osi', 'abc');
+            const oldInner = document.createElement('span');
+            oldInner.className = 'price price-strikethrough';
+            oldInner.textContent = 'US$199.99';
+            oldPrice.append(oldInner);
+
+            card.append(currentPrice, oldPrice);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const strike = container.querySelector('s');
+            expect(strike).to.exist;
+            expect(strike.textContent).to.equal('US$199.99');
         });
 
         it('should clear default focused menu item when opened by pointer', async () => {

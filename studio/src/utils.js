@@ -280,8 +280,6 @@ export function generateFieldLink(fragment, path, page, fieldName) {
 
 // --- Copy Field display helpers ---
 
-const PREVIEW_MAX_LENGTH = 60;
-
 /**
  * Converts a camelCase field name to Title Case.
  * e.g. "cardTitle" → "Card Title", "borderColor" → "Border Color"
@@ -302,26 +300,17 @@ export function stripHtml(value) {
 }
 
 /**
- * Returns a truncated preview of the first value in an array.
+ * Returns a preview of the first value in an array.
  * HTML is stripped except {@html <s>} tags (strikethrough prices).
- * Long strings are capped at 60 visible characters with ellipsis.
  * @param {any[]} values
  * @returns {string}
  */
 export function previewValue(values) {
     const raw = values?.[0] ?? '';
     if (!raw) return '';
-    if (typeof raw !== 'string' || !raw.includes('<')) {
-        const text = String(raw);
-        return text.length > PREVIEW_MAX_LENGTH ? `${text.slice(0, PREVIEW_MAX_LENGTH - 3)}...` : text;
-    }
+    if (typeof raw !== 'string' || !raw.includes('<')) return String(raw);
     // Strip all HTML except <s> tags used for strikethrough prices.
-    const preview = raw.replace(/<(?!\/?s\b)[^>]+>/g, '');
-    const plainLength = preview.replace(/<\/?s>/g, '').length;
-    if (plainLength <= PREVIEW_MAX_LENGTH) return preview;
-    // Fall back to plain text for truncation to avoid breaking <s> tags.
-    const plain = stripHtml(raw);
-    return plain.slice(0, PREVIEW_MAX_LENGTH - 3) + '...';
+    return raw.replace(/<(?!\/?s\b)[^>]+>/g, '');
 }
 
 /*

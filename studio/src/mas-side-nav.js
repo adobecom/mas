@@ -133,9 +133,7 @@ class MasSideNav extends LitElement {
 
         .field-value {
             font-weight: 600;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            word-break: break-word;
         }
     `;
 
@@ -330,21 +328,34 @@ class MasSideNav extends LitElement {
     /**
      * Extracts price text from a rendered inline-price element, wrapping
      * strikethrough portions in <s> tags based on the rendered DOM classes.
+     * Returns both full text (with per-unit/tax labels) and core text (price only).
      */
-    #getFormattedPriceText(el) {
+    #getFormattedPriceTexts(el) {
         const clone = el.cloneNode(true);
         clone.querySelectorAll('sr-only').forEach((n) => n.remove());
         const priceSpans = [...clone.querySelectorAll('.price')];
-        if (!priceSpans.length) return this.#getVisibleText(el);
-        const parts = [];
+        if (!priceSpans.length) {
+            const text = this.#getVisibleText(el);
+            return { full: text, core: text };
+        }
+        const fullParts = [];
+        const coreParts = [];
         for (const span of priceSpans) {
-            const text = this.#normalizePreviewText(span.textContent);
-            if (!text) continue;
             const isStrikethrough =
                 span.classList.contains('price-strikethrough') || span.classList.contains('price-promo-strikethrough');
-            parts.push(isStrikethrough ? `<s>${text}</s>` : text);
+            // CSS ::before pseudo-elements add visual spacing before these
+            // labels, but textContent doesn't capture pseudo-element content.
+            span.querySelectorAll('.price-unit-type, .price-tax-inclusivity').forEach((n) => {
+                if (n.textContent.trim()) n.prepend(' ');
+            });
+            const fullText = this.#normalizePreviewText(span.textContent);
+            // Strip per-unit and tax labels for the core version.
+            span.querySelectorAll('.price-unit-type, .price-tax-inclusivity').forEach((n) => n.remove());
+            const coreText = this.#normalizePreviewText(span.textContent);
+            if (fullText) fullParts.push(isStrikethrough ? `<s>${fullText}</s>` : fullText);
+            if (coreText) coreParts.push(isStrikethrough ? `<s>${coreText}</s>` : coreText);
         }
-        return parts.join(' ');
+        return { full: fullParts.join(' '), core: coreParts.join(' ') };
     }
 
     #getFirstResolvedPriceText(card) {
@@ -379,11 +390,15 @@ class MasSideNav extends LitElement {
     #getResolvedInlinePriceCandidates(card = this.#getPreviewCard()) {
         if (!card) return [];
         return [...card.querySelectorAll(INLINE_PRICE_SELECTOR)]
-            .map((el) => ({
-                attrs: this.#getInlinePriceAttributes(el),
-                text: this.#getVisibleText(el),
-                formattedText: this.#getFormattedPriceText(el),
-            }))
+            .map((el) => {
+                const { full, core } = this.#getFormattedPriceTexts(el);
+                return {
+                    attrs: this.#getInlinePriceAttributes(el),
+                    text: this.#getVisibleText(el),
+                    formattedText: full,
+                    coreText: core,
+                };
+            })
             .filter(({ text }) => !!text);
     }
 
@@ -434,9 +449,12 @@ class MasSideNav extends LitElement {
             if (candidateIdx === -1) return;
             usedIndices.add(candidateIdx);
             const candidate = resolvedInlinePrices[candidateIdx];
-            // formattedText already contains <s> wrappers based on rendered DOM classes.
+            // Use full text (with per-unit/tax) when the source inline-price
+            // requested those labels; otherwise use just the core price amount.
+            const wantsExtras =
+                sourceAttrs.get('data-display-per-unit') === 'true' || sourceAttrs.get('data-display-tax') === 'true';
             const temp = doc.createElement('span');
-            temp.innerHTML = candidate.formattedText;
+            temp.innerHTML = wantsExtras ? candidate.formattedText : candidate.coreText;
             inlinePrice.replaceWith(...temp.childNodes);
         });
         return doc.body.innerHTML;
@@ -510,7 +528,7 @@ class MasSideNav extends LitElement {
 
     /** Copy Field popover listing fragment fields with preview values. */
     get copyFieldButton() {
-        const loading = this.variationDataLoading;
+        const loading = this.variationDataLoading || Store.fragmentEditor.loading.get();
         const isVariation = this.#isVariationFragment(this.fragmentEditor?.fragment?.id);
         const currentFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.CURRENT);
         const inheritedFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.INHERITED);

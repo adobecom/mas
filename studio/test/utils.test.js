@@ -116,11 +116,10 @@ describe('previewValue', () => {
         expect(previewValue(['Creative Cloud Pro'])).to.equal('Creative Cloud Pro');
     });
 
-    it('truncates long values with ellipsis', () => {
+    it('preserves full text without truncation', () => {
         const longText = 'A'.repeat(80);
         const result = previewValue([longText]);
-        expect(result.length).to.equal(60);
-        expect(result.endsWith('...')).to.be.true;
+        expect(result).to.equal(longText);
     });
 
     it('strips HTML from values containing angle brackets', () => {

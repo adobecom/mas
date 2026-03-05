@@ -115,7 +115,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-2: Go to content', async () => {
             await expect(await studio.quickActions).toBeVisible();
             await expect(await studio.gotoContent).toBeVisible();
-            await expect(await studio.surfacePicker).toHaveAttribute('value', 'acom');
+            await expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
             await studio.gotoContent.click();
         });
 
@@ -123,8 +123,8 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.renderView).toBeVisible();
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
-            await expect(page).toHaveURL(`${testPage}#page=content&path=acom`);
-            expect(await studio.surfacePicker).toHaveAttribute('value', 'acom');
+            await expect(page).toHaveURL(`${testPage}#page=content&path=sandbox`);
+            expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
         });
     });
 
@@ -387,7 +387,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate locale change', async () => {
             await expect(await studio.localePicker).toHaveAttribute('value', data.locale);
-            await expect(page).toHaveURL(`${testPage}#locale=${data.locale}&page=welcome&path=acom`);
+            await expect(page).toHaveURL(`${testPage}#locale=${data.locale}&page=welcome&path=sandbox`);
             await expect(await studio.sideNav).toBeVisible();
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();

@@ -1,1 +1,5 @@
+# Node version manager support for GUI git clients (Sourcetree, VS Code, etc.)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
 npx lint-staged

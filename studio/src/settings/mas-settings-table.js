@@ -156,13 +156,15 @@ export class MasSettingsTable extends LitElement {
                                                       ${this.settings.formatTemplateSummary(override.templateIds)}
                                                   </sp-table-cell>
                                                   <sp-table-cell class="override-value-cell">
-                                                      <sp-switch
-                                                          size="m"
-                                                          data-row-id=${renderedRow.row.id}
-                                                          data-override-id=${override.id}
-                                                          .checked=${Boolean(override.booleanValue)}
-                                                          @change=${this.#handleToggleOverrideValue}
-                                                      ></sp-switch>
+                                                      ${renderedRow.row.valueType !== 'text'
+                                                          ? html`<sp-switch
+                                                                size="m"
+                                                                data-row-id=${renderedRow.row.id}
+                                                                data-override-id=${override.id}
+                                                                .checked=${Boolean(override.booleanValue)}
+                                                                @change=${this.#handleToggleOverrideValue}
+                                                            ></sp-switch>`
+                                                          : nothing}
                                                       <span>${this.#normalizeDisplayValue(override.value)}</span>
                                                   </sp-table-cell>
                                                   <sp-table-cell class="override-tags-cell override-tags-column">

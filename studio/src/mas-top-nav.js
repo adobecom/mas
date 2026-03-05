@@ -278,6 +278,9 @@ class MasTopNav extends LitElement {
             ];
         }
         if (this.page.value === PAGE_NAMES.SETTINGS_EDITOR) {
+            if (!this.settings.fragmentId.get() && !this.settings.creating.get()) {
+                return [];
+            }
             return [{ label: 'Settings', handler: handlers.settings }, { label: this.settingEditorBreadcrumbLabel }];
         }
         if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {

@@ -1122,14 +1122,14 @@ describe('Settings Store Namespace', () => {
             description: 'updated description',
             templateIds: ['plans'],
             tags: ['mas:keyword/renewal'],
-            valueType: 'text',
-            value: '{{placeholder}}',
-            booleanValue: false,
+            valueType: 'boolean',
+            value: true,
+            booleanValue: true,
         });
         expect(updated).to.equal(true);
         const latestSave = harness.calls.save[harness.calls.save.length - 1];
         expect(latestSave.fields.find((field) => field.name === 'name').values).to.deep.equal(['secureLabel']);
-        expect(latestSave.fields.find((field) => field.name === 'textValue').values).to.deep.equal(['{{placeholder}}']);
+        expect(latestSave.fields.find((field) => field.name === 'booleanValue').values).to.deep.equal([true]);
     });
 
     it('auto-creates index when adding paths to a missing index', async () => {

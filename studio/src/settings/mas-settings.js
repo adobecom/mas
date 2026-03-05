@@ -325,7 +325,7 @@ class MasSettings extends LitElement {
         const definition = getSettingNameDefinition(form.name);
         const valueType = definition ? definition.valueType : form.valueType;
         const value =
-            definition?.editor === 'placeholder'
+            definition?.editor === 'addon'
                 ? this.#toAddonValue(form.value)
                 : valueType === 'boolean'
                   ? Boolean(form.value)
@@ -380,7 +380,7 @@ class MasSettings extends LitElement {
     get valueEditorType() {
         if (this.dialog?.type === 'override') {
             if (this.settingDefinition?.editor === 'quantity-select') return 'quantity-select';
-            if (this.settingDefinition?.editor === 'placeholder') return 'placeholder';
+            if (this.settingDefinition?.editor === 'addon') return 'addon';
             return this.formValueType === 'boolean' ? 'boolean' : 'text';
         }
         if (this.settingDefinition?.editor) return this.settingDefinition.editor;
@@ -393,7 +393,7 @@ class MasSettings extends LitElement {
     #setOverrideEditForm(row, override) {
         const settingDefinition = getSettingNameDefinition(row.name);
         const valueType = settingDefinition ? settingDefinition.valueType : row.valueType;
-        const value = settingDefinition?.editor === 'placeholder' ? this.#toAddonValue(override.value) : override.value;
+        const value = settingDefinition?.editor === 'addon' ? this.#toAddonValue(override.value) : override.value;
         this.dialog = { type: 'override', mode: 'edit', rowId: row.id, overrideId: override.id };
         this.form = {
             label: row.label,
@@ -405,14 +405,14 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(override.booleanValue),
             locales: [...(override.locales || [])],
-            addonEnabled: settingDefinition?.editor === 'placeholder' ? Boolean(override.booleanValue) : false,
+            addonEnabled: settingDefinition?.editor === 'addon' ? Boolean(override.booleanValue) : false,
         };
         this.formBaseline = structuredClone(this.form);
     }
 
     #setTopLevelFormFromRow(row) {
         const settingDefinition = getSettingNameDefinition(row.name);
-        const value = settingDefinition?.editor === 'placeholder' ? this.#toAddonValue(row.value) : row.value;
+        const value = settingDefinition?.editor === 'addon' ? this.#toAddonValue(row.value) : row.value;
         this.dialog = null;
         this.form = {
             label: row.label,
@@ -424,7 +424,7 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(row.booleanValue),
             locales: [],
-            addonEnabled: settingDefinition?.editor === 'placeholder' ? Boolean(row.booleanValue) : false,
+            addonEnabled: settingDefinition?.editor === 'addon' ? Boolean(row.booleanValue) : false,
         };
         this.formBaseline = structuredClone(this.form);
         this.formRouteId = row.id;
@@ -507,7 +507,7 @@ class MasSettings extends LitElement {
         const row = Store.settings.getRowStore(id).value;
         const settingDefinition = getSettingNameDefinition(row.name);
         const valueType = settingDefinition ? settingDefinition.valueType : row.valueType;
-        const value = settingDefinition?.editor === 'placeholder' ? this.#toAddonValue(row.value) : row.value;
+        const value = settingDefinition?.editor === 'addon' ? this.#toAddonValue(row.value) : row.value;
         this.dialog = { type: 'override', rowId: id };
         this.form = {
             label: row.label,
@@ -519,7 +519,7 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(row.booleanValue),
             locales: [],
-            addonEnabled: settingDefinition?.editor === 'placeholder' ? Boolean(row.booleanValue) : false,
+            addonEnabled: settingDefinition?.editor === 'addon' ? Boolean(row.booleanValue) : false,
         };
     };
 
@@ -727,7 +727,7 @@ class MasSettings extends LitElement {
 
     #normalizedBooleanValue() {
         if (this.formValueType === 'boolean') return Boolean(this.form.value);
-        if (this.valueEditorType === 'placeholder') return Boolean(this.form.addonEnabled);
+        if (this.valueEditorType === 'addon') return Boolean(this.form.addonEnabled);
         return Boolean(this.form.booleanValue);
     }
 
@@ -914,7 +914,7 @@ class MasSettings extends LitElement {
             booleanValue:
                 settingDefinition.valueType === 'boolean'
                     ? Boolean(getSettingDefaultValue(settingDefinition))
-                    : settingDefinition.editor === 'placeholder'
+                    : settingDefinition.editor === 'addon'
                       ? false
                       : true,
             addonEnabled: false,
@@ -974,10 +974,9 @@ class MasSettings extends LitElement {
         return this.dialog.config;
     }
 
-    get overrideBooleanToggleTemplate() {
-        if (this.dialog?.type !== 'override') return nothing;
-        if (this.formValueType === 'boolean') return nothing;
-        if (this.valueEditorType === 'placeholder') return nothing;
+    get booleanToggleTemplate() {
+        if (this.formValueType !== 'optional-text') return nothing;
+        if (this.valueEditorType === 'addon') return nothing;
         return html`
             <sp-field-group>
                 <sp-field-label>Enabled</sp-field-label>
@@ -986,6 +985,11 @@ class MasSettings extends LitElement {
                 </sp-switch>
             </sp-field-group>
         `;
+    }
+
+    get overrideBooleanToggleTemplate() {
+        if (this.dialog?.type !== 'override') return nothing;
+        return this.booleanToggleTemplate;
     }
 
     get valueInputTemplate() {
@@ -1008,7 +1012,7 @@ class MasSettings extends LitElement {
                 ></quantity-select-field>
             `;
         }
-        if (this.valueEditorType === 'placeholder') {
+        if (this.valueEditorType === 'addon') {
             const placeholderKey = this.#toAddonPlaceholderKey(this.form.value);
             return html`
                 <div>
@@ -1203,7 +1207,7 @@ class MasSettings extends LitElement {
                         >
                             ${this.createSettingNameOptions.map(
                                 (definition) => html`
-                                    <sp-menu-item value=${definition.name}>${definition.label}</sp-menu-item>
+                                    <sp-menu-item value=${definition.name}>${definition.name}</sp-menu-item>
                                 `,
                             )}
                         </sp-picker>
@@ -1228,7 +1232,7 @@ class MasSettings extends LitElement {
                             @change=${this.#handleTemplateChange}
                         ></tree-picker-field>
                     </sp-field-group>
-                    ${this.tagsTemplate}
+                    ${this.tagsTemplate} ${this.booleanToggleTemplate}
                     ${this.valueEditorType
                         ? html`
                               <sp-field-group>

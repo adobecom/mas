@@ -88,9 +88,16 @@ export class MasSettingItem extends LitElement {
     }
 
     get valueCellTemplate() {
+        const showToggle = this.row.valueType !== 'text';
         return html`
             <sp-table-cell class="value-cell">
-                <sp-switch size="m" .checked=${Boolean(this.row.booleanValue)} @change=${this.#handleToggleValue}></sp-switch>
+                ${showToggle
+                    ? html`<sp-switch
+                          size="m"
+                          .checked=${Boolean(this.row.booleanValue)}
+                          @change=${this.#handleToggleValue}
+                      ></sp-switch>`
+                    : nothing}
                 <span>${this.#normalizeDisplayValue(this.row.value)}</span>
             </sp-table-cell>
         `;

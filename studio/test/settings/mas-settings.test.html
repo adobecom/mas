@@ -519,7 +519,7 @@
                             Store.settings.publishOverride = originalPublishOverride;
                         });
 
-                        it('submits text override with enabled toggle booleanValue in override dialog', async () => {
+                        it('submits text override without enabled toggle in override dialog', async () => {
                             const references = [
                                 createSettingReference({
                                     id: 'setting-quantity-select',
@@ -552,8 +552,7 @@
 
                             const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
                             expect(overrideDialog).to.exist;
-                            expect(overrideDialog.textContent.includes('Enabled')).to.equal(true);
-                            expect(overrideDialog.querySelector('sp-field-group sp-switch')).to.exist;
+                            expect(overrideDialog.textContent.includes('Enabled')).to.equal(false);
 
                             settingsPage.form = {
                                 ...settingsPage.form,
@@ -574,7 +573,6 @@
                             expect(capturedCalls.length).to.equal(1);
                             expect(capturedCalls[0].rowId).to.equal('setting-quantity-select');
                             expect(capturedCalls[0].payload.valueType).to.equal('text');
-                            expect(capturedCalls[0].payload.booleanValue).to.equal(false);
                             expect(capturedCalls[0].payload.value).to.equal(
                                 '<merch-quantity-select title="Qty" min="2" step="2"></merch-quantity-select>',
                             );

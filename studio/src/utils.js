@@ -1,5 +1,4 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
-import { Fragment } from './aem/fragment.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';

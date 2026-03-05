@@ -63,9 +63,10 @@ async function processConcurrently(items, asyncFn, concurrencyLimit, batchSize =
  */
 async function loadOfferData(fragment, signal, timeoutMs = 10000) {
     const cache = Store.translationProjects.offerDataCache;
+    const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0];
+    if (!wcsOsi) return null;
+
     try {
-        const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0];
-        if (!wcsOsi) return null;
         if (cache.has(wcsOsi)) {
             return cache.get(wcsOsi);
         }
@@ -75,17 +76,23 @@ async function loadOfferData(fragment, signal, timeoutMs = 10000) {
         const priceOptions = service.collectPriceOptions({ wcsOsi });
         const [offersPromise] = service.resolveOfferSelectors(priceOptions);
         if (!offersPromise) return null;
+        let timeoutId;
         const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+            timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
         });
-        const [offer] = await Promise.race([offersPromise, timeoutPromise]);
-        if (signal?.aborted) return null;
-        cache.set(wcsOsi, offer);
-        return offer;
+        try {
+            const [offer] = await Promise.race([offersPromise, timeoutPromise]);
+            clearTimeout(timeoutId);
+            if (signal?.aborted) return null;
+            cache.set(wcsOsi, offer);
+            return offer;
+        } catch (err) {
+            clearTimeout(timeoutId);
+            throw err;
+        }
     } catch (err) {
         console.warn(`Failed to load offer data for fragment ${fragment.id}:`, err.message);
-        const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0];
-        if (wcsOsi && !signal?.aborted) {
+        if (!signal?.aborted) {
             cache.set(wcsOsi, null);
         }
         return null;
@@ -160,7 +167,7 @@ export async function fetchVariationByPath(variationPath, repository) {
         };
 
         const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
-        const innerMap = existing.get(parentCardPath) || new Map();
+        const innerMap = new Map(existing.get(parentCardPath) || []);
         innerMap.set(variationPath, enriched);
         const merged = new Map(existing);
         merged.set(parentCardPath, innerMap);
@@ -366,7 +373,7 @@ export function loadSelectedPlaceholders(selectedPaths, onItems) {
         return { unsubscribe: () => {} };
     }
     const callback = () => {
-        const placeholderValues = Store.placeholders.list.data.get().map((p) => p.value);
+        const placeholderValues = Store.placeholders.list.data.get().map(({ value }) => value);
         const placeholdersByPaths = new Map(placeholderValues.map((p) => [p.path, p]));
         const selected = selectedPaths.map((path) => placeholdersByPaths.get(path)).filter(Boolean);
         onItems(selected);
@@ -462,7 +469,7 @@ async function enrichCardsForViewOnly(cards, repository, signal) {
  * @param {Map} cardsByPaths - Map of path -> card from Store
  * @param {Map} groupedVariationsByParent - Map of cardPath -> Map of variationPath -> variation
  * @param {Object} repository - MasRepository instance
- * @returns {boolean} True if all unresolved variations were fetched successfully, false otherwise
+ * @returns {Promise<void>}
  */
 export async function fetchUnresolvedVariations(selectedCards, cardsByPaths, groupedVariationsByParent, repository) {
     const unresolvedPathsFetched = new Set();
@@ -472,7 +479,7 @@ export async function fetchUnresolvedVariations(selectedCards, cardsByPaths, gro
         for (const [, variationsMap] of groupedVariationsByParent || []) {
             if (variationsMap.has(path)) return false;
         }
-        return !unresolvedPathsFetched.has(path);
+        return true;
     });
 
     for (const path of unresolved) {

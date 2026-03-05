@@ -124,7 +124,7 @@ describe('MasSelectItemsTable', () => {
         it('should initialize with default values', async () => {
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
-            expect(el.selectedInTable).to.deep.equal([]);
+            expect(el.selectedInTable).to.deep.equal(new Set());
             expect(el.viewOnly).to.not.equal(true);
         });
 
@@ -1033,7 +1033,7 @@ describe('MasSelectItemsTable', () => {
             Store.translationProjects.selectedCards.set([]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
-            expect(el.selectedInTable).to.deep.equal([]);
+            expect(el.selectedInTable).to.deep.equal(new Set());
         });
     });
 
@@ -1041,7 +1041,7 @@ describe('MasSelectItemsTable', () => {
         it('should initialize with correct default values', async () => {
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
-            expect(el.selectedInTable).to.be.an('array');
+            expect(el.selectedInTable).to.be.an('Set');
             expect(el.dataState).to.exist;
         });
     });

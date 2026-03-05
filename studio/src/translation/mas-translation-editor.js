@@ -492,6 +492,11 @@ class MasTranslationEditor extends LitElement {
         target.dispatchEvent(closeEvent);
     };
 
+    #toggleSelectedItemsOpen = ({ target }) => {
+        if (target.closest('mas-items-selector')) return;
+        this.isSelectedItemsOpen = !this.isSelectedItemsOpen;
+    };
+
     renderAddItemsDialog() {
         return html`
             <sp-dialog-wrapper
@@ -721,13 +726,7 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                           `
-                        : html`<div
-                              class="form-field selected-items"
-                              @click=${(e) => {
-                                  if (e.target.closest('mas-items-selector')) return;
-                                  this.isSelectedItemsOpen = !this.isSelectedItemsOpen;
-                              }}
-                          >
+                        : html`<div class="form-field selected-items" @click=${this.#toggleSelectedItemsOpen}>
                               <div class="selected-items-header">
                                   <h2>
                                       Selected items

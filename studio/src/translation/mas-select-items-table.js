@@ -47,7 +47,9 @@ class MasSelectItemsTable extends LitElement {
                     Store.translationProjects.selectedPlaceholders.value,
                     (items) => {
                         this.viewOnlyFragments = items;
-                        this.viewOnlyLoading = false;
+                        if (!Store.placeholders.list.loading.get()) {
+                            this.viewOnlyLoading = false;
+                        }
                     },
                 );
             } else {
@@ -82,6 +84,17 @@ class MasSelectItemsTable extends LitElement {
         this[`display${this.typeUppercased}StoreController`] = new ReactiveController(this, [
             Store.translationProjects[`display${this.typeUppercased}`],
         ]);
+    }
+
+    updated(changedProperties) {
+        if (
+            this.viewOnly &&
+            this.type === TABLE_TYPE.PLACEHOLDERS &&
+            this.viewOnlyLoading &&
+            !Store.placeholders.list.loading.get()
+        ) {
+            this.viewOnlyLoading = false;
+        }
     }
 
     disconnectedCallback() {
@@ -120,7 +133,7 @@ class MasSelectItemsTable extends LitElement {
     }
 
     get selectedInTable() {
-        return Store.translationProjects[`selected${this.typeUppercased}`].value;
+        return new Set(Store.translationProjects[`selected${this.typeUppercased}`].value);
     }
 
     get tableColumns() {
@@ -136,6 +149,7 @@ class MasSelectItemsTable extends LitElement {
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
+                    { label: '', key: 'chevron', class: 'translation-table-icon-cell translation-table-icon-cell--chevron' },
                     { label: 'Offer', key: 'offer', sortable: true },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
@@ -176,8 +190,8 @@ class MasSelectItemsTable extends LitElement {
 
     #toggleSelected(e, path) {
         e.stopPropagation();
-        const newSelected = this.selectedInTable.includes(path)
-            ? this.selectedInTable.filter((p) => p !== path)
+        const newSelected = this.selectedInTable.has(path)
+            ? [...this.selectedInTable].filter((p) => p !== path)
             : [...this.selectedInTable, path];
         Store.translationProjects[`selected${this.typeUppercased}`].set(newSelected);
     }
@@ -201,15 +215,15 @@ class MasSelectItemsTable extends LitElement {
                     (fragment) =>
                         html`<sp-table-row
                             value=${fragment.path}
-                            ?selected=${!this.viewOnly && this.selectedInTable.includes(fragment.path)}
-                            aria-selected=${!this.viewOnly && this.selectedInTable.includes(fragment.path) ? 'true' : 'false'}
+                            ?selected=${!this.viewOnly && this.selectedInTable.has(fragment.path)}
+                            aria-selected=${!this.viewOnly && this.selectedInTable.has(fragment.path) ? 'true' : 'false'}
                         >
                             ${!this.viewOnly
                                 ? html`
                                       <sp-table-cell class="translation-table-icon-cell translation-table-icon-cell--checkbox">
                                           <sp-checkbox
                                               value=${fragment.path}
-                                              ?checked=${this.selectedInTable.includes(fragment.path)}
+                                              ?checked=${this.selectedInTable.has(fragment.path)}
                                               @change=${(e) => this.#toggleSelected(e, fragment.path)}
                                           ></sp-checkbox>
                                       </sp-table-cell>
@@ -227,14 +241,14 @@ class MasSelectItemsTable extends LitElement {
                     (fragment) =>
                         html`<sp-table-row
                             value=${fragment.path}
-                            ?selected=${!this.viewOnly && this.selectedInTable.includes(fragment.path)}
-                            aria-selected=${!this.viewOnly && this.selectedInTable.includes(fragment.path) ? 'true' : 'false'}
+                            ?selected=${!this.viewOnly && this.selectedInTable.has(fragment.path)}
+                            aria-selected=${!this.viewOnly && this.selectedInTable.has(fragment.path) ? 'true' : 'false'}
                         >
                             ${!this.viewOnly
                                 ? html`<sp-table-cell class="translation-table-icon-cell translation-table-icon-cell--checkbox">
                                       <sp-checkbox
                                           value=${fragment.path}
-                                          ?checked=${this.selectedInTable.includes(fragment.path)}
+                                          ?checked=${this.selectedInTable.has(fragment.path)}
                                           @change=${(e) => this.#toggleSelected(e, fragment.path)}
                                       ></sp-checkbox>
                                   </sp-table-cell>`

@@ -5439,7 +5439,7 @@ merch-card[variant="full-pricing-express"] [slot="callout-content"] > p {
 merch-card[variant="full-pricing-express"] [slot="callout-content"] a {
     color: var(--spectrum-indigo-900);
     font-weight: 700;
-    text-decoration: underline;
+    text-decoration: inherit;
 }
 
 /* Strikethrough price styling */

@@ -271,9 +271,8 @@ export class MasRepository extends LitElement {
         }
 
         Store.fragments.list.loading.set(true);
-        if (!dataStore.get()?.length) {
-            Store.fragments.list.firstPageLoaded.set(false);
-        }
+        Store.fragments.list.firstPageLoaded.set(false);
+        dataStore.set([]);
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -358,13 +357,11 @@ export class MasRepository extends LitElement {
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 const fragmentStores = [];
-                const firstPage = await cursor.next();
-                if (!firstPage.done) {
-                    await this.#processPage(firstPage.value, variants, surface, fragmentStores);
-                    Store.fragments.list.firstPageLoaded.set(true);
-                }
-                this.#searchCursor = firstPage.done ? null : { cursor, variants, surface, fragmentStores };
-                Store.fragments.list.hasMore.set(!firstPage.done);
+                const done = await this.#fillPage(cursor, variants, surface, fragmentStores);
+                Store.fragments.list.data.set([...fragmentStores]);
+                Store.fragments.list.firstPageLoaded.set(true);
+                this.#searchCursor = done ? null : { cursor, variants, surface, fragmentStores };
+                Store.fragments.list.hasMore.set(!done);
             }
 
             dataStore.setMeta('path', path);
@@ -380,14 +377,22 @@ export class MasRepository extends LitElement {
         Store.fragments.list.loading.set(false);
     }
 
-    async #processPage(items, variants, surface, fragmentStores) {
-        for await (const item of items) {
-            if (this.skipVariant(variants, item)) continue;
-            applyCorrectorToFragment(item, surface);
-            const fragment = await this.#addToCache(item);
-            fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
+    static MIN_PAGE_SIZE = 10;
+
+    async #fillPage(cursor, variants, surface, fragmentStores) {
+        let added = 0;
+        while (added < MasRepository.MIN_PAGE_SIZE) {
+            const page = await cursor.next();
+            if (page.done) return true;
+            for await (const item of page.value) {
+                if (this.skipVariant(variants, item)) continue;
+                applyCorrectorToFragment(item, surface);
+                const fragment = await this.#addToCache(item);
+                fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
+                added++;
+            }
         }
-        Store.fragments.list.data.set([...fragmentStores]);
+        return false;
     }
 
     async loadNextPage() {
@@ -395,9 +400,9 @@ export class MasRepository extends LitElement {
         Store.fragments.list.loading.set(true);
         const { cursor, variants, surface, fragmentStores } = this.#searchCursor;
         try {
-            const page = await cursor.next();
-            if (!page.done) await this.#processPage(page.value, variants, surface, fragmentStores);
-            if (page.done) {
+            const done = await this.#fillPage(cursor, variants, surface, fragmentStores);
+            Store.fragments.list.data.set([...fragmentStores]);
+            if (done) {
                 this.#searchCursor = null;
                 Store.fragments.list.hasMore.set(false);
             }

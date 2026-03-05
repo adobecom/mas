@@ -726,6 +726,24 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('searchFragments', () => {
+        const createMockCursor = (pages) => {
+            let index = 0;
+            return {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+        };
+
         it('returns early when page is not CONTENT or TRANSLATION_EDITOR', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.WELCOME };
@@ -779,6 +797,7 @@ describe('MasRepository dictionary helpers', () => {
                     if (key === 'path') return 'acom';
                     if (key === 'query') return '';
                     if (key === 'locale') return 'en_US';
+                    if (key === 'tags') return '';
                     return null;
                 }),
                 set: sandbox.stub(),
@@ -844,17 +863,7 @@ describe('MasRepository dictionary helpers', () => {
             repository.search = { value: { path: 'acom', query: 'test-query' } };
             repository.filters = { value: { locale: 'en_US', tags: '' } };
             const mockFragments = [createFragment({ id: 'frag-1', path: `${ROOT_PATH}/acom/en_US/frag1`, fields: [] })];
-            const mockCursor = {
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        [Symbol.asyncIterator]: async function* () {
-                            for (const fragment of mockFragments) {
-                                yield fragment;
-                            }
-                        },
-                    };
-                },
-            };
+            const mockCursor = createMockCursor([mockFragments]);
             const searchStub = sandbox.stub().resolves(mockCursor);
             repository.aem = createAemMock({
                 fragments: {
@@ -929,13 +938,7 @@ describe('MasRepository dictionary helpers', () => {
                     tags: 'mas:variant/segment,mas:studio/content-type/merch-card,mas:custom-tag',
                 },
             };
-            const mockCursor = {
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        [Symbol.asyncIterator]: async function* () {},
-                    };
-                },
-            };
+            const mockCursor = createMockCursor([[]]);
             const searchStub = sandbox.stub().resolves(mockCursor);
             repository.aem = createAemMock({
                 fragments: {
@@ -975,13 +978,7 @@ describe('MasRepository dictionary helpers', () => {
                     tags: 'mas:status/published,mas:custom-tag',
                 },
             };
-            const mockCursor = {
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        [Symbol.asyncIterator]: async function* () {},
-                    };
-                },
-            };
+            const mockCursor = createMockCursor([[]]);
             const searchStub = sandbox.stub().resolves(mockCursor);
             repository.aem = createAemMock({
                 fragments: {
@@ -1008,6 +1005,106 @@ describe('MasRepository dictionary helpers', () => {
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
+            }
+        });
+    });
+
+    describe('fillPage pagination', () => {
+        const createMockCursorFromPages = (pages) => {
+            let index = 0;
+            return {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+        };
+
+        const setupSearchTest = async (mockCursor, tags = '') => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags } };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                searchStub,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        it('fetches multiple pages to fill minimum results when variant filtering reduces items', async () => {
+            const makeFragment = (id, variant) =>
+                createFragment({
+                    id,
+                    path: `${ROOT_PATH}/acom/en_US/${id}`,
+                    fields: [{ name: 'variant', values: [variant] }],
+                });
+            const page1 = Array.from({ length: 20 }, (_, i) => makeFragment(`frag-${i}`, i < 3 ? 'plans' : 'catalog'));
+            const page2 = Array.from({ length: 20 }, (_, i) => makeFragment(`frag-${20 + i}`, i < 8 ? 'plans' : 'catalog'));
+            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor, 'mas:variant/plans');
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                const setCalls = Store.fragments.list.data.set.getCalls();
+                const lastCall = setCalls[setCalls.length - 1];
+                expect(lastCall.args[0].length).to.equal(11);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('returns hasMore false when cursor is exhausted', async () => {
+            const fragments = [
+                createFragment({ id: 'f1', path: `${ROOT_PATH}/acom/en_US/f1`, fields: [] }),
+                createFragment({ id: 'f2', path: `${ROOT_PATH}/acom/en_US/f2`, fields: [] }),
+            ];
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('resets firstPageLoaded and clears data immediately on new search', async () => {
+            const mockCursor = createMockCursorFromPages([]);
+            const { repository, mockDataStore, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                expect(mockDataStore.set.calledWith([])).to.be.true;
+            } finally {
+                cleanup();
             }
         });
     });

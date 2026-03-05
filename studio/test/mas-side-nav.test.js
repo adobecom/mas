@@ -852,6 +852,11 @@ describe('MasSideNav – Copy Field', () => {
     });
 
     describe('lifecycle', () => {
+        afterEach(() => {
+            Store.fragments.inEdit.set(null);
+            el.disconnectedCallback();
+        });
+
         it('should unsubscribe from inEdit store on disconnect', () => {
             const unsubscribeStub = sandbox.stub(Store.fragments.inEdit, 'unsubscribe');
             el.disconnectedCallback();
@@ -866,9 +871,7 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(el.variationDataLoading).to.be.false;
             expect(updateStoresStub.called).to.be.true;
-            expect(updateStoresStub.firstCall.args[0]).to.have.length(5);
-
-            el.disconnectedCallback();
+            expect(updateStoresStub.firstCall.args[0]).to.have.length(7);
         });
 
         it('should subscribe to previewStore updates when fragment enters edit', () => {
@@ -881,9 +884,6 @@ describe('MasSideNav – Copy Field', () => {
 
             const updatedStores = updateStoresStub.lastCall.args[0];
             expect(updatedStores).to.include(previewStore);
-
-            Store.fragments.inEdit.set(null);
-            el.disconnectedCallback();
         });
     });
 

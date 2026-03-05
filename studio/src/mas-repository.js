@@ -194,7 +194,7 @@ export class MasRepository extends LitElement {
             if (!folders.includes(this.search.value.path) && !this.search.value.query)
                 Store.search.set((prev) => ({
                     ...prev,
-                    path: folders.at(0),
+                    path: SURFACES.SANDBOX.name,
                 }));
         } catch (error) {
             Store.fragments.list.loading.set(false);

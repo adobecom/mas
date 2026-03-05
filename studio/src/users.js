@@ -1,16 +1,9 @@
 import Store from './store.js';
 
 export async function loadUsers() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let masIoStudioUrl = urlParams.get('mas-io-studio-url');
-    if (!masIoStudioUrl) {
-        masIoStudioUrl = 'https://mas.adobe.com/io';
-    }
-    if (!masIoStudioUrl.endsWith('/')) {
-        masIoStudioUrl += '/';
-    }
+    const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
     try {
-        const response = await fetch(`${masIoStudioUrl}listMembers`, {
+        const response = await fetch(`${ioBaseUrl}/listMembers`, {
             headers: {
                 Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
                 accept: 'application/json',

@@ -855,7 +855,11 @@ class MasSettings extends LitElement {
         this.#openConfirmDialog('unpublish', row.id);
     };
 
-    #handleEditorCancel = () => this.#handleFormCancel();
+    #handleEditorCancel = async () => {
+        const confirmed = await this.promptDiscardChanges();
+        if (!confirmed) return;
+        this.form = structuredClone(this.formBaseline);
+    };
 
     #handleEditorDelete = () => {
         const row = this.currentSettingRow;

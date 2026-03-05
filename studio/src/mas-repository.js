@@ -194,7 +194,7 @@ export class MasRepository extends LitElement {
             if (!folders.includes(this.search.value.path) && !this.search.value.query)
                 Store.search.set((prev) => ({
                     ...prev,
-                    path: folders.at(0),
+                    path: SURFACES.SANDBOX.name,
                 }));
         } catch (error) {
             Store.fragments.list.loading.set(false);
@@ -1028,8 +1028,8 @@ export class MasRepository extends LitElement {
 
             const sourceStore = generateFragmentStore(newFragment);
             sourceStore.get().hasChanges = false;
+            sourceStore.skipVariationDetection = true;
             Store.fragments.list.data.set((prev) => [sourceStore, ...prev]);
-            this.skipVariationDetection = true;
 
             // Reset changes on the current fragment to prevent discard prompt during navigation
             Store.editor.resetChanges();
@@ -1478,26 +1478,31 @@ export class MasRepository extends LitElement {
 
     /**
      * Resolves the parent fragment for the provided fragment path and hydrates references.
-     * Flow: referencedBy -> parent path -> getByPath -> getById (hydrated)
+     * Finds the parent whose variations field contains fragmentPath.
+     * Flow: referencedBy -> filter by variations field -> getById (hydrated)
      * @param {string} fragmentPath
      * @returns {Promise<Object|null>}
      */
     async resolveHydratedParentFragment(fragmentPath) {
         const references = await this.aem.sites.cf.fragments.getReferencedBy(fragmentPath);
-        const parentRefPath = references?.parentReferences?.[0]?.path;
-        if (!parentRefPath) return null;
+        const parentRefs = references?.parentReferences || [];
+        if (!parentRefs.length) return null;
 
-        const parentFragment = await this.aem.sites.cf.fragments.getByPath(parentRefPath);
-        if (!parentFragment) return null;
-        if (!parentFragment.id) return parentFragment;
+        for (const ref of parentRefs) {
+            const candidate = await this.aem.sites.cf.fragments.getByPath(ref.path);
+            if (!candidate) continue;
 
-        try {
-            const hydratedParent = await this.aem.sites.cf.fragments.getById(parentFragment.id);
-            return hydratedParent || parentFragment;
-        } catch (error) {
-            console.debug('Failed to hydrate parent fragment references:', error.message);
-            return parentFragment;
+            const variationsField = candidate.fields?.find((f) => f.name === 'variations');
+            const variations = variationsField?.values || [];
+            if (!variations.includes(fragmentPath)) continue;
+
+            if (!candidate.id) return candidate;
+
+            const hydrated = await this.aem.sites.cf.fragments.getById(candidate.id);
+            return hydrated || candidate;
         }
+
+        return null;
     }
 
     /**
@@ -1533,16 +1538,17 @@ export class MasRepository extends LitElement {
         if (!surface) {
             throw new Error('Could not determine surface from parent path');
         }
-        const fragmentName = this.generateGroupedVariationName(fragment, pznTags);
+        let fragmentName = this.generateGroupedVariationName(fragment, pznTags);
         const targetFolder = `${ROOT_PATH}/${surface}/en_US/${productArrangementCode}/${PZN_FOLDER}`;
 
         await this.aem.sites.cf.fragments.ensureFolderExists(targetFolder);
 
-        let targetPath = `${targetFolder}/${fragmentName}`;
-        const existingFragment = await this.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        const existingFragment = await this.aem.sites.cf.fragments
+            .getByPath(`${targetFolder}/${fragmentName}`)
+            .catch(() => null);
         if (existingFragment) {
             const suffix = Array.from({ length: 4 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('');
-            targetPath = `${targetFolder}/${fragmentName}-${suffix}`;
+            fragmentName = `${fragmentName}-${suffix}`;
         }
 
         const newFragment = await this.aem.sites.cf.fragments.create({

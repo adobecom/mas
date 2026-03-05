@@ -7,7 +7,11 @@ export default class EditorPage {
 
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
-        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
+        this.localeVariationHeader = page.locator('.locale-variation-header');
+        this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
+        this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
+        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Template"]');
+        this.style = this.panel.locator('#card-style');
         this.size = this.panel.locator('#card-size');
         this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
         this.subtitle = this.panel.locator('#card-subtitle input');
@@ -27,7 +31,7 @@ export default class EditorPage {
         this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal[open] #url-link >> input');
         this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="accent"]');
         this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="secondary"]');
-        this.promoText = this.panel.locator('#promo-text input');
+        this.promoText = this.panel.locator('sp-field-group#promoText rte-field#promo-text div.ProseMirror');
         this.backgroundImage = this.panel.locator('#background-image input');
         this.prices = this.panel.locator('sp-field-group#prices');
         this.footer = this.panel.locator('sp-field-group#ctas');
@@ -93,6 +97,27 @@ export default class EditorPage {
         this.secondaryOutlineVariant = page.locator('sp-button[variant="secondary"][treatment="outline"]');
         this.primaryLinkVariant = page.locator('sp-link:has-text("Primary link")');
         this.secondaryLinkVariant = page.locator('sp-link[variant="secondary"]');
+
+        // Field group elements (container for each field)
+        this.cardTitleFieldGroup = this.panel.locator('sp-field-group#title');
+        this.cardBadgeFieldGroup = this.panel.locator('sp-field-group#badge');
+        this.mnemonicFieldGroup = this.panel.locator('sp-field-group#mnemonics').first();
+        this.calloutFieldGroup = this.panel.locator('sp-field-group#callout');
+        this.promoTextFieldGroup = this.panel.locator('sp-field-group#promoText');
+        this.whatsIncludedFieldGroup = this.panel.locator('sp-field-group#whatsIncluded');
+        this.badgeColorFieldGroup = this.panel.locator('sp-field-group#badgeColor');
+        this.badgeBorderColorFieldGroup = this.panel.locator('sp-field-group#badgeBorderColor');
+        this.borderColorFieldGroup = this.panel.locator('sp-field-group#border-color');
+        this.pricesFieldGroup = this.panel.locator('sp-field-group#prices');
+        this.ctasFieldGroup = this.panel.locator('sp-field-group#ctas');
+        this.osiFieldGroup = this.panel.locator('sp-field-group:has(osi-field#osi)');
+        this.tagsFieldGroup = this.panel.locator('sp-field-group#tags');
+
+        this.overrideRestoreLink = 'a:has-text("Overridden. Click to restore.")';
+    }
+
+    overrideRestoreIn(fieldGroupLocator) {
+        return fieldGroupLocator.locator(this.overrideRestoreLink);
     }
 
     async getLinkVariant(variant) {

@@ -109,5 +109,24 @@
                 </aem-fragment>
             </merch-card>
         </template>
+
+        <!-- Templates for mas-field wrapper tests -->
+        <template id="mas-field-render-field">
+            <mas-field field="description"
+                ><aem-fragment fragment="fragment-text-faq"></aem-fragment
+            ></mas-field>
+        </template>
+
+        <template id="mas-field-render-promo">
+            <mas-field field="promoText"
+                ><aem-fragment fragment="fragment-text-faq"></aem-fragment
+            ></mas-field>
+        </template>
+
+        <template id="mas-field-render-missing-field">
+            <mas-field field="nonexistent"
+                ><aem-fragment fragment="fragment-text-faq"></aem-fragment
+            ></mas-field>
+        </template>
     </body>
 </html>

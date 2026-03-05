@@ -109,6 +109,7 @@ async function fetchOdin(
     const path = `${odinEndpoint}${URI}`;
     const headers = {
         Authorization: `Bearer ${authToken}`,
+        'User-Agent': 'mas-translation-project',
         ...additionalHeaders,
     };
     if (etag) {

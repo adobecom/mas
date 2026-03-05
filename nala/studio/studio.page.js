@@ -63,10 +63,12 @@ export default class StudioPage {
         this.fragmentsTable = page.locator('.breadcrumbs-container sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
-        this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
         this.deleteCardButton = this.sideNav.locator('mas-side-nav-item[label="Delete"]');
         this.saveCardButton = this.sideNav.locator('mas-side-nav-item[label="Save"]');
+        this.publishCardButton = this.sideNav.locator('mas-side-nav-item[label="Publish"]');
+        this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
+        this.versionHistoryButton = this.sideNav.locator('mas-side-nav-item[label="History"]');
         this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
         this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
         this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');
@@ -382,6 +384,16 @@ export default class StudioPage {
         } finally {
             this.page.removeListener('console', consoleListener);
         }
+    }
+
+    /**
+     * Publish the current fragment. Expects editor to be open. Clicks Publish in side nav and waits for success toast.
+     */
+    async publishCard() {
+        await this.publishCardButton.click();
+        const publishToast = this.page.locator('mas-toast sp-toast[variant="positive"]:has-text("successfully published")');
+        await expect(publishToast).toBeVisible({ timeout: 20000 });
+        await this.page.waitForTimeout(1000);
     }
 
     async deleteCard(cardId) {
@@ -730,16 +742,6 @@ export default class StudioPage {
             timeout: 30000,
         });
         await this.page.waitForTimeout(1000);
-
-        // Remove when MWPW-188484 is fixed
-        // Reload the page and wait for the editor again
-        await this.page.reload({ waitUntil: 'domcontentloaded' });
-        await this.editorPanel.waitFor({
-            state: 'visible',
-            timeout: 30000,
-        });
-        await this.page.waitForTimeout(1000);
-        // ---------
 
         // Get the variation fragment ID from URL
         const currentUrl = this.page.url();

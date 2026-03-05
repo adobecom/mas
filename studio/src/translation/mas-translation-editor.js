@@ -381,6 +381,7 @@ class MasTranslationEditor extends LitElement {
 
     async #sendTranslationProject() {
         showToast('Sending translation project to localization...', 'positive');
+        this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
 
         try {
             const params = {
@@ -402,11 +403,11 @@ class MasTranslationEditor extends LitElement {
         } catch (error) {
             console.error('Error sending translation project to localization:', error);
             showToast('Failed to send translation project to localization.', 'negative');
+            this.#updateDisabledActions({ remove: [QUICK_ACTION.LOC] });
             return;
         }
         showToast('Translation project sent to localization successfully.', 'positive');
         this.isProjectReadonly = true;
-        this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
     }
 
     async #showDialog(title, message, options = {}) {
@@ -489,6 +490,11 @@ class MasTranslationEditor extends LitElement {
         this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
+    };
+
+    #toggleSelectedItemsOpen = ({ target }) => {
+        if (target.closest('mas-items-selector')) return;
+        this.isSelectedItemsOpen = !this.isSelectedItemsOpen;
     };
 
     renderAddItemsDialog() {
@@ -720,13 +726,7 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                           `
-                        : html`<div
-                              class="form-field selected-items"
-                              @click=${(e) => {
-                                  if (e.target.closest('mas-items-selector')) return;
-                                  this.isSelectedItemsOpen = !this.isSelectedItemsOpen;
-                              }}
-                          >
+                        : html`<div class="form-field selected-items" @click=${this.#toggleSelectedItemsOpen}>
                               <div class="selected-items-header">
                                   <h2>
                                       Selected items

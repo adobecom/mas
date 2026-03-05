@@ -50,7 +50,7 @@ runTests(async () => {
     describe('merch-offer-select web component', async () => {
         it('should exist, autoselect first offer and render price and cta', async () => {
             const { merchCard, merchOfferSelect } = await renderCard('card1');
-            await delay(100);
+            await delay(200);
             const { price, cta, description, badge } = getDynamicElements(
                 merchCard,
                 merchOfferSelect,

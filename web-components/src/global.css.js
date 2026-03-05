@@ -125,6 +125,12 @@ styles.innerHTML = `
     --spectrum-gray-300-special-offers: #D1D1D1;
     --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
 
+    --color-yellow-300-variation: var(--spectrum-yellow-300-plans);
+    --color-green-900-variation: var(--spectrum-green-900-plans);
+    --color-gray-300-variation: var(--spectrum-gray-300-plans);
+    --color-gray-700-variation: var(--spectrum-gray-700-plans);
+    --color-red-700-variation: var(--spectrum-red-700-plans);
+
     /* simplified-pricing-express colors */
     --spectrum-gray-50: #FFFFFF;
     --spectrum-gray-100: #F8F8F8;
@@ -400,6 +406,8 @@ merch-card [slot='callout-content'] {
     gap: var(--consonant-merch-card-callout-spacing-xxs);
 }
 
+merch-card[variant='product'] [slot='badge'],
+merch-card[variant='segment'] [slot='badge'],
 merch-card[variant^='plans'] [slot='badge'],
 merch-card[variant='special-offers'] [slot='badge'] {
     position: absolute;
@@ -592,6 +600,14 @@ merch-card span.price.price-strikethrough {
   color: var(--merch-color-inline-price-strikethrough);
 }
 
+mas-field span.placeholder-resolved[data-template='priceStrikethrough'],
+mas-field span.placeholder-resolved[data-template='strikethrough'],
+mas-field span.price.price-strikethrough,
+mas-field span.price.price-promo-strikethrough {
+  text-decoration: line-through;
+  color: var(--merch-color-inline-price-strikethrough);
+}
+
 merch-card [slot^="body-"] ul {
     margin: 0;
     padding-inline-start: var(--merch-card-ul-padding);
@@ -684,9 +700,12 @@ aem-fragment {
   display: contents;
 }
 
+mas-field {
+  display: inline;
+}
+
 merch-card [slot='callout-content'] .icon-button {
   position: absolute;
-  top: 3px;
   text-decoration: none;
   border-bottom: none;
   min-width: 18px;
@@ -711,13 +730,17 @@ merch-card [slot='callout-content'] .icon-button::before {
   background: #0469E3;
   color: #fff;
   text-align: left;
-  display: block;
+  display: none;
   z-index: 10;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
   line-height: 16px;
   width: max-content;
+}
+
+merch-card [slot='callout-content'] .icon-button.tooltip-visible::before {
+    display: block;
 }
 
 merch-card [slot='callout-content'] .icon-button::after {
@@ -729,8 +752,12 @@ merch-card [slot='callout-content'] .icon-button::after {
   transform: translateY(-50%);
   border: 8px solid #0469E3;
   border-color: transparent #0469E3 transparent transparent;
-  display: block;
+  display: none;
   z-index: 10;
+}
+
+merch-card [slot='callout-content'] .icon-button.tooltip-visible::after {
+    display: block;
 }
 
 merch-card [slot='callout-content'] .icon-button.hide-tooltip::before,

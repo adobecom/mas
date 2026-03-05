@@ -10,9 +10,7 @@ import { fetchUnresolvedVariations } from './translation-items-loader.js';
 class MasSelectedItems extends LitElement {
     static styles = styles;
 
-    static properties = {
-        lastFetchedSelectedCardsKey: { type: String },
-    };
+    #lastFetchedSelectedCardsKey = null;
 
     constructor() {
         super();
@@ -39,9 +37,9 @@ class MasSelectedItems extends LitElement {
 
         const selectedCards = Store.translationProjects.selectedCards.value || [];
         const selectedCardsKey = [...selectedCards].sort().join('\0');
-        if (selectedCardsKey === this.lastFetchedSelectedCardsKey) return;
+        if (selectedCardsKey === this.#lastFetchedSelectedCardsKey) return;
 
-        this.lastFetchedSelectedCardsKey = selectedCardsKey;
+        this.#lastFetchedSelectedCardsKey = selectedCardsKey;
         fetchUnresolvedVariations(
             selectedCards,
             Store.translationProjects.cardsByPaths.value,

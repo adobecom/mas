@@ -1,11 +1,9 @@
-import { test, expect, studio, miloLibs, setTestPage, editor, translationEditor } from '../../../libs/mas-test.js';
+import { test, expect, miloLibs, setTestPage, translationEditor } from '../../../libs/mas-test.js';
 import TranslationsPage from '../translations.page.js';
 import ProjectEditorComponent from '../translation-editor-component.page.js';
 import TranslationsSpec from '../specs/translations.spec.js';
-import FragmentEditorLocaleSpec from '../../fragment-editor/specs/fragment_editor_locale.spec.js';
 
 const { features } = TranslationsSpec;
-const fragmentEditorFeature = FragmentEditorLocaleSpec.features[0];
 
 test.describe('M@S Studio Translations Test Suite', () => {
     let translationsPage;
@@ -32,19 +30,14 @@ test.describe('M@S Studio Translations Test Suite', () => {
             await expect(translationsPage.translationTable).toBeVisible();
             const rowCount = await translationsPage.tableRows.count();
             expect(rowCount).toBeGreaterThanOrEqual(3);
-            const title0 = await translationsPage.getProjectTitleFromRow(0);
-            const title1 = await translationsPage.getProjectTitleFromRow(1);
-            const title2 = await translationsPage.getProjectTitleFromRow(2);
-            const titles = [title0, title1, title2];
-            expect(titles.some((t) => t.includes('loc 1'))).toBe(true);
-            expect(titles.some((t) => t.includes('loc 2'))).toBe(true);
-            expect(titles.some((t) => t.includes('loc 3'))).toBe(true);
+            const allTitles = await translationsPage.getAllProjectTitles();
+            expect(allTitles.find((t) => t.includes('loc 1'))).toBeDefined();
+            expect(allTitles.find((t) => t.includes('loc 2'))).toBeDefined();
+            expect(allTitles.find((t) => t.includes('loc 3'))).toBeDefined();
             const sentOnTexts = await translationsPage.getSentOnColumnTexts();
-            if (sentOnTexts.length >= 2) {
-                const timestamps = sentOnTexts.map(TranslationsPage.parseSentOnText);
-                for (let i = 1; i < timestamps.length; i++) {
-                    expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
-                }
+            const timestamps = sentOnTexts.map(TranslationsPage.parseSentOnText);
+            for (let i = 1; i < timestamps.length; i++) {
+                expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
             }
         });
 
@@ -60,32 +53,23 @@ test.describe('M@S Studio Translations Test Suite', () => {
         });
     });
 
-    // @studio-translations-new-project-on-top - Create project, verify on top, then delete
+    // @studio-translations-new-project-on-top - Click Create on Translations page, create project in editor, go back and verify on top, then delete
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const translationEditorForTest = new ProjectEditorComponent(page);
         const projectTitle = `Nala Translation ${Date.now()}`;
         const translationsUrl = `${baseURL}/studio.html${miloLibs}#page=translations&path=nala&locale=en_US`;
-        const fragmentEditorUrl = `${baseURL}/studio.html${miloLibs}#fragmentId=${fragmentEditorFeature.data.fragmentId}&page=fragment-editor&path=nala`;
 
-        await test.step('step-1: Go to fragment editor and create translation project', async () => {
-            await page.goto(fragmentEditorUrl);
+        await test.step('step-1: Navigate to Translations and click Create project', async () => {
+            await page.goto(translationsUrl);
             await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(1500);
-            const panelVisible = await editor.panel.isVisible().catch(() => false);
-            if (!panelVisible) {
-                await editor.panel.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
-            }
-            if (!(await editor.panel.isVisible().catch(() => false))) {
-                test.skip(true, 'Fragment editor or test fragment not available (path=nala, fragmentId from spec)');
-                return;
-            }
-
-            await expect(studio.localePicker).toBeVisible();
-            await studio.selectLocale(fragmentEditorFeature.data.frLocalePicker);
-            await expect(editor.missingVariationPanel).toBeVisible({ timeout: 10000 });
-            await editor.createTranslationProjectButton.click();
+            await translationsPage.waitForListToLoad();
+            await expect(translationsPage.translationTable).toBeVisible();
+            await translationsPage.createProjectButton.click();
             await page.waitForTimeout(2000);
             await expect(page).toHaveURL(/page=translation-editor/);
+        });
+
+        await test.step('step-2: Fill and save the new project in translation editor', async () => {
             await expect(translationEditorForTest.form).toBeVisible({ timeout: 10000 });
             await expect(translationEditorForTest.titleField).toBeVisible({ timeout: 5000 });
 
@@ -100,12 +84,14 @@ test.describe('M@S Studio Translations Test Suite', () => {
                 titleField.dispatchEvent(new InputEvent('input', { bubbles: true }));
             }, projectTitle);
 
+            await translationEditorForTest.addLanguageAndConfirm();
+            await translationEditorForTest.addOneItemAndConfirm();
             await expect(translationEditorForTest.saveButton).toBeEnabled({ timeout: 10000 });
             await translationEditorForTest.saveButton.click();
             await page.waitForTimeout(4000);
         });
 
-        await test.step('step-2: Navigate to Translations and verify new project is first', async () => {
+        await test.step('step-3: Go back to Translations and verify new project is first', async () => {
             await page.goto(translationsUrl);
             await page.waitForLoadState('domcontentloaded');
             await translationsPage.waitForListToLoad();
@@ -113,7 +99,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
             await expect(translationsPage.firstRowTitleCell).toHaveText(projectTitle, { timeout: 20000 });
         });
 
-        await test.step('step-3: Open Actions and delete the project', async () => {
+        await test.step('step-4: Open Actions and delete the project', async () => {
             await translationsPage.firstRowActionMenu.click();
             await page.getByRole('menuitem', { name: 'Delete' }).click();
             await page.waitForTimeout(500);
@@ -122,7 +108,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
             await page.waitForTimeout(1500);
         });
 
-        await test.step('step-4: Verify project removed from list', async () => {
+        await test.step('step-5: Verify project removed from list', async () => {
             await translationsPage.waitForListToLoad();
             const firstTitle = await translationsPage.firstRowTitleCell.textContent().catch(() => '');
             expect(firstTitle).not.toBe(projectTitle);

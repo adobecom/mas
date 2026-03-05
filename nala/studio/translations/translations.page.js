@@ -37,6 +37,16 @@ export default class TranslationsPage {
         return (await cell.textContent())?.trim() ?? '';
     }
 
+    async getAllProjectTitles() {
+        const count = await this.tableRows.count();
+        const titles = [];
+        for (let i = 0; i < count; i++) {
+            const title = await this.getProjectTitleFromRow(i);
+            titles.push(title);
+        }
+        return titles;
+    }
+
     async clickEditForRow(index) {
         const row = this.getRow(index);
         await row.locator('sp-action-menu').click();

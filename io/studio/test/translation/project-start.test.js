@@ -420,6 +420,7 @@ describe('Translation project-start', () => {
             expect(projectFetchCall.args[1]).to.deep.include({
                 headers: {
                     Authorization: 'Bearer token',
+                    'User-Agent': 'mas-translation-project',
                 },
             });
         });

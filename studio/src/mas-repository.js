@@ -127,9 +127,17 @@ export class MasRepository extends LitElement {
         // Invalidate dictionary cache when filters or search path change
         Store.filters.subscribe(() => {
             this.dictionaryCache.clear();
+            if (this.page.value === PAGE_NAMES.CONTENT) {
+                Store.fragments.list.firstPageLoaded.set(false);
+                Store.fragments.list.data.set([]);
+            }
         });
         Store.search.subscribe(() => {
             this.dictionaryCache.clear();
+            if (this.page.value === PAGE_NAMES.CONTENT) {
+                Store.fragments.list.firstPageLoaded.set(false);
+                Store.fragments.list.data.set([]);
+            }
         });
 
         this.loadFolders();

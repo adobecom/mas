@@ -1145,7 +1145,7 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="ctas"
                         link
-                        inline
+                        divider="${this.fragment.variant === 'product' ? '' : nothing}"
                         data-field="ctas"
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}

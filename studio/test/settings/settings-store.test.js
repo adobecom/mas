@@ -874,7 +874,10 @@ describe('Settings Store Namespace', () => {
         expect(store.toast.get().message).to.contain("'Show plan type (fr_FR)' is now [Off]");
     });
 
-    it('loads empty settings when index is missing and sets error for generic failures', async () => {
+    it('auto-creates and publishes settings index when missing and sets error for generic failures', async () => {
+        const createCalls = [];
+        const publishCalls = [];
+        const folderCreateCalls = [];
         const missingStore = new SettingsStore();
         missingStore.setAem({
             sites: {
@@ -883,14 +886,37 @@ describe('Settings Store Namespace', () => {
                         getByPath: async () => {
                             throw new Error('404 Not Found');
                         },
+                        create: async (payload) => {
+                            createCalls.push(payload);
+                            return { id: 'new-index', path: payload.parentPath + '/' + payload.name, fields: payload.fields };
+                        },
+                        getWithEtag: async (id) => ({ id, etag: 'test-etag' }),
+                        publish: async (fragment) => {
+                            publishCalls.push(fragment);
+                        },
                     },
                 },
             },
+            folders: {
+                create: async (parentPath, name, title) => {
+                    folderCreateCalls.push({ parentPath, name, title });
+                    return null;
+                },
+            },
+            wait: async () => {},
         });
 
         await missingStore.loadSurface('sandbox');
         expect(missingStore.rows.get()).to.deep.equal([]);
         expect(missingStore.error.get()).to.equal(null);
+        expect(createCalls).to.have.length(1);
+        expect(createCalls[0].name).to.equal('index');
+        expect(createCalls[0].title).to.equal('Settings Index');
+        expect(createCalls[0].fields.find((f) => f.name === 'entries').values).to.deep.equal([]);
+        expect(publishCalls).to.have.length(1);
+        expect(publishCalls[0].id).to.equal('new-index');
+        expect(folderCreateCalls).to.have.length(1);
+        expect(folderCreateCalls[0].name).to.equal('settings');
 
         const failedStore = new SettingsStore();
         failedStore.setAem({
@@ -908,6 +934,40 @@ describe('Settings Store Namespace', () => {
         await failedStore.loadSurface('sandbox');
         expect(failedStore.rows.get()).to.deep.equal([]);
         expect(failedStore.error.get()).to.equal('Failed to load settings.');
+    });
+
+    it('recovers from index conflict when fragment already exists', async () => {
+        const settingsPath = '/content/dam/mas/sandbox/settings';
+        const indexPath = `${settingsPath}/index`;
+        let getByPathCallCount = 0;
+        const store = new SettingsStore();
+        store.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async (path) => {
+                            getByPathCallCount++;
+                            if (getByPathCallCount === 1) throw new Error('Fragment not found');
+                            return {
+                                id: 'existing-index',
+                                path: indexPath,
+                                fields: [{ name: 'entries', values: [] }],
+                                references: [],
+                            };
+                        },
+                        create: async () => {
+                            throw new Error('An entity already exists at /content/dam/mas/sandbox/settings');
+                        },
+                    },
+                },
+            },
+            folders: { create: async () => null },
+            wait: async () => {},
+        });
+
+        await store.loadSurface('sandbox');
+        expect(store.rows.get()).to.deep.equal([]);
+        expect(store.error.get()).to.equal(null);
     });
 
     it('updates source-driven rows and active tab state', () => {
@@ -1076,6 +1136,78 @@ describe('Settings Store Namespace', () => {
         const latestSave = harness.calls.save[harness.calls.save.length - 1];
         expect(latestSave.fields.find((field) => field.name === 'name').values).to.deep.equal(['showSecureLabel']);
         expect(latestSave.fields.find((field) => field.name === 'textValue').values).to.deep.equal(['{{placeholder}}']);
+    });
+
+    it('auto-creates index when adding paths to a missing index', async () => {
+        const settingsPath = '/content/dam/mas/sandbox/settings';
+        const indexPath = `${settingsPath}/index`;
+        const createCalls = [];
+        const saveCalls = [];
+        let indexCreated = false;
+
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async (path, options) => {
+                            if (path === indexPath && !indexCreated) throw new Error('Fragment not found');
+                            if (path === indexPath) {
+                                return {
+                                    id: 'new-index',
+                                    path: indexPath,
+                                    fields: [{ name: 'entries', values: [] }],
+                                    references: [],
+                                };
+                            }
+                            throw new Error('404');
+                        },
+                        create: async (payload) => {
+                            createCalls.push(payload);
+                            if (payload.name === 'index') {
+                                indexCreated = true;
+                                return { id: 'new-index', path: indexPath, fields: payload.fields };
+                            }
+                            return {
+                                id: payload.name,
+                                path: `${payload.parentPath}/${payload.name}`,
+                                fields: payload.fields,
+                                fieldName: 'entries',
+                                status: 'DRAFT',
+                                modified: { by: 'Test', at: '2025-01-01T00:00:00.000Z' },
+                                tags: [],
+                            };
+                        },
+                        save: async (fragment) => {
+                            saveCalls.push(fragment);
+                            return fragment;
+                        },
+                        getWithEtag: async (id) => ({ id, etag: 'test-etag' }),
+                        publish: async () => {},
+                    },
+                },
+            },
+            folders: {
+                create: async () => null,
+            },
+            wait: async () => {},
+        };
+
+        const store = new SettingsStore();
+        store.setAem(aem);
+        await store.loadSurface('sandbox');
+        expect(createCalls).to.have.length(1);
+        expect(createCalls[0].name).to.equal('index');
+
+        const createdId = await store.createSetting({
+            name: 'showAddon',
+            label: 'Show Addon',
+            valueType: 'boolean',
+            value: true,
+            booleanValue: true,
+        });
+        expect(createdId).to.be.a('string');
+        const entryCreate = createCalls.find((c) => c.name !== 'index');
+        expect(entryCreate).to.exist;
     });
 
     it('blocks create when top-level setting with same name already exists', async () => {

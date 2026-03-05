@@ -29,11 +29,13 @@ class MasSideNav extends LitElement {
             display: flex;
             flex-direction: column;
             height: 100%;
+            position: relative;
+            min-height: 770px;
         }
 
         #settings-nav-item {
             position: absolute;
-            bottom: 0px;
+            bottom: 42px;
         }
 
         .side-nav-new-window {

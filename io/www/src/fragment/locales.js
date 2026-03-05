@@ -469,24 +469,16 @@ export function getDefaultLocales(surface) {
  * @returns {{ lang: string, country: string }[]}
  */
 export function getSurfaceLocales(surface) {
-    const locales = [];
-    const localeCodes = new Set();
-    for (const defaultLocale of getDefaultLocales(surface)) {
-        const defaultLocaleCode = getLocaleCode(defaultLocale);
-        if (!localeCodes.has(defaultLocaleCode)) {
-            locales.push({ lang: defaultLocale.lang, country: defaultLocale.country });
-            localeCodes.add(defaultLocaleCode);
-        }
-        for (const region of defaultLocale.regions ?? []) {
-            const regionLocale = { lang: defaultLocale.lang, country: region };
-            const regionLocaleCode = getLocaleCode(regionLocale);
-            if (!localeCodes.has(regionLocaleCode)) {
-                locales.push(regionLocale);
-                localeCodes.add(regionLocaleCode);
-            }
-        }
-    }
-    return locales;
+    const map = new Map();
+    getDefaultLocales(surface)
+        .flatMap(({ lang, country, regions = [] }) => [
+            { lang, country },
+            ...regions.map((region) => ({ lang, country: region })),
+        ])
+        .forEach((locale) => {
+            map.set(getLocaleCode(locale), locale);
+        });
+    return [...map.values()];
 }
 
 /**

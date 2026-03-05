@@ -9,6 +9,7 @@ import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
 
 const INDEX_REFERENCES_FIELD = 'entries';
 const INDEX_NOT_FOUND_MESSAGES = ['404', 'Fragment not found'];
+const SETTINGS_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdz';
 const SETTINGS_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5';
 const FRAGMENT_SUFFIX_LENGTH = 4;
 const FRAGMENT_NAME_COLLISION_LIMIT = 20;
@@ -188,15 +189,21 @@ export class SettingsStore {
         this.error.set(null);
 
         try {
-            const indexFragment = await this.aem.sites.cf.fragments.getByPath(this.#indexPath, {
-                references: 'direct-hydrated',
-            });
-            this.#setRowsFromIndex(indexFragment);
-        } catch (error) {
-            if (INDEX_NOT_FOUND_MESSAGES.some((message) => error.message.includes(message))) {
+            let indexFragment;
+            try {
+                indexFragment = await this.aem.sites.cf.fragments.getByPath(this.#indexPath, {
+                    references: 'direct-hydrated',
+                });
+            } catch (error) {
+                if (!INDEX_NOT_FOUND_MESSAGES.some((message) => error.message.includes(message))) {
+                    throw error;
+                }
+                await this.#createIndexFragment();
                 this.setSettingFragments([]);
                 return;
             }
+            this.#setRowsFromIndex(indexFragment);
+        } catch (error) {
             this.error.set('Failed to load settings.');
             showToast('Failed to load settings.', 'negative');
             this.setSettingFragments([], new Map(), false);
@@ -756,7 +763,16 @@ export class SettingsStore {
     }
 
     async #addPathsToIndex(paths = []) {
-        const indexFragment = new Fragment(await this.aem.sites.cf.fragments.getByPath(this.#indexPath));
+        let indexData;
+        try {
+            indexData = await this.aem.sites.cf.fragments.getByPath(this.#indexPath);
+        } catch (error) {
+            if (!INDEX_NOT_FOUND_MESSAGES.some((message) => error.message.includes(message))) {
+                throw error;
+            }
+            indexData = await this.#createIndexFragment();
+        }
+        const indexFragment = new Fragment(indexData);
         const entries = indexFragment.getFieldValues(INDEX_REFERENCES_FIELD);
         const nextEntries = [...entries];
 
@@ -812,6 +828,33 @@ export class SettingsStore {
             }
             throw error;
         }
+    }
+
+    async #createIndexFragment() {
+        const surfacePath = this.#settingsPath.slice(0, this.#settingsPath.lastIndexOf('/'));
+        await this.aem.folders.create(surfacePath, 'settings', 'settings');
+        await this.aem.wait(2000);
+        let fragment;
+        try {
+            fragment = await this.aem.sites.cf.fragments.create({
+                parentPath: this.#settingsPath,
+                modelId: SETTINGS_INDEX_MODEL_ID,
+                name: 'index',
+                title: 'Settings Index',
+                description: '',
+                fields: [
+                    { name: 'parentSettings', type: 'content-fragment', multiple: false, values: [] },
+                    { name: 'entries', type: 'content-fragment', multiple: true, values: [] },
+                ],
+            });
+        } catch (error) {
+            if (!`${error?.message || ''}`.includes('already exists')) throw error;
+            return this.aem.sites.cf.fragments.getByPath(this.#indexPath);
+        }
+        await this.aem.wait(2000);
+        const withEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);
+        await this.aem.sites.cf.fragments.publish(withEtag);
+        return fragment;
     }
 
     async #resolveUniqueFragmentName({ settingName, locales = [], templateIds = [] }) {

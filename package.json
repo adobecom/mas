@@ -10,7 +10,7 @@
         "io/studio"
     ],
     "scripts": {
-        "prepare": "husky",
+        "prepare": "npx husky || true",
         "lint": "eslint --fix",
         "format": "prettier . --write",
         "test": "npm run test:ci --workspaces",

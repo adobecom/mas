@@ -731,16 +731,6 @@ export default class StudioPage {
         });
         await this.page.waitForTimeout(1000);
 
-        // Remove when MWPW-188484 is fixed
-        // Reload the page and wait for the editor again
-        await this.page.reload({ waitUntil: 'domcontentloaded' });
-        await this.editorPanel.waitFor({
-            state: 'visible',
-            timeout: 30000,
-        });
-        await this.page.waitForTimeout(1000);
-        // ---------
-
         // Get the variation fragment ID from URL
         const currentUrl = this.page.url();
         const variationIdMatch = currentUrl.match(/fragment=([^&]+)/);

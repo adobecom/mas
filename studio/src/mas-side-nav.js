@@ -165,15 +165,23 @@ class MasSideNav extends LitElement {
     #onCopyFieldTriggerPointerDown = () => {
         this.#copyFieldMenuOpenedByPointer = true;
     };
+    #clearFocusedCopyFieldMenuItem = (overlayTrigger) => {
+        const menu = overlayTrigger.querySelector('sp-menu');
+        const focusedItem = menu?.querySelector('sp-menu-item[focused]');
+        if (!focusedItem) return false;
+        focusedItem.blur();
+        focusedItem.removeAttribute('focused');
+        return true;
+    };
     #onCopyFieldMenuOpened = (event) => {
         if (!this.#copyFieldMenuOpenedByPointer) return;
         this.#copyFieldMenuOpenedByPointer = false;
         const overlayTrigger = event.currentTarget;
-        requestAnimationFrame(() => {
-            const menu = overlayTrigger.querySelector('sp-menu');
-            const focusedItem = menu?.querySelector('sp-menu-item[focused]');
-            focusedItem?.blur();
-            focusedItem?.removeAttribute('focused');
+        queueMicrotask(() => {
+            if (this.#clearFocusedCopyFieldMenuItem(overlayTrigger)) return;
+            this.updateComplete.then(() => {
+                this.#clearFocusedCopyFieldMenuItem(overlayTrigger);
+            });
         });
     };
     #onCopyFieldMenuClosed = () => {

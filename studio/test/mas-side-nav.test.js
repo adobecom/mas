@@ -639,7 +639,8 @@ describe('MasSideNav – Copy Field', () => {
 
             trigger.dispatchEvent(new Event('pointerdown', { bubbles: true, composed: true }));
             overlay.dispatchEvent(new Event('sp-opened'));
-            await new Promise((resolve) => requestAnimationFrame(resolve));
+            await Promise.resolve();
+            await Promise.resolve();
 
             expect(focusedItem.hasAttribute('focused')).to.be.false;
             expect(focusedItem.blur.calledOnce).to.be.true;
@@ -670,7 +671,8 @@ describe('MasSideNav – Copy Field', () => {
             focusedItem.blur = sandbox.stub();
 
             overlay.dispatchEvent(new Event('sp-opened'));
-            await new Promise((resolve) => requestAnimationFrame(resolve));
+            await Promise.resolve();
+            await Promise.resolve();
 
             expect(focusedItem.hasAttribute('focused')).to.be.true;
             expect(focusedItem.blur.called).to.be.false;

@@ -14,15 +14,6 @@ const authorize = async (__ow_headers) => {
 };
 
 async function main({ __ow_headers }) {
-    return {
-        headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache', // prevent caching in IO environment
-            'Content-Encoding': 'br',
-        },
-        statusCode: 200,
-        body: 'hello world',
-    };
     try {
         if (!(await authorize(__ow_headers))) {
             return {

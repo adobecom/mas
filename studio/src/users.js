@@ -2,15 +2,15 @@ import Store from './store.js';
 
 export async function loadUsers() {
     const urlParams = new URLSearchParams(window.location.search);
-    let masIoStudioBase = urlParams.get('mas-io-studio-base');
-    if (!masIoStudioBase) {
-        masIoStudioBase = 'https://mas.adobe.com/io';
+    let masIoStudioUrl = urlParams.get('mas-io-studio-url');
+    if (!masIoStudioUrl) {
+        masIoStudioUrl = 'https://mas.adobe.com/io';
     }
-    if (!masIoStudioBase.endsWith('/')) {
-        masIoStudioBase += '/';
+    if (!masIoStudioUrl.endsWith('/')) {
+        masIoStudioUrl += '/';
     }
     try {
-        const response = await fetch(`${masIoStudioBase}listMembers`, {
+        const response = await fetch(`${masIoStudioUrl}listMembers`, {
             headers: {
                 Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
                 accept: 'application/json',

@@ -1,0 +1,55 @@
+{
+    "path": "/content/dam/mas/test/fragment-product",
+    "name": "",
+    "title": "Test Product Card",
+    "id": "fragment-product",
+    "description": "Test Product Card",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+    },
+    "fields": {
+        "variant": "product",
+        "mnemonicIcon": [
+            "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg",
+            "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/aero.svg"
+        ],
+        "mnemonicAlt": ["", ""],
+        "mnemonicLink": ["", ""],
+        "badge": {
+            "value": "<merch-badge background-color=\"color-yellow-300-variation\" border-color=\"color-yellow-300-variation\" icon=\"sp-icon-star\" variant=\"product\">Product badge</merch-badge>",
+            "mimeType": "text/html"
+        },
+        "trialBadge": {
+            "mimeType": "text/html"
+        },
+        "borderColor": "color-green-900-variation",
+        "cardTitle": "Test Product Card",
+        "cardName": "Test Product Card",
+        "prices": {
+            "value": "<p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abm\"></span></p>",
+            "mimeType": "text/html"
+        },
+        "shortDescription": {
+            "mimeType": "text/html"
+        },
+        "promoText": "Green promo text",
+        "description": {
+            "value": "<p>Product description</p>",
+            "mimeType": "text/html"
+        },
+        "callout": {
+            "value": "<p>Callout text</p>",
+            "mimeType": "text/html"
+        },
+        "quantitySelect": "<merch-quantity-select title=\"Select quantity\" min=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>",
+        "ctas": {
+            "value": "<p></p><hr><p><a class=\"primary-outline\" data-checkout-workflow=\"UCv3\" data-wcs-osi=\"abm\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"free-trial\">Free trial</a> <a data-checkout-workflow=\"UCv3\" data-wcs-osi=\"abm\" data-template=\"checkoutUrl\" data-analytics-id=\"buy-now\">Buy now</a></p>",
+            "mimeType": "text/html"
+        },
+        "variations": [],
+        "whatsIncluded": "<merch-whats-included><div slot=\"heading\">What's included :</div><div slot=\"contentBullets\"></div><div slot=\"content\"><merch-mnemonic-list><div slot=\"icon\"><merch-icon size=\"s\" src=\"https://www.adobe.com/cc-shared/assets/img/product-icons/svg/lightroom.svg\" alt=\"Lightroom\"></merch-icon></div><p slot=\"description\"><strong>Lightroom</strong></p></merch-mnemonic-list><merch-mnemonic-list><div slot=\"icon\"><merch-icon size=\"s\" src=\"https://www.adobe.com/cc-shared/assets/img/product-icons/svg/fresco.svg\" alt=\"Fresco\"></merch-icon></div><p slot=\"description\"><strong>Fresco</strong></p></merch-mnemonic-list></div></merch-whats-included>",
+        "tags": [],
+        "pznTags": [],
+        "perUnitLabel": "{perUnit, select, LICENSE {My custom per unit label} other {}}"
+    }
+}

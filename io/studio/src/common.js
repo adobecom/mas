@@ -94,6 +94,7 @@ async function fetchFragmentByPath(odinEndpoint, fragmentPath, authToken) {
  * @param {*} options.method
  * @param {*} options.body
  * @param {*} options.etag
+ * @param {*} options.headers additional headers to merge with Authorization header
  * @param {*} options.ignoreErrors list of HTTP status codes method should forward without throwing an error
  * @throws Error when response is not ok and status code is not in ignoreErrors
  * @returns response object
@@ -102,12 +103,13 @@ async function fetchOdin(
     odinEndpoint,
     URI,
     authToken,
-    { method = 'GET', body = null, contentType = null, etag = null, ignoreErrors = [] } = {},
+    { method = 'GET', body = null, contentType = null, etag = null, headers: additionalHeaders = {}, ignoreErrors = [] } = {},
 ) {
     const startTime = performance.now();
     const path = `${odinEndpoint}${URI}`;
     const headers = {
         Authorization: `Bearer ${authToken}`,
+        ...additionalHeaders,
     };
     if (etag) {
         headers['If-Match'] = etag;

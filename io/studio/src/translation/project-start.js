@@ -89,7 +89,11 @@ async function main(params) {
 
     async function getTranslationProject(projectId, authToken) {
         try {
-            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, authToken);
+            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, authToken, {
+                headers: {
+                    'User-Agent': 'mas-translation-project',
+                },
+            });
             const projectCF = await response.json();
             const etag = response.headers.get('etag');
             return { projectCF, etag };

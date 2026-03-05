@@ -4,10 +4,6 @@ import { debounce } from './utils.js';
 import { isPowerUser } from './groups.js';
 
 export class Router extends EventTarget {
-    #sandboxSettingsRouteWatcher = () => {
-        this.#resolveSandboxSettingsRoute();
-    };
-
     #settingsAccessRouteWatcher = () => {
         this.#resolveSettingsAccessRoute();
     };
@@ -443,7 +439,6 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
-        this.#resolveSandboxSettingsRoute();
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
@@ -473,7 +468,6 @@ export class Router extends EventTarget {
 
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(this.location.hash.slice(1));
-            this.#resolveSandboxSettingsRoute();
             if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
@@ -590,33 +584,6 @@ export class Router extends EventTarget {
             this.updateHistory();
         }
         return redirected;
-    }
-
-    #startWatchingSandboxSettingsRoute() {
-        Store.profile.subscribe(this.#sandboxSettingsRouteWatcher);
-        Store.users.subscribe(this.#sandboxSettingsRouteWatcher);
-    }
-
-    #stopWatchingSandboxSettingsRoute() {
-        Store.profile.unsubscribe(this.#sandboxSettingsRouteWatcher);
-        Store.users.unsubscribe(this.#sandboxSettingsRouteWatcher);
-    }
-
-    #resolveSandboxSettingsRoute() {
-        this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
-        const page = this.currentParams.get('page');
-        const path = this.currentParams.get('path');
-        if (page || path !== 'sandbox') {
-            this.#stopWatchingSandboxSettingsRoute();
-            return false;
-        }
-        if (!isPowerUser()) {
-            this.#startWatchingSandboxSettingsRoute();
-            return false;
-        }
-        Store.page.set(PAGE_NAMES.SETTINGS);
-        this.#stopWatchingSandboxSettingsRoute();
-        return true;
     }
 }
 

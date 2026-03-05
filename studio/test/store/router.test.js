@@ -160,42 +160,6 @@ describe('Router URL parameter handling', async () => {
         Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
-    it('should redirect sandbox deep link to settings after users load for power user', async () => {
-        const originalPage = Store.page.get();
-        const originalProfile = Store.profile.get();
-        const originalUsers = Store.users.get();
-        const originalUsersLoadedMeta = Store.users.getMeta('loaded');
-
-        Store.page.set(PAGE_NAMES.WELCOME);
-        Store.profile.set({});
-        Store.users.set([]);
-        Store.users.setMeta('loaded', false);
-
-        const router = new Router({ hash: '#path=sandbox' });
-        router.start();
-        await delay(60);
-        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
-
-        Store.profile.set({ email: 'power@adobe.com' });
-        Store.users.set([
-            {
-                userPrincipalName: 'power@adobe.com',
-                groups: ['Grp-ODIN-MAS-POWERUSERS'],
-            },
-        ]);
-        Store.users.setMeta('loaded', true);
-        await delay(60);
-
-        expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
-        expect(router.location.hash).to.include('path=sandbox');
-        expect(router.location.hash).to.include('page=settings');
-
-        Store.page.set(originalPage);
-        Store.profile.set(originalProfile);
-        Store.users.set(originalUsers);
-        Store.users.setMeta('loaded', originalUsersLoadedMeta);
-    });
-
     it('should preserve page=welcome for sandbox when navigating home from settings', async () => {
         const originalPage = Store.page.get();
         const originalProfile = Store.profile.get();
@@ -227,7 +191,7 @@ describe('Router URL parameter handling', async () => {
         Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
-    it('should preserve a page-less sandbox hash on hashchange until users resolve', async () => {
+    it('should preserve a page-less sandbox hash on hashchange even after users resolve', async () => {
         const originalPage = Store.page.get();
         const originalProfile = Store.profile.get();
         const originalUsers = Store.users.get();
@@ -260,9 +224,9 @@ describe('Router URL parameter handling', async () => {
         Store.users.setMeta('loaded', true);
         await delay(60);
 
-        expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
         expect(router.location.hash).to.include('path=sandbox');
-        expect(router.location.hash).to.include('page=settings');
+        expect(router.location.hash).to.not.include('page=');
 
         Store.page.set(originalPage);
         Store.profile.set(originalProfile);

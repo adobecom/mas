@@ -250,7 +250,7 @@
             },
             "description": "",
             "fields": [
-                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["showSecureLabel"] },
+                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["secureLabel"] },
                 { "name": "templates", "type": "text", "multiple": true, "locked": false, "values": [] },
                 { "name": "locales", "type": "text", "multiple": true, "locked": false, "values": ["fr_FR", "fr_BE", "fr_CH"] },
                 { "name": "tags", "type": "tag", "multiple": true, "locked": false, "values": [] },
@@ -290,7 +290,7 @@
             },
             "description": "Controls whether the “Secure transaction” lock icon/label appears near the checkout CTA on the card. When enabled, the trust badge is rendered; when disabled, it is suppressed for that fragment, overriding page‑level defaults.\r\n",
             "fields": [
-                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["showSecureLabel"] },
+                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["secureLabel"] },
                 {
                     "name": "templates",
                     "type": "text",

@@ -107,7 +107,6 @@ class MasTopNav extends LitElement {
     };
 
     profileTemplatePromise = null;
-    #breadcrumbRepairFrame = null;
 
     constructor() {
         super();
@@ -122,37 +121,6 @@ class MasTopNav extends LitElement {
         if (changedProperties.has('aemEnv')) {
             this.profileTemplatePromise = null;
         }
-    }
-
-    updated() {
-        this.#repairSettingsBreadcrumbOverflow();
-    }
-
-    disconnectedCallback() {
-        if (this.#breadcrumbRepairFrame !== null) {
-            cancelAnimationFrame(this.#breadcrumbRepairFrame);
-            this.#breadcrumbRepairFrame = null;
-        }
-        super.disconnectedCallback();
-    }
-
-    #repairSettingsBreadcrumbOverflow() {
-        if (this.page.value !== PAGE_NAMES.SETTINGS_EDITOR) return;
-        if (this.#breadcrumbRepairFrame !== null) cancelAnimationFrame(this.#breadcrumbRepairFrame);
-
-        this.#breadcrumbRepairFrame = requestAnimationFrame(() => {
-            this.#breadcrumbRepairFrame = null;
-            const breadcrumbs = this.querySelector('.nav-breadcrumbs sp-breadcrumbs');
-            if (!breadcrumbs) return;
-            const items = [...breadcrumbs.querySelectorAll('sp-breadcrumb-item')];
-            if (items.length <= 2) {
-                items.forEach((item) => item.removeAttribute('hidden'));
-                breadcrumbs.maxVisibleItems = Math.max(4, items.length);
-            }
-            if (typeof breadcrumbs.adjustOverflow === 'function') {
-                breadcrumbs.adjustOverflow();
-            }
-        });
     }
 
     getProfileTemplate() {
@@ -194,8 +162,12 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.TRANSLATIONS;
     }
 
+    get isSettingsEditorPage() {
+        return this.page.value === PAGE_NAMES.SETTINGS_EDITOR;
+    }
+
     get isLocalePickerDisabled() {
-        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage || this.isSettingsPage) {
+        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage) {
             return false;
         }
         if (this.isFragmentEditorPage) {
@@ -305,10 +277,7 @@ class MasTopNav extends LitElement {
                 { label: 'Version history' },
             ];
         }
-        if (
-            this.page.value === PAGE_NAMES.SETTINGS_EDITOR &&
-            (this.settings.creating.get() || this.settings.fragmentId.get())
-        ) {
+        if (this.page.value === PAGE_NAMES.SETTINGS_EDITOR) {
             return [{ label: 'Settings', handler: handlers.settings }, { label: this.settingEditorBreadcrumbLabel }];
         }
         if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
@@ -387,7 +356,9 @@ class MasTopNav extends LitElement {
                     ${this.shouldShowPickers
                         ? html`
                               <mas-nav-folder-picker
-                                  ?disabled=${this.isFragmentEditorPage || this.isTranslationEditorPage}
+                                  ?disabled=${this.isFragmentEditorPage ||
+                                  this.isTranslationEditorPage ||
+                                  this.isSettingsEditorPage}
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"

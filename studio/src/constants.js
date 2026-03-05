@@ -211,6 +211,7 @@ export const QUICK_ACTION = {
     SAVE: 'save',
     DUPLICATE: 'duplicate',
     PUBLISH: 'publish',
+    UNPUBLISH: 'unpublish',
     CANCEL: 'cancel',
     COPY: 'copy',
     LOCK: 'lock',

@@ -309,7 +309,11 @@ export class MasLocalePicker extends LitElement {
     getLocales() {
         if (this.mode === 'region') {
             if (this.isCheckboxSelection) {
-                return getSurfaceLocales(this.surface);
+                return getSurfaceLocales(this.surface).sort((a, b) => {
+                    const codeA = getLocaleCode(a);
+                    const codeB = getLocaleCode(b);
+                    return codeA.localeCompare(codeB) || getCountryName(a.country).localeCompare(getCountryName(b.country));
+                });
             }
             return getRegionLocales(this.surface, this.locale, true);
         } else {

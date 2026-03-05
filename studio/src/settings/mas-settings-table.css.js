@@ -94,6 +94,7 @@ export const tableStyles = css`
         display: flex;
         align-items: center;
         gap: 10px;
+        overflow: hidden;
     }
 
     .mas-setting-row .status-cell {
@@ -215,6 +216,7 @@ export const tableStyles = css`
         display: flex;
         align-items: center;
         gap: 10px;
+        overflow: hidden;
     }
 
     .override-tags-cell {

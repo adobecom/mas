@@ -10,8 +10,9 @@ import '../mas-locale-picker.js';
 import '../aem/aem-tag-picker-field.js';
 import '../common/fields/tree-picker-field.js';
 import '../common/fields/quantity-select.js';
-import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
+import { getVariantTreeData } from '../editors/variant-picker.js';
 import { SETTING_NAME_DEFINITIONS, getSettingDefaultValue, getSettingNameDefinition } from './setting-name-map.js';
+import { DELETE_BLOCKED_STATUSES } from './settings-store.js';
 
 class MasSettings extends LitElement {
     static styles = css`
@@ -19,6 +20,7 @@ class MasSettings extends LitElement {
             display: block;
             box-sizing: border-box;
             padding: 32px;
+            min-width: 1100px;
 
             --mod-table-border-radius: 0;
         }
@@ -626,13 +628,19 @@ class MasSettings extends LitElement {
 
     #handleDeleteDialog = ({ detail: { id, parentId, isOverride } }) => {
         if (isOverride) {
+            const row = Store.settings.getRowStore(parentId)?.value;
+            const override = row?.overrides.find((item) => item.id === id);
+            if (DELETE_BLOCKED_STATUSES.includes(override?.status)) {
+                showToast('Published or modified settings cannot be deleted.', 'negative');
+                return;
+            }
             this.#openConfirmDialog('delete-override', parentId, id);
             return;
         }
         const row = Store.settings.getRowStore(id)?.value;
         if (!row) return;
-        if (row.locales.length === 0 && `${row.status || ''}`.toUpperCase() !== 'DRAFT') {
-            showToast('Top-level settings cannot be deleted.', 'negative');
+        if (DELETE_BLOCKED_STATUSES.includes(row.status)) {
+            showToast('Published or modified settings cannot be deleted.', 'negative');
             return;
         }
         this.#openConfirmDialog('delete', id);
@@ -654,7 +662,7 @@ class MasSettings extends LitElement {
     };
 
     get isAddonPlaceholderMissing() {
-        return this.form.name === 'showAddon' && this.form.addonEnabled && !this.#toAddonPlaceholderKey(this.form.value);
+        return this.form.name === 'addon' && this.form.addonEnabled && !this.#toAddonPlaceholderKey(this.form.value);
     }
 
     get isOverrideSaveDisabled() {
@@ -666,7 +674,7 @@ class MasSettings extends LitElement {
 
     #submitOverride = async (publish = false) => {
         if (this.overrideConflict) {
-            showToast('Conflict detected. Choose a different locale.', 'negative');
+            showToast('Conflict detected. Choose a different locale or template.', 'negative');
             return;
         }
         if (this.isAddonPlaceholderMissing) {
@@ -731,7 +739,12 @@ class MasSettings extends LitElement {
             row.overrides.find((override) => {
                 if (this.dialog.mode === 'edit' && override.id === this.dialog.overrideId) return false;
                 const overrideLocales = override.locales || [];
-                return overrideLocales.some((locale) => this.form.locales.includes(locale));
+                const localesOverlap = overrideLocales.some((locale) => this.form.locales.includes(locale));
+                if (!localesOverlap) return false;
+                const formTemplates = this.form.templateIds;
+                const overrideTemplates = override.templateIds || [];
+                if (formTemplates.length === 0 || overrideTemplates.length === 0) return false;
+                return formTemplates.some((t) => overrideTemplates.includes(t));
             }) || null
         );
     }
@@ -834,6 +847,12 @@ class MasSettings extends LitElement {
         const row = this.currentSettingRow;
         if (!row) return;
         this.#openConfirmDialog('publish', row.id);
+    };
+
+    #handleEditorUnpublish = () => {
+        const row = this.currentSettingRow;
+        if (!row) return;
+        this.#openConfirmDialog('unpublish', row.id);
     };
 
     #handleEditorCancel = () => this.#handleFormCancel();
@@ -1065,7 +1084,7 @@ class MasSettings extends LitElement {
                     <sp-field-group>
                         <sp-field-label>Template</sp-field-label>
                         <tree-picker-field
-                            .tree=${TEMPLATE_TREE_DATA}
+                            .tree=${getVariantTreeData(this.surface)}
                             .value=${this.form.templateIds}
                             .emptyValueIsSelection=${this.dialog?.mode === 'edit'}
                             placeholder=${this.dialog?.mode === 'edit' ? 'All templates' : 'Select template'}
@@ -1198,7 +1217,7 @@ class MasSettings extends LitElement {
                     <sp-field-group>
                         <sp-field-label>Template</sp-field-label>
                         <tree-picker-field
-                            .tree=${TEMPLATE_TREE_DATA}
+                            .tree=${getVariantTreeData(this.surface)}
                             .value=${this.form.templateIds}
                             .emptyValueIsSelection=${!this.isCreateMode}
                             placeholder=${this.isCreateMode ? 'Select template' : 'All templates'}
@@ -1220,7 +1239,7 @@ class MasSettings extends LitElement {
     }
 
     get settingsEditorActions() {
-        return [QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH, QUICK_ACTION.CANCEL, QUICK_ACTION.DELETE];
+        return [QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH, QUICK_ACTION.UNPUBLISH, QUICK_ACTION.CANCEL, QUICK_ACTION.DELETE];
     }
 
     get disabledSettingsEditorActions() {
@@ -1228,6 +1247,7 @@ class MasSettings extends LitElement {
         if (Store.settings.loading.get()) {
             disabled.add(QUICK_ACTION.SAVE);
             disabled.add(QUICK_ACTION.PUBLISH);
+            disabled.add(QUICK_ACTION.UNPUBLISH);
             disabled.add(QUICK_ACTION.CANCEL);
             disabled.add(QUICK_ACTION.DELETE);
             return disabled;
@@ -1240,14 +1260,14 @@ class MasSettings extends LitElement {
         const row = this.currentSettingRow;
         if (!row) {
             disabled.add(QUICK_ACTION.PUBLISH);
+            disabled.add(QUICK_ACTION.UNPUBLISH);
             disabled.add(QUICK_ACTION.DELETE);
             return disabled;
         }
 
-        const status = `${row.status || ''}`.toUpperCase();
-        if (status === 'PUBLISHED') disabled.add(QUICK_ACTION.PUBLISH);
-        const canDelete = row.locales.length > 0 || status === 'DRAFT';
-        if (!canDelete) disabled.add(QUICK_ACTION.DELETE);
+        if (row.status === 'PUBLISHED') disabled.add(QUICK_ACTION.PUBLISH);
+        if (row.status !== 'PUBLISHED') disabled.add(QUICK_ACTION.UNPUBLISH);
+        if (DELETE_BLOCKED_STATUSES.includes(row.status)) disabled.add(QUICK_ACTION.DELETE);
         return disabled;
     }
 
@@ -1260,6 +1280,7 @@ class MasSettings extends LitElement {
                 .disabled=${this.disabledSettingsEditorActions}
                 @save=${this.#handleEditorSave}
                 @publish=${this.#handleEditorPublish}
+                @unpublish=${this.#handleEditorUnpublish}
                 @cancel=${this.#handleEditorCancel}
                 @delete=${this.#handleEditorDelete}
             ></mas-quick-actions>

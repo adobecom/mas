@@ -3,6 +3,7 @@ import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { settingsEmptyStateIcon } from '../icons.js';
 import { tableStyles } from './mas-settings-table.css.js';
+import { DELETE_BLOCKED_STATUSES } from './settings-store.js';
 import './mas-setting-item.js';
 
 /**
@@ -181,15 +182,19 @@ export class MasSettingsTable extends LitElement {
                                                               <sp-icon-edit slot="icon"></sp-icon-edit>
                                                               Edit setting
                                                           </sp-menu-item>
-                                                          <sp-menu-item
-                                                              data-action="setting-delete"
-                                                              data-row-id=${renderedRow.row.id}
-                                                              data-override-id=${override.id}
-                                                              @click=${this.#handleOverrideAction}
-                                                          >
-                                                              <sp-icon-delete slot="icon"></sp-icon-delete>
-                                                              Delete
-                                                          </sp-menu-item>
+                                                          ${!DELETE_BLOCKED_STATUSES.includes(override.status)
+                                                              ? html`
+                                                                    <sp-menu-item
+                                                                        data-action="setting-delete"
+                                                                        data-row-id=${renderedRow.row.id}
+                                                                        data-override-id=${override.id}
+                                                                        @click=${this.#handleOverrideAction}
+                                                                    >
+                                                                        <sp-icon-delete slot="icon"></sp-icon-delete>
+                                                                        Delete
+                                                                    </sp-menu-item>
+                                                                `
+                                                              : nothing}
                                                       </sp-action-menu>
                                                   </sp-table-cell>
                                               </sp-table-row>

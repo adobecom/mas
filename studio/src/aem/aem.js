@@ -475,7 +475,7 @@ class AEM {
             },
             body: JSON.stringify({
                 paths: [fragment.path],
-                workflowModelId: '/var/workflow/models/scheduled_deactivation_with_references',
+                workflowModelId: '/var/workflow/models/scheduled_deactivation',
             }),
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);

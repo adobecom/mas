@@ -1,5 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import { DELETE_BLOCKED_STATUSES } from './settings-store.js';
 
 /**
  * Single top-level row renderer for settings table items.
@@ -77,7 +78,7 @@ export class MasSettingItem extends LitElement {
     }
 
     get canDelete() {
-        return this.row.locales.length > 0 || `${this.row.status || ''}`.toUpperCase() === 'DRAFT';
+        return !DELETE_BLOCKED_STATUSES.includes(this.row.status);
     }
 
     get tagsTemplate() {

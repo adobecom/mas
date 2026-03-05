@@ -5,7 +5,7 @@ import { ReactiveStore } from '../reactivity/reactive-store.js';
 import { showToast, normalizeKey } from '../utils.js';
 import { createTreeSelectionSummary } from '../common/fields/tree-picker-field.js';
 import { getSettingNameDefinition } from './setting-name-map.js';
-import { TEMPLATE_TREE_DATA } from './template-tree-data.js';
+import { getVariantTreeData } from '../editors/variant-picker.js';
 
 const INDEX_REFERENCES_FIELD = 'entries';
 const INDEX_NOT_FOUND_MESSAGES = ['404', 'Fragment not found'];
@@ -15,8 +15,7 @@ const FRAGMENT_SUFFIX_LENGTH = 4;
 const FRAGMENT_NAME_COLLISION_LIMIT = 20;
 const TOP_LEVEL_CONFLICT_MESSAGE = 'A top-level setting already exists for this setting name.';
 const TOP_LEVEL_DUPLICATE_BLOCKED_MESSAGE = 'Top-level setting duplication is not allowed.';
-
-const isBooleanValue = (value) => value === true || value === false;
+export const DELETE_BLOCKED_STATUSES = ['PUBLISHED', 'MODIFIED'];
 
 const trueValues = new Set(['true', '1', 'yes', 'on']);
 const falseValues = new Set(['false', '0', 'no', 'off']);
@@ -107,6 +106,15 @@ const buildValueFields = (valueType, value, booleanValue) => {
     return fields;
 };
 
+const resolveValueType = (settingName, ...fallbacks) => {
+    const definition = getSettingNameDefinition(settingName);
+    if (definition) return definition.valueType;
+    for (const fb of fallbacks) {
+        if (fb) return fb;
+    }
+    return 'text';
+};
+
 const resolveBooleanValue = (valueType, value, booleanValue) =>
     valueType === 'boolean' ? Boolean(value) : Boolean(booleanValue);
 
@@ -120,7 +128,7 @@ const areStringListsEqual = (left = [], right = []) => {
     return leftList.every((value, index) => value === rightList[index]);
 };
 
-const templateSummaryHelper = createTreeSelectionSummary(TEMPLATE_TREE_DATA);
+const templateSummaryHelper = createTreeSelectionSummary(getVariantTreeData());
 
 /**
  * Settings table state holder and mutator surface.
@@ -331,7 +339,7 @@ export class SettingsStore {
             async () => {
                 const fragment = await this.aem.sites.cf.fragments.getById(override.id);
                 const fields = structuredClone(fragment.fields);
-                const valueType = override.valueType || row.valueType;
+                const valueType = resolveValueType(row.name, override.valueType, row.valueType);
                 const value = valueType === 'boolean' ? checked : override.value;
                 const valueFields = buildValueFields(valueType, value, checked);
 
@@ -372,7 +380,7 @@ export class SettingsStore {
         const settingName = row.name;
         const locales = [...(override.locales || [])];
         let createdOverrideId = null;
-        const valueType = override.valueType || row.valueType || (isBooleanValue(override.value) ? 'boolean' : 'text');
+        const valueType = resolveValueType(settingName, override.valueType, row.valueType);
         const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
         const localeTitle = locales.join(', ');
         const fragmentName = await this.#resolveUniqueFragmentName({
@@ -418,11 +426,7 @@ export class SettingsStore {
         if (!currentOverride) return false;
 
         const locales = [...(override.locales || [])];
-        const valueType =
-            override.valueType ||
-            currentOverride.valueType ||
-            row.valueType ||
-            (isBooleanValue(override.value) ? 'boolean' : 'text');
+        const valueType = resolveValueType(row.name, override.valueType, currentOverride.valueType, row.valueType);
         const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
 
         return this.#runMutation(
@@ -463,7 +467,7 @@ export class SettingsStore {
             showToast(TOP_LEVEL_CONFLICT_MESSAGE, 'negative');
             return null;
         }
-        const valueType = setting.valueType || (isBooleanValue(setting.value) ? 'boolean' : 'text');
+        const valueType = resolveValueType(settingName, setting.valueType);
         const booleanValue = resolveBooleanValue(valueType, setting.value, setting.booleanValue);
         const fragmentName = await this.#resolveUniqueFragmentName({
             settingName,
@@ -510,8 +514,7 @@ export class SettingsStore {
                 description: setting.description || '',
                 templateIds: setting.templateIds || [],
                 tags: setting.tags || [],
-                valueType:
-                    setting.valueType || rowStore.value.valueType || (isBooleanValue(setting.value) ? 'boolean' : 'text'),
+                valueType: resolveValueType(rowStore.value.name, setting.valueType, rowStore.value.valueType),
                 value: setting.value,
                 booleanValue: setting.booleanValue,
             },
@@ -524,8 +527,8 @@ export class SettingsStore {
         const rowStore = this.getRowStore(rowId);
         if (!rowStore) return false;
         const row = rowStore.value;
-        if (row.locales.length === 0 && `${row.status || ''}`.toUpperCase() !== 'DRAFT') {
-            showToast('Top-level settings cannot be deleted.', 'negative');
+        if (DELETE_BLOCKED_STATUSES.includes(row.status)) {
+            showToast('Published or modified settings cannot be deleted.', 'negative');
             return false;
         }
         const fragmentPaths = [row.fragment.path, ...row.overrides.map((override) => override.path)];
@@ -568,6 +571,10 @@ export class SettingsStore {
         const row = rowStore.value;
         const override = row.overrides.find((item) => item.id === overrideId);
         if (!override) return false;
+        if (DELETE_BLOCKED_STATUSES.includes(override.status)) {
+            showToast('Published or modified settings cannot be deleted.', 'negative');
+            return false;
+        }
 
         return this.#runMutation(
             async () => {
@@ -631,7 +638,7 @@ export class SettingsStore {
         if (!override) return false;
 
         const locales = override.locales?.length ? override.locales : [];
-        const valueType = override.valueType || row.valueType || (isBooleanValue(override.value) ? 'boolean' : 'text');
+        const valueType = resolveValueType(row.name, override.valueType, row.valueType);
         const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
         const fragmentName = await this.#resolveUniqueFragmentName({
             settingName: row.name,
@@ -727,7 +734,7 @@ export class SettingsStore {
             async () => {
                 const fragment = await this.aem.sites.cf.fragments.getById(row.id);
                 const fields = structuredClone(fragment.fields);
-                const valueType = patch.valueType || row.valueType || (isBooleanValue(patch.value) ? 'boolean' : 'text');
+                const valueType = resolveValueType(row.name, patch.valueType, row.valueType);
                 const booleanValue = resolveBooleanValue(valueType, patch.value, patch.booleanValue);
                 const valueFields = buildValueFields(valueType, patch.value, booleanValue);
 

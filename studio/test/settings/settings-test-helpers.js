@@ -53,7 +53,7 @@ export const createDefaultSettingsReferences = () => [
     createSettingReference({
         id: 'setting-show-addon',
         title: 'Show Addon',
-        name: 'showAddon',
+        name: 'addon',
         label: 'Show Addon',
         status: 'PUBLISHED',
         templates: [],
@@ -72,7 +72,7 @@ export const createDefaultSettingsReferences = () => [
     createSettingReference({
         id: 'setting-show-secure-label',
         title: 'Show secure label',
-        name: 'showSecureLabel',
+        name: 'secureLabel',
         label: 'Show secure label',
         status: 'PUBLISHED',
         modified: { by: 'Mr Bean', at: '2025-10-14T09:11:00.000Z' },

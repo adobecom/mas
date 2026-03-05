@@ -4,11 +4,11 @@ import { createQuantitySelectValue } from '../common/fields/quantity-select.js';
  * Available setting name definitions.
  */
 export const SETTING_NAME_DEFINITIONS = [
-    { name: 'showAddon', label: 'showAddon', valueType: 'text', editor: 'placeholder' },
-    { name: 'displayAnnual', label: 'displayAnnual', valueType: 'boolean', editor: 'boolean' },
-    { name: 'displayPlanType', label: 'displayPlanType', valueType: 'boolean', editor: 'boolean' },
-    { name: 'showSecureLabel', label: 'showSecureLabel', valueType: 'boolean', editor: 'boolean' },
-    { name: 'quantitySelect', label: 'quantitySelect', valueType: 'text', editor: 'quantity-select' },
+    { name: 'addon', label: 'Addon', valueType: 'optional-text', editor: 'placeholder' },
+    { name: 'secureLabel', label: 'SecureLabel', valueType: 'optional-text', editor: 'placeholder' },
+    { name: 'displayAnnual', label: 'display annual', valueType: 'boolean', editor: 'boolean' },
+    { name: 'displayPlanType', label: 'display plan type', valueType: 'boolean', editor: 'boolean' },
+    { name: 'quantitySelect', label: 'Quantity select', valueType: 'text', editor: 'quantity-select' },
 ];
 
 const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));

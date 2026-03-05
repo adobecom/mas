@@ -1,9 +1,9 @@
 import { expect } from '@esm-bundle/chai';
 import { SettingsStore } from '../../src/settings/settings-store.js';
-import { TEMPLATE_TREE_DATA } from '../../src/settings/template-tree-data.js';
+import { getVariantTreeData } from '../../src/editors/variant-picker.js';
 import { createSettingReference } from './settings-test-helpers.js';
 
-const collectTemplateLeafMeta = (tree = TEMPLATE_TREE_DATA) => {
+const collectTemplateLeafMeta = (tree = getVariantTreeData()) => {
     const allTemplateIds = [];
     const branchByTemplateId = new Map();
     const templateIdsByBranch = new Map();
@@ -145,9 +145,7 @@ const createMutationHarness = ({ topLevel, overrides = [] }) => {
 };
 
 describe('Settings Store Namespace', () => {
-    const { allTemplateIds, branchByTemplateId, templateIdsByBranch } = collectTemplateLeafMeta();
-    const merchCardIds = allTemplateIds.filter((templateId) => branchByTemplateId.get(templateId) === 'Merch card');
-    const otherTemplateId = allTemplateIds.find((templateId) => branchByTemplateId.get(templateId) !== 'Merch card');
+    const { allTemplateIds, templateIdsByBranch } = collectTemplateLeafMeta();
     const crossBranchTemplateIds = [...templateIdsByBranch.values()].flatMap((ids) => ids.slice(0, 1));
 
     it('reuses row stores by fragment id', () => {
@@ -171,12 +169,12 @@ describe('Settings Store Namespace', () => {
     it('disposes removed rows', () => {
         const store = new SettingsStore();
         store.setSettingFragments([
-            createSettingReference({ id: 'showAddon', templates: ['catalog'], value: true }),
+            createSettingReference({ id: 'addon', templates: ['catalog'], value: true }),
             createSettingReference({ id: 'showPlanType', templates: ['catalog'], value: true }),
         ]);
         const removedStore = store.getRowStore('showPlanType');
 
-        store.setSettingFragments([createSettingReference({ id: 'showAddon', templates: ['catalog'], value: true })]);
+        store.setSettingFragments([createSettingReference({ id: 'addon', templates: ['catalog'], value: true })]);
 
         expect(store.getRowStore('showPlanType')).to.equal(null);
     });
@@ -201,17 +199,14 @@ describe('Settings Store Namespace', () => {
         expect(store.formatTemplateSummary(['', null, undefined])).to.equal('All templates selected');
     });
 
-    it('shows branch summary when selected templates are all from one branch', () => {
+    it('shows label summary for a single selected template', () => {
         const store = new SettingsStore();
-        expect(store.formatTemplateSummary(['merch-card-plans'])).to.equal('Merch card (1 selected)');
-        expect(store.formatTemplateSummary(['merch-card-plans', 'merch-card-product', 'merch-card-product'])).to.equal(
-            'Merch card (2 selected)',
-        );
+        expect(store.formatTemplateSummary(['catalog'])).to.equal('Catalog (1 selected)');
     });
 
-    it('shows count summary when selected templates span multiple categories', () => {
+    it('shows count summary when multiple templates are selected', () => {
         const store = new SettingsStore();
-        expect(store.formatTemplateSummary([merchCardIds[0], otherTemplateId])).to.equal('2 templates selected');
+        expect(store.formatTemplateSummary(['catalog', 'plans'])).to.equal('2 templates selected');
     });
 
     it('shows "5 templates selected" when five templates are selected across branches', () => {
@@ -219,11 +214,9 @@ describe('Settings Store Namespace', () => {
         expect(store.formatTemplateSummary(crossBranchTemplateIds.slice(0, 5))).to.equal('5 templates selected');
     });
 
-    it('ignores invalid values and still shows branch summary for a single branch', () => {
+    it('ignores invalid values and still shows label for a single valid template', () => {
         const store = new SettingsStore();
-        expect(store.formatTemplateSummary(['merch-card-plans', 'missing-template-id', '', null])).to.equal(
-            'Merch card (1 selected)',
-        );
+        expect(store.formatTemplateSummary(['catalog', 'missing-template-id', '', null])).to.equal('Catalog (1 selected)');
     });
 
     it('ignores invalid values and duplicates when all templates are effectively selected', () => {
@@ -237,9 +230,9 @@ describe('Settings Store Namespace', () => {
         const store = new SettingsStore();
         let currentValue = true;
         const reference = createSettingReference({
-            id: 'setting-show-secure-label',
-            name: 'showSecureLabel',
-            label: 'Show secure label',
+            id: 'setting-display-plan-type',
+            name: 'displayPlanType',
+            label: 'Display Plan type',
             locales: [],
             templates: ['catalog'],
             value: currentValue,
@@ -270,7 +263,7 @@ describe('Settings Store Namespace', () => {
                             status: 'PUBLISHED',
                             tags: [],
                             fields: [
-                                { name: 'name', type: 'text', multiple: false, values: ['showSecureLabel'] },
+                                { name: 'name', type: 'text', multiple: false, values: ['displayPlanType'] },
                                 { name: 'templates', type: 'text', multiple: true, values: ['catalog'] },
                                 { name: 'locales', type: 'text', multiple: true, values: [] },
                                 { name: 'tags', type: 'tag', multiple: true, values: [] },
@@ -295,7 +288,7 @@ describe('Settings Store Namespace', () => {
         const rowStore = store.getRowStore(reference.id);
 
         expect(rowStore.value.value).to.equal(false);
-        expect(store.toast.get().message).to.contain("'Show secure label' is now [Off]");
+        expect(store.toast.get().message).to.contain("'Display Plan type' is now [Off]");
     });
 
     it('keeps plain template count wording in toggle toast for cross-branch templates', async () => {
@@ -304,7 +297,7 @@ describe('Settings Store Namespace', () => {
         let currentValue = true;
         const reference = createSettingReference({
             id: 'setting-cross-branch',
-            name: 'showSecureLabel',
+            name: 'secureLabel',
             label: 'Show secure label',
             locales: [],
             templates: templateIds,
@@ -329,7 +322,7 @@ describe('Settings Store Namespace', () => {
                             status: 'PUBLISHED',
                             tags: [],
                             fields: [
-                                { name: 'name', type: 'text', multiple: false, values: ['showSecureLabel'] },
+                                { name: 'name', type: 'text', multiple: false, values: ['secureLabel'] },
                                 { name: 'templates', type: 'text', multiple: true, values: templateIds },
                                 { name: 'locales', type: 'text', multiple: true, values: [] },
                                 { name: 'tags', type: 'tag', multiple: true, values: [] },
@@ -358,7 +351,7 @@ describe('Settings Store Namespace', () => {
         const store = new SettingsStore();
         const reference = createSettingReference({
             id: 'setting-show-addon',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             locales: [],
             templates: ['catalog'],
@@ -394,7 +387,7 @@ describe('Settings Store Namespace', () => {
                             status: 'PUBLISHED',
                             tags: [],
                             fields: [
-                                { name: 'name', type: 'text', multiple: false, values: ['showAddon'] },
+                                { name: 'name', type: 'text', multiple: false, values: ['addon'] },
                                 { name: 'templates', type: 'text', multiple: true, values: ['catalog'] },
                                 { name: 'locales', type: 'text', multiple: true, values: [] },
                                 { name: 'tags', type: 'tag', multiple: true, values: [] },
@@ -420,7 +413,7 @@ describe('Settings Store Namespace', () => {
         expect(updated).to.equal(true);
         expect(savedFragments).to.have.length(1);
         const savedFields = savedFragments[0].fields;
-        expect(savedFields.find((field) => field.name === 'valuetype').values).to.deep.equal(['text']);
+        expect(savedFields.find((field) => field.name === 'valuetype').values).to.deep.equal(['optional-text']);
         expect(savedFields.find((field) => field.name === 'textValue').values).to.deep.equal(['{{test-value}}']);
         expect(savedFields.find((field) => field.name === 'booleanValue').values).to.deep.equal([false]);
         expect(store.getRowStore(reference.id).value.value).to.equal('{{test-value}}');
@@ -430,14 +423,14 @@ describe('Settings Store Namespace', () => {
     it('loads settings index for surface and nests localized entries by fieldName and name', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-secure-label',
-            name: 'showSecureLabel',
+            name: 'secureLabel',
             label: 'Show secure label',
             locales: [],
             templates: ['catalog', 'plans'],
         });
         const nestedByName = createSettingReference({
             id: 'setting-show-secure-label-fr',
-            name: 'showSecureLabel',
+            name: 'secureLabel',
             label: 'Show secure label',
             fieldName: 'entries',
             locales: ['fr_FR'],
@@ -446,9 +439,9 @@ describe('Settings Store Namespace', () => {
         });
         const nestedByFieldName = createSettingReference({
             id: 'setting-show-secure-label-de',
-            name: 'showSecureLabel-de',
+            name: 'secureLabel-de',
             label: 'Show secure label',
-            fieldName: 'showSecureLabel',
+            fieldName: 'secureLabel',
             locales: ['de_DE'],
             templates: ['plans'],
             value: false,
@@ -474,7 +467,7 @@ describe('Settings Store Namespace', () => {
 
         const [row] = store.rows.get();
         expect(store.rows.get().length).to.equal(1);
-        expect(row.value.name).to.equal('showSecureLabel');
+        expect(row.value.name).to.equal('secureLabel');
         expect(row.value.locales).to.deep.equal([]);
         expect(row.value.overrides.length).to.equal(2);
         expect(row.value.overrides.map((override) => override.locale)).to.deep.equal(['fr_FR', 'de_DE']);
@@ -483,13 +476,13 @@ describe('Settings Store Namespace', () => {
     it('returns override context by override fragment id', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show addon',
             locales: [],
         });
         const nested = createSettingReference({
             id: 'setting-show-addon-fr',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show addon',
             fieldName: 'entries',
             locales: ['fr_FR'],
@@ -683,6 +676,7 @@ describe('Settings Store Namespace', () => {
             label: 'Show plan type',
             fieldName: 'entries',
             locales: ['fr_FR'],
+            status: 'DRAFT',
             path: '/content/dam/mas/sandbox/settings/setting-show-plan-type-fr',
         });
 
@@ -974,7 +968,7 @@ describe('Settings Store Namespace', () => {
         const store = new SettingsStore();
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show addon',
             locales: [],
         });
@@ -1006,23 +1000,23 @@ describe('Settings Store Namespace', () => {
 
     it('adds and updates overrides including rich text valueType', async () => {
         const topLevel = createSettingReference({
-            id: 'setting-display-plan-type',
-            name: 'displayPlanType',
-            label: 'Display plan type',
+            id: 'setting-custom-rich',
+            name: 'customRichSetting',
+            label: 'Custom rich setting',
             locales: [],
             valueType: 'text',
             value: 'default',
-            path: '/content/dam/mas/sandbox/settings/setting-display-plan-type',
+            path: '/content/dam/mas/sandbox/settings/setting-custom-rich',
         });
         const existingOverride = createSettingReference({
-            id: 'setting-display-plan-type-fr',
-            name: 'displayPlanType',
-            label: 'Display plan type',
+            id: 'setting-custom-rich-fr',
+            name: 'customRichSetting',
+            label: 'Custom rich setting',
             locales: ['fr_FR'],
             valueType: 'text',
             value: 'bonjour',
             fieldName: 'entries',
-            path: '/content/dam/mas/sandbox/settings/setting-display-plan-type-fr',
+            path: '/content/dam/mas/sandbox/settings/setting-custom-rich-fr',
         });
 
         const harness = createMutationHarness({ topLevel, overrides: [existingOverride] });
@@ -1040,7 +1034,7 @@ describe('Settings Store Namespace', () => {
         });
         expect(allLocalesId).to.be.a('string');
         expect(harness.calls.create.length).to.equal(1);
-        expect(harness.calls.create[0].name).to.equal('displayplantype-all-catalog');
+        expect(harness.calls.create[0].name).to.equal('customrichsetting-all-catalog');
         expect(harness.calls.create[0].fields.find((field) => field.name === 'locales').values).to.deep.equal([]);
 
         const createdId = await store.addOverride(rowId, {
@@ -1054,7 +1048,7 @@ describe('Settings Store Namespace', () => {
 
         expect(createdId).to.be.a('string');
         expect(harness.calls.create.length).to.be.greaterThan(0);
-        expect(harness.calls.create[harness.calls.create.length - 1].name).to.equal('displayplantype-dede-catalog');
+        expect(harness.calls.create[harness.calls.create.length - 1].name).to.equal('customrichsetting-dede-catalog');
         const createFields = harness.calls.create[harness.calls.create.length - 1].fields;
         expect(createFields.find((field) => field.name === 'richTextValue').values).to.deep.equal(['<p>hello</p>']);
         expect(createFields.find((field) => field.name === 'valuetype').values).to.deep.equal(['richText']);
@@ -1066,7 +1060,7 @@ describe('Settings Store Namespace', () => {
             value: 'updated',
         });
         expect(updatedAllLocales).to.equal(true);
-        expect(harness.calls.save.find((fragment) => fragment.id === overrideId).title).to.equal('Display plan type');
+        expect(harness.calls.save.find((fragment) => fragment.id === overrideId).title).to.equal('Custom rich setting');
 
         const updated = await store.updateOverride(rowId, overrideId, {
             locales: ['it_IT'],
@@ -1078,13 +1072,13 @@ describe('Settings Store Namespace', () => {
         });
         expect(updated).to.equal(true);
         const savedOverride = harness.calls.save.filter((fragment) => fragment.id === overrideId).at(-1);
-        expect(savedOverride.title).to.equal('Display plan type it_IT');
+        expect(savedOverride.title).to.equal('Custom rich setting it_IT');
     });
 
     it('creates and updates settings, including sparse legacy fragment fields', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-secure-label',
-            name: 'showSecureLabel',
+            name: 'secureLabel',
             label: 'Show secure label',
             locales: [],
             valueType: 'text',
@@ -1097,7 +1091,7 @@ describe('Settings Store Namespace', () => {
         await store.loadSurface('sandbox');
 
         const createdId = await store.createSetting({
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             description: 'new setting',
             templateIds: ['catalog'],
@@ -1107,7 +1101,7 @@ describe('Settings Store Namespace', () => {
             booleanValue: true,
         });
         expect(createdId).to.be.a('string');
-        expect(harness.calls.create[0].name).to.equal('showaddon-all-catalog');
+        expect(harness.calls.create[0].name).to.equal('addon-all-catalog');
 
         harness.aem.sites.cf.fragments.getById = async (id) => {
             if (id === topLevel.id) {
@@ -1134,7 +1128,7 @@ describe('Settings Store Namespace', () => {
         });
         expect(updated).to.equal(true);
         const latestSave = harness.calls.save[harness.calls.save.length - 1];
-        expect(latestSave.fields.find((field) => field.name === 'name').values).to.deep.equal(['showSecureLabel']);
+        expect(latestSave.fields.find((field) => field.name === 'name').values).to.deep.equal(['secureLabel']);
         expect(latestSave.fields.find((field) => field.name === 'textValue').values).to.deep.equal(['{{placeholder}}']);
     });
 
@@ -1199,7 +1193,7 @@ describe('Settings Store Namespace', () => {
         expect(createCalls[0].name).to.equal('index');
 
         const createdId = await store.createSetting({
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             valueType: 'boolean',
             value: true,
@@ -1213,7 +1207,7 @@ describe('Settings Store Namespace', () => {
     it('blocks create when top-level setting with same name already exists', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon-existing',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             locales: [],
             templates: ['catalog'],
@@ -1225,7 +1219,7 @@ describe('Settings Store Namespace', () => {
         await store.loadSurface('sandbox');
 
         const createdId = await store.createSetting({
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             templateIds: ['catalog'],
             valueType: 'boolean',
@@ -1240,7 +1234,7 @@ describe('Settings Store Namespace', () => {
     it('removes draft settings and supports publish/unpublish paths', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             status: 'DRAFT',
             locales: [],
@@ -1248,7 +1242,7 @@ describe('Settings Store Namespace', () => {
         });
         const override = createSettingReference({
             id: 'setting-show-addon-fr',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             locales: ['fr_FR'],
             fieldName: 'entries',
@@ -1278,7 +1272,7 @@ describe('Settings Store Namespace', () => {
     it('removes settings index entries before deleting draft top-level settings', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             status: 'DRAFT',
             locales: [],
@@ -1286,7 +1280,7 @@ describe('Settings Store Namespace', () => {
         });
         const override = createSettingReference({
             id: 'setting-show-addon-fr',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             locales: ['fr_FR'],
             fieldName: 'entries',
@@ -1321,7 +1315,7 @@ describe('Settings Store Namespace', () => {
     it('restores undeleted index entries when draft setting deletion fails', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             status: 'DRAFT',
             locales: [],
@@ -1329,7 +1323,7 @@ describe('Settings Store Namespace', () => {
         });
         const override = createSettingReference({
             id: 'setting-show-addon-fr',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             locales: ['fr_FR'],
             fieldName: 'entries',
@@ -1397,7 +1391,7 @@ describe('Settings Store Namespace', () => {
     it('handles duplicate setting block, markPublished and edit action', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
-            name: 'showAddon',
+            name: 'addon',
             label: 'Show Addon',
             status: 'DRAFT',
             locales: [],

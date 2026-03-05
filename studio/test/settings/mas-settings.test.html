@@ -43,7 +43,7 @@
                 createSettingReference({
                     id: 'setting-show-addon',
                     title: 'Show Addon',
-                    name: 'showAddon',
+                    name: 'addon',
                     label: 'Show Addon',
                     status: 'PUBLISHED',
                     templates: ['catalog'],
@@ -53,7 +53,7 @@
                 createSettingReference({
                     id: 'setting-show-addon-fr',
                     title: 'Show Addon FR',
-                    name: 'showAddon',
+                    name: 'addon',
                     label: 'Show Addon',
                     fieldName: 'entries',
                     status: 'PUBLISHED',
@@ -185,7 +185,7 @@
                             );
                         });
 
-                        it('renders showAddon value correctly when opening top-level setting in edit mode', async () => {
+                        it('renders addon value correctly when opening top-level setting in edit mode', async () => {
                             const { settingsPage, table } = await setupPage();
                             table.dispatchEvent(
                                 new CustomEvent('setting-edit', {
@@ -196,12 +196,10 @@
                             );
                             for (let i = 0; i < 20; i++) {
                                 await waitForUpdates(settingsPage, 1);
-                                if (settingsPage.form.name === 'showAddon') break;
+                                if (settingsPage.form.name === 'addon') break;
                             }
 
-                            expect(settingsPage.shadowRoot.querySelector('[name="setting-name-page"]').value).to.equal(
-                                'showAddon',
-                            );
+                            expect(settingsPage.shadowRoot.querySelector('[name="setting-name-page"]').value).to.equal('addon');
                             expect(settingsPage.form.value).to.equal('{{test-value}}');
                             expect(settingsPage.form.addonEnabled).to.equal(true);
 
@@ -349,13 +347,13 @@
                             Store.settings.removeSetting = originalRemoveSetting;
                         });
 
-                        it('prevents saving showAddon when enabled without placeholder selection', async () => {
+                        it('prevents saving addon when enabled without placeholder selection', async () => {
                             const references = defaultReferences.map((reference) =>
                                 reference.id === 'setting-show-addon'
                                     ? createSettingReference({
                                           id: 'setting-show-addon',
                                           title: 'Show Addon',
-                                          name: 'showAddon',
+                                          name: 'addon',
                                           label: 'Show Addon',
                                           status: 'PUBLISHED',
                                           templates: [],
@@ -376,12 +374,12 @@
 
                             settingsPage.form = {
                                 ...settingsPage.form,
-                                name: 'showAddon',
+                                name: 'addon',
                                 valueType: 'text',
                                 addonEnabled: true,
                                 value: '',
                             };
-                            expect(settingsPage.form.name).to.equal('showAddon');
+                            expect(settingsPage.form.name).to.equal('addon');
                             expect(settingsPage.form.addonEnabled).to.equal(true);
                             expect(settingsPage.form.value).to.equal('');
 
@@ -437,7 +435,7 @@
                             expect(capturedCalls[0].payload.locales).to.deep.equal(['de_DE']);
                             expect(capturedCalls[0].payload.templateIds).to.deep.equal(['plans']);
                             expect(capturedCalls[0].payload.tags).to.deep.equal(['mas:keyword/design']);
-                            expect(capturedCalls[0].payload.valueType).to.equal('text');
+                            expect(capturedCalls[0].payload.valueType).to.equal('optional-text');
                             expect(capturedCalls[0].payload.value).to.equal('{{test-value}}');
                             Store.settings.addOverride = originalAddOverride;
                         });
@@ -595,9 +593,9 @@
                             const optionValues = [...namePicker.querySelectorAll('sp-menu-item')].map((item) =>
                                 item.getAttribute('value'),
                             );
-                            expect(optionValues).to.not.include('showAddon');
+                            expect(optionValues).to.not.include('addon');
                             expect(optionValues).to.not.include('displayPlanType');
-                            expect(optionValues).to.not.include('showSecureLabel');
+                            expect(optionValues).to.not.include('secureLabel');
                             expect(optionValues).to.include('displayAnnual');
                             expect(optionValues).to.include('quantitySelect');
                             expect(settingsPage.shadowRoot.textContent.includes('Value type')).to.equal(false);
@@ -608,7 +606,7 @@
                                 createSettingReference({
                                     id: 'setting-show-addon',
                                     title: 'Show Addon',
-                                    name: 'showAddon',
+                                    name: 'addon',
                                     label: 'Show Addon',
                                     locales: [],
                                     templates: [],
@@ -616,7 +614,7 @@
                                 createSettingReference({
                                     id: 'setting-show-addon-fr',
                                     title: 'Show Addon FR',
-                                    name: 'showAddon',
+                                    name: 'addon',
                                     label: 'Show Addon',
                                     locales: ['fr_FR'],
                                     templates: [],
@@ -761,7 +759,7 @@
                     });
 
                     describe('override conflict and confirm actions', () => {
-                        it('shows conflict state for duplicate override locale', async () => {
+                        it('shows conflict state for duplicate override locale and template', async () => {
                             const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
                             const originalAddOverride = Store.settings.addOverride;
                             let addOverrideCalls = 0;
@@ -782,6 +780,7 @@
                             settingsPage.form = {
                                 ...settingsPage.form,
                                 locales: ['fr_FR'],
+                                templateIds: ['plans'],
                             };
                             await waitForUpdates(settingsPage, 1);
                             const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
@@ -866,6 +865,9 @@
                             );
                             settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
                             await waitForUpdates(settingsPage, 2);
+
+                            const rowStore = Store.settings.getRowStore('setting-show-addon');
+                            rowStore.value.overrides[0].status = 'DRAFT';
 
                             table.dispatchEvent(
                                 new CustomEvent('setting-delete', {
@@ -1080,14 +1082,14 @@
                                 createSettingReference({
                                     id: 'setting-show-addon',
                                     title: 'Show Addon',
-                                    name: 'showAddon',
+                                    name: 'addon',
                                     label: 'Show Addon',
                                     locales: [],
                                 }),
                                 createSettingReference({
                                     id: 'setting-show-addon-fr',
                                     title: 'Show Addon FR',
-                                    name: 'showAddon',
+                                    name: 'addon',
                                     label: 'Show Addon',
                                     locales: ['fr_FR'],
                                     fieldName: 'entries',
@@ -1157,7 +1159,7 @@
                             settingsPage.shadowRoot.querySelector('#create-setting-button').click();
                             await waitForUpdates(settingsPage, 2);
 
-                            settingsPage.form = { ...settingsPage.form, name: 'showAddon' };
+                            settingsPage.form = { ...settingsPage.form, name: 'addon' };
                             await waitForUpdates(settingsPage, 1);
 
                             const firstPrompt = settingsPage.promptDiscardChanges();
@@ -1290,7 +1292,7 @@
                             await waitForUpdates(settingsPage, 2);
 
                             const namePicker = settingsPage.shadowRoot.querySelector('sp-picker[name="setting-name-page"]');
-                            namePicker.value = 'showAddon';
+                            namePicker.value = 'addon';
                             namePicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                             await waitForUpdates(settingsPage, 1);
 
@@ -1351,7 +1353,7 @@
                             createSettingReference({
                                 id: 'setting-show-addon',
                                 title: 'Show Addon',
-                                name: 'showAddon',
+                                name: 'addon',
                                 label: 'Show Addon',
                                 templates: ['catalog'],
                                 locales: [],
@@ -1361,7 +1363,7 @@
                             createSettingReference({
                                 id: 'setting-show-addon-fr',
                                 title: 'Show Addon FR',
-                                name: 'showAddon',
+                                name: 'addon',
                                 label: 'Show Addon',
                                 templates: ['plans'],
                                 locales: ['fr_FR'],
@@ -1372,7 +1374,7 @@
                             createSettingReference({
                                 id: 'setting-show-addon-de',
                                 title: 'Show Addon DE',
-                                name: 'showAddon',
+                                name: 'addon',
                                 label: 'Show Addon',
                                 templates: ['mini'],
                                 locales: ['de_DE'],

@@ -1,4 +1,4 @@
-import { odinUrl, odinReferences, PATH_TOKENS } from '../utils/paths.js';
+import { odinUrl, odinReferences } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
@@ -71,6 +71,8 @@ function extractValue(entry) {
             return entry.richTextValue;
         case 'text':
             return entry.textValue;
+        case 'optional-text':
+            return entry.booleanValue ? entry.textValue : '';
         default:
             return entry.booleanValue;
     }
@@ -151,7 +153,7 @@ function resolveSettingEntry(fragment, locale, setting) {
         bestMatch = filteredLocale[0];
     }
 
-    return bestMatch;
+    return { ...defaultEntry, ...bestMatch };
 }
 
 function applySettings(fragment, locale, settings) {

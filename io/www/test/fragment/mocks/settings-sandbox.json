@@ -26,13 +26,14 @@
                 "description": "Controls whether the “Secure transaction” lock icon/label appears near the checkout CTA on the card. When enabled, the trust badge is rendered; when disabled, it is suppressed for that fragment, overriding page‑level defaults.\r\n",
                 "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
                 "fields": {
-                    "name": "showSecureLabel",
+                    "name": "secureLabel",
                     "templates": ["plans", "plans-edu", "plans-teams"],
                     "locales": [],
                     "tags": [],
-                    "valuetype": "boolean",
+                    "valuetype": "optional-text",
                     "richTextValue": { "mimeType": "text/html" },
-                    "booleanValue": true
+                    "booleanValue": false,
+                    "textValue": "{{secure-label}}"
                 }
             }
         },
@@ -46,11 +47,12 @@
                 "description": "",
                 "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
                 "fields": {
-                    "name": "showSecureLabel",
+                    "name": "secureLabel",
                     "templates": [],
                     "locales": ["fr_FR", "fr_BE", "fr_CH"],
+                    "type": "optional-text",
                     "tags": [],
-                    "richTextValue": { "mimeType": "text/html" }
+                    "booleanValue": true
                 }
             }
         },

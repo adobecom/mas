@@ -41,10 +41,10 @@ describe('settings', () => {
     describe('collectSettingEntries', () => {
         it('groups default & overrides', () => {
             const result = collectSettingEntries(SETTINGS_RESPONSE);
-            expect(result.showSecureLabel.default).to.exist;
-            expect(result.showSecureLabel.default.name).to.equal('showSecureLabel');
-            expect(result.showSecureLabel.override).to.have.length(1);
-            expect(result.showSecureLabel.override[0].locales).to.include('fr_FR');
+            expect(result.secureLabel.default).to.exist;
+            expect(result.secureLabel.default.name).to.equal('secureLabel');
+            expect(result.secureLabel.override).to.have.length(1);
+            expect(result.secureLabel.override[0].locales).to.include('fr_FR');
         });
 
         it('returns empty object when references is null', () => {
@@ -76,7 +76,10 @@ describe('settings', () => {
 
         it('returns context.settings when hasExternalSettings', async () => {
             const external = {
-                showSecureLabel: { default: { name: 'showSecureLabel', type: 'boolean', booleanValue: true }, override: [] },
+                secureLabel: {
+                    default: { name: 'secureLabel', type: 'optional-text', booleanValue: true, textValue: '{{secure-label}}' },
+                    override: [],
+                },
             };
             const result = await getSettings(createContext({ hasExternalSettings: true, settings: external }));
             expect(result).to.equal(external);
@@ -102,9 +105,10 @@ describe('settings', () => {
                     ref1: {
                         value: {
                             fields: {
-                                name: 'showSecureLabel',
-                                type: 'boolean',
+                                name: 'secureLabel',
+                                type: 'optional-text',
                                 booleanValue: true,
+                                textValue: '{{secure-label}}',
                             },
                         },
                     },
@@ -113,8 +117,8 @@ describe('settings', () => {
             mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
             const result = await getSettings(createContext());
             expect(result).to.deep.equal({
-                showSecureLabel: {
-                    default: { name: 'showSecureLabel', type: 'boolean', booleanValue: true },
+                secureLabel: {
+                    default: { name: 'secureLabel', type: 'optional-text', booleanValue: true, textValue: '{{secure-label}}' },
                     override: [],
                 },
             });
@@ -155,11 +159,13 @@ describe('settings', () => {
         it('returns grouped settings on success', async () => {
             mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', SETTINGS_RESPONSE);
             const result = await settings.init(createContext());
-            expect(result.showSecureLabel).to.exist;
-            expect(result.showSecureLabel.default.name).to.equal('showSecureLabel');
-            expect(result.showSecureLabel.default.booleanValue).to.be.true;
-            expect(result.showSecureLabel.override).to.have.length(1);
-            expect(result.showSecureLabel.override[0].locales).to.include('fr_FR');
+            expect(result.secureLabel).to.exist;
+            expect(result.secureLabel.default.name).to.equal('secureLabel');
+            expect(result.secureLabel.default.booleanValue).to.be.false;
+            expect(result.secureLabel.default.textValue).to.equal('{{secure-label}}');
+            expect(result.secureLabel.override).to.have.length(1);
+            expect(result.secureLabel.override[0].locales).to.include('fr_FR');
+            expect(result.secureLabel.override[0].booleanValue).to.be.true;
             expect(result.displayPlanType).to.exist;
             expect(result.displayAnnual).to.exist;
         });
@@ -171,7 +177,7 @@ describe('settings', () => {
                 ref1: {
                     value: {
                         fields: {
-                            name: 'showSecureLabel',
+                            name: 'secureLabel',
                             type: 'boolean',
                             booleanValue: true,
                         },
@@ -213,11 +219,11 @@ describe('settings', () => {
             mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
 
             const result1 = await getSettings(createContext());
-            expect(result1.showSecureLabel.default.booleanValue).to.be.true;
+            expect(result1.secureLabel.default.booleanValue).to.be.true;
             expect(contentFetchCalls()).to.have.length(1);
 
             const result2 = await getSettings(createContext());
-            expect(result2.showSecureLabel.default.booleanValue).to.be.true;
+            expect(result2.secureLabel.default.booleanValue).to.be.true;
             expect(contentFetchCalls()).to.have.length(1);
         });
 
@@ -280,11 +286,12 @@ describe('settings', () => {
                 },
                 promises: {
                     settings: Promise.resolve({
-                        showSecureLabel: {
+                        secureLabel: {
                             default: {
-                                name: 'showSecureLabel',
-                                type: 'boolean',
+                                name: 'secureLabel',
+                                type: 'optional-text',
                                 booleanValue: true,
+                                textValue: '{{secure-label}}',
                             },
                             override: [],
                         },
@@ -300,19 +307,19 @@ describe('settings', () => {
                 },
             };
             const result = await settings.process(context);
-            expect(result.body.settings.showSecureLabel).to.be.true;
+            expect(result.body.settings.secureLabel).to.equal('{{secure-label}}');
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3');
         });
 
-        it('applies placeholder for secureLabel when showSecureLabel is true', async () => {
+        it('applies placeholder for secureLabel when secureLabel is true', async () => {
             const context = {
                 locale: 'fr_FR',
                 body: { fields: { variant: 'plans' } },
                 promises: {
                     settings: Promise.resolve({
-                        showSecureLabel: {
+                        secureLabel: {
                             default: {
-                                name: 'showSecureLabel',
+                                name: 'secureLabel',
                                 type: 'placeholder',
                                 textValue: '{{secure-label}}',
                             },
@@ -322,7 +329,7 @@ describe('settings', () => {
                 },
             };
             const result = await settings.process(context);
-            expect(result.body.settings.showSecureLabel).to.equal('{{secure-label}}');
+            expect(result.body.settings.secureLabel).to.equal('{{secure-label}}');
         });
 
         it('always applies priceLiterals', async () => {
@@ -350,11 +357,12 @@ describe('settings', () => {
                 },
                 promises: {
                     settings: Promise.resolve({
-                        showSecureLabel: {
+                        secureLabel: {
                             default: {
-                                name: 'showSecureLabel',
+                                name: 'secureLabel',
                                 type: 'boolean',
                                 booleanValue: true,
+                                textValue: '{{secure-label}}',
                             },
                             override: [],
                         },
@@ -362,7 +370,7 @@ describe('settings', () => {
                 },
             };
             const result = await settings.process(context);
-            expect(result.body.references.ref1.value.settings.showSecureLabel).to.be.true;
+            expect(result.body.references.ref1.value.settings.secureLabel).to.be.true;
             expect(result.body.placeholders).to.exist;
             expect(result.body.settings?.tagLabels).to.exist;
         });

@@ -17,8 +17,14 @@ export const AH_TRY_BUY_WIDGET_AEM_FRAGMENT_MAPPING = {
     ctas: { slot: 'cta', size: 'S' },
     backgroundImage: { tag: 'div', slot: 'image' },
     backgroundColor: { attribute: 'background-color' },
-    borderColor: { attribute: 'border-color', specialValues: {} },
-    allowedColors: { gray: '--spectrum-gray-100' },
+    borderColor: {
+        attribute: 'border-color',
+        specialValues: {
+            gradient:
+                'linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%)',
+        },
+    },
+    allowedColors: { gray: '--spectrum-gray-75' },
     size: ['single', 'double', 'triple'],
 };
 
@@ -80,6 +86,26 @@ export class AHTryBuyWidget extends VariantLayout {
             gap: 16px;
             justify-content: space-between;
             box-sizing: border-box !important;
+        }
+
+        :host([variant='ah-try-buy-widget'][gradient-border='true']) {
+            border: none;
+            padding: 15px !important;
+            background-origin: padding-box, border-box;
+            background-clip: padding-box, border-box;
+            background-image: linear-gradient(
+                    to bottom,
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    ),
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    )
+                ),
+                linear-gradient(135deg, #ff4885 0%, #b272eb 50%, #5d89ff 100%);
+            border: 1px solid transparent;
         }
 
         :host([variant='ah-try-buy-widget'][size='single']) {

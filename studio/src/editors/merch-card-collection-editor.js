@@ -1,8 +1,8 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { Fragment } from '../aem/fragment.js';
-import { FragmentStore } from '../reactivity/fragment-store.js';
 import { styles } from './merch-card-collection-editor.css.js';
+import { VARIANT_NAMES } from './variant-picker.js';
 import { FIELD_MODEL_MAPPING, COLLECTION_MODEL_PATH, CARD_MODEL_PATH, VARIANT_CAPABILITIES } from '../constants.js';
 import Store from '../store.js';
 import router from '../router.js';
@@ -10,6 +10,7 @@ import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
+import { renderSpIcon } from '../constants/icon-library.js';
 
 const CARDS_SECTION = 'cards-section';
 
@@ -371,6 +372,16 @@ class MerchCardCollectionEditor extends LitElement {
         return { label, iconPaths: iconPaths.slice(0, 2) };
     }
 
+    #renderIcon(iconPath, label) {
+        if (!iconPath) {
+            return nothing;
+        } else if (iconPath.startsWith('sp-icon-')) {
+            return html`${renderSpIcon(iconPath, VARIANT_NAMES.PLANS)}`;
+        } else {
+            return html`<img src="${iconPath}" alt="${label} icon" class="item-icon" />`;
+        }
+    }
+
     getItems(field) {
         return html`
             <div
@@ -415,11 +426,7 @@ class MerchCardCollectionEditor extends LitElement {
                                     ${iconPaths.length > 0
                                         ? html`
                                               <div class="item-icons">
-                                                  ${iconPaths.map(
-                                                      (iconPath) => html`
-                                                          <img src="${iconPath}" alt="${label} icon" class="item-icon" />
-                                                      `,
-                                                  )}
+                                                  ${iconPaths.map((iconPath) => html`${this.#renderIcon(iconPath, label)}`)}
                                               </div>
                                           `
                                         : nothing}
@@ -823,6 +830,11 @@ class MerchCardCollectionEditor extends LitElement {
         this.fragmentStore.updateField('tagFilters', newTags);
     }
 
+    #updateIcon(event, fieldName) {
+        const icon = event.detail.icon;
+        this.fragmentStore.updateField(fieldName, [icon]);
+    }
+
     handleDefaultCardDrop(event) {
         event.preventDefault();
         event.stopPropagation();
@@ -927,8 +939,8 @@ class MerchCardCollectionEditor extends LitElement {
         const positionValue = position.left !== undefined ? position.left : position.right;
         container.innerHTML = `
             <div class="preview-backdrop"></div>
-            <div class="preview-popover ${positionClass}" style="--popover-position: ${positionValue}px">
-                <div class="preview-content">
+            <div class="preview-popover">
+                <div class="preview-content columns mas-fragment">
                     <merch-card>
                         <aem-fragment author ims fragment="${previewItem.id}"></aem-fragment>
                     </merch-card>
@@ -943,6 +955,12 @@ class MerchCardCollectionEditor extends LitElement {
             await container.querySelector('aem-fragment').updateComplete;
             await container.querySelector('merch-card').checkReady();
             container.querySelector('sp-progress-circle')?.remove();
+            // Apply size after hydration (cleanup() removes it)
+            const merchCard = container.querySelector('merch-card');
+            const size = fragmentStore.get()?.fields?.find((f) => f.name === 'size')?.values?.[0];
+            if (size && size.trim()) {
+                merchCard.setAttribute('size', size);
+            }
         } catch (error) {
             console.error('Failed to load preview card:', error);
             container.querySelector('sp-progress-circle')?.remove();
@@ -976,16 +994,23 @@ class MerchCardCollectionEditor extends LitElement {
                 </div>
                 <div class="form-row">
                     <sp-field-label for="icon">Default icon (dark, mandatory if you need icon)</sp-field-label>
-                    <sp-textfield id="icon" data-field="icon" .value=${this.icon} @input=${this.updateFragment}></sp-textfield>
+                    <mas-mnemonic-field
+                        id="icon"
+                        .iconLibrary="${true}"
+                        .icon="${this.icon}"
+                        .variant="${VARIANT_NAMES.PLANS}"
+                        @change=${(e) => this.#updateIcon(e, 'icon')}
+                    ></mas-mnemonic-field>
                 </div>
                 <div class="form-row">
                     <sp-field-label for="icon">Selected Icon (light, optional)</sp-field-label>
-                    <sp-textfield
+                    <mas-mnemonic-field
                         id="iconLight"
-                        data-field="iconLight"
-                        .value=${this.iconLight}
-                        @input=${this.updateFragment}
-                    ></sp-textfield>
+                        .iconLibrary="${true}"
+                        .icon="${this.iconLight}"
+                        .variant="${VARIANT_NAMES.PLANS}"
+                        @change=${(e) => this.#updateIcon(e, 'iconLight')}
+                    ></mas-mnemonic-field>
                 </div>
             </div>
         `;

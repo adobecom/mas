@@ -1,0 +1,32 @@
+{
+    "path": "/content/dam/mas/nala/text/faq-photoshop-pricing",
+    "name": "faq-photoshop-pricing",
+    "title": "FAQ Photoshop Pricing",
+    "id": "fragment-text-faq",
+    "description": "",
+    "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ" },
+    "settings": {},
+    "fields": {
+        "variant": "text",
+        "description": {
+            "value": "<p>Get Photoshop for <span is=\"inline-price\" data-wcs-osi=\"abc123\"></span>/month. <a href=\"/plans\">See all plans</a></p>",
+            "mimeType": "text/html"
+        },
+        "shortDescription": {
+            "value": "<p>Professional photo editing software.</p>",
+            "mimeType": "text/html"
+        },
+        "promoText": {
+            "value": "<p>Save 50% for the first 3 months!</p>",
+            "mimeType": "text/html"
+        },
+        "callout": {
+            "value": "<p>Best seller</p>",
+            "mimeType": "text/html"
+        },
+        "prices": {
+            "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abc123\"></span>",
+            "mimeType": "text/html"
+        }
+    }
+}

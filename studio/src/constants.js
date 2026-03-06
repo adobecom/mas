@@ -15,6 +15,10 @@ export const CHECKOUT_CTA_TEXTS = {
     'get-offer': 'Get offer',
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
+    'get-for-free': 'Get for free',
+    'seven-day-trial': 'Start 7-day free trial',
+    'fourteen-day-trial': 'Start 14-day free trial',
+    'thirty-day-trial': 'Start 30-day free trial',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
 export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
@@ -37,6 +41,10 @@ export const ANALYTICS_LINK_IDS = [
     'take-the-quiz',
     'upgrade-now',
     'what-is-included',
+    'get-for-free',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {
@@ -57,70 +65,6 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 
 export const EVENT_OST_SELECT = 'ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
-
-export const LOCALES = [
-    { code: 'en_AU', flag: '🇦🇺', name: 'Australia' },
-    { code: 'pt_BR', flag: '🇧🇷', name: 'Brazil' },
-    { code: 'en_CA', flag: '🇨🇦', name: 'Canada (English)' },
-    { code: 'fr_CA', flag: '🇨🇦', name: 'Canada (French)' },
-    { code: 'zh_CN', flag: '🇨🇳', name: 'China' },
-    { code: 'cs_CZ', flag: '🇨🇿', name: 'Czech Republic' },
-    { code: 'da_DK', flag: '🇩🇰', name: 'Denmark' },
-    { code: 'fi_FI', flag: '🇫🇮', name: 'Finland' },
-    { code: 'fr_FR', flag: '🇫🇷', name: 'France' },
-    { code: 'de_DE', flag: '🇩🇪', name: 'Germany' },
-    { code: 'hu_HU', flag: '🇭🇺', name: 'Hungary' },
-    { code: 'id_ID', flag: '🇮🇩', name: 'Indonesia' },
-    { code: 'it_IT', flag: '🇮🇹', name: 'Italy' },
-    { code: 'ja_JP', flag: '🇯🇵', name: 'Japan' },
-    { code: 'es_MX', flag: '🇲🇽', name: 'Mexico' },
-    { code: 'nl_NL', flag: '🇳🇱', name: 'Netherlands' },
-    { code: 'nb_NO', flag: '🇳🇴', name: 'Norway' },
-    { code: 'pl_PL', flag: '🇵🇱', name: 'Poland' },
-    { code: 'ru_RU', flag: '🇷🇺', name: 'Russia' },
-    { code: 'ko_KR', flag: '🇰🇷', name: 'South Korea' },
-    { code: 'es_ES', flag: '🇪🇸', name: 'Spain' },
-    { code: 'sv_SE', flag: '🇸🇪', name: 'Sweden' },
-    { code: 'th_TH', flag: '🇹🇭', name: 'Thailand' },
-    { code: 'tr_TR', flag: '🇹🇷', name: 'Türkiye' },
-    { code: 'uk_UA', flag: '🇺🇦', name: 'Ukraine' },
-    { code: 'en_US', flag: '🇺🇸', name: 'United States' },
-    { code: 'vi_VN', flag: '🇻🇳', name: 'Vietnam' },
-    { code: 'zh_TW', flag: '🇹🇼', name: 'Taiwan' },
-];
-
-export const LOCALE_DEFAULTS = [
-    'ar_MENA',
-    'bg_BG',
-    'cs_CZ',
-    'da_DK',
-    'de_DE',
-    'en_US',
-    'es_ES',
-    'fi_FI',
-    'fr_FR',
-    'he_IL',
-    'hu_HU',
-    'id_ID',
-    'it_IT',
-    'ja_JP',
-    'ko_KR',
-    'nb_NO',
-    'nl_NL',
-    'pl_PL',
-    'pt_BR',
-    'ro_RO',
-    'ru_RU',
-    'sk_SK',
-    'sl_SI',
-    'sv_SE',
-    'th_TH',
-    'tr_TR',
-    'uk_UA',
-    'vi_VN',
-    'zh_CN',
-    'zh_TW',
-];
 
 export const OPERATIONS = {
     CREATE: 'create',
@@ -160,8 +104,6 @@ export const ENVS = {
     },
 };
 
-export const LOCALE_DEFAULT = 'en_US';
-
 export const STATUS_PUBLISHED = 'PUBLISHED';
 export const STATUS_DRAFT = 'DRAFT';
 export const STATUS_MODIFIED = 'MODIFIED';
@@ -170,10 +112,13 @@ export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
     CONTENT: 'content',
+    VERSION: 'version',
     FRAGMENT_EDITOR: 'fragment-editor',
     PROMOTIONS: 'promotions',
     PROMOTIONS_EDITOR: 'promotions-editor',
     AI_ASSISTANT: 'ai-assistant',
+    TRANSLATIONS: 'translations',
+    TRANSLATION_EDITOR: 'translation-editor',
 };
 
 const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
@@ -195,6 +140,7 @@ export const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW
 export const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
 
 export const PROMOTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3Byb21vdGlvbg==';
+export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3RyYW5zbGF0aW9uLXByb2plY3Q=';
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
@@ -206,6 +152,7 @@ export const FIELD_MODEL_MAPPING = {
 };
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
+export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
 
 export const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
@@ -227,11 +174,15 @@ export const VARIANT_CAPABILITIES = {
         helpText: 'Drag a card here to set as default',
     },
 };
+
 export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 
 export const VARIATION_TYPES = {
     LOCALE: 'Locale',
+    GROUPED: 'Grouped variation',
 };
+
+export const PZN_FOLDER = 'pzn';
 
 export const SURFACES = {
     ACOM: {
@@ -263,3 +214,36 @@ export const SURFACES = {
         name: 'sandbox',
     },
 };
+
+export const QUICK_ACTION = {
+    SAVE: 'save',
+    DUPLICATE: 'duplicate',
+    PUBLISH: 'publish',
+    CANCEL: 'cancel',
+    COPY: 'copy',
+    LOCK: 'lock',
+    DISCARD: 'discard',
+    DELETE: 'delete',
+    LOC: 'loc',
+};
+
+export const FILTER_TYPE = {
+    TEMPLATE: 'template',
+    MARKET_SEGMENT: 'marketSegment',
+    CUSTOMER_SEGMENT: 'customerSegment',
+    PRODUCT: 'product',
+};
+
+export const FRAGMENT_STATUS = {
+    PUBLISHED: 'PUBLISHED',
+    DRAFT: 'DRAFT',
+    MODIFIED: 'MODIFIED',
+};
+
+export const TABLE_TYPE = {
+    CARDS: 'cards',
+    COLLECTIONS: 'collections',
+    PLACEHOLDERS: 'placeholders',
+};
+
+export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];

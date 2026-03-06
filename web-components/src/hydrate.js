@@ -50,10 +50,13 @@ export function appendSlot(fieldName, fields, el, mapping) {
 }
 
 export function processMnemonics(fields, merchCard, mnemonicsConfig) {
-    const mnemonics = fields.mnemonicIcon?.map((icon, index) => ({
+    // Filter out empty string sentinel values (indicates explicitly cleared)
+    const icons = (fields.mnemonicIcon || []).filter((icon) => icon);
+
+    const mnemonics = icons.map((icon, index) => ({
         icon,
-        alt: fields.mnemonicAlt[index] ?? '',
-        link: fields.mnemonicLink[index] ?? '',
+        alt: fields.mnemonicAlt?.[index] ?? '',
+        link: fields.mnemonicLink?.[index] ?? '',
     }));
 
     mnemonics?.forEach(({ icon: src, alt, link: href }) => {
@@ -225,7 +228,9 @@ export function processBorderColor(fields, merchCard, variantMapping) {
             specialValue?.includes('gradient') ||
             /-gradient/.test(fields.borderColor);
         // Check if it's a spectrum color that needs attribute-based styling
-        const isSpectrumColor = /^spectrum-.*-plans$/.test(fields.borderColor);
+        const isSpectrumColor = /^spectrum-.*-(plans|special-offers)$/.test(
+            fields.borderColor,
+        );
 
         if (isGradient) {
             // For gradients, set both attributes needed for CSS selectors
@@ -349,6 +354,7 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
             isCheckoutLink,
             isLinkStyle,
             isPrimary,
+            isSecondary,
         );
     } else if (isLinkStyle) {
         newButtonElement = linkElement;
@@ -637,6 +643,7 @@ function createConsonantButton(
     isCheckout,
     isLinkStyle,
     isPrimary,
+    isSecondary,
 ) {
     let button = cta;
     if (isCheckout) {
@@ -650,6 +657,9 @@ function createConsonantButton(
         }
         if (isPrimary) {
             button.classList.add('primary');
+        }
+        if (isSecondary) {
+            button.classList.add('secondary');
         }
     }
     return button;
@@ -670,6 +680,11 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
             );
             return checkoutButton;
         });
+        const dividerEl = merchCard.shadowRoot.querySelector('.body + hr');
+        if (dividerEl)
+            dividerEl.style.display = footer.querySelector('hr')
+                ? 'block'
+                : 'none';
 
         footer.innerHTML = '';
         footer.append(...ctas);
@@ -680,7 +695,9 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
 export function processAnalytics(fields, merchCard) {
     const { tags } = fields;
     const cardAnalyticsId = tags
-        ?.find((tag) => tag.startsWith(ANALYTICS_TAG))
+        ?.find(
+            (tag) => typeof tag === 'string' && tag.startsWith(ANALYTICS_TAG),
+        )
         ?.split('/')
         .pop();
     if (!cardAnalyticsId) return;
@@ -779,11 +796,11 @@ export async function hydrate(fragment, merchCard) {
         merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);
-    processBadge(fields, merchCard, mapping);
     processTrialBadge(fields, merchCard, mapping);
     processSize(fields, merchCard, mapping.size);
     processCardName(fields, merchCard);
     processTitle(fields, merchCard, mapping.title);
+    processBadge(fields, merchCard, mapping);
     processSubtitle(fields, merchCard, mapping);
     processPrices(fields, merchCard, mapping);
     processBackgroundImage(fields, merchCard, mapping.backgroundImage);

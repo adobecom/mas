@@ -80,7 +80,10 @@ async function main(params) {
                     issues.push(`Card missing offer_type tag: mas:offer_type/${offerType.toLowerCase()}`);
                 }
 
-                if (customerSegment && !cardTags.some((tag) => tag === `mas:customer_segment/${customerSegment.toLowerCase()}`)) {
+                if (
+                    customerSegment &&
+                    !cardTags.some((tag) => tag === `mas:customer_segment/${customerSegment.toLowerCase()}`)
+                ) {
                     issues.push(`Card missing customer_segment tag: mas:customer_segment/${customerSegment.toLowerCase()}`);
                 }
             } catch (error) {

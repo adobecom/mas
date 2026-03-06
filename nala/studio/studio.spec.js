@@ -1,3 +1,5 @@
+import { PRICE_PATTERN } from '../utils/commerce.js';
+
 export default {
     FeatureName: 'M@S Studio',
     features: [
@@ -12,7 +14,7 @@ export default {
             name: '@studio-direct-search',
             path: '/studio.html',
             data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio',
@@ -22,7 +24,7 @@ export default {
             name: '@studio-search-field',
             path: '/studio.html',
             data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#path=nala&page=content',
             tags: '@mas-studio',
@@ -48,7 +50,7 @@ export default {
             name: '@studio-ccd-suggested-editor',
             path: '/studio.html',
             data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @ccd @ccd-suggested',
@@ -78,7 +80,7 @@ export default {
             name: '@studio-card-dblclick-info',
             path: '/studio.html',
             data: {
-                cardid: '206a8742-0289-4196-92d4-ced99ec4191e',
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio',
@@ -112,6 +114,10 @@ export default {
         {
             tcid: '12',
             name: '@studio-locale-change',
+            data: {
+                localePicker: 'French (FR)',
+                locale: 'fr_FR',
+            },
             path: '/studio.html',
             tags: '@mas-studio',
         },
@@ -121,6 +127,29 @@ export default {
             path: '/studio.html',
             browserParams: '#page=content&path=nala',
             tags: '@mas-studio',
+        },
+        {
+            tcid: '14',
+            name: '@studio-create-fragment',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala',
+            data: {
+                osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+                variant: 'plans',
+            },
+            tags: '@mas-studio',
+        },
+        {
+            tcid: '15',
+            name: '@studio-load-variation',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala&query=',
+            data: {
+                cardid: '481a2002-9a4e-447b-a990-b3e56fdb2d14',
+                variationid: '287ef7ee-b0e3-4d95-a689-578de492ceae',
+                price: PRICE_PATTERN.US.mo,
+            },
+            tags: '@mas-studio @regional-variations',
         },
     ],
 };

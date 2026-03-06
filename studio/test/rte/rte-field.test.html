@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
     <head>
+        <script>
+            window.__swc = { warn: () => {} };
+        </script>
         <script type="module">
             window.process = { env: {} };
             window.__swc = { warn: () => {} };
@@ -42,7 +45,7 @@
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
             import '../../src/rte/rte-link-editor.js';
-            import '@adobecom/milo/libs/features/mas/dist/mas.js';
+            import '../../../web-components/dist/mas.js';
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
 
@@ -50,6 +53,7 @@
 
             runTests(async () => {
                 await mockFetch(withWcs);
+                // Ensure settings and featureFlags are available for tests
                 await customElements.whenDefined('mas-commerce-service');
                 const masCommerceService = document.querySelector('mas-commerce-service');
 
@@ -79,7 +83,6 @@
                             configurable: true,
                         });
                     }
-                } else {
                 }
 
                 const openLinkEditor = async function (rte) {

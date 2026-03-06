@@ -22,6 +22,7 @@ export const PLANS_V2_AEM_FRAGMENT_MAPPING = {
     addon: true,
     secureLabel: true,
     planType: true,
+    badgeIcon: true,
     badge: { tag: 'div', slot: 'badge', default: 'spectrum-red-700-plans' },
     allowedBadgeColors: [
         'spectrum-yellow-300-plans',
@@ -29,12 +30,14 @@ export const PLANS_V2_AEM_FRAGMENT_MAPPING = {
         'spectrum-gray-700-plans',
         'spectrum-green-900-plans',
         'spectrum-red-700-plans',
+        'gradient-purple-blue',
     ],
     allowedBorderColors: [
         'spectrum-yellow-300-plans',
         'spectrum-gray-300-plans',
         'spectrum-green-900-plans',
         'spectrum-red-700-plans',
+        'gradient-purple-blue',
     ],
     borderColor: { attribute: 'border-color' },
     size: ['wide', 'super-wide'],
@@ -186,7 +189,6 @@ export class PlansV2 extends VariantLayout {
         if (!this.card.isConnected) return;
 
         this.adaptForMedia();
-        this.adjustTitleWidth();
         this.adjustAddon();
         this.adjustCallout();
         this.updateShortDescriptionVisibility();

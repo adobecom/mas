@@ -1,5 +1,7 @@
 import { test, expect, studio, editor, miloLibs, setTestPage } from '../libs/mas-test.js';
+import { getFragmentTitle } from '../utils/fragment-tracker.js';
 import StudioSpec from './studio.spec.js';
+import ACOMPlansIndividualsPage from './acom/plans/individuals/individuals.page.js';
 
 const { features } = StudioSpec;
 
@@ -113,7 +115,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-2: Go to content', async () => {
             await expect(await studio.quickActions).toBeVisible();
             await expect(await studio.gotoContent).toBeVisible();
-            await expect(await studio.surfacePicker).toHaveAttribute('value', 'acom');
+            await expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
             await studio.gotoContent.click();
         });
 
@@ -121,8 +123,8 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.renderView).toBeVisible();
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
-            await expect(page).toHaveURL(`${testPage}#page=content&path=acom`);
-            expect(await studio.surfacePicker).toHaveAttribute('value', 'acom');
+            await expect(page).toHaveURL(`${testPage}#page=content&path=sandbox`);
+            expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
         });
     });
 
@@ -146,7 +148,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await expect(await editor.size).not.toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).toBeVisible();
@@ -190,7 +192,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-3: Validate fields rendering', async () => {
             // await expect(await editor.authorPath).toBeVisible(); // removed with the new design but might be back
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).not.toBeVisible();
             await expect(await editor.subtitle).not.toBeVisible();
@@ -233,7 +235,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.description).toBeVisible();
@@ -286,7 +288,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'plans');
+            await expect(await editor.variant).toHaveAttribute('value', 'plans');
             await expect(await editor.size).toBeVisible();
             await expect(await editor.title).toBeVisible();
             await expect(await editor.subtitle).toBeVisible();
@@ -327,7 +329,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate fields rendering', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-promoted-plans');
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-promoted-plans');
             await expect(await editor.title).toBeVisible();
             await expect(await editor.description).toBeVisible();
             await expect(await editor.borderColor).toBeVisible();
@@ -365,6 +367,7 @@ test.describe('M@S Studio feature test suite', () => {
 
     // @studio-locale-change - Validate locale change in mas studio
     test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[12];
         const testPage = `${baseURL}${features[12].path}${miloLibs}`;
         setTestPage(testPage);
 
@@ -377,13 +380,14 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.localePicker).toBeVisible();
             await expect(await studio.localePicker).toHaveAttribute('value', 'en_US');
             await studio.localePicker.click();
-            await page.getByRole('menuitem', { name: 'fr_FR' }).click();
+            await page.waitForTimeout(500);
+            await page.getByRole('menuitem', { name: `${data.localePicker}` }).click();
             await page.waitForTimeout(2000);
         });
 
         await test.step('step-3: Validate locale change', async () => {
-            await expect(await studio.localePicker).toHaveAttribute('value', 'fr_FR');
-            await expect(page).toHaveURL(`${testPage}#locale=fr_FR&page=welcome&path=acom`);
+            await expect(await studio.localePicker).toHaveAttribute('value', data.locale);
+            await expect(page).toHaveURL(`${testPage}#locale=${data.locale}&page=welcome&path=sandbox`);
             await expect(await studio.sideNav).toBeVisible();
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();
@@ -424,6 +428,105 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-4: Validate card editing in table view', async () => {
             await studio.tableView.locator('mas-fragment').first().dblclick();
             await expect(await editor.panel).toBeVisible();
+        });
+    });
+
+    // @studio-create-fragment - Validate creating a new fragment
+    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[14];
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}`;
+        setTestPage(testPage);
+        let fragmentId;
+        const expectedTitle = getFragmentTitle();
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-2: Create fragment', async () => {
+            fragmentId = await studio.createFragment({
+                osi: data.osi,
+                variant: data.variant,
+            });
+            expect(fragmentId).toBeTruthy();
+            await page.waitForTimeout(3000);
+        });
+
+        await test.step('step-3: Verify fragment is visible in content page', async () => {
+            await expect(studio.fragmentsTable).toBeVisible();
+            await studio.fragmentsTable.scrollIntoViewIfNeeded();
+            await studio.fragmentsTable.click();
+            await page.waitForTimeout(2000);
+            await expect(studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-4: Verify fragment has correct variant', async () => {
+            const createdCard = await studio.getCard(fragmentId);
+            await expect(createdCard).toBeVisible();
+            await expect(createdCard).toHaveAttribute('variant', data.variant);
+        });
+
+        await test.step('step-5: Switch to table view and verify fragment details', async () => {
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+
+            const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
+            await expect(fragmentRow).toBeVisible();
+
+            const pathCell = studio.tableViewPathCell(fragmentRow);
+            const fragmentPath = await pathCell.textContent();
+            expect(fragmentPath).toBeTruthy();
+            expect(fragmentPath).not.toContain('undefined');
+            expect(fragmentPath.trim().length).toBeGreaterThan(0);
+
+            const titleCell = studio.tableViewTitleCell(fragmentRow);
+            const fragmentTitle = await titleCell.textContent();
+            expect(fragmentTitle).toBeTruthy();
+            expect(fragmentTitle.trim().length).toBeGreaterThan(0);
+            expect(fragmentTitle.trim()).toBe(expectedTitle);
+        });
+
+        await test.step('step-6: Open editor from table view and verify fragment details', async () => {
+            const fragmentRow = studio.tableViewRowByFragmentId(fragmentId);
+            await fragmentRow.dblclick();
+            await expect(await editor.panel).toBeVisible();
+            await expect(await editor.variant).toBeVisible();
+            await expect(await editor.variant).toHaveAttribute('value', data.variant);
+            await expect(await editor.OSI).toBeVisible();
+            await expect(await editor.OSI).toContainText(data.osi);
+        });
+    });
+
+    // @studio-load-variation - Validate loading a variation in mas studio
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[15];
+        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio content page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Switch to table view and find cardid row', async () => {
+            await studio.switchToTableView();
+            await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
+            expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(
+                data.price,
+            );
+        });
+
+        await test.step('step-3: Expand row and verify variation exists and price visible', async () => {
+            await studio.tableViewFragmentTable(data.cardid).locator('button.expand-button').click();
+            await expect(studio.tableViewFragmentTable(data.variationid)).toBeVisible();
+            await expect(studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).toBeVisible();
+            expect(
+                await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.variationid))).textContent(),
+            ).toMatch(
+                data.price, // change to regional price once MWPW-187797 is fixed
+            );
         });
     });
 });

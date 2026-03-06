@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import '@adobecom/milo/libs/features/mas/dist/mas.js';
+import '../../../web-components/dist/mas.js';
 
 import { EVENT_OST_SELECT } from '../../src/constants.js';
 

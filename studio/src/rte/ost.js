@@ -66,6 +66,7 @@ const OST_IS_MAPPING = {
     optical: 'inline-price',
     checkoutUrl: 'checkout-link',
     legal: 'inline-price',
+    'promo-strikethrough': 'inline-price',
 };
 
 const OST_OPTION_ATTRIBUTE_MAPPING = {
@@ -73,7 +74,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     displayPerUnit: 'data-display-per-unit',
     displayRecurrence: 'data-display-recurrence',
     displayTax: 'data-display-tax',
-    forceTaxExclusive: 'data-tax-exclusive',
+    forceTaxExclusive: 'data-force-tax-exclusive',
     isPerpetual: 'data-perpetual',
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
@@ -93,11 +94,21 @@ const OST_VALUE_MAPPING = {
     false: false,
 };
 
-export function onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride) {
+export async function onPlaceholderSelect(offerSelectorId, type, offer, options, promoOverride) {
     const masCommerceService = document.querySelector('mas-commerce-service');
-    const settings = ostDefaultSettings();
+    let settings = ostDefaultSettings();
     if (masCommerceService.featureFlags['mas-ff-defaults']) {
-        settings.displayPerUnit = offer.customer_segment !== 'INDIVIDUAL';
+        const taxFlags = await masCommerceService?.resolvePriceTaxFlags(
+            masCommerceService.settings.country,
+            null,
+            offer.customer_segment,
+            offer.market_segments[0],
+        );
+        settings = {
+            ...settings,
+            ...taxFlags,
+            displayPerUnit: offer.customer_segment !== 'INDIVIDUAL',
+        };
     }
     const changes = getObjectDifference(options, settings);
 

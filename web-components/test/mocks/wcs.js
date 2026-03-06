@@ -20,14 +20,21 @@ export async function withWcs(originalFetch) {
             }
 
             const language = searchParams.get('language')?.toLowerCase() || '';
+            const country = searchParams.get('country')?.toLowerCase() || '';
             const buckets = osi
                 .split(',') // wcs.js doesn't support multiple osis any more
-                .map((osi) =>
-                    offers[`${osi}-${language}`]?.map((offer) => ({
+                .map((osi) => {
+                    const countryKey = `${osi}-${country}`;
+                    const languageKey = `${osi}-${language}`;
+                    return (
+                        offers[countryKey] ||
+                        offers[languageKey] ||
+                        offers[osi]
+                    )?.map((offer) => ({
                         ...offer,
                         offerSelectorIds: [osi],
-                    })),
-                );
+                    }));
+                });
 
             // Get the request ID from the incoming request headers
             const requestId = headers?.[HEADER_X_REQUEST_ID];

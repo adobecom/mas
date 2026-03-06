@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import { DOCS_GALLERY_PATH, PRICE_PATTERN } from '../../utils/commerce.js';
 
 export const FeatureName = 'MAS Express Cards';

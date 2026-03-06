@@ -8,6 +8,8 @@ export const VARIANT_NAMES = {
     PLANS_V2: 'plans-v2',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
+    PRODUCT: 'product',
+    SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
     SUGGESTED: 'ccd-suggested',
@@ -15,7 +17,10 @@ export const VARIANT_NAMES = {
     PROMOTED_PLANS: 'ah-promoted-plans',
     FRIES: 'fries',
     MINI: 'mini',
+    IMAGE: 'image',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
+    FULL_PRICING_EXPRESS: 'full-pricing-express',
+    HEADLESS: 'headless',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -38,6 +43,12 @@ export const VARIANTS = [
         value: VARIANT_NAMES.PLANS_EDUCATION,
         surface: SURFACES.ACOM.name,
     },
+    {
+        label: 'Product',
+        value: VARIANT_NAMES.PRODUCT,
+        surface: SURFACES.ACOM.name,
+    },
+    { label: 'Segment', value: VARIANT_NAMES.SEGMENT, surface: SURFACES.ACOM.name },
     { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: SURFACES.CCD.name },
     {
         label: 'Special offers',
@@ -71,9 +82,19 @@ export const VARIANTS = [
         surface: SURFACES.CCD.name,
     },
     {
+        label: 'Image',
+        value: VARIANT_NAMES.IMAGE,
+        surface: SURFACES.ACOM.name,
+    },
+    {
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
         surface: SURFACES.EXPRESS.name,
+    },
+    {
+        label: 'Headless',
+        value: VARIANT_NAMES.HEADLESS,
+        surface: SURFACES.SANDBOX.name,
     },
 ];
 
@@ -86,18 +107,24 @@ class VariantPicker extends LitElement {
 
         sp-picker {
             width: 100%;
+            --mod-picker-background-color-default: var(--spectrum-white);
+            --mod-picker-border-color-default: var(--spectrum-gray-300);
+            --mod-picker-border-width: 2px;
+            --mod-picker-border-radius: 8px;
+        }
+
+        :host([data-field-state='overridden']) sp-picker {
+            --mod-picker-border-color-default: var(--spectrum-blue-400);
+            --mod-picker-background-color-default: var(--spectrum-blue-100);
         }
     `;
 
     static properties = {
+        value: { type: String, reflect: true },
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },
         disabled: { type: Boolean, attribute: 'disabled' },
     };
-
-    get value() {
-        return this.shadowRoot.querySelector('sp-picker')?.value;
-    }
 
     get variants() {
         return VARIANTS.filter((variant) => this.showAll || variant.value != 'all').map(
@@ -105,12 +132,18 @@ class VariantPicker extends LitElement {
         );
     }
 
+    #handleChange(e) {
+        this.value = e.target.value;
+    }
+
     render() {
         return html`<sp-picker
-            label="Card Variant"
+            label="Card Template"
             size="m"
-            value=${this.value || this.defaultValue}
+            value=${this.value ?? this.defaultValue}
+            .value=${this.value ?? this.defaultValue}
             ?disabled=${this.disabled}
+            @change=${this.#handleChange}
         >
             ${this.variants}
         </sp-picker>`;

@@ -7,7 +7,10 @@ export default class EditorPage {
 
         // Editor panel fields
         this.authorPath = page.locator('#author-path');
-        this.variant = this.panel.locator('#card-variant');
+        this.localeVariationHeader = page.locator('.locale-variation-header');
+        this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
+        this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
+        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Template"]');
         this.style = this.panel.locator('#card-style');
         this.size = this.panel.locator('#card-size');
         this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
@@ -28,7 +31,7 @@ export default class EditorPage {
         this.mnemonicUrlLinkInput = page.locator('mas-mnemonic-modal[open] #url-link >> input');
         this.mnemonicModalSaveButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="accent"]');
         this.mnemonicModalCancelButton = page.locator('mas-mnemonic-modal[open] sp-button[variant="secondary"]');
-        this.promoText = this.panel.locator('#promo-text input');
+        this.promoText = this.panel.locator('sp-field-group#promoText rte-field#promo-text div.ProseMirror');
         this.backgroundImage = this.panel.locator('#background-image input');
         this.prices = this.panel.locator('sp-field-group#prices');
         this.footer = this.panel.locator('sp-field-group#ctas');
@@ -50,7 +53,7 @@ export default class EditorPage {
         this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
-        this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-icon-add');
+        this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');
         this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
         this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
         this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
@@ -60,10 +63,16 @@ export default class EditorPage {
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
 
+        // Missing variation panel (locale switching)
+        this.missingVariationPanel = page.locator('#missing-variation-panel');
+        this.viewSourceFragmentButton = page.locator('#view-source-fragment');
+        this.createTranslationProjectButton = page.locator('#create-translation-project');
+
         // Price templates
         this.regularPrice = page.locator('span[is="inline-price"][data-template="price"]');
         this.strikethroughPrice = page.locator('span[is="inline-price"][data-template="strikethrough"]');
         this.promoStrikethroughPrice = page.locator('span[is="inline-price"][data-template="price"] > .price-strikethrough');
+        this.legalDisclaimer = page.locator('span[is="inline-price"][data-template="legal"]');
 
         // RTE content
         this.phoneLink = page.locator('a[href^="tel:"]');
@@ -88,6 +97,27 @@ export default class EditorPage {
         this.secondaryOutlineVariant = page.locator('sp-button[variant="secondary"][treatment="outline"]');
         this.primaryLinkVariant = page.locator('sp-link:has-text("Primary link")');
         this.secondaryLinkVariant = page.locator('sp-link[variant="secondary"]');
+
+        // Field group elements (container for each field)
+        this.cardTitleFieldGroup = this.panel.locator('sp-field-group#title');
+        this.cardBadgeFieldGroup = this.panel.locator('sp-field-group#badge');
+        this.mnemonicFieldGroup = this.panel.locator('sp-field-group#mnemonics').first();
+        this.calloutFieldGroup = this.panel.locator('sp-field-group#callout');
+        this.promoTextFieldGroup = this.panel.locator('sp-field-group#promoText');
+        this.whatsIncludedFieldGroup = this.panel.locator('sp-field-group#whatsIncluded');
+        this.badgeColorFieldGroup = this.panel.locator('sp-field-group#badgeColor');
+        this.badgeBorderColorFieldGroup = this.panel.locator('sp-field-group#badgeBorderColor');
+        this.borderColorFieldGroup = this.panel.locator('sp-field-group#border-color');
+        this.pricesFieldGroup = this.panel.locator('sp-field-group#prices');
+        this.ctasFieldGroup = this.panel.locator('sp-field-group#ctas');
+        this.osiFieldGroup = this.panel.locator('sp-field-group:has(osi-field#osi)');
+        this.tagsFieldGroup = this.panel.locator('sp-field-group#tags');
+
+        this.overrideRestoreLink = 'a:has-text("Overridden. Click to restore.")';
+    }
+
+    overrideRestoreIn(fieldGroupLocator) {
+        return fieldGroupLocator.locator(this.overrideRestoreLink);
     }
 
     async getLinkVariant(variant) {

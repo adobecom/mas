@@ -636,7 +636,7 @@ This guide explains every field available in the MAS Studio card editor. Use it 
 ---`,
         metadata: {
             file: 'authoring/field-reference.md',
-            section: 'What\'s Included Section',
+            section: "What's Included Section",
             parentSection: '',
             category: 'authoring',
         },
@@ -6991,7 +6991,8 @@ Exceptions:
             section: 'Overview',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/display/adobedotcom/%5BM@S%5D+Downloads+page+-+re-author+price+in+marquee+with+OST',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/display/adobedotcom/%5BM@S%5D+Downloads+page+-+re-author+price+in+marquee+with+OST',
         },
     },
     {
@@ -8553,7 +8554,8 @@ Design file:`,
             section: 'Overview',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8578,7 +8580,8 @@ Design file:`,
             section: 'Table of Contents',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8598,7 +8601,8 @@ Design file:`,
             section: 'Trial/TwP Team:',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8618,7 +8622,8 @@ Design file:`,
             section: 'Quick Links',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8629,7 +8634,8 @@ Design file:`,
             section: 'TwP (Trial w/ Payment) Modals',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8663,7 +8669,8 @@ Design file:`,
             section: 'TwP (Trial w/ Payment) Modals (cont.)',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8676,7 +8683,8 @@ Design file:`,
             section: 'Regional Differences : Things to keep in mind when localizing',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8700,7 +8708,8 @@ Design file:`,
             section: 'Regional Differences : Things to keep in mind when localizing (cont.)',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8731,7 +8740,8 @@ Guild for trial CTAs - when to use the TwP modal, when to link direct to commerc
             section: 'Guidelines for CTAs',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8763,7 +8773,8 @@ Guild for trial CTAs - when to use the TwP modal, when to link direct to commerc
             section: 'Prioritization (Bug & Rollouts)',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8784,7 +8795,8 @@ Guild for trial CTAs - when to use the TwP modal, when to link direct to commerc
             section: 'Localization',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8814,7 +8826,8 @@ Guild for trial CTAs - when to use the TwP modal, when to link direct to commerc
             section: 'Free Trial Download pages',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8871,7 +8884,8 @@ Guild for trial CTAs - when to use the TwP modal, when to link direct to commerc
             section: 'Archives',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8884,7 +8898,8 @@ Guild for trial CTAs - when to use the TwP modal, when to link direct to commerc
             section: 'ARCHIVED',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8909,7 +8924,8 @@ Guild for trial CTAs - when to use the TwP modal, when to link direct to commerc
             section: 'CME-1 Paths: Which step does a product in a region go to',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -8995,7 +9011,8 @@ Guild for trial CTAs - when to use the TwP modal, when to link direct to commerc
             section: 'CME-1 Paths: Which step does a product in a region go to (cont.)',
             parentSection: '',
             category: 'confluence',
-            sourceUrl: 'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
+            sourceUrl:
+                'https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1823847852#MerchSquadTwP&MiniPlans-TwP(Trialw/Payment)Modals',
         },
     },
     {
@@ -10709,7 +10726,7 @@ All others are no longer applicable due to 3-in-1
 ---`,
         metadata: {
             file: 'plans-page-milo-gap-analysis.md',
-            section: 'Plans Page Modals - What\'s Included',
+            section: "Plans Page Modals - What's Included",
             parentSection: '',
             category: 'confluence',
             sourceUrl: 'https://wiki.corp.adobe.com/display/WP4/Plans+page+Milo+gap+analysis',
@@ -15107,7 +15124,7 @@ Links to see it for yourself on stage:
             category: 'confluence',
             sourceUrl: 'https://wiki.corp.adobe.com/display/adobedotcom/WCS',
         },
-    }
+    },
 ];
 
 export function getEmbeddedChunks() {

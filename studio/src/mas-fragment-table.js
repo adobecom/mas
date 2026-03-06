@@ -1,6 +1,6 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, css } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { generateCodeToUse, getService, showToast } from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, getService, showToast } from './utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
@@ -15,16 +15,27 @@ class MasFragmentTable extends LitElement {
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
+        canCreateVariation: { type: Boolean, attribute: false },
         toggleExpand: { type: Function, attribute: false },
         showVariationDialog: { state: true },
+        failedPrice: { type: Boolean, state: true },
     };
+
+    static styles = css`
+        .price-error-title {
+            color: var(--merch-color-error, #d73220);
+            font-weight: 600;
+        }
+    `;
 
     constructor() {
         super();
         this.offerData = null;
         this.expanded = false;
         this.nested = false;
+        this.canCreateVariation = true;
         this.showVariationDialog = false;
+        this.failedPrice = false;
     }
 
     #reactiveControllers = new ReactiveController(this);
@@ -54,14 +65,26 @@ class MasFragmentTable extends LitElement {
     }
 
     async loadOfferData() {
+        this.failedPrice = false;
         const wcsOsi = this.data.getFieldValue('osi');
         if (!wcsOsi) return;
-        const service = getService();
-        const priceOptions = service.collectPriceOptions({ wcsOsi });
-        const [offersPromise] = service.resolveOfferSelectors(priceOptions);
-        if (!offersPromise) return;
-        const [offer] = await offersPromise;
-        this.offerData = offer;
+        try {
+            const service = getService();
+            const priceOptions = service.collectPriceOptions({ wcsOsi });
+            const [offersPromise] = service.resolveOfferSelectors(priceOptions);
+            if (!offersPromise) {
+                this.failedPrice = true;
+                return;
+            }
+            const [offer] = await offersPromise;
+            if (!offer) {
+                this.failedPrice = true;
+                return;
+            }
+            this.offerData = offer;
+        } catch (error) {
+            this.failedPrice = true;
+        }
     }
 
     update(changedProperties) {
@@ -84,6 +107,9 @@ class MasFragmentTable extends LitElement {
     get price() {
         const osi = this.data.getFieldValue('osi');
         if (!osi) return '';
+        if (this.failedPrice) {
+            return html`<span class="price-error-title">Price Unavailable</span>`;
+        }
         return html`<span is="inline-price" data-template="price" data-wcs-osi=${osi}></span>`;
     }
 
@@ -112,7 +138,7 @@ class MasFragmentTable extends LitElement {
         this.showVariationDialog = false;
         const { fragment } = event.detail;
         if (fragment?.id) {
-            const locale = this.extractLocaleFromPath(fragment.path);
+            const locale = extractLocaleFromPath(fragment.path);
             router.navigateToFragmentEditor(fragment.id, { locale });
         }
     }
@@ -121,17 +147,9 @@ class MasFragmentTable extends LitElement {
         event.stopPropagation();
         const fragment = this.fragmentStore.value;
         if (fragment?.id) {
-            const locale = this.extractLocaleFromPath(fragment.path);
+            const locale = extractLocaleFromPath(fragment.path);
             router.navigateToFragmentEditor(fragment.id, { locale });
         }
-    }
-
-    extractLocaleFromPath(path) {
-        if (!path) return null;
-        const parts = path.split('/');
-        const masIndex = parts.indexOf('mas');
-        if (masIndex === -1) return null;
-        return parts[masIndex + 2] || null;
     }
 
     getTruncatedOfferId() {
@@ -161,11 +179,15 @@ class MasFragmentTable extends LitElement {
                 ? html`<mas-variation-dialog
                       .fragment=${data}
                       .isVariation=${false}
+                      .offerData=${this.offerData}
                       @cancel=${this.handleVariationDialogCancel}
                       @fragment-copied=${this.handleFragmentCopied}
                   ></mas-variation-dialog>`
                 : ''}
-            <sp-table-row value="${data.id}" class="${this.expanded ? 'expanded' : ''}">
+            <sp-table-row
+                value="${data.id}"
+                class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''}"
+            >
                 ${this.nested
                     ? ''
                     : html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
@@ -176,7 +198,10 @@ class MasFragmentTable extends LitElement {
                           </button>
                       </sp-table-cell>`}
                 <sp-table-cell class="name">
-                    ${this.nested ? html`${data.locale}` : html`${this.icon} ${this.getFragmentName(data)}`}
+                    ${this.nested
+                        ? html`${data.locale}`
+                        : html`<div class="icon">${this.icon}</div>
+                              ${this.getFragmentName(data)}`}
                 </sp-table-cell>
                 <sp-table-cell class="title">${data.title}</sp-table-cell>
                 <sp-table-cell class="offer-id">
@@ -199,19 +224,22 @@ class MasFragmentTable extends LitElement {
                     <span class="status-text">${data.status}</span></sp-table-cell
                 >
                 <sp-table-cell class="actions">
-                    <sp-action-menu placement="bottom-end" quiet>
-                        <sp-icon-more slot="icon"></sp-icon-more>
-                        ${!this.nested
-                            ? html`<sp-menu-item @click=${this.handleCreateVariation}>
+                    ${this.failedPrice
+                        ? html`<sp-icon-alert class="price-error-icon"></sp-icon-alert>`
+                        : html`<sp-action-menu placement="bottom-end" quiet>
+                              <sp-icon-more slot="icon"></sp-icon-more>
+                              <sp-menu-item
+                                  @click=${this.handleCreateVariation}
+                                  ?hidden=${this.nested || !this.canCreateVariation}
+                              >
                                   <sp-icon-user-group slot="icon"></sp-icon-user-group>
                                   Create variation
-                              </sp-menu-item>`
-                            : ''}
-                        <sp-menu-item @click=${this.handleEditFragment}>
-                            <sp-icon-edit slot="icon"></sp-icon-edit>
-                            Edit fragment
-                        </sp-menu-item>
-                    </sp-action-menu>
+                              </sp-menu-item>
+                              <sp-menu-item @click=${this.handleEditFragment}>
+                                  <sp-icon-edit slot="icon"></sp-icon-edit>
+                                  Edit fragment
+                              </sp-menu-item>
+                          </sp-action-menu>`}
                 </sp-table-cell>
                 ${data.model?.path === CARD_MODEL_PATH
                     ? html`<sp-table-cell class="preview" @mouseover=${this.openCardPreview} @mouseout=${closePreview}

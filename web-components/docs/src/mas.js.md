@@ -27,7 +27,7 @@ To add `mas.js` to your page or application, include it as shown below:
 
 ```html
 <script
-    src="https://www.adobe.com/libs/features/mas/dist/mas.js"
+    src="https://www.adobe.com/mas/libs/mas.js"
     type="module"
 ></script>
 ```
@@ -66,13 +66,7 @@ For production, the minimun attributes to set are: `wcs-api-key` and `lana-tags`
 
 ### Feature flags
 
-Feature flags can be set via a meta tag.
-
-e.g `<meta name="mas-ff-defaults" content="on">`
-
-| Name               | Description                                                                                           | Default Value |
-| ------------------ | ----------------------------------------------------------------------------------------------------- | ------------- |
-|  `mas-ff-defaults` |  Enables good defaults for each locales and segments so that authors don't have to set them manually. | `off`         |
+For detailed documentation on all available feature flags, see [Feature Flags](feature-flags.html).
 
 ### Examples
 

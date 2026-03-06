@@ -135,21 +135,41 @@ describe('class "InlinePrice"', () => {
         expect(inlinePrice.outerHTML).to.be.html(snapshots.annual);
     });
 
-    it('renders promo price', async () => {
-        await initMasCommerceService();
-        const inlinePrice = mockInlinePrice('promoStikethrough', 'abm-promo');
-        inlinePrice.dataset.promotionCode = 'nicopromo';
-        inlinePrice.dataset.displayOldPrice = 'true';
-        await inlinePrice.onceSettled();
-        expect(inlinePrice.outerHTML).to.be.html(snapshots.promoStikethrough);
-    });
-
-    it('renders price with promo', async () => {
+    it('renders default promo price: old and new price', async () => {
         await initMasCommerceService();
         const inlinePrice = mockInlinePrice('promo', 'abm-promo');
         inlinePrice.dataset.promotionCode = 'nicopromo';
         await inlinePrice.onceSettled();
         expect(inlinePrice.outerHTML).to.be.html(snapshots.promo);
+    });
+
+    it('renders promo price with old price set to true: old and new price', async () => {
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('promo', 'abm-promo');
+        inlinePrice.dataset.promotionCode = 'nicopromo';
+        inlinePrice.dataset.displayOldPrice = 'true';
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.outerHTML).to.be.html(snapshots.promoWithOldPrice);
+    });
+
+    it('renders promo price with displayOldPrice=false: only new price', async () => {
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('promo', 'abm-promo');
+        inlinePrice.dataset.promotionCode = 'nicopromo';
+        inlinePrice.dataset.displayOldPrice = 'false';
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.outerHTML).to.be.html(
+            snapshots.promoWithOldPriceFalse,
+        );
+    });
+
+    it('renders strikethrough promo price: only old strikethrough price', async () => {
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('strikethrough', 'abm-promo');
+        inlinePrice.dataset.promotionCode = 'nicopromo';
+        inlinePrice.dataset.displayOldPrice = 'true'; // should make no impact on strikethrough
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.outerHTML).to.be.html(snapshots.promoStrikethrough);
     });
 
     it('overrides price literals', async () => {
@@ -194,7 +214,7 @@ describe('class "InlinePrice"', () => {
         await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
             ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
-        expect(inlinePrice.innerHTML).to.equal('');
+        expect(inlinePrice.innerHTML).to.be.empty;
     });
 
     it('does not override missing offer with strikethrough', async () => {
@@ -212,7 +232,7 @@ describe('class "InlinePrice"', () => {
         await expect(failedPrice.onceSettled()).to.be.eventually.rejectedWith(
             ERROR_MESSAGE_OFFER_NOT_FOUND,
         );
-        expect(failedPrice.innerHTML).to.equal('');
+        expect(failedPrice.innerHTML).to.be.empty;
     });
 
     it('renders perpetual offer', async () => {
@@ -238,6 +258,7 @@ describe('class "InlinePrice"', () => {
         inlinePrice.dataset.displayTax = 'true';
         inlinePrice.dataset.forceTaxExclusive = 'true';
         inlinePrice.dataset.promotionCode = 'nicopromo';
+        inlinePrice.dataset.displayOldPrice = 'false';
         await inlinePrice.onceSettled();
         expect(inlinePrice.outerHTML).to.be.html(snapshots.taxExclusive);
     });
@@ -751,7 +772,7 @@ describe('class "InlinePrice"', () => {
                 expected: [
                     [true, false],
                     [false, false],
-                    [false, false],
+                    [true, false],
                     [false, false],
                 ],
             },
@@ -812,10 +833,10 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'MU_en',
                 expected: [
-                    [true, false],
-                    [true, false],
-                    [false, false],
-                    [false, false],
+                    [true, true],
+                    [true, true],
+                    [true, true],
+                    [true, true],
                 ],
             },
             {
@@ -1206,6 +1227,77 @@ describe('commerce service', () => {
             buildPriceHTML(offers, { country: 'US', promotionCode: 'promo' });
             buildPriceHTML(offers, { country: 'AU' });
             buildPriceHTML(offers, { country: 'AU', promotionCode: 'promo' });
+        });
+    });
+
+    describe('Soft Bundle (Multiple OSIs)', () => {
+        it('renders summed price for US soft bundle', async () => {
+            await initMasCommerceService();
+            // softbundle-1-us ($19.99) + softbundle-2-us ($24.99) = $44.98
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-us,softbundle-2-us',
+            );
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleUS);
+        });
+
+        it('renders summed price for Japan soft bundle', async () => {
+            await initMasCommerceService({ country: 'JP', language: 'ja' });
+            // softbundle-1-jp (¥3,300) + softbundle-2-jp (¥1,980) = ¥5,280
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-jp,softbundle-2-jp',
+            );
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleJP);
+        });
+
+        it('renders summed price for India soft bundle', async () => {
+            await initMasCommerceService({ country: 'IN', language: 'hi' });
+            // softbundle-1-in (₹944) + softbundle-2-in (₹613.60) = ₹1,557.60
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-in,softbundle-2-in',
+            );
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleIN);
+        });
+
+        it('renders summed price for Australia soft bundle with annualized prices', async () => {
+            await initMasCommerceService({ country: 'AU', language: 'en' });
+            // softbundle-1-au (A$31.99) + softbundle-2-au (A$39.99) = A$71.98
+            // annualizedPrice: A$383.88 + A$479.88 = A$863.76
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-au,softbundle-2-au',
+            );
+            await inlinePrice.onceSettled();
+            expect(inlinePrice.outerHTML).to.be.html(snapshots.softBundleAU);
+            // Verify annualized prices are summed correctly in the value
+            // value is an array of offers, first element is the summed offer
+            const [summedOffer] = inlinePrice.value;
+            const { annualized } = summedOffer.priceDetails;
+            expect(annualized.annualizedPrice).to.equal(863.76);
+            expect(annualized.annualizedPriceWithoutTax).to.equal(785.16);
+        });
+
+        it('fails when one OSI exists but another does not (CA partial failure)', async () => {
+            await initMasCommerceService({ country: 'CA', language: 'en' });
+            // softbundle-1-ca exists, but softbundle-2-ca does NOT exist - should fail
+            const inlinePrice = mockInlinePrice(
+                {},
+                'softbundle-1-ca,softbundle-2-ca',
+            );
+            try {
+                await inlinePrice.onceSettled();
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                // Error is thrown when any OSI fails
+                expect(error).to.be.instanceOf(Error);
+            }
+            expect(inlinePrice.classList.contains('placeholder-failed')).to.be
+                .true;
         });
     });
 });

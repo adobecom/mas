@@ -72,6 +72,7 @@ export class MasElement {
         this.wrapperElement.dispatchEvent(
             new CustomEvent(StateEventType[this.state], {
                 bubbles: true,
+                composed: true,
                 detail,
             }),
         );

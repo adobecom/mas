@@ -1,7 +1,9 @@
 import {
     buildBlock,
+    decorateBlock,
     loadHeader,
     loadFooter,
+    loadBlock,
     decorateButtons,
     decorateIcons,
     decorateBlocks,
@@ -16,6 +18,35 @@ import {
     toClassName,
     toCamelCase,
 } from './aem.js';
+
+function isDocsPage(pathname = window.location.pathname) {
+    return pathname === '/docs' || pathname.startsWith('/docs/');
+}
+
+async function loadSideNav(doc) {
+    if (doc.querySelector('.docs-sidenav-shell')) return;
+
+    const main = doc.querySelector('main');
+    if (!main) return;
+
+    const shell = document.createElement('aside');
+    shell.className = 'docs-sidenav-shell';
+
+    const nav = document.createElement('nav');
+    nav.className = 'sidenav';
+    shell.append(nav);
+    main.insertAdjacentElement('beforebegin', shell);
+
+    decorateBlock(nav);
+
+    try {
+        await loadBlock(nav);
+        doc.body.classList.add('has-docs-sidenav');
+    } catch (error) {
+        shell.remove();
+        console.error('Failed to load sidenav block', error);
+    }
+}
 
 /**
  * Builds hero block and prepends to main in a new section.
@@ -123,7 +154,7 @@ function decorateSections(main) {
  * Decorates the main element.
  * @param {Element} main The main element
  */
-// eslint-disable-next-line import/prefer-default-export
+
 export function decorateMain(main) {
     // hopefully forward compatible button decoration
     decorateButtons(main);
@@ -142,6 +173,9 @@ async function loadEager(doc) {
     decorateTemplateAndTheme();
     if (getMetadata('breadcrumbs').toLowerCase() === 'true') {
         doc.body.dataset.breadcrumbs = true;
+    }
+    if (isDocsPage()) {
+        await loadSideNav(doc);
     }
     const main = doc.querySelector('main');
     if (main) {
@@ -209,7 +243,6 @@ async function loadPage() {
 
 // UE Editor support before page load
 if (window.location.hostname.includes('ue.da.live')) {
-    // eslint-disable-next-line import/no-unresolved
     await import(`${window.hlx.codeBasePath}/ue/scripts/ue.js`).then(({ default: ue }) => ue());
 }
 
@@ -221,7 +254,6 @@ const branch = searchParams.get('nx') || 'main';
 export const NX_ORIGIN = branch === 'local' || origin.includes('localhost') ? 'http://localhost:6456/nx' : 'https://da.live/nx';
 
 (async function loadDa() {
-    /* eslint-disable import/no-unresolved */
     if (searchParams.get('dapreview')) {
         import('https://da.live/scripts/dapreview.js').then(({ default: daPreview }) => daPreview(loadPage));
     }

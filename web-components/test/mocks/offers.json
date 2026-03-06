@@ -1538,5 +1538,444 @@
             "language": "MULT",
             "merchant": "ADOBE"
         }
+    ],
+    "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM-mult": [
+        {
+            "offerSelectorIds": ["KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM"],
+            "offerId": "7B3FB5E4F8662A207A960BAFB6B1C21C",
+            "priceDetails": {
+                "price": 99.99,
+                "priceWithoutTax": 99.99,
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS",
+                "productCode": "CCLE"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM-ca": [
+        {
+            "offerSelectorIds": ["KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM"],
+            "offerId": "7B3FB5E4F8662A207A960BAFB6B1C21C",
+            "priceDetails": {
+                "price": 130.99,
+                "priceWithoutTax": 130.99,
+                "usePrecision": true,
+                "formatString": "'CAD $'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS",
+                "productCode": "CCLE"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM-au": [
+        {
+            "offerSelectorIds": ["KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM"],
+            "offerId": "7B3FB5E4F8662A207A960BAFB6B1C21C",
+            "priceDetails": {
+                "price": 157.99,
+                "priceWithoutTax": 143.63,
+                "usePrecision": true,
+                "formatString": "'A$'#,##0.00",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "GST"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS",
+                "productCode": "CCLE"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM-fr": [
+        {
+            "offerSelectorIds": ["KvzpMygyLD2aOsscDZxtx1Tr1Ah_FgtkbLHP9-4OHJM"],
+            "offerId": "7B3FB5E4F8662A207A960BAFB6B1C21C",
+            "priceDetails": {
+                "price": 103.86,
+                "priceWithoutTax": 86.55,
+                "usePrecision": true,
+                "formatString": "# ##0,00 '&euro;'",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "VAT"
+            },
+            "productArrangementCode": "ccle_direct_indirect_team",
+            "productArrangement": {
+                "productFamily": "CC_ALL_APPS",
+                "productCode": "CCLE"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "TEAM",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+
+    "softbundle-1-us": [
+        {
+            "offerSelectorIds": ["vQmS1H18A6_kPd0tYBgKnp-TQIF0GbT6p8SH8rWcLMs"],
+            "offerId": "7C30A05FE0EC0BA92566737E720C4692",
+            "startDate": "2022-02-17T08:00:00.000Z",
+            "priceDetails": {
+                "price": 19.99,
+                "priceWithoutTax": 19.99,
+                "annualized": {
+                    "annualizedPrice": 239.88,
+                    "annualizedPriceWithoutTax": 239.88
+                },
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "analytics": "{\"offerId\":\"7C30A05FE0EC0BA92566737E720C4692\",\"label\":\"apcc_direct_individual\",\"price\":\"19.99\",\"amountWithoutTax\":\"19.99\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"USD\"}",
+            "productArrangementCode": "apcc_direct_individual",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "APCC"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "DCLINEUP_2022",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+
+    "softbundle-2-us": [
+        {
+            "offerSelectorIds": ["V3W0kzf4e6M2Ht1hP9ZAt3dQNmhuDFrmYmEPlE2SlG0"],
+            "offerId": "EE7B9245A0C474BFCE7D6F82CE3DA0B2",
+            "startDate": "2025-07-24T18:00:00.000Z",
+            "priceDetails": {
+                "price": 24.99,
+                "priceWithoutTax": 24.99,
+                "annualized": {
+                    "annualizedPrice": 299.88,
+                    "annualizedPriceWithoutTax": 299.88
+                },
+                "usePrecision": true,
+                "formatString": "'US$'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "analytics": "{\"offerId\":\"EE7B9245A0C474BFCE7D6F82CE3DA0B2\",\"label\":\"PA-1806\",\"price\":\"24.99\",\"amountWithoutTax\":\"24.99\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"USD\"}",
+            "productArrangementCode": "PA-1806",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "ARCH"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+
+    "softbundle-1-jp": [
+        {
+            "offerSelectorIds": ["V3W0kzf4e6M2Ht1hP9ZAt3dQNmhuDFrmYmEPlE2SlG0"],
+            "offerId": "EE7B9245A0C474BFCE7D6F82CE3DA0B2",
+            "startDate": "2025-07-24T18:00:00.000Z",
+            "priceDetails": {
+                "price": 3300.0,
+                "priceWithoutTax": 3000.0,
+                "annualized": {
+                    "annualizedPrice": 39600.0,
+                    "annualizedPriceWithoutTax": 36000.0
+                },
+                "usePrecision": false,
+                "formatString": "#,##0 '&#20870;'",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "TAX"
+            },
+            "analytics": "{\"offerId\":\"EE7B9245A0C474BFCE7D6F82CE3DA0B2\",\"label\":\"PA-1806\",\"price\":\"3300.0\",\"amountWithoutTax\":\"3000.0\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"JPY\"}",
+            "productArrangementCode": "PA-1806",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "ARCH"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+
+    "softbundle-2-jp": [
+        {
+            "offerSelectorIds": ["vQmS1H18A6_kPd0tYBgKnp-TQIF0GbT6p8SH8rWcLMs"],
+            "offerId": "7C30A05FE0EC0BA92566737E720C4692",
+            "startDate": "2022-02-17T08:00:00.000Z",
+            "priceDetails": {
+                "price": 1980.0,
+                "priceWithoutTax": 1800.0,
+                "annualized": {
+                    "annualizedPrice": 23760.0,
+                    "annualizedPriceWithoutTax": 21600.0
+                },
+                "usePrecision": false,
+                "formatString": "#,##0 '&#20870;'",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "TAX"
+            },
+            "analytics": "{\"offerId\":\"7C30A05FE0EC0BA92566737E720C4692\",\"label\":\"apcc_direct_individual\",\"price\":\"1980.0\",\"amountWithoutTax\":\"1800.0\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"JPY\"}",
+            "productArrangementCode": "apcc_direct_individual",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "APCC"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "DCLINEUP_2022",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+
+    "softbundle-1-in": [
+        {
+            "offerSelectorIds": ["F7YL_Ablk1mj4MF4FT32jzS7u_hNUsqt_UoaUEZkexk"],
+            "offerId": "352B0B988DE5A88C3247486FF9EAA39E",
+            "startDate": "2025-03-11T17:00:00.000Z",
+            "priceDetails": {
+                "price": 944.0,
+                "priceWithoutTax": 800.0,
+                "annualized": {
+                    "annualizedPrice": 11328.0,
+                    "annualizedPriceWithoutTax": 9600.0
+                },
+                "usePrecision": true,
+                "formatString": "'&#8377;'#,##,##0.00",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "GST"
+            },
+            "analytics": "{\"offerId\":\"352B0B988DE5A88C3247486FF9EAA39E\",\"label\":\"apcc_direct_individual\",\"price\":\"944.0\",\"amountWithoutTax\":\"800.0\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"INR\"}",
+            "productArrangementCode": "apcc_direct_individual",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "APCC"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "ACROBAT_REGIONAL_INDIA_APCC",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+
+    "softbundle-2-in": [
+        {
+            "offerSelectorIds": ["aiUTLe7MdD_Wkuzs_uyAH7wuQf0Ssv5ju0ab87rIG6A"],
+            "offerId": "C42D3A084D5EFB11A3E8DE9819FDC948",
+            "startDate": "2025-03-11T17:00:00.000Z",
+            "priceDetails": {
+                "price": 613.6,
+                "priceWithoutTax": 520.0,
+                "annualized": {
+                    "annualizedPrice": 7363.2,
+                    "annualizedPriceWithoutTax": 6240.0
+                },
+                "usePrecision": true,
+                "formatString": "'&#8377;'#,##,##0.00",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "GST"
+            },
+            "analytics": "{\"offerId\":\"C42D3A084D5EFB11A3E8DE9819FDC948\",\"label\":\"acro_direct_individual\",\"price\":\"613.6\",\"amountWithoutTax\":\"520.0\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"INR\"}",
+            "productArrangementCode": "acro_direct_individual",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "ACRO"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "ACROBAT_REGIONAL_INDIA_ACRO",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+
+    "softbundle-1-ca": [
+        {
+            "offerSelectorIds": ["V3W0kzf4e6M2Ht1hP9ZAt3dQNmhuDFrmYmEPlE2SlG0"],
+            "offerId": "EE7B9245A0C474BFCE7D6F82CE3DA0B2",
+            "startDate": "2025-07-24T18:00:00.000Z",
+            "priceDetails": {
+                "price": 32.99,
+                "priceWithoutTax": 32.99,
+                "annualized": {
+                    "annualizedPrice": 395.88,
+                    "annualizedPriceWithoutTax": 395.88
+                },
+                "usePrecision": true,
+                "formatString": "'CAD $'#,##0.00",
+                "taxDisplay": "TAX_EXCLUSIVE",
+                "taxTerm": "TAX"
+            },
+            "analytics": "{\"offerId\":\"EE7B9245A0C474BFCE7D6F82CE3DA0B2\",\"label\":\"PA-1806\",\"price\":\"32.99\",\"amountWithoutTax\":\"32.99\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"CAD\"}",
+            "productArrangementCode": "PA-1806",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "ARCH"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+
+    "softbundle-1-au": [
+        {
+            "offerSelectorIds": ["vQmS1H18A6_kPd0tYBgKnp-TQIF0GbT6p8SH8rWcLMs"],
+            "offerId": "7C30A05FE0EC0BA92566737E720C4692",
+            "startDate": "2022-02-17T08:00:00.000Z",
+            "priceDetails": {
+                "price": 31.99,
+                "priceWithoutTax": 29.08,
+                "annualized": {
+                    "annualizedPrice": 383.88,
+                    "annualizedPriceWithoutTax": 348.96
+                },
+                "usePrecision": true,
+                "formatString": "'A$'#,##0.00",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "GST"
+            },
+            "analytics": "{\"offerId\":\"7C30A05FE0EC0BA92566737E720C4692\",\"label\":\"apcc_direct_individual\",\"price\":\"31.99\",\"amountWithoutTax\":\"29.08\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"AUD\"}",
+            "productArrangementCode": "apcc_direct_individual",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "APCC"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "DCLINEUP_2022",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
+    ],
+    "softbundle-2-au": [
+        {
+            "offerSelectorIds": ["V3W0kzf4e6M2Ht1hP9ZAt3dQNmhuDFrmYmEPlE2SlG0"],
+            "offerId": "EE7B9245A0C474BFCE7D6F82CE3DA0B2",
+            "startDate": "2025-07-24T18:00:00.000Z",
+            "priceDetails": {
+                "price": 39.99,
+                "priceWithoutTax": 36.35,
+                "annualized": {
+                    "annualizedPrice": 479.88,
+                    "annualizedPriceWithoutTax": 436.2
+                },
+                "usePrecision": true,
+                "formatString": "'A$'#,##0.00",
+                "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                "taxTerm": "GST"
+            },
+            "analytics": "{\"offerId\":\"EE7B9245A0C474BFCE7D6F82CE3DA0B2\",\"label\":\"PA-1806\",\"price\":\"39.99\",\"amountWithoutTax\":\"36.35\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"AUD\"}",
+            "productArrangementCode": "PA-1806",
+            "productArrangement": {
+                "productFamily": "ACROBAT",
+                "productCode": "ARCH"
+            },
+            "buyingProgram": "RETAIL",
+            "commitment": "YEAR",
+            "term": "MONTHLY",
+            "customerSegment": "INDIVIDUAL",
+            "marketSegments": ["COM"],
+            "salesChannel": "DIRECT",
+            "offerType": "BASE",
+            "pricePoint": "REGULAR",
+            "language": "MULT",
+            "merchant": "ADOBE"
+        }
     ]
 }

@@ -5,6 +5,7 @@ const config = {
     ignoredProperties: ['analytics', 'literals', 'element'],
     serializableTypes: ['Array', 'Object'],
     sampleRate: 1,
+    severity: 'e',
     tags: 'acom',
     isProdDomain: false,
 };
@@ -64,7 +65,7 @@ const lanaAppender = {
         });
 
         if (errors.length) {
-            payload += ' ' + errors.map(serializeValue).join(' ');
+            payload += ` ${errors.map(serializeValue).join(' ')}`;
         }
 
         const { pathname, search } = window.location;

@@ -140,13 +140,19 @@ export const styles = css`
         height: 32px;
         position: absolute;
         top: 16px;
-        right: 16px;
+        inset-inline-end: 16px;
         background-color: #f6f6f6;
         background-repeat: no-repeat;
         background-position: center;
         background-size: 16px 16px;
         font-size: 0;
     }
+
+    .action-menu:dir(rtl) {
+        right: initial;
+        left: 16px;
+    }
+
     .hidden {
         visibility: hidden;
     }

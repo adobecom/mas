@@ -19,8 +19,9 @@ export class VariantLayout {
     }
 
     insertVariantStyle() {
-        if (!VariantLayout.styleMap[this.card.variant]) {
-            VariantLayout.styleMap[this.card.variant] = true;
+        const styleKey = this.constructor.name;
+        if (!VariantLayout.styleMap[styleKey]) {
+            VariantLayout.styleMap[styleKey] = true;
             const styles = document.createElement('style');
             styles.innerHTML = this.getGlobalCSS();
             document.head.appendChild(styles);
@@ -28,24 +29,19 @@ export class VariantLayout {
     }
 
     updateCardElementMinHeight(el, name) {
-        if (!el) return;
+        if (!el || this.card.heightSync === false) return;
         const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
         const height = Math.max(
             0,
             parseInt(window.getComputedStyle(el).height) || 0,
         );
+        const container = this.getContainer();
         const maxMinHeight =
             parseInt(
-                this.getContainer().style.getPropertyValue(
-                    elMinHeightPropertyName,
-                ),
+                container.style.getPropertyValue(elMinHeightPropertyName),
             ) || 0;
-
         if (height > maxMinHeight) {
-            this.getContainer().style.setProperty(
-                elMinHeightPropertyName,
-                `${height}px`,
-            );
+            container.style.setProperty(elMinHeightPropertyName, `${height}px`);
         }
     }
 
@@ -120,17 +116,6 @@ export class VariantLayout {
         return html`<footer>
             ${this.secureLabel}<slot name="footer"></slot>
         </footer>`;
-    }
-
-    async adjustTitleWidth() {
-        const cardWidth = this.card.getBoundingClientRect().width;
-        const badgeWidth =
-            this.card.badgeElement?.getBoundingClientRect().width || 0;
-        if (cardWidth === 0 || badgeWidth === 0) return;
-        this.card.style.setProperty(
-            '--consonant-merch-card-heading-xs-max-width',
-            `${Math.round(cardWidth - badgeWidth - 16)}px`, // consonant-merch-spacing-xs
-        );
     }
 
     async postCardUpdateHook() {

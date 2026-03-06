@@ -78,7 +78,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await editor.variant.locator('sp-picker').first().click();
+            await editor.variant.click();
             await page.getByRole('option', { name: 'slice' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();

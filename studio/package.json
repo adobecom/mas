@@ -1,11 +1,11 @@
 {
-    "name": "@adobe/mas-studio",
+    "name": "@adobecom/mas-studio",
     "version": "0.0.1",
     "description": "Merch at Scale Studio",
     "scripts": {
         "build": "node build.mjs",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
-        "test:ci": "wtr --config ./web-test-runner.config.mjs",
+        "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage",
         "proxy:qa": "node ./proxy-server.mjs https://author-p22655-e155390.adobeaemcloud.com",
         "proxy:stage": "node ./proxy-server.mjs https://author-p22655-e59471.adobeaemcloud.com",
         "proxy": "node ./proxy-server.mjs https://author-p22655-e59433.adobeaemcloud.com",

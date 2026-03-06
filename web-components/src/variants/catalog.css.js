@@ -47,6 +47,11 @@ merch-sidenav.catalog merch-sidenav-list:not(:first-of-type) {
     --merch-card-collection-card-width: var(--consonant-merch-card-catalog-width);
 }
 
+merch-card[variant="catalog"][size="wide"],
+merch-card[variant="catalog"][size="super-wide"] {
+    width: auto;
+}
+
 .collection-container.catalog merch-sidenav {
     --merch-sidenav-gap: 10px;
 }
@@ -91,6 +96,11 @@ merch-card[variant="catalog"] [slot="action-menu-content"] {
   line-height: var(--consonant-merch-card-body-line-height);
 }
 
+[dir="rtl"] merch-card[variant="catalog"] [slot="action-menu-content"] {
+  right: initial;
+  left: 15px;
+}
+
 merch-card[variant="catalog"] [slot="action-menu-content"] ul {
   padding-left: 0;
   padding-bottom: var(--consonant-merch-spacing-xss);
@@ -98,6 +108,11 @@ merch-card[variant="catalog"] [slot="action-menu-content"] ul {
   margin-bottom: 0;
   list-style-position: inside;
   list-style-type: '• ';
+}
+
+[dir="rtl"] merch-card[variant="catalog"] [slot="action-menu-content"] ul {
+  padding-right: 0;
+  padding-left: unset;
 }
 
 merch-card[variant="catalog"] [slot="action-menu-content"] ul li {

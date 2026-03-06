@@ -110,11 +110,11 @@ export default {
             data: {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
                 cta: {
-                    text: {
+                    label: {
                         original: 'Free trial',
-                        updated: 'save-now',
+                        updated: 'Save now',
                     },
-                    option: 'Save now',
+                    placeholder: 'save-now',
                 },
                 osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
                 ucv3: 'commerce.adobe.com/store/email',

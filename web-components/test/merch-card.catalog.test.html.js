@@ -50,6 +50,30 @@ runTests(async () => {
             expect(actionMenuContent).to.exist;
         });
 
+        it('should not display action menu icon on hover for catalog variant if no slotted content', async () => {
+            const catalogCard = document.querySelectorAll(
+                'merch-card[variant="catalog"]',
+            )[2];
+            const shadowRoot = catalogCard.shadowRoot;
+            const actionMenu = shadowRoot.querySelector('.action-menu');
+            const actionMenuContent = shadowRoot.querySelector(
+                '.action-menu-content',
+            );
+
+            expect(actionMenuContent.classList.contains('hidden')).to.be.true;
+
+            catalogCard.dispatchEvent(
+                new MouseEvent('mouseenter', { bubbles: true }),
+            );
+            await delay(100);
+
+            expect(actionMenu.classList.contains('hidden')).to.be.true;
+            expect(actionMenu.classList.contains('always-visible')).to.be.false;
+            expect(actionMenuContent.classList.contains('hidden')).to.be.true;
+            expect(actionMenu).to.exist;
+            expect(actionMenuContent).to.exist;
+        });
+
         it('action menu keyboard navigation for catalog variant', async () => {
             const catalogCard = document.querySelector(
                 'merch-card[variant="catalog"]',

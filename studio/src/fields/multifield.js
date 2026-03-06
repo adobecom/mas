@@ -1,5 +1,6 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE, EVENT_INPUT } from '../constants.js';
+import { deepEquals } from '../utils.js';
 
 class MasMultifield extends LitElement {
     static get properties() {
@@ -8,6 +9,7 @@ class MasMultifield extends LitElement {
             value: { type: Array, attribute: false },
             draggingIndex: { type: Number, state: true },
             buttonLabel: { type: String, attribute: 'button-label' },
+            fieldState: { type: String, attribute: 'data-field-state', reflect: true },
         };
     }
 
@@ -41,6 +43,7 @@ class MasMultifield extends LitElement {
 
         .add-button-wrapper {
             display: flex;
+            margin-top: 12px;
         }
 
         .add-button-wrapper sp-action-button {
@@ -74,6 +77,22 @@ class MasMultifield extends LitElement {
         this.removeEventListener('delete-field', this.#boundHandlers.deleteField);
     }
 
+    #initialized = false;
+
+    shouldUpdate(changedProperties) {
+        // Always allow render until fully initialized
+        if (!this.#initialized) return true;
+        // Always re-render when field state changes (to update child field styling)
+        if (changedProperties.has('fieldState')) return true;
+        if (changedProperties.has('value')) {
+            const oldValue = changedProperties.get('value');
+            const newValue = this.value;
+            // Skip render if value content is the same (prevents blinking on unrelated updates)
+            return !deepEquals(oldValue, newValue);
+        }
+        return true;
+    }
+
     #handleDeleteField(event) {
         event.stopPropagation();
         const path = event.composedPath();
@@ -94,9 +113,11 @@ class MasMultifield extends LitElement {
             })) ?? [];
     }
 
-    firstUpdated() {
+    async firstUpdated() {
         this.initValue();
         this.initFieldTemplate();
+        await this.updateComplete;
+        this.#initialized = true;
     }
 
     // Initialize the field template
@@ -115,19 +136,14 @@ class MasMultifield extends LitElement {
         }
     }
 
-    addField() {
+    async addField() {
         this.value = [...this.value, {}];
-        this.#dispatchEvent();
-        requestAnimationFrame(() => {
-            const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
-            const lastField = fields[fields.length - 1];
-            if (lastField) {
-                const field = lastField.firstElementChild;
-                if (field?.openModal) {
-                    field.openModal();
-                }
-            }
-        });
+        await this.updateComplete;
+        const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
+        const newItem = fields[fields.length - 1]?.firstElementChild;
+        if (newItem?.openModal) {
+            newItem.openModal();
+        }
     }
 
     getFieldIndex(element) {
@@ -136,8 +152,7 @@ class MasMultifield extends LitElement {
 
     // Remove a field by its index
     removeField(index) {
-        this.value.splice(index, 1);
-        this.value = [...this.value];
+        this.value = this.value.filter((_, i) => i !== index);
         this.#dispatchEvent();
     }
 
@@ -239,8 +254,16 @@ class MasMultifield extends LitElement {
         // if the element is a wrapper, get the field element
         fieldEl = fieldEl.querySelector('.field') ?? fieldEl;
         Object.keys(field).forEach((key) => {
-            fieldEl.setAttribute(key, field[key]);
+            if (key !== 'fieldState') {
+                fieldEl.setAttribute(key, field[key]);
+            }
         });
+        const fieldState = field.fieldState || this.fieldState;
+        if (fieldState) {
+            fieldEl.setAttribute('data-field-state', fieldState);
+        } else {
+            fieldEl.removeAttribute('data-field-state');
+        }
 
         return html`
             <div

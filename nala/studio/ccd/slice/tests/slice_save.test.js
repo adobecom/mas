@@ -31,7 +31,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
+            const clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
@@ -42,15 +42,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'suggested' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-suggested');
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
             await expect(await studio.getCard(data.clonedCardID)).not.toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(await (await studio.getCard(data.clonedCardID)).locator(suggested.cardCTA)).toHaveAttribute(
@@ -77,7 +77,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
+            const clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();
@@ -88,15 +88,15 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ccd-slice');
-            await editor.variant.locator('sp-picker').first().click();
+            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
+            await editor.variant.click();
             await page.getByRole('option', { name: 'try buy widget' }).click();
             await page.waitForTimeout(2000);
             await studio.saveCard();
         });
 
         await test.step('step-4: Validate variant change', async () => {
-            await expect(await editor.variant).toHaveAttribute('default-value', 'ah-try-buy-widget');
+            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
             await expect(await studio.getCard(data.clonedCardID)).not.toHaveAttribute('variant', 'ccd-slice');
             await expect(await studio.getCard(data.clonedCardID)).toHaveAttribute('variant', 'ah-try-buy-widget');
             await expect(await (await studio.getCard(data.clonedCardID)).locator(trybuywidget.cardCTA)).toHaveAttribute(
@@ -335,7 +335,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
                 test.step('Validation-3: Verify checkout parameters saved', async () => {
                     const CTAhref = await clonedCard.locator(slice.cardCTA).getAttribute('data-href');
-                    let searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
+                    const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
                     expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
                     expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
                     expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
@@ -375,7 +375,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
 
         await test.step('step-2: Clone card and open editor', async () => {
             await studio.cloneCard(data.cardid);
-            let clonedCard = await studio.getCard(data.cardid, 'cloned');
+            const clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
             await expect(await clonedCard).toBeVisible();

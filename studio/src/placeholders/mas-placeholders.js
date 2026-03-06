@@ -11,6 +11,7 @@ import '../mas-selection-panel.js';
 import { showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
+import { clearCaches } from '../../libs/fragment-client.js';
 
 class MasPlaceholders extends LitElement {
     static styles = styles;
@@ -93,10 +94,6 @@ class MasPlaceholders extends LitElement {
     /** @type {FragmentStore[]} */
     get placeholders() {
         return Store.placeholders.list.data.get();
-    }
-
-    get locale() {
-        return Store.filters.get().locale;
     }
 
     get loading() {
@@ -217,6 +214,7 @@ class MasPlaceholders extends LitElement {
     }
 
     onSave() {
+        clearCaches();
         this.refresh();
     }
 
@@ -290,14 +288,7 @@ class MasPlaceholders extends LitElement {
             <div class="placeholders-container">
                 <div class="placeholders-header">
                     <div class="header-left">
-                        <mas-locale-picker
-                            @locale-changed=${(event) =>
-                                Store.filters.set((prev) => ({
-                                    ...prev,
-                                    locale: event.detail.locale,
-                                }))}
-                            .value=${this.locale}
-                        ></mas-locale-picker>
+                        <h2>Placeholders</h2>
                     </div>
                     <sp-button variant="primary" @click=${this.toggleCreationModal} class="create-button">
                         <sp-icon-add slot="icon"></sp-icon-add>
@@ -308,6 +299,18 @@ class MasPlaceholders extends LitElement {
                 ${this.errorMessage}
 
                 <div class="search-filters-container">
+                    <mas-locale-picker
+                        surface=${Store.surface()}
+                        label="Region"
+                        locale=${Store.localeOrRegion()}
+                        @locale-changed=${(event) =>
+                            Store.search.set((prev) => ({
+                                ...prev,
+                                region: event.detail.locale,
+                            }))}
+                        mode="region"
+                        searchplaceholder="Search region"
+                    ></mas-locale-picker>
                     <div class="placeholders-title">
                         <h2>Total Placeholders: ${this.totalPlaceholders}</h2>
                     </div>

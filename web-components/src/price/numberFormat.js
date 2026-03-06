@@ -69,7 +69,7 @@ function processValue(value, maskObj, options) {
         valFraction =
             posTrailZero < 0
                 ? ''
-                : Number('0.' + valFraction)
+                : Number(`0.${valFraction}`)
                       .toFixed(posTrailZero + 1)
                       .replace('0.', '');
     }
@@ -109,7 +109,7 @@ function addSeparators(valObj, maskObj) {
     const posLeadZero = maskInteger && maskInteger.indexOf('0');
     if (posLeadZero > -1) {
         while (valObj.integer.length < maskInteger.length - posLeadZero) {
-            valObj.integer = '0' + valObj.integer;
+            valObj.integer = `0${valObj.integer}`;
         }
     } else if (Number(valObj.integer) === 0) {
         valObj.integer = '';

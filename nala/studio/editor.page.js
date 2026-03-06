@@ -49,15 +49,9 @@ export default class EditorPage {
         this.showAddOn = this.panel.locator('#addon-field #input');
         this.showQuantitySelector = this.panel.locator('#quantitySelect sp-checkbox input');
         this.quantitySelectorFields = this.panel.locator('#quantitySelector quantity-select-field');
-        this.quantitySelectorTitle = this.quantitySelectorFields.locator(
-            'sp-field-group:has(sp-field-label:has-text("Quantity selector title")) sp-textfield input',
-        );
-        this.quantitySelectorStart = this.quantitySelectorFields.locator(
-            'sp-field-group:has(sp-field-label:has-text("Start quantity")) sp-textfield input',
-        );
-        this.quantitySelectorStep = this.quantitySelectorFields.locator(
-            'sp-field-group:has(sp-field-label:has-text("Step")) sp-textfield input',
-        );
+        this.quantitySelectorTitle = this.quantitySelectorFields.locator('#quantity-selector-title input');
+        this.quantitySelectorStart = this.quantitySelectorFields.locator('#quantity-selector-start input');
+        this.quantitySelectorStep = this.quantitySelectorFields.locator('#quantity-selector-step input');
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');

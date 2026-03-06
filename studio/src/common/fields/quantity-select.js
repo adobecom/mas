@@ -116,6 +116,7 @@ export class QuantitySelectField extends LitElement {
                 <sp-field-group>
                     <sp-field-label>Quantity selector title</sp-field-label>
                     <sp-textfield
+                        id="quantity-selector-title"
                         ?disabled=${this.disabled}
                         .value=${this.title}
                         @change=${this.#suppressNativeChange}
@@ -125,6 +126,7 @@ export class QuantitySelectField extends LitElement {
                 <sp-field-group>
                     <sp-field-label>Start quantity</sp-field-label>
                     <sp-textfield
+                        id="quantity-selector-start"
                         ?disabled=${this.disabled}
                         pattern="[0-9]*"
                         .value=${this.min}
@@ -136,6 +138,7 @@ export class QuantitySelectField extends LitElement {
             <sp-field-group>
                 <sp-field-label>Step</sp-field-label>
                 <sp-textfield
+                    id="quantity-selector-step"
                     ?disabled=${this.disabled}
                     pattern="[0-9]*"
                     .value=${this.step}

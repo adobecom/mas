@@ -863,7 +863,7 @@ class MerchCardEditor extends LitElement {
                         <mas-mnemonic-field
                             .icon="${this.badge.icon}"
                             .iconLibrary="${true}"
-                            .variant="${this.fragment.variant}"
+                            .variant="${this.getEffectiveFieldValue('variant')}"
                             style="display: ${this.badge.text ? 'block' : 'none'};"
                             @change=${this.#updateBadgeIcon}
                         ></mas-mnemonic-field>
@@ -1143,7 +1143,7 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="ctas"
                         link
-                        inline
+                        divider="${this.fragment.variant === 'product' ? '' : nothing}"
                         data-field="ctas"
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}

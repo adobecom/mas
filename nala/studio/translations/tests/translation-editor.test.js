@@ -30,15 +30,12 @@ test.describe('M@S Studio Translation Editor test suite', () => {
             await expect(translationEditor.form).toBeVisible({ timeout: 10000 });
         });
 
-        const addLangsDialog = page.locator('mas-translation-editor >> .add-langs-dialog');
-        const addItemsDialog = page.locator('mas-translation-editor >> .add-items-dialog');
-
         await test.step('step-2: Verify cannot create with empty title - add language to enable Save, leave title empty, click Save', async () => {
             await translationEditor.addLanguagesButton.click();
-            const langCheckbox = addLangsDialog.locator('sp-checkbox').first();
+            const langCheckbox = translationEditor.addLangsDialog.locator('sp-checkbox').first();
             await expect(langCheckbox).toBeVisible({ timeout: 5000 });
             await langCheckbox.click();
-            await addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
+            await translationEditor.addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
             await expect(translationEditor.saveButton).toBeEnabled({ timeout: 5000 });
             await translationEditor.saveButton.click();
             await expect(translationEditor.validationToast).toBeVisible({ timeout: 5000 });
@@ -47,15 +44,15 @@ test.describe('M@S Studio Translation Editor test suite', () => {
         await test.step('step-3: Verify cannot create with empty languages - fill title, remove language, add item, click Save', async () => {
             await translationEditor.titleField.fill('Test Project');
             await translationEditor.addLanguagesButton.click();
-            const checkedLangCheckbox = addLangsDialog.locator('sp-checkbox:checked').first();
+            const checkedLangCheckbox = translationEditor.addLangsDialog.locator('sp-checkbox:checked').first();
             await expect(checkedLangCheckbox).toBeVisible({ timeout: 5000 });
             await checkedLangCheckbox.click();
-            await addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
+            await translationEditor.addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
             await translationEditor.addItemsButton.click();
-            const firstItemCheckbox = addItemsDialog.locator('mas-select-items-table sp-checkbox').first();
+            const firstItemCheckbox = translationEditor.addItemsDialog.locator('mas-select-items-table sp-checkbox').first();
             await expect(firstItemCheckbox).toBeVisible({ timeout: 15000 });
             await firstItemCheckbox.click();
-            await addItemsDialog.getByRole('button', { name: 'Add selected items' }).click();
+            await translationEditor.addItemsDialog.getByRole('button', { name: 'Add selected items' }).click();
             await expect(translationEditor.saveButton).toBeEnabled({ timeout: 5000 });
             await translationEditor.saveButton.click();
             await expect(translationEditor.validationToast).toBeVisible({ timeout: 5000 });
@@ -63,14 +60,14 @@ test.describe('M@S Studio Translation Editor test suite', () => {
 
         await test.step('step-4: Verify cannot create with empty selected items - add language, remove item, click Save', async () => {
             await translationEditor.addLanguagesButton.click();
-            const langCheckbox = addLangsDialog.locator('sp-checkbox').first();
+            const langCheckbox = translationEditor.addLangsDialog.locator('sp-checkbox').first();
             await langCheckbox.click();
-            await addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
+            await translationEditor.addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
             await translationEditor.addItemsButton.click();
-            const checkedItemCheckbox = addItemsDialog.locator('sp-checkbox:checked').first();
+            const checkedItemCheckbox = translationEditor.addItemsDialog.locator('sp-checkbox:checked').first();
             await expect(checkedItemCheckbox).toBeVisible({ timeout: 5000 });
             await checkedItemCheckbox.click();
-            await addItemsDialog.getByRole('button', { name: 'Add selected items' }).click();
+            await translationEditor.addItemsDialog.getByRole('button', { name: 'Add selected items' }).click();
             await translationEditor.saveButton.click();
             await expect(translationEditor.validationToast).toBeVisible({ timeout: 5000 });
         });
@@ -96,28 +93,31 @@ test.describe('M@S Studio Translation Editor test suite', () => {
             );
         });
 
-        const addLangsDialog = page.locator('mas-translation-editor >> .add-langs-dialog');
-        const languagesCountText = addLangsDialog.locator('mas-translation-languages >> .nmb-languages');
+        const languagesCountText = translationEditor.addLangsDialog.locator('mas-translation-languages >> .nmb-languages');
 
         await test.step('step-3: Verify Select languages modal text - no selection, 1 selected, multiple selected', async () => {
             await translationEditor.addLanguagesButton.click();
-            await expect(addLangsDialog).toBeVisible({ timeout: 5000 });
+            await expect(translationEditor.addLangsDialog).toBeVisible({ timeout: 5000 });
             await expect(languagesCountText).toHaveText('39 languages');
-            const firstLangCheckbox = addLangsDialog.locator('mas-translation-languages >> sp-table sp-checkbox').first();
+            const firstLangCheckbox = translationEditor.addLangsDialog
+                .locator('mas-translation-languages >> sp-table sp-checkbox')
+                .first();
             await firstLangCheckbox.click();
             await expect(languagesCountText).toHaveText('1 language selected');
-            const secondLangCheckbox = addLangsDialog.locator('mas-translation-languages >> sp-table sp-checkbox').nth(1);
+            const secondLangCheckbox = translationEditor.addLangsDialog
+                .locator('mas-translation-languages >> sp-table sp-checkbox')
+                .nth(1);
             await secondLangCheckbox.click();
             await expect(languagesCountText).toHaveText('2 languages selected');
-            await addLangsDialog.getByRole('button', { name: 'Cancel' }).click();
+            await translationEditor.addLangsDialog.getByRole('button', { name: 'Cancel' }).click();
         });
 
         await test.step('step-4: Open modal, select all languages, close modal', async () => {
             await translationEditor.addLanguagesButton.click();
-            await expect(addLangsDialog).toBeVisible({ timeout: 5000 });
-            const selectAllCheckbox = addLangsDialog.getByRole('checkbox', { name: 'Select all' });
+            await expect(translationEditor.addLangsDialog).toBeVisible({ timeout: 5000 });
+            const selectAllCheckbox = translationEditor.addLangsDialog.getByRole('checkbox', { name: 'Select all' });
             await selectAllCheckbox.click();
-            await addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
+            await translationEditor.addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
             await expect(translationEditor.selectedLangsSection).toBeVisible({ timeout: 5000 });
         });
 
@@ -134,25 +134,27 @@ test.describe('M@S Studio Translation Editor test suite', () => {
 
         await test.step('step-6: Reopen modal, remove one language, save', async () => {
             await translationEditor.editLanguagesButton.click();
-            await expect(addLangsDialog).toBeVisible({ timeout: 5000 });
-            const firstChecked = addLangsDialog.locator('mas-translation-languages >> sp-table sp-checkbox').first();
+            await expect(translationEditor.addLangsDialog).toBeVisible({ timeout: 5000 });
+            const firstChecked = translationEditor.addLangsDialog
+                .locator('mas-translation-languages >> sp-table sp-checkbox')
+                .first();
             await expect(firstChecked).toBeVisible();
             removedLocale = (await firstChecked.textContent()).trim();
             await firstChecked.click();
-            await addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
+            await translationEditor.addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
             await expect(selectedLangsList).toBeVisible({ timeout: 5000 });
             await expect(selectedLangsList).not.toContainText(removedLocale);
         });
 
         await test.step('step-7: Open modal, add the language back, click Cancel, verify not added', async () => {
             await translationEditor.editLanguagesButton.click();
-            await expect(addLangsDialog).toBeVisible({ timeout: 5000 });
-            const localeToRevert = addLangsDialog
+            await expect(translationEditor.addLangsDialog).toBeVisible({ timeout: 5000 });
+            const localeToRevert = translationEditor.addLangsDialog
                 .locator('mas-translation-languages >> sp-table sp-checkbox')
                 .filter({ hasText: removedLocale });
             await expect(localeToRevert).toBeVisible();
             await localeToRevert.click();
-            await addLangsDialog.getByRole('button', { name: 'Cancel' }).click();
+            await translationEditor.addLangsDialog.getByRole('button', { name: 'Cancel' }).click();
             await translationEditor.selectedLangsToggle.click();
             await expect(selectedLangsList).toBeVisible({ timeout: 5000 });
             await expect(selectedLangsList).not.toContainText(removedLocale);
@@ -163,8 +165,6 @@ test.describe('M@S Studio Translation Editor test suite', () => {
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}`;
         setTestPage(testPage);
 
-        const addLangsDialog = page.locator('mas-translation-editor >> .add-langs-dialog');
-
         await test.step('step-1: Go to MAS Studio translation editor page (new project)', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
@@ -173,10 +173,10 @@ test.describe('M@S Studio Translation Editor test suite', () => {
 
         await test.step('step-2: Add one language to reach Select items section', async () => {
             await translationEditor.addLanguagesButton.click();
-            await expect(addLangsDialog).toBeVisible({ timeout: 5000 });
-            const langCheckbox = addLangsDialog.locator('sp-checkbox').first();
+            await expect(translationEditor.addLangsDialog).toBeVisible({ timeout: 5000 });
+            const langCheckbox = translationEditor.addLangsDialog.locator('sp-checkbox').first();
             await langCheckbox.click();
-            await addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
+            await translationEditor.addLangsDialog.getByRole('button', { name: 'Confirm' }).click();
             await expect(translationEditor.selectedLangsSection).toBeVisible({ timeout: 5000 });
         });
 

@@ -19,6 +19,8 @@ export default class TranslationEditorPage {
         this.selectedLangsToggle = page.locator('.selected-langs-header .toggle-btn');
         this.addLanguagesButton = page.locator('#add-languages-overlay sp-button[slot="trigger"]');
         this.editLanguagesButton = page.locator('.selected-langs-header sp-action-button');
+        this.addLangsDialog = page.locator('mas-translation-editor >> .add-langs-dialog');
+        this.addItemsDialog = page.locator('mas-translation-editor >> .add-items-dialog');
 
         // Selected items section
         this.itemsEmptyState = page.locator('.items-empty-state');

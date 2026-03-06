@@ -179,7 +179,14 @@ jobs:
             - name: Set MAS_IO_URL when io/www has changes
               if: steps.filter.outputs.io-www == 'true'
               run: |
-                  echo "MAS_IO_URL=?mas-io-url=https://${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  ACTOR_NS="${{ secrets[format('AIO_NS_{0}', github.actor)] }}"
+                  if [ -n "$ACTOR_NS" ]; then
+                    echo "Using AIO namespace: actor (${{ github.actor }})"
+                    echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  else
+                    echo "Using AIO namespace: QA (fallback)"
+                    echo "MAS_IO_URL=?mas-io-url=https://${{ secrets.AIO_NS_QA }}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  fi
 
             - name: Run Nala Docs Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh
